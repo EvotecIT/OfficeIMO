@@ -18,6 +18,8 @@ public enum MarkdownSlideBreak {
 public sealed class MarkdownToPowerPointOptions {
     /// <summary>Rejects reported mapping or native presentation loss.</summary>
     public bool FailOnLoss { get; set; }
+    /// <summary>Shared visual identity applied during native presentation creation.</summary>
+    public OfficeTheme? Theme { get; set; }
     /// <summary>Slide boundary policy; defaults to thematic breaks and title-level headings.</summary>
     public MarkdownSlideBreak SlideBreak { get; set; }
     /// <summary>Heading level used for slide titles, from one through six.</summary>

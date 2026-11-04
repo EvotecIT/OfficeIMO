@@ -26,7 +26,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             || layout == "twocolumns";
     }
 
-    private static PowerPointDeckDesign CreateDeckDesign(OfficeMarkupDocument document) {
+    private static PowerPointDeckDesign CreateDeckDesign(OfficeMarkupDocument document, OfficeTheme? theme) {
         var accent = ToPowerPointColor(GetMetadata(document, "accent")
             ?? GetMetadata(document, "accent-color")
             ?? GetMetadata(document, "brand-color")
@@ -40,7 +40,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         var footerRight = GetMetadata(document, "footer-right") ?? GetMetadata(document, "author");
         var eyebrow = GetMetadata(document, "eyebrow");
 
-        return PowerPointDeckDesign.FromBrand(
+        var design = PowerPointDeckDesign.FromBrand(
             accent,
             seed,
             ParseDesignMood(GetMetadata(document, "mood") ?? GetMetadata(document, "design-mood")),
@@ -48,6 +48,26 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             eyebrow: eyebrow,
             footerLeft: footerLeft,
             footerRight: footerRight);
+        if (theme != null) {
+            var appearance = design.Theme;
+            appearance.Name = theme.Name;
+            appearance.HeadingFontFamily = theme.Fonts.Heading.Family;
+            appearance.BodyFontFamily = theme.Fonts.Body.Family;
+            appearance.BackgroundColor = theme.Palette.Background;
+            appearance.PrimaryTextColor = theme.Palette.Text;
+            appearance.SecondaryTextColor = theme.Palette.TextMuted;
+            appearance.MutedTextColor = theme.Palette.TextMuted;
+            appearance.SurfaceColor = theme.Surfaces.Surface;
+            appearance.PanelColor = theme.Surfaces.Surface;
+            appearance.PanelBorderColor = theme.Surfaces.Rule;
+            appearance.AccentColor = theme.Palette.Accent1;
+            appearance.Accent2Color = theme.Palette.Accent2;
+            appearance.Accent3Color = theme.Palette.Accent3;
+            appearance.AccentDarkColor = theme.Palette.Accent1;
+            appearance.AccentLightColor = theme.Surfaces.Accent1Tint;
+            appearance.WarningColor = theme.Palette.Warning;
+        }
+        return design;
     }
 
     private static PowerPointDesignMood ParseDesignMood(string? value) {

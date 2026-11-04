@@ -104,6 +104,27 @@ public class OfficeMarkupTextFormattingTests {
     }
 
     [Fact]
+    public void PowerPointThemePreservesHeadingBodyAndExplicitFonts() {
+        var slide = new OfficeMarkupSlideBlock("Theme title");
+        slide.Blocks.Add(new OfficeMarkupHeadingBlock(2, "Content heading"));
+        var custom = new OfficeMarkupHeadingBlock(2, "Explicit heading");
+        custom.Attributes["font-family"] = "Consolas";
+        slide.Blocks.Add(custom);
+        slide.Blocks.Add(new OfficeMarkupParagraphBlock("Body marker"));
+        var source = new OfficeMarkupDocument(OfficeMarkupProfile.Presentation);
+        source.Blocks.Add(slide);
+        using PowerPointDocument presentation = source.ToPowerPoint(new MarkupPowerPointExportOptions { Theme = OfficeTheme.Boardroom });
+        using var saved = new MemoryStream();
+        presentation.Save(saved);
+        saved.Position = 0;
+        using PowerPointDocument reopened = PowerPointDocument.Load(saved);
+        var runs = reopened.Slides.SelectMany(item => item.TextBoxes).SelectMany(box => box.Paragraphs).SelectMany(paragraph => paragraph.Runs).ToArray();
+        Assert.Equal("Georgia", Assert.Single(runs, run => run.Text == "Content heading").FontFamily);
+        Assert.Equal("Consolas", Assert.Single(runs, run => run.Text == "Explicit heading").FontFamily);
+        Assert.Equal("Aptos", Assert.Single(runs, run => run.Text == "Body marker").FontFamily);
+    }
+
+    [Fact]
     public void StyleResolver_ParsesCompleteTypographyAttributes() {
         var block = new OfficeMarkupTextBoxBlock("Mixed case");
         block.Attributes["font-family"] = "Aptos";

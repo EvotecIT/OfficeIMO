@@ -959,6 +959,12 @@
         "OfficeIMO/Batches/OfficeBatchConfigurationJsonContext.cs"
       ],
       "applied": "phase-b-applied"
+    },
+    {
+      "phase": "M5",
+      "action": "add",
+      "new": "MarkdownToPowerPointOptions.Theme",
+      "reason": "Projects shared theme through native Markup presentation creation without changing caller settings."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

@@ -7,6 +7,9 @@ public sealed class MarkupPowerPointExportOptions {
     /// <summary>Rejects conversion when mapping or native validation reports fidelity loss.</summary>
     public bool FailOnLoss { get; set; }
 
+    /// <summary>Shared visual identity for the new presentation and its default text styles. Explicit block styling is retained.</summary>
+    public OfficeTheme? Theme { get; set; }
+
     /// <summary>Base directory used to resolve relative resource paths.</summary>
     public string? BaseDirectory { get; set; }
     /// <summary>Slide width in inches.</summary>

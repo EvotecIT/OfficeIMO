@@ -1,0 +1,23 @@
+{
+  "package": "OfficeIMO.Markup",
+  "changes": [
+    {
+      "old": "OfficeIMO.Markup.OfficeMarkupResolvedStyle.FontName",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Markup.OfficeMarkupResolvedStyle.FontFamily",
+      "replacement": "Use FontFamily on the resolved style. Markup font/font-family input syntax is unchanged.",
+      "reason": "The resolved value names a typeface family; the same FontFamily vocabulary is used by Word, Excel and PowerPoint authoring.",
+      "category": "authoring",
+      "applied": true
+    }
+  ],
+  "extraChanges": [
+    {
+      "phase": "M5",
+      "action": "add",
+      "new": "OfficeMarkupStyleResolver.Create(OfficeMarkupDocument, OfficeTheme?)",
+      "reason": "Applies shared theme fonts and palette to native default styles; explicit block attributes retain precedence."
+    }
+  ]
+}

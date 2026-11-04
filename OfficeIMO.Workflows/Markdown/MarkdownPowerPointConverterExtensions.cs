@@ -37,7 +37,9 @@ public static class MarkdownPowerPointConverterExtensions {
             var projection = new OfficeConversionReport("Markdown", "PowerPoint", diagnostics: findings);
             if (settings.FailOnLoss) projection.ThrowIfLoss();
             OfficeConversionResult<PowerPointDocument> converted;
-            try { converted = await markup.ToPowerPointAsync(MarkdownPowerPointProjection.ExportOptions(settings, root), cancellationToken).ConfigureAwait(false); }
+            var export = MarkdownPowerPointProjection.ExportOptions(settings, root);
+            export.Theme = settings.Theme;
+            try { converted = await markup.ToPowerPointAsync(export, cancellationToken).ConfigureAwait(false); }
             catch (OfficeConversionException error) {
                 throw new OfficeConversionException(error.Message, new OfficeConversionReport("Markdown", "PowerPoint",
                     diagnostics: OfficeConversionFidelityDiagnostics.Flatten(new[] { projection, error.Report })), error);

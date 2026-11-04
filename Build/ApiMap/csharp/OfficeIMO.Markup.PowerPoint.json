@@ -28,5 +28,13 @@
       "category": "conversion",
       "applied": true
     }
+  ],
+  "extraChanges": [
+    {
+      "phase": "M5",
+      "action": "add",
+      "new": "MarkupPowerPointExportOptions.Theme",
+      "reason": "Applies immutable shared theme at native presentation creation and text styling."
+    }
   ]
 }

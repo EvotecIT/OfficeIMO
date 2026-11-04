@@ -51,12 +51,12 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         }
 
         var exportDiagnostics = new List<OfficeMarkupDiagnostic>(diagnostics);
-        var styleResolver = OfficeMarkupStyleResolver.Create(document);
+        var styleResolver = OfficeMarkupStyleResolver.Create(document, options.Theme);
         var metrics = new SlideCanvasMetrics(options.SlideWidthInches, options.SlideHeightInches);
-        PowerPointDocument presentation = PowerPointDocument.Create();
+        PowerPointDocument presentation = PowerPointDocument.Create(new PowerPointCreateOptions { Theme = options.Theme });
         try {
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Inches(metrics.Width),OfficeIMO.OfficeLength.Inches(metrics.Height));
-            var deck = presentation.UseDesigner(CreateDeckDesign(document), applyTheme: true);
+            var deck = presentation.UseDesigner(CreateDeckDesign(document, options.Theme), applyTheme: options.Theme == null);
             string? activeSection = null;
             foreach (var slideBlock in GetSlides(document)) {
                 ExportSlide(presentation, deck, slideBlock, options, metrics, styleResolver, exportDiagnostics);
