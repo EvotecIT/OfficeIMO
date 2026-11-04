@@ -16,7 +16,7 @@
     "formatCount": 28,
     "capabilityCount": 137,
     "packageCount": 79,
-    "operationCount": 1434
+    "operationCount": 1438
   },
   "fidelityStates": [
     {
@@ -2800,7 +2800,7 @@
     {
       "id": "OfficeIMO.Excel",
       "slug": "excel",
-      "capabilityCount": 327,
+      "capabilityCount": 328,
       "formats": [
         "DBF/xBase",
         "DOCM/XLSM/XLSB/PPTM families",
@@ -2811,6 +2811,7 @@
         "Excel.OpenXml",
         "Excel.Xls",
         "Excel.Xlsb",
+        "HEIC",
         "JPEG",
         "PNG",
         "SVG",
@@ -2824,6 +2825,7 @@
         "OfficeIMO.Excel.LegacyXls",
         "OfficeIMO.Excel.Xlsb",
         "OfficeIMO.NativeLifecycle",
+        "OfficeIMO.Operations",
         "OfficeIMO.ProtectedContent",
         "OfficeIMO.Provenance"
       ],
@@ -2841,7 +2843,7 @@
               "id": "Partial",
               "label": "Partial",
               "description": "A bounded subset is implemented with explicit limits.",
-              "count": 40
+              "count": 41
             },
             {
               "id": "Rejected",
@@ -4387,8 +4389,9 @@
     {
       "id": "OfficeIMO.Pdf",
       "slug": "pdf",
-      "capabilityCount": 20,
+      "capabilityCount": 21,
       "formats": [
+        "HEIC",
         "JPEG",
         "PDF",
         "Pdf.Native",
@@ -4404,6 +4407,17 @@
         "OfficeIMO.Provenance"
       ],
       "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        },
         {
           "id": "Create",
           "states": [
@@ -4578,11 +4592,12 @@
     {
       "id": "OfficeIMO.PowerPoint",
       "slug": "powerpoint",
-      "capabilityCount": 374,
+      "capabilityCount": 375,
       "formats": [
         "DOCM/XLSM/XLSB/PPTM families",
         "DOCX/DOCM/XLSX/XLSM/PPTX/PPTM",
         "DOCX/DOCM/XLSX/XLSM/PPTX/PPTM/Visio",
+        "HEIC",
         "JPEG",
         "PNG",
         "PowerPoint",
@@ -4598,6 +4613,7 @@
       "sourceCatalogs": [
         "OfficeConversionCapabilityCatalog",
         "OfficeIMO.NativeLifecycle",
+        "OfficeIMO.Operations",
         "OfficeIMO.PowerPoint.LegacyPpt",
         "OfficeIMO.ProtectedContent",
         "OfficeIMO.Provenance"
@@ -4616,7 +4632,7 @@
               "id": "Partial",
               "label": "Partial",
               "description": "A bounded subset is implemented with explicit limits.",
-              "count": 14
+              "count": 15
             },
             {
               "id": "Rejected",
@@ -5377,12 +5393,14 @@
     {
       "id": "OfficeIMO.Word",
       "slug": "word",
-      "capabilityCount": 231,
+      "capabilityCount": 232,
       "formats": [
         "DOC",
         "DOCM/XLSM/XLSB/PPTM families",
+        "DOCX",
         "DOCX/DOCM/XLSX/XLSM/PPTX/PPTM",
         "DOCX/DOCM/XLSX/XLSM/PPTX/PPTM/Visio",
+        "HEIC",
         "Word",
         "Word Open XML",
         "Word.Doc",
@@ -5390,6 +5408,7 @@
       ],
       "sourceCatalogs": [
         "OfficeIMO.NativeLifecycle",
+        "OfficeIMO.Operations",
         "OfficeIMO.ProtectedContent",
         "OfficeIMO.Provenance",
         "OfficeIMO.Word.LegacyDoc"
@@ -5408,7 +5427,7 @@
               "id": "Partial",
               "label": "Partial",
               "description": "A bounded subset is implemented with explicit limits.",
-              "count": 26
+              "count": 27
             },
             {
               "id": "Rejected",

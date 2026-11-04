@@ -30,4 +30,4 @@ Create a live session with an Atlassian email/API-token credential, or use an OA
 
 `Get-OfficeConfluenceAttachment` lists page attachments or streams a download to disk. `Send-OfficeConfluenceAttachment` streams file uploads through the shared OfficeIMO client. Byte-array download output remains available when an output file is not requested.
 
-See the [Confluence reporting example](https://github.com/EvotecIT/OfficeIMO/tree/2fe90bb6f5f2bbc29840934c51d4470c5d3a30fb/PowerShell/PSWriteOffice/Examples/Confluence) and search the [command reference](/api/powershell/) for `OfficeConfluence`.
+See the [Confluence reporting example](https://github.com/EvotecIT/OfficeIMO/tree/7fa01d150c47a5a42b8fa099ff2f560b375c9c47/PowerShell/PSWriteOffice/Examples/Confluence) and search the [command reference](/api/powershell/) for `OfficeConfluence`.
