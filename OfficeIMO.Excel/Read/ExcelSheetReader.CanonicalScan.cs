@@ -8,7 +8,12 @@ namespace OfficeIMO.Excel {
         /// resolve differently from the SDK route: a missing or out-of-grid reference, an unknown
         /// type, or a whitespace-only value.
         /// </summary>
-        internal static WorksheetExtent? MeasureCanonicalWorksheet(XmlReader reader, CancellationToken cancellationToken) {
+        internal static WorksheetExtent? MeasureCanonicalWorksheet(XmlReader reader, CancellationToken cancellationToken,
+            out bool validatedIndexedXml) {
+            validatedIndexedXml = false;
+            IndexedWorksheetNamespaceValidator? namespaces = null;
+            bool sawRoot = false;
+            bool namespaceProof = false;
             int lastRow = 0;
             int lastColumn = 0;
             int currentRow = 0;
@@ -16,6 +21,16 @@ namespace OfficeIMO.Excel {
             int nodes = 0;
             while (reader.Read()) {
                 if ((++nodes & 16383) == 0) cancellationToken.ThrowIfCancellationRequested();
+                // Unprefixed canonical XML already has a cheap byte-level proof. Prefixed
+                // XML otherwise needs another full XmlReader walk after indexing.
+                if (!sawRoot && reader.NodeType == XmlNodeType.Element) {
+                    sawRoot = true;
+                    if (reader.Prefix.Length != 0) {
+                        namespaces = new IndexedWorksheetNamespaceValidator(strictOuterShape: true);
+                        namespaceProof = true;
+                    }
+                }
+                if (namespaceProof && namespaces!.Observe(reader) != IndexedXmlNamespaceStatus.Accepted) namespaceProof = false;
                 if (reader.NodeType == XmlNodeType.Whitespace) {
                     if (afterTextElement) return null;
                     continue;
@@ -44,6 +59,8 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
+            validatedIndexedXml = namespaceProof;
             return new WorksheetExtent(lastRow, lastColumn);
         }
     }

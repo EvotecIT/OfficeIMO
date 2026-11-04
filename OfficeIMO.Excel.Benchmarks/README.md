@@ -21,7 +21,7 @@ output with ExcelDataReader and the strict OfficeIMO reader. The XLS lane also
 requires the BIFF8 Index/DBCell structure. A failed preflight stays visible as
 an unavailable timing, without ranking invalid output against a valid package.
 
-The .NET 10 lanes use the published MIT ExcelReader.NET 7.3.4 package. The .NET 8
+The .NET 10 lanes use the published MIT ExcelReader.NET 7.4.0 package. The .NET 8
 comparisons retain their last compatible pin and are a separate version cohort.
 These generated lanes run on .NET 10:
 
@@ -45,6 +45,25 @@ baseline and candidate harness bytes identical when comparing engine revisions.
 
 Raw UTF-8 span access is different work from returning owned strings. I compare
 materialized values here; the resulting allocation includes those strings.
+
+`--prepare-generated-inputs <directory>` creates the validated fixed corpus
+before I set `OFFICEIMO_EXCEL_GENERATED_INPUT`. `--profile-generated-xlsx
+read|parse|prepare <iterations> [escaped]` repeats one operation for an external
+profiler. `--profile-xlbench-shape <scenario> <iterations> --cpu-only` leaves
+allocation observation disabled during CPU profiling.
+
+`MarkPflug65KXlsxBenchmarks` consumes the same fourteen typed sales columns for
+each library, including the XLibur 0.800.0 loaded-workbook lane. Separate methods
+measure loaded OfficeIMO documents, memory inputs, prefetch and string interning;
+their names identify the options used. Every method validates the row count and
+the checksum over all typed values.
+
+`ExcelWideLoadedReadBenchmarks` is a supplemental 10,000-by-150 presence scan,
+separate from XLBench's published scenarios. Both APIs include headers and must
+find all 1,500,000 cells. `--prepare-xlbench-inputs <directory>` creates the
+neutral-producer read files once; `OFFICEIMO_XLBENCH_INPUT` pins that directory
+for subsequent runs. Input preparation refuses to overwrite existing files.
+BenchmarkDotNet's full JSON export retains the measurements and allocations.
 
 `ExcelRawReadStageBenchmarks` locates XLSX preparation and row-delivery costs.
 It reuses the generated comparison's full value preflight and pinned-input

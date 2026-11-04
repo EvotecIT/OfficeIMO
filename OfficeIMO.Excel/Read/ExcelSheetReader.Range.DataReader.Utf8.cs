@@ -54,6 +54,8 @@ namespace OfficeIMO.Excel {
             private bool _cellsFitWithinRange = true;
             private bool _parseFailed;
             private bool _disposed;
+            // This proof travels with this exact owned buffer, never with a pooled-array identity.
+            private bool _validatedIndexedXml;
 
             private ExcelUtf8RangeRowSource(
                 ExcelSheetReader owner,
@@ -106,14 +108,15 @@ namespace OfficeIMO.Excel {
                 }
 
                 byte[]? buffer = null;
+                bool validatedIndexedXml = false;
                 try {
                     if (TryCreatePipelinedUsedRange(owner, ct, out source, out declaredFirstColumn, out buffer, out int length)) {
                         if (source != null) return true;
-                    } else if (!TryRentWorksheetBuffer(owner, ct, out buffer, out length)) {
+                    } else if (!TryRentWorksheetBuffer(owner, ct, out buffer, out length, out validatedIndexedXml)) {
                         return false;
                     }
 
-                    var candidate = new ExcelUtf8RangeRowSource(owner, buffer!, length);
+                    var candidate = new ExcelUtf8RangeRowSource(owner, buffer!, length) { _validatedIndexedXml = validatedIndexedXml };
                     buffer = null;
                     try {
                         if (!candidate.TryPrepareUsedRange(ct, allowUnknownRows: false, out declaredFirstColumn)) {
@@ -152,7 +155,7 @@ namespace OfficeIMO.Excel {
 
                 byte[]? buffer = null;
                 try {
-                    if (!TryRentWorksheetBuffer(owner, ct, out buffer, out int length)) {
+                    if (!TryRentWorksheetBuffer(owner, ct, out buffer, out int length, out bool validatedIndexedXml)) {
                         return false;
                     }
 
@@ -163,7 +166,7 @@ namespace OfficeIMO.Excel {
                         firstRow,
                         lastRow,
                         firstColumn,
-                        fieldCount);
+                        fieldCount) { _validatedIndexedXml = validatedIndexedXml };
                     buffer = null;
                     try {
                         if (!candidate.TryIndexRows(firstRow, lastRow, ct)) {
@@ -171,7 +174,7 @@ namespace OfficeIMO.Excel {
                             return false;
                         }
 
-                        if (!candidate.IsCanonicalWorksheetXmlFullyValidated(ct)
+                        if (!candidate._validatedIndexedXml && !candidate.IsCanonicalWorksheetXmlFullyValidated(ct)
                             && !candidate.ValidateBufferedWorksheetXml(ct)) {
                             candidate.Dispose();
                             return false;
@@ -195,7 +198,9 @@ namespace OfficeIMO.Excel {
                 ExcelSheetReader owner,
                 CancellationToken ct,
                 out byte[]? buffer,
-                out int length) {
+                out int length,
+                out bool validatedIndexedXml) {
+                validatedIndexedXml = false;
                 ct.ThrowIfCancellationRequested();
                 // A known oversized part cannot become indexable through the SDK
                 // stream. Avoid inflating and growing a buffer only to discard it.
@@ -211,7 +216,7 @@ namespace OfficeIMO.Excel {
                     // Accepted input continues on the same ZIP stream and still receives
                     // complete length, XML, and value validation before publication.
                     return owner._partBufferReader.TryRead(owner._worksheetPartName,
-                        MaximumBufferSize, ct, out buffer, out length, CanBufferUtf8WorksheetPrefix);
+                        MaximumBufferSize, ct, out buffer, out length, out validatedIndexedXml, CanBufferUtf8WorksheetPrefix);
                 }
 
                 owner.RequireSdkWorksheetPart();
