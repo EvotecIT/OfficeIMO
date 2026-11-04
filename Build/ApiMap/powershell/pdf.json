@@ -28,7 +28,7 @@
             },
             {
               "name": "Theme",
-              "type": "OfficeTheme",
+              "type": "PSWriteOffice.Foundation.OfficeThemeInput",
               "mandatory": false,
               "pipeline": "none",
               "notes": "Built-in theme name, theme object or template path. Default Modern. Uses the shared OfficeTheme typography, colors and table defaults; replaces the PDF-only theme presets."
@@ -238,7 +238,7 @@
             },
             {
               "name": "Theme",
-              "type": "OfficeTheme",
+              "type": "PSWriteOffice.Foundation.OfficeThemeInput",
               "mandatory": false,
               "pipeline": "none",
               "notes": "Built-in theme name, theme object or template path. Default Modern. Uses the shared OfficeTheme typography, colors and table defaults; replaces the PDF-only theme presets."
@@ -482,7 +482,7 @@
           "parameters": [
             {
               "name": "Path",
-              "type": "string",
+              "type": "System.String[]",
               "mandatory": true,
               "position": 0,
               "pipeline": "none"
@@ -578,7 +578,7 @@
           "parameters": [
             {
               "name": "LiteralPath",
-              "type": "string",
+              "type": "System.String[]",
               "mandatory": true,
               "pipeline": "propertyName"
             },
@@ -2068,6 +2068,293 @@
               "pipeline": "none"
             }
           ]
+        },
+        {
+          "name": "PipelineDocument",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "PdfDocument",
+              "mandatory": true,
+              "pipeline": "value"
+            },
+            {
+              "name": "InputObject",
+              "type": "object[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "none",
+              "notes": "Objects, or row arrays of values/PdfTableCell specs."
+            },
+            {
+              "name": "Property",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Header",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "View",
+              "type": "OfficeTableView",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "CollectionSeparator",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "DictionaryEntrySeparator",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "DictionaryKeyValueSeparator",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaxCollectionItems",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaxNestingDepth",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ColumnFormat",
+              "type": "hashtable",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Alignment",
+              "type": "OfficeAlignment",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "TableStyle",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Theme table style by default."
+            },
+            {
+              "name": "HeaderBackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "HeaderColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Color",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "BandColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "BorderColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "BorderWidth",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Size",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "HeaderSize",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "LineHeight",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Multiplier."
+            },
+            {
+              "name": "CellPaddingX",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "CellPaddingY",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "SpacingBefore",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "SpacingAfter",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Caption",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "CaptionAlignment",
+              "type": "OfficeAlignment",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "CaptionColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "CaptionSize",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ColumnWidth",
+              "type": "OfficeLength[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ColumnWeight",
+              "type": "double[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ColumnAlignment",
+              "type": "OfficeAlignment[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "AutoFit",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NoNumericAlignment",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Numbers are right-aligned by default (theme rule)."
+            },
+            {
+              "name": "ShrinkToFit",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MinimumSize",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "KeepTogether",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "KeepWithNext",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NoBorder",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NoHeaderBackground",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NoBanding",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "HeaderRowCount",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "RepeatHeaderRowCount",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "FooterRowCount",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
         }
       ],
       "notes": "Rows always come from -InputObject (pipeline by value); in the Document set -Document is named, not piped, which removes the PipelineDocument set. -ColumnFormat has the same shape as Export-OfficeExcel -ColumnFormat: it maps headers to presets (Text, Number, Integer, Percent, Currency, Date, DateTime) or format strings, with optional per-entry Decimals, for example @{ Amount = 'Currency'; Share = @{ Format = 'Percent'; Decimals = 1 } }; formatted numeric columns stay right-aligned.",
@@ -2584,7 +2871,7 @@
             },
             {
               "name": "MaximumSvgViewportDimension",
-              "type": "int",
+              "type": "System.Double",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -2755,7 +3042,7 @@
             },
             {
               "name": "MaximumSvgViewportDimension",
-              "type": "int",
+              "type": "System.Double",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -8660,7 +8947,7 @@
               "type": "string[]",
               "mandatory": true,
               "position": 0,
-              "pipeline": "none",
+              "pipeline": "value",
               "wildcards": true
             },
             {
@@ -8895,6 +9182,13 @@
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "OfficeIMO.Pdf.PdfAnnotationUpdateOptions",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Captured native edit policy and fields; explicit parameters override it. AllowResidualDataInAppendOnly remains an explicit opt-in for review edits that retain replaced values in prior revisions."
             }
           ]
         },
@@ -8983,6 +9277,13 @@
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "OfficeIMO.Pdf.PdfAnnotationUpdateOptions",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Captured native edit policy and fields; explicit parameters override it. AllowResidualDataInAppendOnly remains an explicit opt-in for review edits that retain replaced values in prior revisions."
             }
           ]
         },
@@ -9071,6 +9372,13 @@
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "OfficeIMO.Pdf.PdfAnnotationUpdateOptions",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Captured native edit policy and fields; explicit parameters override it. AllowResidualDataInAppendOnly remains an explicit opt-in for review edits that retain replaced values in prior revisions."
             }
           ]
         },
@@ -9159,6 +9467,13 @@
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "OfficeIMO.Pdf.PdfAnnotationUpdateOptions",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Captured native edit policy and fields; explicit parameters override it. AllowResidualDataInAppendOnly remains an explicit opt-in for review edits that retain replaced values in prior revisions."
             }
           ]
         },
@@ -9250,6 +9565,13 @@
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "OfficeIMO.Pdf.PdfAnnotationUpdateOptions",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Captured native edit policy and fields; explicit parameters override it. AllowResidualDataInAppendOnly remains an explicit opt-in for review edits that retain replaced values in prior revisions."
             }
           ]
         },
@@ -9341,6 +9663,13 @@
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "OfficeIMO.Pdf.PdfAnnotationUpdateOptions",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Captured native edit policy and fields; explicit parameters override it. AllowResidualDataInAppendOnly remains an explicit opt-in for review edits that retain replaced values in prior revisions."
             }
           ]
         },
@@ -9432,6 +9761,13 @@
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "OfficeIMO.Pdf.PdfAnnotationUpdateOptions",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Captured native edit policy and fields; explicit parameters override it. AllowResidualDataInAppendOnly remains an explicit opt-in for review edits that retain replaced values in prior revisions."
             }
           ]
         },
@@ -9523,6 +9859,13 @@
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "OfficeIMO.Pdf.PdfAnnotationUpdateOptions",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Captured native edit policy and fields; explicit parameters override it. AllowResidualDataInAppendOnly remains an explicit opt-in for review edits that retain replaced values in prior revisions."
             }
           ]
         },
@@ -9583,6 +9926,13 @@
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "OfficeIMO.Pdf.PdfAnnotationUpdateOptions",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Captured native edit policy and fields; explicit parameters override it. AllowResidualDataInAppendOnly remains an explicit opt-in for review edits that retain replaced values in prior revisions."
             }
           ]
         },
@@ -9643,6 +9993,13 @@
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "OfficeIMO.Pdf.PdfAnnotationUpdateOptions",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Captured native edit policy and fields; explicit parameters override it. AllowResidualDataInAppendOnly remains an explicit opt-in for review edits that retain replaced values in prior revisions."
             }
           ]
         }
@@ -10034,7 +10391,7 @@
               "type": "string[]",
               "mandatory": true,
               "position": 0,
-              "pipeline": "none",
+              "pipeline": "value",
               "wildcards": true
             },
             {
@@ -15789,7 +16146,7 @@
         {
           "title": "Check how text will render",
           "description": "Reports encoding and shaping for right-to-left text before it is written with a specific font.",
-          "code": "Get-OfficePdfDiagnostic -Text '\u0645\u0631\u062d\u0628\u0627 \u0628\u0627\u0644\u0639\u0627\u0644\u0645' -FontPath .\\Fonts\\NotoNaskhArabic-Regular.ttf -AdvancedLayout"
+          "code": "Get-OfficePdfDiagnostic -Text 'مرحبا بالعالم' -FontPath .\\Fonts\\NotoNaskhArabic-Regular.ttf -AdvancedLayout"
         }
       ]
     },
@@ -16385,7 +16742,7 @@
             },
             {
               "name": "Format",
-              "type": "OfficeImageFormat",
+              "type": "OfficeIMO.Drawing.OfficeImageExportFormat",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -16467,7 +16824,7 @@
             },
             {
               "name": "Format",
-              "type": "OfficeImageFormat",
+              "type": "OfficeIMO.Drawing.OfficeImageExportFormat",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -16552,7 +16909,7 @@
             },
             {
               "name": "Format",
-              "type": "OfficeImageFormat",
+              "type": "OfficeIMO.Drawing.OfficeImageExportFormat",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -16637,7 +16994,7 @@
             },
             {
               "name": "Format",
-              "type": "OfficeImageFormat",
+              "type": "OfficeIMO.Drawing.OfficeImageExportFormat",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -17689,7 +18046,7 @@
             },
             {
               "name": "Alignment",
-              "type": "PdfVisualComparisonAlignment",
+              "type": "OfficeIMO.Pdf.PdfVisualPageAlignment",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -19103,7 +19460,7 @@
       "action": "merge",
       "new": "Get-OfficePdfDiagnostic",
       "parameterSet": "Text",
-      "hint": "Get-OfficePdfDiagnostic -Text '\u0645\u0631\u062d\u0628\u0627' -AdvancedLayout",
+      "hint": "Get-OfficePdfDiagnostic -Text 'مرحبا' -AdvancedLayout",
       "reason": "Diagnostic concepts are one command (rule 2)."
     },
     {

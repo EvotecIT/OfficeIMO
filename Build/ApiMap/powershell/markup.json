@@ -488,7 +488,7 @@
       "alias": null,
       "status": "new",
       "synopsis": "Creates Markdown-to-HTML options for Convert-OfficeDocument -To Html.",
-      "outputType": "OfficeIMO.Markdown.HtmlOptions",
+      "outputType": "OfficeIMO.Markdown.MarkdownHtmlExportOptions",
       "shouldProcess": false,
       "parameterSets": [
         {
@@ -497,7 +497,7 @@
           "parameters": [
             {
               "name": "ReaderOptions",
-              "type": "MarkdownReaderOptions",
+              "type": "MarkdownLoadOptions",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -509,19 +509,19 @@
             },
             {
               "name": "Style",
-              "type": "HtmlStyle",
+              "type": "MarkdownHtmlStyle",
               "mandatory": false,
               "pipeline": "none"
             },
             {
               "name": "CssDelivery",
-              "type": "CssDelivery",
+              "type": "MarkdownCssDelivery",
               "mandatory": false,
               "pipeline": "none"
             },
             {
               "name": "AssetMode",
-              "type": "AssetMode",
+              "type": "MarkdownAssetMode",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -533,13 +533,13 @@
             },
             {
               "name": "Theme",
-              "type": "OfficeTheme",
+              "type": "PSWriteOffice.Foundation.OfficeThemeInput",
               "mandatory": false,
               "pipeline": "none"
             },
             {
               "name": "RawHtmlHandling",
-              "type": "RawHtmlHandling",
+              "type": "MarkdownRawHtmlHandling",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -789,19 +789,19 @@
           "parameters": [
             {
               "name": "BaseOptions",
-              "type": "MarkdownToPdfOptions",
+              "type": "OfficeIMO.Markdown.Pdf.MarkdownPdfExportOptions",
               "mandatory": false,
               "pipeline": "byValue"
             },
             {
               "name": "PdfOptions",
-              "type": "PdfOptions",
+              "type": "OfficeIMO.Pdf.PdfCreateOptions",
               "mandatory": false,
               "pipeline": "none"
             },
             {
               "name": "Theme",
-              "type": "OfficeTheme",
+              "type": "PSWriteOffice.Foundation.OfficeThemeInput",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -935,7 +935,7 @@
       "alias": null,
       "status": "new",
       "synopsis": "Creates Markdown-to-PowerPoint settings (slide breaks, title headings, speaker notes, images) for Convert-OfficeDocument -To PowerPoint.",
-      "outputType": "MarkdownToPowerPointOptions",
+      "outputType": "OfficeIMO.Workflows.MarkdownToPowerPointOptions",
       "parameterSets": [
         {
           "name": "Default",
@@ -1022,13 +1022,13 @@
             },
             {
               "name": "Profile",
-              "type": "MarkdownReaderProfile",
+              "type": "MarkdownLoadOptions.MarkdownDialectProfile",
               "mandatory": false,
               "pipeline": "none"
             },
             {
               "name": "ReaderOptions",
-              "type": "MarkdownReaderOptions",
+              "type": "MarkdownLoadOptions",
               "mandatory": false,
               "pipeline": "none"
             }
@@ -3446,8 +3446,7 @@
             {
               "name": "InputObject",
               "type": "object",
-              "mandatory": true,
-              "position": 0,
+              "mandatory": false,
               "pipeline": "byValue"
             },
             {
@@ -3524,7 +3523,7 @@
       "parameterSets": [
         {
           "name": "Text",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Path",
@@ -3601,7 +3600,7 @@
         },
         {
           "name": "Live",
-          "default": false,
+          "default": true,
           "parameters": [
             {
               "name": "Path",
@@ -3635,7 +3634,7 @@
         {
           "title": "Write styled paragraphs",
           "description": "A content block of RtfParagraph commands, saved when the block ends.",
-          "code": "New-OfficeRtf -Path .\\Notes\\Change-Notice.rtf {\n    RtfParagraph 'Change notice' -Bold -Alignment Center\n    RtfParagraph 'The file servers restart on Saturday at 22:00.'\n    RtfParagraph 'Save your work before you leave.' -Italic\n}"
+          "code": "New-OfficeRtf -Path .\\Notes\\Change-Notice.rtf -Content {\n    RtfParagraph 'Change notice' -Bold -Alignment Center\n    RtfParagraph 'The file servers restart on Saturday at 22:00.'\n    RtfParagraph 'Save your work before you leave.' -Italic\n}"
         }
       ]
     },
@@ -3782,7 +3781,7 @@
       "status": "new",
       "synopsis": "Releases an RtfDocument without saving.",
       "outputType": "None",
-      "shouldProcess": false,
+      "shouldProcess": true,
       "parameterSets": [
         {
           "name": "Document",
@@ -3797,7 +3796,7 @@
           ]
         }
       ],
-      "notes": "Lifecycle parity; RtfDocument holds no file handle.",
+      "notes": "Uses the native RtfDocument lifetime. ShouldProcess protects disposal; WhatIf leaves the live document usable, and disposal never saves.",
       "examples": [
         {
           "title": "Release an RTF document",
@@ -3852,6 +3851,42 @@
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "Underline",
+              "type": "OfficeIMO.Rtf.RtfUnderlineStyle",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Strikethrough",
+              "type": "System.Management.Automation.SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Font",
+              "type": "System.String",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Size",
+              "type": "OfficeIMO.OfficeLength",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Color",
+              "type": "OfficeIMO.OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Link",
+              "type": "System.Uri",
+              "mandatory": false,
+              "pipeline": "none"
             }
           ]
         },
@@ -3893,6 +3928,42 @@
             {
               "name": "PassThru",
               "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Underline",
+              "type": "OfficeIMO.Rtf.RtfUnderlineStyle",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Strikethrough",
+              "type": "System.Management.Automation.SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Font",
+              "type": "System.String",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Size",
+              "type": "OfficeIMO.OfficeLength",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Color",
+              "type": "OfficeIMO.OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Link",
+              "type": "System.Uri",
               "mandatory": false,
               "pipeline": "none"
             }
@@ -4089,7 +4160,7 @@
           "parameters": [
             {
               "name": "PdfOptions",
-              "type": "PdfOptions",
+              "type": "OfficeIMO.Pdf.PdfCreateOptions",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -4292,7 +4363,7 @@
       "alias": null,
       "status": "new",
       "synopsis": "Creates HTML-to-RTF options for Convert-OfficeDocument -To Rtf.",
-      "outputType": "OfficeIMO.Html.Rtf.HtmlRtfExportOptions",
+      "outputType": "OfficeIMO.Word.Html.HtmlWordExportOptions",
       "shouldProcess": false,
       "parameterSets": [
         {
@@ -4326,7 +4397,7 @@
           ]
         }
       ],
-      "notes": "Carries the HTML-specific settings of the former ConvertTo-OfficeRtf -Html/-HtmlPath sets.",
+      "notes": "Preserves the existing HTML/CSS import through the native HTML-to-Word-to-RTF route. Canonical registered HtmlRtfImport slot receives this actual native type; direct semantic HtmlRtf and CSS import settings are mutually exclusive.",
       "examples": [
         {
           "title": "Set the RTF font for HTML input",
@@ -4391,6 +4462,13 @@
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "AllowLoss",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Permit native save report loss instead of rejecting output."
             }
           ]
         },
@@ -4685,7 +4763,7 @@
             },
             {
               "name": "Options",
-              "type": "object[]",
+              "type": "OfficeIMO.OpenDocument.OdfSaveOptions",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -4841,6 +4919,54 @@
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "Bold",
+              "type": "System.Management.Automation.SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Italic",
+              "type": "System.Management.Automation.SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Strikethrough",
+              "type": "System.Management.Automation.SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Underline",
+              "type": "OfficeIMO.OpenDocument.OdfTextDecorationStyle",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Font",
+              "type": "System.String",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Size",
+              "type": "OfficeIMO.OfficeLength",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Color",
+              "type": "OfficeIMO.OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Alignment",
+              "type": "OfficeIMO.OfficeAlignment",
+              "mandatory": false,
+              "pipeline": "none"
             }
           ]
         }
@@ -4887,6 +5013,54 @@
             {
               "name": "PassThru",
               "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Bold",
+              "type": "System.Management.Automation.SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Italic",
+              "type": "System.Management.Automation.SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Strikethrough",
+              "type": "System.Management.Automation.SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Underline",
+              "type": "OfficeIMO.OpenDocument.OdfTextDecorationStyle",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Font",
+              "type": "System.String",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Size",
+              "type": "OfficeIMO.OfficeLength",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Color",
+              "type": "OfficeIMO.OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Alignment",
+              "type": "OfficeIMO.OfficeAlignment",
               "mandatory": false,
               "pipeline": "none"
             }
@@ -4971,50 +5145,19 @@
       "shouldProcess": false,
       "parameterSets": [
         {
-          "name": "Default",
-          "default": true,
-          "parameters": [
-            {
-              "name": "Document",
-              "type": "OdpPresentation",
-              "mandatory": false,
-              "pipeline": "byValue"
-            },
-            {
-              "name": "Content",
-              "type": "scriptblock",
-              "mandatory": false,
-              "position": 0,
-              "pipeline": "none"
-            },
-            {
-              "name": "Name",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "PassThru",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            }
-          ]
-        },
-        {
-          "name": "Named",
+          "name": "__AllParameterSets",
           "default": false,
           "parameters": [
             {
               "name": "Document",
               "type": "OdpPresentation",
               "mandatory": false,
-              "pipeline": "byValue"
+              "pipeline": "value"
             },
             {
               "name": "Name",
               "type": "string",
-              "mandatory": true,
+              "mandatory": false,
               "position": 0,
               "pipeline": "none"
             },
@@ -5108,6 +5251,54 @@
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "Bold",
+              "type": "System.Management.Automation.SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Italic",
+              "type": "System.Management.Automation.SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Strikethrough",
+              "type": "System.Management.Automation.SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Underline",
+              "type": "OfficeIMO.OpenDocument.OdfTextDecorationStyle",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Font",
+              "type": "System.String",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Size",
+              "type": "OfficeIMO.OfficeLength",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Color",
+              "type": "OfficeIMO.OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Alignment",
+              "type": "OfficeIMO.OfficeAlignment",
+              "mandatory": false,
+              "pipeline": "none"
             }
           ]
         }
@@ -5160,7 +5351,8 @@
               "name": "Value",
               "type": "object",
               "mandatory": true,
-              "pipeline": "none"
+              "pipeline": "none",
+              "position": 0
             },
             {
               "name": "PassThru",
@@ -5889,7 +6081,7 @@
             },
             {
               "name": "Options",
-              "type": "object[]",
+              "type": "OfficeIMO.AsciiDoc.AsciiDocParseOptions",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -5918,7 +6110,7 @@
             },
             {
               "name": "Options",
-              "type": "object[]",
+              "type": "OfficeIMO.AsciiDoc.AsciiDocParseOptions",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -5942,7 +6134,7 @@
             },
             {
               "name": "Options",
-              "type": "object[]",
+              "type": "OfficeIMO.AsciiDoc.AsciiDocParseOptions",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -5990,7 +6182,7 @@
             {
               "name": "Path",
               "type": "string",
-              "mandatory": false,
+              "mandatory": true,
               "position": 0,
               "pipeline": "none"
             },
@@ -6019,13 +6211,13 @@
       "examples": [
         {
           "title": "Save an AsciiDoc document",
-          "description": "Writes the document back to the file it came from.",
-          "code": "Save-OfficeAsciiDoc -Document $doc"
+          "description": "Writes the document to the selected AsciiDoc file.",
+          "code": "Save-OfficeAsciiDoc -Document $doc -Path .\\docs\\report.adoc"
         },
         {
           "title": "Normalize AsciiDoc formatting",
           "description": "Rewrites every file in canonical form with LF line endings.",
-          "code": "Get-ChildItem -Path .\\docs -Filter *.adoc | ForEach-Object {\n    $doc = Open-OfficeAsciiDoc -LiteralPath $_.FullName\n    Save-OfficeAsciiDoc -Document $doc -Mode Canonical -LineEnding LF\n}"
+          "code": "Get-ChildItem -Path .\\docs -Filter *.adoc | ForEach-Object {\n    $doc = Open-OfficeAsciiDoc -LiteralPath $_.FullName\n    Save-OfficeAsciiDoc -Document $doc -Path $_.FullName -Mode Canonical -LineEnding LF\n}"
         }
       ]
     },
@@ -6127,7 +6319,7 @@
             },
             {
               "name": "Options",
-              "type": "object[]",
+              "type": "OfficeIMO.Latex.LatexParseOptions",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -6156,7 +6348,7 @@
             },
             {
               "name": "Options",
-              "type": "object[]",
+              "type": "OfficeIMO.Latex.LatexParseOptions",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -6180,7 +6372,7 @@
             },
             {
               "name": "Options",
-              "type": "object[]",
+              "type": "OfficeIMO.Latex.LatexParseOptions",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -6228,7 +6420,7 @@
             {
               "name": "Path",
               "type": "string",
-              "mandatory": false,
+              "mandatory": true,
               "position": 0,
               "pipeline": "none"
             },
@@ -6257,8 +6449,8 @@
       "examples": [
         {
           "title": "Save a LaTeX document",
-          "description": "Writes the document back to the file it came from.",
-          "code": "Save-OfficeLatex -Document $doc"
+          "description": "Writes the document to the selected LaTeX file.",
+          "code": "Save-OfficeLatex -Document $doc -Path .\\paper.tex"
         },
         {
           "title": "Write a canonical copy for review",
@@ -6383,7 +6575,7 @@
             },
             {
               "name": "Options",
-              "type": "object[]",
+              "type": "OfficeIMO.IWork.IWorkLoadOptions",
               "mandatory": false,
               "pipeline": "none"
             }
@@ -6412,7 +6604,7 @@
             },
             {
               "name": "Options",
-              "type": "object[]",
+              "type": "OfficeIMO.IWork.IWorkLoadOptions",
               "mandatory": false,
               "pipeline": "none"
             }
@@ -6732,7 +6924,7 @@
               "type": "string[]",
               "mandatory": true,
               "position": 0,
-              "pipeline": "byValue",
+              "pipeline": "byValueAndPropertyName",
               "wildcards": true
             },
             {
@@ -6946,7 +7138,7 @@
               "type": "string[]",
               "mandatory": true,
               "position": 0,
-              "pipeline": "byValue",
+              "pipeline": "byValueAndPropertyName",
               "wildcards": true
             },
             {
@@ -7159,7 +7351,7 @@
               "type": "string[]",
               "mandatory": true,
               "position": 0,
-              "pipeline": "byValue",
+              "pipeline": "byValueAndPropertyName",
               "wildcards": true
             },
             {
@@ -10315,7 +10507,7 @@
             },
             {
               "name": "PdfOptions",
-              "type": "PdfOptions",
+              "type": "OfficeIMO.Pdf.PdfCreateOptions",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -10398,7 +10590,7 @@
             },
             {
               "name": "PdfOptions",
-              "type": "PdfOptions",
+              "type": "OfficeIMO.Pdf.PdfCreateOptions",
               "mandatory": false,
               "pipeline": "none"
             }

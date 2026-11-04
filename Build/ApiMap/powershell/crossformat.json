@@ -10,7 +10,7 @@
       "outputType": "OfficeConversionReport",
       "outputTypes": [
         "OfficeConversionReport",
-        "OfficeConversionPlan",
+        "OfficeBatchPlan",
         "string",
         "System.IO.FileInfo"
       ],
@@ -30,7 +30,7 @@
             },
             {
               "name": "To",
-              "type": "OfficeFormat",
+              "type": "string",
               "mandatory": true,
               "pipeline": "none",
               "note": "Target format name or extension (see notes). Named only, so a second positional value binds -OutputPath."
@@ -44,7 +44,7 @@
             },
             {
               "name": "From",
-              "type": "OfficeFormat",
+              "type": "string",
               "mandatory": false,
               "pipeline": "none",
               "note": "Overrides source detection, for example a .txt file that holds Markdown or HTML."
@@ -58,10 +58,10 @@
             },
             {
               "name": "Theme",
-              "type": "OfficeTheme",
+              "type": "PSWriteOffice.Foundation.OfficeThemeInput",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Theme for routes that create a new document (Markdown, HTML or text to Word or PowerPoint): built-in theme name, theme object or .dotx/.potx path. Overrides the Theme of a route options object. Invalid argument when no selected route creates a new document."
+              "note": "Theme for the executable Markdown/text to Word or PowerPoint and HTML to Word creation routes: built-in name, OfficeTheme object or theme package. Overrides the captured route Theme. Plain .txt to Word requires From or an explicit route where ambiguous. Invalid when no selected route supports creation. Theme-bearing advanced options remain execution-only for saved job schema v2."
             },
             {
               "name": "Password",
@@ -89,14 +89,14 @@
               "type": "OfficePageRange",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Pages or slides to convert where the route supports it, for example 1-3,5 (was PageRange)."
+              "note": "One-based native PDF source page selection where the route supports it; an existing OCR review already owns its selection."
             },
             {
               "name": "Dpi",
-              "type": "double",
+              "type": "Double",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Raster resolution for routes that rasterize (36-600; was RasterDpi)."
+              "note": "Double raster density from 36 through 600 for OCR and PDF to Word/PowerPoint raster projections."
             },
             {
               "name": "CompressPdf",
@@ -124,14 +124,14 @@
               "type": "SwitchParameter",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Recognize text in images and scanned pages with the default OCR engine."
+              "note": "Recognize an original native-admitted image or PDF before projection; existing OCR reviews convert directly without recognition. Unsupported combinations reject explicitly."
             },
             {
               "name": "OcrOptions",
               "type": "OfficeOcrOptions",
               "mandatory": false,
               "pipeline": "none",
-              "note": "OCR settings from New-OfficeOcrOptions; implies -Ocr."
+              "note": "Typed provider/session/recognition options; implies Ocr, snapshots caller settings, shared lazy provider starts only after source admission. Execution-only; not a portable-job field."
             },
             {
               "name": "MaximumInputBytes",
@@ -199,7 +199,7 @@
               "type": "SwitchParameter",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Open each output in its default application (was Open)."
+              "note": "Open each newly published conversion file in its default application. Reject AsString, Plan, SaveJob and text/live-document conversions without OutputPath. WhatIf, failed conversions, skipped items and reused outputs never open an application."
             },
             {
               "name": "Recurse",
@@ -303,7 +303,7 @@
               "type": "string[]",
               "mandatory": true,
               "position": 0,
-              "pipeline": "value",
+              "pipeline": "none",
               "wildcards": true
             },
             {
@@ -315,14 +315,14 @@
             },
             {
               "name": "To",
-              "type": "OfficeFormat",
+              "type": "string",
               "mandatory": false,
               "pipeline": "none",
               "note": "Inferred from the -OutputPath extension when omitted."
             },
             {
               "name": "From",
-              "type": "OfficeFormat",
+              "type": "string",
               "mandatory": false,
               "pipeline": "none",
               "note": "Overrides source detection, for example a .txt file that holds Markdown or HTML."
@@ -336,10 +336,10 @@
             },
             {
               "name": "Theme",
-              "type": "OfficeTheme",
+              "type": "PSWriteOffice.Foundation.OfficeThemeInput",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Theme for routes that create a new document (Markdown, HTML or text to Word or PowerPoint): built-in theme name, theme object or .dotx/.potx path. Overrides the Theme of a route options object. Invalid argument when no selected route creates a new document."
+              "note": "Theme for the executable Markdown/text to Word or PowerPoint and HTML to Word creation routes: built-in name, OfficeTheme object or theme package. Overrides the captured route Theme. Plain .txt to Word requires From or an explicit route where ambiguous. Invalid when no selected route supports creation. Theme-bearing advanced options remain execution-only for saved job schema v2."
             },
             {
               "name": "Password",
@@ -367,14 +367,14 @@
               "type": "OfficePageRange",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Pages or slides to convert where the route supports it, for example 1-3,5 (was PageRange)."
+              "note": "One-based native PDF source page selection where the route supports it; an existing OCR review already owns its selection."
             },
             {
               "name": "Dpi",
-              "type": "double",
+              "type": "Double",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Raster resolution for routes that rasterize (36-600; was RasterDpi)."
+              "note": "Double raster density from 36 through 600 for OCR and PDF to Word/PowerPoint raster projections."
             },
             {
               "name": "CompressPdf",
@@ -402,14 +402,14 @@
               "type": "SwitchParameter",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Recognize text in images and scanned pages with the default OCR engine."
+              "note": "Recognize an original native-admitted image or PDF before projection; existing OCR reviews convert directly without recognition. Unsupported combinations reject explicitly."
             },
             {
               "name": "OcrOptions",
               "type": "OfficeOcrOptions",
               "mandatory": false,
               "pipeline": "none",
-              "note": "OCR settings from New-OfficeOcrOptions; implies -Ocr."
+              "note": "Typed provider/session/recognition options; implies Ocr, snapshots caller settings, shared lazy provider starts only after source admission. Execution-only; not a portable-job field."
             },
             {
               "name": "MaximumInputBytes",
@@ -442,7 +442,7 @@
               "mandatory": false,
               "pipeline": "none",
               "note": "Refuse to replace an existing output (default replaces, like Export-Csv).",
-              "notes": "An existing output is never replaced; the item is reported with Status Skipped and Reason OutputExists."
+              "notes": "Existing file-input outputs are reported as skipped; the native atomic guard still refuses destinations created after selection. NoClobber takes precedence over SkipUpToDate."
             },
             {
               "name": "AutoRename",
@@ -450,20 +450,6 @@
               "mandatory": false,
               "pipeline": "none",
               "note": "Write to a unique name when the output exists (was ConflictPolicy Rename)."
-            },
-            {
-              "name": "Plan",
-              "type": "SwitchParameter",
-              "mandatory": false,
-              "pipeline": "none",
-              "note": "Return the conversion plan (selected files, chosen routes, diagnostics) without converting."
-            },
-            {
-              "name": "ReportPath",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none",
-              "note": "Also write a durable run report (JSON) that Studio, the CLI and Import-OfficeConversionReport read."
             },
             {
               "name": "SummaryVariable",
@@ -477,7 +463,7 @@
               "type": "SwitchParameter",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Open each output in its default application (was Open)."
+              "note": "Open each newly published conversion file in its default application. Reject AsString, Plan, SaveJob and text/live-document conversions without OutputPath. WhatIf, failed conversions, skipped items and reused outputs never open an application."
             }
           ]
         },
@@ -498,7 +484,7 @@
             },
             {
               "name": "To",
-              "type": "OfficeFormat",
+              "type": "string",
               "mandatory": true,
               "pipeline": "none",
               "note": "Target format name or extension (see notes). Named only, so a second positional value binds -OutputPath."
@@ -512,7 +498,7 @@
             },
             {
               "name": "From",
-              "type": "OfficeFormat",
+              "type": "string",
               "mandatory": false,
               "pipeline": "none",
               "note": "Overrides source detection, for example a .txt file that holds Markdown or HTML."
@@ -526,10 +512,10 @@
             },
             {
               "name": "Theme",
-              "type": "OfficeTheme",
+              "type": "PSWriteOffice.Foundation.OfficeThemeInput",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Theme for routes that create a new document (Markdown, HTML or text to Word or PowerPoint): built-in theme name, theme object or .dotx/.potx path. Overrides the Theme of a route options object. Invalid argument when no selected route creates a new document."
+              "note": "Theme for the executable Markdown/text to Word or PowerPoint and HTML to Word creation routes: built-in name, OfficeTheme object or theme package. Overrides the captured route Theme. Plain .txt to Word requires From or an explicit route where ambiguous. Invalid when no selected route supports creation. Theme-bearing advanced options remain execution-only for saved job schema v2."
             },
             {
               "name": "Password",
@@ -557,14 +543,14 @@
               "type": "OfficePageRange",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Pages or slides to convert where the route supports it, for example 1-3,5 (was PageRange)."
+              "note": "One-based native PDF source page selection where the route supports it; an existing OCR review already owns its selection."
             },
             {
               "name": "Dpi",
-              "type": "double",
+              "type": "Double",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Raster resolution for routes that rasterize (36-600; was RasterDpi)."
+              "note": "Double raster density from 36 through 600 for OCR and PDF to Word/PowerPoint raster projections."
             },
             {
               "name": "CompressPdf",
@@ -592,14 +578,14 @@
               "type": "SwitchParameter",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Recognize text in images and scanned pages with the default OCR engine."
+              "note": "Recognize an original native-admitted image or PDF before projection; existing OCR reviews convert directly without recognition. Unsupported combinations reject explicitly."
             },
             {
               "name": "OcrOptions",
               "type": "OfficeOcrOptions",
               "mandatory": false,
               "pipeline": "none",
-              "note": "OCR settings from New-OfficeOcrOptions; implies -Ocr."
+              "note": "Typed provider/session/recognition options; implies Ocr, snapshots caller settings, shared lazy provider starts only after source admission. Execution-only; not a portable-job field."
             },
             {
               "name": "MaximumInputBytes",
@@ -667,7 +653,7 @@
               "type": "SwitchParameter",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Open each output in its default application (was Open)."
+              "note": "Open each newly published conversion file in its default application. Reject AsString, Plan, SaveJob and text/live-document conversions without OutputPath. WhatIf, failed conversions, skipped items and reused outputs never open an application."
             },
             {
               "name": "Recurse",
@@ -781,18 +767,19 @@
               "name": "OutputPath",
               "type": "string",
               "mandatory": true,
-              "pipeline": "none"
+              "pipeline": "none",
+              "position": 1
             },
             {
               "name": "To",
-              "type": "OfficeFormat",
+              "type": "string",
               "mandatory": false,
               "pipeline": "none",
               "note": "Inferred from the -OutputPath extension when omitted."
             },
             {
               "name": "From",
-              "type": "OfficeFormat",
+              "type": "string",
               "mandatory": false,
               "pipeline": "none",
               "note": "Overrides source detection, for example a .txt file that holds Markdown or HTML."
@@ -806,10 +793,10 @@
             },
             {
               "name": "Theme",
-              "type": "OfficeTheme",
+              "type": "PSWriteOffice.Foundation.OfficeThemeInput",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Theme for routes that create a new document (Markdown, HTML or text to Word or PowerPoint): built-in theme name, theme object or .dotx/.potx path. Overrides the Theme of a route options object. Invalid argument when no selected route creates a new document."
+              "note": "Theme for the executable Markdown/text to Word or PowerPoint and HTML to Word creation routes: built-in name, OfficeTheme object or theme package. Overrides the captured route Theme. Plain .txt to Word requires From or an explicit route where ambiguous. Invalid when no selected route supports creation. Theme-bearing advanced options remain execution-only for saved job schema v2."
             },
             {
               "name": "Password",
@@ -837,14 +824,14 @@
               "type": "OfficePageRange",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Pages or slides to convert where the route supports it, for example 1-3,5 (was PageRange)."
+              "note": "One-based native PDF source page selection where the route supports it; an existing OCR review already owns its selection."
             },
             {
               "name": "Dpi",
-              "type": "double",
+              "type": "Double",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Raster resolution for routes that rasterize (36-600; was RasterDpi)."
+              "note": "Double raster density from 36 through 600 for OCR and PDF to Word/PowerPoint raster projections."
             },
             {
               "name": "CompressPdf",
@@ -872,14 +859,14 @@
               "type": "SwitchParameter",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Recognize text in images and scanned pages with the default OCR engine."
+              "note": "Recognize an original native-admitted image or PDF before projection; existing OCR reviews convert directly without recognition. Unsupported combinations reject explicitly."
             },
             {
               "name": "OcrOptions",
               "type": "OfficeOcrOptions",
               "mandatory": false,
               "pipeline": "none",
-              "note": "OCR settings from New-OfficeOcrOptions; implies -Ocr."
+              "note": "Typed provider/session/recognition options; implies Ocr, snapshots caller settings, shared lazy provider starts only after source admission. Execution-only; not a portable-job field."
             },
             {
               "name": "MaximumInputBytes",
@@ -912,7 +899,7 @@
               "mandatory": false,
               "pipeline": "none",
               "note": "Refuse to replace an existing output (default replaces, like Export-Csv).",
-              "notes": "An existing output is never replaced; the item is reported with Status Skipped and Reason OutputExists."
+              "notes": "Existing file-input outputs are reported as skipped; the native atomic guard still refuses destinations created after selection. NoClobber takes precedence over SkipUpToDate."
             },
             {
               "name": "AutoRename",
@@ -920,20 +907,6 @@
               "mandatory": false,
               "pipeline": "none",
               "note": "Write to a unique name when the output exists (was ConflictPolicy Rename)."
-            },
-            {
-              "name": "Plan",
-              "type": "SwitchParameter",
-              "mandatory": false,
-              "pipeline": "none",
-              "note": "Return the conversion plan (selected files, chosen routes, diagnostics) without converting."
-            },
-            {
-              "name": "ReportPath",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none",
-              "note": "Also write a durable run report (JSON) that Studio, the CLI and Import-OfficeConversionReport read."
             },
             {
               "name": "SummaryVariable",
@@ -947,7 +920,7 @@
               "type": "SwitchParameter",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Open each output in its default application (was Open)."
+              "note": "Open each newly published conversion file in its default application. Reject AsString, Plan, SaveJob and text/live-document conversions without OutputPath. WhatIf, failed conversions, skipped items and reused outputs never open an application."
             }
           ]
         },
@@ -965,8 +938,8 @@
             },
             {
               "name": "To",
-              "type": "OfficeFormat",
-              "mandatory": true,
+              "type": "string",
+              "mandatory": false,
               "pipeline": "none",
               "note": "Target format name or extension (see notes). Named only, so a second positional value binds -OutputPath."
             },
@@ -978,7 +951,7 @@
             },
             {
               "name": "From",
-              "type": "OfficeFormat",
+              "type": "string",
               "mandatory": false,
               "pipeline": "none",
               "note": "Overrides source detection, for example a .txt file that holds Markdown or HTML."
@@ -992,10 +965,10 @@
             },
             {
               "name": "Theme",
-              "type": "OfficeTheme",
+              "type": "PSWriteOffice.Foundation.OfficeThemeInput",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Theme for routes that create a new document (Markdown, HTML or text to Word or PowerPoint): built-in theme name, theme object or .dotx/.potx path. Overrides the Theme of a route options object. Invalid argument when no selected route creates a new document."
+              "note": "Theme for the executable Markdown/text to Word or PowerPoint and HTML to Word creation routes: built-in name, OfficeTheme object or theme package. Overrides the captured route Theme. Plain .txt to Word requires From or an explicit route where ambiguous. Invalid when no selected route supports creation. Theme-bearing advanced options remain execution-only for saved job schema v2."
             },
             {
               "name": "Password",
@@ -1023,14 +996,14 @@
               "type": "OfficePageRange",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Pages or slides to convert where the route supports it, for example 1-3,5 (was PageRange)."
+              "note": "One-based native PDF source page selection where the route supports it; an existing OCR review already owns its selection."
             },
             {
               "name": "Dpi",
-              "type": "double",
+              "type": "Double",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Raster resolution for routes that rasterize (36-600; was RasterDpi)."
+              "note": "Double raster density from 36 through 600 for OCR and PDF to Word/PowerPoint raster projections."
             },
             {
               "name": "CompressPdf",
@@ -1058,14 +1031,14 @@
               "type": "SwitchParameter",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Recognize text in images and scanned pages with the default OCR engine."
+              "note": "Recognize an original native-admitted image or PDF before projection; existing OCR reviews convert directly without recognition. Unsupported combinations reject explicitly."
             },
             {
               "name": "OcrOptions",
               "type": "OfficeOcrOptions",
               "mandatory": false,
               "pipeline": "none",
-              "note": "OCR settings from New-OfficeOcrOptions; implies -Ocr."
+              "note": "Typed provider/session/recognition options; implies Ocr, snapshots caller settings, shared lazy provider starts only after source admission. Execution-only; not a portable-job field."
             },
             {
               "name": "MaximumInputBytes",
@@ -1091,7 +1064,7 @@
               "mandatory": false,
               "pipeline": "none",
               "note": "Refuse to replace an existing output (default replaces, like Export-Csv).",
-              "notes": "An existing output is never replaced; the item is reported with Status Skipped and Reason OutputExists."
+              "notes": "An existing single-file destination is never replaced; the native conversion failure is reported instead of a skipped item."
             },
             {
               "name": "AutoRename",
@@ -1099,20 +1072,6 @@
               "mandatory": false,
               "pipeline": "none",
               "note": "Write to a unique name when the output exists (was ConflictPolicy Rename)."
-            },
-            {
-              "name": "Plan",
-              "type": "SwitchParameter",
-              "mandatory": false,
-              "pipeline": "none",
-              "note": "Return the conversion plan (selected files, chosen routes, diagnostics) without converting."
-            },
-            {
-              "name": "ReportPath",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none",
-              "note": "Also write a durable run report (JSON) that Studio, the CLI and Import-OfficeConversionReport read."
             },
             {
               "name": "SummaryVariable",
@@ -1126,7 +1085,7 @@
               "type": "SwitchParameter",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Open each output in its default application (was Open)."
+              "note": "Open each newly published conversion file in its default application. Reject AsString, Plan, SaveJob and text/live-document conversions without OutputPath. WhatIf, failed conversions, skipped items and reused outputs never open an application."
             },
             {
               "name": "AsString",
@@ -1134,6 +1093,13 @@
               "mandatory": false,
               "pipeline": "none",
               "note": "Write the converted text to the pipeline instead of a file (text targets: Markdown, Html, Rtf, AsciiDoc, Latex, Csv, Confluence). A live document or text input without -OutputPath also returns text."
+            },
+            {
+              "name": "SkipUpToDate",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Skips an input when its output exists and is newer than the input; skipped items are reported with Status Skipped."
             }
           ]
         },
@@ -1146,18 +1112,18 @@
               "type": "string",
               "mandatory": true,
               "position": 0,
-              "pipeline": "value",
-              "note": "Source content as a string, for example Markdown or HTML."
+              "pipeline": "propertyName",
+              "note": "Literal source content. For a string pipeline, select this set explicitly with -Text { $_ }. Records are separated by a newline and converted together once; the cumulative source obeys MaximumInputBytes."
             },
             {
               "name": "From",
-              "type": "OfficeFormat",
+              "type": "string",
               "mandatory": true,
               "pipeline": "none"
             },
             {
               "name": "To",
-              "type": "OfficeFormat",
+              "type": "string",
               "mandatory": true,
               "pipeline": "none",
               "note": "Target format name or extension (see notes). Named only, so a second positional value binds -OutputPath."
@@ -1177,10 +1143,10 @@
             },
             {
               "name": "Theme",
-              "type": "OfficeTheme",
+              "type": "PSWriteOffice.Foundation.OfficeThemeInput",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Theme for routes that create a new document (Markdown, HTML or text to Word or PowerPoint): built-in theme name, theme object or .dotx/.potx path. Overrides the Theme of a route options object. Invalid argument when no selected route creates a new document."
+              "note": "Theme for the executable Markdown/text to Word or PowerPoint and HTML to Word creation routes: built-in name, OfficeTheme object or theme package. Overrides the captured route Theme. Plain .txt to Word requires From or an explicit route where ambiguous. Invalid when no selected route supports creation. Theme-bearing advanced options remain execution-only for saved job schema v2."
             },
             {
               "name": "Password",
@@ -1204,20 +1170,6 @@
               "note": "Faithful (default), Lightweight, PrintReady or TextOnly."
             },
             {
-              "name": "Page",
-              "type": "OfficePageRange",
-              "mandatory": false,
-              "pipeline": "none",
-              "note": "Pages or slides to convert where the route supports it, for example 1-3,5 (was PageRange)."
-            },
-            {
-              "name": "Dpi",
-              "type": "double",
-              "mandatory": false,
-              "pipeline": "none",
-              "note": "Raster resolution for routes that rasterize (36-600; was RasterDpi)."
-            },
-            {
               "name": "CompressPdf",
               "type": "SwitchParameter",
               "mandatory": false,
@@ -1237,20 +1189,6 @@
               "mandatory": false,
               "pipeline": "none",
               "note": "Allow lossy import of legacy binary formats (.doc, .xls, .ppt, .vsd)."
-            },
-            {
-              "name": "Ocr",
-              "type": "SwitchParameter",
-              "mandatory": false,
-              "pipeline": "none",
-              "note": "Recognize text in images and scanned pages with the default OCR engine."
-            },
-            {
-              "name": "OcrOptions",
-              "type": "OfficeOcrOptions",
-              "mandatory": false,
-              "pipeline": "none",
-              "note": "OCR settings from New-OfficeOcrOptions; implies -Ocr."
             },
             {
               "name": "MaximumInputBytes",
@@ -1276,7 +1214,7 @@
               "mandatory": false,
               "pipeline": "none",
               "note": "Refuse to replace an existing output (default replaces, like Export-Csv).",
-              "notes": "An existing output is never replaced; the item is reported with Status Skipped and Reason OutputExists."
+              "notes": "An existing single-file destination is never replaced; the native conversion failure is reported instead of a skipped item."
             },
             {
               "name": "AutoRename",
@@ -1284,20 +1222,6 @@
               "mandatory": false,
               "pipeline": "none",
               "note": "Write to a unique name when the output exists (was ConflictPolicy Rename)."
-            },
-            {
-              "name": "Plan",
-              "type": "SwitchParameter",
-              "mandatory": false,
-              "pipeline": "none",
-              "note": "Return the conversion plan (selected files, chosen routes, diagnostics) without converting."
-            },
-            {
-              "name": "ReportPath",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none",
-              "note": "Also write a durable run report (JSON) that Studio, the CLI and Import-OfficeConversionReport read."
             },
             {
               "name": "SummaryVariable",
@@ -1311,7 +1235,7 @@
               "type": "SwitchParameter",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Open each output in its default application (was Open)."
+              "note": "Open each newly published conversion file in its default application. Reject AsString, Plan, SaveJob and text/live-document conversions without OutputPath. WhatIf, failed conversions, skipped items and reused outputs never open an application."
             },
             {
               "name": "AsString",
@@ -1366,7 +1290,7 @@
           ]
         }
       ],
-      "notes": "Output: one OfficeConversionReport per input file, written as each file finishes (parallel work runs on background tasks and reports through the pipeline thread with Write-Progress); -Plan returns one OfficeConversionPlan; -SaveJob returns the job FileInfo; -AsString returns string. Errors per file are non-terminating with the input as target object and FullyQualifiedErrorId {DiagnosticCode},Convert-OfficeDocument; -FailOnLoss turns loss into a per-file error. -To values (OfficeFormat, also accepts an extension such as .odt or docx): Pdf, Word (.docx), Excel (.xlsx), PowerPoint (.pptx), Markdown, Html, Rtf, Text, Csv, OpenDocument (odt/ods/odp chosen from the source family) and the explicit Odt, Ods, Odp, Epub, AsciiDoc, Latex, Confluence (ADF), OneNote, Visio (.vsdx from .vsd). Legacy upgrades use the same targets: .doc -To Word, .xls -To Excel, .vsd -To Visio. Image targets (PNG, JPEG, SVG of pages, slides, sheets or diagrams, including the pdf-png and visio-svg routes) go through Export-OfficeDocumentImage. Google Docs/Sheets/Slides uploads need an authenticated session and are not file outputs; they stay with their format areas. Routing: source format from -From or content detection plus extension; target from -To or the -OutputPath extension; route from -Route or the catalog. Options objects are routed by type, so one call can carry New-OfficeWordPdfOptions and New-OfficeExcelPdfOptions for a mixed folder; hashtables follow one rule: a hashtable whose keys are all source format names (Word, Excel, PowerPoint, Pdf, Markdown, Html, Rtf, Text, Visio, OpenDocument ...) and whose values are hashtables or options objects is format-keyed, so @{ Word = @{ PageSize = 'A4' }; Excel = @{ UseWorksheetPrintAreas = $true } } configures each source family of a multi-route run; any other hashtable is flat and its keys set the matching properties on every selected route's options; a key that no selected route can use is an invalid argument; route-specific .NET option types without a factory (OdgPdfExportOptions, VisioPdfExportOptions, XpsPdfExportOptions, ChmConversionOptions, DjVuPdfExportOptions, PublisherLoadOptions, IWork/OneNote/AsciiDoc/LaTeX options) are passed the same way. Batch: -Path accepts files, wildcards and folders; -LiteralPath binds Get-ChildItem output. -Resume and the saved-job set share one checkpoint format; -SaveJob writes the same OfficeBatchOptions JSON that Studio and the CLI open, so saved jobs remain portable. Absorbs from this area: ConvertTo-OfficeDocument, Export-OfficeDocumentPdf, Export-OfficeConversionJob (-SaveJob), Invoke-OfficeConversionJob (-JobPath), New-OfficeConversionOptions (-Options plus the common parameters), ConvertFrom-OfficeImage (-Document with an OCR review, or -Path with -Ocr). Absorbs from other areas (mapped by their agents): Word ConvertFrom-OfficeWordHtml, ConvertFrom-OfficeWordMarkdown, ConvertTo-OfficeWordDocument, ConvertTo-OfficeWordHtml, ConvertTo-OfficeWordMarkdown; Excel ConvertTo-OfficeExcelHtml, ConvertTo-OfficeExcelWorkbook; PowerPoint ConvertTo-OfficePowerPointHtml; PDF ConvertFrom-OfficePdfHtml, ConvertTo-OfficePdfExcel, ConvertTo-OfficePdfHtml, ConvertTo-OfficePdfMarkdown, ConvertTo-OfficePdfPowerPoint, ConvertTo-OfficePdfWord; markup ConvertFrom-OfficeAsciiDocMarkdown, ConvertTo-OfficeAsciiDocMarkdown, ConvertFrom-OfficeLatexMarkdown, ConvertTo-OfficeLatexMarkdown, ConvertFrom-OfficeMarkdownHtml, ConvertTo-OfficeMarkdownHtml, ConvertFrom-OfficeIWork, ConvertFrom-OfficeOneNote, ConvertFrom-OfficeOpenDocument, ConvertTo-OfficeOpenDocument, ConvertFrom-OfficeRtf, ConvertTo-OfficeRtf. Options factories routed through -Options (owned by their areas): New-OfficeWordPdfOptions, New-OfficeExcelPdfOptions, New-OfficePowerPointPdfOptions, New-OfficeMarkdownPdfOptions, New-OfficeMarkdownWordOptions, New-OfficeMarkdownPowerPointOptions, New-OfficeRtfPdfOptions, New-OfficeHtmlPdfOptions, New-OfficeTextPdfOptions, New-OfficeWordOpenDocumentOptions, New-OfficeExcelOpenDocumentOptions, New-OfficePowerPointOpenDocumentOptions, New-OfficePdfWordOptions, New-OfficePdfPowerPointOptions, New-OfficePdfExcelOptions, New-OfficeHtmlConversionOptions. Per-command flat settings of the absorbed ConvertTo-/ConvertFrom- commands (FontFamily, Profile, ImageExportMode, stylesheets, URL policies ...) move into those factories. Not absorbed: object-to-text ConvertTo-OfficeMarkdown and ConvertTo-OfficeCsv; ConvertFrom-OfficeCsv (text to objects); PDF transforms ConvertTo-OfficePdfFlatAnnotation, -FlatForm, -Optimized, -Redacted, -Sanitized, -Searchable (Optimize-/Protect-/Update-OfficePdf); DSL/object helpers ConvertTo-OfficePdfTextRun, ConvertTo-OfficeVisioVisual, ConvertTo-OfficeProjectTable; Export-OfficeInvoicePdf (invoices removed). -Password is SecureString; transformation also accepts a plain string (with a warning) or a PSCredential, and there is no separate -Credential parameter. -AsString with -OutputDirectory, and -Plan with -SaveJob, are rejected as invalid arguments. Positional binding: -Path (or -Document, -Text) is position 0 and -To is always named, so Convert-OfficeDocument .\\a.docx .\\b.pdf binds .\\b.pdf to -OutputPath (PathFile set) and infers -To from its extension. -JobPath is named only and never binds PSPath/FullName from the pipeline. -Theme applies to routes that create a new document (Markdown, HTML or text to Word or PowerPoint), the same OfficeTheme values New-OfficeWord and New-OfficePowerPoint take.",
+      "notes": "Output: one OfficeConversionReport per input file, written as each file finishes (parallel work runs on background tasks and reports through the pipeline thread with Write-Progress); -Plan returns one OfficeBatchPlan; -SaveJob returns the job FileInfo; -AsString returns string. Errors per file are non-terminating with the input as target object and FullyQualifiedErrorId {DiagnosticCode},Convert-OfficeDocument; -FailOnLoss turns loss into a per-file error. -To values (OfficeFormat, also accepts an extension such as .odt or docx): Pdf, Word (.docx), Excel (.xlsx), PowerPoint (.pptx), Markdown, Html, Rtf, Text, Csv, OpenDocument (odt/ods/odp chosen from the source family) and the explicit Odt, Ods, Odp, Epub, AsciiDoc, Latex, Confluence (ADF), OneNote, Visio (.vsdx from .vsd). Legacy upgrades use the same targets: .doc -To Word, .xls -To Excel, .vsd -To Visio. Image targets (PNG, JPEG, SVG of pages, slides, sheets or diagrams, including the pdf-png and visio-svg routes) go through Export-OfficeDocumentImage. Google Docs/Sheets/Slides uploads need an authenticated session and are not file outputs; they stay with their format areas. Routing: source format from -From or content detection plus extension; target from -To or the -OutputPath extension; route from -Route or the catalog. Options objects are routed by type, so one call can carry New-OfficeWordPdfOptions and New-OfficeExcelPdfOptions for a mixed folder; hashtables follow one rule: a hashtable whose keys are all source format names (Word, Excel, PowerPoint, Pdf, Markdown, Html, Rtf, Text, Visio, OpenDocument ...) and whose values are hashtables or options objects is format-keyed, so @{ Word = @{ PageSize = 'A4' }; Excel = @{ UseWorksheetPrintAreas = $true } } configures each source family of a multi-route run; any other hashtable is flat and its keys set the matching properties on every selected route's options; a key that no selected route can use is an invalid argument; route-specific .NET option types without a factory (OdgPdfExportOptions, VisioPdfExportOptions, XpsPdfExportOptions, ChmConversionOptions, DjVuPdfExportOptions, PublisherLoadOptions, IWork/OneNote/AsciiDoc/LaTeX options) are passed the same way. Batch: -Path accepts files, wildcards and folders; -LiteralPath binds Get-ChildItem output. -Resume and the saved-job set share one checkpoint format; -SaveJob writes the same OfficeBatchOptions JSON that Studio and the CLI open, so saved jobs remain portable. Absorbs from this area: ConvertTo-OfficeDocument, Export-OfficeDocumentPdf, Export-OfficeConversionJob (-SaveJob), Invoke-OfficeConversionJob (-JobPath), New-OfficeConversionOptions (-Options plus the common parameters), ConvertFrom-OfficeImage (-Document with an OCR review, or -Path with -Ocr). Absorbs from other areas (mapped by their agents): Word ConvertFrom-OfficeWordHtml, ConvertFrom-OfficeWordMarkdown, ConvertTo-OfficeWordDocument, ConvertTo-OfficeWordHtml, ConvertTo-OfficeWordMarkdown; Excel ConvertTo-OfficeExcelHtml, ConvertTo-OfficeExcelWorkbook; PowerPoint ConvertTo-OfficePowerPointHtml; PDF ConvertFrom-OfficePdfHtml, ConvertTo-OfficePdfExcel, ConvertTo-OfficePdfHtml, ConvertTo-OfficePdfMarkdown, ConvertTo-OfficePdfPowerPoint, ConvertTo-OfficePdfWord; markup ConvertFrom-OfficeAsciiDocMarkdown, ConvertTo-OfficeAsciiDocMarkdown, ConvertFrom-OfficeLatexMarkdown, ConvertTo-OfficeLatexMarkdown, ConvertFrom-OfficeMarkdownHtml, ConvertTo-OfficeMarkdownHtml, ConvertFrom-OfficeIWork, ConvertFrom-OfficeOneNote, ConvertFrom-OfficeOpenDocument, ConvertTo-OfficeOpenDocument, ConvertFrom-OfficeRtf, ConvertTo-OfficeRtf. Options factories routed through -Options (owned by their areas): New-OfficeWordPdfOptions, New-OfficeExcelPdfOptions, New-OfficePowerPointPdfOptions, New-OfficeMarkdownPdfOptions, New-OfficeMarkdownWordOptions, New-OfficeMarkdownPowerPointOptions, New-OfficeRtfPdfOptions, New-OfficeHtmlPdfOptions, New-OfficeTextPdfOptions, New-OfficeWordOpenDocumentOptions, New-OfficeExcelOpenDocumentOptions, New-OfficePowerPointOpenDocumentOptions, New-OfficePdfWordOptions, New-OfficePdfPowerPointOptions, New-OfficePdfExcelOptions, New-OfficeHtmlConversionOptions. Per-command flat settings of the absorbed ConvertTo-/ConvertFrom- commands (FontFamily, Profile, ImageExportMode, stylesheets, URL policies ...) move into those factories. Not absorbed: object-to-text ConvertTo-OfficeMarkdown and ConvertTo-OfficeCsv; ConvertFrom-OfficeCsv (text to objects); PDF transforms ConvertTo-OfficePdfFlatAnnotation, -FlatForm, -Optimized, -Redacted, -Sanitized, -Searchable (Optimize-/Protect-/Update-OfficePdf); DSL/object helpers ConvertTo-OfficePdfTextRun, ConvertTo-OfficeVisioVisual, ConvertTo-OfficeProjectTable; Export-OfficeInvoicePdf (invoices removed). -Password is SecureString; transformation also accepts a plain string (with a warning) or a PSCredential, and there is no separate -Credential parameter. -AsString with -OutputDirectory, and -Plan with -SaveJob, are rejected as invalid arguments. Positional binding: -Path (or -Document, -Text) is position 0 and -To is always named, so Convert-OfficeDocument .\\a.docx .\\b.pdf binds .\\b.pdf to -OutputPath (PathFile set) and infers -To from its extension. -JobPath is named only and never binds PSPath/FullName from the pipeline. -Theme applies to routes that create a new document (Markdown, HTML or text to Word or PowerPoint), the same OfficeTheme values New-OfficeWord and New-OfficePowerPoint take. Single-file NoClobber uses native refusal and preserves the destination; batch NoClobber reports skipped items and counts. Unqualified pipeline strings remain file paths, including with From. Pipe literal content with -Text { $_ } -From Html (or another text format); records accumulate into one conversion. FileInfo and native-document pipelines keep their existing meaning. OCR accepts original native-admitted image/PDF files or an existing PdfSearchableOcrReview. OcrOptions implies Ocr. File projections preserve .xlsx/.docx/.html/.pdf/.txt/.md/.json/.csv; text projections support Text/Markdown/Json/Html/Csv without publication. Existing reviews reuse recognition and reject re-recognition controls (Page/Dpi/OcrOptions/Password/From). Recognition starts after ShouldProcess and native source admission, with one lazy provider task shared per command. Native Page selects PDF pages; Dpi controls OCR and PDF to Word/PowerPoint raster density (36-600). OCR sessions/reviews are execution-only: reject Plan/SaveJob/ReportPath/checkpoints/resume/retry and source-codec overrides rather than serializing runtime providers. Options uses native PdfLoad/Reader and target PdfWord/PdfExcel/PdfHtml/CsvSave slots; CSV defaults escape spreadsheet formulas and complete caller options preserve their policy.",
       "examples": [
         {
           "title": "Convert a document to PDF",
@@ -1945,6 +1869,30 @@
               "mandatory": false,
               "pipeline": "none",
               "note": "Json and bundles: indent the JSON."
+            },
+            {
+              "name": "Bundle",
+              "type": "System.Management.Automation.SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "HierarchyOptions",
+              "type": "OfficeIMO.Reader.ReaderHierarchicalChunkingOptions",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NoChunks",
+              "type": "System.Management.Automation.SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "StructureOptions",
+              "type": "OfficeIMO.Reader.OfficeDocumentStructuredExtractionOptions",
+              "mandatory": false,
+              "pipeline": "none"
             }
           ]
         }
@@ -2199,7 +2147,8 @@
               "name": "InputObject",
               "type": "OfficeDocumentReadResult",
               "mandatory": true,
-              "pipeline": "value"
+              "pipeline": "value",
+              "position": 0
             },
             {
               "name": "Pattern",
@@ -2334,6 +2283,13 @@
               "type": "OfficeDocumentReader",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "ThrottleLimit",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Maximum simultaneous file operations."
             }
           ]
         },
@@ -2403,6 +2359,13 @@
               "type": "OfficeDocumentReader",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "ThrottleLimit",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Maximum simultaneous file operations."
             }
           ]
         },
@@ -2511,14 +2474,14 @@
             },
             {
               "name": "From",
-              "type": "OfficeFormat",
+              "type": "string",
               "mandatory": false,
               "pipeline": "none",
               "note": "Source format or extension (was SourceExtension)."
             },
             {
               "name": "To",
-              "type": "OfficeFormat",
+              "type": "string",
               "mandatory": false,
               "pipeline": "none",
               "note": "Target format or extension (was TargetExtension)."
@@ -2552,7 +2515,7 @@
             },
             {
               "name": "Id",
-              "type": "string",
+              "type": "string[]",
               "mandatory": false,
               "position": 0,
               "pipeline": "none"
@@ -4601,7 +4564,7 @@
             },
             {
               "name": "From",
-              "type": "OfficeFormat",
+              "type": "string",
               "mandatory": true,
               "pipeline": "none"
             },
@@ -4682,7 +4645,7 @@
             },
             {
               "name": "From",
-              "type": "OfficeFormat",
+              "type": "string",
               "mandatory": true,
               "pipeline": "none"
             },
@@ -5636,7 +5599,7 @@
             },
             {
               "name": "From",
-              "type": "OfficeFormat",
+              "type": "string",
               "mandatory": true,
               "pipeline": "none"
             },
@@ -5838,6 +5801,13 @@
               "mandatory": false,
               "pipeline": "none",
               "note": "ReaderOptions from New-OfficeDocumentReaderOptions and format read options, routed by type; hashtables accepted."
+            },
+            {
+              "name": "ThrottleLimit",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Maximum simultaneous file operations."
             }
           ]
         },
@@ -5960,6 +5930,13 @@
               "mandatory": false,
               "pipeline": "none",
               "note": "ReaderOptions from New-OfficeDocumentReaderOptions and format read options, routed by type; hashtables accepted."
+            },
+            {
+              "name": "ThrottleLimit",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Maximum simultaneous file operations."
             }
           ]
         }
@@ -6447,7 +6424,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "object",
+              "type": "IDisposable",
               "mandatory": false,
               "position": 0,
               "pipeline": "value"
@@ -6983,7 +6960,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "object",
+              "type": "IDisposable",
               "mandatory": true,
               "position": 0,
               "pipeline": "value",
@@ -7125,6 +7102,13 @@
               "type": "SwitchParameter",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "ThrottleLimit",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Maximum simultaneous file operations."
             }
           ]
         },
@@ -7192,6 +7176,13 @@
               "type": "SwitchParameter",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "ThrottleLimit",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Maximum simultaneous file operations."
             }
           ]
         },
@@ -7265,6 +7256,13 @@
               "type": "SwitchParameter",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "ThrottleLimit",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Maximum simultaneous file operations."
             }
           ]
         },
@@ -7335,6 +7333,13 @@
               "type": "SwitchParameter",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "ThrottleLimit",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Maximum simultaneous file operations."
             }
           ]
         },
@@ -7405,6 +7410,13 @@
               "type": "SwitchParameter",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "ThrottleLimit",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Maximum simultaneous file operations."
             }
           ]
         },
@@ -7481,6 +7493,13 @@
               "type": "SwitchParameter",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "ThrottleLimit",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Maximum simultaneous file operations."
             }
           ]
         }
@@ -8260,7 +8279,7 @@
       "shouldProcess": false,
       "parameterSets": [
         {
-          "name": "Default",
+          "name": "Visual",
           "default": true,
           "parameters": [
             {
@@ -8308,7 +8327,7 @@
             },
             {
               "name": "MaximumSvgViewportPixelCount",
-              "type": "double",
+              "type": "long",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -8379,7 +8398,7 @@
           "parameters": [
             {
               "name": "Name",
-              "type": "string",
+              "type": "string[]",
               "mandatory": true,
               "position": 0,
               "pipeline": "none"
@@ -8524,7 +8543,7 @@
       "kind": "cmdlet",
       "action": "keep",
       "new": "ConvertTo-OfficeVisual",
-      "parameterSet": "Default",
+      "parameterSet": "Visual",
       "parameters": {
         "Width": "Width",
         "Height": "Height",
