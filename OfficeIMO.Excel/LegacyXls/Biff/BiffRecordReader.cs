@@ -61,9 +61,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
         internal static double ReadDouble(byte[] bytes, int offset) {
             if (offset < 0 || offset + 8 > bytes.Length) throw new InvalidDataException("Unexpected end of BIFF record.");
-            byte[] valueBytes = new byte[8];
-            Buffer.BlockCopy(bytes, offset, valueBytes, 0, valueBytes.Length);
-            return BitConverter.ToDouble(valueBytes, 0);
+            // BIFF stores IEEE doubles little-endian; compose the bits in place instead of copying a slice.
+            ulong bits = ReadUInt32(bytes, offset) | ((ulong)ReadUInt32(bytes, offset + 4) << 32);
+            return BitConverter.Int64BitsToDouble(unchecked((long)bits));
         }
     }
 }

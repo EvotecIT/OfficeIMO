@@ -84,7 +84,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             }
 
             cell.SourceRecordType = record.Type;
-            cell.SourceRecordData = (byte[])record.Data.Clone();
+            // The record reader allocates a private payload per record and preserved payloads are copy-on-write
+            // (writers clone before rebinding or restyling), so the cell can share the record's array.
+            cell.SourceRecordData = record.Data;
             int availableFormats = workbook.Stylesheet?.CellFormats.Count ?? 1;
             if (styleIndex >= availableFormats) {
                 throw new InvalidDataException($"The XLSB cell at row {row}, column {column} refers to missing cell format {styleIndex}; the styles part exposes {availableFormats} format(s).");

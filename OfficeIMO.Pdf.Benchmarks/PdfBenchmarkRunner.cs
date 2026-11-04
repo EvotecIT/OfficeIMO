@@ -5,6 +5,8 @@ using OfficeIMO.Pdf;
 internal static class PdfBenchmarkRunner {
     internal const string AnalysisCold = "analysis-cold";
     internal const string AnalysisCached = "analysis-cached";
+    internal const string AnalysisColdXrefStream = "analysis-cold-xref-stream";
+    internal const string ExtractTextEmbeddedFont = "extract-text-embedded-font";
     internal const string RenderSvg = "render-svg-12";
     internal const string RenderPng = "render-png-4";
     internal const string ComposeSerializeBuffered = "compose-serialize-buffered-60";
@@ -18,6 +20,16 @@ internal static class PdfBenchmarkRunner {
         out double cachedSpeedup,
         out double cachedAllocationReduction) {
         (PdfPerformanceMeasurement cold, PdfPerformanceMeasurement cached, cachedSpeedup, cachedAllocationReduction) = MeasureAnalysis(corpus);
+        PdfPerformanceMeasurement xrefStream = MeasureWorkflow(
+            AnalysisColdXrefStream,
+            PdfBenchmarkCorpus.CreateXrefStreamVariant(corpus),
+            RunColdAnalysis,
+            sampleCount: 5);
+        PdfPerformanceMeasurement embeddedFontText = MeasureWorkflow(
+            ExtractTextEmbeddedFont,
+            PdfBenchmarkCorpus.CreateEmbeddedFontCorpus(),
+            RunTextExtraction,
+            sampleCount: 5);
         PdfPerformanceMeasurement svg = MeasureWorkflow(RenderSvg, corpus, RunSvgRender, sampleCount: 5);
         PdfPerformanceMeasurement png = MeasureWorkflow(RenderPng, corpus, RunPngRender, sampleCount: 3);
         PdfPerformanceMeasurement buffered = MeasureSerialization(
@@ -48,7 +60,7 @@ internal static class PdfBenchmarkRunner {
             static _ => PdfBenchmarkCorpus.CreateHarfBuzzDocument(),
             PdfBenchmarkCorpus.HarfBuzzSerializationRequiredText);
         return new[] {
-            cold, cached, svg, png,
+            cold, cached, xrefStream, embeddedFontText, svg, png,
             buffered, forward,
             precomposedBuffered, precomposedForward,
             harfBuzz
@@ -115,6 +127,15 @@ internal static class PdfBenchmarkRunner {
             output += last.PageCount;
         }
         return CombineInspectionOutput(output, last!);
+    }
+
+    private static long RunTextExtraction(byte[] corpus) {
+        // Each load decodes every page's Identity-H text through the font's ToUnicode CMap.
+        long output = 0L;
+        for (int operation = 0; operation < 2; operation++) {
+            output += PdfDocument.Load(corpus).ExtractText().Length;
+        }
+        return output;
     }
 
     private static long RunCachedAnalysis(byte[] corpus) {

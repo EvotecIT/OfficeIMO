@@ -31,10 +31,10 @@ internal static class PipelinedReadSmoke {
             }
             if (count != Count) throw new InvalidOperationException("The large compressed typed reader lost rows.");
         }
-        Console.WriteLine("PASS | Large compressed implicit worksheets retain every scalar and typed row under NativeAOT");
+        Console.WriteLine("PASS | Large compressed implicit worksheets retain escaped text and every scalar and typed row under NativeAOT");
     }
 
-    private static Row Create(int index) => new("Name " + index, index + 1,
+    private static Row Create(int index) => new("Name <" + index + "> & \"quoted\" 'apostrophe'", index + 1,
         new DateTime(2024, 1, 1).AddDays(index % 365), index * 1.25);
 
     private static IEnumerable<Row> Rows() {
