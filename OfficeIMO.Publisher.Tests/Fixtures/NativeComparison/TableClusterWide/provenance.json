@@ -1,0 +1,38 @@
+{
+  "schema": "officeimo.publisher.native-table-cluster-fixture.v1",
+  "license": "MIT",
+  "reproduction": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case TableClusterWide -TimeoutSeconds 600 -PhaseTimeoutSeconds 45",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20112",
+    "executableSha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "name": "native-tableclusterwide.pub",
+      "bytes": 567296,
+      "sha256": "2bd50ff6efeb9f9604948a3d7ee2ff13268679b74a2f258de4f1f6429ae3b06b"
+    },
+    {
+      "name": "native-tableclusterwide.pdf",
+      "bytes": 169350,
+      "sha256": "8f29ac9b9da28675f8f7bff2a82db9c5c7b9517588b6a64c9c211ffa6b740253"
+    },
+    {
+      "name": "native-tableclusterwide.json",
+      "bytes": 613792,
+      "sha256": "b1c268578e0283377eab5323acb673ca5e7c848781853aecb7df33a877f3bcc3"
+    }
+  ],
+  "scope": "Independent native dense table and label, explicit cell fonts, alternating fills and all unit edges. Allocation entries include native retired history."
+}

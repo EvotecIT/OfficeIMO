@@ -1,0 +1,105 @@
+{
+  "schema": "officeimo.publisher.native-font-context-fixture.v1",
+  "source": "../Text/native-text.pub",
+  "sourceSha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+  "derivation": "Source-derived edits through PublisherDocument, followed by Microsoft Publisher read-only open, PDF export, native SaveAs and reopen. PUB files are native-resaved outputs; PDFs are the independent initial native exports. Native initial/resaved page pixels agree at144dpi in every case. This is native interoperability evidence, not template-free native creation or repair-free opening.",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "automationSecurity": 3
+  },
+  "arialSha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a",
+  "reproduction": "Preserve the source paragraph and tab settings. For tight cases replace the story with Arial12 red A and blue VAV, language1033 and the listed threshold order; set frame(54,54,width,100), one column, zero gap/insets and top alignment. For merged8/18 first replace with AVA at8 and TAR AVAV at18, save/load, then replace with one null-request AVATAR AVAV run retaining its source paragraph and frame. Validate exact PUB with Invoke-NativePublisherOperation -Operation Validate -Stage Full.",
+  "files": [
+    {
+      "name": "native-width-15-off-on.pub",
+      "sha256": "1fe55f59ee935f22ea6e6afcc3bf8793a79771734156e270068bd579a88f61da",
+      "frameWidthPoints": 15,
+      "thresholdOrder": [
+        0,
+        8
+      ]
+    },
+    {
+      "name": "native-width-15-off-on.pdf",
+      "sha256": "9109965df5772014a6ba98fb3fd6055bd51aeed55a1976bac2fea17144467e7d",
+      "frameWidthPoints": 15,
+      "thresholdOrder": [
+        0,
+        8
+      ]
+    },
+    {
+      "name": "native-width-15-on-off.pub",
+      "sha256": "8c5b46d24cc43a33ab2f775063bb3ec7d68abc0ba89f286dde59817af9e5bcc5",
+      "frameWidthPoints": 15,
+      "thresholdOrder": [
+        8,
+        0
+      ]
+    },
+    {
+      "name": "native-width-15-on-off.pdf",
+      "sha256": "46abf1af0bcd7888d6de8fc57917c928cd29635e4377284a3cb165b34ebdd737",
+      "frameWidthPoints": 15,
+      "thresholdOrder": [
+        8,
+        0
+      ]
+    },
+    {
+      "name": "native-width-15-5-off-on.pub",
+      "sha256": "cba79d80d8c864fba9204ccecb3261f9c4a91b616ad42e445332467403420edb",
+      "frameWidthPoints": 15.5,
+      "thresholdOrder": [
+        0,
+        8
+      ]
+    },
+    {
+      "name": "native-width-15-5-off-on.pdf",
+      "sha256": "77bbc8dab516e70d496152aaf05fb26701f7e19f8f46939382055e54dec32ae3",
+      "frameWidthPoints": 15.5,
+      "thresholdOrder": [
+        0,
+        8
+      ]
+    },
+    {
+      "name": "native-width-15-5-on-off.pub",
+      "sha256": "698976dfce3fead38a32be1e19ff75180ad87b22594bf50104d3b5ccf404fd8b",
+      "frameWidthPoints": 15.5,
+      "thresholdOrder": [
+        8,
+        0
+      ]
+    },
+    {
+      "name": "native-width-15-5-on-off.pdf",
+      "sha256": "e7f188cb69e177cd7cbd9ced8943f2c2708333c5e83aaf22477a1cc2952f695b",
+      "frameWidthPoints": 15.5,
+      "thresholdOrder": [
+        8,
+        0
+      ]
+    },
+    {
+      "name": "native-merged-8-18.pub",
+      "sha256": "0a3dd22e9c6b1da0e2535a71c100470f6daa3a6bccc0d119617e2707dc55fd6a",
+      "thresholdOrder": [
+        8,
+        18
+      ]
+    },
+    {
+      "name": "native-merged-8-18.pdf",
+      "sha256": "8e63a117745c477190ca4ab83f3296264297d0ee5706fe3694ce051960673049",
+      "thresholdOrder": [
+        8,
+        18
+      ]
+    }
+  ],
+  "limits": "Width15 retains the observed device-vs-design line-fitting mismatch. Width15.5 qualifies context-dependent word breaking within the recorded font/profile. Exact native pixels, absolute tab origins, broad fonts/scripts/baselines and repair status remain unqualified."
+}

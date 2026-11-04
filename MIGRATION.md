@@ -4606,10 +4606,13 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Publisher
 
 <details>
-<summary>2 changes</summary>
+<summary>5 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
+| Authoring | `OfficeIMO.Publisher.PublisherDocument.ReadReport` | Changed | `OfficeIMO.Publisher.PublisherDocument.ReadReport / SourceReadReport` | ReadReport reflects the current projection after edits. SourceReadReport retains the original decoding evidence. |
+| Authoring | `OfficeIMO.Publisher.PublisherPage.Drawing` | Changed | `OfficeIMO.Publisher.PublisherPage.CreateDrawing()` | The drawing is detached. Use PublisherDocument edit methods to change the publication, or export the drawing directly for render-only annotations. |
+| Authoring | `OfficeIMO.Publisher.PublisherPage.Name` | Changed | `OfficeIMO.Publisher.PublisherPage.Name` | Names expose the native display name when stored and otherwise fall back to the short code. Use Id for page identity and master assignment. |
 | Options | `OfficeIMO.Publisher.PublisherReadOptions` | Renamed | `OfficeIMO.Publisher.PublisherLoadOptions` | Lifecycle options are named {Format}LoadOptions and {Format}SaveOptions; ReaderOptions is reserved for forward-only readers. |
 | limits | `OfficeIMO.Publisher.PublisherReadOptions.MaximumPages / MaximumNestingDepth / MaximumImageBytes / MaximumTotalImageBytes / MaximumRasterPixels / MaximumImageProcessingPixels` | Renamed | `MaxPages / MaxNestingDepth / MaxImageBytes / MaxTotalImageBytes / MaxRasterPixels / MaxImageProcessingPixels` | Load and parse budgets use one Max vocabulary and sit under a discoverable Limits object. |
 

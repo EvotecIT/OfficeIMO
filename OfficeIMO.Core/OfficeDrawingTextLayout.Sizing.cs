@@ -24,11 +24,11 @@ internal static partial class OfficeDrawingTextLayout {
         IReadOnlyList<OfficeRichTextParagraph> paragraphs, OfficeDrawingTextMetrics metrics,
         double scale, CancellationToken cancellationToken = default) {
         OfficeRichTextBlockLayout natural = CreateParagraphsWithArea(paragraphs, double.MaxValue, double.MaxValue,
-            metrics.MeasureText, OfficeTextAreaAlignment.Left, wrap: false, scale: scale,
+            metrics.RichTextMeasurement, OfficeTextAreaAlignment.Left, wrap: false, scale: scale,
             measurePaint: metrics.MeasurePaintBounds, cancellationToken: cancellationToken,
-            measureSegmentPaint: metrics.MeasureSegmentPaintBounds);
+            measureSegmentPaint: metrics.MeasureSegmentPaintBounds, measurePublisherFont: metrics.MeasurePublisherFont);
         cancellationToken.ThrowIfCancellationRequested();
-        var paint = HorizontalPaintEnvelope(natural, metrics.MeasureHorizontalPaintBounds);
+        var paint = HorizontalPaintEnvelope(natural, metrics.MeasureSegmentHorizontalPaintBounds);
         return (natural.Width, Math.Max(0D, -paint.Left), Math.Max(0D, paint.Right - natural.Width));
     }
 
@@ -46,7 +46,7 @@ internal static partial class OfficeDrawingTextLayout {
                 if (probeWidth <= 0D) break;
                 // Probe the complete wrapped body, including lines hidden by a
                 // fixed height. These same insets drive the height-growth pass.
-                var paint = HorizontalPaintEnvelope(Layout(probeWidth, double.MaxValue), metrics.MeasureHorizontalPaintBounds);
+                var paint = HorizontalPaintEnvelope(Layout(probeWidth, double.MaxValue), metrics.MeasureSegmentHorizontalPaintBounds);
                 double nextLeft = Math.Max(leftInset, -paint.Left);
                 double nextRight = Math.Max(rightInset, paint.Right - probeWidth);
                 if (nextLeft <= leftInset + .000001D && nextRight <= rightInset + .000001D) break;
@@ -61,23 +61,20 @@ internal static partial class OfficeDrawingTextLayout {
         if (leftInset == 0D && rightInset == 0D) return layout;
         var lines = new List<OfficeRichTextLine>(layout.Lines.Count);
         foreach (OfficeRichTextLine line in layout.Lines)
-            lines.Add(new OfficeRichTextLine(line.Segments, line.LineHeight, line.OffsetX + leftInset));
+            lines.Add(line.WithPlacement(line.Segments, line.LineHeight, line.OffsetX + leftInset));
         return new OfficeRichTextBlockLayout(lines, layout.LineHeight, layout.Width + leftInset + rightInset,
             layout.Height, layout.Clipped) {
             ContentOffsetY = layout.ContentOffsetY, OnlyUnwrappedWidthOverflow = layout.OnlyUnwrappedWidthOverflow
         };
 
         OfficeRichTextBlockLayout Layout(double availableWidth, double availableHeight) => projection
-            ? CreateForProjectionCore(text, availableWidth, availableHeight, metrics.MeasureText, scale,
-                metrics.MeasurePaintBounds, metrics.MeasureSegmentPaintBounds)
-            : CreateCore(text, availableWidth, availableHeight, metrics.MeasureText, scale,
-                metrics.MeasurePaintBounds, metrics.MeasureSegmentPaintBounds);
+            ? CreateForProjectionCore(text, availableWidth, availableHeight, metrics.RichTextMeasurement, scale,
+                metrics.MeasurePaintBounds, metrics.MeasureSegmentPaintBounds, metrics.MeasurePublisherFont)
+            : CreateCore(text, availableWidth, availableHeight, metrics.RichTextMeasurement, scale,
+                metrics.MeasurePaintBounds, metrics.MeasureSegmentPaintBounds, metrics.MeasurePublisherFont);
     }
 
     internal static OfficeRichTextBlockLayout CreateWithRasterMetrics(OfficeDrawingRichText text,
-        double width, double height, OfficeRasterCanvas metrics, double scale = 1D) => text.NormalizeHorizontalPaint
-        ? CreateWithHorizontalPaintInsets(text, width, height,
-            new OfficeDrawingTextMetrics(metrics.MeasureText, metrics.MeasureTextPaintBounds,
-                (value, size, family, style) => metrics.MeasureTextLineHorizontalPaintBounds(value ?? string.Empty, size, family, style)), scale)
-        : Create(text, width, height, metrics.MeasureText, scale, metrics.MeasureTextPaintBounds);
+        double width, double height, OfficeRasterCanvas metrics, double scale = 1D) =>
+        CreateWithHorizontalPaintInsets(text, width, height, metrics.CreateDrawingTextMetrics(), scale);
 }

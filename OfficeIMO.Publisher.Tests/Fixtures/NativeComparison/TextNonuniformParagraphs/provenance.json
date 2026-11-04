@@ -1,0 +1,44 @@
+{
+  "schema": "officeimo.publisher.native-paragraph-retention-fixture.v1",
+  "reproduction": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case TextNonuniformParagraphs",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "name": "native-textnonuniformparagraphs.json",
+      "sha256": "c9b211039a608be63dafb1ae543acb753fb68293feebd192a70815c3b9aaa1e7"
+    },
+    {
+      "name": "native-textnonuniformparagraphs.pdf",
+      "sha256": "cf78e12fda98f6f8082c2524088f48a00cec9893ce7d576919e0b58d304bf736"
+    },
+    {
+      "name": "native-textnonuniformparagraphs.pub",
+      "sha256": "bd170b4e8ffd6357599db5154f90b5493c1af18e7e57d25e20561217a8826718"
+    }
+  ],
+  "license": "MIT",
+  "documentPages": 7,
+  "profiles": [
+    "Baseline",
+    "DropFirst",
+    "DropMiddle",
+    "DropFinal",
+    "Reorder",
+    "Duplicate",
+    "AmbiguousLanguage"
+  ],
+  "scope": "Independent synthetic native final states with nonuniform paragraph alignment, spacing and indentation. AmbiguousLanguage retains equal projected paragraphs with distinct native language definitions. No clipboard, selection or character/font binding probes."
+}

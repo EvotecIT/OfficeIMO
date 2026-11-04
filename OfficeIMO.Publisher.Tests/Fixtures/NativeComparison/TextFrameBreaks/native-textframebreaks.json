@@ -1,0 +1,2873 @@
+{
+  "schema": "officeimo.publisher.native-case.v1",
+  "case": "TextFrameBreaks",
+  "status": "Produced",
+  "license": "MIT",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "expected": {
+    "pages": 28,
+    "widthPoints": 612,
+    "heightPoints": 792,
+    "text": [
+      "FB0 gyjp\rSecond gyjp\rThird gyjp",
+      "FB1 gyjp\rSecond gyjp\rThird gyjp",
+      "FB2 gyjp\rSecond gyjp\rThird gyjp",
+      "FB3 gyjp\rSecond gyjp\rThird gyjp",
+      "FB4 gyjp\rSecond gyjp\rThird gyjp",
+      "FB5 gyjp\rSecond gyjp\rThird gyjp",
+      "FB6 gyjp\rSecond gyjp\rThird gyjp",
+      "FB7 gyjp\rSecond gyjp\rThird gyjp",
+      "FB8 gyjp\rSecond gyjp\rThird gyjp",
+      "FB9 gyjp\rSecond gyjp\rThird gyjp",
+      "FB10 gyjp\rSecond gyjp\rThird gyjp",
+      "FB11 gyjp\rSecond gyjp\rThird gyjp",
+      "FB12 gyjp\rSecond gyjp\rThird gyjp",
+      "FB13 gyjp\rSecond gyjp\rThird gyjp",
+      "FB14 gyjp\rSecond gyjp\rThird gyjp",
+      "FB15 gyjp\rSecond gyjp\rThird gyjp",
+      "FB16 gyjp\rSecond gyjp\rThird gyjp",
+      "FB17 gyjp\rSecond gyjp\rThird gyjp",
+      "FB18 gyjp\rSecond gyjp\rThird gyjp",
+      "FB19 gyjp\rSecond gyjp\rThird gyjp",
+      "FB20 gyjp\rSecond gyjp\rThird gyjp",
+      "FB21 gyjp\rSecond gyjp\rThird gyjp",
+      "FB22 gyjp\rSecond gyjp\rThird gyjp",
+      "FB23 gyjp\rSecond gyjp\rThird gyjp",
+      "FB24 gyjp\rSecond gyjp\rThird gyjp",
+      "FB25 gyjp\rSecond gyjp\rThird gyjp",
+      "FB26 gyjp\rSecond gyjp\rThird gyjp",
+      "FB27 gyjp\rSecond gyjp\rThird gyjp",
+      "FB28 gyjp\rSecond gyjp\rThird gyjp",
+      "FB29 gyjp\rSecond gyjp\rThird gyjp",
+      "FB30 gyjp\rSecond gyjp\rThird gyjp",
+      "FB31 gyjp\rSecond gyjp\rThird gyjp",
+      "FB32 gyjp\rSecond gyjp\rThird gyjp",
+      "FB33 gyjp\rSecond gyjp\rThird gyjp",
+      "FB34 gyjp\rSecond gyjp\rThird gyjp",
+      "FB35 gyjp\rSecond gyjp\rThird gyjp",
+      "FB36 gyjp\rSecond gyjp\rThird gyjp",
+      "FB37 gyjp\rSecond gyjp\rThird gyjp",
+      "FB38 gyjp\rSecond gyjp\rThird gyjp",
+      "FB39 gyjp\rSecond gyjp\rThird gyjp",
+      "FB40 gyjp\rSecond gyjp\rThird gyjp",
+      "FB41 gyjp\rSecond gyjp\rThird gyjp",
+      "FB42 gyjp\rSecond gyjp\rThird gyjp",
+      "FB43 gyjp\rSecond gyjp\rThird gyjp",
+      "FB44 gyjp\rSecond gyjp\rThird gyjp",
+      "FB45 gyjp\rSecond gyjp\rThird gyjp",
+      "T00 T01 T02 T03 T04 T05 T06 T07 T08 T09 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32 T33 T34 T35 T36 T37 T38 T39",
+      "T00 T01 T02 T03 T04 T05 T06 T07 T08 T09 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32 T33 T34 T35 T36 T37 T38 T39",
+      "T00 T01 T02 T03 T04 T05 T06 T07 T08 T09 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32 T33 T34 T35 T36 T37 T38 T39"
+    ],
+    "shapes": [
+      {
+        "name": "FB0",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 300,
+        "height": 180,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "CompressedMetric",
+          "family": "Arial",
+          "size": 12,
+          "rule": 4,
+          "spacing": 9.600000381469727,
+          "alignment": 0,
+          "frameWidth": 300.0,
+          "frameHeight": 180.0,
+          "sourceText": "FB0 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB1",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 300,
+        "height": 180,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "CompressedMetric",
+          "family": "Arial",
+          "size": 12,
+          "rule": 4,
+          "spacing": 10.0,
+          "alignment": 0,
+          "frameWidth": 300.0,
+          "frameHeight": 180.0,
+          "sourceText": "FB1 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB2",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 300,
+        "height": 180,
+        "font": "Courier New",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "CompressedMetric",
+          "family": "Courier New",
+          "size": 12,
+          "rule": 4,
+          "spacing": 9.600000381469727,
+          "alignment": 0,
+          "frameWidth": 300.0,
+          "frameHeight": 180.0,
+          "sourceText": "FB2 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB3",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 300,
+        "height": 180,
+        "font": "Courier New",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "CompressedMetric",
+          "family": "Courier New",
+          "size": 12,
+          "rule": 4,
+          "spacing": 10.0,
+          "alignment": 0,
+          "frameWidth": 300.0,
+          "frameHeight": 180.0,
+          "sourceText": "FB3 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB4",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 300,
+        "height": 12,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "FirstExact",
+          "family": "Arial",
+          "size": 12,
+          "rule": 4,
+          "spacing": 18.0,
+          "alignment": 0,
+          "frameWidth": 300.0,
+          "frameHeight": 12.0,
+          "sourceText": "FB4 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB5",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 300,
+        "height": 14,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "FirstExact",
+          "family": "Arial",
+          "size": 12,
+          "rule": 4,
+          "spacing": 18.0,
+          "alignment": 0,
+          "frameWidth": 300.0,
+          "frameHeight": 14.0,
+          "sourceText": "FB5 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB6",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 300,
+        "height": 15.4,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "FirstExact",
+          "family": "Arial",
+          "size": 12,
+          "rule": 4,
+          "spacing": 18.0,
+          "alignment": 0,
+          "frameWidth": 300.0,
+          "frameHeight": 15.399999618530273,
+          "sourceText": "FB6 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB7",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 300,
+        "height": 15.6,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "FirstExact",
+          "family": "Arial",
+          "size": 12,
+          "rule": 4,
+          "spacing": 18.0,
+          "alignment": 0,
+          "frameWidth": 300.0,
+          "frameHeight": 15.600000381469727,
+          "sourceText": "FB7 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB8",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 300,
+        "height": 16,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "FirstExact",
+          "family": "Arial",
+          "size": 12,
+          "rule": 4,
+          "spacing": 18.0,
+          "alignment": 0,
+          "frameWidth": 300.0,
+          "frameHeight": 16.0,
+          "sourceText": "FB8 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB9",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 300,
+        "height": 16.4,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "FirstExact",
+          "family": "Arial",
+          "size": 12,
+          "rule": 4,
+          "spacing": 18.0,
+          "alignment": 0,
+          "frameWidth": 300.0,
+          "frameHeight": 16.399999618530273,
+          "sourceText": "FB9 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB10",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 300,
+        "height": 8,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "FirstMultiple",
+          "family": "Arial",
+          "size": 12,
+          "rule": 5,
+          "spacing": 1.190000057220459,
+          "alignment": 0,
+          "frameWidth": 300.0,
+          "frameHeight": 8.0,
+          "sourceText": "FB10 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB11",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 300,
+        "height": 10,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "FirstMultiple",
+          "family": "Arial",
+          "size": 12,
+          "rule": 5,
+          "spacing": 1.190000057220459,
+          "alignment": 0,
+          "frameWidth": 300.0,
+          "frameHeight": 10.0,
+          "sourceText": "FB11 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB12",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 300,
+        "height": 10.6,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "FirstMultiple",
+          "family": "Arial",
+          "size": 12,
+          "rule": 5,
+          "spacing": 1.190000057220459,
+          "alignment": 0,
+          "frameWidth": 300.0,
+          "frameHeight": 10.600000381469727,
+          "sourceText": "FB12 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB13",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 300,
+        "height": 11.5,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "FirstMultiple",
+          "family": "Arial",
+          "size": 12,
+          "rule": 5,
+          "spacing": 1.190000057220459,
+          "alignment": 0,
+          "frameWidth": 300.0,
+          "frameHeight": 11.5,
+          "sourceText": "FB13 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB14",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 300,
+        "height": 12,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "FirstMultiple",
+          "family": "Arial",
+          "size": 12,
+          "rule": 5,
+          "spacing": 1.190000057220459,
+          "alignment": 0,
+          "frameWidth": 300.0,
+          "frameHeight": 12.0,
+          "sourceText": "FB14 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB15",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 300,
+        "height": 12.5,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "FirstMultiple",
+          "family": "Arial",
+          "size": 12,
+          "rule": 5,
+          "spacing": 1.190000057220459,
+          "alignment": 0,
+          "frameWidth": 300.0,
+          "frameHeight": 12.5,
+          "sourceText": "FB15 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB16",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 300,
+        "height": 180,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "Placement",
+          "family": "Arial",
+          "size": 12,
+          "rule": 4,
+          "spacing": 8.0,
+          "alignment": 0,
+          "frameWidth": 300.0,
+          "frameHeight": 180.0,
+          "sourceText": "FB16 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB17",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 282.0,
+        "width": 300,
+        "height": 180,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "Placement",
+          "family": "Arial",
+          "size": 12,
+          "rule": 4,
+          "spacing": 8.0,
+          "alignment": 1,
+          "frameWidth": 300.0,
+          "frameHeight": 180.0,
+          "sourceText": "FB17 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB18",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 510.0,
+        "width": 300,
+        "height": 180,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "Placement",
+          "family": "Arial",
+          "size": 12,
+          "rule": 4,
+          "spacing": 8.0,
+          "alignment": 2,
+          "frameWidth": 300.0,
+          "frameHeight": 180.0,
+          "sourceText": "FB18 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB19",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 300,
+        "height": 180,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "Placement",
+          "family": "Arial",
+          "size": 12,
+          "rule": 4,
+          "spacing": 12.0,
+          "alignment": 0,
+          "frameWidth": 300.0,
+          "frameHeight": 180.0,
+          "sourceText": "FB19 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB20",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 282.0,
+        "width": 300,
+        "height": 180,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "Placement",
+          "family": "Arial",
+          "size": 12,
+          "rule": 4,
+          "spacing": 12.0,
+          "alignment": 1,
+          "frameWidth": 300.0,
+          "frameHeight": 180.0,
+          "sourceText": "FB20 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB21",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 510.0,
+        "width": 300,
+        "height": 180,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "Placement",
+          "family": "Arial",
+          "size": 12,
+          "rule": 4,
+          "spacing": 12.0,
+          "alignment": 2,
+          "frameWidth": 300.0,
+          "frameHeight": 180.0,
+          "sourceText": "FB21 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB22",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 300,
+        "height": 180,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "Placement",
+          "family": "Arial",
+          "size": 12,
+          "rule": 4,
+          "spacing": 18.0,
+          "alignment": 0,
+          "frameWidth": 300.0,
+          "frameHeight": 180.0,
+          "sourceText": "FB22 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB23",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 282.0,
+        "width": 300,
+        "height": 180,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "Placement",
+          "family": "Arial",
+          "size": 12,
+          "rule": 4,
+          "spacing": 18.0,
+          "alignment": 1,
+          "frameWidth": 300.0,
+          "frameHeight": 180.0,
+          "sourceText": "FB23 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB24",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 510.0,
+        "width": 300,
+        "height": 180,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "Placement",
+          "family": "Arial",
+          "size": 12,
+          "rule": 4,
+          "spacing": 18.0,
+          "alignment": 2,
+          "frameWidth": 300.0,
+          "frameHeight": 180.0,
+          "sourceText": "FB24 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB25",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 300,
+        "height": 180,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "Placement",
+          "family": "Arial",
+          "size": 12,
+          "rule": 4,
+          "spacing": 24.0,
+          "alignment": 0,
+          "frameWidth": 300.0,
+          "frameHeight": 180.0,
+          "sourceText": "FB25 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB26",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 282.0,
+        "width": 300,
+        "height": 180,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "Placement",
+          "family": "Arial",
+          "size": 12,
+          "rule": 4,
+          "spacing": 24.0,
+          "alignment": 1,
+          "frameWidth": 300.0,
+          "frameHeight": 180.0,
+          "sourceText": "FB26 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB27",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 510.0,
+        "width": 300,
+        "height": 180,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "Placement",
+          "family": "Arial",
+          "size": 12,
+          "rule": 4,
+          "spacing": 24.0,
+          "alignment": 2,
+          "frameWidth": 300.0,
+          "frameHeight": 180.0,
+          "sourceText": "FB27 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB28",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 300,
+        "height": 180,
+        "font": "Courier New",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "Placement",
+          "family": "Courier New",
+          "size": 12,
+          "rule": 4,
+          "spacing": 12.0,
+          "alignment": 0,
+          "frameWidth": 300.0,
+          "frameHeight": 180.0,
+          "sourceText": "FB28 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB29",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 282.0,
+        "width": 300,
+        "height": 180,
+        "font": "Courier New",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "Placement",
+          "family": "Courier New",
+          "size": 12,
+          "rule": 4,
+          "spacing": 12.0,
+          "alignment": 1,
+          "frameWidth": 300.0,
+          "frameHeight": 180.0,
+          "sourceText": "FB29 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB30",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 510.0,
+        "width": 300,
+        "height": 180,
+        "font": "Courier New",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "Placement",
+          "family": "Courier New",
+          "size": 12,
+          "rule": 4,
+          "spacing": 12.0,
+          "alignment": 2,
+          "frameWidth": 300.0,
+          "frameHeight": 180.0,
+          "sourceText": "FB30 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB31",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 300,
+        "height": 180,
+        "font": "Courier New",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "Placement",
+          "family": "Courier New",
+          "size": 12,
+          "rule": 4,
+          "spacing": 18.0,
+          "alignment": 0,
+          "frameWidth": 300.0,
+          "frameHeight": 180.0,
+          "sourceText": "FB31 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB32",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 282.0,
+        "width": 300,
+        "height": 180,
+        "font": "Courier New",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "Placement",
+          "family": "Courier New",
+          "size": 12,
+          "rule": 4,
+          "spacing": 18.0,
+          "alignment": 1,
+          "frameWidth": 300.0,
+          "frameHeight": 180.0,
+          "sourceText": "FB32 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB33",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 510.0,
+        "width": 300,
+        "height": 180,
+        "font": "Courier New",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "Placement",
+          "family": "Courier New",
+          "size": 12,
+          "rule": 4,
+          "spacing": 18.0,
+          "alignment": 2,
+          "frameWidth": 300.0,
+          "frameHeight": 180.0,
+          "sourceText": "FB33 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB34",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 300,
+        "height": 17,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "TightExact",
+          "family": "Arial",
+          "size": 12,
+          "rule": 4,
+          "spacing": 18.0,
+          "alignment": 0,
+          "frameWidth": 300.0,
+          "frameHeight": 17.0,
+          "sourceText": "FB34 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB35",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 282.0,
+        "width": 300,
+        "height": 18,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "TightExact",
+          "family": "Arial",
+          "size": 12,
+          "rule": 4,
+          "spacing": 18.0,
+          "alignment": 0,
+          "frameWidth": 300.0,
+          "frameHeight": 18.0,
+          "sourceText": "FB35 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB36",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 510.0,
+        "width": 300,
+        "height": 35,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "TightExact",
+          "family": "Arial",
+          "size": 12,
+          "rule": 4,
+          "spacing": 18.0,
+          "alignment": 0,
+          "frameWidth": 300.0,
+          "frameHeight": 35.0,
+          "sourceText": "FB36 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB37",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 300,
+        "height": 36,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "TightExact",
+          "family": "Arial",
+          "size": 12,
+          "rule": 4,
+          "spacing": 18.0,
+          "alignment": 0,
+          "frameWidth": 300.0,
+          "frameHeight": 36.0,
+          "sourceText": "FB37 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB38",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 282.0,
+        "width": 300,
+        "height": 53,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "TightExact",
+          "family": "Arial",
+          "size": 12,
+          "rule": 4,
+          "spacing": 18.0,
+          "alignment": 0,
+          "frameWidth": 300.0,
+          "frameHeight": 53.0,
+          "sourceText": "FB38 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB39",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 510.0,
+        "width": 300,
+        "height": 54,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "TightExact",
+          "family": "Arial",
+          "size": 12,
+          "rule": 4,
+          "spacing": 18.0,
+          "alignment": 0,
+          "frameWidth": 300.0,
+          "frameHeight": 54.0,
+          "sourceText": "FB39 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB40",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 300,
+        "height": 12.9,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "TightMultiple",
+          "family": "Arial",
+          "size": 12,
+          "rule": 5,
+          "spacing": 1.190000057220459,
+          "alignment": 0,
+          "frameWidth": 300.0,
+          "frameHeight": 12.899999618530273,
+          "sourceText": "FB40 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB41",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 282.0,
+        "width": 300,
+        "height": 13.3,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "TightMultiple",
+          "family": "Arial",
+          "size": 12,
+          "rule": 5,
+          "spacing": 1.190000057220459,
+          "alignment": 0,
+          "frameWidth": 300.0,
+          "frameHeight": 13.300000190734863,
+          "sourceText": "FB41 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB42",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 510.0,
+        "width": 300,
+        "height": 28.4,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "TightMultiple",
+          "family": "Arial",
+          "size": 12,
+          "rule": 5,
+          "spacing": 1.190000057220459,
+          "alignment": 0,
+          "frameWidth": 300.0,
+          "frameHeight": 28.399999618530273,
+          "sourceText": "FB42 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB43",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 300,
+        "height": 28.8,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "TightMultiple",
+          "family": "Arial",
+          "size": 12,
+          "rule": 5,
+          "spacing": 1.190000057220459,
+          "alignment": 0,
+          "frameWidth": 300.0,
+          "frameHeight": 28.799999237060547,
+          "sourceText": "FB43 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB44",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 282.0,
+        "width": 300,
+        "height": 44,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "TightMultiple",
+          "family": "Arial",
+          "size": 12,
+          "rule": 5,
+          "spacing": 1.190000057220459,
+          "alignment": 0,
+          "frameWidth": 300.0,
+          "frameHeight": 44.0,
+          "sourceText": "FB44 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB45",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 510.0,
+        "width": 300,
+        "height": 44.4,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "TightMultiple",
+          "family": "Arial",
+          "size": 12,
+          "rule": 5,
+          "spacing": 1.190000057220459,
+          "alignment": 0,
+          "frameWidth": 300.0,
+          "frameHeight": 44.400001525878906,
+          "sourceText": "FB45 gyjp\rSecond gyjp\rThird gyjp"
+        }
+      },
+      {
+        "name": "FB46",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 100,
+        "height": 35,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "Tokens",
+          "family": "Arial",
+          "size": 12,
+          "rule": 4,
+          "spacing": 18.0,
+          "alignment": 0,
+          "frameWidth": 100.0,
+          "frameHeight": 35.0,
+          "sourceText": "T00 T01 T02 T03 T04 T05 T06 T07 T08 T09 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32 T33 T34 T35 T36 T37 T38 T39"
+        }
+      },
+      {
+        "name": "FB47",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 282.0,
+        "width": 100,
+        "height": 36,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "Tokens",
+          "family": "Arial",
+          "size": 12,
+          "rule": 4,
+          "spacing": 18.0,
+          "alignment": 0,
+          "frameWidth": 100.0,
+          "frameHeight": 36.0,
+          "sourceText": "T00 T01 T02 T03 T04 T05 T06 T07 T08 T09 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32 T33 T34 T35 T36 T37 T38 T39"
+        }
+      },
+      {
+        "name": "FB48",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 510.0,
+        "width": 100,
+        "height": 36,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "Linked",
+          "family": "Arial",
+          "size": 12,
+          "rule": 4,
+          "spacing": 18.0,
+          "alignment": 0,
+          "frameWidth": 100.0,
+          "frameHeight": 36.0,
+          "sourceText": "T00 T01 T02 T03 T04 T05 T06 T07 T08 T09 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 T32 T33 T34 T35 T36 T37 T38 T39"
+        }
+      },
+      {
+        "name": "FB49",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 100,
+        "height": 72,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "Linked",
+          "family": "Arial",
+          "size": 12,
+          "rule": 4,
+          "spacing": 18.0,
+          "alignment": 0,
+          "frameWidth": 100.0,
+          "frameHeight": 72.0,
+          "sourceText": ""
+        }
+      },
+      {
+        "name": "FB50",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 282.0,
+        "width": 100,
+        "height": 36,
+        "font": "Arial",
+        "size": 12.0,
+        "frameBreakProfile": {
+          "kind": "Linked",
+          "family": "Arial",
+          "size": 12,
+          "rule": 4,
+          "spacing": 18.0,
+          "alignment": 0,
+          "frameWidth": 100.0,
+          "frameHeight": 36.0,
+          "sourceText": ""
+        }
+      }
+    ]
+  },
+  "nativePages": [
+    {
+      "index": 1,
+      "pageId": 33554698,
+      "pageIndex": 1,
+      "pageNumber": "1",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FB0",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 300.0,
+          "height": 180.0,
+          "text": "FB0 gyjp\rSecond gyjp\rThird gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "pageId": 33554726,
+      "pageIndex": 2,
+      "pageNumber": "2",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FB1",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 300.0,
+          "height": 180.0,
+          "text": "FB1 gyjp\rSecond gyjp\rThird gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "pageId": 33554730,
+      "pageIndex": 3,
+      "pageNumber": "3",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FB2",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 300.0,
+          "height": 180.0,
+          "text": "FB2 gyjp\rSecond gyjp\rThird gyjp\r",
+          "font": "Courier New",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "pageId": 33554734,
+      "pageIndex": 4,
+      "pageNumber": "4",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FB3",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 300.0,
+          "height": 180.0,
+          "text": "FB3 gyjp\rSecond gyjp\rThird gyjp\r",
+          "font": "Courier New",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "pageId": 33554738,
+      "pageIndex": 5,
+      "pageNumber": "5",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FB4",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 300.0,
+          "height": 12.0,
+          "text": "FB4 gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "pageId": 33554742,
+      "pageIndex": 6,
+      "pageNumber": "6",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FB5",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 300.0,
+          "height": 14.0,
+          "text": "FB5 gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "pageId": 33554746,
+      "pageIndex": 7,
+      "pageNumber": "7",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FB6",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 300.0,
+          "height": 15.399999618530273,
+          "text": "FB6 gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "pageId": 33554750,
+      "pageIndex": 8,
+      "pageNumber": "8",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FB7",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 300.0,
+          "height": 15.600000381469727,
+          "text": "FB7 gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 9,
+      "pageId": 33554754,
+      "pageIndex": 9,
+      "pageNumber": "9",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FB8",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 300.0,
+          "height": 16.0,
+          "text": "FB8 gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 10,
+      "pageId": 33554758,
+      "pageIndex": 10,
+      "pageNumber": "10",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FB9",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 300.0,
+          "height": 16.399999618530273,
+          "text": "FB9 gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 11,
+      "pageId": 33554762,
+      "pageIndex": 11,
+      "pageNumber": "11",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FB10",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 300.0,
+          "height": 8.0,
+          "text": "FB10 gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 12,
+      "pageId": 33554766,
+      "pageIndex": 12,
+      "pageNumber": "12",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FB11",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 300.0,
+          "height": 10.0,
+          "text": "FB11 gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 13,
+      "pageId": 33554770,
+      "pageIndex": 13,
+      "pageNumber": "13",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FB12",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 300.0,
+          "height": 10.600000381469727,
+          "text": "FB12 gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 14,
+      "pageId": 33554774,
+      "pageIndex": 14,
+      "pageNumber": "14",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FB13",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 300.0,
+          "height": 11.5,
+          "text": "FB13 gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 15,
+      "pageId": 33554778,
+      "pageIndex": 15,
+      "pageNumber": "15",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FB14",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 300.0,
+          "height": 12.0,
+          "text": "FB14 gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 16,
+      "pageId": 33554782,
+      "pageIndex": 16,
+      "pageNumber": "16",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FB15",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 300.0,
+          "height": 12.5,
+          "text": "FB15 gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 17,
+      "pageId": 33554786,
+      "pageIndex": 17,
+      "pageNumber": "17",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FB16",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 300.0,
+          "height": 180.0,
+          "text": "FB16 gyjp\rSecond gyjp\rThird gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FB17",
+          "type": 17,
+          "left": 54.0,
+          "top": 282.0,
+          "width": 300.0,
+          "height": 180.0,
+          "text": "FB17 gyjp\rSecond gyjp\rThird gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 1
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FB18",
+          "type": 17,
+          "left": 54.0,
+          "top": 510.0,
+          "width": 300.0,
+          "height": 180.0,
+          "text": "FB18 gyjp\rSecond gyjp\rThird gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 2
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 18,
+      "pageId": 33554792,
+      "pageIndex": 18,
+      "pageNumber": "18",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FB19",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 300.0,
+          "height": 180.0,
+          "text": "FB19 gyjp\rSecond gyjp\rThird gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FB20",
+          "type": 17,
+          "left": 54.0,
+          "top": 282.0,
+          "width": 300.0,
+          "height": 180.0,
+          "text": "FB20 gyjp\rSecond gyjp\rThird gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 1
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FB21",
+          "type": 17,
+          "left": 54.0,
+          "top": 510.0,
+          "width": 300.0,
+          "height": 180.0,
+          "text": "FB21 gyjp\rSecond gyjp\rThird gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 2
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 19,
+      "pageId": 33554798,
+      "pageIndex": 19,
+      "pageNumber": "19",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FB22",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 300.0,
+          "height": 180.0,
+          "text": "FB22 gyjp\rSecond gyjp\rThird gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FB23",
+          "type": 17,
+          "left": 54.0,
+          "top": 282.0,
+          "width": 300.0,
+          "height": 180.0,
+          "text": "FB23 gyjp\rSecond gyjp\rThird gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 1
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FB24",
+          "type": 17,
+          "left": 54.0,
+          "top": 510.0,
+          "width": 300.0,
+          "height": 180.0,
+          "text": "FB24 gyjp\rSecond gyjp\rThird gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 2
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 20,
+      "pageId": 33554804,
+      "pageIndex": 20,
+      "pageNumber": "20",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FB25",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 300.0,
+          "height": 180.0,
+          "text": "FB25 gyjp\rSecond gyjp\rThird gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FB26",
+          "type": 17,
+          "left": 54.0,
+          "top": 282.0,
+          "width": 300.0,
+          "height": 180.0,
+          "text": "FB26 gyjp\rSecond gyjp\rThird gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 1
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FB27",
+          "type": 17,
+          "left": 54.0,
+          "top": 510.0,
+          "width": 300.0,
+          "height": 180.0,
+          "text": "FB27 gyjp\rSecond gyjp\rThird gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 2
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 21,
+      "pageId": 33554810,
+      "pageIndex": 21,
+      "pageNumber": "21",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FB28",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 300.0,
+          "height": 180.0,
+          "text": "FB28 gyjp\rSecond gyjp\rThird gyjp\r",
+          "font": "Courier New",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FB29",
+          "type": 17,
+          "left": 54.0,
+          "top": 282.0,
+          "width": 300.0,
+          "height": 180.0,
+          "text": "FB29 gyjp\rSecond gyjp\rThird gyjp\r",
+          "font": "Courier New",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 1
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FB30",
+          "type": 17,
+          "left": 54.0,
+          "top": 510.0,
+          "width": 300.0,
+          "height": 180.0,
+          "text": "FB30 gyjp\rSecond gyjp\rThird gyjp\r",
+          "font": "Courier New",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 2
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 22,
+      "pageId": 33554816,
+      "pageIndex": 22,
+      "pageNumber": "22",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FB31",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 300.0,
+          "height": 180.0,
+          "text": "FB31 gyjp\rSecond gyjp\rThird gyjp\r",
+          "font": "Courier New",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FB32",
+          "type": 17,
+          "left": 54.0,
+          "top": 282.0,
+          "width": 300.0,
+          "height": 180.0,
+          "text": "FB32 gyjp\rSecond gyjp\rThird gyjp\r",
+          "font": "Courier New",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 1
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FB33",
+          "type": 17,
+          "left": 54.0,
+          "top": 510.0,
+          "width": 300.0,
+          "height": 180.0,
+          "text": "FB33 gyjp\rSecond gyjp\rThird gyjp\r",
+          "font": "Courier New",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 2
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 23,
+      "pageId": 33554822,
+      "pageIndex": 23,
+      "pageNumber": "23",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FB34",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 300.0,
+          "height": 17.0,
+          "text": "FB34 gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FB35",
+          "type": 17,
+          "left": 54.0,
+          "top": 282.0,
+          "width": 300.0,
+          "height": 18.0,
+          "text": "FB35 gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FB36",
+          "type": 17,
+          "left": 54.0,
+          "top": 510.0,
+          "width": 300.0,
+          "height": 35.0,
+          "text": "FB36 gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 24,
+      "pageId": 33554828,
+      "pageIndex": 24,
+      "pageNumber": "24",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FB37",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 300.0,
+          "height": 36.0,
+          "text": "FB37 gyjp\rSecond gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FB38",
+          "type": 17,
+          "left": 54.0,
+          "top": 282.0,
+          "width": 300.0,
+          "height": 53.0,
+          "text": "FB38 gyjp\rSecond gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FB39",
+          "type": 17,
+          "left": 54.0,
+          "top": 510.0,
+          "width": 300.0,
+          "height": 54.0,
+          "text": "FB39 gyjp\rSecond gyjp\rThird gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 25,
+      "pageId": 33554834,
+      "pageIndex": 25,
+      "pageNumber": "25",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FB40",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 300.0,
+          "height": 12.899999618530273,
+          "text": "FB40 gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FB41",
+          "type": 17,
+          "left": 54.0,
+          "top": 282.0,
+          "width": 300.0,
+          "height": 13.300000190734863,
+          "text": "FB41 gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FB42",
+          "type": 17,
+          "left": 54.0,
+          "top": 510.0,
+          "width": 300.0,
+          "height": 28.399999618530273,
+          "text": "FB42 gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 26,
+      "pageId": 33554840,
+      "pageIndex": 26,
+      "pageNumber": "26",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FB43",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 300.0,
+          "height": 28.799999237060547,
+          "text": "FB43 gyjp\rSecond gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FB44",
+          "type": 17,
+          "left": 54.0,
+          "top": 282.0,
+          "width": 300.0,
+          "height": 44.0,
+          "text": "FB44 gyjp\rSecond gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FB45",
+          "type": 17,
+          "left": 54.0,
+          "top": 510.0,
+          "width": 300.0,
+          "height": 44.400001525878906,
+          "text": "FB45 gyjp\rSecond gyjp\rThird gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 27,
+      "pageId": 33554846,
+      "pageIndex": 27,
+      "pageNumber": "27",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FB46",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 100.0,
+          "height": 35.0,
+          "text": "T00 T01 T02 T03 ",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FB47",
+          "type": 17,
+          "left": 54.0,
+          "top": 282.0,
+          "width": 100.0,
+          "height": 36.0,
+          "text": "T00 T01 T02 T03 T04 T05 T06 T07 ",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FB48",
+          "type": 17,
+          "left": 54.0,
+          "top": 510.0,
+          "width": 100.0,
+          "height": 36.0,
+          "text": "T00 T01 T02 T03 T04 T05 T06 T07 ",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": true,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 28,
+      "pageId": 33554852,
+      "pageIndex": 28,
+      "pageNumber": "28",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FB49",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 100.0,
+          "height": 72.0,
+          "text": "T16 T17 T18 T19 T20 T21 T22 T23 T24 T25 T26 T27 T28 T29 T30 T31 ",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": true,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FB50",
+          "type": 17,
+          "left": 54.0,
+          "top": 282.0,
+          "width": 100.0,
+          "height": 36.0,
+          "text": "T08 T09 T10 T11 T12 T13 T14 T15 ",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": true,
+          "previousLink": true,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    }
+  ],
+  "nativeMasterPages": [
+    {
+      "index": 1,
+      "pageId": 33554695,
+      "pageIndex": 1,
+      "pageType": 4,
+      "name": "Master Page A",
+      "isTwoPageMaster": false,
+      "shapeCount": 0,
+      "shapes": []
+    }
+  ],
+  "files": {
+    "publication": {
+      "name": "native-textframebreaks.pub",
+      "sha256": "dcc18f07fd009767d47401ee14d1c8ddc91cc8def1f3392c0bf57c8ddb412342"
+    },
+    "reference": {
+      "name": "native-textframebreaks.pdf",
+      "sha256": "2532888f602d5370898dbb5445344627489fcd9acf77075c9070b8fe6d434031"
+    }
+  }
+}

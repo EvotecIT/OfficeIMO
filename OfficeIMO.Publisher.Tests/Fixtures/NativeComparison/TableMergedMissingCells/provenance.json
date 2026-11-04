@@ -1,0 +1,13 @@
+{
+  "schema": "officeimo.publisher.merged-initialization-source.v1",
+  "license": "MIT",
+  "scope": "Derived native borders-only input with hidden merged-anchor utility definitions 0 and 6 removed. All logical definitions, other utilities, allocation history and other logical storage remain retained.",
+  "reproduction": "dotnet <WriterProbe.dll> table-merged-source <TableMergedBorders/native-tablemergedborders.pub> <output.pub>",
+  "files": [
+    {
+      "name": "missing-merged-cells.pub",
+      "bytes": 100864,
+      "sha256": "f17f4cfb4625c2b1843203d95486ad9a0d003435263567f56c6f0b68cf9b8d2c"
+    }
+  ]
+}

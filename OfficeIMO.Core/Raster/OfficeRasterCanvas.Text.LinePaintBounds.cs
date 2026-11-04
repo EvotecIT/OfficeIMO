@@ -9,10 +9,14 @@ public sealed partial class OfficeRasterCanvas {
     // Actual DrawTextLine ink relative to its left/top, without a nominal em box
     // or whitespace advance. Selection, shaping and synthetic styles match paint.
     internal (double Left, double Top, double Right, double Bottom, bool HasInk) MeasureTextLineInkBounds(
-        string text, double size, string? family, OfficeFontStyle style) {
+        string text, double size, string? family, OfficeFontStyle style) =>
+        MeasureTextLineInkBoundsWithFeatures(text, size, family, style, null);
+
+    private (double Left, double Top, double Right, double Bottom, bool HasInk) MeasureTextLineInkBoundsWithFeatures(
+        string text, double size, string? family, OfficeFontStyle style, OfficeTextFeatureSettings? features) {
         _cancellationToken.ThrowIfCancellationRequested();
         size = Math.Max(1D, size);
-        var key = new TextMeasurementKey(text, size, family, style, PreservePaintedGlyphOrder, RequestedTextFace(style));
+        var key = new TextMeasurementKey(text, size, family, style, PreservePaintedGlyphOrder, RequestedTextFace(style), features);
         var cache = _textLineInkBoundsCache ??= new Dictionary<TextMeasurementKey, (double, double, double, double, bool)>();
         if (cache.TryGetValue(key, out var found)) return found;
         double left = double.PositiveInfinity, top = double.PositiveInfinity;
@@ -23,9 +27,9 @@ public sealed partial class OfficeRasterCanvas {
             if (ShouldUseFallbackRuns(runs, family)) {
                 double cursor = 0D;
                 foreach (OfficeFontFallbackRun run in runs) {
-                    var bounds = MeasureTextLineInkBounds(run.Text, size, run.FamilyRequest, style);
+                    var bounds = MeasureTextLineInkBoundsWithFeatures(run.Text, size, run.FamilyRequest, style, features);
                     if (bounds.HasInk) Include(bounds.Left + cursor, bounds.Top, bounds.Right + cursor, bounds.Bottom);
-                    cursor += MeasureText(run.Text, size, run.FamilyRequest, style);
+                    cursor += MeasureTextWithFeatures(run.Text, size, run.FamilyRequest, style, features);
                 }
                 return Store();
             }
@@ -35,7 +39,7 @@ public sealed partial class OfficeRasterCanvas {
         bool bold = (style & OfficeFontStyle.Bold) != 0, italic = (style & OfficeFontStyle.Italic) != 0;
         if (font != null) {
             var contours = TransformTextContours(GetResolvedTextContours(text, font, 0D,
-                ResolveRasterTextLineOutlineTop(font, size, 0D), size), size,
+                ResolveRasterTextLineOutlineTop(font, size, 0D), size, features), size,
                 italic && (resolvedStyle & OfficeFontStyle.Italic) == 0, 0D, 0D, 0D, false, false);
             double boldOffset = bold && (resolvedStyle & OfficeFontStyle.Bold) == 0 ? OfficeSyntheticTextStyle.BoldOffset(size) : 0D;
             foreach (var contour in contours) {
@@ -61,12 +65,17 @@ public sealed partial class OfficeRasterCanvas {
 
     internal IEnumerable<(double Left, double Top, double Right, double Bottom)> TextLinePaintBounds(
         string text, double size, string? family, OfficeFontStyle style,
-        OfficeTextDecorationStyle underline, OfficeTextDecorationStyle strikethrough) {
+        OfficeTextDecorationStyle underline, OfficeTextDecorationStyle strikethrough) =>
+        TextLinePaintBoundsWithFeatures(text, size, family, style, underline, strikethrough, null);
+
+    internal IEnumerable<(double Left, double Top, double Right, double Bottom)> TextLinePaintBoundsWithFeatures(
+        string text, double size, string? family, OfficeFontStyle style,
+        OfficeTextDecorationStyle underline, OfficeTextDecorationStyle strikethrough, OfficeTextFeatureSettings? features) {
         if (string.IsNullOrEmpty(text)) yield break;
         size = Math.Max(1D, size);
-        var ink = MeasureTextLineInkBounds(text, size, family, style);
+        var ink = MeasureTextLineInkBoundsWithFeatures(text, size, family, style, features);
         if (ink.HasInk) yield return (ink.Left, ink.Top, ink.Right, ink.Bottom);
-        double width = MeasureText(text, size, family, style);
+        double width = MeasureTextWithFeatures(text, size, family, style, features);
         if (width <= 0D) yield break;
         if (underline != OfficeTextDecorationStyle.None) yield return TextLineDecorationBounds(width, size, underline, size * .86D);
         if (strikethrough != OfficeTextDecorationStyle.None) yield return TextLineDecorationBounds(width, size, strikethrough, size * .52D);

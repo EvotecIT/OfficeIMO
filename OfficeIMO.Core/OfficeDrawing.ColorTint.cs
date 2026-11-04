@@ -45,7 +45,12 @@ public sealed partial class OfficeDrawing {
                     OfficeRichTextParagraph tinted = (paragraph.Label == null
                         ? new OfficeRichTextParagraph(paragraphRuns, paragraph.Alignment, paragraph.LineHeight, paragraph.Margins, paragraph.Indent, paragraph.LineHeightFactor)
                         : new OfficeRichTextParagraph(paragraphRuns, paragraph.Label.WithRun(TintRichTextRun(paragraph.Label.Run, tint)), paragraph.Alignment, paragraph.LineHeight, paragraph.Margins, paragraph.Indent, paragraph.LineHeightFactor)).WithTabStops(TintTabStops(paragraph.TabStops, tint));
+                    tinted.SuppressAutomaticHyphenation = paragraph.SuppressAutomaticHyphenation;
+                    tinted.Hyphenation = paragraph.Hyphenation;
                     tinted.ContinuesInNextRegion = paragraph.ContinuesInNextRegion;
+                    tinted.UsesPublisherFontMetrics = paragraph.UsesPublisherFontMetrics;
+                    tinted.UsesPublisherKerningContext = paragraph.UsesPublisherKerningContext;
+                    tinted.NativeFlowPlan = paragraph.NativeFlowPlan;
                     paragraphs.Add(tinted);
                 }
                 replacement = new OfficeDrawingRichText(
@@ -55,6 +60,7 @@ public sealed partial class OfficeDrawing {
                     richText.FlipHorizontal, richText.FlipVertical, richText.Padding, richText.ParagraphIndent, allowOverflow: true)
                     .WithParagraphs(paragraphs).WithTextAreaAlignment(richText.TextAreaAlignment);
                 ((OfficeDrawingRichText)replacement).NormalizeHorizontalPaint = richText.NormalizeHorizontalPaint;
+                ((OfficeDrawingRichText)replacement).NativePublisherFrame = richText.NativePublisherFrame;
             } else if (current is OfficeDrawingGroup group) {
                 OfficeDrawing child = group.InnerDrawing.Clone();
                 child.ApplyColorTint(tint);
@@ -106,5 +112,5 @@ public sealed partial class OfficeDrawing {
     private static OfficeRichTextRun TintRichTextRun(OfficeRichTextRun run, OfficeColor tint) => new OfficeRichTextRun(
         run.Text, run.FontSize, WithTint(run.Color, tint), run.Bold, run.Italic, run.Underline,
         run.FontFamily, run.Strikethrough, run.BackgroundColor.HasValue ? WithTint(run.BackgroundColor.Value, tint) : null,
-        run.UnderlineStyle, run.StrikethroughStyle, run.Baseline, run.ParagraphIndent) { LinkUri = run.LinkUri, LinkDestinationName = run.LinkDestinationName };
+        run.UnderlineStyle, run.StrikethroughStyle, run.Baseline, run.ParagraphIndent) { AutomaticPairKerningThreshold = run.AutomaticPairKerningThreshold, LanguageId = run.LanguageId, LinkUri = run.LinkUri, LinkDestinationName = run.LinkDestinationName };
 }

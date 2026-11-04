@@ -55,7 +55,7 @@ public sealed class PublisherLineStyleTests {
         Assert.Equal(expectedJoin, shape.StrokeLineJoin);
         Assert.Equal(4.25, shape.StrokeMiterLimit);
         Assert.Contains("stroke-miterlimit=\"4.25\"", publication.ToSvg(0));
-        Assert.Equal(publication.ToSvg(0), OfficeDrawingSvgExporter.ToSvg(publication.Pages[0].Drawing.Clone()));
+        Assert.Equal(publication.ToSvg(0), OfficeDrawingSvgExporter.ToSvg(publication.Pages[0].CreateDrawing().Clone()));
     }
 
     [Fact]
@@ -94,7 +94,7 @@ public sealed class PublisherLineStyleTests {
         Assert.Equal(30, shape.StrokeStartMarker.Width); Assert.Equal(40, shape.StrokeStartMarker.Length);
         Assert.Equal(60, shape.StrokeEndMarker.Width); Assert.Equal(80, shape.StrokeEndMarker.Length);
         string svg = publication.ToSvg(0);
-        Assert.Equal(svg, OfficeDrawingSvgExporter.ToSvg(publication.Pages[0].Drawing.Clone()));
+        Assert.Equal(svg, OfficeDrawingSvgExporter.ToSvg(publication.Pages[0].CreateDrawing().Clone()));
         Assert.Contains(publication.ReadReport.Diagnostics, item => item.Code == "PUB_LINE_MARKER_APPROXIMATED"
             && item.LossKind == OfficeConversionLossKind.Approximation && item.Location == "Contents/object/293");
         var result = publication.ToPdf(null, out OfficeConversionReport resultReport);
@@ -148,7 +148,7 @@ public sealed class PublisherLineStyleTests {
     }
 
     private static PublisherDocument Load(Dictionary<ushort, uint> values, int shapeType = 20) => PublisherDocument.Load(Mutate(values, shapeType));
-    private static OfficeShape Artwork(PublisherDocument publication) => PublisherNativeTests.Elements(publication.Pages[0].Drawing)
+    private static OfficeShape Artwork(PublisherDocument publication) => PublisherNativeTests.Elements(publication.Pages[0].CreateDrawing())
         .OfType<OfficeDrawingShape>().Single(item => item.SourceElementIds?.Contains("publisher-object-293") == true).Shape;
 
     internal static byte[] Mutate(Dictionary<ushort, uint> values, int shapeType = 20) {

@@ -14,7 +14,8 @@ internal static class OfficeWorkflowCheckpointSettings {
     internal static string Capture(OfficeConversionOptions settings, string routeId) {
         OfficeWorkflowRenderingOptions options = OfficeWorkflowRenderingOptions.Capture(settings).ForRoute(routeId);
         if (options.Html?.ResourceResolver != null || options.Html?.TextShapingProvider != null || options.Rtf?.ImageConverter != null ||
-            options.PublisherRead?.ImageCodec != null || options.Visio?.DrawingOptions?.TextShapingProvider != null ||
+            options.PublisherRead?.ImageCodec != null || options.PublisherRead?.Fonts?.FontProgramProvider != null ||
+            options.PublisherRead?.Fonts?.FontVariationResolver != null || options.Visio?.DrawingOptions?.TextShapingProvider != null ||
             options.Visio?.DrawingOptions?.Fonts.FontProgramProvider != null || options.Visio?.DrawingOptions?.Fonts.FontVariationResolver != null ||
             options.Html?.ResourcePolicy.AllowRemoteResourceResolution == true)
             throw new NotSupportedException("Runtime resource callbacks and remote resources require an ordinary batch without checkpoints.");

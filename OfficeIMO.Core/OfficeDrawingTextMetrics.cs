@@ -18,13 +18,52 @@ internal sealed class OfficeDrawingTextMetrics {
         Func<string?, double, string?, OfficeFontStyle, OfficeTextPaintBounds> measurePaint,
         Func<string?, double, string?, OfficeFontStyle, (double Left, double Right)> measureHorizontalPaint,
         Func<string?, double, string?, OfficeFontStyle, OfficeTextDirection, double>? measurePositioned,
-        Func<OfficeRichTextSegment, double, OfficeTextPaintBounds?> measureSegmentPaint) {
+        Func<OfficeRichTextSegment, double, OfficeTextPaintBounds?> measureSegmentPaint)
+        : this(measure, measurePaint, measureHorizontalPaint, measurePositioned, measureSegmentPaint, null) {
+    }
+
+    internal OfficeDrawingTextMetrics(Func<string?, double, string?, OfficeFontStyle, double> measure,
+        Func<string?, double, string?, OfficeFontStyle, OfficeTextPaintBounds> measurePaint,
+        Func<string?, double, string?, OfficeFontStyle, (double Left, double Right)> measureHorizontalPaint,
+        Func<string?, double, string?, OfficeFontStyle, OfficeTextDirection, double>? measurePositioned,
+        Func<OfficeRichTextSegment, double, OfficeTextPaintBounds?> measureSegmentPaint,
+        Func<string?, double, string?, OfficeFontStyle, OfficePublisherFontMetrics?>? measurePublisherFont)
+        : this(measure, measurePaint, measureHorizontalPaint, measurePositioned, measureSegmentPaint, measurePublisherFont, null, null) {
+    }
+
+    internal OfficeDrawingTextMetrics(Func<string?, double, string?, OfficeFontStyle, double> measure,
+        Func<string?, double, string?, OfficeFontStyle, OfficeTextPaintBounds> measurePaint,
+        Func<string?, double, string?, OfficeFontStyle, (double Left, double Right)> measureHorizontalPaint,
+        Func<string?, double, string?, OfficeFontStyle, OfficeTextDirection, double>? measurePositioned,
+        Func<OfficeRichTextSegment, double, OfficeTextPaintBounds?> measureSegmentPaint,
+        Func<string?, double, string?, OfficeFontStyle, OfficePublisherFontMetrics?>? measurePublisherFont,
+        Func<string?, double, string?, OfficeFontStyle, OfficeTextFeatureSettings?, double>? measureFeatures,
+        Func<OfficeRichTextSegment, double, (double Left, double Right)>? measureSegmentHorizontalPaint)
+        : this(measure, measurePaint, measureHorizontalPaint, measurePositioned, measureSegmentPaint, measurePublisherFont,
+            measureFeatures, measureSegmentHorizontalPaint, null) { }
+
+    internal OfficeDrawingTextMetrics(Func<string?, double, string?, OfficeFontStyle, double> measure,
+        Func<string?, double, string?, OfficeFontStyle, OfficeTextPaintBounds> measurePaint,
+        Func<string?, double, string?, OfficeFontStyle, (double Left, double Right)> measureHorizontalPaint,
+        Func<string?, double, string?, OfficeFontStyle, OfficeTextDirection, double>? measurePositioned,
+        Func<OfficeRichTextSegment, double, OfficeTextPaintBounds?> measureSegmentPaint,
+        Func<string?, double, string?, OfficeFontStyle, OfficePublisherFontMetrics?>? measurePublisherFont,
+        Func<string?, double, string?, OfficeFontStyle, OfficeTextFeatureSettings?, double>? measureFeatures,
+        Func<OfficeRichTextSegment, double, (double Left, double Right)>? measureSegmentHorizontalPaint,
+        Func<string, double, string, OfficeFontStyle, OfficeTextFeatureSettings?, OfficePreparedTextShaping?>? prepare) {
+        RichTextMeasurement = new OfficeRichTextMeasurement(measure, measureFeatures, prepare);
+        MeasureSegmentHorizontalPaintBounds = measureSegmentHorizontalPaint ??
+            ((segment, size) => measureHorizontalPaint(segment.Text, size, segment.FontFamily, segment.FontStyle));
+        MeasurePublisherFont = measurePublisherFont;
         MeasureSegmentPaintBounds = measureSegmentPaint;
         MeasureText = measure;
         MeasurePaintBounds = measurePaint;
         MeasureHorizontalPaintBounds = measureHorizontalPaint;
         MeasurePositionedText = measurePositioned ?? ((text, size, family, style, _) => measure(text, size, family, style));
     }
+    internal OfficeRichTextMeasurement RichTextMeasurement { get; }
+    internal Func<OfficeRichTextSegment, double, (double Left, double Right)> MeasureSegmentHorizontalPaintBounds { get; }
+    internal Func<string?, double, string?, OfficeFontStyle, OfficePublisherFontMetrics?>? MeasurePublisherFont { get; }
     internal Func<OfficeRichTextSegment, double, OfficeTextPaintBounds?> MeasureSegmentPaintBounds { get; }
     internal Func<string?, double, string?, OfficeFontStyle, double> MeasureText { get; }
     internal Func<string?, double, string?, OfficeFontStyle, OfficeTextPaintBounds> MeasurePaintBounds { get; }

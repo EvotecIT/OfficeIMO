@@ -1,0 +1,47 @@
+{
+  "schema": "officeimo.publisher.native-text-pages-fixture.v1",
+  "reproduction": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case TextPages",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "name": "native-textpages.json",
+      "sha256": "0a46bd89ba0df37699854540721c0e533428d15e5c285d8e9644a0bed6b6a212"
+    },
+    {
+      "name": "native-textpages.pdf",
+      "sha256": "86b7ac705d14590fa3b68cb299489c63421aa0702fa4b34be7d4a7403de96c35"
+    },
+    {
+      "name": "native-textpages.pub",
+      "sha256": "00e2c8acc181238cab6a542fd0edc452d100c6e35f14eb4ee0f58be39d40f73f"
+    }
+  ],
+  "expectations": {
+    "pages": 3,
+    "firstPageText": "First page: native authoring",
+    "lastPageText": "Last page: native authoring",
+    "middlePageEmpty": true,
+    "fonts": [
+      "Arial12",
+      "Arial18"
+    ],
+    "fullColumnGapPoints": 0
+  },
+  "limits": [
+    "Visible body text is explicitly styled; the implicit native CR retains document-default typing.",
+    "Repair-free opening is unassessed."
+  ]
+}

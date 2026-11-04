@@ -1,0 +1,32 @@
+{
+  "schema": "officeimo.publisher.native-cleared-story.v1",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "automationSecurity": 3
+  },
+  "qualifiedOperations": [
+    "ReadOnlyOpen",
+    "InitialInventory",
+    "InitialPdfExport",
+    "NativeTextMutation",
+    "NativeSaveAs",
+    "ReadOnlyReopen",
+    "ResavedInventory",
+    "ResavedPdfExport"
+  ],
+  "sha256": "02dc708050ec63d4539a4158fc5ea80e6580576088ffb097a08cd007d00947c5",
+  "license": "CC0-1.0",
+  "repairStatus": "Unassessed: COM Open success does not expose whether native repair occurred.",
+  "source": "NativeComparison/Text/native-text.pub",
+  "operation": "Native TextRange.Text set to empty, followed by native save and reopen through Invoke-NativePublisherOperation.ps1 -NativeEditText empty",
+  "observed": {
+    "paragraphs": 1,
+    "font": "Calibri",
+    "storyCharacters": 1,
+    "sizePoints": 10,
+    "nativeText": "CR"
+  },
+  "sourceSha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d"
+}

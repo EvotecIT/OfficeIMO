@@ -1,0 +1,424 @@
+<#
+.SYNOPSIS
+Runs one bounded, isolated native Publisher qualification operation.
+.DESCRIPTION
+Shared process owner for comparison-corpus production and candidate validation.
+The worker disables macros and identifies its sole newly activated Publisher
+automation server before authoring or opening the candidate, then cross-checks
+any available COM window. Existing Publisher sessions
+are preserved. A failed startup without an identity receipt never authorizes
+stopping a process by its name or start time alone.
+The controller supports Windows PowerShell 5.1 and PowerShell 7; native COM work
+runs in a PowerShell 7 worker. Windows PowerShell locates the installed pwsh.exe.
+.PARAMETER OutputDirectory
+Task-owned directory for generated evidence. Existing evidence is never overwritten.
+.PARAMETER Operation
+Corpus produces one synthetic native case. Validate opens a byte-identical copy
+of InputPath read-only and performs the selected Stage. Full remains the default:
+it inventories and exports the input, then saves, reopens and exports a separate PUB.
+.PARAMETER Case
+Synthetic case selected by New-NativeComparisonCorpus.ps1.
+SizedCompositionUnassigned is opt-in and suppresses the retained centered master
+only on page 2 of the existing portrait mixed-content recipe.
+.PARAMETER InputPath
+OfficeIMO-generated candidate to validate. Required for Validate.
+.PARAMETER Stage
+Inspect performs read-only open and inventory. Export also writes the initial
+PDF while retaining read-only access. Resave saves and reopens a
+separate PUB without PDF export. Full performs both PDF exports as well. Partial
+stages establish only their listed operations; native repair remains unassessed.
+.PARAMETER TimeoutSeconds
+Bounded worker lifetime, including application startup and shutdown.
+.PARAMETER PhaseTimeoutSeconds
+Maximum time without a new worker phase. The total TimeoutSeconds bound also applies.
+.PARAMETER NativeEditText
+Optional single-line replacement for a candidate with one physical page, or one
+printable ASCII character for the qualified linked-story target.
+NativeEditTarget selects the sole unlinked text box or a qualified first table
+cell. Validate/Full only. The writable snapshot is changed before native save-as;
+initial artifacts retain the original content. An empty value clears the text range.
+.PARAMETER NativeEditTarget
+TextBox retains the sole unlinked text-box profile. FirstTableCell changes the
+first unmerged cell of the sole physical table on one page. FirstMergedTableCell
+changes only its first anchor at native row/column 1,1 with exactly two columns
+and one row. Other shapes remain untouched. All targets require NativeEditText
+and Validate/Full.
+LinkedStoryFirstCharacter changes only the first character of the qualified
+three-frame page 1/3/2 story; the replacement must differ from its original M.
+SizedStoryFirstCharacter changes only N to M in the complete 148-character
+two-frame story at the three qualified sizes with the master applied on both pages, or the
+portrait recipe with only page 2 suppressing its selected master.
+.PARAMETER NativeAddClusterTable
+Adds the fixed two-by-four ClusterRolloverProbe table to the writable snapshot
+containing one unmerged eighteen-by-eighteen physical table. Validate/Full only;
+cannot be combined with NativeEditText. The retained table is not edited.
+.EXAMPLE
+./Build/Publisher/Invoke-NativePublisherOperation.ps1 -Operation Validate -InputPath ./candidate.pub -OutputDirectory ./candidate-native
+.EXAMPLE
+./Build/Publisher/Invoke-NativePublisherOperation.ps1 -Operation Validate -Stage Inspect -InputPath ./candidate.pub -OutputDirectory ./candidate-inspect
+.EXAMPLE
+./Build/Publisher/Invoke-NativePublisherOperation.ps1 -Operation Validate -Stage Export -InputPath ./candidate.pub -OutputDirectory ./candidate-export -TimeoutSeconds 180 -PhaseTimeoutSeconds 45
+.OUTPUTS
+The native case or validation report. Native repair status remains unassessed
+unless an independent native UI observation supplies that evidence.
+#>
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory)]
+    [string] $OutputDirectory,
+
+    [ValidateSet('Corpus', 'Validate')]
+    [string] $Operation = 'Corpus',
+
+    [ValidateSet('Blank', 'BlankPages', 'TextPages', 'ObjectPages', 'ObjectPagesEdited', 'MixedObjectPages', 'MixedObjectPagesEdited', 'WrapObjectOrderDefaults', 'WrapObjectOrderLayout', 'WrapTextFrameOutside', 'WrapObjectOrderLeft', 'WrapObjectOrderRight', 'WrapObjectOrderLarger', 'WrapObjectOrderLargerLeft', 'WrapObjectOrderLargerTie', 'WrapObjectOrderLargerColumns', 'WrapObjectOrderOutside', 'WrapObjectOrderRectangleOnly', 'WrapObjectOrderPictureOnly', 'WrapObjectOrderSwap', 'WrapObjectOrder', 'WrapObjectOrderReversed', 'WrapObjectOrderNone', 'MixedObjectOrder', 'MixedObjectOrderReversed', 'MasterContent', 'MasterContentEdited', 'LinkedStory', 'LinkedStoryOverflow', 'MultiParagraphCreation', 'MultiParagraphCreationLinked', 'TableCreation', 'TableCreationEdited', 'TableCreationMerged', 'TableCreationMergedEdited', 'TableMergedDecoration', 'TableMergedDecorationEdited', 'TableMergedDecorationText', 'TableMergedDecorationComposed', 'TableMergedFills', 'TableMergedBorders', 'CaptionTypingPreRange', 'CaptionTypingFullRange', 'CaptionTypingExplicit', 'CaptionTypingPreRangeRefilled', 'CaptionTypingFullRangeRefilled', 'CaptionTypingExplicitRefilled', 'TableDecoration', 'TableDecorationEdited', 'TableDecorationText', 'TableBordersOnly', 'TableBordersOnlyText', 'TableFillsOnly', 'TableBordersOnlyCleared', 'TableUtilityPair', 'TableUtilityPairStyled', 'TableUtilityPairBorders', 'TableUtilityPairFills', 'TableUtilityPairComposed', 'TableUtilityPairSingleFill', 'TableUtilityPairTargetComposed', 'TableClusterNear', 'TableClusterNearEdited', 'TableClusterWide', 'TableFillVisibility', 'TableFillVisibilityRestored', 'TableFillVisibilityText', 'TableBorderTopology', 'TableBordersCleared', 'TableBorderTopologyTextFill', 'TableBorderDefaultFill', 'FrameCreation', 'FrameCreationEdited', 'FrameCreationFrench', 'ImagePages', 'ImagePagesEdited', 'ImagePagesReplacement', 'ImagePagesJpegReplacement', 'ImagePagesJpegCropped', 'ImagePagesCropped', 'SharedImagePages', 'SharedImagePagesReplacement', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextNonuniformParagraphs', 'TextNonuniformTextReplacements', 'TextMixedRunTextReplacements', 'TextFormattingTopology', 'TextEmptyRefill', 'TextRunSegmentation', 'TextNonuniformEmptyParagraphs', 'TextUniformEmptyParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextVerticalPlacement', 'TextFontMetrics', 'TextFallbackAlignment', 'TextFrameBreaks', 'TextLabelFitting', 'TextHyphenation', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'TableCellTyping', 'TableCellTypingEarlyRange', 'TableCellParagraphs', 'TableNonuniformParagraphs', 'TableNonuniformTextReplacements', 'TableMixedRunTextReplacements', 'TableFormattingTopology', 'TableEmptyRefill', 'TableRunSegmentation', 'TableNonuniformEmptyParagraphs', 'TableUniformEmptyParagraphs', 'Brochure', 'PairedBrochure', 'SizedCompositionA4', 'SizedCompositionPortrait', 'SizedCompositionLandscape', 'SizedCompositionUnassigned', 'MultipleMasters', 'TwoPageMaster', 'MultipleMastersEdited', 'TwoPageMasterEdited', 'MultipleMastersReassigned', 'MultipleMastersIgnored', 'TwoPageMasterReassigned', 'TwoPageMasterIgnored', 'PictureOwnership', 'PictureReplacement', 'PictureCropped', 'PictureCropFractions', 'PictureCropFractionsReplacement')]
+    [string] $Case = 'Blank',
+
+    [string] $InputPath,
+
+    [ValidateSet('Inspect', 'Export', 'Resave', 'Full')]
+    [string] $Stage = 'Full',
+
+    [AllowEmptyString()]
+    [ValidateLength(0, 4096)]
+    [ValidatePattern('\A[^\p{Cc}\p{Zl}\p{Zp}]*\z')]
+    [string] $NativeEditText,
+
+    [ValidateSet('TextBox', 'FirstTableCell', 'FirstMergedTableCell', 'LinkedStoryFirstCharacter', 'SizedStoryFirstCharacter')]
+    [string] $NativeEditTarget = 'TextBox',
+
+    [switch] $NativeAddClusterTable,
+
+    [ValidateRange(10, 600)]
+    [int] $TimeoutSeconds = 90,
+
+    [ValidateRange(10, 600)]
+    [int] $PhaseTimeoutSeconds = 45
+)
+
+$ErrorActionPreference = 'Stop'
+if ($env:OS -ne 'Windows_NT') {
+    throw 'Native qualification requires Microsoft Publisher on Windows.'
+}
+$hostPath = (Get-Process -Id $PID).Path
+if ($PSVersionTable.PSVersion.Major -lt 7) {
+    $nativeHost = @(Get-Command pwsh.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1)
+    if ($nativeHost.Count -eq 0) {
+        throw 'Native Publisher work requires PowerShell 7. Run this controller with pwsh, or install PowerShell 7 first.'
+    }
+    $hostPath = $nativeHost[0].Source
+}
+$nativeEditRequested = $PSBoundParameters.ContainsKey('NativeEditText')
+if ($PSBoundParameters.ContainsKey('NativeEditTarget') -and -not $nativeEditRequested) {
+    throw 'NativeEditTarget requires NativeEditText.'
+}
+if ($nativeEditRequested -and ($Operation -ne 'Validate' -or $Stage -ne 'Full')) {
+    throw 'NativeEditText requires candidate validation with Stage Full.'
+}
+if ($nativeEditRequested -and $NativeEditTarget -eq 'LinkedStoryFirstCharacter' -and
+    ($NativeEditText.Length -ne 1 -or $NativeEditText[0] -lt [char]0x20 -or
+        $NativeEditText[0] -gt [char]0x7e -or $NativeEditText -ceq 'M')) {
+    throw 'LinkedStoryFirstCharacter requires one printable ASCII character distinct from M.'
+}
+if ($nativeEditRequested -and $NativeEditTarget -eq 'SizedStoryFirstCharacter' -and $NativeEditText -cne 'M') {
+    throw 'SizedStoryFirstCharacter requires the single replacement character M for the qualified N body.'
+}
+if ($NativeAddClusterTable -and ($Operation -ne 'Validate' -or $Stage -ne 'Full')) {
+    throw 'NativeAddClusterTable requires candidate validation with Stage Full.'
+}
+if ($NativeAddClusterTable -and $nativeEditRequested) {
+    throw 'NativeAddClusterTable cannot be combined with NativeEditText.'
+}
+if ($Operation -eq 'Validate') {
+    if ([string]::IsNullOrWhiteSpace($InputPath) -or -not (Test-Path -LiteralPath $InputPath -PathType Leaf)) {
+        throw 'Validate requires an existing native PUB candidate.'
+    }
+    $InputPath = [IO.Path]::GetFullPath($InputPath)
+    if ([IO.Path]::GetExtension($InputPath) -ne '.pub') {
+        throw 'Validate accepts a native .pub candidate only.'
+    }
+} elseif ($Stage -ne 'Full') {
+    throw 'Inspect, Export and Resave stages apply only to candidate validation.'
+}
+. (Join-Path $PSScriptRoot 'Get-NativeValidationArtifactNames.ps1')
+. (Join-Path $PSScriptRoot 'Read-NativePublisherReceipt.ps1')
+. (Join-Path $PSScriptRoot 'Get-NativePublisherProgress.ps1')
+$output = [IO.Path]::GetFullPath($OutputDirectory)
+$runDirectory = Join-Path $output '.run'
+$key = $Operation + '-' + $Case
+if ($Operation -eq 'Validate') {
+    $key = 'Validate-Candidate'
+}
+$receiptPath = Join-Path $runDirectory ($key + '.process.json')
+$stdout = Join-Path $runDirectory ($key + '.stdout.txt')
+$stderr = Join-Path $runDirectory ($key + '.stderr.txt')
+$reservationPath = Join-Path $runDirectory ($key + '.reservation.json')
+$diagnosticPaths = @(
+    $receiptPath,
+    $stdout,
+    $stderr,
+    $reservationPath,
+    (Join-Path $runDirectory ($key + '.closure.json')),
+    (Join-Path $runDirectory ($key + '.failure.json')),
+    (Join-Path $runDirectory ($key + '.cleanup.json')),
+    ($receiptPath + '.startup.json'),
+    ($receiptPath + '.tmp')
+)
+$artifactNames = @(Get-NativeValidationArtifactNames -Stage $Stage)
+if ($Operation -eq 'Corpus') {
+    $stem = 'native-' + $Case.ToLowerInvariant()
+    $artifactNames = @(($stem + '.pub'), ($stem + '.pdf'), ($stem + '.json'))
+    if ($Case -in @('WrapObjectOrderDefaults', 'WrapObjectOrderLayout', 'WrapTextFrameOutside', 'WrapObjectOrderLeft', 'WrapObjectOrderRight', 'WrapObjectOrderLarger', 'WrapObjectOrderLargerLeft', 'WrapObjectOrderLargerTie', 'WrapObjectOrderLargerColumns', 'WrapObjectOrderOutside', 'WrapObjectOrderRectangleOnly', 'WrapObjectOrderPictureOnly', 'WrapObjectOrderSwap', 'WrapObjectOrder', 'WrapObjectOrderReversed', 'WrapObjectOrderNone', 'Image', 'Newsletter', 'TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'PictureOwnership', 'PictureReplacement', 'PictureCropped', 'PictureCropFractions', 'PictureCropFractionsReplacement')) {
+        $artifactNames += $stem + '.png'
+        if ($Case -eq 'PictureReplacement') {
+            $artifactNames += $stem + '-replacement.png'
+        }
+    }
+}
+$plannedPaths = @($artifactNames | ForEach-Object { Join-Path $output $_ }) + $diagnosticPaths
+foreach ($path in $plannedPaths) {
+    if (Test-Path -LiteralPath $path) {
+        throw ('Existing operation evidence is not overwritten: ' + $path)
+    }
+}
+if (@(Get-Process -Name MSPUB -ErrorAction SilentlyContinue).Count -gt 0) {
+    throw 'Publisher is already running. Preserve that session and run this tool after it is closed.'
+}
+[void][IO.Directory]::CreateDirectory($runDirectory)
+$reservation = [ordered]@{
+    schema = 'officeimo.publisher.native-reservation.v1'
+    controllerProcessId = $PID
+    operation = $Operation
+    case = $Case
+    artifacts = $artifactNames
+}
+if ($Operation -eq 'Validate') {
+    $reservation.stage = $Stage
+}
+$reservationBytes = [Text.UTF8Encoding]::new($false).GetBytes(($reservation | ConvertTo-Json -Depth 4))
+$reservationStream = [IO.FileStream]::new($reservationPath, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::Read)
+try {
+    $reservationStream.Write($reservationBytes, 0, $reservationBytes.Length)
+} finally {
+    $reservationStream.Dispose()
+}
+
+function ConvertTo-NativePublisherArgument {
+    <# Quote one Windows argv value, including embedded quotes and trailing backslashes. #>
+    param([AllowEmptyString()][string] $Argument)
+    $quoted = [Text.StringBuilder]::new()
+    [void]$quoted.Append([char]34)
+    $backslashes = 0
+    foreach ($character in $Argument.ToCharArray()) {
+        if ($character -eq [char]92) {
+            $backslashes++
+            continue
+        }
+        if ($character -eq [char]34) {
+            [void]$quoted.Append([char]92, ($backslashes * 2 + 1))
+        } else {
+            [void]$quoted.Append([char]92, $backslashes)
+        }
+        [void]$quoted.Append($character)
+        $backslashes = 0
+    }
+    [void]$quoted.Append([char]92, ($backslashes * 2))
+    [void]$quoted.Append([char]34)
+    return $quoted.ToString()
+}
+
+$workerPath = Join-Path $PSScriptRoot 'Invoke-NativeComparisonCase.ps1'
+$controllerStart = (Get-Process -Id $PID).StartTime.ToUniversalTime().Ticks
+$argumentValues = @(
+    '-NoLogo', '-NoProfile', '-NonInteractive', '-STA', '-File', $workerPath,
+    '-OutputDirectory', $output, '-Operation', $Operation, '-Case', $Case,
+    '-ReceiptPath', $receiptPath, '-ControllerProcessId', $PID.ToString([Globalization.CultureInfo]::InvariantCulture),
+    '-ControllerStartTimeUtcTicks', $controllerStart.ToString([Globalization.CultureInfo]::InvariantCulture)
+)
+if ($Operation -eq 'Validate') {
+    $argumentValues += @('-InputPath', $InputPath, '-Stage', $Stage)
+}
+if ($nativeEditRequested) {
+    $argumentValues += @('-NativeEditText', $NativeEditText, '-NativeEditTarget', $NativeEditTarget)
+}
+if ($NativeAddClusterTable) {
+    $argumentValues += '-NativeAddClusterTable'
+}
+$arguments = ($argumentValues | ForEach-Object { ConvertTo-NativePublisherArgument $_ }) -join ' '
+$worker = $null
+$succeeded = $false
+$report = $null
+$primaryError = $null
+$cleanupError = $null
+$closure = [ordered]@{
+    schema = 'officeimo.publisher.native-process-closure.v1'
+    operation = $Operation
+    case = $Case
+    workerStopped = $false
+    workerTeardown = 'Exited'
+    native = 'NotIdentified'
+    error = $null
+    timeoutSeconds = $TimeoutSeconds
+    phaseTimeoutSeconds = $PhaseTimeoutSeconds
+    workerHostPath = $hostPath
+    phases = [Collections.Generic.List[object]]::new()
+}
+
+function Get-CompletionReceipt {
+    param([int] $WorkerProcessId)
+    if (-not (Test-Path -LiteralPath $receiptPath)) {
+        return $null
+    }
+    try {
+        $receipt = Read-NativePublisherReceipt -Path $receiptPath
+        if ($receipt.workerProcessId -eq $WorkerProcessId -and $receipt.phase -eq 'ShutdownComplete' -and $receipt.operationSucceeded -is [bool]) {
+            return $receipt
+        }
+    } catch {
+        # A startup receipt can be between its first write and replacement.
+        # Malformed/incomplete data never qualifies as operation completion.
+    }
+    return $null
+}
+
+try {
+    $worker = Start-Process -FilePath $hostPath -ArgumentList $arguments -WindowStyle Hidden -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+    # Windows PowerShell needs the owned process handle retained before timed
+    # waits; reacquiring a short-lived PID after exit can lose its exit code.
+    [void]$worker.Handle
+    $workerStartTicks = $worker.StartTime.ToUniversalTime().Ticks
+    $elapsed = [Diagnostics.Stopwatch]::StartNew()
+    $completion = $null
+    $workerExited = $false
+    $lastSequence = 0L
+    $lastProgressSeconds = 0D
+    $lastPhase = 'WorkerStartup'
+    while ($elapsed.Elapsed.TotalSeconds -lt $TimeoutSeconds) {
+        if ($worker.WaitForExit(200)) {
+            $workerExited = $true
+            $completion = Get-CompletionReceipt -WorkerProcessId $worker.Id
+            break
+        }
+        $completion = Get-CompletionReceipt -WorkerProcessId $worker.Id
+        if ($null -ne $completion) {
+            # Explicit completion is emitted only after evidence writes and
+            # Close/Quit. COM host teardown can still block even Environment.Exit.
+            if (-not $worker.WaitForExit(1000)) {
+                if ($worker.StartTime.ToUniversalTime().Ticks -ne $workerStartTicks) {
+                    throw 'The worker process identity changed before completion cleanup.'
+                }
+                $worker.Kill()
+                if (-not $worker.WaitForExit(10000)) {
+                    throw 'The completed native-operation worker did not exit after bounded cleanup.'
+                }
+                $closure.workerStopped = $true
+                $closure.workerTeardown = 'StoppedAfterCompletionReceipt'
+            }
+            $workerExited = $true
+            break
+        }
+        $progress = Get-NativePublisherProgress -ReceiptPath $receiptPath -WorkerProcessId $worker.Id
+        if ($null -ne $progress -and $progress.sequence -gt $lastSequence) {
+            $lastSequence = $progress.sequence
+            $lastPhase = $progress.phase
+            $lastProgressSeconds = $elapsed.Elapsed.TotalSeconds
+            $closure.phases.Add([pscustomobject]@{
+                sequence = $lastSequence
+                phase = $lastPhase
+                elapsedSeconds = [Math]::Round($lastProgressSeconds, 3)
+            })
+        }
+        if ($elapsed.Elapsed.TotalSeconds - $lastProgressSeconds -ge $PhaseTimeoutSeconds) {
+            $closure.workerTeardown = 'StoppedAfterPhaseTimeout'
+            throw ('Publisher operation {0} made no phase progress for {1} seconds during {2}. See {3}.' -f $key, $PhaseTimeoutSeconds, $lastPhase, $runDirectory)
+        }
+    }
+    if (-not $workerExited) {
+        $closure.workerTeardown = 'StoppedAfterTimeout'
+        throw ('Publisher operation {0} exceeded {1} seconds. See {2}.' -f $key, $TimeoutSeconds, $runDirectory)
+    }
+    if ($null -eq $completion) {
+        throw ('Publisher operation {0} exited without a valid completion receipt. See {1}.' -f $key, $stderr)
+    }
+    if (-not $completion.operationSucceeded -or ($closure.workerTeardown -eq 'Exited' -and $worker.ExitCode -ne 0)) {
+        throw ('Publisher operation {0} failed with exit code {1}. See {2}.' -f $key, $worker.ExitCode, $stderr)
+    }
+    $reportName = 'native-' + $Case.ToLowerInvariant() + '.json'
+    if ($Operation -eq 'Validate') {
+        $reportName = 'native-validation.json'
+    }
+    $report = Get-Content -LiteralPath (Join-Path $output $reportName) -Raw | ConvertFrom-Json
+    if ($Operation -eq 'Validate' -and $report.stage -ne $Stage) {
+        throw 'The completed validation report does not match the requested stage.'
+    }
+    $succeeded = $true
+} catch {
+    $primaryError = $_
+} finally {
+    try {
+        if ($null -ne $worker) {
+            if (-not $worker.HasExited) {
+                Stop-Process -Id $worker.Id -ErrorAction Stop
+                if (-not $worker.WaitForExit(10000)) {
+                    throw 'The owned native-operation worker did not exit after bounded cleanup.'
+                }
+                $closure.workerStopped = $true
+            }
+            $worker.Dispose()
+        }
+        if (Test-Path -LiteralPath $receiptPath) {
+            $receipt = Read-NativePublisherReceipt -Path $receiptPath
+            $native = Get-Process -Id $receipt.processId -ErrorAction SilentlyContinue
+            if ($null -eq $native) {
+                $closure.native = 'Exited'
+            } else {
+                if ($native.ProcessName -eq 'MSPUB' -and $native.StartTime.ToUniversalTime().Ticks -eq [long]$receipt.startTimeUtcTicks -and
+                    $native.Path -ieq [string] $receipt.executable) {
+                    if (-not $native.WaitForExit(3000)) {
+                        Stop-Process -Id $native.Id -ErrorAction Stop
+                        if (-not $native.WaitForExit(10000)) {
+                            throw 'The owned Publisher process did not exit after bounded cleanup.'
+                        }
+                        $closure.native = 'StoppedRecordedProcess'
+                    } else {
+                        $closure.native = 'Exited'
+                    }
+                    $native.Dispose()
+                } else {
+                    $closure.native = 'DifferentIdentityPreserved'
+                    throw 'The recorded Publisher PID has a different process identity and is left untouched.'
+                }
+            }
+        } else {
+            Write-Warning 'No native process identity was recorded. Any remaining Publisher process is left untouched.'
+            if ($succeeded) {
+                throw 'An otherwise completed operation has no native process identity receipt.'
+            }
+        }
+    } catch {
+        $cleanupError = $_
+        $closure.error = $_.Exception.Message
+    }
+    try {
+        $closureBytes = [Text.UTF8Encoding]::new($false).GetBytes(($closure | ConvertTo-Json -Depth 4))
+        $closureStream = [IO.FileStream]::new((Join-Path $runDirectory ($key + '.closure.json')), [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::Read)
+        try {
+            $closureStream.Write($closureBytes, 0, $closureBytes.Length)
+        } finally {
+            $closureStream.Dispose()
+        }
+    } catch {
+        if ($null -eq $cleanupError) {
+            $cleanupError = $_
+        }
+    }
+}
+if ($null -ne $primaryError) {
+    if ($null -ne $cleanupError) {
+        Write-Warning ('Native cleanup also failed: ' + $cleanupError.Exception.Message)
+    }
+    throw $primaryError
+}
+if ($null -ne $cleanupError) {
+    throw $cleanupError
+}
+$report

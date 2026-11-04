@@ -1,0 +1,92 @@
+{
+  "schema": "officeimo.publisher.native-case.v1",
+  "case": "TextFormattingPages",
+  "status": "Produced",
+  "license": "MIT",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "expected": {
+    "pages": 1,
+    "widthPoints": 612,
+    "heightPoints": 792,
+    "text": [
+      "Paragraph 01 preserves its native formatting.\rParagraph 02 preserves its native formatting.\rParagraph 03 preserves its native formatting.\rParagraph 04 preserves its native formatting.\rParagraph 05 preserves its native formatting.\rParagraph 06 preserves its native formatting.\rParagraph 07 preserves its native formatting.\rParagraph 08 preserves its native formatting.\rParagraph 09 preserves its native formatting.\rParagraph 10 preserves its native formatting.\rParagraph 11 preserves its native formatting.\rParagraph 12 preserves its native formatting.\rParagraph 13 preserves its native formatting.\rParagraph 14 preserves its native formatting.\rParagraph 15 preserves its native formatting.\rParagraph 16 preserves its native formatting.\rParagraph 17 preserves its native formatting.\rParagraph 18 preserves its native formatting.\rParagraph 19 preserves its native formatting.\rParagraph 20 preserves its native formatting.\rParagraph 21 preserves its native formatting.\rParagraph 22 preserves its native formatting.\rParagraph 23 preserves its native formatting.\rParagraph 24 preserves its native formatting.\rParagraph 25 preserves its native formatting.\rParagraph 26 preserves its native formatting.\rParagraph 27 preserves its native formatting.\rParagraph 28 preserves its native formatting.\rParagraph 29 preserves its native formatting.\rParagraph 30 preserves its native formatting.\rParagraph 31 preserves its native formatting.\rParagraph 32 preserves its native formatting.\rParagraph 33 preserves its native formatting.\rParagraph 34 preserves its native formatting.\rParagraph 35 preserves its native formatting.\rParagraph 36 preserves its native formatting.\rParagraph 37 preserves its native formatting.\rParagraph 38 preserves its native formatting.\rParagraph 39 preserves its native formatting.\rParagraph 40 preserves its native formatting.\rParagraph 41 preserves its native formatting.\rParagraph 42 preserves its native formatting.\rParagraph 43 preserves its native formatting.\rParagraph 44 preserves its native formatting.\rParagraph 45 preserves its native formatting.\rParagraph 46 preserves its native formatting.\rParagraph 47 preserves its native formatting.\rParagraph 48 preserves its native formatting.\rParagraph 49 preserves its native formatting.\rParagraph 50 preserves its native formatting.\rParagraph 51 preserves its native formatting.\rParagraph 52 preserves its native formatting.\rParagraph 53 preserves its native formatting.\rParagraph 54 preserves its native formatting.\rParagraph 55 preserves its native formatting.\rParagraph 56 preserves its native formatting.\rParagraph 57 preserves its native formatting.\rParagraph 58 preserves its native formatting.\rParagraph 59 preserves its native formatting.\rParagraph 60 preserves its native formatting.\rParagraph 61 preserves its native formatting.\rParagraph 62 preserves its native formatting.\rParagraph 63 preserves its native formatting.\rParagraph 64 preserves its native formatting.\rParagraph 65 preserves its native formatting.\rParagraph 66 preserves its native formatting.\rParagraph 67 preserves its native formatting.\rParagraph 68 preserves its native formatting.\rParagraph 69 preserves its native formatting.\rParagraph 70 preserves its native formatting.\rParagraph 71 preserves its native formatting.\rParagraph 72 preserves its native formatting.\rParagraph 73 preserves its native formatting.\rParagraph 74 preserves its native formatting.\rParagraph 75 preserves its native formatting.\rParagraph 76 preserves its native formatting.\rParagraph 77 preserves its native formatting.\rParagraph 78 preserves its native formatting.\rParagraph 79 preserves its native formatting.\rParagraph 80 preserves its native formatting.\rParagraph 81 preserves its native formatting.\rParagraph 82 preserves its native formatting.\rParagraph 83 preserves its native formatting.\rParagraph 84 preserves its native formatting.\rParagraph 85 preserves its native formatting.\rParagraph 86 preserves its native formatting.\rParagraph 87 preserves its native formatting.\rParagraph 88 preserves its native formatting.\rParagraph 89 preserves its native formatting.\rParagraph 90 preserves its native formatting.\rParagraph 91 preserves its native formatting.\rParagraph 92 preserves its native formatting.\rParagraph 93 preserves its native formatting.\rParagraph 94 preserves its native formatting.\rParagraph 95 preserves its native formatting.\rParagraph 96 preserves its native formatting."
+    ],
+    "shapes": [
+      {
+        "name": "FormattingPages",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 72.0,
+        "width": 360.0,
+        "height": 648.0,
+        "font": "Arial",
+        "size": 12.0
+      }
+    ]
+  },
+  "nativePages": [
+    {
+      "index": 1,
+      "pageId": 33554698,
+      "pageIndex": 1,
+      "pageNumber": "1",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "FormattingPages",
+          "type": 17,
+          "left": 72.0,
+          "top": 72.0,
+          "width": 360.0,
+          "height": 648.0,
+          "text": "Paragraph 01 preserves its native formatting.\rParagraph 02 preserves its native formatting.\rParagraph 03 preserves its native formatting.\rParagraph 04 preserves its native formatting.\rParagraph 05 preserves its native formatting.\rParagraph 06 preserves its native formatting.\rParagraph 07 preserves its native formatting.\rParagraph 08 preserves its native formatting.\rParagraph 09 preserves its native formatting.\rParagraph 10 preserves its native formatting.\rParagraph 11 preserves its native formatting.\rParagraph 12 preserves its native formatting.\rParagraph 13 preserves its native formatting.\rParagraph 14 preserves its native formatting.\rParagraph 15 preserves its native formatting.\rParagraph 16 preserves its native formatting.\rParagraph 17 preserves its native formatting.\rParagraph 18 preserves its native formatting.\rParagraph 19 preserves its native formatting.\rParagraph 20 preserves its native formatting.\rParagraph 21 preserves its native formatting.\rParagraph 22 preserves its native formatting.\rParagraph 23 preserves its native formatting.\rParagraph 24 preserves its native formatting.\rParagraph 25 preserves its native formatting.\rParagraph 26 preserves its native formatting.\rParagraph 27 preserves its native formatting.\rParagraph 28 preserves its native formatting.\rParagraph 29 preserves its native formatting.\rParagraph 30 preserves its native formatting.\r",
+          "font": "Arial",
+          "nextLink": false,
+          "previousLink": false
+        }
+      ]
+    }
+  ],
+  "nativeMasterPages": [
+    {
+      "index": 1,
+      "pageId": 33554695,
+      "pageIndex": 1,
+      "pageType": 4,
+      "name": "Master Page A",
+      "isTwoPageMaster": false,
+      "shapeCount": 0,
+      "shapes": []
+    }
+  ],
+  "files": {
+    "publication": {
+      "name": "native-textformattingpages.pub",
+      "sha256": "8c722cd3efb614ba70d9f69cadae94f63b2284efd8c894563bad87aa724046e3"
+    },
+    "reference": {
+      "name": "native-textformattingpages.pdf",
+      "sha256": "932bd97f7080acad462a2819d445222bf1211038d57470cf014749776d48c0a6"
+    }
+  }
+}

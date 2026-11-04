@@ -10,15 +10,17 @@ internal sealed class OfficePreparedTextShaping {
     private readonly OfficeTrueTypeFont.ShapedTextRun? _trueTypeRun;
     private readonly CancellationToken _cancellationToken;
     private readonly bool? _negativeAdvance;
+    private readonly OfficeCffOperationBudget? _cffOperationBudget;
 
     internal OfficePreparedTextShaping(IOfficeFontProgram program, string text, OfficeTextShapingResult result,
-        CancellationToken cancellationToken = default)
-        : this(program, text, result, null, cancellationToken) { }
+        CancellationToken cancellationToken = default, OfficeCffOperationBudget? cffOperationBudget = null)
+        : this(program, text, result, null, cancellationToken, cffOperationBudget) { }
 
     private OfficePreparedTextShaping(IOfficeFontProgram program, string text, OfficeTextShapingResult result,
-        OfficeTrueTypeFont.ShapedTextRun? nativeRun, CancellationToken cancellationToken) {
+        OfficeTrueTypeFont.ShapedTextRun? nativeRun, CancellationToken cancellationToken, OfficeCffOperationBudget? cffOperationBudget) {
         cancellationToken.ThrowIfCancellationRequested();
         _cancellationToken = cancellationToken;
+        _cffOperationBudget = cffOperationBudget;
         Program = program ?? throw new ArgumentNullException(nameof(program));
         Text = text ?? throw new ArgumentNullException(nameof(text));
         Result = result ?? throw new ArgumentNullException(nameof(result));
@@ -78,6 +80,7 @@ internal sealed class OfficePreparedTextShaping {
         else program.MeasureShapedText(text, result, 1D);
     }
 
+    internal CancellationToken CancellationToken => _cancellationToken;
     internal IOfficeFontProgram Program { get; }
     internal string Text { get; }
     internal OfficeTextShapingResult Result { get; }
@@ -99,7 +102,7 @@ internal sealed class OfficePreparedTextShaping {
             return _trueTypeRun.GetContours(x, y, size, maximumPointCount, cancellationToken);
         return Program is IOfficeCffBoundedFontProgram cff
             ? cff.GetShapedTextContoursBounded(Text, Result, x, y, size, maximumPointCount, cancellationToken,
-                cffBudget ?? new OfficeCffOperationBudget())
+                cffBudget ?? _cffOperationBudget?.CreateExecutionScope() ?? new OfficeCffOperationBudget())
             : ((IOfficeBoundedFontProgram)Program).GetShapedTextContoursBounded(Text, Result, x, y, size,
                 maximumPointCount, cancellationToken);
     }
@@ -140,7 +143,8 @@ internal sealed class OfficePreparedTextShaping {
             (OfficeTrueTypeFont)Program, nativeGlyphs, Result.Direction);
         // Absolute measurement cannot expose a stationary cluster's signed tracking contribution.
         if (native?.HasZeroTrackedAdvance == true) return false;
-        var candidate = new OfficePreparedTextShaping(Program, Text.Substring(logicalStart, length), result, native, _cancellationToken);
+        var candidate = new OfficePreparedTextShaping(Program, Text.Substring(logicalStart, length), result, native,
+            _cancellationToken, _cffOperationBudget);
         // A sign change switches before/after-glyph pen movement, which cannot be repaired by translation.
         if (candidate._negativeAdvance != _negativeAdvance) return false;
         slice = candidate;

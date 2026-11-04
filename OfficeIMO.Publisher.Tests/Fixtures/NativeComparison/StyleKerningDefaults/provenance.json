@@ -1,0 +1,53 @@
+{
+  "schema": "officeimo.publisher.style-character-default-fixture.v1",
+  "license": "MIT",
+  "source": "../Text/native-text.pub",
+  "sourceSha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+  "derivation": "Source-derived controls: set STSH1 pair 0 kerning to 8 pt, strikethrough, single underline and superscript; retain omission in pair 1; select pair 0 or 1 with FDPP 0x19, then native save/reopen. Text and non-Quill streams are unchanged. Retained outputs are native-resaved, not independent native creation.",
+  "reproduction": "Rebuild STSH1 indexed entries after rewriting only pair 0 character fields 0x18/type 0x22 = 101600, 0x10/boolean = true, 0x1E/type 0x22 = 1 and 0x0F/type 0x22 = 1; relocate its descriptor without changing TEXT/FDPC; select FDPP field 0x19 = 0 or 1. Validate each exact candidate through Invoke-NativePublisherOperation -Operation Validate -Stage Full.",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "executableVersion": "16.0.20527.20088",
+    "automationSecurity": 3
+  },
+  "observed": "Initial and resaved font getters report pair 0: kerning 8 pt, strikethrough -1, underline 1, superscript -1; pair 1: kerning 14 pt, strikethrough 0, underline 0, superscript 0. Pair 1 omissions retain its snapshot defaults instead of inheriting global pair 0 explicit values. Both initial/resaved native PDF page pairs agree at 144 dpi.",
+  "files": [
+    {
+      "name": "native-selected-0.pub",
+      "sha256": "b3f85a6c989c78b4d13018cfc5a726662c20bd50f34785f7a873e19b6845781f",
+      "selectedStyle": 0,
+      "nativeThresholdPoints": 8,
+      "nativeStrikethrough": true,
+      "nativeUnderline": "Single",
+      "nativeBaseline": "Superscript"
+    },
+    {
+      "name": "native-selected-0.pdf",
+      "sha256": "c264050ce2c66bae9dc2d909a53f67a2f8d9e9a2daef09031ea2d27dc6207a72",
+      "selectedStyle": 0,
+      "nativeThresholdPoints": 8,
+      "nativeStrikethrough": true,
+      "nativeUnderline": "Single",
+      "nativeBaseline": "Superscript"
+    },
+    {
+      "name": "native-selected-1.pub",
+      "sha256": "7d1d609f3b705c6e1b5c7cd157ef40c4eabc1b401a4b700b2a890eda91c2c616",
+      "selectedStyle": 1,
+      "nativeThresholdPoints": 14,
+      "nativeStrikethrough": false,
+      "nativeUnderline": "None",
+      "nativeBaseline": "Normal"
+    },
+    {
+      "name": "native-selected-1.pdf",
+      "sha256": "ef1f70a81c4a39ae5e40c4273877868b9e88e6a5a1babcb994ef374e5ba12009",
+      "selectedStyle": 1,
+      "nativeThresholdPoints": 14,
+      "nativeStrikethrough": false,
+      "nativeUnderline": "None",
+      "nativeBaseline": "Normal"
+    }
+  ],
+  "limits": "This qualifies the selected-style default for this producer/profile. It does not establish repair-free opening, broader native style-library inheritance, or mixed-run glyph fidelity."
+}

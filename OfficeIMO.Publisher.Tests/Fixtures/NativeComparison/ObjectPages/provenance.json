@@ -1,0 +1,65 @@
+{
+  "schema": "officeimo.publisher.native-object-pages-fixture.v1",
+  "reproduction": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case ObjectPages",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "name": "native-objectpages.json",
+      "sha256": "ffb91597f52d0f08ad6d22ee6bf14ffc3b3be0dff6631e4a96eb2f020fc9e79f"
+    },
+    {
+      "name": "native-objectpages.pdf",
+      "sha256": "c28cbb296117e559da93f9c00768434a6bff37a84f57a64f52c509187d917360"
+    },
+    {
+      "name": "native-objectpages.png",
+      "sha256": "388c204760ec98527b69a5cbc6b06f87f336c2dcb24f4c91bd288be9121a9483"
+    },
+    {
+      "name": "native-objectpages.pub",
+      "sha256": "80b0ed5c093c3869bada3590b728a610927db09b3d430e43d4a52790dc75d3bf"
+    }
+  ],
+  "expected": {
+    "pages": 3,
+    "widthPoints": 612,
+    "heightPoints": 792,
+    "text": [],
+    "shapes": [
+      {
+        "name": "FirstPageRectangle",
+        "kind": "Rectangle",
+        "left": 72,
+        "top": 216,
+        "width": 144,
+        "height": 72
+      },
+      {
+        "name": "LastPageImage",
+        "kind": "Image",
+        "left": 330,
+        "top": 216,
+        "width": 96,
+        "height": 96
+      }
+    ]
+  },
+  "limits": [
+    "Native producer stores an intrinsic empty rectangle story; the generated writer specimen intentionally has no stored story and remains story-free through native resave.",
+    "Native PDF interpolation is false; the managed PDF default interpolation is true.",
+    "Repair-free opening remains unassessed."
+  ]
+}

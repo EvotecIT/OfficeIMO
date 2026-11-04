@@ -1,0 +1,50 @@
+{
+  "schema": "officeimo.publisher.native-mixed-run-text-replacement-fixture.v1",
+  "reproduction": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case TableMixedRunTextReplacements",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "name": "native-tablemixedruntextreplacements.json",
+      "sha256": "932d8071caaf86a6440e07850c4a4ca56af4653165072816c333019a674bb764"
+    },
+    {
+      "name": "native-tablemixedruntextreplacements.pdf",
+      "sha256": "c462d3072db09822da6f164846b079111cd23a15effc8e9b0ab0e8cbb4081e8f"
+    },
+    {
+      "name": "native-tablemixedruntextreplacements.pub",
+      "sha256": "27d65a789649e90ffa20e1353beb90430bc186f9937a3110db0bf80c1db43cad"
+    }
+  ],
+  "license": "MIT",
+  "documentPages": 13,
+  "profiles": [
+    "Baseline",
+    "GrowDrop",
+    "ShrinkDrop",
+    "RewriteReorder",
+    "RewriteDuplicate",
+    "OnlyFinal",
+    "OnlyFirst",
+    "AmbiguousLanguage",
+    "EquivalentSource",
+    "EquivalentReplacement",
+    "RetainedEnglishWithRewrite",
+    "RetainedFrenchWithRewrite",
+    "MiddleRunOnly"
+  ],
+  "scope": "Independent native final states for three-run text replacement during nonuniform paragraph-count changes, unchanged complete formatting and ordered run count. Native Words ranges create blue14bold/red12italic/black12regular bodies. Equivalent templates and middle-run language metadata distinguish complete per-run identity. Fitting table controls do not qualify general row reflow."
+}

@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing;
+using OfficeIMO.Publisher.Internal;
 
 namespace OfficeIMO.Publisher.Tests;
 
@@ -8,12 +9,49 @@ public sealed class PublisherTextStyleTests {
         PublisherDocument newsletter = PublisherDocument.Load(PublisherNativeTests.Fixture("SampleNewsletter.pub"));
         OfficeRichTextParagraph body = newsletter.TextStories.Single(story => story.Id == 2).Paragraphs[0];
         Assert.Equal(3, body.Margins.Bottom, 6); Assert.Equal(8.5, body.Runs[0].FontSize);
+        // Source coordinates and selectors were inspected independently in the
+        // original corpus. Whole indexed entries include opaque OPL suffixes.
+        PublisherQuillStyleCatalog catalog = newsletter.SourceStyleCatalog;
+        Assert.Equal(25, catalog.Definitions.Count);
+        PublisherQuillStyleDefinition pair = catalog.Definitions[2];
+        Assert.Equal(2, pair.Ordinal); Assert.Equal(3D, pair.Paragraph.After); Assert.Null(pair.Paragraph.Alignment);
+        Assert.Equal(new PublisherQuillSourceSpan(20352, 278), pair.CharacterEntry);
+        Assert.Equal(new PublisherQuillSourceSpan(20354, 274), pair.CharacterDefinition);
+        Assert.Equal(new PublisherQuillSourceSpan(20630, 18), pair.ParagraphEntry);
+        Assert.Equal(new PublisherQuillSourceSpan(20632, 14), pair.ParagraphDefinition);
+        PublisherQuillStoryStyles source = catalog.Stories.Single(story => story.StoryId == 2);
+        Assert.Equal((0, 0, 867, 512, 10, 0),
+            (source.StoryOrdinal, source.NativeStart, source.NativeLength, source.TextByteOffset, source.CarriageReturns, source.NullCharacters));
+        PublisherQuillStyleUse first = source.Uses.First(use => use.Tag == "FDPP");
+        Assert.Equal((0, 182, (uint?)2), (first.NativeStart, first.NativeLength, first.SelectedStyleOrdinal));
+        Assert.Equal(new PublisherQuillSourceSpan(29176, 8), first.DirectDefinition);
+        Assert.All(source.Uses.Where(use => use.Tag == "FDPP"), use => Assert.Equal(2U, use.SelectedStyleOrdinal));
+        PublisherQuillStyleUse character = Assert.Single(source.Uses, use => use.Tag == "FDPC");
+        Assert.Equal((0, 0, 0, 867), (character.ChunkId, character.RangeIndex, character.NativeStart, character.NativeLength));
+        Assert.Equal(new PublisherQuillSourceSpan(30678, 42), character.DirectDefinition);
+        Assert.Same(pair, source.Definitions.Single(definition => definition.Ordinal == 2));
         OfficeRichTextParagraph heading = newsletter.TextStories.Single(story => story.Id == 15).Paragraphs[0];
         Assert.Equal(OfficeTextAlignment.Center, heading.Alignment); Assert.Equal(9, heading.Margins.Bottom);
+        Assert.Equal(10D, catalog.Definitions[5].Paragraph.LabelSize);
+        PublisherQuillStoryStyles recipients = catalog.Stories.Single(story => story.StoryId == 15);
+        PublisherQuillStyleUse recipient = recipients.Uses.Single(use => use.Tag == "FDPP" && use.NativeStart == 1468);
+        Assert.Equal(5U, recipient.SelectedStyleOrdinal);
+        Assert.Equal(new PublisherQuillSourceSpan(29110, 14), recipient.DirectDefinition);
         PublisherDocument brochure = PublisherDocument.Load(PublisherNativeTests.Fixture("SampleBrochure.pub"));
         OfficeRichTextParagraph direct = brochure.TextStories.Single(story => story.Id == 13).Paragraphs
             .Single(paragraph => Text(paragraph).StartsWith("The key concept of Cubism"));
         Assert.Equal(0, direct.Margins.Bottom); Assert.Equal(9.75, direct.Runs[0].FontSize); Assert.Equal("Arial", direct.Runs[0].FontFamily);
+        PublisherQuillStyleDefinition fallback = brochure.SourceStyleCatalog.Definitions[0];
+        Assert.Equal(10D, fallback.Character.Size); Assert.Null(fallback.Paragraph.After);
+        Assert.Equal(new PublisherQuillSourceSpan(8716, 8), fallback.ParagraphEntry);
+        Assert.Equal(new PublisherQuillSourceSpan(8718, 4), fallback.ParagraphDefinition);
+        PublisherQuillStoryStyles brochureSource = brochure.SourceStyleCatalog.Stories.Single(story => story.StoryId == 13);
+        PublisherQuillStyleUse absent = brochureSource.Uses.Single(use => use.Tag == "FDPP" && use.NativeStart == 1315);
+        Assert.Null(absent.SelectedStyleOrdinal); Assert.Equal(137, absent.NativeLength);
+        Assert.Equal(new PublisherQuillSourceSpan(13694, 4), absent.DirectDefinition);
+        PublisherQuillStyleUse directCharacter = brochureSource.Uses.Single(use => use.Tag == "FDPC" && use.NativeStart == 1315);
+        Assert.Equal((1, 2, 533), (directCharacter.ChunkId, directCharacter.RangeIndex, directCharacter.NativeLength));
+        Assert.Equal(new PublisherQuillSourceSpan(15144, 114), directCharacter.DirectDefinition);
     }
 
     [Fact]
@@ -24,6 +62,9 @@ public sealed class PublisherTextStyleTests {
         Assert.Equal(3, entries.Length);
         Assert.All(entries, paragraph => {
             Assert.Equal("•", paragraph.Label!.Run.Text); Assert.Equal(paragraph.Runs[0].FontFamily, paragraph.Label.Run.FontFamily);
+            // Native FDPP explicitly sets label size zero over pair five's
+            // ten-point default; the label therefore follows the 9.2-point run.
+            Assert.Equal(9.2, paragraph.Runs[0].FontSize); Assert.Equal(9.2, paragraph.Label.Run.FontSize);
             Assert.Equal(0, paragraph.Label.Position); Assert.Equal(10.8, paragraph.Label.TextPosition);
             Assert.Equal(10.8, paragraph.Indent.ContinuationLineOffset); Assert.Equal(0, paragraph.Indent.FirstLineOffset);
         });

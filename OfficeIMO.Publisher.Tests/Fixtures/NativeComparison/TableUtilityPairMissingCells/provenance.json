@@ -1,0 +1,16 @@
+{
+  "schema": "officeimo.publisher.derived-table-utility-source.v1",
+  "license": "MIT",
+  "reproduction": "dotnet <WriterProbe.dll> table-utility-source <TableUtilityPair/native-tableutilitypair.pub> <missing-second-utilities.pub>",
+  "derivedFrom": "../TableUtilityPair/native-tableutilitypair.pub",
+  "sourceSha256": "178ed9ca6255e35b737c3cf6a9079b44c3676203d48d06c9ce7b7d916e4fba0d",
+  "operation": "Remove only the second table four hidden cell records, reduce FDG/FDGG active counts by four and retain cursor/used-slot/maximum-ID history. Other records and logical streams remain unchanged.",
+  "files": [
+    {
+      "name": "missing-second-utilities.pub",
+      "bytes": 106496,
+      "sha256": "dd3f429c1341f8a52a8021e7107bab1d97722c049f0363ed1a267a7ff48e9716"
+    }
+  ],
+  "scope": "Synthetic native-derived source input, not an independently authored final-state oracle. Expected outcomes come from the independent pair controls."
+}

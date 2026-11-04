@@ -1,0 +1,43 @@
+{
+  "schema": "officeimo.publisher.native-picture-crop-fixture.v1",
+  "reproduction": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case PictureCropFractions",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "name": "native-picturecropfractions.pub",
+      "sha256": "0e878256fecabb88135f367ca1d5a2cb2ad0e06eb55051ed1067f34adfbde8d6"
+    },
+    {
+      "name": "native-picturecropfractions.pdf",
+      "sha256": "cfa984ab2ed8aabd8248ba33ed3989f013d6d69da3d4c1bd7032c65fb8228e93"
+    },
+    {
+      "name": "native-picturecropfractions.json",
+      "sha256": "4f74d9dbf101a22b332080c09c6d508d6233557c55a85e734afee8fc0dc5c1a1"
+    },
+    {
+      "name": "native-picturecropfractions.png",
+      "sha256": "388c204760ec98527b69a5cbc6b06f87f336c2dcb24f4c91bd288be9121a9483"
+    }
+  ],
+  "sourceCropFractions": {
+    "left": 0.25,
+    "top": 0.125,
+    "right": 0.0625,
+    "bottom": 0.1875
+  },
+  "limits": "Independent native control for visible untransformed rectangular PNG/JPEG source crop. Point setters use source dimensions/encoded DPI; saved16.16 fractions and native pixels require separate checks. Repair-free opening remains unassessed."
+}

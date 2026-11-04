@@ -1,0 +1,92 @@
+{
+  "schema": "officeimo.publisher.native-case.v1",
+  "case": "TextFormattingMany",
+  "status": "Produced",
+  "license": "MIT",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "expected": {
+    "pages": 1,
+    "widthPoints": 612,
+    "heightPoints": 792,
+    "text": [
+      "Paragraph 001 preserves its native formatting.\rParagraph 002 preserves its native formatting.\rParagraph 003 preserves its native formatting.\rParagraph 004 preserves its native formatting.\rParagraph 005 preserves its native formatting.\rParagraph 006 preserves its native formatting.\rParagraph 007 preserves its native formatting.\rParagraph 008 preserves its native formatting.\rParagraph 009 preserves its native formatting.\rParagraph 010 preserves its native formatting.\rParagraph 011 preserves its native formatting.\rParagraph 012 preserves its native formatting.\rParagraph 013 preserves its native formatting.\rParagraph 014 preserves its native formatting.\rParagraph 015 preserves its native formatting.\rParagraph 016 preserves its native formatting.\rParagraph 017 preserves its native formatting.\rParagraph 018 preserves its native formatting.\rParagraph 019 preserves its native formatting.\rParagraph 020 preserves its native formatting.\rParagraph 021 preserves its native formatting.\rParagraph 022 preserves its native formatting.\rParagraph 023 preserves its native formatting.\rParagraph 024 preserves its native formatting.\rParagraph 025 preserves its native formatting.\rParagraph 026 preserves its native formatting.\rParagraph 027 preserves its native formatting.\rParagraph 028 preserves its native formatting.\rParagraph 029 preserves its native formatting.\rParagraph 030 preserves its native formatting.\rParagraph 031 preserves its native formatting.\rParagraph 032 preserves its native formatting.\rParagraph 033 preserves its native formatting.\rParagraph 034 preserves its native formatting.\rParagraph 035 preserves its native formatting.\rParagraph 036 preserves its native formatting.\rParagraph 037 preserves its native formatting.\rParagraph 038 preserves its native formatting.\rParagraph 039 preserves its native formatting.\rParagraph 040 preserves its native formatting.\rParagraph 041 preserves its native formatting.\rParagraph 042 preserves its native formatting.\rParagraph 043 preserves its native formatting.\rParagraph 044 preserves its native formatting.\rParagraph 045 preserves its native formatting.\rParagraph 046 preserves its native formatting.\rParagraph 047 preserves its native formatting.\rParagraph 048 preserves its native formatting.\rParagraph 049 preserves its native formatting.\rParagraph 050 preserves its native formatting.\rParagraph 051 preserves its native formatting.\rParagraph 052 preserves its native formatting.\rParagraph 053 preserves its native formatting.\rParagraph 054 preserves its native formatting.\rParagraph 055 preserves its native formatting.\rParagraph 056 preserves its native formatting.\rParagraph 057 preserves its native formatting.\rParagraph 058 preserves its native formatting.\rParagraph 059 preserves its native formatting.\rParagraph 060 preserves its native formatting.\rParagraph 061 preserves its native formatting.\rParagraph 062 preserves its native formatting.\rParagraph 063 preserves its native formatting.\rParagraph 064 preserves its native formatting.\rParagraph 065 preserves its native formatting.\rParagraph 066 preserves its native formatting.\rParagraph 067 preserves its native formatting.\rParagraph 068 preserves its native formatting.\rParagraph 069 preserves its native formatting.\rParagraph 070 preserves its native formatting.\rParagraph 071 preserves its native formatting.\rParagraph 072 preserves its native formatting.\rParagraph 073 preserves its native formatting.\rParagraph 074 preserves its native formatting.\rParagraph 075 preserves its native formatting.\rParagraph 076 preserves its native formatting.\rParagraph 077 preserves its native formatting.\rParagraph 078 preserves its native formatting.\rParagraph 079 preserves its native formatting.\rParagraph 080 preserves its native formatting.\rParagraph 081 preserves its native formatting.\rParagraph 082 preserves its native formatting.\rParagraph 083 preserves its native formatting.\rParagraph 084 preserves its native formatting.\rParagraph 085 preserves its native formatting.\rParagraph 086 preserves its native formatting.\rParagraph 087 preserves its native formatting.\rParagraph 088 preserves its native formatting.\rParagraph 089 preserves its native formatting.\rParagraph 090 preserves its native formatting.\rParagraph 091 preserves its native formatting.\rParagraph 092 preserves its native formatting.\rParagraph 093 preserves its native formatting.\rParagraph 094 preserves its native formatting.\rParagraph 095 preserves its native formatting.\rParagraph 096 preserves its native formatting.\rParagraph 097 preserves its native formatting.\rParagraph 098 preserves its native formatting.\rParagraph 099 preserves its native formatting.\rParagraph 100 preserves its native formatting.\rParagraph 101 preserves its native formatting.\rParagraph 102 preserves its native formatting.\rParagraph 103 preserves its native formatting.\rParagraph 104 preserves its native formatting.\rParagraph 105 preserves its native formatting.\rParagraph 106 preserves its native formatting.\rParagraph 107 preserves its native formatting.\rParagraph 108 preserves its native formatting.\rParagraph 109 preserves its native formatting.\rParagraph 110 preserves its native formatting.\rParagraph 111 preserves its native formatting.\rParagraph 112 preserves its native formatting.\rParagraph 113 preserves its native formatting.\rParagraph 114 preserves its native formatting.\rParagraph 115 preserves its native formatting.\rParagraph 116 preserves its native formatting.\rParagraph 117 preserves its native formatting.\rParagraph 118 preserves its native formatting.\rParagraph 119 preserves its native formatting.\rParagraph 120 preserves its native formatting.\rParagraph 121 preserves its native formatting.\rParagraph 122 preserves its native formatting.\rParagraph 123 preserves its native formatting.\rParagraph 124 preserves its native formatting.\rParagraph 125 preserves its native formatting.\rParagraph 126 preserves its native formatting.\rParagraph 127 preserves its native formatting.\rParagraph 128 preserves its native formatting.\rParagraph 129 preserves its native formatting.\rParagraph 130 preserves its native formatting.\rParagraph 131 preserves its native formatting.\rParagraph 132 preserves its native formatting.\rParagraph 133 preserves its native formatting.\rParagraph 134 preserves its native formatting.\rParagraph 135 preserves its native formatting.\rParagraph 136 preserves its native formatting.\rParagraph 137 preserves its native formatting.\rParagraph 138 preserves its native formatting.\rParagraph 139 preserves its native formatting.\rParagraph 140 preserves its native formatting.\rParagraph 141 preserves its native formatting.\rParagraph 142 preserves its native formatting.\rParagraph 143 preserves its native formatting.\rParagraph 144 preserves its native formatting.\rParagraph 145 preserves its native formatting.\rParagraph 146 preserves its native formatting.\rParagraph 147 preserves its native formatting.\rParagraph 148 preserves its native formatting.\rParagraph 149 preserves its native formatting.\rParagraph 150 preserves its native formatting.\rParagraph 151 preserves its native formatting.\rParagraph 152 preserves its native formatting.\rParagraph 153 preserves its native formatting.\rParagraph 154 preserves its native formatting.\rParagraph 155 preserves its native formatting.\rParagraph 156 preserves its native formatting.\rParagraph 157 preserves its native formatting.\rParagraph 158 preserves its native formatting.\rParagraph 159 preserves its native formatting.\rParagraph 160 preserves its native formatting.\rParagraph 161 preserves its native formatting.\rParagraph 162 preserves its native formatting.\rParagraph 163 preserves its native formatting.\rParagraph 164 preserves its native formatting.\rParagraph 165 preserves its native formatting.\rParagraph 166 preserves its native formatting.\rParagraph 167 preserves its native formatting.\rParagraph 168 preserves its native formatting.\rParagraph 169 preserves its native formatting.\rParagraph 170 preserves its native formatting.\rParagraph 171 preserves its native formatting.\rParagraph 172 preserves its native formatting.\rParagraph 173 preserves its native formatting.\rParagraph 174 preserves its native formatting.\rParagraph 175 preserves its native formatting.\rParagraph 176 preserves its native formatting.\rParagraph 177 preserves its native formatting.\rParagraph 178 preserves its native formatting.\rParagraph 179 preserves its native formatting.\rParagraph 180 preserves its native formatting.\rParagraph 181 preserves its native formatting.\rParagraph 182 preserves its native formatting.\rParagraph 183 preserves its native formatting.\rParagraph 184 preserves its native formatting.\rParagraph 185 preserves its native formatting.\rParagraph 186 preserves its native formatting.\rParagraph 187 preserves its native formatting.\rParagraph 188 preserves its native formatting.\rParagraph 189 preserves its native formatting.\rParagraph 190 preserves its native formatting.\rParagraph 191 preserves its native formatting.\rParagraph 192 preserves its native formatting.\rParagraph 193 preserves its native formatting.\rParagraph 194 preserves its native formatting.\rParagraph 195 preserves its native formatting.\rParagraph 196 preserves its native formatting.\rParagraph 197 preserves its native formatting.\rParagraph 198 preserves its native formatting.\rParagraph 199 preserves its native formatting.\rParagraph 200 preserves its native formatting.\rParagraph 201 preserves its native formatting.\rParagraph 202 preserves its native formatting.\rParagraph 203 preserves its native formatting.\rParagraph 204 preserves its native formatting.\rParagraph 205 preserves its native formatting.\rParagraph 206 preserves its native formatting.\rParagraph 207 preserves its native formatting.\rParagraph 208 preserves its native formatting.\rParagraph 209 preserves its native formatting.\rParagraph 210 preserves its native formatting.\rParagraph 211 preserves its native formatting.\rParagraph 212 preserves its native formatting.\rParagraph 213 preserves its native formatting.\rParagraph 214 preserves its native formatting.\rParagraph 215 preserves its native formatting.\rParagraph 216 preserves its native formatting.\rParagraph 217 preserves its native formatting.\rParagraph 218 preserves its native formatting.\rParagraph 219 preserves its native formatting.\rParagraph 220 preserves its native formatting.\rParagraph 221 preserves its native formatting.\rParagraph 222 preserves its native formatting.\rParagraph 223 preserves its native formatting.\rParagraph 224 preserves its native formatting.\rParagraph 225 preserves its native formatting.\rParagraph 226 preserves its native formatting.\rParagraph 227 preserves its native formatting.\rParagraph 228 preserves its native formatting.\rParagraph 229 preserves its native formatting.\rParagraph 230 preserves its native formatting.\rParagraph 231 preserves its native formatting.\rParagraph 232 preserves its native formatting.\rParagraph 233 preserves its native formatting.\rParagraph 234 preserves its native formatting.\rParagraph 235 preserves its native formatting.\rParagraph 236 preserves its native formatting.\rParagraph 237 preserves its native formatting.\rParagraph 238 preserves its native formatting.\rParagraph 239 preserves its native formatting.\rParagraph 240 preserves its native formatting."
+    ],
+    "shapes": [
+      {
+        "name": "ManyFormattingPages",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 72.0,
+        "width": 360.0,
+        "height": 648.0,
+        "font": "Arial",
+        "size": 12.0
+      }
+    ]
+  },
+  "nativePages": [
+    {
+      "index": 1,
+      "pageId": 33554698,
+      "pageIndex": 1,
+      "pageNumber": "1",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "ManyFormattingPages",
+          "type": 17,
+          "left": 72.0,
+          "top": 72.0,
+          "width": 360.0,
+          "height": 648.0,
+          "text": "Paragraph 001 preserves its native formatting.\rParagraph 002 preserves its native formatting.\rParagraph 003 preserves its native formatting.\rParagraph 004 preserves its native formatting.\rParagraph 005 preserves its native formatting.\rParagraph 006 preserves its native formatting.\rParagraph 007 preserves its native formatting.\rParagraph 008 preserves its native formatting.\rParagraph 009 preserves its native formatting.\rParagraph 010 preserves its native formatting.\rParagraph 011 preserves its native formatting.\rParagraph 012 preserves its native formatting.\rParagraph 013 preserves its native formatting.\rParagraph 014 preserves its native formatting.\rParagraph 015 preserves its native formatting.\rParagraph 016 preserves its native formatting.\rParagraph 017 preserves its native formatting.\rParagraph 018 preserves its native formatting.\rParagraph 019 preserves its native formatting.\rParagraph 020 preserves its native formatting.\rParagraph 021 preserves its native formatting.\rParagraph 022 preserves its native formatting.\rParagraph 023 preserves its native formatting.\rParagraph 024 preserves its native formatting.\rParagraph 025 preserves its native formatting.\rParagraph 026 preserves its native formatting.\rParagraph 027 preserves its native formatting.\rParagraph 028 preserves its native formatting.\rParagraph 029 preserves its native formatting.\rParagraph 030 preserves its native formatting.\r",
+          "font": "Arial",
+          "nextLink": false,
+          "previousLink": false
+        }
+      ]
+    }
+  ],
+  "nativeMasterPages": [
+    {
+      "index": 1,
+      "pageId": 33554695,
+      "pageIndex": 1,
+      "pageType": 4,
+      "name": "Master Page A",
+      "isTwoPageMaster": false,
+      "shapeCount": 0,
+      "shapes": []
+    }
+  ],
+  "files": {
+    "publication": {
+      "name": "native-textformattingmany.pub",
+      "sha256": "c59d838be1bdfe1c493492f45390a3434567f360350e907bd27095a6a4786e3e"
+    },
+    "reference": {
+      "name": "native-textformattingmany.pdf",
+      "sha256": "ce038193027fc368ef3fc069007e0e5f2ac36f326215fc71ebecbd36ea5080a6"
+    }
+  }
+}

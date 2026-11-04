@@ -1,0 +1,46 @@
+{
+  "schema": "officeimo.publisher.native-font-reference-fixture.v1",
+  "reproduction": "New-NativeComparisonCorpus -Case TextFallbackAlignment -OutputDirectory <empty-directory>",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "fonts": [
+    {
+      "family": "Courier New",
+      "file": "cour.ttf",
+      "sha256": "e4a66a0259718d0c8f4b6e14319b4803ced45afbddf3abba8b8c3e2006856206"
+    },
+    {
+      "family": "Lucida Sans Unicode",
+      "file": "l_10646.ttf",
+      "sha256": "97226e81f19eff8c8fb191745748bab920472c005d3ec4e23d9a50a12c471d92"
+    }
+  ],
+  "files": [
+    {
+      "name": "native-textfallbackalignment.json",
+      "sha256": "28b363b3a7813c36e4302bad133ff04f1ceff6722a65dada858e71bdf12b3adb"
+    },
+    {
+      "name": "native-textfallbackalignment.pdf",
+      "sha256": "b4fb90e5a9e81551022f97ef4d00d0038414aed90732e55aa9eccc6e53e5bc85"
+    },
+    {
+      "name": "native-textfallbackalignment.pub",
+      "sha256": "8d4a431038363d7807561adf463619d3adc6780842ea3ed5c287b99072fdbb3f"
+    }
+  ],
+  "observed": "12 one-line Courier New/Lucida Sans Unicode profiles over4pages:12/18pt,top/center/bottom,1.19 spacing and zero paragraph-after.",
+  "limits": "Exact font binaries and default native PDF reference profile only. Native save/reopen stability and managed coordinate comparison are separate qualification. No repair-free or pixel-parity claim."
+}
