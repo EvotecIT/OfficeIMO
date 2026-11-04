@@ -36,7 +36,7 @@ public sealed class WordHeadingWorkflowTests {
         using var packageBytes = new MemoryStream(saved.ToArray());
         using var package = WordprocessingDocument.Open(packageBytes, false);
         // Word's paragraph collection exposes run wrappers; the package owns logical paragraph boundaries.
-        var paragraphs = package.MainDocumentPart!.Document.Body!.Elements<Paragraph>().ToArray();
+        var paragraphs = Assert.IsType<Body>(package.MainDocumentPart!.Document?.Body).Elements<Paragraph>().ToArray();
         Assert.Equal(new[] { "Review", "Overview", "Incidents (2)" }, paragraphs.Select(p => p.InnerText));
         Assert.Equal(new[] { "Title", "Heading2", "Heading3" },
             paragraphs.Select(p => p.ParagraphProperties?.ParagraphStyleId?.Val?.Value));

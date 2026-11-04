@@ -37,20 +37,27 @@ public sealed partial class MergeDocumentWorkflowTests {
         using var runspace = OpenRunspace();
         Set(runspace, ("selector", selector), ("target", target), ("inputs", new[] { first, second }),
             ("allInputs", new[] { cover, first, second }), ("output", output), ("liveInput", liveInput));
-        var result = Invoke(runspace, """
+        const string merge = """
             $options = New-OfficeExcelMergeOptions -Sheet $selector -NamePrefix 'Imported ' -CopyMode Package
             if ($liveInput) {
                 $target | Merge-OfficeDocument -Path $inputs -Options $options -PassThru -ErrorAction Stop
             } else {
                 Merge-OfficeDocument -LiteralPath $allInputs -OutputPath $output -Options $options -PassThru -ErrorAction Stop
             }
-            """);
+            """;
+        var result = selection == "none" ? null : Invoke(runspace, merge);
         ExcelDocument? reopened = null;
         try {
-            if (liveInput) Assert.Same(target, Assert.Single(result).BaseObject);
-            else {
-                Assert.Equal(output, Assert.IsType<FileInfo>(Assert.Single(result).BaseObject).FullName);
-                reopened = ExcelDocument.Load(output);
+            if (selection == "none") {
+                Assert.Contains("No worksheet matches", Fail(runspace, merge), StringComparison.Ordinal);
+                Assert.False(File.Exists(output));
+            } else {
+                Assert.NotNull(result);
+                if (liveInput) Assert.Same(target, Assert.Single(result).BaseObject);
+                else {
+                    Assert.Equal(output, Assert.IsType<FileInfo>(Assert.Single(result).BaseObject).FullName);
+                    reopened = ExcelDocument.Load(output);
+                }
             }
             ExcelDocument merged = reopened ?? target;
             string[] expected = selection switch {

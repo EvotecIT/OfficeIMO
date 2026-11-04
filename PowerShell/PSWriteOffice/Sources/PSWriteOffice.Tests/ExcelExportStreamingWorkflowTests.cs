@@ -1,4 +1,7 @@
 using System.Data;
+using System.Globalization;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using System.Management.Automation;
 using System.Management.Automation.Runspaces;
 using OfficeIMO.Excel;
@@ -100,6 +103,65 @@ public sealed class ExcelExportStreamingWorkflowTests {
             Assert.Equal("Name", saved["Sheet1"].Cell("A1").GetValue<string>());
             Assert.Equal("Amount", saved["Sheet1"].Cell("B1").GetValue<string>());
             Assert.True(string.IsNullOrEmpty(saved["Sheet1"].Cell("A2").GetValue<string>()));
+        });
+    }
+
+    [Theory]
+    [InlineData(DataViewRowState.ModifiedOriginal, false)]
+    [InlineData(DataViewRowState.ModifiedOriginal, true)]
+    [InlineData(DataViewRowState.Deleted, false)]
+    [InlineData(DataViewRowState.Deleted, true)]
+    public void DataViewAndIndividualViewsExportTheSelectedOriginalVersion(DataViewRowState state, bool individualRow) {
+        InDirectory(path => {
+            using var table = new DataTable("Orders");
+            table.Columns.Add("Name");
+            table.Columns.Add("Amount", typeof(decimal));
+            table.Rows.Add("original", 1m);
+            table.AcceptChanges();
+            table.Rows[0]["Name"] = "current";
+            table.Rows[0]["Amount"] = 2m;
+            if (state == DataViewRowState.Deleted) table.Rows[0].Delete();
+            using var view = new DataView(table) { RowStateFilter = state };
+            using var runspace = CreateRunspace(path);
+            runspace.SessionStateProxy.SetVariable("rows", individualRow ? view[0] : view);
+            Invoke(runspace, "Export-OfficeExcel -Path $destination -InputObject $rows -Sheet Orders");
+            using var saved = ExcelDocument.Load(path);
+            Assert.Equal("Name", saved["Orders"].Cell("A1").GetValue<string>());
+            Assert.Equal("original", saved["Orders"].Cell("A2").GetValue<string>());
+            Assert.Equal(1m, saved["Orders"].Cell("B2").GetValue<decimal>());
+            Assert.True(string.IsNullOrEmpty(saved["Orders"].Cell("A3").GetValue<string>()));
+        });
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void StreamingAndReplacementUseCultureForNestedValuesAndKeepScalarNumbers(bool replaceSheet) {
+        InDirectory(path => {
+            if (replaceSheet) {
+                using var previous = ExcelDocument.Create(path);
+                previous.AddSheet("Orders").Cell("A1").SetValue("previous");
+                previous.Save();
+            }
+            using var runspace = CreateRunspace(path);
+            var date = new DateTime(2025, 1, 2, 13, 14, 15);
+            runspace.SessionStateProxy.SetVariable("date", date);
+            string mode = replaceSheet ? " -ReplaceSheet" : string.Empty;
+            Invoke(runspace, """
+                [pscustomobject]@{ Scalar = [decimal]1.5; Numbers = @([decimal]1.5, [decimal]2.5); Dates = @($date, $date.AddDays(1)) } |
+                    Export-OfficeExcel -Path $destination -Sheet Orders -Culture pl-PL -CollectionSeparator '; '
+                """ + mode);
+            using (var saved = ExcelDocument.Load(path)) {
+                Assert.Equal(1.5m, saved["Orders"].Cell("A2").GetValue<decimal>());
+                Assert.Equal("1,5; 2,5", saved["Orders"].Cell("B2").GetValue<string>());
+                var culture = CultureInfo.GetCultureInfo("pl-PL");
+                Assert.Equal(date.ToString(culture) + "; " + date.AddDays(1).ToString(culture), saved["Orders"].Cell("C2").GetValue<string>());
+            }
+            using var package = SpreadsheetDocument.Open(path, false);
+            var scalar = Assert.IsType<Worksheet>(package.WorkbookPart!.WorksheetParts.Single().Worksheet).Descendants<Cell>()
+                .Single(cell => cell.CellReference?.Value == "A2");
+            Assert.True(scalar.DataType == null || scalar.DataType.Value == CellValues.Number);
+            Assert.Equal("1.5", scalar.CellValue!.Text);
         });
     }
 

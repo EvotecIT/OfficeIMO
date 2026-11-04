@@ -25,12 +25,14 @@ public sealed class SavedConversionJobCmdletTests {
             using var shell = PowerShell.Create();
             shell.Runspace = runspace;
             shell.AddCommand("Convert-OfficeDocument").AddParameter("LiteralPath", input).AddParameter("To", "Pdf")
-                .AddParameter("OutputDirectory", output).AddParameter("CheckpointPath", Path.Combine(checkpoint, "plan.json")).AddParameter("SaveJob", path).AddParameter("NoClobber");
+                .AddParameter("OutputDirectory", output).AddParameter("CheckpointPath", Path.Combine(checkpoint, "plan.json")).AddParameter("SaveJob", path);
             Assert.IsType<FileInfo>(Assert.Single(shell.Invoke()).BaseObject);
             Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
             OfficeBatchOptions saved = OfficeBatchOptions.Load(path);
             Assert.Equal(input, saved.InputDirectory);
             Assert.Equal(output, saved.OutputDirectory);
+            Assert.Equal(Path.Combine(checkpoint, "plan.json"), saved.ResumeFrom);
+            Assert.False(saved.SkipExistingOutputs);
             Assert.DoesNotContain(root, File.ReadAllText(path));
             shell.Commands.Clear();
             shell.AddCommand("Convert-OfficeDocument").AddParameter("JobPath", path).AddParameter("Plan");

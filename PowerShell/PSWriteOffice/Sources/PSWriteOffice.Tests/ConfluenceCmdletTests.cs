@@ -131,7 +131,7 @@ public sealed class ConfluenceCmdletTests
                 .AddParameter("Session", session)
                 .AddParameter("PageId", "123")
                 .AddParameter("AttachmentId", "a1")
-                .AddParameter("OutFile", path)
+                .AddParameter("OutputPath", path)
                 .AddParameter("Force");
 
             var output = powerShell.Invoke();
@@ -172,7 +172,7 @@ public sealed class ConfluenceCmdletTests
                 .AddParameter("Session", session)
                 .AddParameter("PageId", "123")
                 .AddParameter("AttachmentId", "a1")
-                .AddParameter("OutFile", path);
+                .AddParameter("OutputPath", path);
 
             var exception = Assert.Throws<CmdletInvocationException>(() => powerShell.Invoke());
 

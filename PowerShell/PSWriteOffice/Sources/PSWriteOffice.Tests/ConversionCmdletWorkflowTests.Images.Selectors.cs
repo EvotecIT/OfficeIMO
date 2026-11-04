@@ -35,7 +35,7 @@ public sealed partial class ConversionCmdletWorkflowTests {
         string root = Directory.CreateTempSubdirectory("officeimo-native-image-slides-").FullName;
         using var document = PowerPointDocument.Create();
         document.SlideSize.SetSize(OfficeLength.Points(120), OfficeLength.Points(80));
-        foreach (string color in new[] { "112233", "445566", "778899" }) document.AddSlide().BackgroundColor = color;
+        foreach (string color in new[] { "112233", "445566", "778899" }) document.AddSlide().BackgroundColor = OfficeColor.Parse(color);
         const string password = "synthetic-image-password";
         try {
             string source = Path.Combine(root, "deck[1].pptx"), outputPath = Path.Combine(root, "selected.svg");
@@ -43,7 +43,7 @@ public sealed partial class ConversionCmdletWorkflowTests {
             File.WriteAllBytes(source, saved);
             using var readOnly = PowerPointDocument.Load(source, new PowerPointLoadOptions { Password = password, AccessMode = DocumentAccessMode.ReadOnly });
             var retainedSlide = document.Slides[1];
-            retainedSlide.BackgroundColor = "AABBCC";
+            retainedSlide.BackgroundColor = OfficeColor.Parse("AABBCC");
             var options = new PowerPointImageExportOptions { SlideNumbers = new[] { 2 }, Scale = 1.5D };
             using var runspace = OpenRunspace();
             runspace.SessionStateProxy.SetVariable("live", document);

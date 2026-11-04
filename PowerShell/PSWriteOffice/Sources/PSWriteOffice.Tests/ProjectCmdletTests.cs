@@ -27,8 +27,8 @@ public sealed class ProjectCmdletTests {
                     $design = $project | Add-OfficeProjectTask -Name Design -DurationDays 3 -PassThru
                     $build = $project | Add-OfficeProjectTask -Name Build -DurationDays 5 -PassThru
                     $engineer = $project | Add-OfficeProjectResource -Name Engineer -StandardRate 125 -PassThru
-                    $project | Add-OfficeProjectDependency -PredecessorUid $design.Uid -SuccessorUid $build.Uid
-                    $project | Add-OfficeProjectAssignment -TaskUid $build.Uid -ResourceUid $engineer.Uid -UnitsPercent 50
+                    $project | Add-OfficeProjectDependency -Predecessor $design.Uid -Successor $build.Uid
+                    $project | Add-OfficeProjectAssignment -Task $build.Uid -Resource $engineer.Uid -UnitsPercent 50
                     $schedule = $project | Invoke-OfficeProjectSchedule -CalculateAssignments -Apply
                     $project | Save-OfficeProject -Path $outputPath -WhatIf
                     if (Test-Path -LiteralPath $outputPath) { throw 'WhatIf wrote the project' }
@@ -43,7 +43,7 @@ public sealed class ProjectCmdletTests {
                         if (Test-Path -LiteralPath $outputPath) { throw 'Rejected save wrote a destination' }
                     }
                     $project | Save-OfficeProject -Path $outputPath -AllowLoss:$acceptNativeScheduleCacheLoss -ReportVariable saveReport
-                    Get-Item -LiteralPath $outputPath | Get-OfficeProject -ReadOnly
+                    Get-Item -LiteralPath $outputPath | Open-OfficeProject -ReadOnly
                 } finally {
                     $project | Close-OfficeProject
                 }
