@@ -52,6 +52,39 @@ Close-OfficeExcel -Document $workbook
 ```
 
 
+### EXAMPLE 4
+```powershell
+Open-OfficeExcel -Path .\Reports\Q3-Sales.xlsx {
+    ExcelSheet 'Summary' {
+        ExcelCell B1 (Get-Date)
+    }
+}
+```
+
+Opens the Q3 sales workbook, stamps the review date on the Summary sheet and saves it back when the block ends.
+
+### EXAMPLE 5
+```powershell
+$newTickets = Import-OfficeCsv -Path .\Exports\Tickets-2026-10-26.csv
+Open-OfficeExcel -Path .\Reports\Helpdesk.xlsx {
+    ExcelSheet 'Tickets' {
+        Add-OfficeExcelTableRow -Table Tickets -InputObject $newTickets
+        ExcelConditionalFormat -Header AgeDays -Table Tickets -Color Accent2
+    }
+}
+```
+
+Appends the tickets exported overnight to the Tickets table and adds a data bar to the age column, then saves the tracker in place.
+
+### EXAMPLE 6
+```powershell
+$book = Open-OfficeExcel -Uri https://intranet.example.com/finance/Budget-2027.xlsx -ReadOnly
+Import-OfficeExcel -Document $book -Sheet Budget | Where-Object Department -eq 'IT'
+Close-OfficeExcel -Document $book
+```
+
+Opens a published budget read-only from HTTPS, reads the IT rows and closes it without writing anything back.
+
 ## PARAMETERS
 
 ### -AllowHttp
@@ -108,7 +141,7 @@ Literal workbook path; accepts FileInfo.FullName and provider PSPath.
 ```yaml
 Type: String
 Parameter Sets: LiteralPath
-Aliases: FullName, PSPath
+Aliases: PSPath, FullName
 Possible values:
 
 Required: True

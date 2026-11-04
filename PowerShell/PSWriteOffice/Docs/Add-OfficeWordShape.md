@@ -11,7 +11,7 @@ Adds a basic OfficeIMO Word shape to the current paragraph.
 ## SYNTAX
 ### Default (Default)
 ```powershell
-Add-OfficeWordShape [-Type <WordShapeType>] [-Width <double>] [-Height <double>] [-Left <Double>] [-Top <Double>] [-FillColor <string>] [-StrokeColor <string>] [-StrokeWidth <Double>] [-Title <string>] [-Description <string>] [-PassThru] [<CommonParameters>]
+Add-OfficeWordShape [-Type <WordShapeType>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-X <OfficeLength>] [-Y <OfficeLength>] [-FillColor <OfficeColor>] [-StrokeColor <OfficeColor>] [-StrokeWidth <OfficeLength>] [-Title <string>] [-Description <string>] [-PassThru] [-Paragraph <WordParagraph>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -33,7 +33,7 @@ Creates an OfficeIMO Word shape in the current paragraph and sets basic visual a
 ```powershell
 PS> New-OfficeWord -Path .\Appendix.docx {
     Add-OfficeWordParagraph -Text 'Appendix A'
-    Add-OfficeWordShape -Type Rectangle -Width 480 -Height 36 -Left 36 -Top 72 -FillColor '#f0f5ff' -StrokeColor '#adc6ff'
+    Add-OfficeWordShape -Type Rectangle -Width 480 -Height 36 -X 36 -Y 72 -FillColor '#f0f5ff' -StrokeColor '#adc6ff'
 }
 ```
 
@@ -61,7 +61,7 @@ Accept wildcard characters: False
 Fill color. Named colors and hexadecimal values are accepted.
 
 ```yaml
-Type: String
+Type: OfficeColor
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -77,7 +77,7 @@ Accept wildcard characters: False
 Height in points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -89,11 +89,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Left
-Anchored left position in points. When omitted, the shape is inline.
+### -Paragraph
+Native paragraph; omission uses the active Word block.
 
 ```yaml
-Type: Double
+Type: WordParagraph
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -101,7 +101,7 @@ Possible values:
 Required: False
 Position: named
 Default value: None
-Accept pipeline input: False
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
@@ -125,7 +125,7 @@ Accept wildcard characters: False
 Stroke color. Named colors and hexadecimal values are accepted.
 
 ```yaml
-Type: String
+Type: OfficeColor
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -141,7 +141,7 @@ Accept wildcard characters: False
 Stroke width in points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -158,22 +158,6 @@ Optional title metadata.
 
 ```yaml
 Type: String
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Top
-Anchored top position in points. When omitted, the shape is inline.
-
-```yaml
-Type: Double
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -205,7 +189,39 @@ Accept wildcard characters: False
 Width in points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -X
+Anchored left position in points. When omitted, the shape is inline.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Y
+Anchored top position in points. When omitted, the shape is inline.
+
+```yaml
+Type: OfficeLength
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -222,7 +238,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `None`
+- `OfficeIMO.Word.WordParagraph`
 
 ## OUTPUTS
 

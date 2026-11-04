@@ -6,411 +6,27 @@ schema: 2.0.0
 ---
 # New-OfficeWordComparisonOptions
 ## SYNOPSIS
-Creates discoverable structural comparison settings for Compare-OfficeWordDocument.
+Creates discoverable structural comparison settings for Compare-OfficeDocument.
 
 ## SYNTAX
 ### Default (Default)
 ```powershell
-New-OfficeWordComparisonOptions [-IgnoreWhitespace] [-IgnoreCase] [-CompareRunFormatting] [-CompareEffectiveFormatting] [-CompareParagraphStyleIds] [-CompareRunStyleIds] [-IncludeScope <WordComparisonScope[]>] [-ExcludeScope <WordComparisonScope[]>] [-CompareFields] [-CompareContentControls] [-CompareBookmarks] [-CompareHyperlinks] [-CompareLists] [-CompareComments] [-CompareCommentAuthors] [-CompareCommentText] [-CompareCommentResolvedState] [-CompareCommentTargets] [-CompareCommentReplies] [-CompareRevisions] [-CompareRevisionAuthors] [-CompareRevisionText] [-CompareRevisionLocations] [-CompareImages] [-CompareShapes] [-CompareBlockOrder] [-CompareGeneratedIds] [-CompareVolatileMetadata] [<CommonParameters>]
+New-OfficeWordComparisonOptions [-IgnoreWhitespace] [-IgnoreCase] [-NoRunFormatting] [-NoEffectiveFormatting] [-NoParagraphStyleIds] [-NoRunStyleIds] [-IncludeScope <WordComparisonScope[]>] [-ExcludeScope <WordComparisonScope[]>] [-NoFields] [-NoContentControls] [-NoBookmarks] [-NoHyperlinks] [-NoLists] [-NoComments] [-NoCommentAuthors] [-NoCommentText] [-NoCommentResolvedState] [-NoCommentTargets] [-NoCommentReplies] [-NoRevisions] [-NoRevisionAuthors] [-NoRevisionText] [-NoRevisionLocations] [-NoImages] [-NoShapes] [-NoBlockOrder] [-NoGeneratedIds] [-NoVolatileMetadata] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Creates discoverable structural comparison settings for Compare-OfficeWordDocument.
+Creates discoverable structural comparison settings for Compare-OfficeDocument.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $options = New-OfficeWordComparisonOptions -IgnoreWhitespace -IgnoreCase -CompareVolatileMetadata:$false
-Compare-OfficeWordDocument -ReferencePath .\Before.docx -DifferencePath .\After.docx -Options $options
+PS> $options = New-OfficeWordComparisonOptions -IgnoreWhitespace -IgnoreCase -NoVolatileMetadata:$false
+Compare-OfficeDocument -ReferencePath .\Before.docx -DifferencePath .\After.docx -Options $options
 ```
 
 
 ## PARAMETERS
-
-### -CompareBlockOrder
-Compare document block order.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -CompareBookmarks
-Compare bookmarks.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -CompareCommentAuthors
-Compare comment authors.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -CompareCommentReplies
-Compare comment replies.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -CompareCommentResolvedState
-Compare comment resolved state.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -CompareComments
-Compare comments.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -CompareCommentTargets
-Compare comment targets.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -CompareCommentText
-Compare comment text.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -CompareContentControls
-Compare content controls.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -CompareEffectiveFormatting
-Compare resolved effective formatting.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -CompareFields
-Compare fields.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -CompareGeneratedIds
-Compare generated identifiers.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -CompareHyperlinks
-Compare hyperlinks.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -CompareImages
-Compare images.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -CompareLists
-Compare lists.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -CompareParagraphStyleIds
-Compare paragraph style identifiers.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -CompareRevisionAuthors
-Compare revision authors.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -CompareRevisionLocations
-Compare revision locations.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -CompareRevisions
-Compare tracked revisions.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -CompareRevisionText
-Compare revision text.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -CompareRunFormatting
-Compare direct run formatting.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -CompareRunStyleIds
-Compare run style identifiers.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -CompareShapes
-Compare supported shapes.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -CompareVolatileMetadata
-Compare volatile timestamps and metadata.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
 
 ### -ExcludeScope
 Remove these comparison scopes from results.
@@ -468,6 +84,390 @@ Type: WordComparisonScope[]
 Parameter Sets: Default
 Aliases: None
 Possible values: Paragraph, Run, Field, ContentControl, Bookmark, Hyperlink, List, Comment, Revision, Table, TableRow, TableCell, Image, Shape
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoBlockOrder
+Compare document block order.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoBookmarks
+Compare bookmarks.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoCommentAuthors
+Compare comment authors.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoCommentReplies
+Compare comment replies.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoCommentResolvedState
+Compare comment resolved state.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoComments
+Compare comments.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoCommentTargets
+Compare comment targets.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoCommentText
+Compare comment text.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoContentControls
+Compare content controls.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoEffectiveFormatting
+Compare resolved effective formatting.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoFields
+Compare fields.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoGeneratedIds
+Compare generated identifiers.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoHyperlinks
+Compare hyperlinks.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoImages
+Compare images.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoLists
+Compare lists.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoParagraphStyleIds
+Compare paragraph style identifiers.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoRevisionAuthors
+Compare revision authors.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoRevisionLocations
+Compare revision locations.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoRevisions
+Compare tracked revisions.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoRevisionText
+Compare revision text.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoRunFormatting
+Compare direct run formatting.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoRunStyleIds
+Compare run style identifiers.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoShapes
+Compare supported shapes.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoVolatileMetadata
+Compare volatile timestamps and metadata.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
 
 Required: False
 Position: named

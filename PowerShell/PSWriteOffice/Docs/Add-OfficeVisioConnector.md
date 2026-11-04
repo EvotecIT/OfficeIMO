@@ -9,14 +9,9 @@ schema: 2.0.0
 Adds a connector between two Visio shapes.
 
 ## SYNTAX
-### ByKey (Default)
+### Page (Default)
 ```powershell
-Add-OfficeVisioConnector -From <string> -To <string> [-Page <VisioPage>] [-Kind <ConnectorKind>] [-FromSide <VisioSide>] [-ToSide <VisioSide>] [-Label <string>] [-LineColor <string>] [-LineWeight <Double>] [-LinePattern <Int32>] [-BeginArrow <EndArrow>] [-EndArrow <EndArrow>] [-PassThru] [<CommonParameters>]
-```
-
-### ByShape
-```powershell
-Add-OfficeVisioConnector -FromShape <VisioShape> -ToShape <VisioShape> [-Page <VisioPage>] [-Kind <ConnectorKind>] [-FromSide <VisioSide>] [-ToSide <VisioSide>] [-Label <string>] [-LineColor <string>] [-LineWeight <Double>] [-LinePattern <Int32>] [-BeginArrow <EndArrow>] [-EndArrow <EndArrow>] [-PassThru] [<CommonParameters>]
+Add-OfficeVisioConnector -From <Object> -To <Object> [-Page <VisioPage>] [-Kind <ConnectorKind>] [-FromSide <VisioSide>] [-ToSide <VisioSide>] [-Label <string>] [-LineColor <OfficeColor>] [-LineWeight <OfficeLength>] [-LinePattern <Int32>] [-BeginArrow <EndArrow>] [-EndArrow <EndArrow>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -42,7 +37,7 @@ Begin arrow style.
 
 ```yaml
 Type: EndArrow
-Parameter Sets: ByKey, ByShape
+Parameter Sets: Page
 Aliases: None
 Possible values: None, Arrow, Triangle
 
@@ -58,7 +53,7 @@ End arrow style.
 
 ```yaml
 Type: EndArrow
-Parameter Sets: ByKey, ByShape
+Parameter Sets: Page
 Aliases: None
 Possible values: None, Arrow, Triangle
 
@@ -70,27 +65,11 @@ Accept wildcard characters: False
 ```
 
 ### -From
-Source shape key, id, or name.
+Source shape object or a registered key, id or name.
 
 ```yaml
-Type: String
-Parameter Sets: ByKey
-Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -FromShape
-Source shape object.
-
-```yaml
-Type: VisioShape
-Parameter Sets: ByShape
+Type: Object
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -106,7 +85,7 @@ Preferred source shape side.
 
 ```yaml
 Type: VisioSide
-Parameter Sets: ByKey, ByShape
+Parameter Sets: Page
 Aliases: None
 Possible values: Auto, Left, Right, Bottom, Top
 
@@ -122,7 +101,7 @@ Connector kind.
 
 ```yaml
 Type: ConnectorKind
-Parameter Sets: ByKey, ByShape
+Parameter Sets: Page
 Aliases: None
 Possible values: Straight, RightAngle, Curved, Dynamic
 
@@ -138,7 +117,7 @@ Connector label.
 
 ```yaml
 Type: String
-Parameter Sets: ByKey, ByShape
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -153,8 +132,8 @@ Accept wildcard characters: False
 Line color name or hex value.
 
 ```yaml
-Type: String
-Parameter Sets: ByKey, ByShape
+Type: OfficeColor
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -170,7 +149,7 @@ Native Visio line-pattern index: 0 hides the line, 1 is solid, and 2 through 23 
 
 ```yaml
 Type: Int32
-Parameter Sets: ByKey, ByShape
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -185,8 +164,8 @@ Accept wildcard characters: False
 Line weight.
 
 ```yaml
-Type: Double
-Parameter Sets: ByKey, ByShape
+Type: OfficeLength
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -202,7 +181,7 @@ Target page. Optional inside VisioPage or OfficeVisio.
 
 ```yaml
 Type: VisioPage
-Parameter Sets: ByKey, ByShape
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -218,7 +197,7 @@ Emit the object created or changed by the command.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: ByKey, ByShape
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -230,27 +209,11 @@ Accept wildcard characters: False
 ```
 
 ### -To
-Target shape key, id, or name.
+Target shape object or a registered key, id or name.
 
 ```yaml
-Type: String
-Parameter Sets: ByKey
-Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ToShape
-Target shape object.
-
-```yaml
-Type: VisioShape
-Parameter Sets: ByShape
+Type: Object
+Parameter Sets: Page
 Aliases: None
 Possible values:
 
@@ -266,7 +229,7 @@ Preferred target shape side.
 
 ```yaml
 Type: VisioSide
-Parameter Sets: ByKey, ByShape
+Parameter Sets: Page
 Aliases: None
 Possible values: Auto, Left, Right, Bottom, Top
 

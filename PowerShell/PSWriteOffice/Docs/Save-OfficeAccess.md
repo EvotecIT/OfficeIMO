@@ -11,7 +11,7 @@ Writes a qualified native database with strict loss protection.
 ## SYNTAX
 ### Document (Default)
 ```powershell
-Save-OfficeAccess [-Path] <string> -Document <AccessDocument> [-Force] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Save-OfficeAccess [[-Path] <string>] -Document <AccessDocument> [-Force] [-AllowLoss] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -26,6 +26,22 @@ $database | Save-OfficeAccess -Path ./contacts.accdb
 
 
 ## PARAMETERS
+
+### -AllowLoss
+Explicitly accept reported native-save loss.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
 
 ### -Document
 Live database document.
@@ -84,7 +100,7 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: 0
 Default value: None
 Accept pipeline input: False

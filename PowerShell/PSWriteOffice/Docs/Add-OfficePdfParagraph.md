@@ -6,42 +6,48 @@ schema: 2.0.0
 ---
 # Add-OfficePdfParagraph
 ## SYNOPSIS
-Adds a paragraph to a PDF document.
+Adds a plain or rich PDF paragraph using PdfText children.
 
 ## SYNTAX
-### Context (Default)
+### Text (Default)
 ```powershell
-Add-OfficePdfParagraph [-Text] <string> [-Align <OfficeAlignment>] [-Color <string>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfParagraph [-Text] <string> [-Alignment <OfficeAlignment>] [-Color <OfficeColor>] [<CommonParameters>]
 ```
 
-### Document
+### DocumentText
 ```powershell
-Add-OfficePdfParagraph [-Text] <string> -Document <PdfDocument> [-Align <OfficeAlignment>] [-Color <string>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfParagraph [-Text] <string> -Document <PdfDocument> [-Alignment <OfficeAlignment>] [-Color <OfficeColor>] [-PassThru] [<CommonParameters>]
+```
+
+### DocumentContent
+```powershell
+Add-OfficePdfParagraph [-Content] <scriptblock> -Document <PdfDocument> [-Alignment <OfficeAlignment>] [-Color <OfficeColor>] [-PassThru] [<CommonParameters>]
+```
+
+### Content
+```powershell
+Add-OfficePdfParagraph [-Content] <scriptblock> [-Alignment <OfficeAlignment>] [-Color <OfficeColor>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Adds a paragraph to a PDF document.
+Adds a plain or rich PDF paragraph using PdfText children.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> New-OfficePdf -Path .\Examples\Documents\PdfParagraph.pdf {
-    Add-OfficePdfHeading -Text 'Status'
-    Add-OfficePdfParagraph -Text 'All monitored services are currently healthy.' -Color '#166534'
-}
+New-OfficePdf ./Report.pdf { PdfParagraph { PdfText 'Status: '; PdfText 'Healthy' -Bold } }
 ```
 
-Adds a colored body paragraph after a heading.
 
 ## PARAMETERS
 
-### -Align
+### -Alignment
 Paragraph alignment.
 
 ```yaml
 Type: OfficeAlignment
-Parameter Sets: Context, Document
+Parameter Sets: Text, DocumentText, DocumentContent, Content
 Aliases: None
 Possible values: Left, Center, Right, Justify, Start, End
 
@@ -53,11 +59,11 @@ Accept wildcard characters: False
 ```
 
 ### -Color
-Optional text color. Named colors and hexadecimal values are accepted.
+Default paragraph color.
 
 ```yaml
-Type: String
-Parameter Sets: Context, Document
+Type: OfficeColor
+Parameter Sets: Text, DocumentText, DocumentContent, Content
 Aliases: None
 Possible values:
 
@@ -68,12 +74,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Content
+Rich paragraph composed with PdfText.
+
+```yaml
+Type: ScriptBlock
+Parameter Sets: DocumentContent, Content
+Aliases: None
+Possible values:
+
+Required: True
+Position: 0
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -Document
-PDF document to update outside the DSL context.
+Live PDF outside a composition block.
 
 ```yaml
 Type: PdfDocument
-Parameter Sets: Document
+Parameter Sets: DocumentText, DocumentContent
 Aliases: None
 Possible values:
 
@@ -85,11 +107,11 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the updated document.
+Emit the updated live document.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: DocumentText, DocumentContent
 Aliases: None
 Possible values:
 
@@ -101,11 +123,11 @@ Accept wildcard characters: False
 ```
 
 ### -Text
-Paragraph text.
+Plain paragraph text, including an empty paragraph.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Document
+Parameter Sets: Text, DocumentText
 Aliases: None
 Possible values:
 

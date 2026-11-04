@@ -6,66 +6,64 @@ schema: 2.0.0
 ---
 # Set-OfficeExcelTheme
 ## SYNOPSIS
-Sets or resets the workbook theme package part for an Excel workbook.
+Applies an OfficeTheme or theme XML to a workbook.
 
 ## SYNTAX
-### Context (Default)
+### Name (Default)
 ```powershell
-Set-OfficeExcelTheme [-Default] [-Xml <string>] [-XmlPath <string>] [-Name <string>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Set-OfficeExcelTheme -Name <string> [-Document <ExcelDocument>] [-PassThru] [<CommonParameters>]
 ```
 
-### Path
+### Theme
 ```powershell
-Set-OfficeExcelTheme [-Path] <string> [-Default] [-Xml <string>] [-XmlPath <string>] [-Name <string>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Set-OfficeExcelTheme [-Theme] <OfficeThemeInput> [-Document <ExcelDocument>] [-Name <string>] [-PassThru] [<CommonParameters>]
 ```
 
-### Document
+### Xml
 ```powershell
-Set-OfficeExcelTheme -Document <ExcelDocument> [-Default] [-Xml <string>] [-XmlPath <string>] [-Name <string>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Set-OfficeExcelTheme -Xml <string> [-Document <ExcelDocument>] [-Name <string>] [-PassThru] [<CommonParameters>]
+```
+
+### XmlPath
+```powershell
+Set-OfficeExcelTheme -XmlPath <string> [-Document <ExcelDocument>] [-Name <string>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Sets or resets the workbook theme package part for an Excel workbook.
+Applies an OfficeTheme or theme XML to a workbook.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $theme = Set-OfficeExcelTheme -Path .\Report.xlsx -Default -Name 'Contoso Workbook Theme' -PassThru
-Get-OfficeExcelSummary -Path .\Report.xlsx |
-    Select-Object Path, WorksheetCount
+Open-OfficeExcel -Path .\Reports\Q3-Sales.xlsx {
+    ExcelTheme Minimal
+}
 ```
 
-Writes the built-in OfficeIMO workbook theme and updates its theme name.
+Restyles the workbook's cell styles, table styles and charts with the Minimal theme.
+
+### EXAMPLE 2
+```powershell
+Open-OfficeExcel -Path .\Reports\Legacy-Report.xlsx {
+    ExcelTheme .\Templates\Northwind.xltx
+}
+```
+
+Takes the colours and fonts from the company template so an older workbook matches current branding.
 
 ## PARAMETERS
 
-### -Default
-Reset the workbook to the built-in OfficeIMO theme.
+### -Document
+Caller-owned workbook; omission uses the enclosing Excel content block.
 
 ```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Path, Document
+Type: ExcelDocument
+Parameter Sets: Name, Theme, Xml, XmlPath
 Aliases: None
 Possible values:
 
 Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Document
-Workbook to update outside the DSL context.
-
-```yaml
-Type: ExcelDocument
-Parameter Sets: Document
-Aliases: None
-Possible values:
-
-Required: True
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
@@ -77,7 +75,7 @@ Optional workbook theme name to apply after writing the theme.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Path, Document
+Parameter Sets: Name, Theme, Xml, XmlPath
 Aliases: None
 Possible values:
 
@@ -89,11 +87,11 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit workbook theme metadata after applying the update.
+Emits the native result after the operation.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Path, Document
+Parameter Sets: Name, Theme, Xml, XmlPath
 Aliases: None
 Possible values:
 
@@ -104,13 +102,13 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Path
-Workbook path to update.
+### -Theme
+Built-in Office theme, native theme object or a document whose visual theme is read.
 
 ```yaml
-Type: String
-Parameter Sets: Path
-Aliases: InputPath, FilePath
+Type: OfficeThemeInput
+Parameter Sets: Theme
+Aliases: None
 Possible values:
 
 Required: True
@@ -125,11 +123,11 @@ Theme XML to write to the workbook theme part.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Path, Document
+Parameter Sets: Xml
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -137,15 +135,15 @@ Accept wildcard characters: False
 ```
 
 ### -XmlPath
-Path to a DrawingML theme XML file.
+Literal path to an XML definition.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Path, Document
+Parameter Sets: XmlPath
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -161,7 +159,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `System.Management.Automation.PSObject`
+- `None`
 
 ## RELATED LINKS
 

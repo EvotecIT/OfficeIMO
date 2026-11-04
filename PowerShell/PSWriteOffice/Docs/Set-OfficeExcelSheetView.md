@@ -26,6 +26,29 @@ ExcelSheet 'Dashboard' { ExcelSheetView -FreezeRows 3 -FreezeColumns 1 -NoGridli
 ```
 
 
+### EXAMPLE 2
+```powershell
+Open-OfficeExcel -Path .\Reports\Q3-Sales.xlsx {
+    ExcelSheet 'Orders' {
+        ExcelSheetView -FreezeRows 1
+    }
+}
+```
+
+Keeps the first row visible while scrolling the Orders sheet.
+
+### EXAMPLE 3
+```powershell
+New-OfficeExcel -Path .\Reports\Operations.xlsx {
+    ExcelSheet 'Dashboard' {
+        ExcelTable (Import-OfficeCsv -Path .\Data\Site-Kpis.csv) -Address A3
+        ExcelSheetView -FreezeRows 3 -FreezeColumns 1 -NoGridlines -Zoom 85
+    }
+}
+```
+
+Hides gridlines, zooms out and freezes the title rows and the label column of the dashboard sheet.
+
 ## PARAMETERS
 
 ### -Document

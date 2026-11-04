@@ -11,7 +11,7 @@ Generates the OfficeIMO Visio reference gallery as editable .vsdx diagrams.
 ## SYNTAX
 ### OutputDirectory (Default)
 ```powershell
-New-OfficeVisioGallery [-OutputDirectory] <string> [-NoPackageValidation] [-NoVisualQualityAnalysis] [<CommonParameters>]
+New-OfficeVisioGallery [-OutputDirectory] <string> [-NoPackageValidation] [-NoVisualQualityAnalysis] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION

@@ -6,43 +6,60 @@ schema: 2.0.0
 ---
 # Add-OfficePdfImage
 ## SYNOPSIS
-Adds an image to a PDF document.
+Adds a raster image or reusable native visual to PDF content.
 
 ## SYNTAX
-### Context (Default)
+### Path (Default)
 ```powershell
-Add-OfficePdfImage [-Path] <string> -Width <double> -Height <double> [-Align <OfficeAlignment>] [-AlternativeText <string>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfImage [-Path] <string> [-Alignment <OfficeAlignment>] [-AlternativeText <string>] [-Link <string>] [-LinkContents <string>] [-Width <OfficeLength>] [-Height <OfficeLength>] [<CommonParameters>]
 ```
 
-### Document
+### DocumentPath
 ```powershell
-Add-OfficePdfImage [-Path] <string> -Document <PdfDocument> -Width <double> -Height <double> [-Align <OfficeAlignment>] [-AlternativeText <string>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfImage [-Path] <string> -Document <PdfDocument> [-Alignment <OfficeAlignment>] [-AlternativeText <string>] [-Link <string>] [-LinkContents <string>] [-PassThru] [-Width <OfficeLength>] [-Height <OfficeLength>] [<CommonParameters>]
+```
+
+### InputObject
+```powershell
+Add-OfficePdfImage -InputObject <Object> [-Alignment <OfficeAlignment>] [-AlternativeText <string>] [-Link <string>] [-LinkContents <string>] [-SpacingBefore <OfficeLength>] [-SpacingAfter <OfficeLength>] [-SvgPolicy <OfficeVisualSvgPolicy>] [-PointsPerPixel <double>] [-MaximumSvgElements <Int32>] [-MaximumSvgViewportDimension <Double>] [-MaximumSvgViewportPixelCount <Int64>] [-Id <string>] [-Title <string>] [-Width <OfficeLength>] [-Height <OfficeLength>] [<CommonParameters>]
+```
+
+### DocumentInputObject
+```powershell
+Add-OfficePdfImage -InputObject <Object> -Document <PdfDocument> [-Alignment <OfficeAlignment>] [-AlternativeText <string>] [-Link <string>] [-LinkContents <string>] [-SpacingBefore <OfficeLength>] [-SpacingAfter <OfficeLength>] [-PassThru] [-SvgPolicy <OfficeVisualSvgPolicy>] [-PointsPerPixel <double>] [-MaximumSvgElements <Int32>] [-MaximumSvgViewportDimension <Double>] [-MaximumSvgViewportPixelCount <Int64>] [-Id <string>] [-Title <string>] [-Width <OfficeLength>] [-Height <OfficeLength>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Adds an image to a PDF document.
+Adds a raster image or reusable native visual to PDF content.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $image = '.\Tests\Assets\CellImage.png'
-New-OfficePdf -Path .\Examples\Documents\PdfImage.pdf {
-    Add-OfficePdfHeading -Text 'Visual evidence'
-    Add-OfficePdfImage -Path $image -Width 120 -Height 80 -Align Center -AlternativeText 'Sample chart image'
-}
+Add-OfficePdfImage -Path 'C:\Path'
 ```
 
-Embeds an image with alternative text in the generated PDF.
+
+### EXAMPLE 2
+```powershell
+Add-OfficePdfImage -InputObject 'Value' -Document 'Value'
+```
+
+
+### EXAMPLE 3
+```powershell
+Add-OfficePdfImage -Path 'C:\Path' -Document 'Value'
+```
+
 
 ## PARAMETERS
 
-### -Align
-Image alignment.
+### -Alignment
+Alignment for this content.
 
 ```yaml
 Type: OfficeAlignment
-Parameter Sets: Context, Document
+Parameter Sets: Path, DocumentPath, InputObject, DocumentInputObject
 Aliases: None
 Possible values: Left, Center, Right, Justify, Start, End
 
@@ -54,11 +71,11 @@ Accept wildcard characters: False
 ```
 
 ### -AlternativeText
-Alternative text for meaningful images.
+AlternativeText for this content.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Document
+Parameter Sets: Path, DocumentPath, InputObject, DocumentInputObject
 Aliases: None
 Possible values:
 
@@ -70,27 +87,11 @@ Accept wildcard characters: False
 ```
 
 ### -Document
-PDF document to update outside the DSL context.
+Document for this content.
 
 ```yaml
 Type: PdfDocument
-Parameter Sets: Document
-Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: True (ByValue)
-Accept wildcard characters: False
-```
-
-### -Height
-Rendered image height in PDF points.
-
-```yaml
-Type: Double
-Parameter Sets: Context, Document
+Parameter Sets: DocumentPath, DocumentInputObject
 Aliases: None
 Possible values:
 
@@ -101,12 +102,140 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Height
+Optional output height; numbers mean points and unit suffixes are accepted.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: Path, DocumentPath, InputObject, DocumentInputObject
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Id
+Id for a reusable visual input.
+
+```yaml
+Type: String
+Parameter Sets: InputObject, DocumentInputObject
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -InputObject
+InputObject for this content.
+
+```yaml
+Type: Object
+Parameter Sets: InputObject, DocumentInputObject
+Aliases: None
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
+### -Link
+Link for this content.
+
+```yaml
+Type: String
+Parameter Sets: Path, DocumentPath, InputObject, DocumentInputObject
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -LinkContents
+LinkContents for this content.
+
+```yaml
+Type: String
+Parameter Sets: Path, DocumentPath, InputObject, DocumentInputObject
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -MaximumSvgElements
+MaximumSvgElements for a reusable visual input.
+
+```yaml
+Type: Int32
+Parameter Sets: InputObject, DocumentInputObject
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -MaximumSvgViewportDimension
+MaximumSvgViewportDimension for a reusable visual input.
+
+```yaml
+Type: Double
+Parameter Sets: InputObject, DocumentInputObject
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -MaximumSvgViewportPixelCount
+MaximumSvgViewportPixelCount for a reusable visual input.
+
+```yaml
+Type: Int64
+Parameter Sets: InputObject, DocumentInputObject
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -PassThru
-Emit the updated document.
+PassThru for this content.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: DocumentPath, DocumentInputObject
 Aliases: None
 Possible values:
 
@@ -118,12 +247,12 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Image path.
+Path for this content.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Document
-Aliases: FilePath
+Parameter Sets: Path, DocumentPath
+Aliases: None
 Possible values:
 
 Required: True
@@ -133,16 +262,96 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Width
-Rendered image width in PDF points.
+### -PointsPerPixel
+PointsPerPixel for a reusable visual input.
 
 ```yaml
 Type: Double
-Parameter Sets: Context, Document
+Parameter Sets: InputObject, DocumentInputObject
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -SpacingAfter
+SpacingAfter for this content.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: InputObject, DocumentInputObject
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -SpacingBefore
+SpacingBefore for this content.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: InputObject, DocumentInputObject
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -SvgPolicy
+SvgPolicy for a reusable visual input.
+
+```yaml
+Type: OfficeVisualSvgPolicy
+Parameter Sets: InputObject, DocumentInputObject
+Aliases: None
+Possible values: PreserveVector, RasterizeWhenNeeded, RequireVector
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Title
+Title for a reusable visual input.
+
+```yaml
+Type: String
+Parameter Sets: InputObject, DocumentInputObject
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Width
+Optional output width; numbers mean points and unit suffixes are accepted.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: Path, DocumentPath, InputObject, DocumentInputObject
+Aliases: None
+Possible values:
+
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -154,7 +363,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.Pdf.PdfDocument`
+- `System.Object`
 
 ## OUTPUTS
 

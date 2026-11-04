@@ -6,42 +6,54 @@ schema: 2.0.0
 ---
 # Add-OfficePdfList
 ## SYNOPSIS
-Adds a bullet or numbered list to a PDF document.
+Adds a bulleted or numbered list built from PdfListItem children.
 
 ## SYNTAX
 ### Context (Default)
 ```powershell
-Add-OfficePdfList [-Items] <string[]> [-Numbered] [-StartNumber <int>] [-Align <OfficeAlignment>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfList [-Content] <scriptblock> [-Numbered] [-StartNumber <Int32>] [-Alignment <OfficeAlignment>] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Add-OfficePdfList [-Items] <string[]> -Document <PdfDocument> [-Numbered] [-StartNumber <int>] [-Align <OfficeAlignment>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfList [-Content] <scriptblock> -Document <PdfDocument> [-Numbered] [-StartNumber <Int32>] [-Alignment <OfficeAlignment>] [-PassThru] [<CommonParameters>]
+```
+
+### Items
+```powershell
+Add-OfficePdfList [-Items] <string[]> [-Numbered] [-StartNumber <Int32>] [-Alignment <OfficeAlignment>] [<CommonParameters>]
+```
+
+### DocumentItems
+```powershell
+Add-OfficePdfList [-Items] <string[]> -Document <PdfDocument> [-Numbered] [-StartNumber <Int32>] [-Alignment <OfficeAlignment>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Adds a bullet or numbered list to a PDF document.
+Adds a bulleted or numbered list built from PdfListItem children.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> New-OfficePdf -Path .\Examples\Documents\PdfList.pdf {
-    Add-OfficePdfHeading -Text 'Next actions'
-    Add-OfficePdfList -Items 'Confirm owner','Publish summary','Schedule review' -Numbered
+New-OfficePdf -Path .\Actions.pdf {
+    PdfList {
+        PdfListItem 'Confirm the service owner'
+        PdfListItem 'Publish the summary'
+        PdfListItem 'Schedule the review'
+    }
 }
 ```
 
-Adds a numbered list in the generated PDF flow.
 
 ## PARAMETERS
 
-### -Align
-List alignment.
+### -Alignment
+Alignment for this operation.
 
 ```yaml
 Type: OfficeAlignment
-Parameter Sets: Context, Document
+Parameter Sets: Context, Document, Items, DocumentItems
 Aliases: None
 Possible values: Left, Center, Right, Justify, Start, End
 
@@ -52,27 +64,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Document
-PDF document to update outside the DSL context.
+### -Content
+Content for this operation.
 
 ```yaml
-Type: PdfDocument
-Parameter Sets: Document
-Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: True (ByValue)
-Accept wildcard characters: False
-```
-
-### -Items
-List item text.
-
-```yaml
-Type: String[]
+Type: ScriptBlock
 Parameter Sets: Context, Document
 Aliases: None
 Possible values:
@@ -84,12 +80,44 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Document
+Document for this operation.
+
+```yaml
+Type: PdfDocument
+Parameter Sets: Document, DocumentItems
+Aliases: None
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
+### -Items
+Items for this operation.
+
+```yaml
+Type: String[]
+Parameter Sets: Items, DocumentItems
+Aliases: None
+Possible values:
+
+Required: True
+Position: 0
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -Numbered
-Create a numbered list instead of a bullet list.
+Numbered for this operation.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Context, Document, Items, DocumentItems
 Aliases: None
 Possible values:
 
@@ -101,11 +129,11 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the updated document.
+Document set only; inside a block the document is returned by New-OfficePdf.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Document, DocumentItems
 Aliases: None
 Possible values:
 
@@ -117,11 +145,11 @@ Accept wildcard characters: False
 ```
 
 ### -StartNumber
-Number to use for the first numbered item.
+StartNumber for this operation.
 
 ```yaml
 Type: Int32
-Parameter Sets: Context, Document
+Parameter Sets: Context, Document, Items, DocumentItems
 Aliases: None
 Possible values:
 

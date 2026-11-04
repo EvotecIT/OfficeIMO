@@ -11,12 +11,12 @@ Adds invisible vertical spacing to a generated PDF document.
 ## SYNTAX
 ### Context (Default)
 ```powershell
-Add-OfficePdfSpacer [-Height] <double> [-PassThru] [<CommonParameters>]
+Add-OfficePdfSpacer [-Height] <OfficeLength> [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Add-OfficePdfSpacer [-Height] <double> -Document <PdfDocument> [-PassThru] [<CommonParameters>]
+Add-OfficePdfSpacer [-Height] <OfficeLength> -Document <PdfDocument> [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -58,7 +58,7 @@ Accept wildcard characters: False
 Vertical space height in PDF points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Context, Document
 Aliases: None
 Possible values:
@@ -75,7 +75,7 @@ Emit the updated document.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Document
 Aliases: None
 Possible values:
 

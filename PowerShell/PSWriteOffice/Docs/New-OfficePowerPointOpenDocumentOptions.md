@@ -11,7 +11,7 @@ Creates PowerPoint/OpenDocument conversion settings.
 ## SYNTAX
 ### Default (Default)
 ```powershell
-New-OfficePowerPointOpenDocumentOptions [-LossPolicy <OfficeConversionLossPolicy>] [-NoImages] [-NoSpeakerNotes] [-NoBasicFormatting] [-MaxTableRows <Int32>] [-MaxTableColumns <Int32>] [<CommonParameters>]
+New-OfficePowerPointOpenDocumentOptions [-LossPolicy <OdfConversionLossPolicy>] [-NoImages] [-NoSpeakerNotes] [-NoBasicFormatting] [-MaxTableRows <Int32>] [-MaxTableColumns <Int32>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -29,13 +29,13 @@ Convert-OfficeDocument -Path ./Review.pptx -To OpenDocument -Options $options
 ## PARAMETERS
 
 ### -LossPolicy
-Gets or sets whether known omitted content is rejected or reported; omission retains the adapter default.
+Gets or sets the ODF threshold: report only, reject skipped or unsupported content, or reject any degradation; omission retains the adapter default.
 
 ```yaml
-Type: OfficeConversionLossPolicy
+Type: OdfConversionLossPolicy
 Parameter Sets: Default
 Aliases: None
-Possible values: Block, Allow
+Possible values: ReportOnly, ThrowOnSkippedOrUnsupported, ThrowOnAnyLoss
 
 Required: False
 Position: named

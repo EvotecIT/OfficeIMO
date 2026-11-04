@@ -6,62 +6,43 @@ schema: 2.0.0
 ---
 # Set-OfficePdfFooter
 ## SYNOPSIS
-Sets a simple or fully composed running PDF footer.
+Composes running PDF Footer text, child runs or the native builder inside New-OfficePdf.
 
 ## SYNTAX
-### Context (Default)
+### Text (Default)
 ```powershell
-Set-OfficePdfFooter [[-Text] <string>] [-Compose <scriptblock>] [-Align <OfficeAlignment>] [-FontSize <Double>] [-PassThru] [<CommonParameters>]
+Set-OfficePdfFooter [[-Text] <string>] [-Alignment <OfficeAlignment>] [-Size <OfficeLength>] [-FirstPage] [-EvenPage] [<CommonParameters>]
 ```
 
-### Document
+### Content
 ```powershell
-Set-OfficePdfFooter [[-Text] <string>] -Document <PdfDocument> [-Compose <scriptblock>] [-Align <OfficeAlignment>] [-FontSize <Double>] [-PassThru] [<CommonParameters>]
+Set-OfficePdfFooter [-Content] <scriptblock> [-Alignment <OfficeAlignment>] [-Size <OfficeLength>] [-FirstPage] [-EvenPage] [<CommonParameters>]
+```
+
+### Builder
+```powershell
+Set-OfficePdfFooter -Compose <scriptblock> [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Sets a simple or fully composed running PDF footer.
+Composes running PDF Footer text, child runs or the native builder inside New-OfficePdf.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> New-OfficePdf -Path .\Examples\Documents\PdfFooter.pdf {
-    Set-OfficePdfFooter -Text 'Page {page} of {pages}' -Align Center -FontSize 8
-    Add-OfficePdfHeading -Text 'Report with footer'
-    Add-OfficePdfPageBreak
-    Add-OfficePdfParagraph -Text 'The footer includes generated page numbers.'
-}
+New-OfficePdf ./Report.pdf { PdfFooter { PdfText 'Internal' -Italic }; PdfParagraph 'Report' }
 ```
 
-Uses page placeholders in a running footer.
-
-### EXAMPLE 2
-```powershell
-PS> New-OfficePdf -Path .\Examples\Documents\RichFooter.pdf {
-    Set-OfficePdfFooter -Compose {
-        param($footer)
-        $label = New-OfficeTextRun -Text 'Confidential - page ' -Bold | ConvertTo-OfficePdfTextRun
-        $pageStyle = New-OfficeTextRun -Italic | ConvertTo-OfficePdfTextRun
-        $null = $footer.AlignRight().Text({
-            param($text)
-            $null = $text.Run($label).CurrentPage($pageStyle).Text(' of ').TotalPages($pageStyle)
-        })
-    }
-    Add-OfficePdfParagraph -Text 'Generated report body.'
-}
-```
-
-Styled page tokens remain live until the document is rendered.
 
 ## PARAMETERS
 
-### -Align
-Footer alignment.
+### -Alignment
+Text alignment.
 
 ```yaml
 Type: OfficeAlignment
-Parameter Sets: Context, Document
+Parameter Sets: Text, Content
 Aliases: None
 Possible values: Left, Center, Right, Justify, Start, End
 
@@ -73,44 +54,43 @@ Accept wildcard characters: False
 ```
 
 ### -Compose
-Advanced footer composer. The script receives a PdfFooterBuilder and can configure
-default, first-page, and even-page text, zones, images, shapes, rich text, and page tokens.
+Advanced native Footer builder, passed as the script argument.
 
 ```yaml
 Type: ScriptBlock
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Document
-Compatibility parameter. Page composition is supported only inside New-OfficePdf.
-
-```yaml
-Type: PdfDocument
-Parameter Sets: Document
+Parameter Sets: Builder
 Aliases: None
 Possible values:
 
 Required: True
 Position: named
 Default value: None
-Accept pipeline input: True (ByValue)
+Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -FontSize
-Footer font size in PDF points.
+### -Content
+Styled PdfText child commands.
 
 ```yaml
-Type: Double
-Parameter Sets: Context, Document
+Type: ScriptBlock
+Parameter Sets: Content
+Aliases: None
+Possible values:
+
+Required: True
+Position: 0
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -EvenPage
+Configure the even page variant.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Text, Content
 Aliases: None
 Possible values:
 
@@ -121,12 +101,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -PassThru
-Emit the updated document.
+### -FirstPage
+Configure the first page variant.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Text, Content
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Size
+Text size; bare numbers mean points.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: Text, Content
 Aliases: None
 Possible values:
 
@@ -138,11 +134,11 @@ Accept wildcard characters: False
 ```
 
 ### -Text
-Footer text. Supports {page} and {pages}.
+Running text supporting {page} and {pages} tokens.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Document
+Parameter Sets: Text
 Aliases: None
 Possible values:
 
@@ -158,11 +154,11 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.Pdf.PdfDocument`
+- `None`
 
 ## OUTPUTS
 
-- `OfficeIMO.Pdf.PdfDocument`
+- `System.Void`
 
 ## RELATED LINKS
 

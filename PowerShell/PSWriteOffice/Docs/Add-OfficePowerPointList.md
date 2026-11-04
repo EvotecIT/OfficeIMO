@@ -16,7 +16,7 @@ Add-OfficePowerPointList [-Items] <string[]> [-Numbered] [-Numbering <PowerPoint
 
 ### Content
 ```powershell
-Add-OfficePowerPointList [-Content] <scriptblock> [-Numbered] [-Numbering <PowerPointNumberingScheme>] [-BulletChar <string>] [-Level <int>] [-PassThru] [-Slide <PowerPointSlideSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Column <Int32>] [-Span <Int32>] [<CommonParameters>]
+Add-OfficePowerPointList [-Content] <scriptblock> [-Numbered] [-Numbering <PowerPointNumberingScheme>] [-BulletChar <string>] [-PassThru] [-Slide <PowerPointSlideSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Column <Int32>] [-Span <Int32>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -118,7 +118,7 @@ Gets or sets the nesting level, one or two.
 
 ```yaml
 Type: Int32
-Parameter Sets: Items, Content
+Parameter Sets: Items
 Aliases: None
 Possible values:
 

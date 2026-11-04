@@ -6,38 +6,48 @@ schema: 2.0.0
 ---
 # Get-OfficeExcelPivotTable
 ## SYNOPSIS
-Gets pivot tables defined in a workbook.
+Lists pivot tables in a workbook.
 
 ## SYNTAX
-### Path
+### Document (Default)
 ```powershell
-Get-OfficeExcelPivotTable [-Path] <string> [-Name <string>] [-Sheet <string>] [-SheetIndex <Int32>] [<CommonParameters>]
+Get-OfficeExcelPivotTable [-Name <string>] [-Sheet <OfficeSheetSelector>] [-Document <ExcelDocument>] [<CommonParameters>]
 ```
 
-### Document
+### Path
 ```powershell
-Get-OfficeExcelPivotTable -Document <ExcelDocument> [-Name <string>] [-Sheet <string>] [-SheetIndex <Int32>] [<CommonParameters>]
+Get-OfficeExcelPivotTable [-Path] <string[]> [-Name <string>] [-Sheet <OfficeSheetSelector>] [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Get-OfficeExcelPivotTable -LiteralPath <string[]> [-Name <string>] [-Sheet <OfficeSheetSelector>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Gets pivot tables defined in a workbook.
+Lists pivot tables in a workbook.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $pivots = Get-OfficeExcelPivotTable -Path .\report.xlsx -Sheet Summary
-$pivots |
-    Select-Object -Property Name, Sheet, SourceRange, RowFields, DataFields |
-    Format-List
+Get-OfficeExcelPivotTable -Path .\Reports\Sales-2026.xlsx
 ```
 
-Returns pivot table metadata so generated reports can prove the pivot source and layout.
+Shows every pivot table in the workbook with its location and source.
+
+### EXAMPLE 2
+```powershell
+Get-OfficeExcelPivotTable -Path .\Reports\Sales-2026.xlsx |
+                Select-Object Name, SheetName, Location, SourceSheet, SourceRange
+```
+
+Lists the source range of each pivot table, to confirm they still point at the current data after the sheet was rebuilt.
 
 ## PARAMETERS
 
 ### -Document
-Workbook to inspect.
+Caller-owned workbook; omission uses the enclosing Excel content block.
 
 ```yaml
 Type: ExcelDocument
@@ -45,10 +55,26 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
+### -LiteralPath
+Literal workbook paths, including FileInfo.FullName and provider PSPath.
+
+```yaml
+Type: String[]
+Parameter Sets: LiteralPath
+Aliases: PSPath, FullName
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
 Accept wildcard characters: False
 ```
 
@@ -57,7 +83,7 @@ Optional pivot table name filter.
 
 ```yaml
 Type: String
-Parameter Sets: Path, Document
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -69,43 +95,27 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Path to the workbook.
+Workbook paths resolved with filesystem wildcard support.
 
 ```yaml
-Type: String
+Type: String[]
 Parameter Sets: Path
-Aliases: InputPath, FilePath, FullName, LiteralPath
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue, ByPropertyName)
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
 ### -Sheet
-Optional sheet name filter.
+Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.
 
 ```yaml
-Type: String
-Parameter Sets: Path, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -SheetIndex
-Optional sheet index (0-based) filter.
-
-```yaml
-Type: Int32
-Parameter Sets: Path, Document
+Type: OfficeSheetSelector
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -121,12 +131,12 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `System.String`
+- `System.String[]`
 - `OfficeIMO.Excel.ExcelDocument`
 
 ## OUTPUTS
 
-- `System.Management.Automation.PSObject`
+- `None`
 
 ## RELATED LINKS
 

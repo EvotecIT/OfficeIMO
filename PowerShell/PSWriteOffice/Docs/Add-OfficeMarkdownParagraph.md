@@ -9,14 +9,24 @@ schema: 2.0.0
 Adds a Markdown paragraph.
 
 ## SYNTAX
-### Context (Default)
+### Text (Default)
 ```powershell
 Add-OfficeMarkdownParagraph [-Text] <string> [-PassThru] [<CommonParameters>]
 ```
 
-### Document
+### DocumentText
 ```powershell
 Add-OfficeMarkdownParagraph [-Text] <string> -Document <MarkdownDocument> [-PassThru] [<CommonParameters>]
+```
+
+### DocumentContent
+```powershell
+Add-OfficeMarkdownParagraph [-Content] <scriptblock> -Document <MarkdownDocument> [-PassThru] [<CommonParameters>]
+```
+
+### Content
+```powershell
+Add-OfficeMarkdownParagraph [-Content] <scriptblock> [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -37,12 +47,28 @@ Appends paragraph text to the current Markdown document.
 
 ## PARAMETERS
 
+### -Content
+Rich text composed with MarkdownText children.
+
+```yaml
+Type: ScriptBlock
+Parameter Sets: DocumentContent, Content
+Aliases: None
+Possible values:
+
+Required: True
+Position: 0
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -Document
 Markdown document to update outside the DSL context.
 
 ```yaml
 Type: MarkdownDocument
-Parameter Sets: Document
+Parameter Sets: DocumentText, DocumentContent
 Aliases: None
 Possible values:
 
@@ -58,7 +84,7 @@ Emit the Markdown document after appending the paragraph.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Text, DocumentText, DocumentContent, Content
 Aliases: None
 Possible values:
 
@@ -74,7 +100,7 @@ Paragraph text.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Document
+Parameter Sets: Text, DocumentText
 Aliases: None
 Possible values:
 

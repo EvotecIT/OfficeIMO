@@ -9,9 +9,19 @@ schema: 2.0.0
 Gets page annotations and action evidence from a PDF.
 
 ## SYNTAX
-### __AllParameterSets
+### Path (Default)
 ```powershell
-Get-OfficePdfAnnotation [-Path] <string> [-Subtype <string>] [-PageNumber <Int32>] [-WithAction] [-Password <securestring>] [-IgnorePermissionRestrictions] [<CommonParameters>]
+Get-OfficePdfAnnotation [-Path] <string[]> [-LoadOptions <PdfLoadOptions>] [-Subtype <string>] [-Page <Int32>] [-WithAction] [-Password <securestring>] [-IgnorePermissionRestrictions] [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Get-OfficePdfAnnotation -LiteralPath <string[]> [-LoadOptions <PdfLoadOptions>] [-Subtype <string>] [-Page <Int32>] [-WithAction] [-Password <securestring>] [-IgnorePermissionRestrictions] [<CommonParameters>]
+```
+
+### Document
+```powershell
+Get-OfficePdfAnnotation -Document <PdfDocument> [-Subtype <string>] [-Page <Int32>] [-WithAction] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -21,18 +31,46 @@ Gets page annotations and action evidence from a PDF.
 
 ### EXAMPLE 1
 ```powershell
-Get-OfficePdfAnnotation -Path 'C:\Path'
+Get-OfficePdfAnnotation -Path @('C:\Path')
+```
+
+
+### EXAMPLE 2
+```powershell
+Get-OfficePdfAnnotation -Document 'Value'
+```
+
+
+### EXAMPLE 3
+```powershell
+Get-OfficePdfAnnotation -LiteralPath @('C:\Path')
 ```
 
 
 ## PARAMETERS
+
+### -Document
+Caller-owned live PDF; inspection never disposes it.
+
+```yaml
+Type: PdfDocument
+Parameter Sets: Document
+Aliases: None
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
 
 ### -IgnorePermissionRestrictions
 After successful password authentication, explicitly ignore owner-imposed usage restrictions.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -43,12 +81,44 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -PageNumber
+### -LiteralPath
+Exact PDF paths, including literal brackets.
+
+```yaml
+Type: String[]
+Parameter Sets: LiteralPath
+Aliases: PSPath, FullName
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -LoadOptions
+Bounded input load settings.
+
+```yaml
+Type: PdfLoadOptions
+Parameter Sets: Path, LiteralPath
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Page
 Optional one-based page number filter.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath, Document
 Aliases: None
 Possible values:
 
@@ -64,7 +134,7 @@ Password used to inspect a Standard password-encrypted PDF.
 
 ```yaml
 Type: SecureString
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -76,18 +146,18 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-PDF file path.
+PDF input paths; supports wildcards.
 
 ```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: FilePath, FullName, LiteralPath
+Type: String[]
+Parameter Sets: Path
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue, ByPropertyName)
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
@@ -96,7 +166,7 @@ Optional annotation subtype filter such as Text, Link, Widget, or FreeText.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath, Document
 Aliases: None
 Possible values:
 
@@ -112,7 +182,7 @@ Return only annotations with actions, additional actions, or chained actions.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath, Document
 Aliases: None
 Possible values:
 
@@ -128,7 +198,8 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `System.String`
+- `System.String[]`
+- `OfficeIMO.Pdf.PdfDocument`
 
 ## OUTPUTS
 

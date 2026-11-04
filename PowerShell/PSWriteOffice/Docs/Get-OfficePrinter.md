@@ -9,9 +9,14 @@ schema: 2.0.0
 Lists system printer queues, or the paper sources of a named queue. Requires PowerShell 7.4 or newer.
 
 ## SYNTAX
-### __AllParameterSets
+### Printer (Default)
 ```powershell
-Get-OfficePrinter [-PaperSources <string>] [<CommonParameters>]
+Get-OfficePrinter [[-Name] <string[]>] [<CommonParameters>]
+```
+
+### PaperSource
+```powershell
+Get-OfficePrinter [-Name] <string[]> -PaperSource [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -22,22 +27,38 @@ Lists system printer queues, or the paper sources of a named queue. Requires Pow
 ### EXAMPLE 1
 ```powershell
 PS> Get-OfficePrinter
-            Get-OfficePrinter -PaperSources 'Office printer'
+            Get-OfficePrinter -Name 'Office printer' -PaperSource
 ```
 
 
 ## PARAMETERS
 
-### -PaperSources
-Named printer whose paper sources should be listed.
+### -Name
+Printer name patterns; PaperSource requires one exact printer name.
 
 ```yaml
-Type: String
-Parameter Sets: __AllParameterSets
+Type: String[]
+Parameter Sets: Printer, PaperSource
 Aliases: None
 Possible values:
 
 Required: False
+Position: 0
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: True
+```
+
+### -PaperSource
+List paper sources of the single printer selected by Name.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: PaperSource
+Aliases: None
+Possible values:
+
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: False

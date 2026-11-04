@@ -6,50 +6,49 @@ schema: 2.0.0
 ---
 # Add-OfficeExcelSlicer
 ## SYNOPSIS
-Adds OfficeIMO-owned workbook slicer binding metadata.
+Adds slicer or timeline binding metadata for a pivot table or table.
 
 ## SYNTAX
-### Context (Default)
+### Default (Default)
 ```powershell
-Add-OfficeExcelSlicer -Name <string> [-SourceName <string>] [-PivotTableName <string>] [-Xml <string>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
-```
-
-### Path
-```powershell
-Add-OfficeExcelSlicer [-Path] <string> -Name <string> [-SourceName <string>] [-PivotTableName <string>] [-Xml <string>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
-```
-
-### Document
-```powershell
-Add-OfficeExcelSlicer -Document <ExcelDocument> -Name <string> [-SourceName <string>] [-PivotTableName <string>] [-Xml <string>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Add-OfficeExcelSlicer -Name <string> [-Document <ExcelDocument>] [-SourceName <string>] [-PivotTable <string>] [-Xml <string>] [-Timeline] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Adds OfficeIMO-owned workbook slicer binding metadata.
+Adds slicer or timeline binding metadata for a pivot table or table.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $slicer = Add-OfficeExcelSlicer -Path .\Report.xlsx -Name RegionSlicer -SourceName Region -PivotTableName SalesPivot -PassThru
-Get-OfficeExcelDataModel -Path .\Report.xlsx |
-    Select-Object -ExpandProperty SlicerCacheCount
+Open-OfficeExcel -Path .\Reports\Sales-2026.xlsx {
+    ExcelSlicer -Name RegionSlicer -SourceName Region -PivotTable SalesPivot
+}
 ```
 
-Writes portable OfficeIMO binding metadata. It does not create native Excel slicer caches or UI shapes.
+Adds slicer metadata for the Region field of the SalesPivot pivot table.
+
+### EXAMPLE 2
+```powershell
+Open-OfficeExcel -Path .\Reports\Sales-2026.xlsx {
+    ExcelSlicer -Name OrderDateTimeline -SourceName OrderDate -PivotTable SalesPivot -Timeline
+}
+```
+
+Adds timeline metadata for the OrderDate field so readers can filter the pivot table by period in Excel.
 
 ## PARAMETERS
 
 ### -Document
-Workbook to update outside the DSL context.
+Caller-owned workbook; omission uses the enclosing Excel content block.
 
 ```yaml
 Type: ExcelDocument
-Parameter Sets: Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
@@ -61,7 +60,7 @@ Slicer cache name.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Path, Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -73,11 +72,11 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit metadata about the added package part.
+Emits the native result after the operation.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Path, Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -88,28 +87,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Path
-Workbook path to update.
+### -PivotTable
+Native pivot table whose data or entire range is targeted.
 
 ```yaml
 Type: String
-Parameter Sets: Path
-Aliases: InputPath, FilePath
-Possible values:
-
-Required: True
-Position: 0
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -PivotTableName
-Pivot table name the slicer is intended to filter.
-
-```yaml
-Type: String
-Parameter Sets: Context, Path, Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -125,7 +108,23 @@ Source field, table column, or pivot field name.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Path, Document
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Timeline
+Creates timeline metadata instead of a standard slicer.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -141,7 +140,7 @@ Caller-supplied slicer cache XML. When provided, OfficeIMO preserves it within i
 
 ```yaml
 Type: String
-Parameter Sets: Context, Path, Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -161,7 +160,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `System.Management.Automation.PSObject`
+- `None`
 
 ## RELATED LINKS
 

@@ -6,40 +6,51 @@ schema: 2.0.0
 ---
 # Get-OfficeWordTableOfContents
 ## SYNOPSIS
-Gets the table of contents from a Word document.
+Gets the table of contents of a document.
 
 ## SYNTAX
-### Path
+### Document (Default)
 ```powershell
-Get-OfficeWordTableOfContents [-Path] <string> [<CommonParameters>]
+Get-OfficeWordTableOfContents [-Document <WordDocument>] [<CommonParameters>]
 ```
 
-### Document
+### Path
 ```powershell
-Get-OfficeWordTableOfContents -Document <WordDocument> [<CommonParameters>]
+Get-OfficeWordTableOfContents [-Path] <string[]> [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Get-OfficeWordTableOfContents -LiteralPath <string[]> [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Gets the table of contents from a Word document.
+Gets the table of contents of a document.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $doc = Open-OfficeWord -Path .\Report.docx
-$toc = $doc | Get-OfficeWordTableOfContents
-if ($toc) {
-    $toc | Set-OfficeWordTableOfContents -Text 'Contents' -TextNoContent 'No entries' -PassThru
-    $doc | Save-OfficeWord -Path .\Report-Toc.docx
-}
+Get-OfficeWordTableOfContents -Document 'Value'
 ```
 
-Gets the TOC from an open document, updates it, and saves a variant.
+
+### EXAMPLE 2
+```powershell
+Get-OfficeWordTableOfContents -LiteralPath @('C:\Path')
+```
+
+
+### EXAMPLE 3
+```powershell
+Get-OfficeWordTableOfContents -Path @('C:\Path')
+```
+
 
 ## PARAMETERS
 
 ### -Document
-Word document to read.
+Document for this inspection.
 
 ```yaml
 Type: WordDocument
@@ -47,27 +58,43 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
-### -Path
-Path to the .docx file.
+### -LiteralPath
+LiteralPath for this inspection.
 
 ```yaml
-Type: String
+Type: String[]
+Parameter Sets: LiteralPath
+Aliases: PSPath, FullName
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -Path
+Path for this inspection.
+
+```yaml
+Type: String[]
 Parameter Sets: Path
-Aliases: InputPath, FilePath, FullName, LiteralPath
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue, ByPropertyName)
-Accept wildcard characters: False
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: True
 ```
 
 ### CommonParameters
@@ -75,7 +102,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `System.String`
+- `System.String[]`
 - `OfficeIMO.Word.WordDocument`
 
 ## OUTPUTS

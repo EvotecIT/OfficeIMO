@@ -6,30 +6,29 @@ schema: 2.0.0
 ---
 # New-OfficePdfVisualComparisonOptions
 ## SYNOPSIS
-Creates discoverable rendering and tolerance settings for Compare-OfficePdfVisual.
+Creates native PDF comparison settings and independent bounded policies for both inputs.
 
 ## SYNTAX
 ### Default (Default)
 ```powershell
-New-OfficePdfVisualComparisonOptions [-Scale <Double>] [-ChannelTolerance <Byte>] [-AllowedDifferenceRatio <Double>] [-Alignment <PdfVisualPageAlignment>] [-BackgroundColor <string>] [-MaxPages <Int32>] [-MaxPixelsPerImage <Int64>] [-MaxTotalPixels <Int64>] [-MaxTotalOutputBytes <Int64>] [<CommonParameters>]
+New-OfficePdfVisualComparisonOptions [-Scale <Double>] [-ChannelTolerance <Int32>] [-AllowedDifferenceRatio <Double>] [-Alignment <PdfVisualPageAlignment>] [-BackgroundColor <OfficeColor>] [-MaxPages <Int32>] [-MaximumPixelCountPerImage <Int64>] [-MaximumTotalPixelCount <Int64>] [-MaxTotalOutputBytes <Int64>] [-IgnorePermissionRestrictions] [-IgnoreDifferencePermissionRestrictions] [-ReferenceLoadOptions <PdfLoadOptions>] [-DifferenceLoadOptions <PdfLoadOptions>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Creates discoverable rendering and tolerance settings for Compare-OfficePdfVisual.
+Creates native PDF comparison settings and independent bounded policies for both inputs.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $options = New-OfficePdfVisualComparisonOptions -ChannelTolerance 2 -AllowedDifferenceRatio 0.001 -MaxPages 50
-Compare-OfficePdfVisual -ReferencePath .\Expected.pdf -DifferencePath .\Actual.pdf -Options $options
+New-OfficePdfVisualComparisonOptions -Alignment 'Value'
 ```
 
 
 ## PARAMETERS
 
 ### -Alignment
-Page alignment used for differently sized renders.
+Native page-image alignment.
 
 ```yaml
 Type: PdfVisualPageAlignment
@@ -45,7 +44,7 @@ Accept wildcard characters: False
 ```
 
 ### -AllowedDifferenceRatio
-Maximum differing-pixel ratio treated as equal.
+Maximum differing-pixel ratio accepted as equal.
 
 ```yaml
 Type: Double
@@ -61,10 +60,10 @@ Accept wildcard characters: False
 ```
 
 ### -BackgroundColor
-Background color name or hex value.
+Raster background.
 
 ```yaml
-Type: String
+Type: OfficeColor
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -77,23 +76,7 @@ Accept wildcard characters: False
 ```
 
 ### -ChannelTolerance
-Maximum per-channel byte difference treated as equal.
-
-```yaml
-Type: Byte
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -MaxPages
-Maximum pages compared.
+Maximum per-channel difference treated as equal.
 
 ```yaml
 Type: Int32
@@ -108,11 +91,91 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -MaxPixelsPerImage
-Maximum pixels accepted per rendered image.
+### -DifferenceLoadOptions
+Bounded policy for the difference input.
+
+```yaml
+Type: PdfLoadOptions
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -IgnoreDifferencePermissionRestrictions
+Explicitly ignore authenticated owner-imposed restrictions on the difference PDF.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -IgnorePermissionRestrictions
+Explicitly ignore authenticated owner-imposed restrictions on the reference PDF.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -MaximumPixelCountPerImage
+Maximum pixels in one expected, actual or difference image.
 
 ```yaml
 Type: Int64
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -MaximumTotalPixelCount
+Maximum aggregate raster pixels.
+
+```yaml
+Type: Int64
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -MaxPages
+Maximum pages on either side.
+
+```yaml
+Type: Int32
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -125,7 +188,7 @@ Accept wildcard characters: False
 ```
 
 ### -MaxTotalOutputBytes
-Maximum total bytes retained for comparison artifacts.
+Maximum retained PNG bytes.
 
 ```yaml
 Type: Int64
@@ -140,11 +203,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -MaxTotalPixels
-Maximum pixels accepted across the comparison.
+### -ReferenceLoadOptions
+Bounded policy for the reference input.
 
 ```yaml
-Type: Int64
+Type: PdfLoadOptions
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -157,7 +220,7 @@ Accept wildcard characters: False
 ```
 
 ### -Scale
-Render scale applied before comparison.
+Native render scale.
 
 ```yaml
 Type: Double
@@ -181,7 +244,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `OfficeIMO.Pdf.PdfVisualComparisonOptions`
+- `PSWriteOffice.Services.Comparison.OfficePdfVisualComparisonOptions`: Native comparison settings and distinct bounded input policies for the two PDF roles.
 
 ## RELATED LINKS
 

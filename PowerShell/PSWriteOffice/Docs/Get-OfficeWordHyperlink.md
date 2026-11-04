@@ -6,17 +6,22 @@ schema: 2.0.0
 ---
 # Get-OfficeWordHyperlink
 ## SYNOPSIS
-Gets hyperlinks from a Word document.
+Gets hyperlinks, filtered by text, URL or bookmark anchor.
 
 ## SYNTAX
-### Path
+### Document (Default)
 ```powershell
-Get-OfficeWordHyperlink [-Path] <string> [-Text <string[]>] [-Url <string[]>] [-Anchor <string[]>] [<CommonParameters>]
+Get-OfficeWordHyperlink [-Text <string[]>] [-Url <string[]>] [-Anchor <string[]>] [-Document <WordDocument>] [<CommonParameters>]
 ```
 
-### Document
+### Path
 ```powershell
-Get-OfficeWordHyperlink -Document <WordDocument> [-Text <string[]>] [-Url <string[]>] [-Anchor <string[]>] [<CommonParameters>]
+Get-OfficeWordHyperlink [-Path] <string[]> [-Text <string[]>] [-Url <string[]>] [-Anchor <string[]>] [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Get-OfficeWordHyperlink -LiteralPath <string[]> [-Text <string[]>] [-Url <string[]>] [-Anchor <string[]>] [<CommonParameters>]
 ```
 
 ### Section
@@ -30,40 +35,48 @@ Get-OfficeWordHyperlink -Paragraph <WordParagraph> [-Text <string[]>] [-Url <str
 ```
 
 ## DESCRIPTION
-Gets hyperlinks from a Word document.
+Gets hyperlinks, filtered by text, URL or bookmark anchor.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $links = Get-OfficeWordHyperlink -Path .\Report.docx -Url 'https://*'
-$links |
-    Select-Object -Property Text, Uri |
-    Export-Csv -Path .\ReportLinks.csv -NoTypeInformation
+Get-OfficeWordHyperlink -Anchor @('Value')
 ```
 
-Filters external hyperlinks and exports them for link validation or review.
+
+### EXAMPLE 2
+```powershell
+Get-OfficeWordHyperlink -LiteralPath @('C:\Path')
+```
+
+
+### EXAMPLE 3
+```powershell
+Get-OfficeWordHyperlink -Paragraph 'Value'
+```
+
 
 ## PARAMETERS
 
 ### -Anchor
-Filter by bookmark anchor (wildcards supported).
+Anchor for this inspection.
 
 ```yaml
 Type: String[]
-Parameter Sets: Path, Document, Section, Paragraph
-Aliases: Bookmark
+Parameter Sets: Document, Path, LiteralPath, Section, Paragraph
+Aliases: None
 Possible values:
 
 Required: False
 Position: named
 Default value: None
 Accept pipeline input: False
-Accept wildcard characters: True
+Accept wildcard characters: False
 ```
 
 ### -Document
-Document to inspect.
+Document for this inspection.
 
 ```yaml
 Type: WordDocument
@@ -71,15 +84,31 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
+### -LiteralPath
+LiteralPath for this inspection.
+
+```yaml
+Type: String[]
+Parameter Sets: LiteralPath
+Aliases: PSPath, FullName
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
 ### -Paragraph
-Paragraph to inspect.
+Paragraph for this inspection.
 
 ```yaml
 Type: WordParagraph
@@ -95,23 +124,23 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Path to the document.
+Path for this inspection.
 
 ```yaml
-Type: String
+Type: String[]
 Parameter Sets: Path
-Aliases: InputPath, FilePath, FullName, LiteralPath
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue, ByPropertyName)
-Accept wildcard characters: False
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: True
 ```
 
 ### -Section
-Section to inspect.
+Section for this inspection.
 
 ```yaml
 Type: WordSection
@@ -127,11 +156,11 @@ Accept wildcard characters: False
 ```
 
 ### -Text
-Filter by hyperlink text (wildcards supported).
+Text for this inspection.
 
 ```yaml
 Type: String[]
-Parameter Sets: Path, Document, Section, Paragraph
+Parameter Sets: Document, Path, LiteralPath, Section, Paragraph
 Aliases: None
 Possible values:
 
@@ -139,23 +168,23 @@ Required: False
 Position: named
 Default value: None
 Accept pipeline input: False
-Accept wildcard characters: True
+Accept wildcard characters: False
 ```
 
 ### -Url
-Filter by external URL (wildcards supported).
+Url for this inspection.
 
 ```yaml
 Type: String[]
-Parameter Sets: Path, Document, Section, Paragraph
-Aliases: Uri
+Parameter Sets: Document, Path, LiteralPath, Section, Paragraph
+Aliases: None
 Possible values:
 
 Required: False
 Position: named
 Default value: None
 Accept pipeline input: False
-Accept wildcard characters: True
+Accept wildcard characters: False
 ```
 
 ### CommonParameters
@@ -163,7 +192,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `System.String`
+- `System.String[]`
 - `OfficeIMO.Word.WordDocument`
 - `OfficeIMO.Word.WordSection`
 - `OfficeIMO.Word.WordParagraph`

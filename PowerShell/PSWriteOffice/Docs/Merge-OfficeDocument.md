@@ -11,7 +11,7 @@ Combines documents of the same native format in input order.
 ## SYNTAX
 ### Path (Default)
 ```powershell
-Merge-OfficeDocument [-Path] <string[]> [-OutputPath] <string> [-Password <securestring[]>] [-Options <Object[]>] [-NoClobber] [-PassThru] [-Show] [-WhatIf] [-Confirm] [<CommonParameters>]
+Merge-OfficeDocument [-Path] <string[]> [-OutputPath] <string> [-Password <securestring[]>] [-Options <Object[]>] [-NoClobber] [-PassThru] [-PassThruReport] [-Show] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Document
@@ -21,14 +21,15 @@ Merge-OfficeDocument [-Document] <IDisposable> [-Path] <string[]> [-OutputPath <
 
 ### LiteralPath
 ```powershell
-Merge-OfficeDocument [-OutputPath] <string> -LiteralPath <string[]> [-Password <securestring[]>] [-Options <Object[]>] [-NoClobber] [-PassThru] [-Show] [-WhatIf] [-Confirm] [<CommonParameters>]
+Merge-OfficeDocument [-OutputPath] <string> -LiteralPath <string[]> [-Password <securestring[]>] [-Options <Object[]>] [-NoClobber] [-PassThru] [-PassThruReport] [-Show] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
 Supports PDF and Open XML Word and Excel files. Binary projection and conversion are not performed.
 Word and Excel live documents can receive appended files and remain caller-owned. PDF merging creates a new
 document, so live PDF targets are not supported. PassThru returns a saved FileInfo for file input or the live
-document for Document input. Native merge options determine which content is imported.
+document for Document input. PassThruReport returns the native report for PDF file merges.
+Native merge options determine which content is imported.
 
 ## EXAMPLES
 
@@ -101,7 +102,7 @@ Accept wildcard characters: False
 ```
 
 ### -Options
-Native merge settings, New-OfficeExcelMergeOptions results, or property hashtables for the selected format.
+Native merge settings, Excel merge selections, and optional PDF read policy; property hashtables override merge settings.
 
 ```yaml
 Type: Object[]
@@ -138,6 +139,22 @@ Emit the saved FileInfo, or the caller-owned live document for Document input.
 ```yaml
 Type: SwitchParameter
 Parameter Sets: Path, Document, LiteralPath
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -PassThruReport
+Emit the native PDF merge report after successful publication.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -209,6 +226,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 - `System.IO.FileInfo`
 - `OfficeIMO.Word.WordDocument`
 - `OfficeIMO.Excel.ExcelDocument`
+- `OfficeIMO.Pdf.PdfMergeReport`
 
 ## RELATED LINKS
 

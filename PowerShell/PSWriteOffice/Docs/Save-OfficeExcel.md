@@ -26,6 +26,38 @@ Save-OfficeExcel -Document $workbook -Path ./Reviewed.xlsx -SaveOptions @{ Prefl
 ```
 
 
+### EXAMPLE 2
+```powershell
+$book = Open-OfficeExcel -Path .\Reports\Inventory.xlsx
+Save-OfficeExcel -Document $book
+Close-OfficeExcel -Document $book
+```
+
+Saves a workbook opened without a content block back to its own path and closes it.
+
+### EXAMPLE 3
+```powershell
+$book = New-OfficeExcel
+Add-OfficeExcelSheet -Document $book -Name 'Changes' {
+    ExcelTable (Import-OfficeCsv -Path .\Data\Changes-Week43.csv)
+}
+$book |
+    Save-OfficeExcel -Path .\Reports\Changes-Week43.xlsx -SaveOptions @{ ValidateOpenXml = $true } -PassThru
+Close-OfficeExcel -Document $book
+```
+
+Writes this week's change log to a new file with Open XML validation, returns the saved file, and closes the live workbook explicitly.
+
+### EXAMPLE 4
+```powershell
+$password = Read-Host -AsSecureString -Prompt 'Workbook password'
+$book = Open-OfficeExcel -Path .\Reports\Salaries-2027.xlsx
+Save-OfficeExcel -Document $book -Path .\Secure\Salaries-2027.xlsx -Password $password
+Close-OfficeExcel -Document $book
+```
+
+Encrypts the saved file with a password read at the prompt, so it never appears in the script or history.
+
 ## PARAMETERS
 
 ### -AllowLoss

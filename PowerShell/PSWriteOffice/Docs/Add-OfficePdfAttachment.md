@@ -11,7 +11,7 @@ Adds an embedded file attachment to a generated PDF document.
 ## SYNTAX
 ### Context (Default)
 ```powershell
-Add-OfficePdfAttachment [-Path] <string> [-Name <string>] [-MimeType <string>] [-Relationship <PdfAssociatedFileRelationship>] [-Description <string>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfAttachment [-Path] <string> [-Name <string>] [-MimeType <string>] [-Relationship <PdfAssociatedFileRelationship>] [-Description <string>] [<CommonParameters>]
 ```
 
 ### Document
@@ -107,7 +107,7 @@ Accepted for compatibility. The replacement document is always emitted when -Doc
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Document
 Aliases: None
 Possible values:
 

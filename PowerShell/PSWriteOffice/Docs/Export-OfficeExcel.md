@@ -11,17 +11,17 @@ Exports PowerShell objects to an Excel workbook using an operator-friendly surfa
 ## SYNTAX
 ### Create (Default)
 ```powershell
-Export-OfficeExcel [-Path] <string> [-InputObject <Object>] [-WorksheetName <string>] [-TableName <string>] [-TableStyle <ExcelTableStyle>] [-ShowFirstColumn] [-ShowLastColumn] [-NoRowStripes] [-ShowColumnStripes] [-StartRow <int>] [-StartColumn <int>] [-NoHeader] [-NoTable] [-NoAutoFilter] [-AutoFit] [-FreezeTopRow] [-FreezeFirstColumn] [-BoldTopRow] [-Title <string>] [-NoClobber] [-ExcludeProperty <string[]>] [-CollectionSeparator <string>] [-DictionaryEntrySeparator <string>] [-DictionaryKeyValueSeparator <string>] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-ColumnFormat <hashtable>] [-TextColumn <string[]>] [-NumberColumn <string[]>] [-IntegerColumn <string[]>] [-PercentColumn <string[]>] [-CurrencyColumn <string[]>] [-DateColumn <string[]>] [-DateTimeColumn <string[]>] [-FormatDecimals <int>] [-FormatCultureName <string>] [-IncludeHeaderInColumnFormat] [-AutoFitFormattedColumn] [-IgnoreMissingColumnFormat] [-IncludeUnexportableProperties] [-PropertyConversionErrorAction <ActionPreference>] [-Open] [-PassThru] [-DocumentTitle <string>] [-Author <string>] [-Subject <string>] [-Keywords <string>] [-Description <string>] [-Category <string>] [-Company <string>] [-Manager <string>] [-ApplicationName <string>] [-LastModifiedBy <string>] [-SafePreflight] [-SafeRepairDefinedNames] [-ValidateOpenXml] [-DisableFastPackageWriter] [-EvaluateFormulas] [-ClearCachedFormulaResults] [-MarkFormulasDirty] [-ForceFullCalculationOnOpen] [-DateSystem <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeExcel [-Path] <string> [-InputObject <Object>] [-Sheet <OfficeSheetSelector>] [-TableName <string>] [-Title <string>] [-Address <string>] [-Theme <OfficeThemeInput>] [-TableStyle <ExcelTableStyle>] [-NoTable] [-NoTableStyle] [-NoHeader] [-NoAutoFilter] [-NoAutoFit] [-NoFreeze] [-FreezeFirstColumn] [-ShowFirstColumn] [-ShowLastColumn] [-ShowColumnStripes] [-NoRowStripes] [-ColumnFormat <hashtable>] [-Decimals <int>] [-Culture <cultureinfo>] [-IgnoreMissingColumnFormat] [-ExcludeProperty <string[]>] [-CollectionSeparator <string>] [-FlattenOptions <OfficeObjectFlattenOptions>] [-DocumentProperty <hashtable>] [-DateSystem <ExcelDateSystem>] [-SaveOptions <ExcelSaveOptions>] [-Show] [-PassThru] [-NoClobber] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Append
 ```powershell
-Export-OfficeExcel [-Path] <string> -Append [-InputObject <Object>] [-WorksheetName <string>] [-TableName <string>] [-TableStyle <ExcelTableStyle>] [-ShowFirstColumn] [-ShowLastColumn] [-NoRowStripes] [-ShowColumnStripes] [-StartRow <int>] [-StartColumn <int>] [-NoHeader] [-NoTable] [-NoAutoFilter] [-AutoFit] [-FreezeTopRow] [-FreezeFirstColumn] [-BoldTopRow] [-Title <string>] [-AppendToTable] [-NoClobber] [-ExcludeProperty <string[]>] [-CollectionSeparator <string>] [-DictionaryEntrySeparator <string>] [-DictionaryKeyValueSeparator <string>] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-ColumnFormat <hashtable>] [-TextColumn <string[]>] [-NumberColumn <string[]>] [-IntegerColumn <string[]>] [-PercentColumn <string[]>] [-CurrencyColumn <string[]>] [-DateColumn <string[]>] [-DateTimeColumn <string[]>] [-FormatDecimals <int>] [-FormatCultureName <string>] [-IncludeHeaderInColumnFormat] [-AutoFitFormattedColumn] [-IgnoreMissingColumnFormat] [-IncludeUnexportableProperties] [-PropertyConversionErrorAction <ActionPreference>] [-Open] [-PassThru] [-DocumentTitle <string>] [-Author <string>] [-Subject <string>] [-Keywords <string>] [-Description <string>] [-Category <string>] [-Company <string>] [-Manager <string>] [-ApplicationName <string>] [-LastModifiedBy <string>] [-SafePreflight] [-SafeRepairDefinedNames] [-ValidateOpenXml] [-DisableFastPackageWriter] [-EvaluateFormulas] [-ClearCachedFormulaResults] [-MarkFormulasDirty] [-ForceFullCalculationOnOpen] [-DateSystem <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeExcel [-Path] <string> -Append [-InputObject <Object>] [-Sheet <OfficeSheetSelector>] [-TableName <string>] [-Title <string>] [-Address <string>] [-Theme <OfficeThemeInput>] [-TableStyle <ExcelTableStyle>] [-NoTable] [-NoTableStyle] [-NoHeader] [-NoAutoFilter] [-NoAutoFit] [-NoFreeze] [-FreezeFirstColumn] [-ShowFirstColumn] [-ShowLastColumn] [-ShowColumnStripes] [-NoRowStripes] [-ColumnFormat <hashtable>] [-Decimals <int>] [-Culture <cultureinfo>] [-IgnoreMissingColumnFormat] [-ExcludeProperty <string[]>] [-CollectionSeparator <string>] [-FlattenOptions <OfficeObjectFlattenOptions>] [-DocumentProperty <hashtable>] [-DateSystem <ExcelDateSystem>] [-SaveOptions <ExcelSaveOptions>] [-Show] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
-### ClearSheet
+### ReplaceSheet
 ```powershell
-Export-OfficeExcel [-Path] <string> -ClearSheet [-InputObject <Object>] [-WorksheetName <string>] [-TableName <string>] [-TableStyle <ExcelTableStyle>] [-ShowFirstColumn] [-ShowLastColumn] [-NoRowStripes] [-ShowColumnStripes] [-StartRow <int>] [-StartColumn <int>] [-NoHeader] [-NoTable] [-NoAutoFilter] [-AutoFit] [-FreezeTopRow] [-FreezeFirstColumn] [-BoldTopRow] [-Title <string>] [-NoClobber] [-ExcludeProperty <string[]>] [-CollectionSeparator <string>] [-DictionaryEntrySeparator <string>] [-DictionaryKeyValueSeparator <string>] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-ColumnFormat <hashtable>] [-TextColumn <string[]>] [-NumberColumn <string[]>] [-IntegerColumn <string[]>] [-PercentColumn <string[]>] [-CurrencyColumn <string[]>] [-DateColumn <string[]>] [-DateTimeColumn <string[]>] [-FormatDecimals <int>] [-FormatCultureName <string>] [-IncludeHeaderInColumnFormat] [-AutoFitFormattedColumn] [-IgnoreMissingColumnFormat] [-IncludeUnexportableProperties] [-PropertyConversionErrorAction <ActionPreference>] [-Open] [-PassThru] [-DocumentTitle <string>] [-Author <string>] [-Subject <string>] [-Keywords <string>] [-Description <string>] [-Category <string>] [-Company <string>] [-Manager <string>] [-ApplicationName <string>] [-LastModifiedBy <string>] [-SafePreflight] [-SafeRepairDefinedNames] [-ValidateOpenXml] [-DisableFastPackageWriter] [-EvaluateFormulas] [-ClearCachedFormulaResults] [-MarkFormulasDirty] [-ForceFullCalculationOnOpen] [-DateSystem <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeExcel [-Path] <string> -ReplaceSheet [-InputObject <Object>] [-Sheet <OfficeSheetSelector>] [-TableName <string>] [-Title <string>] [-Address <string>] [-Theme <OfficeThemeInput>] [-TableStyle <ExcelTableStyle>] [-NoTable] [-NoTableStyle] [-NoHeader] [-NoAutoFilter] [-NoAutoFit] [-NoFreeze] [-FreezeFirstColumn] [-ShowFirstColumn] [-ShowLastColumn] [-ShowColumnStripes] [-NoRowStripes] [-ColumnFormat <hashtable>] [-Decimals <int>] [-Culture <cultureinfo>] [-IgnoreMissingColumnFormat] [-ExcludeProperty <string[]>] [-CollectionSeparator <string>] [-FlattenOptions <OfficeObjectFlattenOptions>] [-DocumentProperty <hashtable>] [-DateSystem <ExcelDateSystem>] [-SaveOptions <ExcelSaveOptions>] [-Show] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -31,19 +31,62 @@ Provides a fast PowerShell export path while keeping OfficeIMO as the workbook e
 
 ### EXAMPLE 1
 ```powershell
-PS> $rows | Export-OfficeExcel -Path .\Report.xlsx -WorksheetName Data -TableName Data -AutoFit -FreezeTopRow
+Get-Process | Export-OfficeExcel -Path .\Processes.xlsx -Show
 ```
 
-Creates a workbook, writes the objects as a table, auto-fits columns, and freezes the header row.
+Writes the running processes as a styled table with a frozen header and fitted columns, and opens the file.
 
 ### EXAMPLE 2
 ```powershell
-PS> $rows | Export-OfficeExcel -Path .\Report.xlsx -WorksheetName Data -TableName Sales -TextColumn Id -CurrencyColumn Revenue -ColumnFormat @{ Rate = @{ Style = 'Percent'; Decimals = 1 }; Created = 'Date' } -FormatCultureName en-US -AutoFitFormattedColumn
+$export = @{
+    Path         = '.\Reports\Q3-Sales.xlsx'
+    Sheet        = 'Orders'
+    TableName    = 'Orders'
+    Title        = 'Q3 orders'
+    ColumnFormat = @{ Margin = 'Percent' }
+}
+Import-OfficeCsv -Path .\Data\Q3-Orders.csv |
+    Select-Object OrderId, Customer, Region, OrderDate, Amount, Margin |
+    Export-OfficeExcel @export
 ```
 
-Formats ID values as text, Revenue as currency, Rate as a one-decimal percentage, and Created as a short date while keeping formatting logic in OfficeIMO.
+Exports the Q3 orders as a named table under a title; dates and amounts are formatted from the data, and only the margin column is set explicitly as a percentage.
+
+### EXAMPLE 3
+```powershell
+Get-Volume |
+                Where-Object DriveLetter |
+                Select-Object @{ Name = 'Date'; Expression = { Get-Date } }, DriveLetter, Size, SizeRemaining |
+                Export-OfficeExcel -Path .\Reports\Disk-Usage.xlsx -Sheet History -TableName DiskHistory -Append
+```
+
+Adds today's free-space readings to the DiskHistory table, so the workbook grows into a capacity history one run at a time.
+
+### EXAMPLE 4
+```powershell
+Import-OfficeCsv -Path .\Exports\open-tickets.csv |
+                Export-OfficeExcel -Path .\Reports\Helpdesk.xlsx -Sheet 'Open tickets' -ReplaceSheet
+```
+
+Replaces only the Open tickets sheet with this morning's export and leaves the other sheets, charts and notes in the workbook untouched.
 
 ## PARAMETERS
+
+### -Address
+A1 address of the target cell.
+
+```yaml
+Type: String
+Parameter Sets: Create, Append, ReplaceSheet
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
 
 ### -Append
 Append rows to an existing worksheet when the workbook exists.
@@ -61,156 +104,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -AppendToTable
-Require append operations to extend an existing Excel table instead of writing after the used range.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Append
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ApplicationName
-Workbook application-name metadata.
-
-```yaml
-Type: String
-Parameter Sets: Create, Append, ClearSheet
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Author
-Workbook author metadata.
-
-```yaml
-Type: String
-Parameter Sets: Create, Append, ClearSheet
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -AutoFit
-Auto-fit exported columns.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Create, Append, ClearSheet
-Aliases: AutoSize
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -AutoFitFormattedColumn
-Auto-fit only columns that receive export-time column formats.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Create, Append, ClearSheet
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -BoldTopRow
-Bold the exported header row.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Create, Append, ClearSheet
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Category
-Workbook category metadata.
-
-```yaml
-Type: String
-Parameter Sets: Create, Append, ClearSheet
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ClearCachedFormulaResults
-Remove cached formula results before saving.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Create, Append, ClearSheet
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ClearSheet
-Replace the target worksheet inside an existing workbook.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: ClearSheet
-Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -CollectionSeparator
-Text used between items when a cell contains a collection.
+Text inserted between collection values flattened into one cell.
 
 ```yaml
 Type: String
-Parameter Sets: Create, Append, ClearSheet
+Parameter Sets: Create, Append, ReplaceSheet
 Aliases: None
 Possible values:
 
@@ -222,11 +121,11 @@ Accept wildcard characters: False
 ```
 
 ### -ColumnFormat
-Header-to-format map. Values may be preset names such as Text, Currency, Percent, Date, or custom Excel number formats.
+Maps column headers to number-format presets, format codes or per-column option hashtables.
 
 ```yaml
 Type: Hashtable
-Parameter Sets: Create, Append, ClearSheet
+Parameter Sets: Create, Append, ReplaceSheet
 Aliases: None
 Possible values:
 
@@ -237,44 +136,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Company
-Workbook company metadata.
+### -Culture
+Culture used for value conversion and number-format presets.
 
 ```yaml
-Type: String
-Parameter Sets: Create, Append, ClearSheet
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -CurrencyColumn
-Headers that should be formatted as currency.
-
-```yaml
-Type: String[]
-Parameter Sets: Create, Append, ClearSheet
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -DateColumn
-Headers that should be formatted as dates.
-
-```yaml
-Type: String[]
-Parameter Sets: Create, Append, ClearSheet
+Type: CultureInfo
+Parameter Sets: Create, Append, ReplaceSheet
 Aliases: None
 Possible values:
 
@@ -289,10 +156,10 @@ Accept wildcard characters: False
 Workbook date system for Excel date serials.
 
 ```yaml
-Type: String
-Parameter Sets: Create, Append, ClearSheet
+Type: ExcelDateSystem
+Parameter Sets: Create, Append, ReplaceSheet
 Aliases: None
-Possible values: 1900, 1904, NineteenHundred, NineteenFour
+Possible values: NineteenHundred, NineteenFour
 
 Required: False
 Position: named
@@ -301,28 +168,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -DateTimeColumn
-Headers that should be formatted as date/time values.
+### -Decimals
+Decimal places used for decimal, percent, currency, and scientific presets.
 
 ```yaml
-Type: String[]
-Parameter Sets: Create, Append, ClearSheet
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Description
-Workbook description metadata.
-
-```yaml
-Type: String
-Parameter Sets: Create, Append, ClearSheet
+Type: Int32
+Parameter Sets: Create, Append, ReplaceSheet
 Aliases: None
 Possible values:
 
@@ -333,76 +184,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -DictionaryEntrySeparator
-Text used between entries when a cell contains a dictionary.
+### -DocumentProperty
+Workbook metadata keyed by native property name, such as Title, Author or Company.
 
 ```yaml
-Type: String
-Parameter Sets: Create, Append, ClearSheet
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -DictionaryKeyValueSeparator
-Text used between a dictionary key and value.
-
-```yaml
-Type: String
-Parameter Sets: Create, Append, ClearSheet
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -DisableFastPackageWriter
-Disable OfficeIMO fast package writers for this save.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Create, Append, ClearSheet
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -DocumentTitle
-Workbook document title metadata.
-
-```yaml
-Type: String
-Parameter Sets: Create, Append, ClearSheet
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -EvaluateFormulas
-Evaluate supported formulas and write cached values before saving.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Create, Append, ClearSheet
+Type: Hashtable
+Parameter Sets: Create, Append, ReplaceSheet
 Aliases: None
 Possible values:
 
@@ -418,7 +205,7 @@ Exclude specific properties from exported objects.
 
 ```yaml
 Type: String[]
-Parameter Sets: Create, Append, ClearSheet
+Parameter Sets: Create, Append, ReplaceSheet
 Aliases: None
 Possible values:
 
@@ -429,44 +216,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -ForceFullCalculationOnOpen
-Request a full workbook recalculation when opened in Excel-compatible applications.
+### -FlattenOptions
+Nested-value projection policy; accepts a native options object or hashtable.
 
 ```yaml
-Type: SwitchParameter
-Parameter Sets: Create, Append, ClearSheet
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -FormatCultureName
-Culture used by friendly currency column presets, such as en-US or pl-PL.
-
-```yaml
-Type: String
-Parameter Sets: Create, Append, ClearSheet
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -FormatDecimals
-Decimal places used by friendly number, percent, and currency column presets.
-
-```yaml
-Type: Int32
-Parameter Sets: Create, Append, ClearSheet
+Type: OfficeObjectFlattenOptions
+Parameter Sets: Create, Append, ReplaceSheet
 Aliases: None
 Possible values:
 
@@ -482,23 +237,7 @@ Freeze the first exported column.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Create, Append, ClearSheet
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -FreezeTopRow
-Freeze the exported header row.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Create, Append, ClearSheet
+Parameter Sets: Create, Append, ReplaceSheet
 Aliases: None
 Possible values:
 
@@ -514,39 +253,7 @@ Continue when a requested export-time column format header is missing.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Create, Append, ClearSheet
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -IncludeHeaderInColumnFormat
-Include header cells when applying export-time column formats.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Create, Append, ClearSheet
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -IncludeUnexportableProperties
-Include properties that cannot be read by exporting a descriptive placeholder value.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Create, Append, ClearSheet
+Parameter Sets: Create, Append, ReplaceSheet
 Aliases: None
 Possible values:
 
@@ -558,11 +265,11 @@ Accept wildcard characters: False
 ```
 
 ### -InputObject
-Objects to write. Accepts pipeline input.
+Objects, dictionaries or native tabular data supplied directly or through the pipeline.
 
 ```yaml
 Type: Object
-Parameter Sets: Create, Append, ClearSheet
+Parameter Sets: Create, Append, ReplaceSheet
 Aliases: None
 Possible values:
 
@@ -573,124 +280,28 @@ Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
-### -IntegerColumn
-Headers that should be formatted as whole numbers.
-
-```yaml
-Type: String[]
-Parameter Sets: Create, Append, ClearSheet
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Keywords
-Workbook keyword metadata.
-
-```yaml
-Type: String
-Parameter Sets: Create, Append, ClearSheet
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -LastModifiedBy
-Workbook last-modified-by metadata.
-
-```yaml
-Type: String
-Parameter Sets: Create, Append, ClearSheet
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Manager
-Workbook manager metadata.
-
-```yaml
-Type: String
-Parameter Sets: Create, Append, ClearSheet
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -MarkFormulasDirty
-Mark formula cells dirty before saving.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Create, Append, ClearSheet
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -MaxCollectionItems
-Maximum number of items allowed in one nested collection or dictionary cell. Defaults to 1,048,575; increase explicitly for trusted larger values.
-
-```yaml
-Type: Int32
-Parameter Sets: Create, Append, ClearSheet
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -MaxNestingDepth
-Maximum nesting depth allowed while normalizing one cell value. Defaults to 64; increase explicitly for trusted deeper values.
-
-```yaml
-Type: Int32
-Parameter Sets: Create, Append, ClearSheet
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -NoAutoFilter
-Disable AutoFilter dropdowns on the created table.
+Omits table filter buttons.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Create, Append, ClearSheet
+Parameter Sets: Create, Append, ReplaceSheet
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoAutoFit
+Retains native column widths without fitting them to the data.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Create, Append, ReplaceSheet
 Aliases: None
 Possible values:
 
@@ -702,11 +313,27 @@ Accept wildcard characters: False
 ```
 
 ### -NoClobber
-Do not overwrite an existing workbook unless appending or clearing a sheet.
+Do not overwrite an existing workbook.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Create, Append, ClearSheet
+Parameter Sets: Create
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoFreeze
+Keeps the header row scrollable.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Create, Append, ReplaceSheet
 Aliases: None
 Possible values:
 
@@ -718,11 +345,11 @@ Accept wildcard characters: False
 ```
 
 ### -NoHeader
-Do not emit a header row.
+Writes data without a header row.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Create, Append, ClearSheet
+Parameter Sets: Create, Append, ReplaceSheet
 Aliases: None
 Possible values:
 
@@ -734,11 +361,11 @@ Accept wildcard characters: False
 ```
 
 ### -NoRowStripes
-Disable alternating row stripes for newly created tables.
+Disables alternating row bands. An explicit false value enables them.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Create, Append, ClearSheet
+Parameter Sets: Create, Append, ReplaceSheet
 Aliases: None
 Possible values:
 
@@ -750,11 +377,11 @@ Accept wildcard characters: False
 ```
 
 ### -NoTable
-Do not create an Excel table around the exported data.
+Writes plain cells without creating a native Excel table.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Create, Append, ClearSheet
+Parameter Sets: Create, Append, ReplaceSheet
 Aliases: None
 Possible values:
 
@@ -765,29 +392,13 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -NumberColumn
-Headers that should be formatted as decimal numbers.
-
-```yaml
-Type: String[]
-Parameter Sets: Create, Append, ClearSheet
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Open
-Open the workbook after saving.
+### -NoTableStyle
+Creates the table without a named visual style.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Create, Append, ClearSheet
-Aliases: Show
+Parameter Sets: Create, Append, ReplaceSheet
+Aliases: None
 Possible values:
 
 Required: False
@@ -798,11 +409,11 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the saved FileInfo.
+Emits the native result after the operation.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Create, Append, ClearSheet
+Parameter Sets: Create, Append, ReplaceSheet
 Aliases: None
 Possible values:
 
@@ -814,12 +425,12 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Destination workbook path.
+Workbook paths resolved with filesystem wildcard support.
 
 ```yaml
 Type: String
-Parameter Sets: Create, Append, ClearSheet
-Aliases: FilePath
+Parameter Sets: Create, Append, ReplaceSheet
+Aliases: None
 Possible values:
 
 Required: True
@@ -829,12 +440,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -PercentColumn
-Headers that should be formatted as percentages.
+### -ReplaceSheet
+Replaces the selected worksheet while retaining other workbook content.
 
 ```yaml
-Type: String[]
-Parameter Sets: Create, Append, ClearSheet
+Type: SwitchParameter
+Parameter Sets: ReplaceSheet
+Aliases: None
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -SaveOptions
+Native save options or a hashtable, applied to a completed content block.
+
+```yaml
+Type: ExcelSaveOptions
+Parameter Sets: Create, Append, ReplaceSheet
 Aliases: None
 Possible values:
 
@@ -845,28 +472,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -PropertyConversionErrorAction
-Controls how unreadable PowerShell properties are handled while projecting export rows.
+### -Sheet
+Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.
 
 ```yaml
-Type: ActionPreference
-Parameter Sets: Create, Append, ClearSheet
-Aliases: None
-Possible values: SilentlyContinue, Stop, Continue, Inquire, Ignore, Suspend, Break
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -SafePreflight
-Run OfficeIMO worksheet preflight cleanup before saving.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Create, Append, ClearSheet
+Type: OfficeSheetSelector
+Parameter Sets: Create, Append, ReplaceSheet
 Aliases: None
 Possible values:
 
@@ -877,12 +488,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -SafeRepairDefinedNames
-Repair common defined-name issues before saving.
+### -Show
+Open the saved file in its registered application after a local block completes.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Create, Append, ClearSheet
+Parameter Sets: Create, Append, ReplaceSheet
 Aliases: None
 Possible values:
 
@@ -894,11 +505,11 @@ Accept wildcard characters: False
 ```
 
 ### -ShowColumnStripes
-Enable alternating column stripes for newly created tables.
+Enables alternating column bands; explicit false clears them.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Create, Append, ClearSheet
+Parameter Sets: Create, Append, ReplaceSheet
 Aliases: None
 Possible values:
 
@@ -910,11 +521,11 @@ Accept wildcard characters: False
 ```
 
 ### -ShowFirstColumn
-Emphasize the first table column when the selected style supports it.
+Emphasizes the first table column; explicit false removes the emphasis.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Create, Append, ClearSheet
+Parameter Sets: Create, Append, ReplaceSheet
 Aliases: None
 Possible values:
 
@@ -926,59 +537,11 @@ Accept wildcard characters: False
 ```
 
 ### -ShowLastColumn
-Emphasize the last table column when the selected style supports it.
+Emphasizes the last table column; explicit false removes the emphasis.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Create, Append, ClearSheet
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -StartColumn
-Starting column for new exports.
-
-```yaml
-Type: Int32
-Parameter Sets: Create, Append, ClearSheet
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -StartRow
-Starting row for new exports. When appending and left at 1, rows are written after the used range.
-
-```yaml
-Type: Int32
-Parameter Sets: Create, Append, ClearSheet
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Subject
-Workbook subject metadata.
-
-```yaml
-Type: String
-Parameter Sets: Create, Append, ClearSheet
+Parameter Sets: Create, Append, ReplaceSheet
 Aliases: None
 Possible values:
 
@@ -994,7 +557,7 @@ Optional Excel table name.
 
 ```yaml
 Type: String
-Parameter Sets: Create, Append, ClearSheet
+Parameter Sets: Create, Append, ReplaceSheet
 Aliases: None
 Possible values:
 
@@ -1010,9 +573,9 @@ Built-in Excel table style name.
 
 ```yaml
 Type: ExcelTableStyle
-Parameter Sets: Create, Append, ClearSheet
+Parameter Sets: Create, Append, ReplaceSheet
 Aliases: None
-Possible values: TableStyleLight1, TableStyleLight2, TableStyleLight3, TableStyleLight4, TableStyleLight5, TableStyleLight6, TableStyleLight7, TableStyleLight8, TableStyleLight9, TableStyleLight10, TableStyleLight11, TableStyleLight12, TableStyleLight13, TableStyleLight14, TableStyleLight15, TableStyleLight16, TableStyleLight17, TableStyleLight18, TableStyleLight19, TableStyleLight20, TableStyleLight21, TableStyleMedium1, TableStyleMedium2, TableStyleMedium3, TableStyleMedium4, TableStyleMedium5, TableStyleMedium6, TableStyleMedium7, TableStyleMedium8, TableStyleMedium9, TableStyleMedium10, TableStyleMedium11, TableStyleMedium12, TableStyleMedium13, TableStyleMedium14, TableStyleMedium15, TableStyleMedium16, TableStyleMedium17, TableStyleMedium18, TableStyleMedium19, TableStyleMedium20, TableStyleMedium21, TableStyleMedium22, TableStyleMedium23, TableStyleMedium24, TableStyleMedium25, TableStyleMedium26, TableStyleMedium27, TableStyleMedium28, TableStyleDark1, TableStyleDark2, TableStyleDark3, TableStyleDark4, TableStyleDark5, TableStyleDark6, TableStyleDark7, TableStyleDark8, TableStyleDark9, TableStyleDark10, TableStyleDark11
+Possible values: TableStyleLight1, TableStyleLight2, TableStyleLight3, TableStyleLight4, TableStyleLight5, TableStyleLight6, TableStyleLight7, TableStyleLight8, TableStyleLight9, TableStyleLight10, TableStyleLight11, TableStyleLight12, TableStyleLight13, TableStyleLight14, TableStyleLight15, TableStyleLight16, TableStyleLight17, TableStyleLight18, TableStyleLight19, TableStyleLight20, TableStyleLight21, TableStyleMedium1, TableStyleMedium2, TableStyleMedium3, TableStyleMedium4, TableStyleMedium5, TableStyleMedium6, TableStyleMedium7, TableStyleMedium8, TableStyleMedium9, TableStyleMedium10, TableStyleMedium11, TableStyleMedium12, TableStyleMedium13, TableStyleMedium14, TableStyleMedium15, TableStyleMedium16, TableStyleMedium17, TableStyleMedium18, TableStyleMedium19, TableStyleMedium20, TableStyleMedium21, TableStyleMedium22, TableStyleMedium23, TableStyleMedium24, TableStyleMedium25, TableStyleMedium26, TableStyleMedium27, TableStyleMedium28, TableStyleDark1, TableStyleDark2, TableStyleDark3, TableStyleDark4, TableStyleDark5, TableStyleDark6, TableStyleDark7, TableStyleDark8, TableStyleDark9, TableStyleDark10, TableStyleDark11, None
 
 Required: False
 Position: named
@@ -1021,12 +584,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -TextColumn
-Headers that should be formatted as text, useful for IDs, zip codes, and leading-zero values.
+### -Theme
+Built-in Office theme, native theme object or a document whose visual theme is read.
 
 ```yaml
-Type: String[]
-Parameter Sets: Create, Append, ClearSheet
+Type: OfficeThemeInput
+Parameter Sets: Create, Append, ReplaceSheet
 Aliases: None
 Possible values:
 
@@ -1042,40 +605,8 @@ Write a title above the exported table.
 
 ```yaml
 Type: String
-Parameter Sets: Create, Append, ClearSheet
+Parameter Sets: Create, Append, ReplaceSheet
 Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ValidateOpenXml
-Validate the saved package with OpenXmlValidator and throw on errors.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Create, Append, ClearSheet
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -WorksheetName
-Worksheet name to create or update.
-
-```yaml
-Type: String
-Parameter Sets: Create, Append, ClearSheet
-Aliases: Sheet
 Possible values:
 
 Required: False

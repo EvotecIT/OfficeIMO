@@ -11,11 +11,11 @@ Converts objects into a Markdown table.
 ## SYNTAX
 ### Default (Default)
 ```powershell
-ConvertTo-OfficeMarkdown [-InputObject <Object>] [-CollectionSeparator <string>] [-DictionaryEntrySeparator <string>] [-DictionaryKeyValueSeparator <string>] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-DisableAutoAlign] [-PassThru] [<CommonParameters>]
+ConvertTo-OfficeMarkdown [-InputObject <Object>] [-CollectionSeparator <string>] [-DictionaryEntrySeparator <string>] [-DictionaryKeyValueSeparator <string>] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-NoAutoAlign] [-AsDocument] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Returns Markdown text by default; use -PassThru to emit a MarkdownDocument.
+Returns Markdown text by default; use -AsDocument to emit a MarkdownDocument.
 
 ## EXAMPLES
 
@@ -28,7 +28,7 @@ Generates Markdown table text from the input objects.
 
 ### EXAMPLE 2
 ```powershell
-PS> $doc = $data | ConvertTo-OfficeMarkdown -PassThru
+PS> $doc = $data | ConvertTo-OfficeMarkdown -AsDocument
 $doc.P('Totals above'); $doc.ToMarkdown()
 ```
 
@@ -36,12 +36,28 @@ Builds a table and appends more content using the MarkdownDocument API.
 
 ### EXAMPLE 3
 ```powershell
-PS> $markdown = $data | ConvertTo-OfficeMarkdown -DisableAutoAlign
+PS> $markdown = $data | ConvertTo-OfficeMarkdown -NoAutoAlign
 ```
 
 Forces left-aligned columns instead of auto-aligned output.
 
 ## PARAMETERS
+
+### -AsDocument
+Emit a Markdown document object instead of text.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
 
 ### -CollectionSeparator
 Text used between items when a cell contains a collection.
@@ -80,22 +96,6 @@ Text used between a dictionary key and value.
 
 ```yaml
 Type: String
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -DisableAutoAlign
-Disable automatic alignment heuristics for tables.
-
-```yaml
-Type: SwitchParameter
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -155,8 +155,8 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -PassThru
-Emit a Markdown document object instead of text.
+### -NoAutoAlign
+Disable automatic alignment heuristics for tables.
 
 ```yaml
 Type: SwitchParameter

@@ -40,6 +40,31 @@ $book | Set-OfficeExcelSheet -Sheet 2 -NoTabColor -PassThru
 ```
 
 
+### EXAMPLE 3
+```powershell
+Open-OfficeExcel -Path .\Reports\Q3-Sales.xlsx {
+    Set-OfficeExcelSheet -Sheet Summary -TabColor Accent1
+}
+```
+
+Gives the Summary tab the first accent colour of the workbook theme.
+
+### EXAMPLE 4
+```powershell
+New-OfficeExcel -Path .\Reports\Pricing.xlsx {
+    ExcelSheet 'Summary' {
+        ExcelTable (Import-OfficeCsv -Path .\Data\Price-List.csv)
+    }
+    ExcelSheet 'Lookups' {
+        ExcelTable (Import-OfficeCsv -Path .\Data\Currency-Rates.csv) -Name Rates
+        Set-OfficeExcelSheet -Visibility Hidden
+    }
+    Set-OfficeExcelSheet -Sheet Summary -Active
+}
+```
+
+Hides the lookup data that formulas depend on and makes Summary the sheet Excel shows first.
+
 ## PARAMETERS
 
 ### -Active

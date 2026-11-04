@@ -35,6 +35,31 @@ ExcelSheet 'Data' { ExcelFooter -Right 'Page &P of &N' }
 ```
 
 
+### EXAMPLE 2
+```powershell
+Open-OfficeExcel -Path .\Reports\Q3-Sales.xlsx {
+    ExcelSheet 'Orders' {
+        ExcelFooter -Right 'Page &P of &N'
+    }
+}
+```
+
+Prints Page N of M on the right of the footer.
+
+### EXAMPLE 3
+```powershell
+New-OfficeExcel -Path .\Reports\Security-Review.xlsx {
+    foreach ($name in 'Findings', 'Accounts', 'Firewall') {
+        ExcelSheet $name {
+            ExcelTable (Import-OfficeCsv -Path ".\Data\$name.csv")
+            ExcelFooter -Left 'Internal' -Center '&F' -Right 'Page &P of &N'
+        }
+    }
+}
+```
+
+Prints the classification, file name and page number in the footer of each sheet of a new report.
+
 ## PARAMETERS
 
 ### -Center

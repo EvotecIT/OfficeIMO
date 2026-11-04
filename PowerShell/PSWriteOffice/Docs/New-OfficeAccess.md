@@ -6,38 +6,109 @@ schema: 2.0.0
 ---
 # New-OfficeAccess
 ## SYNOPSIS
-Creates a native Access database model without a provider, seed file, or execution.
+Creates a native Access database without a provider, seed file or execution.
 
 ## SYNTAX
-### __AllParameterSets
+### Live (Default)
 ```powershell
-New-OfficeAccess [-Format <AccessFileFormat>] [-Title <string>] [<CommonParameters>]
+New-OfficeAccess [[-Path] <string>] [-Force] [-Title <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### Content
+```powershell
+New-OfficeAccess [-Path] <string> [-Content] <scriptblock> [-AllowLoss] [-PassThru] [-Force] [-Title <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Creates a native Access database model without a provider, seed file, or execution.
+A path associates a live model without writing it; a content block atomically saves and closes it. The .mdb or .accdb extension selects the native file family.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-$database = New-OfficeAccess -Format Accdb -Title Contacts
+New-OfficeAccess -Path ./Contacts.accdb {
+    AccessTable Contacts { AccessColumn ContactId -Type AutoNumber; AccessColumn DisplayName -MaxLength 100 }
+}
 ```
 
 
 ## PARAMETERS
 
-### -Format
-Native file family.
+### -AllowLoss
+Accept reductions reported by native save.
 
 ```yaml
-Type: AccessFileFormat
-Parameter Sets: __AllParameterSets
+Type: SwitchParameter
+Parameter Sets: Content
 Aliases: None
-Possible values: Mdb, Accdb
+Possible values:
 
 Required: False
 Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Content
+Authoring block completed before atomic publication.
+
+```yaml
+Type: ScriptBlock
+Parameter Sets: Content
+Aliases: None
+Possible values:
+
+Required: True
+Position: 1
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Force
+Permit replacement of the associated destination.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Live, Content
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -PassThru
+Return the saved FileInfo after the block completes.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Content
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Path
+Optional live association; required for a completed content block.
+
+```yaml
+Type: String
+Parameter Sets: Live, Content
+Aliases: None
+Possible values:
+
+Required: False
+Position: 0
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -48,7 +119,7 @@ Database title.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -69,6 +140,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 ## OUTPUTS
 
 - `OfficeIMO.Access.AccessDocument`
+- `System.IO.FileInfo`
 
 ## RELATED LINKS
 

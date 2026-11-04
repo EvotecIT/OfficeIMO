@@ -11,7 +11,7 @@ Adds a finish-to-start relationship between two tasks.
 ## SYNTAX
 ### Document (Default)
 ```powershell
-Add-OfficeProjectDependency -Document <ProjectDocument> -PredecessorUid <int> -SuccessorUid <int> [-Type <ProjectDependencyType>] [-LagDays <decimal>] [-PassThru] [<CommonParameters>]
+Add-OfficeProjectDependency [-Predecessor] <OfficeProjectTaskSelector> [-Successor] <OfficeProjectTaskSelector> [-Document <ProjectDocument>] [-Type <ProjectDependencyType>] [-LagDays <decimal>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -21,7 +21,7 @@ Adds a finish-to-start relationship between two tasks.
 
 ### EXAMPLE 1
 ```powershell
-$project | Add-OfficeProjectDependency -PredecessorUid 1 -SuccessorUid 2
+$project | Add-OfficeProjectDependency -Predecessor 1 -Successor 2
 ```
 
 
@@ -36,7 +36,7 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
@@ -75,33 +75,33 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -PredecessorUid
+### -Predecessor
 Predecessor task UID.
 
 ```yaml
-Type: Int32
+Type: OfficeProjectTaskSelector
 Parameter Sets: Document
 Aliases: None
 Possible values:
 
 Required: True
-Position: named
+Position: 0
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -SuccessorUid
+### -Successor
 Successor task UID.
 
 ```yaml
-Type: Int32
+Type: OfficeProjectTaskSelector
 Parameter Sets: Document
 Aliases: None
 Possible values:
 
 Required: True
-Position: named
+Position: 1
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False

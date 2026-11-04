@@ -11,7 +11,7 @@ Writes values and applies row layout to a worksheet in a DSL block or through th
 ## SYNTAX
 ### Default (Default)
 ```powershell
-Set-OfficeExcelRow [-Row] <int> [[-Values] <Object[]>] [-Worksheet <ExcelSheet>] [-Document <ExcelDocument>] [-Sheet <string>] [-SheetIndex <Int32>] [-StartColumn <int>] [-Height <Double>] [-ClearHeight] [-AutoFit] [-Hidden <Boolean>] [-Bold <Boolean>] [-Italic <Boolean>] [-Underline <Boolean>] [-WrapText <Boolean>] [-FontName <string>] [-BackgroundColor <string>] [-FirstColumn <Int32>] [-LastColumn <Int32>] [-PassThru] [<CommonParameters>]
+Set-OfficeExcelRow [-Row] <int> [[-Values] <Object[]>] [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector>] [-StartColumn <Object>] [-Height <ExcelColumnWidth>] [-ClearHeight] [-AutoFit] [-Hidden] [-Bold] [-Italic] [-Underline] [-WrapText] [-Font <string>] [-BackgroundColor <OfficeColor>] [-FirstColumn <Object>] [-LastColumn <Object>] [-Formula] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -21,24 +21,37 @@ Writes values and applies row layout to a worksheet in a DSL block or through th
 
 ### EXAMPLE 1
 ```powershell
-PS> ExcelSheet 'Data' { Set-OfficeExcelRow -Row 2 -Values 'North', 1200 }
+New-OfficeExcel -Path .\Rota.xlsx {
+    ExcelSheet 'On call' {
+        ExcelRow 1 'Week', 'Primary', 'Secondary', 'Escalation' -Bold
+    }
+}
 ```
 
-Writes two values into row 2, columns A and B.
+Writes column labels across row 1 and makes them bold.
 
 ### EXAMPLE 2
 ```powershell
-PS> $sheet | Set-OfficeExcelRow -Row 2 -WrapText $true -AutoFit
+New-OfficeExcel -Path .\Reports\Budget-2027.xlsx {
+    ExcelSheet 'Departments' {
+        ExcelCell A1 'Budget 2027 by department'
+        ExcelRow 3 'Department', 'Q1', 'Q2', 'Q3', 'Q4', 'Total' -Bold -BackgroundColor '#F1F5F9' -Height 22
+    }
+}
 ```
 
-Preserves existing cell formatting while wrapping the used row span and fitting its height. Save the workbook after editing.
+Writes the quarter labels into row 3 below the sheet title, with a light fill and a taller row so the band stands apart from the data.
 
 ### EXAMPLE 3
 ```powershell
-PS> $workbook | Set-OfficeExcelRow -Sheet 'Review' -Row 2 -Values 'Identity', 'Ready'
+Open-OfficeExcel -Path .\Finance\Budget-2027.xlsx {
+    ExcelSheet 'Departments' {
+        ExcelRow 20 'Total', '=SUM(B4:B19)', '=SUM(C4:C19)', '=SUM(D4:D19)', '=SUM(E4:E19)' -Formula -Bold
+    }
+}
 ```
 
-Selects the worksheet by name without opening a DSL scope.
+Adds a totals row whose cells are formulas; without -Formula the same strings would be stored as text.
 
 ## PARAMETERS
 
@@ -62,7 +75,7 @@ Accept wildcard characters: False
 Apply a background color across the target row span.
 
 ```yaml
-Type: String
+Type: OfficeColor
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -78,7 +91,7 @@ Accept wildcard characters: False
 Apply or clear bold styling across the target row span.
 
 ```yaml
-Type: Boolean
+Type: SwitchParameter
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -107,7 +120,7 @@ Accept wildcard characters: False
 ```
 
 ### -Document
-Workbook to modify. Accepts pipeline input; select its worksheet with Sheet or SheetIndex.
+Workbook to modify. Accepts pipeline input; select its worksheet with Sheet.
 
 ```yaml
 Type: ExcelDocument
@@ -126,7 +139,7 @@ Accept wildcard characters: False
 First 1-based column affected by style options.
 
 ```yaml
-Type: Int32
+Type: Object
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -138,7 +151,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -FontName
+### -Font
 Apply a font family across the target row span.
 
 ```yaml
@@ -154,11 +167,27 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Formula
+Interpret explicitly prefixed row strings as formulas.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -Height
 Explicit row height in points.
 
 ```yaml
-Type: Double
+Type: ExcelColumnWidth
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -174,7 +203,7 @@ Accept wildcard characters: False
 Hide or unhide the row. Use -Hidden:$false to unhide.
 
 ```yaml
-Type: Boolean
+Type: SwitchParameter
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -190,7 +219,7 @@ Accept wildcard characters: False
 Apply or clear italic styling across the target row span.
 
 ```yaml
-Type: Boolean
+Type: SwitchParameter
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -206,7 +235,7 @@ Accept wildcard characters: False
 Last 1-based column affected by style options.
 
 ```yaml
-Type: Int32
+Type: Object
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -254,23 +283,7 @@ Accept wildcard characters: False
 Worksheet name when using Document. The first worksheet is used when no selector is supplied.
 
 ```yaml
-Type: String
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -SheetIndex
-Zero-based worksheet index when using Document.
-
-```yaml
-Type: Int32
+Type: OfficeSheetSelector
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -286,7 +299,7 @@ Accept wildcard characters: False
 Starting column index (1-based).
 
 ```yaml
-Type: Int32
+Type: Object
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -302,7 +315,7 @@ Accept wildcard characters: False
 Apply or clear underline styling across the target row span.
 
 ```yaml
-Type: Boolean
+Type: SwitchParameter
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -330,27 +343,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Worksheet
-Worksheet to modify outside a DSL context.
-
-```yaml
-Type: ExcelSheet
-Parameter Sets: Default
-Aliases: SheetObject
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: True (ByValue)
-Accept wildcard characters: False
-```
-
 ### -WrapText
 Apply or clear wrap text across the target row span.
 
 ```yaml
-Type: Boolean
+Type: SwitchParameter
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -367,7 +364,6 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.Excel.ExcelSheet`
 - `OfficeIMO.Excel.ExcelDocument`
 
 ## OUTPUTS

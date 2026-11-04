@@ -47,6 +47,39 @@ ExcelImage -Url https://status.example.com/badge.png -Address H1 -Width 4cm
 ```
 
 
+### EXAMPLE 4
+```powershell
+New-OfficeExcel -Path .\Reports\Q3-Sales.xlsx {
+    ExcelSheet 'Cover' {
+        ExcelImage .\Assets\Logo.png -Address A1 -AltText 'Northwind Traders logo'
+    }
+}
+```
+
+Places the company logo at A1 of the cover sheet at its natural size.
+
+### EXAMPLE 5
+```powershell
+Open-OfficeExcel -Path .\Facilities\Inspection-Gdansk.xlsx {
+    ExcelSheet 'Findings' {
+        ExcelImage .\Photos\Gdansk-Roof-0412.jpg -Address D2:J20 -Placement MoveAndSize -AltText 'Roof drainage at the Gdansk warehouse'
+    }
+}
+```
+
+Stretches an inspection photo across D2:J20 so it moves and resizes with the cells.
+
+### EXAMPLE 6
+```powershell
+Open-OfficeExcel -Path .\Reports\Status.xlsx {
+    ExcelSheet 'Summary' {
+        ExcelImage -Url https://status.example.com/badge/production.png -Address H1 -Width 4cm -AltText 'Production status'
+    }
+}
+```
+
+Downloads a published status badge and places it at a fixed width on the summary sheet.
+
 ## PARAMETERS
 
 ### -Address

@@ -11,12 +11,22 @@ Plans, creates, or updates a Confluence Cloud page.
 ## SYNTAX
 ### Create (Default)
 ```powershell
-Publish-OfficeConfluencePage -SpaceId <string> -Title <string> -Content <string> [-Session <ConfluenceSession>] [-ParentId <string>] [-ContentFormat <OfficeConfluenceContentFormat>] [-BodyFormat <ConfluenceBodyFormat>] [-PlanOnly] [-FailOnLoss] [-WhatIf] [-Confirm] [<CommonParameters>]
+Publish-OfficeConfluencePage -Session <ConfluenceSession> -SpaceId <string> -Title <string> -Content <string> [-ParentId <string>] [-ContentFormat <OfficeConfluenceContentFormat>] [-BodyFormat <ConfluenceBodyFormat>] [-FailOnLoss] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Update
 ```powershell
-Publish-OfficeConfluencePage -PageId <string> -VersionNumber <int> -Title <string> -Content <string> [-Session <ConfluenceSession>] [-VersionMessage <string>] [-ContentFormat <OfficeConfluenceContentFormat>] [-BodyFormat <ConfluenceBodyFormat>] [-PlanOnly] [-FailOnLoss] [-WhatIf] [-Confirm] [<CommonParameters>]
+Publish-OfficeConfluencePage -Session <ConfluenceSession> -PageId <string> -VersionNumber <int> -Title <string> -Content <string> [-VersionMessage <string>] [-ContentFormat <OfficeConfluenceContentFormat>] [-BodyFormat <ConfluenceBodyFormat>] [-FailOnLoss] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### CreatePlan
+```powershell
+Publish-OfficeConfluencePage -SpaceId <string> -Title <string> -Content <string> -PlanOnly [-ParentId <string>] [-ContentFormat <OfficeConfluenceContentFormat>] [-BodyFormat <ConfluenceBodyFormat>] [-FailOnLoss] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### UpdatePlan
+```powershell
+Publish-OfficeConfluencePage -PageId <string> -VersionNumber <int> -Title <string> -Content <string> -PlanOnly [-VersionMessage <string>] [-ContentFormat <OfficeConfluenceContentFormat>] [-BodyFormat <ConfluenceBodyFormat>] [-FailOnLoss] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -45,7 +55,7 @@ Confluence representation to publish.
 
 ```yaml
 Type: ConfluenceBodyFormat
-Parameter Sets: Create, Update
+Parameter Sets: Create, Update, CreatePlan, UpdatePlan
 Aliases: None
 Possible values: Storage, AtlasDocFormat
 
@@ -61,7 +71,7 @@ Page content in the representation selected by ContentFormat.
 
 ```yaml
 Type: String
-Parameter Sets: Create, Update
+Parameter Sets: Create, Update, CreatePlan, UpdatePlan
 Aliases: None
 Possible values:
 
@@ -77,7 +87,7 @@ Representation of Content.
 
 ```yaml
 Type: OfficeConfluenceContentFormat
-Parameter Sets: Create, Update
+Parameter Sets: Create, Update, CreatePlan, UpdatePlan
 Aliases: None
 Possible values: Markdown, Html, AtlasDocFormat, Storage
 
@@ -93,7 +103,7 @@ Throw when conversion reports reduced fidelity.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Create, Update
+Parameter Sets: Create, Update, CreatePlan, UpdatePlan
 Aliases: None
 Possible values:
 
@@ -109,7 +119,7 @@ Page identifier for an update.
 
 ```yaml
 Type: String
-Parameter Sets: Update
+Parameter Sets: Update, UpdatePlan
 Aliases: None
 Possible values:
 
@@ -125,7 +135,7 @@ Optional parent page identifier for a new page.
 
 ```yaml
 Type: String
-Parameter Sets: Create
+Parameter Sets: Create, CreatePlan
 Aliases: None
 Possible values:
 
@@ -141,11 +151,11 @@ Return the exact write plan without contacting Confluence.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Create, Update
+Parameter Sets: CreatePlan, UpdatePlan
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -161,7 +171,7 @@ Parameter Sets: Create, Update
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -173,7 +183,7 @@ Space identifier for a new page.
 
 ```yaml
 Type: String
-Parameter Sets: Create
+Parameter Sets: Create, CreatePlan
 Aliases: None
 Possible values:
 
@@ -189,7 +199,7 @@ Page title.
 
 ```yaml
 Type: String
-Parameter Sets: Create, Update
+Parameter Sets: Create, Update, CreatePlan, UpdatePlan
 Aliases: None
 Possible values:
 
@@ -205,7 +215,7 @@ Optional version message for an update.
 
 ```yaml
 Type: String
-Parameter Sets: Update
+Parameter Sets: Update, UpdatePlan
 Aliases: None
 Possible values:
 
@@ -221,7 +231,7 @@ Next positive page version number for an update.
 
 ```yaml
 Type: Int32
-Parameter Sets: Update
+Parameter Sets: Update, UpdatePlan
 Aliases: None
 Possible values:
 

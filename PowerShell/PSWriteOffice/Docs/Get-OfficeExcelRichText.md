@@ -6,66 +6,57 @@ schema: 2.0.0
 ---
 # Get-OfficeExcelRichText
 ## SYNOPSIS
-Gets mixed-format rich text runs from an Excel cell.
+Gets the rich-text runs of a cell.
 
 ## SYNTAX
-### Context (Default)
+### Document (Default)
 ```powershell
-Get-OfficeExcelRichText [-Sheet <string>] [-SheetIndex <Int32>] [-Row <Int32>] [-Column <Int32>] [-Address <string>] [<CommonParameters>]
+Get-OfficeExcelRichText -Address <string> [-Sheet <OfficeSheetSelector>] [-Document <ExcelDocument>] [<CommonParameters>]
 ```
 
 ### Path
 ```powershell
-Get-OfficeExcelRichText [-Path] <string> [-Sheet <string>] [-SheetIndex <Int32>] [-Row <Int32>] [-Column <Int32>] [-Address <string>] [<CommonParameters>]
+Get-OfficeExcelRichText [-Path] <string[]> -Address <string> [-Sheet <OfficeSheetSelector>] [<CommonParameters>]
 ```
 
-### Document
+### LiteralPath
 ```powershell
-Get-OfficeExcelRichText -Document <ExcelDocument> [-Sheet <string>] [-SheetIndex <Int32>] [-Row <Int32>] [-Column <Int32>] [-Address <string>] [<CommonParameters>]
+Get-OfficeExcelRichText -Address <string> -LiteralPath <string[]> [-Sheet <OfficeSheetSelector>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Gets mixed-format rich text runs from an Excel cell.
+Gets the rich-text runs of a cell.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $runs = Get-OfficeExcelRichText -Path .\Report.xlsx -Sheet Summary -Address A1
-$runs |
-    Format-Table Index, Text, Bold, Italic, Color
+Get-OfficeExcelRichText -Path .\Reports\Migration.xlsx -Sheet Overview -Address B3
 ```
 
-Returns one object per inline rich text run with text and style properties.
+Returns each formatted run of B3 on the Overview sheet.
+
+### EXAMPLE 2
+```powershell
+$book = Open-OfficeExcel -Path .\Reports\Status.xlsx -ReadOnly
+Get-OfficeExcelRichText -Document $book -Sheet Summary -Address B2 | Where-Object Bold
+Close-OfficeExcel -Document $book
+```
+
+Reads the runs of a status cell from an open workbook and keeps only the bold text.
 
 ## PARAMETERS
 
 ### -Address
-A1-style cell address.
+A1 address of the target cell.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Path, Document
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Column
-1-based column index.
-
-```yaml
-Type: Int32
-Parameter Sets: Context, Path, Document
-Aliases: None
-Possible values:
-
-Required: False
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -73,7 +64,7 @@ Accept wildcard characters: False
 ```
 
 ### -Document
-Workbook to inspect outside the DSL context.
+Caller-owned workbook; omission uses the enclosing Excel content block.
 
 ```yaml
 Type: ExcelDocument
@@ -81,67 +72,51 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
-### -Path
-Workbook path to inspect.
+### -LiteralPath
+Literal workbook paths, including FileInfo.FullName and provider PSPath.
 
 ```yaml
-Type: String
+Type: String[]
+Parameter Sets: LiteralPath
+Aliases: PSPath, FullName
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -Path
+Workbook paths resolved with filesystem wildcard support.
+
+```yaml
+Type: String[]
 Parameter Sets: Path
-Aliases: InputPath, FilePath, FullName, LiteralPath
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue, ByPropertyName)
-Accept wildcard characters: False
-```
-
-### -Row
-1-based row index.
-
-```yaml
-Type: Int32
-Parameter Sets: Context, Path, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
 ### -Sheet
-Worksheet name. Defaults to the current sheet inside an ExcelSheet block.
+Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.
 
 ```yaml
-Type: String
-Parameter Sets: Context, Path, Document
-Aliases: WorksheetName
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -SheetIndex
-Worksheet index when using a workbook object or path.
-
-```yaml
-Type: Int32
-Parameter Sets: Context, Path, Document
+Type: OfficeSheetSelector
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -157,12 +132,12 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `System.String`
+- `System.String[]`
 - `OfficeIMO.Excel.ExcelDocument`
 
 ## OUTPUTS
 
-- `System.Management.Automation.PSObject`
+- `None`
 
 ## RELATED LINKS
 

@@ -6,39 +6,112 @@ schema: 2.0.0
 ---
 # Set-OfficePdfSignature
 ## SYNOPSIS
-Injects externally produced CMS, CAdES, or timestamp signature bytes into a prepared PDF signature placeholder.
+Complete external PDF signature using native byte-range and signature-placeholder operations.
 
 ## SYNTAX
-### __AllParameterSets
+### Path (Default)
 ```powershell
-Set-OfficePdfSignature [-Path] <string> [-SignaturePath] <string> [-OutputPath] <string> [-Password <securestring>] [-IgnorePermissionRestrictions] [-PassThruReport] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Set-OfficePdfSignature [-Path] <string[]> -OutputPath <string> -SignaturePath <string> [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### PathDirectory
+```powershell
+Set-OfficePdfSignature [-Path] <string[]> -SignaturePath <string> -OutputDirectory <string> [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Set-OfficePdfSignature -OutputPath <string> -SignaturePath <string> -LiteralPath <string[]> [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### LiteralPathDirectory
+```powershell
+Set-OfficePdfSignature -SignaturePath <string> -OutputDirectory <string> -LiteralPath <string[]> [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Injects externally produced CMS, CAdES, or timestamp signature bytes into a prepared PDF signature placeholder.
+Confirmation precedes loading, native mutation and output creation. This command does not obtain certificates or private keys.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> Set-OfficePdfSignature -Path .\Prepared.pdf -SignaturePath .\signature.der -OutputPath .\Signed.pdf
-            Get-OfficePdfSignature -Path .\Signed.pdf
+Set-OfficePdfSignature -Path @('C:\Path') -OutputPath 'C:\Path' -SignaturePath 'C:\Path'
 ```
 
-Writes a PDF with the reserved /Contents hex slot patched in place.
+
+### EXAMPLE 2
+```powershell
+Set-OfficePdfSignature -OutputPath 'C:\Path' -SignaturePath 'C:\Path' -LiteralPath @('C:\Path')
+```
+
+
+### EXAMPLE 3
+```powershell
+Set-OfficePdfSignature -SignaturePath 'C:\Path' -OutputDirectory 'Value' -LiteralPath @('C:\Path')
+```
+
 
 ## PARAMETERS
 
 ### -IgnorePermissionRestrictions
-After successful password authentication, explicitly ignore owner-imposed signature restrictions.
+IgnorePermissionRestrictions setting.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
 Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -LiteralPath
+Literal input PDF paths; accepts FileInfo.FullName.
+
+```yaml
+Type: String[]
+Parameter Sets: LiteralPath, LiteralPathDirectory
+Aliases: FullName, PSPath
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -LoadOptions
+Native parsing, authentication and resource policy.
+
+```yaml
+Type: PdfLoadOptions
+Parameter Sets: Path, PathDirectory, LiteralPath, LiteralPathDirectory
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -OutputDirectory
+Batch destination retaining source names.
+
+```yaml
+Type: String
+Parameter Sets: PathDirectory, LiteralPathDirectory
+Aliases: None
+Possible values:
+
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -46,43 +119,27 @@ Accept wildcard characters: False
 ```
 
 ### -OutputPath
-Output signed PDF path.
+Single-file destination.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
 Required: True
-Position: 2
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -PassThru
-Emit the object created or changed by the command.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
 Position: named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -PassThruReport
-Return a signature validation report for the written PDF instead of only the output file.
+### -PassThru
+Return native annotation edit reports.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -94,11 +151,11 @@ Accept wildcard characters: False
 ```
 
 ### -Password
-Password used to authenticate an encrypted prepared PDF.
+Password setting.
 
 ```yaml
 Type: SecureString
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -110,32 +167,32 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Prepared PDF path.
+Input PDF paths with wildcard expansion.
 
 ```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: FilePath
+Type: String[]
+Parameter Sets: Path, PathDirectory
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue)
-Accept wildcard characters: False
+Accept pipeline input: False
+Accept wildcard characters: True
 ```
 
 ### -SignaturePath
-DER/CMS/CAdES/TSA response bytes to inject into the reserved /Contents slot.
+SignaturePath setting.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
 Required: True
-Position: 1
+Position: named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -146,7 +203,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `System.String`
+- `System.String[]`
 
 ## OUTPUTS
 

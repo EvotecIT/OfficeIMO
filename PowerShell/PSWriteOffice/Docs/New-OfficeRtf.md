@@ -6,35 +6,59 @@ schema: 2.0.0
 ---
 # New-OfficeRtf
 ## SYNOPSIS
-Creates an RTF document with plain paragraph content.
+Creates an RTF document, optionally with paragraphs from -Text or the pipeline.
 
 ## SYNTAX
-### __AllParameterSets
+### Live (Default)
 ```powershell
-New-OfficeRtf [-Path] <string> [[-Text] <string[]>] [-PassThru] [-NoSave] [-WhatIf] [-Confirm] [<CommonParameters>]
+New-OfficeRtf [[-Path] <string>] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### Text
+```powershell
+New-OfficeRtf [-Path] <string> [-Text] <string[]> [-Force] [-PassThru] [-Show] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### Content
+```powershell
+New-OfficeRtf [-Path] <string> [-Content] <scriptblock> [-Force] [-PassThru] [-Show] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Creates an RTF document with plain paragraph content.
+Creates an RTF document, optionally with paragraphs from -Text or the pipeline.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $file = New-OfficeRtf -Path .\Report.rtf -Text 'Summary', 'Ready for review' -PassThru
-Get-OfficeRtf -Path $file.FullName
+New-OfficeRtf -Path .\Note.rtf -Text 'Server maintenance starts at 22:00.'
 ```
 
-Creates an RTF document with two paragraphs and returns the file.
 
 ## PARAMETERS
 
-### -NoSave
-Return the OfficeIMO RTF document without saving.
+### -Content
+Content for this operation.
+
+```yaml
+Type: ScriptBlock
+Parameter Sets: Content
+Aliases: None
+Possible values:
+
+Required: True
+Position: 1
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Force
+Force for this operation.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Text, Content
 Aliases: None
 Possible values:
 
@@ -46,11 +70,11 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit a FileInfo for chaining.
+PassThru for this operation.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text, Content
 Aliases: None
 Possible values:
 
@@ -62,31 +86,47 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Destination path for the RTF file.
+Path for this operation.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
-Aliases: FilePath, OutputPath
+Parameter Sets: Live, Text, Content
+Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: 0
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Text
-Plain paragraph text to add to the document.
+### -Show
+Show for this operation.
 
 ```yaml
-Type: String[]
-Parameter Sets: __AllParameterSets
+Type: SwitchParameter
+Parameter Sets: Text, Content
 Aliases: None
 Possible values:
 
 Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Text
+Text for this operation.
+
+```yaml
+Type: String[]
+Parameter Sets: Text
+Aliases: None
+Possible values:
+
+Required: True
 Position: 1
 Default value: None
 Accept pipeline input: True (ByValue)
@@ -102,7 +142,6 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `System.IO.FileInfo`
 - `OfficeIMO.Rtf.RtfDocument`
 
 ## RELATED LINKS

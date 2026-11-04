@@ -6,63 +6,43 @@ schema: 2.0.0
 ---
 # Set-OfficePdfHeader
 ## SYNOPSIS
-Sets a simple or fully composed running PDF header.
+Composes running PDF Header text, child runs or the native builder inside New-OfficePdf.
 
 ## SYNTAX
-### Context (Default)
+### Text (Default)
 ```powershell
-Set-OfficePdfHeader [[-Text] <string>] [-Compose <scriptblock>] [-Align <OfficeAlignment>] [-FontSize <Double>] [-PassThru] [<CommonParameters>]
+Set-OfficePdfHeader [-Text] <string> [-Alignment <OfficeAlignment>] [-Size <OfficeLength>] [-FirstPage] [-EvenPage] [<CommonParameters>]
 ```
 
-### Document
+### Content
 ```powershell
-Set-OfficePdfHeader [[-Text] <string>] -Document <PdfDocument> [-Compose <scriptblock>] [-Align <OfficeAlignment>] [-FontSize <Double>] [-PassThru] [<CommonParameters>]
+Set-OfficePdfHeader [-Content] <scriptblock> [-Alignment <OfficeAlignment>] [-Size <OfficeLength>] [-FirstPage] [-EvenPage] [<CommonParameters>]
+```
+
+### Builder
+```powershell
+Set-OfficePdfHeader -Compose <scriptblock> [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Sets a simple or fully composed running PDF header.
+Composes running PDF Header text, child runs or the native builder inside New-OfficePdf.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> New-OfficePdf -Path .\Examples\Documents\PdfHeader.pdf {
-    Set-OfficePdfHeader -Text 'Service Review' -Align Right -FontSize 9
-    Add-OfficePdfHeading -Text 'Service Review'
-    Add-OfficePdfParagraph -Text 'The header repeats on generated pages.'
-}
+New-OfficePdf ./Report.pdf { PdfHeader { PdfText 'Internal' -Italic }; PdfParagraph 'Report' }
 ```
 
-Sets header text for the generated PDF.
-
-### EXAMPLE 2
-```powershell
-PS> New-OfficePdf -Path .\Examples\Documents\RichHeader.pdf {
-    Set-OfficePdfHeader -Compose {
-        param($header)
-        $label = New-OfficeTextRun -Text 'Service report ' -Bold | ConvertTo-OfficePdfTextRun
-        $pageStyle = New-OfficeTextRun -Italic | ConvertTo-OfficePdfTextRun
-        $null = $header.Text({
-            param($text)
-            $null = $text.Run($label).CurrentPage($pageStyle)
-        })
-        $null = $header.FirstPageText('Service report cover')
-        $null = $header.EvenPagesZones('Service report', $null, 'Page {page}/{pages}')
-    }
-    Add-OfficePdfParagraph -Text 'Generated report body.'
-}
-```
-
-The native composer owns rich runs, page tokens, zones, images, shapes, and page variants.
 
 ## PARAMETERS
 
-### -Align
-Header alignment.
+### -Alignment
+Text alignment.
 
 ```yaml
 Type: OfficeAlignment
-Parameter Sets: Context, Document
+Parameter Sets: Text, Content
 Aliases: None
 Possible values: Left, Center, Right, Justify, Start, End
 
@@ -74,44 +54,43 @@ Accept wildcard characters: False
 ```
 
 ### -Compose
-Advanced header composer. The script receives a PdfHeaderBuilder and can configure
-default, first-page, and even-page text, zones, images, shapes, rich text, and page tokens.
+Advanced native Header builder, passed as the script argument.
 
 ```yaml
 Type: ScriptBlock
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Document
-Compatibility parameter. Page composition is supported only inside New-OfficePdf.
-
-```yaml
-Type: PdfDocument
-Parameter Sets: Document
+Parameter Sets: Builder
 Aliases: None
 Possible values:
 
 Required: True
 Position: named
 Default value: None
-Accept pipeline input: True (ByValue)
+Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -FontSize
-Header font size in PDF points.
+### -Content
+Styled PdfText child commands.
 
 ```yaml
-Type: Double
-Parameter Sets: Context, Document
+Type: ScriptBlock
+Parameter Sets: Content
+Aliases: None
+Possible values:
+
+Required: True
+Position: 0
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -EvenPage
+Configure the even page variant.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Text, Content
 Aliases: None
 Possible values:
 
@@ -122,12 +101,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -PassThru
-Emit the updated document.
+### -FirstPage
+Configure the first page variant.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Text, Content
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Size
+Text size; bare numbers mean points.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: Text, Content
 Aliases: None
 Possible values:
 
@@ -139,15 +134,15 @@ Accept wildcard characters: False
 ```
 
 ### -Text
-Header text. Supports {page} and {pages}.
+Running text supporting {page} and {pages} tokens.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Document
+Parameter Sets: Text
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: 0
 Default value: None
 Accept pipeline input: False
@@ -159,11 +154,11 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.Pdf.PdfDocument`
+- `None`
 
 ## OUTPUTS
 
-- `OfficeIMO.Pdf.PdfDocument`
+- `System.Void`
 
 ## RELATED LINKS
 

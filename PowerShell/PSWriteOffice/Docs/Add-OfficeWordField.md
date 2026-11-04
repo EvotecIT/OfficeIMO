@@ -9,9 +9,24 @@ schema: 2.0.0
 Adds a field to the current paragraph.
 
 ## SYNTAX
-### __AllParameterSets
+### Type (Default)
 ```powershell
 Add-OfficeWordField [-Type] <WordFieldType> [-Format <WordFieldFormat>] [-CustomFormat <string>] [-Advanced] [-Parameters <string[]>] [-Paragraph <WordParagraph>] [-PassThru] [<CommonParameters>]
+```
+
+### MergeField
+```powershell
+Add-OfficeWordField -MergeField <string> [-Format <WordFieldFormat>] [-CustomFormat <string>] [-Paragraph <WordParagraph>] [-PassThru] [<CommonParameters>]
+```
+
+### DocumentProperty
+```powershell
+Add-OfficeWordField -DocumentProperty <string> [-Format <WordFieldFormat>] [-CustomFormat <string>] [-Paragraph <WordParagraph>] [-PassThru] [<CommonParameters>]
+```
+
+### Bookmark
+```powershell
+Add-OfficeWordField -Bookmark <string> [-Format <WordFieldFormat>] [-CustomFormat <string>] [-Paragraph <WordParagraph>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -33,11 +48,27 @@ Use advanced field representation.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Type
 Aliases: None
 Possible values:
 
 Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Bookmark
+Bookmark to reference.
+
+```yaml
+Type: String
+Parameter Sets: Bookmark
+Aliases: None
+Possible values:
+
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -49,11 +80,27 @@ Custom format string (date/time fields).
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Type, MergeField, DocumentProperty, Bookmark
 Aliases: None
 Possible values:
 
 Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -DocumentProperty
+Built-in or custom document property to display.
+
+```yaml
+Type: String
+Parameter Sets: DocumentProperty
+Aliases: None
+Possible values:
+
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -65,11 +112,27 @@ Optional field format switch.
 
 ```yaml
 Type: WordFieldFormat
-Parameter Sets: __AllParameterSets
+Parameter Sets: Type, MergeField, DocumentProperty, Bookmark
 Aliases: None
 Possible values: Lower, Upper, FirstCap, Caps, MergeFormat, UpperRoman, LowerRoman, Arabic, LowerLetter, UpperLetter, Ordinal, OrdText, CardText, DollarText, Hex, CharFormat
 
 Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -MergeField
+Mail-merge field name.
+
+```yaml
+Type: String
+Parameter Sets: MergeField
+Aliases: None
+Possible values:
+
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -81,7 +144,7 @@ Explicit paragraph to receive the field.
 
 ```yaml
 Type: WordParagraph
-Parameter Sets: __AllParameterSets
+Parameter Sets: Type, MergeField, DocumentProperty, Bookmark
 Aliases: None
 Possible values:
 
@@ -97,7 +160,7 @@ Additional field parameters.
 
 ```yaml
 Type: String[]
-Parameter Sets: __AllParameterSets
+Parameter Sets: Type
 Aliases: None
 Possible values:
 
@@ -113,7 +176,7 @@ Emit the paragraph after adding the field.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Type, MergeField, DocumentProperty, Bookmark
 Aliases: None
 Possible values:
 
@@ -129,7 +192,7 @@ Field type to insert.
 
 ```yaml
 Type: WordFieldType
-Parameter Sets: __AllParameterSets
+Parameter Sets: Type
 Aliases: None
 Possible values: AddressBlock, Advance, Ask, Author, AutoNum, AutoNumLgl, AutoNumOut, AutoText, AutoTextList, Bibliography, Citation, Comments, Compare, CreateDate, Database, Date, DocProperty, DocVariable, Embed, FileName, FileSize, GoToButton, GreetingLine, HyperlinkIf, IncludePicture, IncludeText, Index, Info, Keywords, LastSavedBy, Link, ListNum, MacroButton, MergeField, MergeRec, MergeSeq, Next, NextIf, NoteRef, NumChars, NumPages, NumWords, Page, PageRef, Print, PrintDate, Private, Quote, RD, Ref, RevNum, SaveDate, Section, SectionPages, Seq, Set, SkipIf, StyleRef, Subject, Symbol, TA, TC, Template, Time, Title, TOA, TOC, UserAddress, UserInitials, UserName, XE, Formula, EQ
 

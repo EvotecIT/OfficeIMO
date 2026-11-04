@@ -11,7 +11,7 @@ Adds a table to a newly created native database model.
 ## SYNTAX
 ### Document (Default)
 ```powershell
-Add-OfficeAccessTable [-Name] <string> -Document <AccessDocument> [-PassThru] [<CommonParameters>]
+Add-OfficeAccessTable [-Name] <string> [[-Content] <scriptblock>] [-Document <AccessDocument>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -27,6 +27,22 @@ $table = $database | Add-OfficeAccessTable -Name Contacts -PassThru
 
 ## PARAMETERS
 
+### -Content
+Content block whose AccessColumn and AccessRow commands target the new table.
+
+```yaml
+Type: ScriptBlock
+Parameter Sets: Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: 1
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -Document
 Live database document.
 
@@ -36,7 +52,7 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)

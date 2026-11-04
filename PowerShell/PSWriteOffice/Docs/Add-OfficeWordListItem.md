@@ -9,9 +9,14 @@ schema: 2.0.0
 Adds a single list item.
 
 ## SYNTAX
-### __AllParameterSets
+### Text (Default)
 ```powershell
-Add-OfficeWordListItem [[-Text] <string>] [-List <WordList>] [-Level <int>] [-PassThru] [<CommonParameters>]
+Add-OfficeWordListItem [-Text] <string> [-List <WordList>] [-Level <int>] [-PassThru] [<CommonParameters>]
+```
+
+### Content
+```powershell
+Add-OfficeWordListItem [-Content] <scriptblock> [-List <WordList>] [-Level <int>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -35,12 +40,28 @@ Finds a list in an existing document and appends a new item.
 
 ## PARAMETERS
 
+### -Content
+Rich item content composed with WordText.
+
+```yaml
+Type: ScriptBlock
+Parameter Sets: Content
+Aliases: None
+Possible values:
+
+Required: True
+Position: 0
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -Level
-Zero-based list level.
+One-based list level, from 1 to 9.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text, Content
 Aliases: None
 Possible values:
 
@@ -56,7 +77,7 @@ Existing list to append to. When omitted, the current DSL list is used.
 
 ```yaml
 Type: WordList
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text, Content
 Aliases: None
 Possible values:
 
@@ -72,7 +93,7 @@ Emit the created WordParagraph.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text, Content
 Aliases: None
 Possible values:
 
@@ -88,11 +109,11 @@ List item text.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: 0
 Default value: None
 Accept pipeline input: False
@@ -108,7 +129,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `None`
+- `OfficeIMO.Word.WordParagraph`
 
 ## RELATED LINKS
 

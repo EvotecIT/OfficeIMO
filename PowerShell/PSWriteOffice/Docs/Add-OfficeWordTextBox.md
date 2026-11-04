@@ -11,7 +11,7 @@ Adds an OfficeIMO Word text box to the current Word DSL location.
 ## SYNTAX
 ### Default (Default)
 ```powershell
-Add-OfficeWordTextBox [-Text] <string> [-WrapText <WordImageTextWrapping>] [-WidthCentimeters <Double>] [-HeightCentimeters <Double>] [-HorizontalOffsetCentimeters <Double>] [-VerticalOffsetCentimeters <Double>] [-HorizontalAlignment <WordTextBoxHorizontalAlignment>] [-HorizontalPositionRelativeFrom <WordHorizontalRelativePosition>] [-VerticalPositionRelativeFrom <WordVerticalRelativePosition>] [-AutoFit <WordTextBoxAutoFitType>] [-AutoFitToTextSize] [-PassThru] [<CommonParameters>]
+Add-OfficeWordTextBox [-Text] <string> [-Wrap <WordImageTextWrapping>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-X <OfficeLength>] [-Y <OfficeLength>] [-HorizontalAlignment <WordTextBoxHorizontalAlignment>] [-HorizontalPositionRelativeFrom <WordHorizontalRelativePosition>] [-VerticalPositionRelativeFrom <WordVerticalRelativePosition>] [-AutoFit <WordTextBoxAutoFitType>] [-AutoFitToTextSize] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -22,7 +22,7 @@ Adds an OfficeIMO Word text box to the current Word DSL location.
 ### EXAMPLE 1
 ```powershell
 PS> New-OfficeWord -Path .\Report.docx {
-    WordTextBox -Text 'Executive summary' -WidthCentimeters 7 -HeightCentimeters 2 -HorizontalOffsetCentimeters 1.5 -VerticalOffsetCentimeters 1 -AutoFitToTextSize
+    WordTextBox -Text 'Executive summary' -Width 7cm -Height 2cm -X 1.5cm -Y 1cm -AutoFitToTextSize
 }
 ```
 
@@ -62,11 +62,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -HeightCentimeters
-Height in centimeters.
+### -Height
+Height; numbers mean points and unit suffixes are accepted.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -86,22 +86,6 @@ Type: WordTextBoxHorizontalAlignment
 Parameter Sets: Default
 Aliases: None
 Possible values: Left, Center, Right, Outside, Inside
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -HorizontalOffsetCentimeters
-Horizontal offset in centimeters.
-
-```yaml
-Type: Double
-Parameter Sets: Default
-Aliases: None
-Possible values:
 
 Required: False
 Position: named
@@ -158,22 +142,6 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -VerticalOffsetCentimeters
-Vertical offset in centimeters.
-
-```yaml
-Type: Double
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -VerticalPositionRelativeFrom
 Vertical relative position anchor.
 
@@ -190,11 +158,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -WidthCentimeters
-Width in centimeters.
+### -Width
+Width; numbers mean points and unit suffixes are accepted.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -206,7 +174,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -WrapText
+### -Wrap
 Word text wrapping mode.
 
 ```yaml
@@ -214,6 +182,38 @@ Type: WordImageTextWrapping
 Parameter Sets: Default
 Aliases: None
 Possible values: InLineWithText, Square, Tight, Through, TopAndBottom, BehindText, InFrontOfText
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -X
+Horizontal offset; numbers mean points and unit suffixes are accepted.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Y
+Vertical offset; numbers mean points and unit suffixes are accepted.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: Default
+Aliases: None
+Possible values:
 
 Required: False
 Position: named

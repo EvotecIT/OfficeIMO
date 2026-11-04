@@ -6,38 +6,49 @@ schema: 2.0.0
 ---
 # Get-OfficeExcelNamedRange
 ## SYNOPSIS
-Gets defined names (named ranges) from an Excel workbook.
+Gets defined names from a workbook.
 
 ## SYNTAX
+### Document (Default)
+```powershell
+Get-OfficeExcelNamedRange [-Name <string>] [-Sheet <OfficeSheetSelector>] [-Document <ExcelDocument>] [<CommonParameters>]
+```
+
 ### Path
 ```powershell
-Get-OfficeExcelNamedRange [-Path] <string> [-Name <string>] [-Sheet <string>] [-SheetIndex <Int32>] [<CommonParameters>]
+Get-OfficeExcelNamedRange [-Path] <string[]> [-Name <string>] [-Sheet <OfficeSheetSelector>] [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Get-OfficeExcelNamedRange -LiteralPath <string[]> [-Name <string>] [-Sheet <OfficeSheetSelector>] [<CommonParameters>]
 ```
 
 ### Uri
 ```powershell
-Get-OfficeExcelNamedRange [-Uri] <uri> [-AllowHttp] [-Name <string>] [-Sheet <string>] [-SheetIndex <Int32>] [<CommonParameters>]
-```
-
-### Document
-```powershell
-Get-OfficeExcelNamedRange -Document <ExcelDocument> [-Name <string>] [-Sheet <string>] [-SheetIndex <Int32>] [<CommonParameters>]
+Get-OfficeExcelNamedRange [-Uri] <uri> [-Name <string>] [-Sheet <OfficeSheetSelector>] [-AllowHttp] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Gets defined names (named ranges) from an Excel workbook.
+Gets defined names from a workbook.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $ranges = Get-OfficeExcelNamedRange -Path .\report.xlsx
-$ranges |
-    Select-Object -Property Name, Scope, Range |
-    Format-Table -AutoSize
+Get-OfficeExcelNamedRange -Path .\Finance\Pricing-Model.xlsx
 ```
 
-Returns named ranges so workbook navigation and formulas can be reviewed.
+Shows every defined name and what it refers to.
+
+### EXAMPLE 2
+```powershell
+Get-OfficeExcelNamedRange -Path .\Finance\Budget-2027.xlsx |
+                Where-Object Reference -like '*#REF!*' |
+                Select-Object Name, SheetName, Reference
+```
+
+Lists the defined names that refer to #REF! after sheets were deleted, so they can be repaired or removed.
 
 ## PARAMETERS
 
@@ -58,7 +69,7 @@ Accept wildcard characters: False
 ```
 
 ### -Document
-Workbook to inspect.
+Caller-owned workbook; omission uses the enclosing Excel content block.
 
 ```yaml
 Type: ExcelDocument
@@ -66,10 +77,26 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
+### -LiteralPath
+Literal workbook paths, including FileInfo.FullName and provider PSPath.
+
+```yaml
+Type: String[]
+Parameter Sets: LiteralPath
+Aliases: PSPath, FullName
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
 Accept wildcard characters: False
 ```
 
@@ -78,7 +105,7 @@ Optional named range to retrieve.
 
 ```yaml
 Type: String
-Parameter Sets: Path, Uri, Document
+Parameter Sets: Document, Path, LiteralPath, Uri
 Aliases: None
 Possible values:
 
@@ -90,43 +117,27 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Path to the workbook.
+Workbook paths resolved with filesystem wildcard support.
 
 ```yaml
-Type: String
+Type: String[]
 Parameter Sets: Path
-Aliases: InputPath, FilePath, FullName, LiteralPath
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue, ByPropertyName)
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
 ### -Sheet
-Optional sheet name for sheet-scoped names.
+Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.
 
 ```yaml
-Type: String
-Parameter Sets: Path, Uri, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -SheetIndex
-Optional sheet index (0-based) for sheet-scoped names.
-
-```yaml
-Type: Int32
-Parameter Sets: Path, Uri, Document
+Type: OfficeSheetSelector
+Parameter Sets: Document, Path, LiteralPath, Uri
 Aliases: None
 Possible values:
 
@@ -143,7 +154,7 @@ Remote workbook URI to inspect.
 ```yaml
 Type: Uri
 Parameter Sets: Uri
-Aliases: Url
+Aliases: None
 Possible values:
 
 Required: True
@@ -158,12 +169,12 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `System.String`
+- `System.String[]`
 - `OfficeIMO.Excel.ExcelDocument`
 
 ## OUTPUTS
 
-- `System.Management.Automation.PSObject`
+- `None`
 
 ## RELATED LINKS
 

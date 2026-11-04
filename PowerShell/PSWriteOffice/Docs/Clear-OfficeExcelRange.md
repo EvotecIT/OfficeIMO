@@ -6,142 +6,88 @@ schema: 2.0.0
 ---
 # Clear-OfficeExcelRange
 ## SYNOPSIS
-Clears values, formulas, styles, and range metadata from an Excel worksheet range.
+Clears values, formulas, styles and range metadata from a range, a header column or whole sheets.
 
 ## SYNTAX
-### Context (Default)
+### Range (Default)
 ```powershell
-Clear-OfficeExcelRange -Range <string> [-Sheet <string>] [-SheetIndex <Int32>] [-Contents] [-Values] [-Formulas] [-Styles] [-Comments] [-Hyperlinks] [-DataValidations] [-ConditionalFormatting] [-Merges] [-Sparklines] [-All] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Clear-OfficeExcelRange [[-Range] <string>] [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector[]>] [-Include <ExcelClearOptions[]>] [-PassThru] [<CommonParameters>]
 ```
 
-### Path
+### Header
 ```powershell
-Clear-OfficeExcelRange [-Path] <string> -Range <string> [-Sheet <string>] [-SheetIndex <Int32>] [-Contents] [-Values] [-Formulas] [-Styles] [-Comments] [-Hyperlinks] [-DataValidations] [-ConditionalFormatting] [-Merges] [-Sparklines] [-All] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
-```
-
-### Document
-```powershell
-Clear-OfficeExcelRange -Document <ExcelDocument> -Range <string> [-Sheet <string>] [-SheetIndex <Int32>] [-Contents] [-Values] [-Formulas] [-Styles] [-Comments] [-Hyperlinks] [-DataValidations] [-ConditionalFormatting] [-Merges] [-Sparklines] [-All] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Clear-OfficeExcelRange -Header <string> [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector[]>] [-Include <ExcelClearOptions[]>] [-PassThru] [-Table <string>] [-HeaderRow <Int32>] [-IncludeHeader] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Clears values, formulas, styles, and range metadata from an Excel worksheet range.
+Clears values, formulas, styles and range metadata from a range, a header column or whole sheets.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> Clear-OfficeExcelRange -Path .\Report.xlsx -Sheet Staging -Range B2:D20 -Contents -Hyperlinks -Confirm:$false
-            Get-OfficeExcelRange -Path .\Report.xlsx -Sheet Staging -Range B2:D20 |
-                Select-Object Address, Value, Formula
+Open-OfficeExcel -Path .\Templates\Weekly-Report.xlsx {
+    ExcelSheet 'Data' {
+        Clear-OfficeExcelRange A2:F200 -Include Values
+    }
+}
 ```
 
-Removes values and formulas from the selected range and saves the workbook.
+Removes the values from A2:F200 and keeps formatting, validation and comments.
+
+### EXAMPLE 2
+```powershell
+Open-OfficeExcel -Path .\Reports\Weekly-Ops.xlsx {
+    ExcelSheet 'Data' {
+        $cleared = Clear-OfficeExcelRange -PassThru
+        Write-Verbose "Cleared $cleared cells"
+        ExcelTable (Import-OfficeCsv -Path .\Data\Ops-Week43.csv) -Name OpsData
+    }
+}
+```
+
+Clears everything from the Data sheet, writes the new extract and reports how many cells were cleared.
 
 ## PARAMETERS
 
-### -All
-Clear all supported cell data and range metadata.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Path, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Comments
-Clear comments in the selected range.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Path, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ConditionalFormatting
-Clear conditional formatting rules that overlap the selected range.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Path, Document
-Aliases: ConditionalFormats
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Contents
-Clear values and formulas.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Path, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -DataValidations
-Clear data validation rules that overlap the selected range.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Path, Document
-Aliases: Validation, Validations
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -Document
-Workbook to update outside the DSL context.
+Caller-owned workbook; omission uses the enclosing Excel content block.
 
 ```yaml
 Type: ExcelDocument
-Parameter Sets: Document
+Parameter Sets: Range, Header
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
-### -Formulas
-Clear formulas.
+### -Header
+Header text identifying the target column.
 
 ```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Path, Document
+Type: String
+Parameter Sets: Header
+Aliases: None
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -HeaderRow
+One-based row containing the column headers.
+
+```yaml
+Type: Int32
+Parameter Sets: Header
 Aliases: None
 Possible values:
 
@@ -152,14 +98,14 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Hyperlinks
-Clear hyperlinks that overlap the selected range.
+### -Include
+Cell data and metadata categories to clear. Omission clears all supported categories.
 
 ```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Path, Document
+Type: ExcelClearOptions[]
+Parameter Sets: Range, Header
 Aliases: None
-Possible values:
+Possible values: None, Values, Formulas, Styles, Comments, Hyperlinks, DataValidations, ConditionalFormatting, Merges, Sparklines, All
 
 Required: False
 Position: named
@@ -168,12 +114,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Merges
-Clear merged-cell definitions that overlap the selected range.
+### -IncludeHeader
+Includes the header cell in the resolved column range.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Path, Document
+Parameter Sets: Header
 Aliases: None
 Possible values:
 
@@ -185,123 +131,59 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the object created or changed by the command.
+Emits the native result after the operation.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Path, Document
+Parameter Sets: Range, Header
 Aliases: None
 Possible values:
 
 Required: False
 Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Path
-Workbook path to update.
-
-```yaml
-Type: String
-Parameter Sets: Path
-Aliases: InputPath, FilePath
-Possible values:
-
-Required: True
-Position: 0
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### -Range
-A1 range to clear.
+A1 cell range on the selected worksheet.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Path, Document
+Parameter Sets: Range
 Aliases: None
 Possible values:
 
-Required: True
-Position: named
+Required: False
+Position: 0
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### -Sheet
-Worksheet name to update. Defaults to the current DSL sheet or the first workbook sheet.
+Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.
+
+```yaml
+Type: OfficeSheetSelector[]
+Parameter Sets: Range, Header
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Table
+Native Excel table used to resolve the source range or header.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Path, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -SheetIndex
-Worksheet index (0-based) to update. Defaults to the current DSL sheet or the first workbook sheet.
-
-```yaml
-Type: Int32
-Parameter Sets: Context, Path, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Sparklines
-Clear sparklines whose target cells overlap the selected range.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Path, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Styles
-Clear cell style indexes.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Path, Document
-Aliases: Formats
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Values
-Clear literal cell values.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Path, Document
+Parameter Sets: Header
 Aliases: None
 Possible values:
 

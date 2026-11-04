@@ -9,7 +9,7 @@ schema: 2.0.0
 Converts a ChartForgeX visual artifact into a reusable OfficeIMO representation.
 
 ## SYNTAX
-### Visual
+### Visual (Default)
 ```powershell
 ConvertTo-OfficeVisual [-InputObject] <Object> [-AlternativeText <string>] [-SvgPolicy <OfficeVisualSvgPolicy>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-PointsPerPixel <double>] [-MaximumSvgElements <Int32>] [-MaximumSvgViewportDimension <Double>] [-MaximumSvgViewportPixelCount <Int64>] [-Id <string>] [-Title <string>] [<CommonParameters>]
 ```

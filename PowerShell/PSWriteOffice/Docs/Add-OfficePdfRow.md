@@ -6,83 +6,42 @@ schema: 2.0.0
 ---
 # Add-OfficePdfRow
 ## SYNOPSIS
-Adds a semantic row with percentage-based columns to a generated PDF document.
+Adds a row of side-by-side PdfColumn blocks.
 
 ## SYNTAX
 ### Context (Default)
 ```powershell
-Add-OfficePdfRow [-Column] <Object[]> [-Gap <Double>] [-SpacingBefore <Double>] [-SpacingAfter <Double>] [-KeepTogether] [-KeepWithNext] [-ColumnSeparatorColor <string>] [-ColumnSeparatorWidth <Double>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfRow [-Content] <scriptblock> [-Gap <OfficeLength>] [-SpacingBefore <OfficeLength>] [-SpacingAfter <OfficeLength>] [-KeepTogether] [-KeepWithNext] [-ColumnSeparatorColor <OfficeColor>] [-ColumnSeparatorWidth <OfficeLength>] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Add-OfficePdfRow [-Column] <Object[]> -Document <PdfDocument> [-Gap <Double>] [-SpacingBefore <Double>] [-SpacingAfter <Double>] [-KeepTogether] [-KeepWithNext] [-ColumnSeparatorColor <string>] [-ColumnSeparatorWidth <Double>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfRow [-Content] <scriptblock> -Document <PdfDocument> [-Gap <OfficeLength>] [-SpacingBefore <OfficeLength>] [-SpacingAfter <OfficeLength>] [-KeepTogether] [-KeepWithNext] [-ColumnSeparatorColor <OfficeColor>] [-ColumnSeparatorWidth <OfficeLength>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Rows are intended for report-style layouts where two or more content groups should sit beside each other in the normal PDF flow.
-Column widths are percentages and default to an even split. Column content may use headings, paragraphs, panels, lists, tables,
-horizontal rules, spacers, bookmarks, or rich Run/Runs text specifications.
+Adds a row of side-by-side PdfColumn blocks.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> New-OfficePdf -Path .\Report.pdf {
-  PdfRow -Gap 16 -Column @(
-    @{ Width = 35; Content = @(
-      @{ Type = 'Heading'; Level = 2; Text = 'Signals' }
-      @{ Type = 'List'; Items = @('Healthy', 'Watch', 'Needs action') }
-    ) }
-    @{ Width = 65; Content = @(
-      @{ Type = 'Panel'; Text = 'Right-side callout content.' }
-    ) }
-  )
+New-OfficePdf -Path .\TwoColumns.pdf {
+    PdfRow {
+        PdfColumn { PdfParagraph 'Left column' }
+        PdfColumn { PdfParagraph 'Right column' }
+    }
 }
 ```
 
-Adds a row with list content on the left and a panel on the right.
-
-### EXAMPLE 2
-```powershell
-PS> New-OfficePdf -Path .\Report.pdf {
-  PdfBookmark 'details'
-  PdfRow -Column @(
-    @{ Content = @(
-      @{ Type = 'Paragraph'; Run = @(
-        @{ Text = 'Jump to ' }
-        @{ Text = 'details'; LinkDestinationName = 'details'; Color = '#7C3AED' }
-      ) }
-    ) }
-  )
-}
-```
-
-Uses the same rich run model as Add-OfficePdfText inside a row layout.
 
 ## PARAMETERS
 
-### -Column
-Column specifications. Each entry may define Width and Content, or shorthand values such as Heading, Paragraph, Run, Panel, List, Table, Rule, Spacer, and Bookmark.
-
-```yaml
-Type: Object[]
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: True
-Position: 0
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -ColumnSeparatorColor
-Optional vertical separator color between columns.
+ColumnSeparatorColor for this operation.
 
 ```yaml
-Type: String
+Type: OfficeColor
 Parameter Sets: Context, Document
 Aliases: None
 Possible values:
@@ -95,10 +54,10 @@ Accept wildcard characters: False
 ```
 
 ### -ColumnSeparatorWidth
-Optional vertical separator width in PDF points.
+ColumnSeparatorWidth for this operation.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Context, Document
 Aliases: None
 Possible values:
@@ -110,8 +69,24 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Content
+Content for this operation.
+
+```yaml
+Type: ScriptBlock
+Parameter Sets: Context, Document
+Aliases: None
+Possible values:
+
+Required: True
+Position: 0
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -Document
-PDF document to update outside the DSL context.
+Document for this operation.
 
 ```yaml
 Type: PdfDocument
@@ -127,10 +102,10 @@ Accept wildcard characters: False
 ```
 
 ### -Gap
-Horizontal gutter between columns in PDF points.
+Gap for this operation.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Context, Document
 Aliases: None
 Possible values:
@@ -143,7 +118,7 @@ Accept wildcard characters: False
 ```
 
 ### -KeepTogether
-Keep the row together when possible.
+KeepTogether for this operation.
 
 ```yaml
 Type: SwitchParameter
@@ -159,7 +134,7 @@ Accept wildcard characters: False
 ```
 
 ### -KeepWithNext
-Keep the row with the next visible block when possible.
+KeepWithNext for this operation.
 
 ```yaml
 Type: SwitchParameter
@@ -175,11 +150,11 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the updated document.
+Document set only; inside a block the document is returned by New-OfficePdf.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -191,10 +166,10 @@ Accept wildcard characters: False
 ```
 
 ### -SpacingAfter
-Vertical spacing after the row in PDF points.
+SpacingAfter for this operation.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Context, Document
 Aliases: None
 Possible values:
@@ -207,10 +182,10 @@ Accept wildcard characters: False
 ```
 
 ### -SpacingBefore
-Vertical spacing before the row in PDF points.
+SpacingBefore for this operation.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Context, Document
 Aliases: None
 Possible values:

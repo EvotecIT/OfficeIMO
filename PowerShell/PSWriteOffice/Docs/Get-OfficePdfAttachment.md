@@ -6,38 +6,103 @@ schema: 2.0.0
 ---
 # Get-OfficePdfAttachment
 ## SYNOPSIS
-Gets or extracts embedded file attachments from a PDF.
+Lists embedded files, or extracts them with -OutputDirectory.
 
 ## SYNTAX
-### __AllParameterSets
+### Path (Default)
 ```powershell
-Get-OfficePdfAttachment [-Path] <string> [-Name <string>] [-OutputDirectory <string>] [-Password <securestring>] [-IgnorePermissionRestrictions] [<CommonParameters>]
+Get-OfficePdfAttachment [-Path] <string[]> [-Name <string>] [-OutputDirectory <string>] [-NoClobber] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Get-OfficePdfAttachment -LiteralPath <string[]> [-Name <string>] [-OutputDirectory <string>] [-NoClobber] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### Document
+```powershell
+Get-OfficePdfAttachment -Document <PdfDocument> [-Name <string>] [-OutputDirectory <string>] [-NoClobber] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Gets or extracts embedded file attachments from a PDF.
+Lists embedded files, or extracts them with -OutputDirectory.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $proof = @(
-    Get-OfficePdfAttachment -Path .\Examples\Documents\PdfWithAttachment.pdf
-    Get-OfficePdfAttachment -Path .\Examples\Documents\PdfWithAttachment.pdf -OutputDirectory .\Examples\Documents\Attachments
-)
-$proof
+Get-OfficePdfAttachment -Path @('C:\Path')
 ```
 
-First returns attachment metadata, then writes embedded files to disk.
+
+### EXAMPLE 2
+```powershell
+Get-OfficePdfAttachment -Document 'Value'
+```
+
+
+### EXAMPLE 3
+```powershell
+Get-OfficePdfAttachment -LiteralPath @('C:\Path')
+```
+
 
 ## PARAMETERS
 
+### -Document
+Document for PDF inspection or extraction.
+
+```yaml
+Type: PdfDocument
+Parameter Sets: Document
+Aliases: None
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
 ### -IgnorePermissionRestrictions
-After successful password authentication, explicitly ignore owner-imposed extraction restrictions.
+IgnorePermissionRestrictions for PDF inspection or extraction.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -LiteralPath
+LiteralPath for PDF inspection or extraction.
+
+```yaml
+Type: String[]
+Parameter Sets: LiteralPath
+Aliases: PSPath, FullName
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -LoadOptions
+LoadOptions for PDF inspection or extraction.
+
+```yaml
+Type: PdfLoadOptions
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -49,11 +114,27 @@ Accept wildcard characters: False
 ```
 
 ### -Name
-Optional attachment name or file name filter.
+Name for PDF inspection or extraction.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath, Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoClobber
+NoClobber for PDF inspection or extraction.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Path, LiteralPath, Document
 Aliases: None
 Possible values:
 
@@ -65,11 +146,11 @@ Accept wildcard characters: False
 ```
 
 ### -OutputDirectory
-Optional directory where attachments should be written.
+OutputDirectory for PDF inspection or extraction.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath, Document
 Aliases: None
 Possible values:
 
@@ -81,11 +162,11 @@ Accept wildcard characters: False
 ```
 
 ### -Password
-Password used to read a Standard password-encrypted PDF.
+Password for PDF inspection or extraction.
 
 ```yaml
 Type: SecureString
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -97,19 +178,19 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-PDF file path.
+Path for PDF inspection or extraction.
 
 ```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: FilePath, FullName, LiteralPath
+Type: String[]
+Parameter Sets: Path
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue, ByPropertyName)
-Accept wildcard characters: False
+Accept pipeline input: False
+Accept wildcard characters: True
 ```
 
 ### CommonParameters
@@ -117,7 +198,8 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `System.String`
+- `System.String[]`
+- `OfficeIMO.Pdf.PdfDocument`
 
 ## OUTPUTS
 

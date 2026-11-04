@@ -6,53 +6,34 @@ schema: 2.0.0
 ---
 # Add-OfficePdfText
 ## SYNOPSIS
-Adds a rich inline-text paragraph to a generated PDF document.
+Adds one styled run inside a PDF paragraph or running header/footer, or a standalone paragraph.
 
 ## SYNTAX
 ### Context (Default)
 ```powershell
-Add-OfficePdfText [[-Text] <string[]>] [-Run <Object[]>] [-Align <OfficeAlignment>] [-Color <string>] [-BackgroundColor <string>] [-FontSize <Double>] [-Font <PdfStandardFont>] [-Bold] [-Italic] [-Underline] [-Strike] [-Baseline <PdfTextBaseline>] [-LinkUri <string>] [-LinkDestinationName <string>] [-LinkContents <string>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfText [-Text] <string> [-Bold] [-Italic] [-Strikethrough] [-Underline <OfficeTextDecorationStyle>] [-Color <OfficeColor>] [-BackgroundColor <OfficeColor>] [-Font <string>] [-Size <OfficeLength>] [-Baseline <PdfTextBaseline>] [-TabLeader <PdfTabLeaderStyle>] [-TabAlignment <PdfTabAlignment>] [-Link <string>] [-LinkBookmark <string>] [-LinkContents <string>] [-Alignment <OfficeAlignment>] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Add-OfficePdfText [[-Text] <string[]>] -Document <PdfDocument> [-Run <Object[]>] [-Align <OfficeAlignment>] [-Color <string>] [-BackgroundColor <string>] [-FontSize <Double>] [-Font <PdfStandardFont>] [-Bold] [-Italic] [-Underline] [-Strike] [-Baseline <PdfTextBaseline>] [-LinkUri <string>] [-LinkDestinationName <string>] [-LinkContents <string>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfText [-Text] <string> -Document <PdfDocument> [-Bold] [-Italic] [-Strikethrough] [-Underline <OfficeTextDecorationStyle>] [-Color <OfficeColor>] [-BackgroundColor <OfficeColor>] [-Font <string>] [-Size <OfficeLength>] [-Baseline <PdfTextBaseline>] [-TabLeader <PdfTabLeaderStyle>] [-TabAlignment <PdfTabAlignment>] [-Link <string>] [-LinkBookmark <string>] [-LinkContents <string>] [-Alignment <OfficeAlignment>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Use Add-OfficePdfText when a paragraph needs mixed emphasis, highlight color, font settings, baseline changes, or links.
-Plain paragraphs can continue to use Add-OfficePdfParagraph. Rich text runs are translated directly to the OfficeIMO.Pdf paragraph builder.
-URI links and bookmark links are supported; a single run cannot target both.
+Adds one styled run inside a PDF paragraph or running header/footer, or a standalone paragraph.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> New-OfficePdf -Path .\Report.pdf { PdfText 'Approved for review' -Bold -Color '#0F766E' -BackgroundColor '#ECFDF5' }
+PdfParagraph { PdfText 'Review ' -Italic; PdfText 'complete' -Bold -Color Success }
 ```
 
-Creates a PDF with one styled paragraph.
-
-### EXAMPLE 2
-```powershell
-PS> New-OfficePdf -Path .\Report.pdf {
-  PdfBookmark 'summary'
-  PdfText -Run @(
-    @{ Text = 'Read the ' }
-    @{ Text = 'website'; LinkUri = 'https://evotec.xyz'; Color = '#2563EB' }
-    @{ Text = ' or jump to ' }
-    @{ Text = 'summary'; LinkDestinationName = 'summary'; Color = '#7C3AED' }
-    @{ Text = '.' }
-  )
-}
-```
-
-Creates one paragraph with an external link and an internal named-destination link.
 
 ## PARAMETERS
 
-### -Align
-Paragraph alignment.
+### -Alignment
+Standalone paragraph alignment.
 
 ```yaml
 Type: OfficeAlignment
@@ -68,10 +49,10 @@ Accept wildcard characters: False
 ```
 
 ### -BackgroundColor
-Run background color for -Text input. Named colors and hexadecimal colors are accepted.
+Run background color.
 
 ```yaml
-Type: String
+Type: OfficeColor
 Parameter Sets: Context, Document
 Aliases: None
 Possible values:
@@ -84,7 +65,7 @@ Accept wildcard characters: False
 ```
 
 ### -Baseline
-Baseline for -Text input.
+Run baseline.
 
 ```yaml
 Type: PdfTextBaseline
@@ -100,7 +81,7 @@ Accept wildcard characters: False
 ```
 
 ### -Bold
-Make -Text input bold.
+Set bold on or off.
 
 ```yaml
 Type: SwitchParameter
@@ -116,10 +97,10 @@ Accept wildcard characters: False
 ```
 
 ### -Color
-Default paragraph color. Named colors and hexadecimal colors are accepted.
+Run foreground color.
 
 ```yaml
-Type: String
+Type: OfficeColor
 Parameter Sets: Context, Document
 Aliases: None
 Possible values:
@@ -132,7 +113,7 @@ Accept wildcard characters: False
 ```
 
 ### -Document
-PDF document to update outside the DSL context.
+Live PDF outside a composition block.
 
 ```yaml
 Type: PdfDocument
@@ -148,26 +129,10 @@ Accept wildcard characters: False
 ```
 
 ### -Font
-Standard PDF font for -Text input.
+Standard PDF font name or registered embedded family.
 
 ```yaml
-Type: PdfStandardFont
-Parameter Sets: Context, Document
-Aliases: None
-Possible values: Helvetica, HelveticaOblique, HelveticaBold, HelveticaBoldOblique, TimesRoman, TimesItalic, TimesBold, TimesBoldItalic, Courier, CourierOblique, CourierBold, CourierBoldOblique
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -FontSize
-Font size for -Text input in PDF points.
-
-```yaml
-Type: Double
+Type: String
 Parameter Sets: Context, Document
 Aliases: None
 Possible values:
@@ -180,7 +145,7 @@ Accept wildcard characters: False
 ```
 
 ### -Italic
-Make -Text input italic.
+Set italic on or off.
 
 ```yaml
 Type: SwitchParameter
@@ -195,40 +160,40 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Link
+URI hyperlink target.
+
+```yaml
+Type: String
+Parameter Sets: Context, Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -LinkBookmark
+Named bookmark target.
+
+```yaml
+Type: String
+Parameter Sets: Context, Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -LinkContents
-Optional link annotation contents for -Text input.
-
-```yaml
-Type: String
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -LinkDestinationName
-Named destination link target for -Text input.
-
-```yaml
-Type: String
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -LinkUri
-Absolute URI link target for -Text input.
+Link annotation contents.
 
 ```yaml
 Type: String
@@ -244,7 +209,39 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the updated document.
+Emit the updated live document.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Size
+Font size; bare numbers mean points.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: Context, Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Strikethrough
+Set strikethrough on or off.
 
 ```yaml
 Type: SwitchParameter
@@ -259,14 +256,14 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Run
-Rich run specifications. Each run may define Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, FontSize, Font, Baseline, LinkUri, LinkDestinationName, LinkContents, Type, or Kind.
+### -TabAlignment
+Alignment for an explicit tab text.
 
 ```yaml
-Type: Object[]
+Type: PdfTabAlignment
 Parameter Sets: Context, Document
-Aliases: Runs
-Possible values:
+Aliases: None
+Possible values: Left, Right, Center, DecimalSeparator, Bar
 
 Required: False
 Position: named
@@ -275,14 +272,14 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Strike
-Strike through -Text input.
+### -TabLeader
+Leader pattern for an explicit tab text (a single tab character).
 
 ```yaml
-Type: SwitchParameter
+Type: PdfTabLeaderStyle
 Parameter Sets: Context, Document
 Aliases: None
-Possible values:
+Possible values: None, Dots, Hyphens, Underscores
 
 Required: False
 Position: named
@@ -292,15 +289,15 @@ Accept wildcard characters: False
 ```
 
 ### -Text
-Plain text values to add as one styled paragraph.
+Text for this run.
 
 ```yaml
-Type: String[]
+Type: String
 Parameter Sets: Context, Document
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: 0
 Default value: None
 Accept pipeline input: False
@@ -308,13 +305,13 @@ Accept wildcard characters: False
 ```
 
 ### -Underline
-Underline -Text input.
+Underline pattern; None clears it.
 
 ```yaml
-Type: SwitchParameter
+Type: OfficeTextDecorationStyle
 Parameter Sets: Context, Document
 Aliases: None
-Possible values:
+Possible values: None, Single, Double, Dotted, Dashed, Wavy, Words
 
 Required: False
 Position: named

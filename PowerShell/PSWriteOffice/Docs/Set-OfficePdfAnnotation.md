@@ -6,33 +6,90 @@ schema: 2.0.0
 ---
 # Set-OfficePdfAnnotation
 ## SYNOPSIS
-Updates a single indirect PDF annotation.
+Updates native annotation contents, styling and actions by identity or target URI.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
-Set-OfficePdfAnnotation [-Path] <string> [-OutputPath] <string> -ObjectNumber <int> [-Password <securestring>] [-IgnorePermissionRestrictions] [-Contents <string>] [-Title <string>] [-Name <string>] [-Flags <Int32>] [-Color <string>] [-RemoveAction] [-PassThruReport] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Set-OfficePdfAnnotation -ObjectNumber <int> [-Options <PdfAnnotationUpdateOptions>] [-Contents <string>] [-Title <string>] [-Name <string>] [-Flags <Int32>] [-Color <OfficeColor>] [-RemoveAction] [-PassThru] [-Document <PdfDocument>] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### Path
+```powershell
+Set-OfficePdfAnnotation [-Path] <string[]> -OutputPath <string> -ObjectNumber <int> [-Options <PdfAnnotationUpdateOptions>] [-Contents <string>] [-Title <string>] [-Name <string>] [-Flags <Int32>] [-Color <OfficeColor>] [-RemoveAction] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### PathDirectory
+```powershell
+Set-OfficePdfAnnotation [-Path] <string[]> -ObjectNumber <int> -OutputDirectory <string> [-Options <PdfAnnotationUpdateOptions>] [-Contents <string>] [-Title <string>] [-Name <string>] [-Flags <Int32>] [-Color <OfficeColor>] [-RemoveAction] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### PathUri
+```powershell
+Set-OfficePdfAnnotation [-Path] <string[]> -OutputPath <string> -Uri <string> [-Options <PdfAnnotationUpdateOptions>] [-Contents <string>] [-Title <string>] [-Name <string>] [-Flags <Int32>] [-Color <OfficeColor>] [-RemoveAction] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### PathUriDirectory
+```powershell
+Set-OfficePdfAnnotation [-Path] <string[]> -OutputDirectory <string> -Uri <string> [-Options <PdfAnnotationUpdateOptions>] [-Contents <string>] [-Title <string>] [-Name <string>] [-Flags <Int32>] [-Color <OfficeColor>] [-RemoveAction] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Set-OfficePdfAnnotation -OutputPath <string> -ObjectNumber <int> -LiteralPath <string[]> [-Options <PdfAnnotationUpdateOptions>] [-Contents <string>] [-Title <string>] [-Name <string>] [-Flags <Int32>] [-Color <OfficeColor>] [-RemoveAction] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### LiteralPathUri
+```powershell
+Set-OfficePdfAnnotation -OutputPath <string> -Uri <string> -LiteralPath <string[]> [-Options <PdfAnnotationUpdateOptions>] [-Contents <string>] [-Title <string>] [-Name <string>] [-Flags <Int32>] [-Color <OfficeColor>] [-RemoveAction] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### LiteralPathDirectory
+```powershell
+Set-OfficePdfAnnotation -ObjectNumber <int> -OutputDirectory <string> -LiteralPath <string[]> [-Options <PdfAnnotationUpdateOptions>] [-Contents <string>] [-Title <string>] [-Name <string>] [-Flags <Int32>] [-Color <OfficeColor>] [-RemoveAction] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### LiteralPathUriDirectory
+```powershell
+Set-OfficePdfAnnotation -OutputDirectory <string> -Uri <string> -LiteralPath <string[]> [-Options <PdfAnnotationUpdateOptions>] [-Contents <string>] [-Title <string>] [-Name <string>] [-Flags <Int32>] [-Color <OfficeColor>] [-RemoveAction] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### DocumentUri
+```powershell
+Set-OfficePdfAnnotation -Uri <string> [-Options <PdfAnnotationUpdateOptions>] [-Contents <string>] [-Title <string>] [-Name <string>] [-Flags <Int32>] [-Color <OfficeColor>] [-RemoveAction] [-PassThru] [-Document <PdfDocument>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Updates a single indirect PDF annotation.
+Native confirmation runs before loading or editing a file. Live inputs stay caller-owned; a replacement document is adopted by the enclosing content block or returned for explicit assignment. PassThru returns native edit reports.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-Set-OfficePdfAnnotation -Path 'C:\Path' -OutputPath 'C:\Path' -ObjectNumber 1
+Set-OfficePdfAnnotation -ObjectNumber 1
+```
+
+
+### EXAMPLE 2
+```powershell
+Set-OfficePdfAnnotation -Uri 'https://example.com'
+```
+
+
+### EXAMPLE 3
+```powershell
+Set-OfficePdfAnnotation -OutputPath 'C:\Path' -ObjectNumber 1 -LiteralPath @('C:\Path')
 ```
 
 
 ## PARAMETERS
 
 ### -Color
-Replacement annotation color. Named colors and hexadecimal values are accepted.
+Replacement annotation RGB color.
 
 ```yaml
-Type: String
-Parameter Sets: __AllParameterSets
+Type: OfficeColor
+Parameter Sets: Document, Path, PathDirectory, PathUri, PathUriDirectory, LiteralPath, LiteralPathUri, LiteralPathDirectory, LiteralPathUriDirectory, DocumentUri
 Aliases: None
 Possible values:
 
@@ -44,11 +101,11 @@ Accept wildcard characters: False
 ```
 
 ### -Contents
-Replacement annotation contents text.
+Contents setting.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document, Path, PathDirectory, PathUri, PathUriDirectory, LiteralPath, LiteralPathUri, LiteralPathDirectory, LiteralPathUriDirectory, DocumentUri
 Aliases: None
 Possible values:
 
@@ -59,12 +116,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Document
+Native caller-owned PDF; omission uses the enclosing content block.
+
+```yaml
+Type: PdfDocument
+Parameter Sets: Document, DocumentUri
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
 ### -Flags
-Replacement annotation flags.
+Raw PDF annotation flags.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document, Path, PathDirectory, PathUri, PathUriDirectory, LiteralPath, LiteralPathUri, LiteralPathDirectory, LiteralPathUriDirectory, DocumentUri
 Aliases: None
 Possible values:
 
@@ -76,11 +149,43 @@ Accept wildcard characters: False
 ```
 
 ### -IgnorePermissionRestrictions
-After successful password authentication, explicitly ignore owner-imposed annotation-modification restrictions.
+IgnorePermissionRestrictions setting.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, PathDirectory, PathUri, PathUriDirectory, LiteralPath, LiteralPathUri, LiteralPathDirectory, LiteralPathUriDirectory
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -LiteralPath
+Literal input PDF paths; accepts FileInfo.FullName.
+
+```yaml
+Type: String[]
+Parameter Sets: LiteralPath, LiteralPathUri, LiteralPathDirectory, LiteralPathUriDirectory
+Aliases: FullName, PSPath
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -LoadOptions
+Native parsing, authentication and resource policy.
+
+```yaml
+Type: PdfLoadOptions
+Parameter Sets: Path, PathDirectory, PathUri, PathUriDirectory, LiteralPath, LiteralPathUri, LiteralPathDirectory, LiteralPathUriDirectory
 Aliases: None
 Possible values:
 
@@ -92,11 +197,11 @@ Accept wildcard characters: False
 ```
 
 ### -Name
-Replacement annotation name.
+Name setting.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document, Path, PathDirectory, PathUri, PathUriDirectory, LiteralPath, LiteralPathUri, LiteralPathDirectory, LiteralPathUriDirectory, DocumentUri
 Aliases: None
 Possible values:
 
@@ -108,11 +213,43 @@ Accept wildcard characters: False
 ```
 
 ### -ObjectNumber
-Indirect annotation object number to update.
+ObjectNumber setting.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document, Path, PathDirectory, LiteralPath, LiteralPathDirectory
+Aliases: None
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -Options
+Native annotation edit policy and fields. Explicit parameters override this captured policy; append-only residual data remains opt-in.
+
+```yaml
+Type: PdfAnnotationUpdateOptions
+Parameter Sets: Document, Path, PathDirectory, PathUri, PathUriDirectory, LiteralPath, LiteralPathUri, LiteralPathDirectory, LiteralPathUriDirectory, DocumentUri
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -OutputDirectory
+Batch destination retaining source names.
+
+```yaml
+Type: String
+Parameter Sets: PathDirectory, PathUriDirectory, LiteralPathDirectory, LiteralPathUriDirectory
 Aliases: None
 Possible values:
 
@@ -124,43 +261,27 @@ Accept wildcard characters: False
 ```
 
 ### -OutputPath
-Output PDF path.
+Single-file destination.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, PathUri, LiteralPath, LiteralPathUri
 Aliases: None
 Possible values:
 
 Required: True
-Position: 1
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -PassThru
-Emit the object created or changed by the command.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
 Position: named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -PassThruReport
-Return the annotation edit result instead of the output file.
+### -PassThru
+Return native annotation edit reports.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document, Path, PathDirectory, PathUri, PathUriDirectory, LiteralPath, LiteralPathUri, LiteralPathDirectory, LiteralPathUriDirectory, DocumentUri
 Aliases: None
 Possible values:
 
@@ -172,11 +293,11 @@ Accept wildcard characters: False
 ```
 
 ### -Password
-Password used to authenticate an encrypted PDF.
+Password setting.
 
 ```yaml
 Type: SecureString
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, PathDirectory, PathUri, PathUriDirectory, LiteralPath, LiteralPathUri, LiteralPathDirectory, LiteralPathUriDirectory
 Aliases: None
 Possible values:
 
@@ -188,27 +309,27 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Input PDF path.
+Input PDF paths with wildcard expansion.
 
 ```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: FilePath
+Type: String[]
+Parameter Sets: Path, PathDirectory, PathUri, PathUriDirectory
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue)
-Accept wildcard characters: False
+Accept pipeline input: False
+Accept wildcard characters: True
 ```
 
 ### -RemoveAction
-Remove /A and /AA action dictionaries from the annotation.
+RemoveAction setting.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document, Path, PathDirectory, PathUri, PathUriDirectory, LiteralPath, LiteralPathUri, LiteralPathDirectory, LiteralPathUriDirectory, DocumentUri
 Aliases: None
 Possible values:
 
@@ -220,15 +341,31 @@ Accept wildcard characters: False
 ```
 
 ### -Title
-Replacement annotation title text.
+Title setting.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document, Path, PathDirectory, PathUri, PathUriDirectory, LiteralPath, LiteralPathUri, LiteralPathDirectory, LiteralPathUriDirectory, DocumentUri
 Aliases: None
 Possible values:
 
 Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Uri
+Exact or wildcard target URI used to select link annotations.
+
+```yaml
+Type: String
+Parameter Sets: PathUri, PathUriDirectory, LiteralPathUri, LiteralPathUriDirectory, DocumentUri
+Aliases: None
+Possible values:
+
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -240,11 +377,14 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `System.String`
+- `System.Int32`
+- `System.String[]`
+- `OfficeIMO.Pdf.PdfDocument`
 
 ## OUTPUTS
 
 - `System.IO.FileInfo`
+- `OfficeIMO.Pdf.PdfDocument`
 - `OfficeIMO.Pdf.PdfAnnotationEditResult`
 
 ## RELATED LINKS

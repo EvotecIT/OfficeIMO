@@ -11,12 +11,12 @@ Adds a Markdown definition list.
 ## SYNTAX
 ### Context (Default)
 ```powershell
-Add-OfficeMarkdownDefinitionList [-Definition] <hashtable> [-PassThru] [<CommonParameters>]
+Add-OfficeMarkdownDefinitionList [-Definition] <IDictionary> [-PassThru] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Add-OfficeMarkdownDefinitionList [-Definition] <hashtable> -Document <MarkdownDocument> [-PassThru] [<CommonParameters>]
+Add-OfficeMarkdownDefinitionList [-Definition] <IDictionary> -Document <MarkdownDocument> [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -34,10 +34,10 @@ Appends a definition list built from the provided pairs.
 ## PARAMETERS
 
 ### -Definition
-Hashtable of term/definition pairs to render.
+Dictionary of term/definition pairs to render.
 
 ```yaml
-Type: Hashtable
+Type: IDictionary
 Parameter Sets: Context, Document
 Aliases: None
 Possible values:

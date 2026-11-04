@@ -11,7 +11,7 @@ Adds a tab stop to a Word paragraph.
 ## SYNTAX
 ### Default (Default)
 ```powershell
-Add-OfficeWordTabStop [-Position] <int> [-Paragraph <WordParagraph>] [-Alignment <WordTabAlignment>] [-Leader <WordTabLeader>] [-PassThru] [<CommonParameters>]
+Add-OfficeWordTabStop [-Position] <OfficeLength> [-Paragraph <WordParagraph>] [-Alignment <WordTabAlignment>] [-Leader <WordTabLeader>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -21,7 +21,7 @@ Thin wrapper over OfficeIMO.Word paragraph tab stops.
 
 ### EXAMPLE 1
 ```powershell
-PS> Add-OfficeWordParagraph { Add-OfficeWordTabStop -Position 4320 -Alignment Decimal -Leader Dot }
+PS> Add-OfficeWordParagraph { Add-OfficeWordTabStop -Position 3in -Alignment Decimal -Leader Dot }
 ```
 
 Adds a decimal tab stop at three inches.
@@ -93,10 +93,10 @@ Accept wildcard characters: False
 ```
 
 ### -Position
-Tab position in twips.
+Tab position; numbers mean points.
 
 ```yaml
-Type: Int32
+Type: OfficeLength
 Parameter Sets: Default
 Aliases: None
 Possible values:

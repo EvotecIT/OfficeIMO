@@ -6,47 +6,59 @@ schema: 2.0.0
 ---
 # Set-OfficePdfBackground
 ## SYNOPSIS
-Sets or clears the generated PDF page background color.
+Sets or clears color, image and shape backgrounds in the enclosing PDF composition.
 
 ## SYNTAX
-### Context (Default)
+### Color (Default)
 ```powershell
-Set-OfficePdfBackground [-Color <string>] [-Clear] [-PassThru] [<CommonParameters>]
+Set-OfficePdfBackground [-Color] <OfficeColor> [<CommonParameters>]
 ```
 
-### Document
+### Image
 ```powershell
-Set-OfficePdfBackground -Document <PdfDocument> [-Color <string>] [-Clear] [-PassThru] [<CommonParameters>]
+Set-OfficePdfBackground -ImagePath <string> [-Fit <OfficeImageFit>] [-Opacity <Double>] [<CommonParameters>]
+```
+
+### Clear
+```powershell
+Set-OfficePdfBackground -Clear [-Target <OfficePdfBackgroundTarget>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Sets or clears the generated PDF page background color.
+Sets or clears color, image and shape backgrounds in the enclosing PDF composition.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> New-OfficePdf -Path .\Examples\Documents\PdfBackground.pdf {
-    Set-OfficePdfBackground -Color '#F8FAFC'
-    Add-OfficePdfHeading -Text 'Report on a soft background'
-    Add-OfficePdfParagraph -Text 'The background color applies to generated pages.'
-}
+Set-OfficePdfBackground -Color 'Value'
 ```
 
-Applies a page background color before adding content.
+
+### EXAMPLE 2
+```powershell
+Set-OfficePdfBackground -Clear
+```
+
+
+### EXAMPLE 3
+```powershell
+Set-OfficePdfBackground -ImagePath 'C:\Path'
+```
+
 
 ## PARAMETERS
 
 ### -Clear
-Clear the generated PDF page background color.
+Clear the selected background decoration.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Clear
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -54,11 +66,59 @@ Accept wildcard characters: False
 ```
 
 ### -Color
-Background color. Named colors and hexadecimal values are accepted.
+Background color.
+
+```yaml
+Type: OfficeColor
+Parameter Sets: Color
+Aliases: None
+Possible values:
+
+Required: True
+Position: 0
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Fit
+How the background image fits the page.
+
+```yaml
+Type: OfficeImageFit
+Parameter Sets: Image
+Aliases: None
+Possible values: Stretch, Contain, Cover
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -ImagePath
+Literal background image path.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Document
+Parameter Sets: Image
+Aliases: None
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Opacity
+Background image opacity.
+
+```yaml
+Type: Double
+Parameter Sets: Image
 Aliases: None
 Possible values:
 
@@ -69,30 +129,14 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Document
-Compatibility parameter. Page composition is supported only inside New-OfficePdf.
+### -Target
+Background decorations to clear.
 
 ```yaml
-Type: PdfDocument
-Parameter Sets: Document
+Type: OfficePdfBackgroundTarget
+Parameter Sets: Clear
 Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: True (ByValue)
-Accept wildcard characters: False
-```
-
-### -PassThru
-Emit the updated document.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
+Possible values: All, Color, Image, Shapes
 
 Required: False
 Position: named
@@ -106,11 +150,11 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.Pdf.PdfDocument`
+- `None`
 
 ## OUTPUTS
 
-- `OfficeIMO.Pdf.PdfDocument`
+- `None`
 
 ## RELATED LINKS
 

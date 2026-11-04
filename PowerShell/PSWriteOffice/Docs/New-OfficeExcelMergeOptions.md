@@ -27,6 +27,21 @@ Merge-OfficeDocument -Path ./Cover.xlsx, ./North.xlsx, ./South.xlsx -OutputPath 
 ```
 
 
+### EXAMPLE 2
+```powershell
+Merge-OfficeDocument -Path .\Regions\*.xlsx -OutputPath .\Reports\All-Regions.xlsx -Options (New-OfficeExcelMergeOptions -NamePrefix 'Region ')
+```
+
+Combines the regional workbooks into one workbook, prefixing each copied sheet name.
+
+### EXAMPLE 3
+```powershell
+$merge = New-OfficeExcelMergeOptions -Sheet Sales -CopyMode Values -ValidationMode Sanitize
+Merge-OfficeDocument -Path .\Branches\*.xlsx -OutputPath .\Reports\Branch-Sales.xlsx -Options $merge -Show
+```
+
+Copies only the Sales sheet of each branch workbook as values, cleaning sheet names Excel would reject.
+
 ## PARAMETERS
 
 ### -CopyMode

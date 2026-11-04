@@ -9,9 +9,14 @@ schema: 2.0.0
 Plans or deletes a Confluence Cloud page.
 
 ## SYNTAX
-### __AllParameterSets
+### Session (Default)
 ```powershell
-Remove-OfficeConfluencePage [-PageId] <string> [-Session <ConfluenceSession>] [-Purge] [-Draft] [-PlanOnly] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Remove-OfficeConfluencePage [-PageId] <string> -Session <ConfluenceSession> [-Purge] [-Draft] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### Plan
+```powershell
+Remove-OfficeConfluencePage [-PageId] <string> -PlanOnly [-Purge] [-Draft] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -40,7 +45,7 @@ Delete a draft page.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Session, Plan
 Aliases: None
 Possible values:
 
@@ -56,7 +61,7 @@ Page identifier.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Session, Plan
 Aliases: None
 Possible values:
 
@@ -72,7 +77,7 @@ Return the completed delete plan after a live operation.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Session, Plan
 Aliases: None
 Possible values:
 
@@ -88,11 +93,11 @@ Return the exact delete plan without contacting Confluence.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Plan
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -104,7 +109,7 @@ Permanently delete a page that is already in the trash.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Session, Plan
 Aliases: None
 Possible values:
 
@@ -120,11 +125,11 @@ Configured session required for a live delete operation.
 
 ```yaml
 Type: ConfluenceSession
-Parameter Sets: __AllParameterSets
+Parameter Sets: Session
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: False

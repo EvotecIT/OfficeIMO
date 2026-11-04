@@ -6,36 +6,62 @@ schema: 2.0.0
 ---
 # New-OfficeWordTableCell
 ## SYNOPSIS
-Creates a reusable Word table cell definition for explicit table rows.
+Creates a plain or recorded rich Word cell for explicit table rows.
 
 ## SYNTAX
-### __AllParameterSets
+### Text (Default)
 ```powershell
-New-OfficeWordTableCell [[-Text] <string>] [-Run <Object[]>] [-ColumnSpan <int>] [-RowSpan <int>] [-TextColor <string>] [-FillColor <string>] [-FontSize <Double>] [-Bold] [-Italic] [-Underline] [-UnderlineStyle <WordUnderlineStyle>] [-Strike] [-Align <WordParagraphAlignment>] [-VerticalAlign <WordTableVerticalAlignment>] [<CommonParameters>]
+New-OfficeWordTableCell [[-Text] <string>] [-ColumnSpan <int>] [-RowSpan <int>] [-BackgroundColor <OfficeColor>] [-Alignment <OfficeAlignment>] [-VerticalAlignment <WordTableVerticalAlignment>] [-Bold] [-Italic] [-Strikethrough] [-Underline <WordUnderlineStyle>] [-Color <OfficeColor>] [-Font <string>] [-Size <OfficeLength>] [<CommonParameters>]
+```
+
+### Content
+```powershell
+New-OfficeWordTableCell [-Content] <scriptblock> [-ColumnSpan <int>] [-RowSpan <int>] [-BackgroundColor <OfficeColor>] [-Alignment <OfficeAlignment>] [-VerticalAlignment <WordTableVerticalAlignment>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Creates a reusable Word table cell definition for explicit table rows.
+Creates a plain or recorded rich Word cell for explicit table rows.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $row = @(New-OfficeWordTableCell -Text 'Identity systems' -ColumnSpan 3)
+New-OfficeWordTableCell -Alignment 'Value'
 ```
 
-The returned cell can be passed to WordTable inside explicit row arrays.
+
+### EXAMPLE 2
+```powershell
+New-OfficeWordTableCell -Content { }
+```
+
 
 ## PARAMETERS
 
-### -Align
-Horizontal cell alignment.
+### -Alignment
+Alignment for the cell.
 
 ```yaml
-Type: WordParagraphAlignment
-Parameter Sets: __AllParameterSets
+Type: OfficeAlignment
+Parameter Sets: Text, Content
 Aliases: None
-Possible values: Left, Start, Center, Right, End, Both, MediumKashida, Distribute, NumTab, HighKashida, LowKashida, ThaiDistribute
+Possible values: Left, Center, Right, Justify, Start, End
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -BackgroundColor
+BackgroundColor for the cell.
+
+```yaml
+Type: OfficeColor
+Parameter Sets: Text, Content
+Aliases: None
+Possible values:
 
 Required: False
 Position: named
@@ -45,11 +71,27 @@ Accept wildcard characters: False
 ```
 
 ### -Bold
-Render the cell text in bold.
+Bold for the cell.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Color
+Color for the cell.
+
+```yaml
+Type: OfficeColor
+Parameter Sets: Text
 Aliases: None
 Possible values:
 
@@ -61,11 +103,11 @@ Accept wildcard characters: False
 ```
 
 ### -ColumnSpan
-Number of logical columns covered by the cell.
+ColumnSpan for the cell.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text, Content
 Aliases: None
 Possible values:
 
@@ -76,28 +118,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -FillColor
-Cell fill color. Named colors and hexadecimal colors are accepted.
+### -Content
+Content for the cell.
 
 ```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: BackgroundColor, CellFill
+Type: ScriptBlock
+Parameter Sets: Content
+Aliases: None
 Possible values:
 
-Required: False
-Position: named
+Required: True
+Position: 0
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -FontSize
-Cell font size in points.
+### -Font
+Font for the cell.
 
 ```yaml
-Type: Double
-Parameter Sets: __AllParameterSets
+Type: String
+Parameter Sets: Text
 Aliases: None
 Possible values:
 
@@ -109,11 +151,11 @@ Accept wildcard characters: False
 ```
 
 ### -Italic
-Render the cell text in italics.
+Italic for the cell.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text
 Aliases: None
 Possible values:
 
@@ -125,11 +167,11 @@ Accept wildcard characters: False
 ```
 
 ### -RowSpan
-Number of logical rows covered by the cell.
+RowSpan for the cell.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text, Content
 Aliases: None
 Possible values:
 
@@ -140,13 +182,13 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Run
-Rich text runs for the cell. Each run can be created with TextRun/WordTextRun or provided as a hashtable/object.
+### -Size
+Size for the cell.
 
 ```yaml
-Type: Object[]
-Parameter Sets: __AllParameterSets
-Aliases: Runs
+Type: OfficeLength
+Parameter Sets: Text
+Aliases: None
 Possible values:
 
 Required: False
@@ -156,12 +198,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Strike
-Render the cell text with strikethrough.
+### -Strikethrough
+Strikethrough for the cell.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text
 Aliases: None
 Possible values:
 
@@ -173,11 +215,11 @@ Accept wildcard characters: False
 ```
 
 ### -Text
-Cell text.
+Text for the cell.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text
 Aliases: None
 Possible values:
 
@@ -188,44 +230,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -TextColor
-Cell text color. Named colors and hexadecimal colors are accepted.
-
-```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: Color, FontColor
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -Underline
-Render the cell text with underline.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -UnderlineStyle
-Optional Word underline style.
+Underline for the cell.
 
 ```yaml
 Type: WordUnderlineStyle
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text
 Aliases: None
 Possible values: Single, Words, Double, Thick, Dotted, DottedHeavy, Dash, DashedHeavy, DashLong, DashLongHeavy, DotDash, DashDotHeavy, DotDotDash, DashDotDotHeavy, Wave, WavyHeavy, WavyDouble, None
 
@@ -236,12 +246,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -VerticalAlign
-Vertical cell alignment.
+### -VerticalAlignment
+VerticalAlignment for the cell.
 
 ```yaml
 Type: WordTableVerticalAlignment
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text, Content
 Aliases: None
 Possible values: Top, Center, Bottom
 

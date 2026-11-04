@@ -11,12 +11,12 @@ Reads one page or streams a filtered Confluence Cloud page listing.
 ## SYNTAX
 ### List (Default)
 ```powershell
-Get-OfficeConfluencePage -Session <ConfluenceSession> [-SpaceId <string>] [-Title <string>] [-Cursor <string>] [-Limit <int>] [-AsPage] [-BodyFormat <ConfluenceBodyFormat>] [-AsMarkdown] [-AsHtml] [-FailOnLoss] [<CommonParameters>]
+Get-OfficeConfluencePage -Session <ConfluenceSession> [-SpaceId <string>] [-Title <string>] [-Cursor <string>] [-Limit <int>] [-AsBatch] [-BodyFormat <ConfluenceBodyFormat>] [-As <OfficeConfluencePageOutput>] [-FailOnLoss] [<CommonParameters>]
 ```
 
 ### ById
 ```powershell
-Get-OfficeConfluencePage [-PageId] <string> -Session <ConfluenceSession> [-BodyFormat <ConfluenceBodyFormat>] [-AsMarkdown] [-AsHtml] [-FailOnLoss] [<CommonParameters>]
+Get-OfficeConfluencePage [-PageId] <string> -Session <ConfluenceSession> [-BodyFormat <ConfluenceBodyFormat>] [-As <OfficeConfluencePageOutput>] [-FailOnLoss] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -33,14 +33,14 @@ Returns the converted Markdown value and its ADF conversion report.
 
 ## PARAMETERS
 
-### -AsHtml
-Project each page body to HTML and include conversion evidence.
+### -As
+Native page, Markdown or HTML projection with fidelity evidence.
 
 ```yaml
-Type: SwitchParameter
+Type: OfficeConfluencePageOutput
 Parameter Sets: List, ById
 Aliases: None
-Possible values:
+Possible values: Page, Markdown, Html
 
 Required: False
 Position: named
@@ -49,23 +49,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -AsMarkdown
-Project each page body to Markdown and include conversion evidence.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: List, ById
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -AsPage
+### -AsBatch
 Return listing batches rather than enumerating their pages.
 
 ```yaml

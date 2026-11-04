@@ -6,38 +6,81 @@ schema: 2.0.0
 ---
 # Set-OfficePdfPage
 ## SYNOPSIS
-Sets page-level PDF properties and writes a new PDF.
+Rotates pages, sets boundary boxes or resizes pages through the native PDF engine.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
-Set-OfficePdfPage -Path <string> -OutputPath <string> [-PageRange <string>] [-Rotation <int>] [-BoxName <PdfPageBoundaryBox>] [-Left <Double>] [-Bottom <Double>] [-Right <Double>] [-Top <Double>] [-PageSize <string>] [-Width <Double>] [-Height <Double>] [-Landscape] [-ResizeMode <PdfPageResizeMode>] [-ResizeMargin <Double>] [-Password <securestring>] [-IgnorePermissionRestrictions] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Set-OfficePdfPage [-Page <OfficePageRange>] [-Rotation <int>] [-BoxName <PdfPageBoundaryBox>] [-BoxLeft <OfficeLength>] [-BoxBottom <OfficeLength>] [-BoxRight <OfficeLength>] [-BoxTop <OfficeLength>] [-PageSize <OfficePageSize>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Orientation <OfficePageOrientation>] [-ResizeMode <PdfPageResizeMode>] [-ResizeMargin <OfficeLength>] [-Document <PdfDocument>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### Path
+```powershell
+Set-OfficePdfPage [-Path] <string[]> -OutputPath <string> [-Page <OfficePageRange>] [-Rotation <int>] [-BoxName <PdfPageBoundaryBox>] [-BoxLeft <OfficeLength>] [-BoxBottom <OfficeLength>] [-BoxRight <OfficeLength>] [-BoxTop <OfficeLength>] [-PageSize <OfficePageSize>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Orientation <OfficePageOrientation>] [-ResizeMode <PdfPageResizeMode>] [-ResizeMargin <OfficeLength>] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### PathDirectory
+```powershell
+Set-OfficePdfPage [-Path] <string[]> -OutputDirectory <string> [-Page <OfficePageRange>] [-Rotation <int>] [-BoxName <PdfPageBoundaryBox>] [-BoxLeft <OfficeLength>] [-BoxBottom <OfficeLength>] [-BoxRight <OfficeLength>] [-BoxTop <OfficeLength>] [-PageSize <OfficePageSize>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Orientation <OfficePageOrientation>] [-ResizeMode <PdfPageResizeMode>] [-ResizeMargin <OfficeLength>] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Set-OfficePdfPage -LiteralPath <string[]> -OutputPath <string> [-Page <OfficePageRange>] [-Rotation <int>] [-BoxName <PdfPageBoundaryBox>] [-BoxLeft <OfficeLength>] [-BoxBottom <OfficeLength>] [-BoxRight <OfficeLength>] [-BoxTop <OfficeLength>] [-PageSize <OfficePageSize>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Orientation <OfficePageOrientation>] [-ResizeMode <PdfPageResizeMode>] [-ResizeMargin <OfficeLength>] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### LiteralPathDirectory
+```powershell
+Set-OfficePdfPage -LiteralPath <string[]> -OutputDirectory <string> [-Page <OfficePageRange>] [-Rotation <int>] [-BoxName <PdfPageBoundaryBox>] [-BoxLeft <OfficeLength>] [-BoxBottom <OfficeLength>] [-BoxRight <OfficeLength>] [-BoxTop <OfficeLength>] [-PageSize <OfficePageSize>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Orientation <OfficePageOrientation>] [-ResizeMode <PdfPageResizeMode>] [-ResizeMargin <OfficeLength>] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Sets page-level PDF properties and writes a new PDF.
+Rotates pages, sets boundary boxes or resizes pages through the native PDF engine.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $proof = @(
-    Set-OfficePdfPage -Path .\Examples\Documents\Scanned.pdf -PageRange '2,4' -Rotation 90 -OutputPath .\Examples\Documents\Scanned-Rotated.pdf
-    Get-OfficePdfInfo -Path .\Examples\Documents\Scanned-Rotated.pdf | Select-Object PageCount
-)
-$proof
+Set-OfficePdfPage -BoxBottom 'Value'
 ```
 
-Rotates selected pages and writes a new PDF.
+
+### EXAMPLE 2
+```powershell
+Set-OfficePdfPage -LiteralPath @('C:\Path') -OutputPath 'C:\Path'
+```
+
+
+### EXAMPLE 3
+```powershell
+Set-OfficePdfPage -LiteralPath @('C:\Path') -OutputDirectory 'Value'
+```
+
 
 ## PARAMETERS
 
-### -Bottom
-Bottom coordinate for the page boundary box.
+### -BoxBottom
+Bottom boundary coordinate.
 
 ```yaml
-Type: Double
-Parameter Sets: __AllParameterSets
+Type: OfficeLength
+Parameter Sets: Document, Path, PathDirectory, LiteralPath, LiteralPathDirectory
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -BoxLeft
+Left boundary coordinate.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: Document, Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -49,11 +92,11 @@ Accept wildcard characters: False
 ```
 
 ### -BoxName
-Page boundary box to set. Supported values are MediaBox, CropBox, BleedBox, TrimBox, and ArtBox.
+Page boundary box to set.
 
 ```yaml
 Type: PdfPageBoundaryBox
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document, Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values: MediaBox, CropBox, BleedBox, TrimBox, ArtBox
 
@@ -64,12 +107,60 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Height
-Custom page height in points when -PageSize Custom is used.
+### -BoxRight
+Right boundary coordinate.
 
 ```yaml
-Type: Double
-Parameter Sets: __AllParameterSets
+Type: OfficeLength
+Parameter Sets: Document, Path, PathDirectory, LiteralPath, LiteralPathDirectory
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -BoxTop
+Top boundary coordinate.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: Document, Path, PathDirectory, LiteralPath, LiteralPathDirectory
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Document
+Explicit native input; omission uses the enclosing New-/Open- content block.
+
+```yaml
+Type: PdfDocument
+Parameter Sets: Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
+### -Height
+Custom page height.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: Document, Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -81,11 +172,11 @@ Accept wildcard characters: False
 ```
 
 ### -IgnorePermissionRestrictions
-After successful password authentication, explicitly ignore owner-imposed page-modification restrictions.
+After authentication, explicitly ignore owner-imposed usage restrictions.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -96,28 +187,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Landscape
-Use the landscape orientation of the selected page size.
+### -LiteralPath
+Literal input files, including FileInfo.FullName.
 
 ```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
+Type: String[]
+Parameter Sets: LiteralPath, LiteralPathDirectory
+Aliases: FullName, PSPath
 Possible values:
 
-Required: False
+Required: True
 Position: named
 Default value: None
-Accept pipeline input: False
+Accept pipeline input: True (ByPropertyName)
 Accept wildcard characters: False
 ```
 
-### -Left
-Left coordinate for the page boundary box.
+### -LoadOptions
+Native source parsing, authentication and resource settings.
 
 ```yaml
-Type: Double
-Parameter Sets: __AllParameterSets
+Type: PdfLoadOptions
+Parameter Sets: Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -128,12 +219,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -OutputPath
-Output PDF path.
+### -Orientation
+Orientation of the target page.
+
+```yaml
+Type: OfficePageOrientation
+Parameter Sets: Document, Path, PathDirectory, LiteralPath, LiteralPathDirectory
+Aliases: None
+Possible values: Portrait, Landscape
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -OutputDirectory
+Destination folder retaining input file names.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: PathDirectory, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -144,12 +251,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -PageRange
-Page ranges such as 1-3,5. Omit to affect all pages.
+### -OutputPath
+Single-file destination.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
+Aliases: None
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Page
+One-based pages; omission selects every page.
+
+```yaml
+Type: OfficePageRange
+Parameter Sets: Document, Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -161,11 +284,11 @@ Accept wildcard characters: False
 ```
 
 ### -PageSize
-Resize selected pages to a known OfficeIMO page size such as A4, Letter, or Custom.
+Paper preset or physical dimensions for resizing.
 
 ```yaml
-Type: String
-Parameter Sets: __AllParameterSets
+Type: OfficePageSize
+Parameter Sets: Document, Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -177,11 +300,11 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the object created or changed by the command.
+Emit the updated native document or each saved FileInfo.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document, Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -193,11 +316,11 @@ Accept wildcard characters: False
 ```
 
 ### -Password
-Password used to authenticate an encrypted PDF.
+Source password.
 
 ```yaml
 Type: SecureString
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -209,27 +332,27 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Input PDF path.
+Input files with FileSystem wildcard expansion.
 
 ```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: FilePath
+Type: String[]
+Parameter Sets: Path, PathDirectory
+Aliases: None
 Possible values:
 
 Required: True
-Position: named
+Position: 0
 Default value: None
 Accept pipeline input: False
-Accept wildcard characters: False
+Accept wildcard characters: True
 ```
 
 ### -ResizeMargin
-Margin, in points, reserved around resized page content.
+Margin reserved around fitted content.
 
 ```yaml
-Type: Double
-Parameter Sets: __AllParameterSets
+Type: OfficeLength
+Parameter Sets: Document, Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -241,11 +364,11 @@ Accept wildcard characters: False
 ```
 
 ### -ResizeMode
-How source page content is fitted into the resized output page.
+How original page content fits the resized page.
 
 ```yaml
 Type: PdfPageResizeMode
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document, Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values: Fit, Fill, Stretch
 
@@ -256,28 +379,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Right
-Right coordinate for the page boundary box.
-
-```yaml
-Type: Double
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -Rotation
-Rotation in degrees. Supported values are 0, 90, 180, and 270.
+Absolute rotation in degrees.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document, Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values: 0, 90, 180, 270
 
@@ -288,28 +395,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Top
-Top coordinate for the page boundary box.
-
-```yaml
-Type: Double
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -Width
-Custom page width in points when -PageSize Custom is used.
+Custom page width.
 
 ```yaml
-Type: Double
-Parameter Sets: __AllParameterSets
+Type: OfficeLength
+Parameter Sets: Document, Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -325,10 +416,12 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `None`
+- `OfficeIMO.Pdf.PdfDocument`
+- `System.String[]`
 
 ## OUTPUTS
 
+- `OfficeIMO.Pdf.PdfDocument`
 - `System.IO.FileInfo`
 
 ## RELATED LINKS

@@ -6,85 +6,49 @@ schema: 2.0.0
 ---
 # Get-OfficeExcelDocumentProperty
 ## SYNOPSIS
-Gets built-in and application document properties from an Excel workbook.
+Gets built-in, application and custom document properties.
 
 ## SYNTAX
-### Path
+### Document (Default)
 ```powershell
-Get-OfficeExcelDocumentProperty [-Path] <string> [-Name <string[]>] [-BuiltIn] [-Application] [-Custom] [<CommonParameters>]
+Get-OfficeExcelDocumentProperty [-Name <string[]>] [-Kind <ExcelDocumentPropertyKind[]>] [-Document <ExcelDocument>] [<CommonParameters>]
 ```
 
-### Document
+### Path
 ```powershell
-Get-OfficeExcelDocumentProperty -Document <ExcelDocument> [-Name <string[]>] [-BuiltIn] [-Application] [-Custom] [<CommonParameters>]
+Get-OfficeExcelDocumentProperty [-Path] <string[]> [-Name <string[]>] [-Kind <ExcelDocumentPropertyKind[]>] [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Get-OfficeExcelDocumentProperty -LiteralPath <string[]> [-Name <string[]>] [-Kind <ExcelDocumentPropertyKind[]>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Gets built-in and application document properties from an Excel workbook.
+Gets built-in, application and custom document properties.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $properties = Get-OfficeExcelDocumentProperty -Path .\Report.xlsx -Name Title,Company,Department
-$properties |
-    Format-Table Name, Value, Scope
+Get-OfficeExcelDocumentProperty -Path .\Reports\Q3-Sales.xlsx
 ```
 
-Returns matching built-in, application, and custom workbook properties as structured objects.
+Lists the built-in, application and custom properties of a workbook.
+
+### EXAMPLE 2
+```powershell
+Get-ChildItem -Path \\files\Reports -Filter *.xlsx |
+                Get-OfficeExcelDocumentProperty -Name Owner, Classification -Kind Custom |
+                Format-Table
+```
+
+Reads the custom Owner and Classification properties of every workbook on the share.
 
 ## PARAMETERS
 
-### -Application
-Only return application properties such as Company and Manager.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Path, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -BuiltIn
-Only return core package properties.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Path, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Custom
-Only return custom workbook properties.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Path, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -Document
-Workbook to inspect.
+Caller-owned workbook; omission uses the enclosing Excel content block.
 
 ```yaml
 Type: ExcelDocument
@@ -92,10 +56,42 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
+### -Kind
+Metadata kind to add.
+
+```yaml
+Type: ExcelDocumentPropertyKind[]
+Parameter Sets: Document, Path, LiteralPath
+Aliases: None
+Possible values: BuiltIn, Application, Custom
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -LiteralPath
+Literal workbook paths, including FileInfo.FullName and provider PSPath.
+
+```yaml
+Type: String[]
+Parameter Sets: LiteralPath
+Aliases: PSPath, FullName
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
 Accept wildcard characters: False
 ```
 
@@ -104,7 +100,7 @@ Property name filter (wildcards supported).
 
 ```yaml
 Type: String[]
-Parameter Sets: Path, Document
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -112,22 +108,22 @@ Required: False
 Position: named
 Default value: None
 Accept pipeline input: False
-Accept wildcard characters: True
+Accept wildcard characters: False
 ```
 
 ### -Path
-Path to the workbook.
+Workbook paths resolved with filesystem wildcard support.
 
 ```yaml
-Type: String
+Type: String[]
 Parameter Sets: Path
-Aliases: InputPath, FilePath, FullName, LiteralPath
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue, ByPropertyName)
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
@@ -136,12 +132,12 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `System.String`
+- `System.String[]`
 - `OfficeIMO.Excel.ExcelDocument`
 
 ## OUTPUTS
 
-- `PSWriteOffice.Models.Excel.ExcelDocumentPropertyInfo`: Represents an Excel document property exposed to PowerShell.
+- `None`
 
 ## RELATED LINKS
 

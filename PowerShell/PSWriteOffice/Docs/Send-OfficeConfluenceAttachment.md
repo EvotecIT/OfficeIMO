@@ -9,9 +9,14 @@ schema: 2.0.0
 Uploads or versions a Confluence page attachment.
 
 ## SYNTAX
-### __AllParameterSets
+### Path (Default)
 ```powershell
-Send-OfficeConfluenceAttachment [-Path] <string> -Session <ConfluenceSession> -PageId <string> [-FileName <string>] [-ContentType <string>] [-Comment <string>] [-MinorEdit <bool>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Send-OfficeConfluenceAttachment [-Path] <string[]> -Session <ConfluenceSession> -PageId <string> [-FileName <string>] [-ContentType <string>] [-Comment <string>] [-NoMinorEdit] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Send-OfficeConfluenceAttachment -Session <ConfluenceSession> -PageId <string> -LiteralPath <string[]> [-FileName <string>] [-ContentType <string>] [-Comment <string>] [-NoMinorEdit] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -33,7 +38,7 @@ Optional attachment version comment.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -49,7 +54,7 @@ MIME content type.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -65,7 +70,7 @@ Optional attachment file name. Defaults to the local file name.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -76,12 +81,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -MinorEdit
+### -LiteralPath
+Literal local files, including FileInfo.FullName.
+
+```yaml
+Type: String[]
+Parameter Sets: LiteralPath
+Aliases: FullName, PSPath
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -NoMinorEdit
 Whether the attachment update is a minor edit.
 
 ```yaml
-Type: Boolean
-Parameter Sets: __AllParameterSets
+Type: SwitchParameter
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -97,7 +118,7 @@ Page identifier.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -112,8 +133,8 @@ Accept wildcard characters: False
 Local file to upload.
 
 ```yaml
-Type: String
-Parameter Sets: __AllParameterSets
+Type: String[]
+Parameter Sets: Path
 Aliases: None
 Possible values:
 
@@ -129,7 +150,7 @@ Configured Confluence session.
 
 ```yaml
 Type: ConfluenceSession
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -145,7 +166,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `None`
+- `System.String[]`
 
 ## OUTPUTS
 

@@ -9,19 +9,14 @@ schema: 2.0.0
 Searches OfficeIMO Visio stencil catalogs.
 
 ## SYNTAX
-### Query (Default)
+### Catalog (Default)
 ```powershell
-Find-OfficeVisioStencil [[-Query] <string>] [-Catalog <VisioStencilCatalog>] [-First <int>] [<CommonParameters>]
-```
-
-### CatalogName
-```powershell
-Find-OfficeVisioStencil [[-Query] <string>] [-Catalog <VisioStencilCatalog>] [-CatalogName <string>] [-First <int>] [<CommonParameters>]
+Find-OfficeVisioStencil [[-Query] <string>] [-Catalog <Object>] [-First <int>] [<CommonParameters>]
 ```
 
 ### BuiltIn
 ```powershell
-Find-OfficeVisioStencil [[-Query] <string>] [-Catalog <VisioStencilCatalog>] [-BuiltIn <OfficeVisioBuiltInStencilCatalog>] [-First <int>] [<CommonParameters>]
+Find-OfficeVisioStencil [[-Query] <string>] -BuiltIn <OfficeVisioBuiltInStencilCatalog> [-First <int>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -48,7 +43,7 @@ Parameter Sets: BuiltIn
 Aliases: None
 Possible values: All, BasicShapes, Flowchart, BlockDiagram, Architecture, Network, Infrastructure, Cloud, SecurityIdentity, ContainersKubernetes, DataPlatform, CollaborationBusiness, Swimlane, OrgChart, Timeline, Sequence
 
-Required: False
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -56,11 +51,11 @@ Accept wildcard characters: False
 ```
 
 ### -Catalog
-Catalog object to search. Defaults to the combined built-in catalog.
+A stencil catalog object or a name registered in the current Visio block.
 
 ```yaml
-Type: VisioStencilCatalog
-Parameter Sets: Query, CatalogName, BuiltIn
+Type: Object
+Parameter Sets: Catalog
 Aliases: None
 Possible values:
 
@@ -71,28 +66,12 @@ Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
-### -CatalogName
-Catalog previously registered in the active Visio DSL scope.
-
-```yaml
-Type: String
-Parameter Sets: CatalogName
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -First
 Maximum number of shapes to return.
 
 ```yaml
 Type: Int32
-Parameter Sets: Query, CatalogName, BuiltIn
+Parameter Sets: Catalog, BuiltIn
 Aliases: None
 Possible values:
 
@@ -108,7 +87,7 @@ Search text. Empty search returns catalog contents.
 
 ```yaml
 Type: String
-Parameter Sets: Query, CatalogName, BuiltIn
+Parameter Sets: Catalog, BuiltIn
 Aliases: None
 Possible values:
 
@@ -124,7 +103,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.Visio.Stencils.VisioStencilCatalog`
+- `System.Object`
 
 ## OUTPUTS
 

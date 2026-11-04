@@ -6,25 +6,43 @@ schema: 2.0.0
 ---
 # Set-OfficeExcelColumnGroup
 ## SYNOPSIS
-Configures collapsible Excel outline grouping for worksheet columns.
+Groups columns into a collapsible outline, or clears grouping.
 
 ## SYNTAX
 ### Default (Default)
 ```powershell
-Set-OfficeExcelColumnGroup [[-StartColumn] <Object>] [[-EndColumn] <Object>] [-StartColumnName <string>] [-EndColumnName <string>] [-OutlineLevel <int>] [-Collapsed] [-Hidden] [-Clear] [-KeepHidden] [-SummaryRight <Boolean>] [-PassThru] [<CommonParameters>]
+Set-OfficeExcelColumnGroup [-StartColumn] <Object> [[-EndColumn] <Object>] [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector>] [-OutlineLevel <int>] [-Collapsed] [-Hidden] [-Clear] [-KeepHidden] [-SummaryLeft] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Configures collapsible Excel outline grouping for worksheet columns.
+Groups columns into a collapsible outline, or clears grouping.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> ExcelSheet 'Data' { Set-OfficeExcelColumnGroup -StartColumn B -EndColumn D -Collapsed }
+Open-OfficeExcel -Path .\Reports\Budget-2027.xlsx {
+    ExcelSheet 'Departments' {
+        ExcelColumnGroup B M
+    }
+}
 ```
 
-Applies Excel column outline metadata using OfficeIMO.
+Groups columns B to M, the monthly figures, next to the yearly total.
+
+### EXAMPLE 2
+```powershell
+Open-OfficeExcel -Path .\Reports\Forecast.xlsx {
+    ExcelSheet 'Forecast' {
+        ExcelColumnGroup B D -Collapsed
+        ExcelColumnGroup F H -Collapsed
+        ExcelColumnGroup J L -Collapsed
+        ExcelColumnGroup N P -Collapsed
+    }
+}
+```
+
+Groups each quarter's three months and collapses them, so the sheet shows the quarterly totals first.
 
 ## PARAMETERS
 
@@ -60,6 +78,22 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Document
+Caller-owned workbook; omission uses the enclosing Excel content block.
+
+```yaml
+Type: ExcelDocument
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
 ### -EndColumn
 Last 1-based column in the group. Defaults to the start column.
 
@@ -71,22 +105,6 @@ Possible values:
 
 Required: False
 Position: 1
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -EndColumnName
-Last column letter in the group.
-
-```yaml
-Type: String
-Parameter Sets: Default
-Aliases: EndColumnLetter
-Possible values:
-
-Required: False
-Position: named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -141,10 +159,26 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the object created or changed by the command.
+Emits the native result after the operation.
 
 ```yaml
 Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Sheet
+Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.
+
+```yaml
+Type: OfficeSheetSelector
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -162,37 +196,21 @@ First 1-based column in the group.
 ```yaml
 Type: Object
 Parameter Sets: Default
-Aliases: Column
+Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: 0
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -StartColumnName
-First column letter in the group.
+### -SummaryLeft
+Places outline summary columns to the left; explicit false places them to the right.
 
 ```yaml
-Type: String
-Parameter Sets: Default
-Aliases: StartColumnLetter, ColumnName, ColumnLetter, Letter
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -SummaryRight
-Set whether column summary controls appear to the right of grouped columns.
-
-```yaml
-Type: Boolean
+Type: SwitchParameter
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -209,7 +227,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `None`
+- `OfficeIMO.Excel.ExcelDocument`
 
 ## OUTPUTS
 

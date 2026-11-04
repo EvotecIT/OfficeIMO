@@ -9,14 +9,14 @@ schema: 2.0.0
 Converts objects or a CSV document into CSV text.
 
 ## SYNTAX
-### InputObjectDelimiter (Default)
+### InputObject (Default)
 ```powershell
-ConvertTo-OfficeCsv [-InputObject <Object>] [-Delimiter <char>] [-DelimiterText <string>] [-NoHeader] [-NewLine <string>] [-Culture <cultureinfo>] [-FormulaInjectionPolicy <CsvFormulaInjectionPolicy>] [-UseQuotes <CsvQuoteMode>] [-QuoteFields <string[]>] [-NullValue <string>] [-DateTimeFormat <string>] [-UseUtc] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [<CommonParameters>]
+ConvertTo-OfficeCsv -InputObject <Object> [-Delimiter <string>] [-NoHeader] [-NewLine <string>] [-Culture <cultureinfo>] [-FormulaInjectionPolicy <CsvFormulaInjectionPolicy>] [-UseQuotes <CsvQuoteMode>] [-QuoteFields <string[]>] [-NullValue <string>] [-DateTimeFormat <string>] [-UseUtc] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [<CommonParameters>]
 ```
 
-### DocumentDelimiter
+### Document
 ```powershell
-ConvertTo-OfficeCsv -Document <CsvDocument> [-Delimiter <char>] [-DelimiterText <string>] [-NoHeader] [-NewLine <string>] [-Culture <cultureinfo>] [-FormulaInjectionPolicy <CsvFormulaInjectionPolicy>] [-UseQuotes <CsvQuoteMode>] [-QuoteFields <string[]>] [-NullValue <string>] [-DateTimeFormat <string>] [-UseUtc] [<CommonParameters>]
+ConvertTo-OfficeCsv -Document <CsvDocument> [-Delimiter <string>] [-NoHeader] [-NewLine <string>] [-Culture <cultureinfo>] [-FormulaInjectionPolicy <CsvFormulaInjectionPolicy>] [-UseQuotes <CsvQuoteMode>] [-QuoteFields <string[]>] [-NullValue <string>] [-DateTimeFormat <string>] [-UseUtc] [<CommonParameters>]
 ```
 
 ### DocumentCulture
@@ -26,7 +26,7 @@ ConvertTo-OfficeCsv -Document <CsvDocument> -UseCulture [-NoHeader] [-NewLine <s
 
 ### InputObjectCulture
 ```powershell
-ConvertTo-OfficeCsv -UseCulture [-InputObject <Object>] [-NoHeader] [-NewLine <string>] [-Culture <cultureinfo>] [-FormulaInjectionPolicy <CsvFormulaInjectionPolicy>] [-UseQuotes <CsvQuoteMode>] [-QuoteFields <string[]>] [-NullValue <string>] [-DateTimeFormat <string>] [-UseUtc] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [<CommonParameters>]
+ConvertTo-OfficeCsv -InputObject <Object> -UseCulture [-NoHeader] [-NewLine <string>] [-Culture <cultureinfo>] [-FormulaInjectionPolicy <CsvFormulaInjectionPolicy>] [-UseQuotes <CsvQuoteMode>] [-QuoteFields <string[]>] [-NullValue <string>] [-DateTimeFormat <string>] [-UseUtc] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -66,7 +66,7 @@ Culture used for value formatting.
 
 ```yaml
 Type: CultureInfo
-Parameter Sets: InputObjectDelimiter, DocumentDelimiter, DocumentCulture, InputObjectCulture
+Parameter Sets: InputObject, Document, DocumentCulture, InputObjectCulture
 Aliases: None
 Possible values:
 
@@ -82,7 +82,7 @@ Date/time format used for DateTime and DateTimeOffset values.
 
 ```yaml
 Type: String
-Parameter Sets: InputObjectDelimiter, DocumentDelimiter, DocumentCulture, InputObjectCulture
+Parameter Sets: InputObject, Document, DocumentCulture, InputObjectCulture
 Aliases: None
 Possible values:
 
@@ -94,27 +94,11 @@ Accept wildcard characters: False
 ```
 
 ### -Delimiter
-Field delimiter character.
-
-```yaml
-Type: Char
-Parameter Sets: InputObjectDelimiter, DocumentDelimiter
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -DelimiterText
-Field delimiter text for multi-character delimiters such as || or ::.
+Field delimiter text, including multi-character separators.
 
 ```yaml
 Type: String
-Parameter Sets: InputObjectDelimiter, DocumentDelimiter
+Parameter Sets: InputObject, Document
 Aliases: None
 Possible values:
 
@@ -130,7 +114,7 @@ CSV document to serialize.
 
 ```yaml
 Type: CsvDocument
-Parameter Sets: DocumentDelimiter, DocumentCulture
+Parameter Sets: Document, DocumentCulture
 Aliases: None
 Possible values:
 
@@ -146,7 +130,7 @@ Controls how formula-like values are written.
 
 ```yaml
 Type: CsvFormulaInjectionPolicy
-Parameter Sets: InputObjectDelimiter, DocumentDelimiter, DocumentCulture, InputObjectCulture
+Parameter Sets: InputObject, Document, DocumentCulture, InputObjectCulture
 Aliases: None
 Possible values: Preserve, Escape
 
@@ -162,11 +146,11 @@ Objects to convert into CSV rows.
 
 ```yaml
 Type: Object
-Parameter Sets: InputObjectDelimiter, InputObjectCulture
+Parameter Sets: InputObject, InputObjectCulture
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
@@ -178,7 +162,7 @@ Maximum number of items allowed in one nested collection or dictionary field. De
 
 ```yaml
 Type: Int32
-Parameter Sets: InputObjectDelimiter, InputObjectCulture
+Parameter Sets: InputObject, InputObjectCulture
 Aliases: None
 Possible values:
 
@@ -194,7 +178,7 @@ Maximum nesting depth allowed while normalizing one field value. Defaults to 64;
 
 ```yaml
 Type: Int32
-Parameter Sets: InputObjectDelimiter, InputObjectCulture
+Parameter Sets: InputObject, InputObjectCulture
 Aliases: None
 Possible values:
 
@@ -210,7 +194,7 @@ Override the newline sequence.
 
 ```yaml
 Type: String
-Parameter Sets: InputObjectDelimiter, DocumentDelimiter, DocumentCulture, InputObjectCulture
+Parameter Sets: InputObject, Document, DocumentCulture, InputObjectCulture
 Aliases: None
 Possible values:
 
@@ -226,7 +210,7 @@ Omit the header row from the output.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: InputObjectDelimiter, DocumentDelimiter, DocumentCulture, InputObjectCulture
+Parameter Sets: InputObject, Document, DocumentCulture, InputObjectCulture
 Aliases: None
 Possible values:
 
@@ -242,7 +226,7 @@ Token written for null values.
 
 ```yaml
 Type: String
-Parameter Sets: InputObjectDelimiter, DocumentDelimiter, DocumentCulture, InputObjectCulture
+Parameter Sets: InputObject, Document, DocumentCulture, InputObjectCulture
 Aliases: None
 Possible values:
 
@@ -258,7 +242,7 @@ Field names that should always be quoted when UseQuotes is AsNeeded.
 
 ```yaml
 Type: String[]
-Parameter Sets: InputObjectDelimiter, DocumentDelimiter, DocumentCulture, InputObjectCulture
+Parameter Sets: InputObject, Document, DocumentCulture, InputObjectCulture
 Aliases: None
 Possible values:
 
@@ -290,7 +274,7 @@ Controls when CSV fields are quoted. Defaults to quoting only fields that need i
 
 ```yaml
 Type: CsvQuoteMode
-Parameter Sets: InputObjectDelimiter, DocumentDelimiter, DocumentCulture, InputObjectCulture
+Parameter Sets: InputObject, Document, DocumentCulture, InputObjectCulture
 Aliases: None
 Possible values: AsNeeded, Always, Never
 
@@ -306,7 +290,7 @@ Convert date/time values to UTC before formatting.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: InputObjectDelimiter, DocumentDelimiter, DocumentCulture, InputObjectCulture
+Parameter Sets: InputObject, Document, DocumentCulture, InputObjectCulture
 Aliases: None
 Possible values:
 

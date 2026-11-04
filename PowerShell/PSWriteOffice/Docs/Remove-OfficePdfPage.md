@@ -11,17 +11,27 @@ Removes selected pages from a live PDF or writes edited file copies.
 ## SYNTAX
 ### Document (Default)
 ```powershell
-Remove-OfficePdfPage -Page <PdfPageSelector> [-Document <PdfDocument>] [-AllowLoss] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Remove-OfficePdfPage -Page <PdfPageSelector> [-Document <PdfDocument>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Path
 ```powershell
-Remove-OfficePdfPage [-Path] <string[]> -Page <PdfPageSelector> [-OutputPath <string>] [-OutputDirectory <string>] [-NoClobber] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-AllowLoss] [-PassThru] [-ThrottleLimit <int>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Remove-OfficePdfPage [-Path] <string[]> -Page <PdfPageSelector> -OutputPath <string> [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### PathDirectory
+```powershell
+Remove-OfficePdfPage [-Path] <string[]> -Page <PdfPageSelector> -OutputDirectory <string> [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### LiteralPath
 ```powershell
-Remove-OfficePdfPage -Page <PdfPageSelector> -LiteralPath <string[]> [-OutputPath <string>] [-OutputDirectory <string>] [-NoClobber] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-AllowLoss] [-PassThru] [-ThrottleLimit <int>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Remove-OfficePdfPage -Page <PdfPageSelector> -LiteralPath <string[]> -OutputPath <string> [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### LiteralPathDirectory
+```powershell
+Remove-OfficePdfPage -Page <PdfPageSelector> -LiteralPath <string[]> -OutputDirectory <string> [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -42,22 +52,6 @@ Open-OfficePdf ./Report.pdf { Remove-OfficePdfPage -Page last }
 
 
 ## PARAMETERS
-
-### -AllowLoss
-Explicitly accept fidelity loss when saving file outputs.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Document, Path, LiteralPath
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
 
 ### -Document
 Explicit native input; omission uses the enclosing New-/Open- content block.
@@ -80,7 +74,7 @@ After authentication, explicitly ignore owner-imposed usage restrictions.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Path, LiteralPath
+Parameter Sets: Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -92,12 +86,12 @@ Accept wildcard characters: False
 ```
 
 ### -LiteralPath
-Gets or sets input paths without wildcard expansion, binding FileInfo.FullName and provider PSPath.
+Literal input files, including FileInfo.FullName.
 
 ```yaml
 Type: String[]
-Parameter Sets: LiteralPath
-Aliases: PSPath, FullName
+Parameter Sets: LiteralPath, LiteralPathDirectory
+Aliases: FullName, PSPath
 Possible values:
 
 Required: True
@@ -108,27 +102,11 @@ Accept wildcard characters: False
 ```
 
 ### -LoadOptions
-Native source parsing, authentication and resource-limit settings.
+Native source parsing, authentication and resource settings.
 
 ```yaml
 Type: PdfLoadOptions
-Parameter Sets: Path, LiteralPath
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -NoClobber
-Refuse replacement of an existing file output.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Path, LiteralPath
+Parameter Sets: Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -140,15 +118,15 @@ Accept wildcard characters: False
 ```
 
 ### -OutputDirectory
-Destination folder for one or more inputs, retaining their file names.
+Destination folder retaining input file names.
 
 ```yaml
 Type: String
-Parameter Sets: Path, LiteralPath
+Parameter Sets: PathDirectory, LiteralPathDirectory
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -156,7 +134,7 @@ Accept wildcard characters: False
 ```
 
 ### -OutputPath
-Single-file destination. Cannot be combined with OutputDirectory.
+Single-file destination.
 
 ```yaml
 Type: String
@@ -164,7 +142,7 @@ Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -176,7 +154,7 @@ Native selector, one-based page or range expression, including last, odd and eve
 
 ```yaml
 Type: PdfPageSelector
-Parameter Sets: Document, Path, LiteralPath
+Parameter Sets: Document, Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -192,7 +170,7 @@ Emit the updated native document or each saved FileInfo.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Document, Path, LiteralPath
+Parameter Sets: Document, Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -204,11 +182,11 @@ Accept wildcard characters: False
 ```
 
 ### -Password
-Source password as secure input or a warned plaintext value.
+Source password.
 
 ```yaml
 Type: SecureString
-Parameter Sets: Path, LiteralPath
+Parameter Sets: Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -220,35 +198,19 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Gets or sets input paths with provider wildcard expansion.
+Input files with FileSystem wildcard expansion.
 
 ```yaml
 Type: String[]
-Parameter Sets: Path
+Parameter Sets: Path, PathDirectory
 Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue)
-Accept wildcard characters: True
-```
-
-### -ThrottleLimit
-Gets or sets the maximum number of concurrent background operations.
-
-```yaml
-Type: Int32
-Parameter Sets: Path, LiteralPath
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
 Accept pipeline input: False
-Accept wildcard characters: False
+Accept wildcard characters: True
 ```
 
 ### CommonParameters

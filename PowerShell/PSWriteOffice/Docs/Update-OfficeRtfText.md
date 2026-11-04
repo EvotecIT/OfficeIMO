@@ -9,9 +9,14 @@ schema: 2.0.0
 Applies lossless text and metadata edits to an RTF document.
 
 ## SYNTAX
-### __AllParameterSets
+### Path (Default)
 ```powershell
 Update-OfficeRtfText [-Path] <string> -OutputPath <string> [-OldText <string>] [-NewText <string>] [-CaseInsensitive] [-AppendParagraph <string[]>] [-DocumentProperty <IDictionary>] [-UserProperty <IDictionary>] [-DocumentVariable <IDictionary>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Update-OfficeRtfText -LiteralPath <string> -OutputPath <string> [-OldText <string>] [-NewText <string>] [-CaseInsensitive] [-AppendParagraph <string[]>] [-DocumentProperty <IDictionary>] [-UserProperty <IDictionary>] [-DocumentVariable <IDictionary>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -34,7 +39,7 @@ Plain paragraphs to append to the end of the RTF document.
 
 ```yaml
 Type: String[]
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -50,7 +55,7 @@ Use ordinal case-insensitive text replacement.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -66,7 +71,7 @@ Document info fields to set, such as Title, Author, Company, or Comments.
 
 ```yaml
 Type: IDictionary
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -82,7 +87,7 @@ Document variables to set.
 
 ```yaml
 Type: IDictionary
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -93,12 +98,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -LiteralPath
+Literal source RTF file.
+
+```yaml
+Type: String
+Parameter Sets: LiteralPath
+Aliases: FullName, PSPath
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
 ### -NewText
 Replacement visible text.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -114,7 +135,7 @@ Visible text to replace.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -130,7 +151,7 @@ Destination RTF file path.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -146,7 +167,7 @@ Emit a FileInfo for chaining.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -162,7 +183,7 @@ Source RTF file path.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path
 Aliases: FilePath
 Possible values:
 
@@ -178,7 +199,7 @@ Custom user properties to set.
 
 ```yaml
 Type: IDictionary
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 

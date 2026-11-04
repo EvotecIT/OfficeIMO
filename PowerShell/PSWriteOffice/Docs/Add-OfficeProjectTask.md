@@ -11,7 +11,7 @@ Adds a task or summary with a duration expressed in working days.
 ## SYNTAX
 ### Document (Default)
 ```powershell
-Add-OfficeProjectTask [-Name] <string> -Document <ProjectDocument> [-DurationDays <Decimal>] [-ParentUid <Int32>] [-Summary] [-Manual] [-PassThru] [<CommonParameters>]
+Add-OfficeProjectTask [-Name] <string> [-Document <ProjectDocument>] [-DurationDays <Decimal>] [-Parent <OfficeProjectTaskSelector>] [-Summary] [-Manual] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -36,7 +36,7 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
@@ -91,11 +91,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -ParentUid
+### -Parent
 Parent summary UID; omission adds a root task.
 
 ```yaml
-Type: Int32
+Type: OfficeProjectTaskSelector
 Parameter Sets: Document
 Aliases: None
 Possible values:

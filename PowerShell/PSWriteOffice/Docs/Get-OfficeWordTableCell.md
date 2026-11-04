@@ -27,12 +27,12 @@ $cell.Paragraphs |
     Select-Object -Property Text
 ```
 
-Gets a zero-based table cell from an OfficeIMO table object and inspects its paragraphs.
+Gets a one-based table cell from an OfficeIMO table object and inspects its paragraphs.
 
 ## PARAMETERS
 
 ### -Column
-Optional zero-based column index.
+Optional one-based column index.
 
 ```yaml
 Type: Int32
@@ -48,7 +48,7 @@ Accept wildcard characters: False
 ```
 
 ### -Row
-Optional zero-based row index.
+Optional one-based row index.
 
 ```yaml
 Type: Int32

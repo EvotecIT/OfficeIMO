@@ -6,7 +6,7 @@ schema: 2.0.0
 ---
 # Add-OfficeExcelReportTitle
 ## SYNOPSIS
-Adds a title block to the current Excel report sheet.
+Adds the report title and subtitle.
 
 ## SYNTAX
 ### Default (Default)
@@ -15,26 +15,38 @@ Add-OfficeExcelReportTitle [-Title] <string> [[-Subtitle] <string>] [-PassThru] 
 ```
 
 ## DESCRIPTION
-Adds a title block to the current Excel report sheet.
+Adds the report title and subtitle.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> New-OfficeExcel -Path .\Operations.xlsx {
-    Add-OfficeExcelReportSheet -Name Summary {
-        Add-OfficeExcelReportTitle -Title 'Operational Summary' -Subtitle 'Current month'
-        Add-OfficeExcelReportKpiRow -InputObject @{ Revenue = 125000; Incidents = 3; Status = 'Ready' }
+New-OfficeExcel -Path .\Reports\Operations.xlsx {
+    ExcelReportSheet 'Summary' {
+        ExcelReportTitle 'Operations summary'
     }
 }
 ```
 
-Uses the OfficeIMO sheet composer through PSWriteOffice's thin report-block wrapper.
+Adds the title block at the top of a report sheet.
+
+### EXAMPLE 2
+```powershell
+$period = (Get-Date).ToString('MMMM yyyy')
+New-OfficeExcel -Path .\Reports\Capacity-Review.xlsx {
+    ExcelReportSheet 'Capacity' {
+        ExcelReportTitle 'Capacity review' "Storage and compute, $period"
+        ExcelReportTable (Import-OfficeCsv -Path .\Data\Capacity.csv) 'Clusters'
+    }
+}
+```
+
+Adds a title and a subtitle built from the current month, so a scheduled run labels itself.
 
 ## PARAMETERS
 
 ### -PassThru
-Emit the object created or changed by the command.
+Emits the native result after the operation.
 
 ```yaml
 Type: SwitchParameter
@@ -50,7 +62,7 @@ Accept wildcard characters: False
 ```
 
 ### -Subtitle
-Optional subtitle text.
+Dashboard subtitle.
 
 ```yaml
 Type: String
@@ -66,7 +78,7 @@ Accept wildcard characters: False
 ```
 
 ### -Title
-Title text.
+Chart title.
 
 ```yaml
 Type: String

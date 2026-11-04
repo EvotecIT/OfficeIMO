@@ -11,17 +11,17 @@ Adds a chart to a Word document.
 ## SYNTAX
 ### Context (Default)
 ```powershell
-Add-OfficeWordChart -InputObject <Object[]> -Category <string> -Value <string[]> [-Type <WordChartType>] [-WidthPixels <int>] [-HeightPixels <int>] [-Title <string>] [-SeriesColor <string[]>] [-Legend] [-LegendPosition <OfficeChartLegendPosition>] [-XAxisTitle <string>] [-YAxisTitle <string>] [-FitToPageWidth] [-WidthFraction <double>] [-PassThru] [<CommonParameters>]
+Add-OfficeWordChart -InputObject <Object[]> -Category <string> -Value <string[]> [-Type <OfficeChartType>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Title <string>] [-SeriesColor <OfficeColor[]>] [-Legend] [-LegendPosition <OfficeChartLegendPosition>] [-XAxisTitle <string>] [-YAxisTitle <string>] [-FitToPageWidth] [-WidthFraction <double>] [-PassThru] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Add-OfficeWordChart -InputObject <Object[]> -Category <string> -Value <string[]> [-Document <WordDocument>] [-Type <WordChartType>] [-WidthPixels <int>] [-HeightPixels <int>] [-Title <string>] [-SeriesColor <string[]>] [-Legend] [-LegendPosition <OfficeChartLegendPosition>] [-XAxisTitle <string>] [-YAxisTitle <string>] [-FitToPageWidth] [-WidthFraction <double>] [-PassThru] [<CommonParameters>]
+Add-OfficeWordChart -Document <WordDocument> -InputObject <Object[]> -Category <string> -Value <string[]> [-Type <OfficeChartType>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Title <string>] [-SeriesColor <OfficeColor[]>] [-Legend] [-LegendPosition <OfficeChartLegendPosition>] [-XAxisTitle <string>] [-YAxisTitle <string>] [-FitToPageWidth] [-WidthFraction <double>] [-PassThru] [<CommonParameters>]
 ```
 
 ### Paragraph
 ```powershell
-Add-OfficeWordChart -InputObject <Object[]> -Category <string> -Value <string[]> [-Paragraph <WordParagraph>] [-Type <WordChartType>] [-WidthPixels <int>] [-HeightPixels <int>] [-Title <string>] [-SeriesColor <string[]>] [-Legend] [-LegendPosition <OfficeChartLegendPosition>] [-XAxisTitle <string>] [-YAxisTitle <string>] [-FitToPageWidth] [-WidthFraction <double>] [-PassThru] [<CommonParameters>]
+Add-OfficeWordChart -Paragraph <WordParagraph> -InputObject <Object[]> -Category <string> -Value <string[]> [-Type <OfficeChartType>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Title <string>] [-SeriesColor <OfficeColor[]>] [-Legend] [-LegendPosition <OfficeChartLegendPosition>] [-XAxisTitle <string>] [-YAxisTitle <string>] [-FitToPageWidth] [-WidthFraction <double>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -86,10 +86,10 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: named
 Default value: None
-Accept pipeline input: True (ByValue)
+Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
@@ -109,11 +109,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -HeightPixels
-Chart height in pixels.
+### -Height
+Chart height; numbers mean points.
 
 ```yaml
-Type: Int32
+Type: OfficeLength
 Parameter Sets: Context, Document, Paragraph
 Aliases: None
 Possible values:
@@ -137,7 +137,7 @@ Possible values:
 Required: True
 Position: named
 Default value: None
-Accept pipeline input: False
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
@@ -182,10 +182,10 @@ Parameter Sets: Paragraph
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: named
 Default value: None
-Accept pipeline input: True (ByValue)
+Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
@@ -209,7 +209,7 @@ Accept wildcard characters: False
 Color values applied to the series in order.
 
 ```yaml
-Type: String[]
+Type: OfficeColor[]
 Parameter Sets: Context, Document, Paragraph
 Aliases: None
 Possible values:
@@ -241,10 +241,10 @@ Accept wildcard characters: False
 Chart type to create.
 
 ```yaml
-Type: WordChartType
+Type: OfficeChartType
 Parameter Sets: Context, Document, Paragraph
 Aliases: None
-Possible values: Pie, Bar, Line, Area
+Possible values: ColumnClustered, Column, ColumnStacked, ColumnStacked100, BarClustered, Bar, BarStacked, BarStacked100, Line, LineStacked, LineStacked100, Area, AreaStacked, AreaStacked100, Scatter, Radar, Pie, Doughnut, Bubble, Column3DClustered, Column3DStacked, Column3DStacked100, Bar3DClustered, Bar3DStacked, Bar3DStacked100, Line3D, Area3D, Area3DStacked, Area3DStacked100, Pie3D, PieOfPie, BarOfPie, Stock, Surface, SurfaceWireframe, SurfaceContour, Funnel, Waterfall, BoxWhisker, Treemap, SurfaceContourWireframe, Sunburst
 
 Required: False
 Position: named
@@ -269,11 +269,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -WidthFraction
-Fraction of the page content width to use when -FitToPageWidth is specified.
+### -Width
+Chart width; numbers mean points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Context, Document, Paragraph
 Aliases: None
 Possible values:
@@ -285,11 +285,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -WidthPixels
-Chart width in pixels.
+### -WidthFraction
+Fraction of the page content width to use when -FitToPageWidth is specified.
 
 ```yaml
-Type: Int32
+Type: Double
 Parameter Sets: Context, Document, Paragraph
 Aliases: None
 Possible values:
@@ -338,8 +338,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.Word.WordDocument`
-- `OfficeIMO.Word.WordParagraph`
+- `System.Object[]`
 
 ## OUTPUTS
 

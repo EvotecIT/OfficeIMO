@@ -11,7 +11,7 @@ Adds a built-in cover page template to a Word document.
 ## SYNTAX
 ### Default (Default)
 ```powershell
-Add-OfficeWordCoverPage [-Template] <WordCoverPageTemplate> [-Document <WordDocument>] [-PublishDate <string>] [-Abstract <string>] [-CompanyAddress <string>] [-CompanyEmail <string>] [-PassThru] [<CommonParameters>]
+Add-OfficeWordCoverPage [-Template] <WordCoverPageTemplate> [-Document <WordDocument>] [-Title <string>] [-Subtitle <string>] [-PublishDate <DateTime>] [-Abstract <string>] [-CompanyAddress <string>] [-CompanyEmail <string>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -112,6 +112,22 @@ Accept wildcard characters: False
 Publish date stored in the cover page properties custom XML part.
 
 ```yaml
+Type: DateTime
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Subtitle
+Document subject bound as the cover subtitle.
+
+```yaml
 Type: String
 Parameter Sets: Default
 Aliases: None
@@ -135,6 +151,22 @@ Possible values: Austin, Banded, Facet, Grid, IonDark, IonLight, Element, Wisp, 
 
 Required: True
 Position: 0
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Title
+Document title bound by the cover template.
+
+```yaml
+Type: String
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False

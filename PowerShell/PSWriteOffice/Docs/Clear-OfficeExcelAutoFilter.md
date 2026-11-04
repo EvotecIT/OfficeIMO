@@ -9,14 +9,9 @@ schema: 2.0.0
 Clears any AutoFilter on the current worksheet.
 
 ## SYNTAX
-### Context (Default)
+### Default (Default)
 ```powershell
-Clear-OfficeExcelAutoFilter [-PassThru] [<CommonParameters>]
-```
-
-### Document
-```powershell
-Clear-OfficeExcelAutoFilter -Document <ExcelDocument> [-Sheet <string>] [-SheetIndex <Int32>] [-PassThru] [<CommonParameters>]
+Clear-OfficeExcelAutoFilter [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -26,10 +21,25 @@ Clears any AutoFilter on the current worksheet.
 
 ### EXAMPLE 1
 ```powershell
-PS> ExcelSheet 'Data' { Clear-OfficeExcelAutoFilter }
+Open-OfficeExcel -Path .\Reports\Helpdesk.xlsx {
+    ExcelSheet 'Tickets' {
+        Clear-OfficeExcelAutoFilter
+    }
+}
 ```
 
-Removes filter dropdowns and criteria.
+Removes the filter buttons and any filter conditions from the Tickets sheet.
+
+### EXAMPLE 2
+```powershell
+$book = Open-OfficeExcel -Path .\Reports\Q3-Sales.xlsx
+foreach ($sheet in 'Orders', 'Returns', 'Customers') {
+    Clear-OfficeExcelAutoFilter -Document $book -Sheet $sheet
+}
+Save-OfficeExcel -Document $book -Path .\Outbox\Q3-Sales.xlsx -PassThru | Close-OfficeExcel
+```
+
+Removes the filters left on the working sheets so recipients see every row.
 
 ## PARAMETERS
 
@@ -38,11 +48,11 @@ Workbook to operate on outside the DSL context.
 
 ```yaml
 Type: ExcelDocument
-Parameter Sets: Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
@@ -54,7 +64,7 @@ Emit the object created or changed by the command.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -69,24 +79,8 @@ Accept wildcard characters: False
 Worksheet name when using Document.
 
 ```yaml
-Type: String
-Parameter Sets: Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -SheetIndex
-Worksheet index (0-based) when using Document.
-
-```yaml
-Type: Int32
-Parameter Sets: Document
+Type: OfficeSheetSelector
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

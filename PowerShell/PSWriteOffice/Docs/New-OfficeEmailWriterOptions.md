@@ -11,7 +11,7 @@ Creates deterministic email writer settings through ordinary PowerShell paramete
 ## SYNTAX
 ### Options (Default)
 ```powershell
-New-OfficeEmailWriterOptions [-ConversionLossPolicy <EmailConversionLossPolicy>] [-UsePreservedRawSource] [-IncludeBccHeader] [-Base64LineLength <int>] [-MaxNestedMessageDepth <int>] [-MaxOutputBytes <long>] [<CommonParameters>]
+New-OfficeEmailWriterOptions [-AllowLoss] [-UsePreservedRawSource] [-IncludeBccHeader] [-Base64LineLength <int>] [-MaxNestedMessageDepth <int>] [-MaxOutputBytes <long>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -28,11 +28,11 @@ $message | Save-OfficeEmail -Path .\Message.eml -Options $options -PassThru
 
 ## PARAMETERS
 
-### -Base64LineLength
-Maximum encoded characters on one Base64 body line.
+### -AllowLoss
+Policy applied when the requested format cannot preserve known message semantics.
 
 ```yaml
-Type: Int32
+Type: SwitchParameter
 Parameter Sets: Options
 Aliases: None
 Possible values:
@@ -44,14 +44,14 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -ConversionLossPolicy
-Policy applied when the requested format cannot preserve known message semantics.
+### -Base64LineLength
+Maximum encoded characters on one Base64 body line.
 
 ```yaml
-Type: EmailConversionLossPolicy
+Type: Int32
 Parameter Sets: Options
 Aliases: None
-Possible values: Block, Warn, Allow
+Possible values:
 
 Required: False
 Position: named

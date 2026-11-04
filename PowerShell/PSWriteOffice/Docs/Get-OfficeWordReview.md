@@ -6,35 +6,51 @@ schema: 2.0.0
 ---
 # Get-OfficeWordReview
 ## SYNOPSIS
-Inspects Word comments, threads, tracked revisions, and unsupported review metadata.
+Reports comments, threads, tracked revisions and unsupported review metadata.
 
 ## SYNTAX
-### Path (Default)
+### Document (Default)
 ```powershell
-Get-OfficeWordReview [-Path] <string> [<CommonParameters>]
+Get-OfficeWordReview [-Document <WordDocument>] [<CommonParameters>]
 ```
 
-### Document
+### Path
 ```powershell
-Get-OfficeWordReview -Document <WordDocument> [<CommonParameters>]
+Get-OfficeWordReview [-Path] <string[]> [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Get-OfficeWordReview -LiteralPath <string[]> [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Inspects Word comments, threads, tracked revisions, and unsupported review metadata.
+Reports comments, threads, tracked revisions and unsupported review metadata.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> Get-OfficeWordReview -Path .\Draft.docx
+Get-OfficeWordReview -Document 'Value'
 ```
 
-Returns a structured WordReviewReport without changing the document.
+
+### EXAMPLE 2
+```powershell
+Get-OfficeWordReview -LiteralPath @('C:\Path')
+```
+
+
+### EXAMPLE 3
+```powershell
+Get-OfficeWordReview -Path @('C:\Path')
+```
+
 
 ## PARAMETERS
 
 ### -Document
-Open Word document instance.
+Document for this inspection.
 
 ```yaml
 Type: WordDocument
@@ -42,27 +58,43 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
-### -Path
-Path to the Word document.
+### -LiteralPath
+LiteralPath for this inspection.
 
 ```yaml
-Type: String
+Type: String[]
+Parameter Sets: LiteralPath
+Aliases: PSPath, FullName
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -Path
+Path for this inspection.
+
+```yaml
+Type: String[]
 Parameter Sets: Path
-Aliases: FullName, LiteralPath
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue, ByPropertyName)
-Accept wildcard characters: False
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: True
 ```
 
 ### CommonParameters
@@ -70,7 +102,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `System.String`
+- `System.String[]`
 - `OfficeIMO.Word.WordDocument`
 
 ## OUTPUTS

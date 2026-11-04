@@ -6,55 +6,90 @@ schema: 2.0.0
 ---
 # Import-OfficeExcel
 ## SYNOPSIS
-Imports rows from an Excel workbook as PowerShell objects.
+Reads rows from a worksheet, range or table as objects.
 
 ## SYNTAX
+### Document (Default)
+```powershell
+Import-OfficeExcel [-Sheet <OfficeSheetSelector[]>] [-NoHeader] [-As <ExcelImportOutput>] [-NumericAsDecimal] [-FormulaMode <OfficeExcelFormulaMode>] [-Culture <cultureinfo>] [-SchemaSampleRows <int>] [-ChunkRows <int>] [-Range <string>] [-Document <ExcelDocument>] [<CommonParameters>]
+```
+
 ### Path
 ```powershell
-Import-OfficeExcel [-Path] <string> [-WorksheetName <string>] [-SheetIndex <Int32>] [-AllSheets] [-Range <string>] [-StartRow <Int32>] [-EndRow <Int32>] [-StartColumn <Int32>] [-EndColumn <Int32>] [-NoHeader] [-NumericAsDecimal] [-FormulaMode <OfficeExcelFormulaMode>] [-CultureName <string>] [-AsHashtable] [-AsDataTable] [-AsDataReader] [-ByColumn] [-SchemaSampleRows <int>] [-ChunkRows <int>] [<CommonParameters>]
+Import-OfficeExcel [-Path] <string[]> [-Sheet <OfficeSheetSelector[]>] [-NoHeader] [-As <ExcelImportOutput>] [-NumericAsDecimal] [-FormulaMode <OfficeExcelFormulaMode>] [-Culture <cultureinfo>] [-SchemaSampleRows <int>] [-ChunkRows <int>] [-Range <string>] [<CommonParameters>]
+```
+
+### PathTable
+```powershell
+Import-OfficeExcel [-Path] <string[]> -Table <string> [-NoHeader] [-As <ExcelImportOutput>] [-NumericAsDecimal] [-FormulaMode <OfficeExcelFormulaMode>] [-Culture <cultureinfo>] [-SchemaSampleRows <int>] [-ChunkRows <int>] [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Import-OfficeExcel -LiteralPath <string[]> [-Sheet <OfficeSheetSelector[]>] [-NoHeader] [-As <ExcelImportOutput>] [-NumericAsDecimal] [-FormulaMode <OfficeExcelFormulaMode>] [-Culture <cultureinfo>] [-SchemaSampleRows <int>] [-ChunkRows <int>] [-Range <string>] [<CommonParameters>]
 ```
 
 ### Uri
 ```powershell
-Import-OfficeExcel [-Uri] <uri> [-AllowHttp] [-WorksheetName <string>] [-SheetIndex <Int32>] [-AllSheets] [-Range <string>] [-StartRow <Int32>] [-EndRow <Int32>] [-StartColumn <Int32>] [-EndColumn <Int32>] [-NoHeader] [-NumericAsDecimal] [-FormulaMode <OfficeExcelFormulaMode>] [-CultureName <string>] [-AsHashtable] [-AsDataTable] [-AsDataReader] [-ByColumn] [-SchemaSampleRows <int>] [-ChunkRows <int>] [<CommonParameters>]
+Import-OfficeExcel [-Uri] <uri> [-Sheet <OfficeSheetSelector[]>] [-NoHeader] [-As <ExcelImportOutput>] [-NumericAsDecimal] [-FormulaMode <OfficeExcelFormulaMode>] [-Culture <cultureinfo>] [-SchemaSampleRows <int>] [-ChunkRows <int>] [-Range <string>] [-AllowHttp] [<CommonParameters>]
 ```
 
-### Document
+### LiteralPathTable
 ```powershell
-Import-OfficeExcel -Document <ExcelDocument> [-WorksheetName <string>] [-SheetIndex <Int32>] [-AllSheets] [-Range <string>] [-StartRow <Int32>] [-EndRow <Int32>] [-StartColumn <Int32>] [-EndColumn <Int32>] [-NoHeader] [-NumericAsDecimal] [-FormulaMode <OfficeExcelFormulaMode>] [-CultureName <string>] [-AsHashtable] [-AsDataTable] [-AsDataReader] [-ByColumn] [-SchemaSampleRows <int>] [-ChunkRows <int>] [<CommonParameters>]
+Import-OfficeExcel -Table <string> -LiteralPath <string[]> [-NoHeader] [-As <ExcelImportOutput>] [-NumericAsDecimal] [-FormulaMode <OfficeExcelFormulaMode>] [-Culture <cultureinfo>] [-SchemaSampleRows <int>] [-ChunkRows <int>] [<CommonParameters>]
+```
+
+### UriTable
+```powershell
+Import-OfficeExcel [-Uri] <uri> -Table <string> [-NoHeader] [-As <ExcelImportOutput>] [-NumericAsDecimal] [-FormulaMode <OfficeExcelFormulaMode>] [-Culture <cultureinfo>] [-SchemaSampleRows <int>] [-ChunkRows <int>] [-AllowHttp] [<CommonParameters>]
+```
+
+### DocumentTable
+```powershell
+Import-OfficeExcel -Table <string> [-NoHeader] [-As <ExcelImportOutput>] [-NumericAsDecimal] [-FormulaMode <OfficeExcelFormulaMode>] [-Culture <cultureinfo>] [-SchemaSampleRows <int>] [-ChunkRows <int>] [-Document <ExcelDocument>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Provides a fast PowerShell read command over the OfficeIMO reader pipeline.
+Reads rows from a worksheet, range or table as objects.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $rows = Import-OfficeExcel -Path .\Report.xlsx -WorksheetName Data -NumericAsDecimal
-$rows |
-    Where-Object Status -eq 'Pending' |
-    Export-Csv -Path .\PendingRows.csv -NoTypeInformation
+Import-OfficeExcel -Path .\Reports\Q3-Sales.xlsx
 ```
 
-Reads the used range on the Data worksheet, emits PSCustomObjects, and filters them in PowerShell.
+Reads the used range of the first worksheet, using the header row as property names.
 
 ### EXAMPLE 2
 ```powershell
-PS> $rows = Import-OfficeExcel -Path .\Workbook.xlsx -AllSheets
-$rows | Group-Object WorksheetName
+Import-OfficeExcel -Path .\Reports\Q3-Sales.xlsx -Sheet Orders -Range A5 |
+                Where-Object Status -eq 'Open' |
+                Sort-Object Amount -Descending |
+                Select-Object -First 10 OrderId, Customer, Region, Amount
 ```
 
-Reads the used range from each worksheet and adds a WorksheetName property to each emitted row.
+Reads the Orders sheet from row 5, where the header starts below a title block, and lists the ten largest open orders.
 
 ### EXAMPLE 3
 ```powershell
-PS> Import-OfficeExcel -Path .\Workbook.xlsx -WorksheetName Metrics -ByColumn |
-                Where-Object ColumnName -eq 'Revenue' |
-                Select-Object -ExpandProperty Values
+Import-OfficeExcel -Path .\Reports\Helpdesk.xlsx -Table Tickets |
+                Where-Object Status -ne 'Closed' |
+                Group-Object Assignee |
+                Sort-Object Count -Descending |
+                Select-Object Name, Count
 ```
 
-Returns one object per column with the column name, 1-based column index, and the column values as an array.
+Reads the rows of the Tickets table wherever it sits in the workbook and counts open tickets per assignee.
+
+### EXAMPLE 4
+```powershell
+Get-ChildItem -Path .\Branches -Filter *.xlsx |
+                Import-OfficeExcel -Sheet * |
+                Export-OfficeExcel -Path .\Reports\All-Branches.xlsx -Sheet 'All branches' -Title 'Branch sales, October 2026'
+```
+
+Reads every worksheet of each branch workbook (each row carries its WorksheetName) and writes one consolidated workbook.
 
 ## PARAMETERS
 
@@ -63,7 +98,7 @@ Allow HTTP workbook downloads in addition to HTTPS.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Uri
+Parameter Sets: Uri, UriTable
 Aliases: None
 Possible values:
 
@@ -74,78 +109,14 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -AllSheets
-Import all worksheets. Each emitted row or column includes WorksheetName.
+### -As
+Selects objects, hashtables, a DataTable, an owned IDataReader or column output.
 
 ```yaml
-Type: SwitchParameter
-Parameter Sets: Path, Uri, Document
+Type: ExcelImportOutput
+Parameter Sets: Document, Path, PathTable, LiteralPath, Uri, LiteralPathTable, UriTable, DocumentTable
 Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -AsDataReader
-Emit a forward-only IDataReader for database bulk-copy workflows.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Path, Uri, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -AsDataTable
-Emit a DataTable instead of enumerating row objects.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Path, Uri, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -AsHashtable
-Emit rows as hashtables instead of PSCustomObjects.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Path, Uri, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ByColumn
-Emit one object per column with ColumnName, ColumnIndex, and Values instead of row objects.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Path, Uri, Document
-Aliases: None
-Possible values:
+Possible values: Object, Hashtable, DataTable, DataReader, Column
 
 Required: False
 Position: named
@@ -159,7 +130,7 @@ Worksheet row count requested from each streaming chunk when -AsDataReader is us
 
 ```yaml
 Type: Int32
-Parameter Sets: Path, Uri, Document
+Parameter Sets: Document, Path, PathTable, LiteralPath, Uri, LiteralPathTable, UriTable, DocumentTable
 Aliases: None
 Possible values:
 
@@ -170,12 +141,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -CultureName
-Culture used when parsing numbers and dates stored as text.
+### -Culture
+Culture used for value conversion and number-format presets.
 
 ```yaml
-Type: String
-Parameter Sets: Path, Uri, Document
+Type: CultureInfo
+Parameter Sets: Document, Path, PathTable, LiteralPath, Uri, LiteralPathTable, UriTable, DocumentTable
 Aliases: None
 Possible values:
 
@@ -187,50 +158,18 @@ Accept wildcard characters: False
 ```
 
 ### -Document
-Workbook document to import from.
+Caller-owned workbook; omission uses the enclosing Excel content block.
 
 ```yaml
 Type: ExcelDocument
-Parameter Sets: Document
+Parameter Sets: Document, DocumentTable
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
-Accept wildcard characters: False
-```
-
-### -EndColumn
-Ending column for an explicit rectangular range.
-
-```yaml
-Type: Int32
-Parameter Sets: Path, Uri, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -EndRow
-Ending row for an explicit rectangular range.
-
-```yaml
-Type: Int32
-Parameter Sets: Path, Uri, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
@@ -239,7 +178,7 @@ Formula read mode. CachedValue returns workbook cached results; FormulaText retu
 
 ```yaml
 Type: OfficeExcelFormulaMode
-Parameter Sets: Path, Uri, Document
+Parameter Sets: Document, Path, PathTable, LiteralPath, Uri, LiteralPathTable, UriTable, DocumentTable
 Aliases: None
 Possible values: CachedValue, FormulaText
 
@@ -250,12 +189,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -LiteralPath
+Literal workbook paths, including FileInfo.FullName and provider PSPath.
+
+```yaml
+Type: String[]
+Parameter Sets: LiteralPath, LiteralPathTable
+Aliases: PSPath, FullName
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
 ### -NoHeader
-Treat all rows as data and generate column names instead of using the first row as headers.
+Writes data without a header row.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Path, Uri, Document
+Parameter Sets: Document, Path, PathTable, LiteralPath, Uri, LiteralPathTable, UriTable, DocumentTable
 Aliases: None
 Possible values:
 
@@ -271,7 +226,7 @@ Prefer decimals instead of doubles for numeric values.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Path, Uri, Document
+Parameter Sets: Document, Path, PathTable, LiteralPath, Uri, LiteralPathTable, UriTable, DocumentTable
 Aliases: None
 Possible values:
 
@@ -283,34 +238,34 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Workbook path to import.
+Workbook paths resolved with filesystem wildcard support.
 
 ```yaml
-Type: String
-Parameter Sets: Path
-Aliases: FilePath, InputPath, FullName, LiteralPath
+Type: String[]
+Parameter Sets: Path, PathTable
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue, ByPropertyName)
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
 ### -Range
-Optional A1 range to read. When omitted, the used range is imported.
+A1 cell range on the selected worksheet.
 
 ```yaml
 Type: String
-Parameter Sets: Path, Uri, Document
+Parameter Sets: Document, Path, LiteralPath, Uri
 Aliases: None
 Possible values:
 
 Required: False
 Position: named
 Default value: None
-Accept pipeline input: True (ByPropertyName)
+Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
@@ -319,7 +274,7 @@ Maximum row count inspected when -AsDataReader infers the reader schema.
 
 ```yaml
 Type: Int32
-Parameter Sets: Path, Uri, Document
+Parameter Sets: Document, Path, PathTable, LiteralPath, Uri, LiteralPathTable, UriTable, DocumentTable
 Aliases: None
 Possible values:
 
@@ -330,28 +285,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -SheetIndex
-Zero-based worksheet index to read.
+### -Sheet
+Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.
 
 ```yaml
-Type: Int32
-Parameter Sets: Path, Uri, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: True (ByPropertyName)
-Accept wildcard characters: False
-```
-
-### -StartColumn
-Starting column for an explicit rectangular range.
-
-```yaml
-Type: Int32
-Parameter Sets: Path, Uri, Document
+Type: OfficeSheetSelector[]
+Parameter Sets: Document, Path, LiteralPath, Uri
 Aliases: None
 Possible values:
 
@@ -362,16 +301,16 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -StartRow
-Starting row for an explicit rectangular range.
+### -Table
+Native Excel table used to resolve the source range or header.
 
 ```yaml
-Type: Int32
-Parameter Sets: Path, Uri, Document
+Type: String
+Parameter Sets: PathTable, LiteralPathTable, UriTable, DocumentTable
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -383,30 +322,14 @@ Remote workbook URI to import.
 
 ```yaml
 Type: Uri
-Parameter Sets: Uri
-Aliases: Url
+Parameter Sets: Uri, UriTable
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByPropertyName)
-Accept wildcard characters: False
-```
-
-### -WorksheetName
-Worksheet name to read; defaults to the first sheet.
-
-```yaml
-Type: String
-Parameter Sets: Path, Uri, Document
-Aliases: Sheet
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: True (ByPropertyName)
+Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
@@ -415,10 +338,8 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `System.String`
-- `System.Uri`
+- `System.String[]`
 - `OfficeIMO.Excel.ExcelDocument`
-- `Int32`
 
 ## OUTPUTS
 

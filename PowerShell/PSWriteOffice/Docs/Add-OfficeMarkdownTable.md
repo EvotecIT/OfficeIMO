@@ -11,17 +11,17 @@ Adds a Markdown table from objects.
 ## SYNTAX
 ### Context (Default)
 ```powershell
-Add-OfficeMarkdownTable [-InputObject] <Object> [-View <OfficeTableView>] [-CollectionSeparator <string>] [-DictionaryEntrySeparator <string>] [-DictionaryKeyValueSeparator <string>] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-DisableAutoAlign] [-PassThru] [<CommonParameters>]
+Add-OfficeMarkdownTable [-InputObject] <Object> [-View <OfficeTableView>] [-CollectionSeparator <string>] [-DictionaryEntrySeparator <string>] [-DictionaryKeyValueSeparator <string>] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-NoAutoAlign] [-PassThru] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Add-OfficeMarkdownTable [-InputObject] <Object> -Document <MarkdownDocument> [-View <OfficeTableView>] [-CollectionSeparator <string>] [-DictionaryEntrySeparator <string>] [-DictionaryKeyValueSeparator <string>] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-DisableAutoAlign] [-PassThru] [<CommonParameters>]
+Add-OfficeMarkdownTable [-InputObject] <Object> -Document <MarkdownDocument> [-View <OfficeTableView>] [-CollectionSeparator <string>] [-DictionaryEntrySeparator <string>] [-DictionaryKeyValueSeparator <string>] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-NoAutoAlign] [-PassThru] [<CommonParameters>]
 ```
 
 ### PipelineDocument
 ```powershell
-Add-OfficeMarkdownTable [-InputObject] <Object> -Document <MarkdownDocument> [-View <OfficeTableView>] [-CollectionSeparator <string>] [-DictionaryEntrySeparator <string>] [-DictionaryKeyValueSeparator <string>] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-DisableAutoAlign] [-PassThru] [<CommonParameters>]
+Add-OfficeMarkdownTable [-InputObject] <Object> -Document <MarkdownDocument> [-View <OfficeTableView>] [-CollectionSeparator <string>] [-DictionaryEntrySeparator <string>] [-DictionaryKeyValueSeparator <string>] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-NoAutoAlign] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -94,22 +94,6 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -DisableAutoAlign
-Disable automatic alignment heuristics for tables.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Document, PipelineDocument
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -Document
 Markdown document to update outside the DSL context.
 
@@ -163,6 +147,22 @@ Maximum nesting depth allowed while normalizing one cell value. Defaults to 64; 
 
 ```yaml
 Type: Int32
+Parameter Sets: Context, Document, PipelineDocument
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoAutoAlign
+Disable automatic alignment heuristics for tables.
+
+```yaml
+Type: SwitchParameter
 Parameter Sets: Context, Document, PipelineDocument
 Aliases: None
 Possible values:

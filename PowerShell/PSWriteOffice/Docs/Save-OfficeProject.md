@@ -11,7 +11,7 @@ Saves a project through the qualified native codec with loss protection.
 ## SYNTAX
 ### Document (Default)
 ```powershell
-Save-OfficeProject [-Path] <string> -Document <ProjectDocument> [-Format <ProjectFileFormat>] [-AllowLoss] [-Force] [-ReportVariable <string>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Save-OfficeProject [[-Path] <string>] -Document <ProjectDocument> [-Format <ProjectFileFormat>] [-AllowLoss] [-Force] [-ReportVariable <string>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -116,7 +116,7 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: 0
 Default value: None
 Accept pipeline input: False
