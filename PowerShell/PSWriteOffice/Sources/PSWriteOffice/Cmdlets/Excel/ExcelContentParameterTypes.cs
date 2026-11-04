@@ -6,11 +6,46 @@ using OfficeIMO.Excel;
 using PSWriteOffice.Foundation;
 namespace PSWriteOffice.Cmdlets.Excel;
 /// <summary>Native validation families supported by ExcelValidation.</summary>
-public enum ExcelValidationType { List, WholeNumber, Decimal, Date, Time, TextLength, Formula }
+public enum ExcelValidationType {
+    /// <summary>Restrict entries to an allowed list.</summary>
+    List,
+    /// <summary>Validate whole-number values.</summary>
+    WholeNumber,
+    /// <summary>Validate numeric values, including fractions.</summary>
+    Decimal,
+    /// <summary>Validate dates.</summary>
+    Date,
+    /// <summary>Validate times.</summary>
+    Time,
+    /// <summary>Validate the number of text characters.</summary>
+    TextLength,
+    /// <summary>Validate entries with a custom formula.</summary>
+    Formula,
+}
 /// <summary>Display policy for a single external hyperlink.</summary>
-public enum ExcelHyperlinkDisplay { Text, Url, Host, Smart }
+public enum ExcelHyperlinkDisplay {
+    /// <summary>Keep the supplied cell text as the label.</summary>
+    Text,
+    /// <summary>Display the destination URL.</summary>
+    Url,
+    /// <summary>Display the destination host.</summary>
+    Host,
+    /// <summary>Use the native smart-link display policy.</summary>
+    Smart,
+}
 /// <summary>Import row projection or ownership-transferring reader output.</summary>
-public enum ExcelImportOutput { Object, Hashtable, DataTable, DataReader, Column }
+public enum ExcelImportOutput {
+    /// <summary>Return each row as a PowerShell object.</summary>
+    Object,
+    /// <summary>Return each row as a hashtable.</summary>
+    Hashtable,
+    /// <summary>Return a materialized data table.</summary>
+    DataTable,
+    /// <summary>Return a native reader that the caller must dispose.</summary>
+    DataReader,
+    /// <summary>Return the selected column values.</summary>
+    Column,
+}
 /// <summary>Binds Excel dimensions, retaining explicit physical units.</summary>
 [AttributeUsage(AttributeTargets.Property)]
 public sealed class ExcelColumnWidthTransformationAttribute : ArgumentTransformationAttribute {
@@ -35,6 +70,20 @@ public sealed class ExcelColumnWidthTransformationAttribute : ArgumentTransforma
 }
 
 /// <summary>Comment surfaces returned from a workbook.</summary>
-public enum ExcelCommentKind { All, Note, Threaded }
+public enum ExcelCommentKind {
+    /// <summary>Include notes and threaded comments.</summary>
+    All,
+    /// <summary>Include legacy cell notes.</summary>
+    Note,
+    /// <summary>Include threaded comments.</summary>
+    Threaded,
+}
 /// <summary>Native workbook property families.</summary>
-public enum ExcelDocumentPropertyKind { BuiltIn, Application, Custom }
+public enum ExcelDocumentPropertyKind {
+    /// <summary>Select core document properties.</summary>
+    BuiltIn,
+    /// <summary>Select extended application properties.</summary>
+    Application,
+    /// <summary>Select named custom properties.</summary>
+    Custom,
+}
