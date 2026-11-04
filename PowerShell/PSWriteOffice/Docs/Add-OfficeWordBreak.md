@@ -9,7 +9,7 @@ schema: 2.0.0
 Adds a break to a Word paragraph.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Add-OfficeWordBreak [-Paragraph <WordParagraph>] [-BreakType <WordBreakType>] [-Count <int>] [-PassThru] [<CommonParameters>]
 ```
@@ -33,7 +33,7 @@ Optional break type, for example Page or Column.
 
 ```yaml
 Type: WordBreakType
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: Page, Column, TextWrapping
 
@@ -49,7 +49,7 @@ Number of breaks to add.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -65,7 +65,7 @@ Target paragraph. When omitted, the current DSL paragraph is used or created.
 
 ```yaml
 Type: WordParagraph
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -81,7 +81,7 @@ Emit the paragraph returned by the final break for additional native OfficeIMO c
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

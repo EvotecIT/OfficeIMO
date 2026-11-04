@@ -9,7 +9,7 @@ namespace OfficeIMO.Drawing.Binary;
 /// Decodes shape-specific OfficeArt geometry values without assuming that adjustment units are
 /// interchangeable between preset shape families.
 /// </summary>
-public sealed class OfficeArtShapeGeometry {
+internal sealed class OfficeArtShapeGeometry {
     private const ushort FirstAdjustmentPropertyId = 0x0147;
     private const int AdjustmentCount = 8;
 

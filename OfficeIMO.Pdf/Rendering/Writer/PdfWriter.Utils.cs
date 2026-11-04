@@ -21,6 +21,8 @@ internal static partial class PdfWriter {
             s = s.Substring(1, s.Length - 2).Trim();
         }
 
+        s = StripCurrencyCode(s);
+
         int digits = 0;
         foreach (char ch in s) {
             if (char.IsDigit(ch)) digits++;
@@ -37,6 +39,20 @@ internal static partial class PdfWriter {
             else return false;
         }
         return digits > 0;
+    }
+
+    // Amounts such as "5,147.50 EUR" carry an ISO 4217 code after the number. A leading word is
+    // not treated as a code, so labels such as "VAT 23%" keep their own alignment.
+    private static string StripCurrencyCode(string s) {
+        if (s.Length > 4 && s[s.Length - 4] == ' ' && IsUpperAsciiCode(s, s.Length - 3)) return s.Substring(0, s.Length - 4).TrimEnd();
+        return s;
+    }
+
+    private static bool IsUpperAsciiCode(string s, int start) {
+        for (int i = start; i < start + 3; i++) {
+            if (s[i] < 'A' || s[i] > 'Z') return false;
+        }
+        return true;
     }
 
     private static bool IsCurrencySymbol(char ch) =>

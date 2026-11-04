@@ -9,10 +9,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets the fill color for a single chart data point by series index and zero-based point index.
         /// </summary>
-        public ExcelChart SetDataPointFillColor(int seriesIndex, uint pointIndex, string color) {
-            if (string.IsNullOrWhiteSpace(color)) {
-                throw new ArgumentException("Data point fill color cannot be null or empty.", nameof(color));
-            }
+        public ExcelChart SetDataPointFillColor(int seriesIndex, uint pointIndex, OfficeColor color) {
 
             return SetDataPointColor(seriesIndex, pointIndex, fillColor: color);
         }
@@ -20,10 +17,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets the fill color for a single chart data point by series name and zero-based point index.
         /// </summary>
-        public ExcelChart SetDataPointFillColor(string seriesName, uint pointIndex, string color, bool ignoreCase = true) {
-            if (string.IsNullOrWhiteSpace(color)) {
-                throw new ArgumentException("Data point fill color cannot be null or empty.", nameof(color));
-            }
+        public ExcelChart SetDataPointFillColor(string seriesName, uint pointIndex, OfficeColor color, bool ignoreCase = true) {
 
             return SetDataPointColor(seriesName, pointIndex, fillColor: color, ignoreCase: ignoreCase);
         }
@@ -31,38 +25,32 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets the outline color and optional outline width for a single chart data point by series index and zero-based point index.
         /// </summary>
-        public ExcelChart SetDataPointLineColor(int seriesIndex, uint pointIndex, string color, double? widthPoints = null) {
-            if (string.IsNullOrWhiteSpace(color)) {
-                throw new ArgumentException("Data point line color cannot be null or empty.", nameof(color));
-            }
+        public ExcelChart SetDataPointLineColor(int seriesIndex, uint pointIndex, OfficeColor color, OfficeLength? width = null) {
 
-            return SetDataPointColor(seriesIndex, pointIndex, lineColor: color, lineWidthPoints: widthPoints);
+            return SetDataPointColor(seriesIndex, pointIndex, lineColor: color, lineWidth: width);
         }
 
         /// <summary>
         /// Sets the outline color and optional outline width for a single chart data point by series name and zero-based point index.
         /// </summary>
-        public ExcelChart SetDataPointLineColor(string seriesName, uint pointIndex, string color, double? widthPoints = null, bool ignoreCase = true) {
-            if (string.IsNullOrWhiteSpace(color)) {
-                throw new ArgumentException("Data point line color cannot be null or empty.", nameof(color));
-            }
+        public ExcelChart SetDataPointLineColor(string seriesName, uint pointIndex, OfficeColor color, OfficeLength? width = null, bool ignoreCase = true) {
 
-            return SetDataPointColor(seriesName, pointIndex, lineColor: color, lineWidthPoints: widthPoints, ignoreCase: ignoreCase);
+            return SetDataPointColor(seriesName, pointIndex, lineColor: color, lineWidth: width, ignoreCase: ignoreCase);
         }
 
         /// <summary>
         /// Sets fill and/or outline styling for a single chart data point by series index and zero-based point index.
         /// </summary>
-        public ExcelChart SetDataPointColor(int seriesIndex, uint pointIndex, string? fillColor = null, string? lineColor = null, double? lineWidthPoints = null) {
+        public ExcelChart SetDataPointColor(int seriesIndex, uint pointIndex, OfficeColor? fillColor = null, OfficeColor? lineColor = null, OfficeLength? lineWidth = null) {
             if (seriesIndex < 0) {
                 throw new ArgumentOutOfRangeException(nameof(seriesIndex));
             }
 
-            ValidateDataPointStyle(fillColor, lineColor, lineWidthPoints);
+            ValidateDataPointStyle(fillColor, lineColor, lineWidth);
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
                 C.DataPoint point = EnsureDataPoint(series, pointIndex);
-                ApplyDataPointStyle(point, fillColor, lineColor, lineWidthPoints);
+                ApplyDataPointStyle(point, fillColor, lineColor, lineWidth);
             });
 
             if (!applied) {
@@ -76,16 +64,16 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets fill and/or outline styling for a single chart data point by series name and zero-based point index.
         /// </summary>
-        public ExcelChart SetDataPointColor(string seriesName, uint pointIndex, string? fillColor = null, string? lineColor = null, double? lineWidthPoints = null, bool ignoreCase = true) {
+        public ExcelChart SetDataPointColor(string seriesName, uint pointIndex, OfficeColor? fillColor = null, OfficeColor? lineColor = null, OfficeLength? lineWidth = null, bool ignoreCase = true) {
             if (seriesName == null) {
                 throw new ArgumentNullException(nameof(seriesName));
             }
 
-            ValidateDataPointStyle(fillColor, lineColor, lineWidthPoints);
+            ValidateDataPointStyle(fillColor, lineColor, lineWidth);
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
                 C.DataPoint point = EnsureDataPoint(series, pointIndex);
-                ApplyDataPointStyle(point, fillColor, lineColor, lineWidthPoints);
+                ApplyDataPointStyle(point, fillColor, lineColor, lineWidth);
             });
 
             if (!applied) {
@@ -96,15 +84,9 @@ namespace OfficeIMO.Excel {
             return this;
         }
 
-        private static void ValidateDataPointStyle(string? fillColor, string? lineColor, double? lineWidthPoints) {
-            OfficeChartStyleBounds.ValidateLineWidth(lineWidthPoints, nameof(lineWidthPoints), allowZero: true);
-            if (fillColor != null && string.IsNullOrWhiteSpace(fillColor)) {
-                throw new ArgumentException("Data point fill color cannot be empty.", nameof(fillColor));
-            }
-            if (lineColor != null && string.IsNullOrWhiteSpace(lineColor)) {
-                throw new ArgumentException("Data point line color cannot be empty.", nameof(lineColor));
-            }
-            if (fillColor == null && lineColor == null && lineWidthPoints == null) {
+        private static void ValidateDataPointStyle(OfficeColor? fillColor, OfficeColor? lineColor, OfficeLength? lineWidth) {
+            OfficeChartStyleBounds.ValidateLineWidth(lineWidth?.ToPoints(), nameof(lineWidth), allowZero: true);
+            if (fillColor == null && lineColor == null && lineWidth == null) {
                 throw new ArgumentException("Specify a fill color, line color, or line width to style the data point.");
             }
         }
@@ -121,15 +103,15 @@ namespace OfficeIMO.Excel {
             return point;
         }
 
-        private static void ApplyDataPointStyle(C.DataPoint point, string? fillColor, string? lineColor, double? lineWidthPoints) {
+        private static void ApplyDataPointStyle(C.DataPoint point, OfficeColor? fillColor, OfficeColor? lineColor, OfficeLength? lineWidth) {
             C.ChartShapeProperties props = point.GetFirstChild<C.ChartShapeProperties>() ?? new C.ChartShapeProperties();
             if (fillColor != null) {
-                ApplySolidFill(props, NormalizeHexColor(fillColor));
+                ApplySolidFill(props, fillColor);
             }
             if (lineColor != null) {
-                ApplyLine(props, NormalizeHexColor(lineColor), lineWidthPoints);
-            } else if (lineWidthPoints != null) {
-                ApplyOptionalLine(props, null, lineWidthPoints);
+                ApplyLine(props, lineColor, lineWidth);
+            } else if (lineWidth != null) {
+                ApplyOptionalLine(props, null, lineWidth);
             }
 
             if (props.Parent == null) {

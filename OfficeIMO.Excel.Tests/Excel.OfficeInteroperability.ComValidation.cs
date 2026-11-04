@@ -48,16 +48,16 @@ public partial class Excel {
 
         string generatedModern = Path.Combine(outputDirectory, "officeimo-modern-source.xlsx");
         using (ExcelDocument workbook = ExcelDocument.Create(generatedModern)) {
-            ExcelSheet sheet = workbook.AddWorksheet("Compatibility");
-            sheet.CellValue(1, 1, "OfficeIMO modern to binary");
-            sheet.CellValue(2, 1, 42);
+            ExcelSheet sheet = workbook.AddSheet("Compatibility");
+            sheet.Cell(1, 1).SetValue("OfficeIMO modern to binary");
+            sheet.Cell(2, 1).SetValue(42);
             workbook.Save();
         }
         foreach (string extension in new[] { ".xls", ".xlsb" }) {
             string generatedBinary = Path.Combine(outputDirectory, "officeimo-modern-to-binary" + extension);
             ExcelDocument.Convert(generatedModern, generatedBinary, new ExcelDocumentConversionOptions {
                 FileConflictPolicy = OfficeConversionFileConflictPolicy.Replace
-            }).RequireNoLoss();
+            }).ThrowIfLoss();
             convertedPaths.Add(generatedBinary);
         }
 

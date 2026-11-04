@@ -8,7 +8,7 @@ namespace OfficeIMO.Reader.Excel;
 
 internal static class ExcelRichMapping {
     internal static OfficeDocumentReadResult Apply(
-        ExcelWorkbookSnapshot snapshot,
+        ExcelWorkbookInfo snapshot,
         ReaderOptions readerOptions,
         ReaderExcelOptions options,
         OfficeDocumentReadResult result) {
@@ -26,7 +26,7 @@ internal static class ExcelRichMapping {
             selectedSheets.Add(options.SheetName!.Trim());
         }
 
-        ExcelWorksheetSnapshot[] worksheets = snapshot.Worksheets
+        ExcelWorksheetInfo[] worksheets = snapshot.Worksheets
             .Where(sheet => selectedSheets.Count == 0 || selectedSheets.Contains(sheet.Name))
             .ToArray();
         ExcelRangeSelection? selectedRange = ParseExcelRangeSelection(options.A1Range);
@@ -90,16 +90,16 @@ internal static class ExcelRichMapping {
     }
 
     private static IEnumerable<OfficeDocumentLink> BuildExcelLinks(
-        IReadOnlyList<ExcelWorksheetSnapshot> worksheets,
+        IReadOnlyList<ExcelWorksheetInfo> worksheets,
         string? sourcePath,
         ExcelRangeSelection? selectedRange) {
         int linkIndex = 0;
-        foreach (ExcelWorksheetSnapshot sheet in worksheets) {
-            foreach (ExcelCellSnapshot cell in sheet.Cells) {
+        foreach (ExcelWorksheetInfo sheet in worksheets) {
+            foreach (ExcelCellInfo cell in sheet.Cells) {
                 if (!IsCellSelected(cell, selectedRange)) continue;
-                ExcelHyperlinkSnapshot? hyperlink = cell.Hyperlink;
+                ExcelHyperlinkInfo? hyperlink = cell.Hyperlink;
                 if (hyperlink == null || string.IsNullOrWhiteSpace(hyperlink.Target)) continue;
-                string a1 = A1.CellReference(cell.Row, cell.Column);
+                string a1 = ExcelA1.CellReference(cell.Row, cell.Column);
                 yield return new OfficeDocumentLink {
                     Id = "excel-link-" + linkIndex.ToString("D4", CultureInfo.InvariantCulture),
                     Kind = hyperlink.IsExternal ? "uri" : "internal",
@@ -120,14 +120,14 @@ internal static class ExcelRichMapping {
     }
 
     private static IEnumerable<ReaderTable> BuildExcelOwnerTables(
-        IReadOnlyList<ExcelWorksheetSnapshot> worksheets,
+        IReadOnlyList<ExcelWorksheetInfo> worksheets,
         string? sourcePath,
         int maxRows,
         ExcelRangeSelection? selectedRange) {
         int tableIndex = 0;
-        foreach (ExcelWorksheetSnapshot sheet in worksheets) {
-            Dictionary<(int Row, int Column), ExcelCellSnapshot> cells = sheet.Cells.ToDictionary(static cell => (cell.Row, cell.Column));
-            foreach (ExcelTableSnapshot table in sheet.Tables) {
+        foreach (ExcelWorksheetInfo sheet in worksheets) {
+            Dictionary<(int Row, int Column), ExcelCellInfo> cells = sheet.Cells.ToDictionary(static cell => (cell.Row, cell.Column));
+            foreach (ExcelTableInspectionInfo table in sheet.Tables) {
                 ExcelRangeSelection tableRange = new ExcelRangeSelection(table.StartRow, table.StartColumn, table.EndRow, table.EndColumn);
                 ExcelRangeSelection? projectedRange = IntersectExcelRanges(tableRange, selectedRange);
                 if (!projectedRange.HasValue) continue;
@@ -180,7 +180,7 @@ internal static class ExcelRichMapping {
 
     private static ExcelRangeSelection? ParseExcelRangeSelection(string? a1Range) {
         if (string.IsNullOrWhiteSpace(a1Range)
-            || !A1.TryParseRange(a1Range!, out int startRow, out int startColumn, out int endRow, out int endColumn)) {
+            || !ExcelA1.TryParseRange(a1Range!, out int startRow, out int startColumn, out int endRow, out int endColumn)) {
             return null;
         }
         return new ExcelRangeSelection(startRow, startColumn, endRow, endColumn);
@@ -197,7 +197,7 @@ internal static class ExcelRichMapping {
             : new ExcelRangeSelection(startRow, startColumn, endRow, endColumn);
     }
 
-    private static bool IsCellSelected(ExcelCellSnapshot cell, ExcelRangeSelection? selection) {
+    private static bool IsCellSelected(ExcelCellInfo cell, ExcelRangeSelection? selection) {
         return !selection.HasValue
             || (cell.Row >= selection.Value.StartRow
                 && cell.Row <= selection.Value.EndRow
@@ -219,7 +219,7 @@ internal static class ExcelRichMapping {
         internal int EndColumn { get; }
 
         internal string ToA1Range() {
-            return A1.CellReference(StartRow, StartColumn) + ":" + A1.CellReference(EndRow, EndColumn);
+            return ExcelA1.CellReference(StartRow, StartColumn) + ":" + ExcelA1.CellReference(EndRow, EndColumn);
         }
 
         public bool Equals(ExcelRangeSelection other) {
@@ -244,11 +244,11 @@ internal static class ExcelRichMapping {
     }
 
     private static string GetExcelCellText(
-        IReadOnlyDictionary<(int Row, int Column), ExcelCellSnapshot> cells,
+        IReadOnlyDictionary<(int Row, int Column), ExcelCellInfo> cells,
         int row,
         int column,
         string fallback) {
-        if (!cells.TryGetValue((row, column), out ExcelCellSnapshot? cell) || cell.Value == null) return fallback;
+        if (!cells.TryGetValue((row, column), out ExcelCellInfo? cell) || cell.Value == null) return fallback;
         string? value = Convert.ToString(cell.Value, CultureInfo.InvariantCulture);
         return string.IsNullOrWhiteSpace(value) ? fallback : value!;
     }

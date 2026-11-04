@@ -417,10 +417,10 @@ public sealed partial class OfficeChartLayout {
         LegendRowHeight = ValidatePositiveFinite(legendRowHeight ?? 12D, nameof(legendRowHeight));
         LegendSwatchSize = ValidatePositiveFinite(legendSwatchSize ?? 6D, nameof(legendSwatchSize));
         LegendTextGap = ValidatePositiveFinite(legendTextGap ?? 4D, nameof(legendTextGap));
-        LegendFontSize = ValidatePositiveFinite(legendFontSize ?? 8.4D, nameof(legendFontSize));
+        LegendFontSize = ValidatePositiveFinite(legendFontSize ?? OfficeTheme.Default.ChartStyle.AxisFontSize.ToPoints(), nameof(legendFontSize));
         LegendFontFamily = string.IsNullOrWhiteSpace(legendFontFamily) ? null : legendFontFamily;
         LegendFontStyle = legendFontStyle;
-        AxisLabelFontSize = ValidatePositiveFinite(axisLabelFontSize ?? 8.2D, nameof(axisLabelFontSize));
+        AxisLabelFontSize = ValidatePositiveFinite(axisLabelFontSize ?? OfficeTheme.Default.ChartStyle.AxisFontSize.ToPoints(), nameof(axisLabelFontSize));
         AxisTextFontFamily = string.IsNullOrWhiteSpace(axisTextFontFamily) ? null : axisTextFontFamily;
         AxisTextFontStyle = axisTextFontStyle;
         AxisTitleFontSize = axisTitleFontSize.HasValue ? ValidatePositiveFinite(axisTitleFontSize.Value, nameof(axisTitleFontSize)) : null;
@@ -444,7 +444,7 @@ public sealed partial class OfficeChartLayout {
             throw new ArgumentOutOfRangeException(nameof(dataLabelSeparator),
                 $"Data label separators cannot exceed {MaximumDataLabelSeparatorCharacters} characters.");
         DataLabelSeparator = string.IsNullOrEmpty(dataLabelSeparator) ? "; " : dataLabelSeparator!;
-        DataLabelFontSize = ValidatePositiveFinite(dataLabelFontSize ?? 8.2D, nameof(dataLabelFontSize));
+        DataLabelFontSize = ValidatePositiveFinite(dataLabelFontSize ?? OfficeTheme.Default.ChartStyle.AxisFontSize.ToPoints(), nameof(dataLabelFontSize));
         DataLabelFontFamily = string.IsNullOrWhiteSpace(dataLabelFontFamily) ? null : dataLabelFontFamily;
         DataLabelFontStyle = dataLabelFontStyle;
         DataLabelPosition = dataLabelPosition;

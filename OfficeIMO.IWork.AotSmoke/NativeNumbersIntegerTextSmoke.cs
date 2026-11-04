@@ -13,8 +13,7 @@ internal static class NativeNumbersIntegerTextSmoke {
     private static void Verify(string file, string expectedHash, string text) {
         string path = Path.Combine(AppContext.BaseDirectory, file);
         Require(Hash(path) == expectedHash, "Native integer-text source changed.");
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(path,
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         var input = result.Projection.Sheets[0].Tables.Single().GetCell(4, 2)!;
         Require(input.Kind == IWorkCellKind.Text && input.Value is string value && value == text,
             "Native numeric text lost its scalar type.");
@@ -28,23 +27,23 @@ internal static class NativeNumbersIntegerTextSmoke {
         using var bytes = new MemoryStream(); result.Value.Save(bytes); bytes.Position = 0;
         using var reopened = ExcelDocument.Load(bytes);
         Require(reopened.Sheets.Select(s => s.Name).SequenceEqual(new[] { "Inputs", "Checks" })
-            && reopened.Sheets[0].CellAt(4, 2).GetValue<string>() == text, "Saved source type or table identity changed.");
+            && reopened.Sheets[0].Cell(4, 2).GetValue<string>() == text, "Saved source type or table identity changed.");
         Require(reopened.Sheets[1].GetFormulaText(4, 2) == "GCD('Inputs'!$B$4,6)"
             && reopened.Sheets[1].GetFormulaText(4, 3) == "LCM('Inputs'!$B$4,6)"
             && reopened.Sheets[1].GetFormulaText(7, 2) == "GCD('Inputs'!$B$4)"
             && reopened.Sheets[1].GetFormulaText(7, 3) == "LCM('Inputs'!$B$4)", "Saved scalar reference changed.");
-        Require(reopened.Sheets[1].CellAt(4, 3).GetValue<double>() == (text == "12" ? 12d : 18d),
+        Require(reopened.Sheets[1].Cell(4, 3).GetValue<double>() == (text == "12" ? 12d : 18d),
             "Native formula cache changed.");
         Require(reopened.Calculate() == 10, "Integer-text calculation did not use the shared evaluator.");
-        reopened.Sheets[0].CellValue(4, 2, "18");
-        Require(reopened.Calculate() == 10 && reopened.Sheets[1].CellAt(4, 2).GetValue<double>() == 6d
-            && reopened.Sheets[1].CellAt(4, 3).GetValue<double>() == 18d
-            && reopened.Sheets[1].CellAt(7, 2).GetValue<double>() == 18d
-            && reopened.Sheets[1].CellAt(7, 3).GetValue<double>() == 18d, "Changed numeric text did not recalculate.");
+        reopened.Sheets[0].Cell(4, 2).SetValue("18");
+        Require(reopened.Calculate() == 10 && reopened.Sheets[1].Cell(4, 2).GetValue<double>() == 6d
+            && reopened.Sheets[1].Cell(4, 3).GetValue<double>() == 18d
+            && reopened.Sheets[1].Cell(7, 2).GetValue<double>() == 18d
+            && reopened.Sheets[1].Cell(7, 3).GetValue<double>() == 18d, "Changed numeric text did not recalculate.");
         using var finalBytes = new MemoryStream(); reopened.Save(finalBytes); finalBytes.Position = 0;
         using var final = ExcelDocument.Load(finalBytes);
-        Require(!final.ValidateOpenXml().Any() && final.Sheets[0].CellAt(4, 2).GetValue<string>() == "18"
-            && final.Sheets[1].CellAt(4, 3).GetValue<double>() == 18d && Hash(path) == expectedHash,
+        Require(!final.ValidateOpenXml().Any() && final.Sheets[0].Cell(4, 2).GetValue<string>() == "18"
+            && final.Sheets[1].Cell(4, 3).GetValue<double>() == 18d && Hash(path) == expectedHash,
             "Saved edited output or immutable native source changed.");
     }
 

@@ -11,10 +11,19 @@ internal static partial class PdfTextEditor {
         return new PdfResolvedTextStyle(
             options.Font ?? detected?.SuggestedFont ?? PdfStandardFont.Helvetica,
             options.FontSize ?? detected?.FontSize ?? 12D,
-            options.Color ?? detected?.Color ?? PdfColor.Black,
+            options.Color ?? detected?.Color ?? global::OfficeIMO.OfficeColor.Black,
             options.RotationDegrees ?? detected?.RotationDegrees ?? 0D,
             detected?.Spans.Count > 0 && detected.Spans.All(static span => span.TextRenderingMode == 3) ? 3 : 0,
             sourceFont);
+    }
+
+    /// <summary>Reuses source glyphs when possible and reports standard-font substitution through the existing edit warnings.</summary>
+    private static PdfResolvedTextStyle ResolveReplacementFont(PdfResolvedTextStyle style, string text) {
+        if (style.SourceFont == null || style.SourceFont.CanEncode(text)) return style;
+        if (!PdfWinAnsiEncoding.CanEncode(text, out _)) {
+            throw new NotSupportedException("The replacement text is not covered by the source font subset or the standard PDF font fallback.");
+        }
+        return new PdfResolvedTextStyle(style.Font, style.FontSize, style.Color, style.RotationDegrees, style.TextRenderingMode);
     }
 
     private static PdfResolvedTextStyle FitStyleToRegion(
@@ -57,14 +66,14 @@ internal static partial class PdfTextEditor {
     }
 
     private readonly struct PdfResolvedTextStyle : IEquatable<PdfResolvedTextStyle> {
-        internal PdfResolvedTextStyle(PdfStandardFont font, double fontSize, PdfColor color, double rotationDegrees,
+        internal PdfResolvedTextStyle(PdfStandardFont font, double fontSize, global::OfficeIMO.OfficeColor color, double rotationDegrees,
             int textRenderingMode, PdfSourceTextFont? sourceFont = null) {
             Font = font; FontSize = fontSize; Color = color; RotationDegrees = rotationDegrees;
             TextRenderingMode = textRenderingMode; SourceFont = sourceFont;
         }
         internal PdfStandardFont Font { get; }
         internal double FontSize { get; }
-        internal PdfColor Color { get; }
+        internal global::OfficeIMO.OfficeColor Color { get; }
         internal double RotationDegrees { get; }
         internal int TextRenderingMode { get; }
         internal PdfSourceTextFont? SourceFont { get; }

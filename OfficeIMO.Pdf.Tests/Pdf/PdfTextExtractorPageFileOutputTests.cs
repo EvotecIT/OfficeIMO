@@ -105,9 +105,9 @@ public partial class PdfTextExtractorPageTests {
         string directory = Path.Combine(Path.GetTempPath(), "officeimo-pdf-text-page-range-options-" + Guid.NewGuid().ToString("N"));
         string inputPath = Path.Combine(directory, "columns.pdf");
         var options = new PdfTextLayoutOptions {
-            MarginLeft = 36,
-            MarginRight = 36,
-            MinGutterWidth = 24
+            MarginLeft = OfficeIMO.OfficeLength.Points(36),
+            MarginRight = OfficeIMO.OfficeLength.Points(36),
+            MinGutterWidth = OfficeIMO.OfficeLength.Points(24)
         };
 
         try {

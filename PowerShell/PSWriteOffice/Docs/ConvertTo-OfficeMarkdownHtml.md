@@ -11,17 +11,17 @@ Converts Markdown content to HTML.
 ## SYNTAX
 ### Path (Default)
 ```powershell
-ConvertTo-OfficeMarkdownHtml [-Path] <string> [-OutputPath <string>] [-DocumentMode] [-Style <HtmlStyle>] [-CssDelivery <CssDelivery>] [-AssetMode <AssetMode>] [-Title <string>] [-ReaderOptions <MarkdownReaderOptions>] [-Profile <MarkdownDialectProfile>] [-BaseUri <string>] [-MaxInputCharacters <Int32>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-DisallowFileUrls <Boolean>] [-AllowDataUrls <Boolean>] [-AllowMailtoUrls <Boolean>] [-AllowProtocolRelativeUrls <Boolean>] [-RestrictUrlSchemes <Boolean>] [-AllowedUrlScheme <string[]>] [-Theme <OfficeVisualThemeKind>] [-RawHtmlHandling <RawHtmlHandling>] [-IncludeAnchorLinks] [-GitHubTaskListHtml] [-GitHubFootnoteHtml] [-ExternalLinksTargetBlank] [-ExternalLinksRel <string>] [-ExternalLinksReferrerPolicy <string>] [-RestrictHttpLinksToBaseOrigin] [-RestrictHttpImagesToBaseOrigin] [-BlockExternalHttpImages] [-ImagesLoadingLazy] [-ImagesDecodingAsync] [-ImagesReferrerPolicy <string>] [-AllowedHttpLinkHost <string[]>] [-AllowedHttpImageHost <string[]>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertTo-OfficeMarkdownHtml [-Path] <string> [-OutputPath <string>] [-DocumentMode] [-Style <MarkdownHtmlStyle>] [-CssDelivery <MarkdownCssDelivery>] [-AssetMode <MarkdownAssetMode>] [-Title <string>] [-ReaderOptions <MarkdownLoadOptions>] [-Profile <MarkdownDialectProfile>] [-BaseUri <string>] [-MaxInputCharacters <Int32>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-DisallowFileUrls <Boolean>] [-AllowDataUrls <Boolean>] [-AllowMailtoUrls <Boolean>] [-AllowProtocolRelativeUrls <Boolean>] [-RestrictUrlSchemes <Boolean>] [-AllowedUrlScheme <string[]>] [-Theme <OfficeVisualThemeKind>] [-RawHtmlHandling <MarkdownRawHtmlHandling>] [-IncludeAnchorLinks] [-GitHubTaskListHtml] [-GitHubFootnoteHtml] [-ExternalLinksTargetBlank] [-ExternalLinksRel <string>] [-ExternalLinksReferrerPolicy <string>] [-RestrictHttpLinksToBaseOrigin] [-RestrictHttpImagesToBaseOrigin] [-BlockExternalHttpImages] [-ImagesLoadingLazy] [-ImagesDecodingAsync] [-ImagesReferrerPolicy <string>] [-AllowedHttpLinkHost <string[]>] [-AllowedHttpImageHost <string[]>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Text
 ```powershell
-ConvertTo-OfficeMarkdownHtml -Text <string> [-OutputPath <string>] [-DocumentMode] [-Style <HtmlStyle>] [-CssDelivery <CssDelivery>] [-AssetMode <AssetMode>] [-Title <string>] [-ReaderOptions <MarkdownReaderOptions>] [-Profile <MarkdownDialectProfile>] [-BaseUri <string>] [-MaxInputCharacters <Int32>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-DisallowFileUrls <Boolean>] [-AllowDataUrls <Boolean>] [-AllowMailtoUrls <Boolean>] [-AllowProtocolRelativeUrls <Boolean>] [-RestrictUrlSchemes <Boolean>] [-AllowedUrlScheme <string[]>] [-Theme <OfficeVisualThemeKind>] [-RawHtmlHandling <RawHtmlHandling>] [-IncludeAnchorLinks] [-GitHubTaskListHtml] [-GitHubFootnoteHtml] [-ExternalLinksTargetBlank] [-ExternalLinksRel <string>] [-ExternalLinksReferrerPolicy <string>] [-RestrictHttpLinksToBaseOrigin] [-RestrictHttpImagesToBaseOrigin] [-BlockExternalHttpImages] [-ImagesLoadingLazy] [-ImagesDecodingAsync] [-ImagesReferrerPolicy <string>] [-AllowedHttpLinkHost <string[]>] [-AllowedHttpImageHost <string[]>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertTo-OfficeMarkdownHtml -Text <string> [-OutputPath <string>] [-DocumentMode] [-Style <MarkdownHtmlStyle>] [-CssDelivery <MarkdownCssDelivery>] [-AssetMode <MarkdownAssetMode>] [-Title <string>] [-ReaderOptions <MarkdownLoadOptions>] [-Profile <MarkdownDialectProfile>] [-BaseUri <string>] [-MaxInputCharacters <Int32>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-DisallowFileUrls <Boolean>] [-AllowDataUrls <Boolean>] [-AllowMailtoUrls <Boolean>] [-AllowProtocolRelativeUrls <Boolean>] [-RestrictUrlSchemes <Boolean>] [-AllowedUrlScheme <string[]>] [-Theme <OfficeVisualThemeKind>] [-RawHtmlHandling <MarkdownRawHtmlHandling>] [-IncludeAnchorLinks] [-GitHubTaskListHtml] [-GitHubFootnoteHtml] [-ExternalLinksTargetBlank] [-ExternalLinksRel <string>] [-ExternalLinksReferrerPolicy <string>] [-RestrictHttpLinksToBaseOrigin] [-RestrictHttpImagesToBaseOrigin] [-BlockExternalHttpImages] [-ImagesLoadingLazy] [-ImagesDecodingAsync] [-ImagesReferrerPolicy <string>] [-AllowedHttpLinkHost <string[]>] [-AllowedHttpImageHost <string[]>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-ConvertTo-OfficeMarkdownHtml -Document <MarkdownDoc> [-OutputPath <string>] [-DocumentMode] [-Style <HtmlStyle>] [-CssDelivery <CssDelivery>] [-AssetMode <AssetMode>] [-Title <string>] [-ReaderOptions <MarkdownReaderOptions>] [-Profile <MarkdownDialectProfile>] [-BaseUri <string>] [-MaxInputCharacters <Int32>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-DisallowFileUrls <Boolean>] [-AllowDataUrls <Boolean>] [-AllowMailtoUrls <Boolean>] [-AllowProtocolRelativeUrls <Boolean>] [-RestrictUrlSchemes <Boolean>] [-AllowedUrlScheme <string[]>] [-Theme <OfficeVisualThemeKind>] [-RawHtmlHandling <RawHtmlHandling>] [-IncludeAnchorLinks] [-GitHubTaskListHtml] [-GitHubFootnoteHtml] [-ExternalLinksTargetBlank] [-ExternalLinksRel <string>] [-ExternalLinksReferrerPolicy <string>] [-RestrictHttpLinksToBaseOrigin] [-RestrictHttpImagesToBaseOrigin] [-BlockExternalHttpImages] [-ImagesLoadingLazy] [-ImagesDecodingAsync] [-ImagesReferrerPolicy <string>] [-AllowedHttpLinkHost <string[]>] [-AllowedHttpImageHost <string[]>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertTo-OfficeMarkdownHtml -Document <MarkdownDocument> [-OutputPath <string>] [-DocumentMode] [-Style <MarkdownHtmlStyle>] [-CssDelivery <MarkdownCssDelivery>] [-AssetMode <MarkdownAssetMode>] [-Title <string>] [-ReaderOptions <MarkdownLoadOptions>] [-Profile <MarkdownDialectProfile>] [-BaseUri <string>] [-MaxInputCharacters <Int32>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-DisallowFileUrls <Boolean>] [-AllowDataUrls <Boolean>] [-AllowMailtoUrls <Boolean>] [-AllowProtocolRelativeUrls <Boolean>] [-RestrictUrlSchemes <Boolean>] [-AllowedUrlScheme <string[]>] [-Theme <OfficeVisualThemeKind>] [-RawHtmlHandling <MarkdownRawHtmlHandling>] [-IncludeAnchorLinks] [-GitHubTaskListHtml] [-GitHubFootnoteHtml] [-ExternalLinksTargetBlank] [-ExternalLinksRel <string>] [-ExternalLinksReferrerPolicy <string>] [-RestrictHttpLinksToBaseOrigin] [-RestrictHttpImagesToBaseOrigin] [-BlockExternalHttpImages] [-ImagesLoadingLazy] [-ImagesDecodingAsync] [-ImagesReferrerPolicy <string>] [-AllowedHttpLinkHost <string[]>] [-AllowedHttpImageHost <string[]>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -145,7 +145,7 @@ Accept wildcard characters: False
 Asset loading mode.
 
 ```yaml
-Type: AssetMode
+Type: MarkdownAssetMode
 Parameter Sets: Path, Text, Document
 Aliases: None
 Possible values: Online, Offline
@@ -193,7 +193,7 @@ Accept wildcard characters: False
 CSS delivery mode.
 
 ```yaml
-Type: CssDelivery
+Type: MarkdownCssDelivery
 Parameter Sets: Path, Text, Document
 Aliases: None
 Possible values: Inline, ExternalFile, LinkHref, None
@@ -225,7 +225,7 @@ Accept wildcard characters: False
 Markdown document to convert.
 
 ```yaml
-Type: MarkdownDoc
+Type: MarkdownDocument
 Parameter Sets: Document
 Aliases: None
 Possible values:
@@ -497,7 +497,7 @@ Accept wildcard characters: False
 Controls how raw HTML blocks are emitted.
 
 ```yaml
-Type: RawHtmlHandling
+Type: MarkdownRawHtmlHandling
 Parameter Sets: Path, Text, Document
 Aliases: None
 Possible values: Allow, Escape, Sanitize, Strip
@@ -513,7 +513,7 @@ Accept wildcard characters: False
 Optional reader options when parsing Markdown.
 
 ```yaml
-Type: MarkdownReaderOptions
+Type: MarkdownLoadOptions
 Parameter Sets: Path, Text, Document
 Aliases: None
 Possible values:
@@ -577,7 +577,7 @@ Accept wildcard characters: False
 Built-in HTML style preset.
 
 ```yaml
-Type: HtmlStyle
+Type: MarkdownHtmlStyle
 Parameter Sets: Path, Text, Document
 Aliases: None
 Possible values: Plain, Clean, GithubLight, GithubDark, GithubAuto, ChatLight, ChatDark, ChatAuto, Word
@@ -642,7 +642,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.Markdown.MarkdownDoc`
+- `OfficeIMO.Markdown.MarkdownDocument`
 
 ## OUTPUTS
 

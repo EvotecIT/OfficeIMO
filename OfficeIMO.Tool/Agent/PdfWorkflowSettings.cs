@@ -33,8 +33,8 @@ internal sealed class PdfWorkflowSettings {
         }
     }
 
-    internal OfficeWorkflowLimits Limits() => new() { MaximumInputBytes = MaximumInputBytes, MaximumOutputBytes = MaximumOutputBytes };
-    internal OfficeWorkflowConflictPolicy ConflictPolicy => Overwrite ? OfficeWorkflowConflictPolicy.Replace : OfficeWorkflowConflictPolicy.Fail;
+    internal OfficeOperationLimits Limits() => new() { MaximumInputBytes = MaximumInputBytes, MaximumOutputBytes = MaximumOutputBytes };
+    internal OfficePublicationPolicy ConflictPolicy => Overwrite ? OfficePublicationPolicy.Replace : OfficePublicationPolicy.Fail;
 
     internal string? Password() {
         if (PasswordEnvironmentVariable is null) return null;

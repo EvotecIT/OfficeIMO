@@ -5,8 +5,8 @@ namespace OfficeIMO.Rtf.Pdf;
 internal static partial class RtfPdfConverter {
     private static IReadOnlyDictionary<int, PdfFontBinding> ConfigureDocumentFonts(
         RtfDocument document,
-        PdfCore.PdfOptions pdfOptions,
-        RtfToPdfOptions options) {
+        PdfCore.PdfCreateOptions pdfOptions,
+        RtfPdfExportOptions options) {
         bool allowSystemFontEmbedding =
             options.ResourcePolicy.AllowSystemFontEmbedding &&
             options.ResourcePolicy.AllowDocumentFontEmbedding;
@@ -17,37 +17,38 @@ internal static partial class RtfPdfConverter {
         var systemFontFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         HashSet<int> referencedFontIds = CollectReferencedFontIds(document, options, pdfOptions, out string requiredText);
         HashSet<PdfCore.PdfStandardFont> registeredFontSlots = pdfOptions.CreateRegisteredFontFamilySlots(includeDocumentFontSlots: false);
-        if (pdfOptions.HasExplicitDefaultFont) PdfCore.PdfOptions.AddRegisteredFontFamilySlot(registeredFontSlots, pdfOptions.DefaultFont);
-        if (pdfOptions.HasExplicitHeaderFont) PdfCore.PdfOptions.AddRegisteredFontFamilySlot(registeredFontSlots, pdfOptions.HeaderFont);
-        if (pdfOptions.HasExplicitFooterFont) PdfCore.PdfOptions.AddRegisteredFontFamilySlot(registeredFontSlots, pdfOptions.FooterFont);
+        if (pdfOptions.HasExplicitDefaultFont) PdfCore.PdfCreateOptions.AddRegisteredFontFamilySlot(registeredFontSlots, pdfOptions.DefaultFont);
+        if (pdfOptions.PageSetup.Header.HasExplicitStandardFont) PdfCore.PdfCreateOptions.AddRegisteredFontFamilySlot(registeredFontSlots, pdfOptions.PageSetup.Header.StandardFont);
+        if (pdfOptions.PageSetup.Footer.HasExplicitStandardFont) PdfCore.PdfCreateOptions.AddRegisteredFontFamilySlot(registeredFontSlots, pdfOptions.PageSetup.Footer.StandardFont);
 
         RtfFont? defaultFont = document.Settings.DefaultFontId.HasValue
             ? document.Fonts.FirstOrDefault(font => font.Id == document.Settings.DefaultFontId.Value)
             : null;
         if (defaultFont != null) {
+            string defaultFamily = ToFontFamilyName(defaultFont.Name);
             bool preserveConfiguredDefaultFont = pdfOptions.HasExplicitDefaultFont ||
                 pdfOptions.HasEmbeddedStandardFontFamily(pdfOptions.DefaultFont);
             if (preserveConfiguredDefaultFont) {
                 PdfCore.PdfStandardFont configuredDefaultSlot = PdfCore.PdfStandardFontMapper.GetFontFamily(pdfOptions.DefaultFont);
                 registeredFontSlots.Add(configuredDefaultSlot);
                 pdfOptions.ApplyInheritedFontFamily(configuredDefaultSlot);
-                familySlots[defaultFont.Name] = new PdfFontBinding(configuredDefaultSlot);
+                familySlots[defaultFamily] = new PdfFontBinding(configuredDefaultSlot);
                 fontSlots[defaultFont.Id] = new PdfFontBinding(configuredDefaultSlot);
             } else if (TryRegisterDocumentFont(
-                defaultFont.Name,
+                defaultFamily,
                 pdfOptions,
                 registeredFontSlots,
-                ResolveSystemFontPermission(defaultFont.Name, allowSystemFontEmbedding &&
-                    !pdfOptions.HasNamedFontFamily(OfficeIMO.Drawing.OfficeFontFamilyParser.Quote(defaultFont.Name)), options,
+                ResolveSystemFontPermission(defaultFamily, allowSystemFontEmbedding &&
+                    !pdfOptions.HasNamedFontFamily(OfficeIMO.Drawing.OfficeFontFamilyParser.Quote(defaultFamily)), options,
                     systemFontFamilies, ref systemFontBudgetReported),
                 options,
                 out PdfFontBinding defaultSlot)) {
                 pdfOptions.ApplyInheritedFontFamily(defaultSlot.Font);
-                familySlots[defaultFont.Name] = defaultSlot;
+                familySlots[defaultFamily] = defaultSlot;
                 fontSlots[defaultFont.Id] = defaultSlot;
             } else {
-                unresolvedFamilies.Add(defaultFont.Name);
-                ReportUnavailableFont(defaultFont.Name);
+                unresolvedFamilies.Add(defaultFamily);
+                ReportUnavailableFont(defaultFamily);
             }
         }
 
@@ -56,26 +57,27 @@ internal static partial class RtfPdfConverter {
                 continue;
             }
 
-            if (familySlots.TryGetValue(font.Name, out PdfFontBinding existingSlot)) {
+            string family = ToFontFamilyName(font.Name);
+            if (familySlots.TryGetValue(family, out PdfFontBinding existingSlot)) {
                 fontSlots[font.Id] = existingSlot;
                 continue;
             }
-            if (unresolvedFamilies.Contains(font.Name)) continue;
+            if (unresolvedFamilies.Contains(family)) continue;
 
             if (TryRegisterDocumentFont(
-                font.Name,
+                family,
                 pdfOptions,
                 registeredFontSlots,
-                ResolveSystemFontPermission(font.Name, allowSystemFontEmbedding &&
-                    !pdfOptions.HasNamedFontFamily(OfficeIMO.Drawing.OfficeFontFamilyParser.Quote(font.Name)), options,
+                ResolveSystemFontPermission(family, allowSystemFontEmbedding &&
+                    !pdfOptions.HasNamedFontFamily(OfficeIMO.Drawing.OfficeFontFamilyParser.Quote(family)), options,
                     systemFontFamilies, ref systemFontBudgetReported),
                 options,
                 out PdfFontBinding fontSlot)) {
-                familySlots[font.Name] = fontSlot;
+                familySlots[family] = fontSlot;
                 fontSlots[font.Id] = fontSlot;
             } else {
-                unresolvedFamilies.Add(font.Name);
-                ReportUnavailableFont(font.Name);
+                unresolvedFamilies.Add(family);
+                ReportUnavailableFont(family);
             }
         }
 
@@ -106,10 +108,19 @@ internal static partial class RtfPdfConverter {
         }
     }
 
+    /// <summary>
+    /// The family of a font table name. Cocoa lists PostScript face names, so "Times-Roman" and "Times-Bold" are one
+    /// family whose bold and italic faces the runs select.
+    /// </summary>
+    private static string ToFontFamilyName(string name) {
+        bool isFaceName = name.IndexOf(' ') < 0 && (name.IndexOf('-') > 0 || name.EndsWith("MT", StringComparison.Ordinal));
+        return isFaceName ? PdfCore.PdfFontFamilyNames.ToFamilyName(name) ?? name : name;
+    }
+
     private static bool ResolveSystemFontPermission(
         string familyName,
         bool allowSystemFontEmbedding,
-        RtfToPdfOptions options,
+        RtfPdfExportOptions options,
         ISet<string> systemFontFamilies,
         ref bool budgetReported) {
         if (!allowSystemFontEmbedding) return false;
@@ -134,8 +145,8 @@ internal static partial class RtfPdfConverter {
     }
 
     /// <summary>Admits fonts and fallback scalars only from the existing PDF content projection.</summary>
-    private static HashSet<int> CollectReferencedFontIds(RtfDocument document, RtfToPdfOptions options,
-        PdfCore.PdfOptions pdfOptions, out string requiredText) {
+    private static HashSet<int> CollectReferencedFontIds(RtfDocument document, RtfPdfExportOptions options,
+        PdfCore.PdfCreateOptions pdfOptions, out string requiredText) {
         options.CancellationToken.ThrowIfCancellationRequested();
         var fontIds = new HashSet<int>();
         var text = new List<string>();
@@ -170,9 +181,9 @@ internal static partial class RtfPdfConverter {
             if (document.Sections.Count == 0) {
                 CollectStories(document.PageSetup, document.HeaderFooters);
             } else {
-                PdfCore.PdfOptions defaults = pdfOptions.Clone();
+                PdfCore.PdfCreateOptions defaults = pdfOptions.Clone();
                 ApplyPageSetup(document, document.PageSetup, defaults);
-                PdfCore.PdfOptions current = defaults.Clone();
+                PdfCore.PdfCreateOptions current = defaults.Clone();
                 RtfSection currentSection = document.Sections[0];
                 ApplyPageSetup(document, document.GetPageSetup(currentSection), current);
                 bool canContinueRunningStories = SupportsContinuousRunningStoryDocument(document);
@@ -187,7 +198,7 @@ internal static partial class RtfPdfConverter {
                         currentSection = section;
                         CollectStories(document.GetPageSetup(section), document.GetEffectiveHeaderFooters(section));
                     } else if (canContinueRunningStories && TryPrepareContinuousRunningStoryOptions(document, section,
-                        currentSection, current, defaults, options, out PdfCore.PdfOptions? requested)) {
+                        currentSection, current, defaults, options, out PdfCore.PdfCreateOptions? requested)) {
                         current = requested!;
                         currentSection = section;
                         CollectStories(document.GetPageSetup(section), document.GetEffectiveHeaderFooters(section));
@@ -217,7 +228,7 @@ internal static partial class RtfPdfConverter {
     }
 
     private static void CollectReferencedFontIds(RtfDocument document, IEnumerable<IRtfBlock> blocks,
-        RtfToPdfOptions options, HashSet<int> fontIds, List<string> text,
+        RtfPdfExportOptions options, HashSet<int> fontIds, List<string> text,
         RtfListNumbering numbering, ISet<RtfNote>? referencedNotes = null, bool inTableCell = false) {
         foreach (IRtfBlock block in blocks) {
             options.CancellationToken.ThrowIfCancellationRequested();
@@ -257,7 +268,7 @@ internal static partial class RtfPdfConverter {
     }
 
     private static void CollectReferencedFontIds(RtfDocument document, RtfParagraph paragraph,
-        RtfToPdfOptions options, HashSet<int> fontIds, List<string> text, RtfListNumbering numbering,
+        RtfPdfExportOptions options, HashSet<int> fontIds, List<string> text, RtfListNumbering numbering,
         ISet<RtfNote>? referencedNotes = null, bool splitBodyParagraph = false,
         bool appendStrut = true, List<PdfCore.PdfTextRun>? parentRuns = null,
         PdfInlineProjectionContext context = PdfInlineProjectionContext.Text) {
@@ -276,7 +287,7 @@ internal static partial class RtfPdfConverter {
                     if (!string.IsNullOrEmpty(run.Text)) {
                         if (run.FontId.HasValue) fontIds.Add(run.FontId.Value);
                         text.Add(run.Text!);
-                        runs.Add(new PdfCore.PdfTextRun(run.Text!, fontSize: run.FontSize));
+                        runs.Add(new PdfCore.PdfTextRun(run.Text!, fontSize: run.FontSize.HasValue ? OfficeIMO.OfficeLength.Points(run.FontSize.Value) : null));
                     }
                     if (run.Note != null) referencedNotes?.Add(run.Note);
                     break;
@@ -334,10 +345,10 @@ internal static partial class RtfPdfConverter {
 
     private static bool TryRegisterDocumentFont(
         string familyName,
-        PdfCore.PdfOptions pdfOptions,
+        PdfCore.PdfCreateOptions pdfOptions,
         HashSet<PdfCore.PdfStandardFont> registeredFontSlots,
         bool allowSystemFontEmbedding,
-        RtfToPdfOptions options,
+        RtfPdfExportOptions options,
         out PdfFontBinding binding) {
         string literalFamily = OfficeIMO.Drawing.OfficeFontFamilyParser.Quote(familyName);
         if (pdfOptions.TryResolveNamedOfficeFontFamily(literalFamily, out string? namedFamily) && namedFamily != null) {
@@ -359,10 +370,10 @@ internal static partial class RtfPdfConverter {
 
     private static bool TryRegisterDocumentFontSlot(
         string familyName,
-        PdfCore.PdfOptions pdfOptions,
+        PdfCore.PdfCreateOptions pdfOptions,
         HashSet<PdfCore.PdfStandardFont> registeredFontSlots,
         bool allowSystemFontEmbedding,
-        RtfToPdfOptions options,
+        RtfPdfExportOptions options,
         out PdfCore.PdfStandardFont fontSlot) {
         if (pdfOptions.TryResolveEmbeddedFontFamilySlot(familyName, out fontSlot)) {
             registeredFontSlots.Add(fontSlot);
@@ -384,7 +395,7 @@ internal static partial class RtfPdfConverter {
             }
 
             if (allowSystemFontEmbedding &&
-                PdfCore.PdfOptions.TrySelectAvailableFontFamilySlot(familyName, registeredFontSlots, out PdfCore.PdfStandardFont distinctSlot) &&
+                PdfCore.PdfCreateOptions.TrySelectAvailableFontFamilySlot(familyName, registeredFontSlots, out PdfCore.PdfStandardFont distinctSlot) &&
                 PdfCore.PdfEmbeddedFontFamily.TryFromSystem(familyName, out PdfCore.PdfEmbeddedFontFamily? distinctFamily) &&
                 distinctFamily != null) {
                 pdfOptions.RegisterFontFamily(distinctSlot, distinctFamily);
@@ -404,7 +415,7 @@ internal static partial class RtfPdfConverter {
         }
 
         if (allowSystemFontEmbedding) {
-            if (!PdfCore.PdfOptions.TrySelectAvailableFontFamilySlot(familyName, registeredFontSlots, out PdfCore.PdfStandardFont availableSlot)) {
+            if (!PdfCore.PdfCreateOptions.TrySelectAvailableFontFamilySlot(familyName, registeredFontSlots, out PdfCore.PdfStandardFont availableSlot)) {
                 ReportFontSlotExhaustion(options, familyName, null, null);
             } else if (PdfCore.PdfEmbeddedFontFamily.TryFromSystem(familyName, out PdfCore.PdfEmbeddedFontFamily? embeddedFamily) &&
                        embeddedFamily != null) {
@@ -420,7 +431,7 @@ internal static partial class RtfPdfConverter {
     }
 
     private static void ReportFontSlotExhaustion(
-        RtfToPdfOptions options,
+        RtfPdfExportOptions options,
         string familyName,
         PdfCore.PdfStandardFont? fallbackSlot,
         string? occupyingFontFamily) {

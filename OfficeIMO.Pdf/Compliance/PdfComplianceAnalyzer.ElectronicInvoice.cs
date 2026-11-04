@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfComplianceAnalyzer {
-    private static void AddElectronicInvoiceRequirements(List<PdfComplianceRequirement> requirements, PdfOptions options) {
+    private static void AddElectronicInvoiceRequirements(List<PdfComplianceRequirement> requirements, PdfCreateOptions options) {
         if (TryGetReducedInvoiceProfile(options, out var reducedProfile)) {
             AddReducedInvoiceRequirements(requirements, options, reducedProfile);
             return;
@@ -49,7 +49,7 @@ internal static partial class PdfComplianceAnalyzer {
             "The optional Mustang test gate exists for e-invoice groundwork fixtures, but profile success has not been enabled for generated output."));
     }
 
-    private static PdfComplianceRequirement BuildElectronicInvoiceXmpRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildElectronicInvoiceXmpRequirement(PdfCreateOptions options) {
         PdfElectronicInvoiceMetadata? metadata = options.ElectronicInvoiceMetadata;
         if (metadata == null) {
             return new PdfComplianceRequirement(

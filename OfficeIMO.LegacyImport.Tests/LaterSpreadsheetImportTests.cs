@@ -17,7 +17,7 @@ public sealed class LaterSpreadsheetImportTests {
         using var xlsx = new MemoryStream(); result.Value.Save(xlsx); xlsx.Position = 0;
         using var loaded = ExcelDocument.Load(xlsx);
         Assert.Equal(result.Value.Sheets.Count, loaded.Sheets.Count);
-        Assert.Contains(loaded.CreateInspectionSnapshot().Worksheets.SelectMany(sheet => sheet.Cells), cell => cell.Value as string == text);
+        Assert.Contains(loaded.Inspect().Worksheets.SelectMany(sheet => sheet.Cells), cell => cell.Value as string == text);
         if (file.EndsWith(".wb1")) {
             Assert.Equal(3, result.Value.Sheets.Count);
             Assert.Equal("B1", Assert.Single(result.Cells, cell => cell.SheetName == "page1" && cell.Row == 1 && cell.Column == 1).Formula);
@@ -34,7 +34,7 @@ public sealed class LaterSpreadsheetImportTests {
         Assert.Equal("('Other'!A1+2)", Assert.Single(result.Cells).Formula);
         Assert.Equal(5d, Assert.Single(result.Cells).CachedValue);
         Assert.Equal(2, result.Value.Sheets.Count);
-        Assert.DoesNotContain(result.Report.Findings, finding => finding.Code == "LATER_FORMULA_CACHED_FALLBACK");
+        Assert.DoesNotContain(result.Report.Findings, finding => finding.Code == "later-formula-cached-fallback");
     }
 
     [Fact]
@@ -78,7 +78,7 @@ public sealed class LaterSpreadsheetImportTests {
             Record(0xcc, Encoding.ASCII.GetBytes("Other\0")), Record(0x10, formula), Record(1)));
         Assert.Equal(expected, Assert.Single(result.Cells).Formula);
         Assert.Equal(42d, Assert.Single(result.Cells).CachedValue);
-        Assert.Equal(expected == null, result.Report.Findings.Any(finding => finding.Code == "LATER_FORMULA_CACHED_FALLBACK"));
+        Assert.Equal(expected == null, result.Report.Findings.Any(finding => finding.Code == "later-formula-cached-fallback"));
     }
 
     [Fact]
@@ -98,6 +98,47 @@ public sealed class LaterSpreadsheetImportTests {
         Assert.Throws<InvalidDataException>(() => Import(Join(bof, continuation, Record(1))));
         byte[] longLabel = Record(0xf, Join(new byte[6], Encoding.ASCII.GetBytes(new string('a', 32767) + "\0")));
         Assert.Throws<InvalidDataException>(() => Import(Join(bof, longLabel, continuation, Record(1))));
+    }
+
+    [Fact]
+    public void LotusDenseCommentsSurviveImportAndXlsxSave() {
+        byte[] header = new byte[26]; header[0] = 5; header[1] = 0x10;
+        var records = new List<byte[]> { Record(0, header) };
+        for (int row = 0; row < 400; row++)
+            records.Add(Record(0x26, Join(BitConverter.GetBytes((ushort)row), new byte[] { 0, 0 }, Encoding.ASCII.GetBytes("'Note\0"))));
+        records.Add(Record(1));
+
+        using var result = Import(Join(records.ToArray()));
+        Assert.Equal(400, result.Cells.Count(cell => cell.Comment == "Note"));
+        using var xlsx = new MemoryStream();
+        result.Value.Save(xlsx);
+        xlsx.Position = 0;
+        using var loaded = ExcelDocument.Load(xlsx);
+        Assert.Equal(400, loaded.Sheets[0].GetComments().Count);
+        Assert.True(loaded.Sheets[0].HasComment(400, 1));
+    }
+
+    [Fact]
+    public void ImportedCommentBatchObservesCancellationBetweenComments() {
+        using ExcelDocument document = ExcelDocument.Create();
+        ExcelSheet sheet = document.AddSheet("Report");
+        using var cancellation = new CancellationTokenSource();
+        Assert.Throws<OperationCanceledException>(() => sheet.AddImportedComments(
+            new CancelingComments(cancellation), "Legacy source", cancellation.Token));
+    }
+
+    private sealed class CancelingComments : IReadOnlyList<(int Row, int Column, string Text)> {
+        private readonly CancellationTokenSource _cancellation;
+        public CancelingComments(CancellationTokenSource cancellation) => _cancellation = cancellation;
+        public int Count => 20;
+        public (int Row, int Column, string Text) this[int index] => (index + 1, 1, "Note");
+        public IEnumerator<(int Row, int Column, string Text)> GetEnumerator() {
+            for (int index = 0; index < Count; index++) {
+                if (index == 5) _cancellation.Cancel();
+                yield return this[index];
+            }
+        }
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
     }
 
     [Fact]

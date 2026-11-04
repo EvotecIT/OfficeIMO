@@ -24,7 +24,7 @@ public sealed class VisioNativeCellMetadataCloningTests {
         var root = copies[0];
         root.NameU = "CopiedRoot"; root.Children[0].NameU = "CopiedChild";
         var edge = target.Connectors.Last(); edge.Label = "CopiedEdge";
-        target.Shapes.Insert(0, new VisioShape("inserted", 0, 0, 1, 1, ""));
+        target.Shapes.Insert(0, new VisioShape("inserted", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(1), OfficeLength.Inches(1), ""));
         target.Shapes.Remove(root); target.Shapes.Insert(0, root);
         // The copied state must survive a second graph copy and newly assigned identities.
         var second = target.DuplicateShapes(copies, new VisioShapeDuplicationOptions { IdSuffix = "-again", OffsetX = 0, OffsetY = 0 });
@@ -93,7 +93,7 @@ public sealed class VisioNativeCellMetadataCloningTests {
         var source = VisioDocument.LoadLegacyXml(Path.Combine(AppContext.BaseDirectory, "Fixtures", "LegacyXml", "nxbre-ie3.vsx")).Value;
         var (document, master) = Transfer(source, "Atom", route);
         var page = document.AddPage("Instances");
-        var instance = page.AddShape("named-instance", master, 1, 1, master.Shape.Width, master.Shape.Height);
+        var instance = page.AddShape("named-instance", master, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(master.Shape.Width.ToInches(), page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(master.Shape.Height.ToInches(), page.DefaultUnit)));
         instance.NameU = "Instance";
         var selected = page.DuplicateShapes(new[] { instance }, new VisioShapeDuplicationOptions { IdSuffix = "-copy", OffsetX = 0, OffsetY = 0 })[0];
         selected.NameU = "Selected";
@@ -118,7 +118,7 @@ public sealed class VisioNativeCellMetadataCloningTests {
         var document = VisioDocument.Create();
         var master = document.RegisterMaster("Single blueprint", blueprint, "0");
         var page = document.AddPage("Single");
-        var instance = page.AddShape("instance", master, 1, 1, 2, 1); instance.NameU = "SingleInstance";
+        var instance = page.AddShape("instance", master, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit))); instance.NameU = "SingleInstance";
         foreach (var candidate in new[] { document, Reopen(document) }) {
             var xml = Export(candidate);
             AssertState(UserValue(Shape(xml, "SingleInstance")), "null", "Sheet.002!Width", "STR", "#VALUE!");
@@ -185,7 +185,7 @@ public sealed class VisioNativeCellMetadataCloningTests {
     [InlineData("stencil")]
     public void MasterPageSheetsCarryOnlyTheirScopedNativeState(string route) {
         var (document, master) = Transfer(LoadSheets(), "Sheet master", route);
-        document.AddPage("Use master").AddShape("instance", master, 1, 1, 1, 1);
+        document.AddPage("Use master").AddShape("instance", master, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)));
         foreach (var candidate in new[] { document, Reopen(document) }) {
             var xml = Export(candidate);
             var exported = xml.Descendants(Legacy + "Master").Single(m => (string?)m.Attribute("NameU") == master.NameU);
@@ -207,7 +207,7 @@ public sealed class VisioNativeCellMetadataCloningTests {
         }
         blueprint = Reopen(source).Pages[0].Shapes[0];
         var document = VisioDocument.Create(); var master = document.RegisterMaster("Literal blueprint", blueprint, "0");
-        var instance = document.AddPage("Instance").AddShape("instance", master, 1, 1, 1, 1); instance.NameU = "LiteralInstance";
+        var instance = document.AddPage("Instance").AddShape("instance", master, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches))); instance.NameU = "LiteralInstance";
         foreach (var candidate in new[] { document, Reopen(document) }) {
             var xml = Export(candidate);
             var shape = Shape(xml, "LiteralInstance");
@@ -232,7 +232,7 @@ public sealed class VisioNativeCellMetadataCloningTests {
         var source = LoadGraph(withMaster: true);
         var (document, master) = Transfer(source, "Null master", route);
         var page = document.AddPage("Master instances");
-        var instance = page.AddShape("named-instance", master, 1, 1, 2, 1);
+        var instance = page.AddShape("named-instance", master, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)));
         instance.NameU = "Instance"; instance.Children[0].NameU = "InstanceChild";
         foreach (var candidate in new[] { document, Reopen(document) }) {
             var xml = Export(candidate);
@@ -274,7 +274,7 @@ public sealed class VisioNativeCellMetadataCloningTests {
         try {
             File.WriteAllBytes(path, source.ToBytes());
             var master = destination.ImportStencilMastersAndGet(path, new[] { "Font master" }).Single();
-            destination.AddPage("Font instance").AddShape("font-instance", master, 1, 1, 1, 1);
+            destination.AddPage("Font instance").AddShape("font-instance", master, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)));
             foreach (var candidate in new[] { destination, Reopen(destination) }) {
                 var xml = Export(candidate);
                 string mapped = (string)xml.Descendants(Legacy + "FaceName").Single(f => (string?)f.Attribute("Name") == "Source family").Attribute("ID")!;

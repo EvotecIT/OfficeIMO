@@ -16,12 +16,12 @@ public partial class Word {
         document.Settings.MirrorMargins = mirrorMargins;
         document.Settings.GutterAtTop = gutterAtTop;
         document.Settings.TrackRevisions = true;
-        document.Sections[0].DifferentOddAndEvenPages = true;
+        document.Sections[0].PageSetup.DifferentOddAndEvenPages = true;
         document.Sections[0].AddEndnoteProperties(WordNumberFormat.Decimal,
             WordEndnotePosition.DocumentEnd, WordNoteNumberRestart.Continuous, startNumber: 1);
-        document.Sections[0].Margins.Gutter = 400;
+        document.Sections[0].PageSetup.Margins.Gutter = global::OfficeIMO.OfficeLength.Points(20D);
         document.AddParagraph("Margin settings");
-        byte[] bytes = document.ToBytes(WordFileFormat.Doc);
+        byte[] bytes = document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
 
         // Check the MS-DOC wire contract independently of the importer.
         byte[] wordStream = ReadCompoundStream(bytes, "WordDocument");
@@ -38,8 +38,8 @@ public partial class Word {
         Assert.Equal(mirrorMargins, loaded.Settings.MirrorMargins);
         Assert.Equal(gutterAtTop, loaded.Settings.GutterAtTop);
         Assert.True(loaded.Settings.TrackRevisions);
-        Assert.True(loaded.Sections[0].DifferentOddAndEvenPages);
-        Assert.Equal(400U, loaded.Sections[0].Margins.Gutter);
+        Assert.True(loaded.Sections[0].PageSetup.DifferentOddAndEvenPages);
+        Assert.Equal(400U, checked((uint)(loaded.Sections[0].PageSetup.Margins.Gutter.GetValueOrDefault().ToTwips())));
         Assert.Equal(EndnotePositionValues.DocumentEnd,
             loaded.Sections[0].EndnoteProperties.EndnotePosition!.Val!.Value);
         Assert.Equal("Margin settings", Assert.Single(loaded.Paragraphs).Text);
@@ -59,7 +59,7 @@ public partial class Word {
             Assert.True(document.Sections[0].RtlGutter);
         }
         document.AddParagraph("Implicit gutter");
-        using var source = new MemoryStream(document.ToBytes(WordFileFormat.Doc));
+        using var source = new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
         using WordDocument loaded = WordDocument.Load(source);
         Assert.Equal(topGutter, loaded.Settings.GutterAtTop);
         Assert.Equal(!topGutter, loaded.Sections[0].RtlGutter);

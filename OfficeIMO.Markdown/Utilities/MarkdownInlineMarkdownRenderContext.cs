@@ -6,7 +6,7 @@ namespace OfficeIMO.Markdown;
 public sealed class MarkdownInlineMarkdownRenderContext {
     private readonly MarkdownWriteContext? _writeContext;
 
-    internal MarkdownInlineMarkdownRenderContext(MarkdownWriteOptions options, MarkdownWriteContext? writeContext) {
+    internal MarkdownInlineMarkdownRenderContext(MarkdownSaveOptions options, MarkdownWriteContext? writeContext) {
         Options = options ?? throw new ArgumentNullException(nameof(options));
         _writeContext = writeContext;
     }
@@ -14,7 +14,7 @@ public sealed class MarkdownInlineMarkdownRenderContext {
     /// <summary>
     /// Active markdown writer options.
     /// </summary>
-    public MarkdownWriteOptions Options { get; }
+    public MarkdownSaveOptions Options { get; }
 
     /// <summary>Cancellation requested by the active Markdown serialization operation.</summary>
     public System.Threading.CancellationToken CancellationToken => _writeContext?.CancellationToken ?? default;
@@ -37,13 +37,13 @@ public sealed class MarkdownInlineMarkdownRenderContext {
     /// <summary>
     /// Returns the anchor id of the nearest preceding heading according to the supplied TOC options.
     /// </summary>
-    public string? GetPrecedingHeadingAnchor(int blockIndex, TocOptions options) =>
+    public string? GetPrecedingHeadingAnchor(int blockIndex, MarkdownTocOptions options) =>
         _writeContext?.GetPrecedingHeadingAnchor(blockIndex, options);
 
     /// <summary>
     /// Builds TOC-style heading entries relative to a specific top-level block index using the supplied TOC options.
     /// </summary>
-    public IReadOnlyList<TocBlock.Entry> BuildTocEntries(int blockIndex, TocOptions options, string? titleAnchor = null) =>
+    public IReadOnlyList<TocBlock.Entry> BuildTocEntries(int blockIndex, MarkdownTocOptions options, string? titleAnchor = null) =>
         _writeContext?.BuildTocEntries(blockIndex, options, titleAnchor) ?? Array.Empty<TocBlock.Entry>();
 
     /// <summary>

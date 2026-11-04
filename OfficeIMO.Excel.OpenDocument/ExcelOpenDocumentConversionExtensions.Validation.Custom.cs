@@ -6,7 +6,7 @@ namespace OfficeIMO.Excel.OpenDocument;
 
 public static partial class ExcelOpenDocumentConversionExtensions {
     private static bool TryCreateOdsCustomValidationCondition(
-        ExcelDataValidationSnapshot validation, out OdsValidationConditionSyntax? condition) {
+        ExcelDataValidationInspectionInfo validation, out OdsValidationConditionSyntax? condition) {
         condition = null;
         if (validation.A1Ranges.Count != 1 || !string.IsNullOrWhiteSpace(validation.Formula2)
             || !string.IsNullOrWhiteSpace(validation.Operator)
@@ -59,7 +59,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (!translated.IsSuccessful || !translated.Formula.StartsWith("=", StringComparison.Ordinal)) return false;
         string formula = ExcelDocument.ReplaceSheetNameReferences(translated.Formula.Substring(1), sheetNameMap);
         if (formula.Length > ExcelSheet.MaximumDataValidationFormulaLength) return false;
-        sheet.ValidationCustomFormula(range!, formula, validation.AllowEmptyCell);
+        sheet.CreateDataValidationCustomFormula(range!, formula, validation.AllowEmptyCell);
         return true;
     }
 

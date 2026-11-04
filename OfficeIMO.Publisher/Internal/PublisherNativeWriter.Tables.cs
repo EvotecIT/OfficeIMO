@@ -50,7 +50,7 @@ internal sealed partial class PublisherNativeWriter {
             || shape.Table == null || !PublisherNativeGeometry.Emu(before.Width, 0, out int oldWidth) || !PublisherNativeGeometry.Emu(before.Height, 0, out int oldHeight)
             || !PublisherNativeGeometry.Emu(after.Width, 0, out int width) || width <= 0 || !PublisherNativeGeometry.Emu(after.Height, 0, out int height) || height <= 0) return false;
         var data = new PublisherBinaryData(_imported.NativeSource!.ContentsBytes, "Contents");
-        var context = new PublisherParseContext(new PublisherReadOptions { Limits = _sourceLimits }, _token);
+        var context = new PublisherParseContext(new PublisherLoadOptions { Limits = _sourceLimits }, _token);
         var reader = new PublisherBlockReader(data, context);
         var edits = new List<PublisherNativeStreamEdit>();
         if (!Extent(0x68, oldWidth, width) || !Extent(0x69, oldHeight, height)) return false;

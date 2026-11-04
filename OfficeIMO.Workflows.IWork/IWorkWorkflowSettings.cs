@@ -6,20 +6,20 @@ using OfficeIMO.PowerPoint.Pdf;
 namespace OfficeIMO.Workflows.IWork;
 
 /// <summary>Per-request read bounds and acceptance choices for an Apple workflow conversion.</summary>
-public sealed class IWorkWorkflowSettings : IOfficeWorkflowConversionSettings {
+public sealed class IWorkWorkflowSettings : IOfficeConversionSettings {
     /// <summary>Source package and materialization limits. The workflow input limit also applies.</summary>
     public IWorkReadOptions ReadOptions { get; set; } = new() { PreserveSourceRecords = false };
     /// <summary>Representation, partial reconstruction, preview coverage, and worksheet naming choices.</summary>
     public IWorkConversionOptions ConversionOptions { get; set; } = new() { RequireCompleteVisualCoverage = true };
     /// <summary>Pages PDF layout and font options, snapshotted for each request.</summary>
-    public WordToPdfOptions PagesPdfOptions { get; set; } = new();
+    public WordPdfExportOptions PagesPdfOptions { get; set; } = new();
     /// <summary>Numbers PDF layout and font options. Sheet/row selection and print-area clipping are rejected.</summary>
-    public ExcelToPdfOptions NumbersPdfOptions { get; set; } = new() {
+    public ExcelPdfExportOptions NumbersPdfOptions { get; set; } = new() {
         RespectWorkbookSheetVisibility = false, RespectWorksheetHiddenRowsAndColumns = false,
         UseWorksheetPrintAreas = false
     };
     /// <summary>Keynote PDF layout and font options. Complete routes render all slides.</summary>
-    public PowerPointToPdfOptions KeynotePdfOptions { get; set; } = new() { IncludeHiddenSlides = true };
+    public PowerPointPdfExportOptions KeynotePdfOptions { get; set; } = new() { IncludeHiddenSlides = true };
 
     /// <summary>Validates and copies all mutable options for one request.</summary>
     /// <exception cref="NotSupportedException">Registered PDF options request encryption. Use the PDF protection workflow after conversion.</exception>
@@ -39,5 +39,5 @@ public sealed class IWorkWorkflowSettings : IOfficeWorkflowConversionSettings {
     }
 
     /// <inheritdoc />
-    public IOfficeWorkflowConversionSettings Snapshot() => Clone();
+    public IOfficeConversionSettings Snapshot() => Clone();
 }

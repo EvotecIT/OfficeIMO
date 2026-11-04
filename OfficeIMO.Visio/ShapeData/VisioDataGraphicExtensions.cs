@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Visio {
     /// <summary>
@@ -220,22 +220,22 @@ namespace OfficeIMO.Visio {
 
         private static void GetItemCenter(VisioShape target, int itemIndex, double width, double height, double gap, double itemSpacing, VisioDataGraphicPlacement placement, out double x, out double y) {
             double offset = itemIndex * itemSpacing;
-            (double targetX, double targetY) = GetPagePoint(target, target.LocPinX, target.LocPinY);
+            (double targetX, double targetY) = GetPagePoint(target, target.LocPinXInches, target.LocPinYInches);
             switch (placement) {
                 case VisioDataGraphicPlacement.Left:
-                    x = targetX - (target.Width / 2D) - gap - (width / 2D);
+                    x = targetX - (target.WidthInches / 2D) - gap - (width / 2D);
                     y = targetY + offset;
                     break;
                 case VisioDataGraphicPlacement.Top:
                     x = targetX + offset;
-                    y = targetY + (target.Height / 2D) + gap + (height / 2D);
+                    y = targetY + (target.HeightInches / 2D) + gap + (height / 2D);
                     break;
                 case VisioDataGraphicPlacement.Bottom:
                     x = targetX + offset;
-                    y = targetY - (target.Height / 2D) - gap - (height / 2D);
+                    y = targetY - (target.HeightInches / 2D) - gap - (height / 2D);
                     break;
                 default:
-                    x = targetX + (target.Width / 2D) + gap + (width / 2D);
+                    x = targetX + (target.WidthInches / 2D) + gap + (width / 2D);
                     y = targetY - offset;
                     break;
             }
@@ -401,7 +401,7 @@ namespace OfficeIMO.Visio {
                 Size = 7.5D,
                 Color = Color.FromRgb(15, 23, 42),
                 Bold = true,
-                HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+                HorizontalAlignment = OfficeAlignment.Center,
                 VerticalAlignment = VisioTextVerticalAlignment.Middle,
                 LeftMargin = 0.03D,
                 RightMargin = 0.03D,

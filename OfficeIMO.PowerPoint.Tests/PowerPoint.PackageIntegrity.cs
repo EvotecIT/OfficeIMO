@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         public void CanValidatePackageStructure() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 presentation.AddSlide();
                 presentation.Save();
             }

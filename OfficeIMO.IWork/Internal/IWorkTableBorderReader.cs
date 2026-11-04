@@ -84,7 +84,7 @@ internal static partial class IWorkTableBorderReader {
             references.Declarations.Record(owner, field.ToString(System.Globalization.CultureInfo.InvariantCulture), message.FieldCount(field), IWorkSourceDeclarationIssueKind.RejectedMessageSet);
             return Array.Empty<(IWorkArchiveRecord, IWorkWireMessage)>();
         }
-        return IWorkStyleReader.ReadChain(source.Index, style!.Identifier, budget.MaximumTextStyleInheritanceDepth,
+        return IWorkStyleReader.ReadChain(source.Index, style!.Identifier, budget.MaxTextStyleInheritanceDepth,
             candidate => candidate == type, tolerateStyleDepth: true, references, ref complete);
     }
 

@@ -21,7 +21,7 @@ internal sealed partial class PublisherNativeWriter {
         var additions = _current.Images.Values.Where(image => !_baseline.Images.ContainsKey(image.Id)).OrderBy(image => image.Id).ToArray();
         var changed = _baseline.Pictures.Values.Where(picture => picture.ImageId != _current.Pictures[picture.Id].ImageId).ToArray();
         if (additions.Length == 0 && changed.Length == 0) return;
-        var context = new PublisherParseContext(new PublisherReadOptions { Limits = _sourceLimits }, _token);
+        var context = new PublisherParseContext(new PublisherLoadOptions { Limits = _sourceLimits }, _token);
         if (!TryPrepareImages(additions, changed, context))
             Reject("Escher/images", "Picture replacement has an unsupported image-store, source binding or asset profile.");
     }

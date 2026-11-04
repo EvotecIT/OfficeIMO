@@ -31,6 +31,9 @@
     <ProjectReference Include="..\..\..\OfficeIMO.Workflows\OfficeIMO.Workflows.csproj" />
     <ProjectReference Include="..\..\..\OfficeIMO.Drawing.HarfBuzz\OfficeIMO.Drawing.HarfBuzz.csproj" />
     <ProjectReference Include="..\..\..\OfficeIMO.Html.Pdf\OfficeIMO.Html.Pdf.csproj" />
+    <ProjectReference Include="..\..\..\OfficeIMO.Pdf.Word\OfficeIMO.Pdf.Word.csproj" />
+    <ProjectReference Include="..\..\..\OfficeIMO.Pdf.Excel\OfficeIMO.Pdf.Excel.csproj" />
+    <ProjectReference Include="..\..\..\OfficeIMO.Pdf.PowerPoint\OfficeIMO.Pdf.PowerPoint.csproj" />
     <ProjectReference Include="..\..\..\OfficeIMO.Word.Pdf\OfficeIMO.Word.Pdf.csproj" />
     <ProjectReference Include="..\..\..\OfficeIMO.Excel.Pdf\OfficeIMO.Excel.Pdf.csproj" />
     <ProjectReference Include="..\..\..\OfficeIMO.PowerPoint.Pdf\OfficeIMO.PowerPoint.Pdf.csproj" />
@@ -75,6 +78,9 @@
     <BlazorWebAssemblyLazyLoad Include="DocumentFormat.OpenXml.wasm" />
     <BlazorWebAssemblyLazyLoad Include="AngleSharp.wasm" />
     <BlazorWebAssemblyLazyLoad Include="AngleSharp.Css.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Pdf.Word.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Pdf.Excel.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Pdf.PowerPoint.wasm" />
     <!-- Format bridges: small, but each belongs to only a few tools. -->
     <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Word.Pdf.wasm" />
     <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Excel.Pdf.wasm" />

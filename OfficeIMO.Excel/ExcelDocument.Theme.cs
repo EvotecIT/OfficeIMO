@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel {
         private static readonly XNamespace DrawingNamespace = "http://schemas.openxmlformats.org/drawingml/2006/main";
 
         /// <summary>
-        /// Ensures the workbook contains the default Office theme and stylesheet parts.
+        /// Ensures the workbook contains the shared default theme and stylesheet parts.
         /// </summary>
         public ExcelDocument EnsureWorkbookTheme() {
             if (EnsureWorkbookThemeAndStyles()) {
@@ -23,7 +23,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Replaces the workbook theme with the embedded default Office theme.
+        /// Replaces the workbook theme with the shared default theme.
         /// </summary>
         public ExcelDocument ResetWorkbookTheme(string? name = null) {
             string xml = Encoding.UTF8.GetString(DefaultThemeBytes.Value);

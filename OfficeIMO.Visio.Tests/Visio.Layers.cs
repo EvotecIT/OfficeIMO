@@ -6,7 +6,7 @@ using System.Xml.Linq;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Stencils;
 using Xunit;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Tests {
     public class VisioLayerTests {
@@ -15,15 +15,15 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Layered", 11, 8.5);
+            VisioPage page = document.AddPage("Layered", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
             VisioLayer infrastructure = page.AddLayer("Infrastructure");
             infrastructure.Color = 2;
             VisioLayer annotations = page.AddLayer("Annotations");
             annotations.Visible = false;
             annotations.Print = false;
 
-            VisioShape server = page.AddStencilShape(VisioStencils.Network.Get("server"), "server", 2, 5, "Server");
-            VisioShape note = page.AddStencilShape(VisioStencils.BasicShapes.Get("rectangle"), "note", 5, 5, "Note");
+            VisioShape server = page.AddStencilShape(VisioStencils.Network.Get("server"), "server", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), "Server");
+            VisioShape note = page.AddStencilShape(VisioStencils.BasicShapes.Get("rectangle"), "note", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), "Note");
             VisioConnector connector = page.AddConnector(server, note, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left);
             connector.Label = "documents";
 
@@ -84,10 +84,10 @@ namespace OfficeIMO.Tests {
             string roundTripPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Native Layers", 11, 8.5);
+            VisioPage page = document.AddPage("Native Layers", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
             page.AddLayer("Infrastructure");
             page.AddLayer("Annotations");
-            VisioShape note = page.AddRectangle(2, 2, 1.5, 0.75, "Note");
+            VisioShape note = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.75, page.DefaultUnit)), "Note");
             page.AddToLayer("Annotations", note);
             document.Save();
 
@@ -119,9 +119,9 @@ namespace OfficeIMO.Tests {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage first = document.AddPage("First");
             VisioPage second = document.AddPage("Second");
-            VisioShape firstShape = first.AddRectangle(2, 2, 1, 1, "First");
-            VisioShape secondShape = second.AddRectangle(2, 2, 1, 1, "Second");
-            VisioConnector secondConnector = second.AddConnector(secondShape, second.AddRectangle(4, 2, 1, 1, "Other"));
+            VisioShape firstShape = first.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, first.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, first.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, first.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, first.DefaultUnit)), "First");
+            VisioShape secondShape = second.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, second.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, second.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, second.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, second.DefaultUnit)), "Second");
+            VisioConnector secondConnector = second.AddConnector(secondShape, second.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, second.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, second.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, second.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, second.DefaultUnit)), "Other"));
 
             Assert.Throws<InvalidOperationException>(() => first.AddToLayer("Invalid", secondShape));
             Assert.Throws<InvalidOperationException>(() => first.AddToLayer("Invalid", secondConnector));

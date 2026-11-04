@@ -2971,7 +2971,7 @@
     <value>{0:N0} de {1:N0} marcações selecionadas. Revise o impacto antes de aplicar.</value>
   </data>
   <data name="Redaction.ReviewedSummary" xml:space="preserve">
-    <value>{0:N0} áreas revisadas em {1:N0} páginas: {2:N0} resultados de texto, {3:N0} de imagem, {4:N0} de anotação e {5:N0} de vetor.</value>
+    <value>{0:N0} áreas revisadas em {1:N0} páginas: {2:N0} resultados de texto, {3:N0} de imagem, {4:N0} de anotação, {5:N0} de vetor e {6:N0} de campo de formulário.</value>
   </data>
   <data name="Redaction.SearchText" xml:space="preserve">
     <value>Texto ou padrão a localizar</value>

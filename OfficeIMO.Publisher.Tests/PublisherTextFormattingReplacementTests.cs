@@ -18,7 +18,7 @@ public sealed class PublisherTextFormattingReplacementTests {
         sourceRuns[1] = language ? sourceRuns[1].WithLanguageId(1036) : sourceRuns[1].WithAutomaticPairKerningThreshold(8);
         sourceParagraphs[0] = Copy(sourceParagraphs[0], sourceRuns);
         document.ReplaceStoryParagraphs(story.Id, sourceParagraphs);
-        document = PublisherDocument.Load(document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        document = PublisherDocument.Load(document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         story = document.TextStories.Single(s => s.Id == story.Id);
         if (language) Assert.Equal(1036U, story.Paragraphs[0].Runs[1].LanguageId);
         else Assert.Equal(8D, story.Paragraphs[0].Runs[1].AutomaticPairKerningThreshold);
@@ -26,10 +26,10 @@ public sealed class PublisherTextFormattingReplacementTests {
         if (!supplied) runs = runs.Select(r => language ? r.WithLanguageId(null) : r.WithAutomaticPairKerningThreshold(null)).ToArray();
         var requested = story.Paragraphs.ToArray(); requested[0] = Copy(requested[0], runs);
         document.ReplaceStoryParagraphs(story.Id, requested);
-        var options = new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow };
-        if (!supplied) Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(options));
+        var options = new PublisherSaveOptions { AllowLoss = true };
+        if (!supplied) Assert.Throws<OfficeConversionException>(() => document.ToBytes(options));
         else {
-            PublisherDocument saved = PublisherDocument.Load(document.ToPubBytes(options));
+            PublisherDocument saved = PublisherDocument.Load(document.ToBytes(options));
             OfficeRichTextParagraph actual = saved.TextStories.Single(s => s.Id == story.Id).Paragraphs[0];
             Assert.True(PublisherTextComparison.ParagraphEqual(requested[0], actual));
             Assert.All(actual.Runs, r => { Assert.Equal(1033U, r.LanguageId); Assert.Equal(6D, r.AutomaticPairKerningThreshold); });
@@ -53,7 +53,7 @@ public sealed class PublisherTextFormattingReplacementTests {
         var requested = before.ToArray(); requested[0] = replacement;
         if (cells) document.ReplaceTableCellParagraphs(table!.Id, 0, 0, requested);
         else document.ReplaceStoryParagraphs(story.Id, requested);
-        byte[] output = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        byte[] output = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         PublisherDocument saved = PublisherDocument.Load(output);
         var actual = cells ? saved.Pages[0].Tables.Single().Cells[0].Paragraphs : saved.TextStories.Single(s => s.Id == story.Id).Paragraphs;
         Assert.True(PublisherTextComparison.ParagraphEqual(replacement, actual[0]));
@@ -76,7 +76,7 @@ public sealed class PublisherTextFormattingReplacementTests {
         Assert.All(oldDefinitions, definition => Assert.Equal(residue, Residue(definition)));
         Assert.All(newDefinitions, definition => Assert.Equal(residue, Residue(definition)));
         PublisherNativeWritingTests.AssertPreservedStorage(source, output, "Quill/QuillSub/CONTENTS");
-        Assert.Equal(output, saved.ToPubBytes());
+        Assert.Equal(output, saved.ToBytes());
     }
 
     [Theory]
@@ -89,7 +89,7 @@ public sealed class PublisherTextFormattingReplacementTests {
         PublisherQuillSourceSpan span = binding.Uses.Where(u => u.Tag == "FDPC").Skip(1).First().DirectDefinition;
         byte[] source = PublisherInputContractTests.Mutate("Quill/QuillSub/CONTENTS", bytes => {
             var fields = new PublisherBlockReader(new PublisherBinaryData(bytes, "test/Quill"),
-                new PublisherParseContext(new PublisherReadOptions(), default)).Chunk(span.Offset, span.Offset + span.Length);
+                new PublisherParseContext(new PublisherLoadOptions(), default)).Chunk(span.Offset, span.Offset + span.Length);
             PublisherBlock opaque = Assert.Single(fields, f => f.Id == 0x3E);
             Assert.Equal(0x22, opaque.Type); Assert.Equal(1033U, opaque.Value);
             PublisherInputContractTests.WriteUInt32(bytes, opaque.Offset, 1036);
@@ -100,7 +100,7 @@ public sealed class PublisherTextFormattingReplacementTests {
         var requested = before.ToArray(); requested[0] = Copy(before[0], new[] { RequestedRun("Completely changed ", 0), RequestedRun("body", 1) });
         if (cells) document.ReplaceTableCellParagraphs(table!.Id, 0, 0, requested);
         else document.ReplaceStoryParagraphs(storyId, requested);
-        Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        Assert.Throws<OfficeConversionException>(() => document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
     }
 
     private static OfficeRichTextRun RequestedRun(string text, int index) => new OfficeRichTextRun(text, index % 2 == 0 ? 12 : 14,
@@ -124,7 +124,7 @@ public sealed class PublisherTextFormattingReplacementTests {
     private static byte[] Residue(byte[] bytes) {
         byte[] changed = { 2, 3, 0x0C, 0x0F, 0x10, 0x12, 0x18, 0x1E, 0x24, 0x44, 0x58 };
         var fields = new PublisherBlockReader(new PublisherBinaryData(bytes, "test/native-residue"),
-            new PublisherParseContext(new PublisherReadOptions(), default)).Chunk(0, bytes.Length);
+            new PublisherParseContext(new PublisherLoadOptions(), default)).Chunk(0, bytes.Length);
         return fields.Where(f => !changed.Contains(f.Id)).SelectMany(f => bytes.Skip(f.Offset - 2).Take(f.Length + 2)).ToArray();
     }
 

@@ -175,11 +175,11 @@ namespace OfficeIMO.Tests {
 
             Assert.True(result.HasLimitations);
             Assert.Contains(result.Limitations, limitation =>
-                limitation.Code == "EffectiveFormatting.ThemeResolution" &&
+                limitation.Code == "effective-formatting-theme-resolution" &&
                 limitation.SourceContainsShape &&
                 limitation.TargetContainsShape);
             Assert.Contains(result.Limitations, limitation =>
-                limitation.Code == "MoveSemantics.RevisionMetadataOnly" &&
+                limitation.Code == "move-semantics-revision-metadata-only" &&
                 limitation.Message.Contains("insert/delete", StringComparison.Ordinal));
 
             using System.Text.Json.JsonDocument report = System.Text.Json.JsonDocument.Parse(result.ToJson());
@@ -200,7 +200,7 @@ namespace OfficeIMO.Tests {
                 CompareEffectiveFormatting = false
             });
 
-            Assert.DoesNotContain(result.Limitations, limitation => limitation.Code == "MoveSemantics.RevisionMetadataOnly");
+            Assert.DoesNotContain(result.Limitations, limitation => limitation.Code == "move-semantics-revision-metadata-only");
         }
 
         [Fact]
@@ -216,7 +216,7 @@ namespace OfficeIMO.Tests {
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
 
             Assert.Contains(result.Limitations, limitation =>
-                limitation.Code == "EffectiveFormatting.ThemeResolution" &&
+                limitation.Code == "effective-formatting-theme-resolution" &&
                 limitation.SourceContainsShape &&
                 limitation.TargetContainsShape);
         }
@@ -240,7 +240,7 @@ namespace OfficeIMO.Tests {
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
 
             Assert.Contains(result.Limitations, limitation =>
-                limitation.Code == "EffectiveFormatting.ThemeResolution" &&
+                limitation.Code == "effective-formatting-theme-resolution" &&
                 limitation.SourceContainsShape &&
                 limitation.TargetContainsShape);
         }
@@ -266,7 +266,7 @@ namespace OfficeIMO.Tests {
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
 
             Assert.Contains(result.Limitations, limitation =>
-                limitation.Code == "EffectiveFormatting.ThemeResolution" &&
+                limitation.Code == "effective-formatting-theme-resolution" &&
                 limitation.SourceContainsShape &&
                 limitation.TargetContainsShape);
         }
@@ -290,7 +290,7 @@ namespace OfficeIMO.Tests {
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
 
             Assert.Contains(result.Limitations, limitation =>
-                limitation.Code == "EffectiveFormatting.ThemeResolution" &&
+                limitation.Code == "effective-formatting-theme-resolution" &&
                 limitation.SourceContainsShape &&
                 limitation.TargetContainsShape);
         }
@@ -305,7 +305,7 @@ namespace OfficeIMO.Tests {
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
 
             Assert.Contains(result.Limitations, limitation =>
-                limitation.Code == "EffectiveFormatting.NumberingLevelStyles" &&
+                limitation.Code == "effective-formatting-numbering-level-styles" &&
                 limitation.SourceContainsShape &&
                 limitation.TargetContainsShape);
         }
@@ -320,7 +320,7 @@ namespace OfficeIMO.Tests {
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
 
             Assert.Contains(result.Limitations, limitation =>
-                limitation.Code == "EffectiveFormatting.NumberingLevelStyles" &&
+                limitation.Code == "effective-formatting-numbering-level-styles" &&
                 limitation.SourceContainsShape &&
                 limitation.TargetContainsShape);
         }
@@ -334,7 +334,7 @@ namespace OfficeIMO.Tests {
 
             WordComparisonResult plain = WordDocumentComparer.CompareStructure(plainSourcePath, plainTargetPath);
 
-            Assert.DoesNotContain(plain.Limitations, limitation => limitation.Code == "EffectiveFormatting.ConditionalTableStyles");
+            Assert.DoesNotContain(plain.Limitations, limitation => limitation.Code == "effective-formatting-conditional-table-styles");
 
             string conditionalSourcePath = Path.Combine(_directoryWithFiles, "compare_structure_conditional_table_style_source.docx");
             CreateDocumentWithComparisonTableStyle(conditionalSourcePath, includeConditionalBaseStyle: true);
@@ -344,7 +344,7 @@ namespace OfficeIMO.Tests {
             WordComparisonResult conditional = WordDocumentComparer.CompareStructure(conditionalSourcePath, conditionalTargetPath);
 
             Assert.Contains(conditional.Limitations, limitation =>
-                limitation.Code == "EffectiveFormatting.ConditionalTableStyles" &&
+                limitation.Code == "effective-formatting-conditional-table-styles" &&
                 limitation.SourceContainsShape &&
                 limitation.TargetContainsShape);
         }
@@ -359,7 +359,7 @@ namespace OfficeIMO.Tests {
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
 
             Assert.Contains(result.Limitations, limitation =>
-                limitation.Code == "EffectiveFormatting.ConditionalTableStyles" &&
+                limitation.Code == "effective-formatting-conditional-table-styles" &&
                 limitation.SourceContainsShape &&
                 limitation.TargetContainsShape);
         }
@@ -371,13 +371,13 @@ namespace OfficeIMO.Tests {
 
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_options_image_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
-                document.AddParagraph().AddImage(logoPath, 80, 40);
+                document.AddParagraph().AddImage(logoPath, OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_options_image_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
-                document.AddParagraph().AddImage(replacementPath, 80, 40);
+                document.AddParagraph().AddImage(replacementPath, OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 document.Save();
             }
 
@@ -398,14 +398,14 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_options_scope_filter_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Source paragraph");
-                document.AddParagraph().AddImage(logoPath, 80, 40);
+                document.AddParagraph().AddImage(logoPath, OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_options_scope_filter_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Target paragraph");
-                document.AddParagraph().AddImage(replacementPath, 80, 40);
+                document.AddParagraph().AddImage(replacementPath, OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 document.Save();
             }
 

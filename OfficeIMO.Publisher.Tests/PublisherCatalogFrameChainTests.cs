@@ -13,7 +13,7 @@ public sealed class PublisherCatalogFrameChainTests {
         PublisherDocument original = PublisherDocument.Load(PublisherNativeTests.Fixture(fixture));
         byte[] input = PublisherInputContractTests.Mutate("Contents", bytes => {
             var data = new PublisherBinaryData(bytes, "Contents");
-            var context = new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None);
+            var context = new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None);
             var blocks = new PublisherBlockReader(data, context);
             PublisherContents publication = new PublisherContentsReader(data, context).Read();
             PublisherContentChunk storyCatalog = publication.Chunks.Values.Single(chunk => chunk.Kind == 0x65);
@@ -58,7 +58,7 @@ public sealed class PublisherCatalogFrameChainTests {
     public void Unique_shape_ordinals_without_a_native_catalog_do_not_guess_a_story_chain() {
         byte[] input = PublisherInputContractTests.Mutate("Contents", bytes => {
             var data = new PublisherBinaryData(bytes, "Contents");
-            var context = new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None);
+            var context = new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None);
             var blocks = new PublisherBlockReader(data, context);
             PublisherContents publication = new PublisherContentsReader(data, context).Read();
             PublisherContentChunk document = publication.Chunks.Values.Single(chunk => chunk.Kind == 0x44);
@@ -70,7 +70,7 @@ public sealed class PublisherCatalogFrameChainTests {
         PublisherTextStory story = Assert.Single(document.TextStories, item => item.Id == 3);
         Assert.Contains("Section 10.", story.Text);
         Assert.DoesNotContain(document.Pages.SelectMany(page => page.TextFrames), frame => frame.StoryId == 3);
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_TEXT_CHAIN_UNRESOLVED");
+        Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == "PUB_TEXT_CHAIN_UNRESOLVED");
     }
 
     [Fact]
@@ -91,7 +91,7 @@ public sealed class PublisherCatalogFrameChainTests {
     public void Catalog_chain_rejects_duplicate_foreign_or_incomplete_bindings(uint kind, uint storyId, uint ordinal, byte field, uint replacement) {
         byte[] input = PublisherInputContractTests.Mutate("Contents", bytes => {
             var data = new PublisherBinaryData(bytes, "Contents");
-            var context = new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None);
+            var context = new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None);
             var blocks = new PublisherBlockReader(data, context);
             PublisherContents publication = new PublisherContentsReader(data, context).Read();
             PublisherContentChunk chunk = publication.Chunks.Values.Single(item => item.Kind == kind);

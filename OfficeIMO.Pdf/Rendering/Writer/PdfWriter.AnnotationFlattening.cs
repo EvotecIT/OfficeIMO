@@ -3,11 +3,11 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     private static string BuildFlattenedVisualAnnotationContent(
         LayoutResult.Page page,
-        PdfOptions pageOptions,
+        PdfCreateOptions pageOptions,
         IList<byte[]> objects,
         List<(string Name, int Id)> xobjects,
-        Func<PdfStandardFont, PdfOptions, int> ensureFont,
-        Func<PdfOptions, int> ensureFormHelveticaFont,
+        Func<PdfStandardFont, PdfCreateOptions, int> ensureFont,
+        Func<PdfCreateOptions, int> ensureFormHelveticaFont,
         bool markAsArtifact,
         PdfPrintColorTransform? printColorTransform,
         System.Threading.CancellationToken cancellationToken) {

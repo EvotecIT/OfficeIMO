@@ -30,7 +30,7 @@ public sealed class PublisherRunSegmentationWritingTests {
             var cell = table!.Cells[index];
             document.ReplaceTableCellParagraphs(table.Id, cell.RowIndex, cell.ColumnIndex, Request(cell.Paragraphs));
         } else document.ReplaceStoryParagraphs(story.Id, requested);
-        byte[] output = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        byte[] output = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         PublisherDocument saved = PublisherDocument.Load(output);
         var actual = cells ? saved.Pages[page].Tables.Single().Cells[0].Paragraphs : saved.TextStories[page].Paragraphs;
         Assert.Equal(expected.Count, actual.Count);
@@ -79,7 +79,7 @@ public sealed class PublisherRunSegmentationWritingTests {
         var requested = finalOnly ? new[] { changed } : new[] { changed, before[2] };
         if (cells) document.ReplaceTableCellParagraphs(table!.Id, 0, 0, requested);
         else document.ReplaceStoryParagraphs(story.Id, requested);
-        Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        Assert.Throws<OfficeConversionException>(() => document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
     }
 
     [Theory]
@@ -95,7 +95,7 @@ public sealed class PublisherRunSegmentationWritingTests {
         var changed = Copy(before[0], new[] { run });
         if (cells) document.ReplaceTableCellParagraphs(table!.Id, 0, 0, new[] { changed, before[3] });
         else document.ReplaceStoryParagraphs(story.Id, new[] { changed, before[3] });
-        Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        Assert.Throws<OfficeConversionException>(() => document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
     }
 
     private static int SourcePage(int reference) => reference == 13 ? 12 : reference is >= 7 and <= 10 or 16 or 18 or 19 ? 6 : 0;
@@ -138,7 +138,7 @@ public sealed class PublisherRunSegmentationWritingTests {
     private static byte[]? FieldAt(PublisherDocument d, byte[] quill, uint id, int paragraph, int offset, byte field) {
         byte[] raw = Definition(d, quill, id, paragraph, offset);
         var data = new PublisherBinaryData(raw, "test/native-character-definition");
-        var fields = new PublisherBlockReader(data, new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None))
+        var fields = new PublisherBlockReader(data, new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None))
             .Chunk(0, raw.Length).Where(f => f.Id == field).ToArray();
         if (fields.Length == 0) return null;
         var match = Assert.Single(fields); return raw.Skip(match.Offset - 2).Take(match.Length + 2).ToArray();

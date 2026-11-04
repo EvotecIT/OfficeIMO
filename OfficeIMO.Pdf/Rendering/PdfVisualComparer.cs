@@ -68,8 +68,8 @@ public static class PdfVisualComparer {
         }
         return new PdfVisualComparisonReport(pages.AsReadOnly(), structural.AsReadOnly(), expected.Pages.Count, actual.Pages.Count,
             expectedPages, actualPages, unmatchedExpected, unmatchedActual,
-            PdfArtifactSnapshot.CaptureKnownPageCount(expectedPdf, expected.Pages.Count, cancellationToken).Sha256,
-            PdfArtifactSnapshot.CaptureKnownPageCount(actualPdf, actual.Pages.Count, cancellationToken).Sha256, independentSelection || selection is not null);
+            PdfArtifactInfo.CaptureKnownPageCount(expectedPdf, expected.Pages.Count, cancellationToken).Sha256,
+            PdfArtifactInfo.CaptureKnownPageCount(actualPdf, actual.Pages.Count, cancellationToken).Sha256, independentSelection || selection is not null);
     }
 
     private static int[] ResolvePages(PdfPageSelector? selector, PdfPageSelection? selection, int count, int maximum) {

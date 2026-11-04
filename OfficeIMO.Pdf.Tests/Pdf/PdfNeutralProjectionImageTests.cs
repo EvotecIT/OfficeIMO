@@ -18,9 +18,11 @@ public sealed class PdfNeutralProjectionImageTests {
             Blocks = new[] { new OfficeDocumentModelBlock { Kind = "paragraph", Text = "Searchable source content" } },
             Assets = new[] { new OfficeDocumentModelAsset { Id = "diagram", Kind = "preview-png", PayloadBytes = png } }
         };
-        var pdfOptions = new PdfOptions {
-            PageWidth = pageWidth, PageHeight = pageHeight,
-            MarginLeft = margin, MarginRight = margin, MarginTop = margin, MarginBottom = margin
+        var pdfOptions = new PdfCreateOptions {
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(pageWidth), global::OfficeIMO.OfficeLength.Points(pageHeight)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(margin), Right = global::OfficeIMO.OfficeLength.Points(margin), Top = global::OfficeIMO.OfficeLength.Points(margin), Bottom = global::OfficeIMO.OfficeLength.Points(margin) }
+            }
         };
 
         byte[] bytes = source.ToPdfDocumentResult(new PdfProjectionOptions {
@@ -40,8 +42,8 @@ public sealed class PdfNeutralProjectionImageTests {
         Assert.True(OfficeRasterImageDecoder.TryDecode(embedded.Bytes, out OfficeRasterImage? image));
         Assert.Equal(OfficeColor.Red, image!.GetPixel(width / 2, height / 2));
         Assert.Contains("Searchable source content", read.ExtractText());
-        Assert.Equal(pageWidth, pdfOptions.PageWidth);
-        Assert.Equal(margin, pdfOptions.MarginLeft);
+        Assert.Equal(pageWidth, pdfOptions.PageSetup.Size.Width.ToPoints());
+        Assert.Equal(margin, pdfOptions.PageSetup.Margins.Left.ToPoints());
     }
 
     [Theory]
@@ -70,12 +72,12 @@ public sealed class PdfNeutralProjectionImageTests {
         Assert.Equal("3", warning.Details["sourcePage"]);
         Assert.Equal((int)severity, (int)warning.Severity);
         Assert.Equal(expectedLoss != OfficeConversionLossKind.None, result.HasLoss);
-        Assert.Equal(expectedLoss, Assert.Single(result.Report.FidelityDiagnostics).LossKind);
+        Assert.Equal(expectedLoss, Assert.Single(result.Report.Diagnostics).LossKind);
         if (expectedLoss == OfficeConversionLossKind.None) {
-            result.RequireNoLoss();
+            result.ThrowIfLoss();
             Assert.Equal(PdfConversionFidelityStatus.Faithful, result.Report.FidelityStatus);
         } else {
-            Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
             Assert.Equal(PdfConversionFidelityStatus.Degraded, result.Report.FidelityStatus);
         }
     }
@@ -92,7 +94,7 @@ public sealed class PdfNeutralProjectionImageTests {
         Assert.Equal(OfficeConversionLossKind.Unassessed, warning.ToFidelityDiagnostic().LossKind);
         Assert.True(report.HasLoss);
         Assert.Equal(PdfConversionFidelityStatus.Degraded, report.FidelityStatus);
-        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => report.ThrowIfLoss());
     }
 
     [Theory]

@@ -145,7 +145,7 @@ public sealed class OfficeDrawingPortableTests {
             var conversionOptions = new OfficeVisualConversionOptions { SvgPolicy = OfficeVisualSvgPolicy.RequireVector };
             conversionOptions.Fonts.AddRange(fonts);
             var conversion = prepared.ToArtifact("service-capacity").ToOfficeVisual(conversionOptions);
-            conversion.Report.RequireNoLoss();
+            conversion.Report.ThrowIfLoss();
             Assert.True(conversion.Report.IsVector);
             Assert.False(conversion.Report.UsedRasterFallback);
             Assert.True(OfficeDrawingPortableExporter.TryExportJson(conversion.Drawing, new OfficeDrawingPortableOptions(Family),

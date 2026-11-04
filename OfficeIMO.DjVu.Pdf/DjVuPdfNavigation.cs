@@ -9,7 +9,7 @@ internal static class DjVuPdfNavigation {
         internal int SourcePage, Level, Order;
     }
     internal static IReadOnlyList<Entry> Project(DjVuDocument document, DjVuPage[] pages,
-        List<OfficeConversionFidelityDiagnostic> diagnostics, CancellationToken token) {
+        List<OfficeDiagnostic> diagnostics, CancellationToken token) {
         var selected = new HashSet<int>(pages.Select(p => p.Number));
         var output = new List<Entry>();
         if (document.BookmarkDiagnostic != null) DjVuPdfConversionEngine.Add(diagnostics, "djvu.pdf.outline-corrupt",

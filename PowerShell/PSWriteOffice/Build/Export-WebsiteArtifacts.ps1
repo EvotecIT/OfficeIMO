@@ -116,8 +116,17 @@ function Invoke-SourceGit {
     # Windows PowerShell turns native stderr into errors before callers can
     # classify Git's exit code. Keep that handling local to these read-only probes.
     $ErrorActionPreference = 'Continue'
-    $output = @(& git -C $RepositoryRoot @Arguments 2>$null)
-    [PSCustomObject]@{ ExitCode = $LASTEXITCODE; Output = $output }
+    # Git returns the UTF-8 source bytes, including a manifest's BOM. Windows
+    # shells can inherit an OEM console encoding even when running PowerShell 7.
+    $previousEncoding = [Console]::OutputEncoding
+    try {
+        [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
+        $output = @(& git -C $RepositoryRoot @Arguments 2>$null)
+        $exitCode = $LASTEXITCODE
+    } finally {
+        [Console]::OutputEncoding = $previousEncoding
+    }
+    [PSCustomObject]@{ ExitCode = $exitCode; Output = $output }
 }
 
 function Get-QualifiedSourceRevision {
@@ -206,7 +215,8 @@ function Get-QualifiedSourceRevision {
     }
     # The module now compiles the engines from the same checkout. Their source and
     # shared build settings are part of its provenance, even outside the module folder.
-    $engineInputs = @('OfficeIMO.*', 'Directory.Build.*', 'Directory.Packages.*', 'global.json', 'NuGet.Config', 'nuget.config', 'Build')
+    # Explicit Git pathspecs keep native wildcard expansion independent of the caller's directory.
+    $engineInputs = @(':(top)OfficeIMO', ':(top)OfficeIMO.*', ':(top)Directory.Build.*', ':(top)Directory.Packages.*', ':(top)global.json', ':(top)NuGet.Config', ':(top)nuget.config', ':(top)Build')
     foreach ($arguments in @(
         @('diff', '--quiet', 'HEAD', '--'),
         @('diff', '--cached', '--quiet', 'HEAD', '--')

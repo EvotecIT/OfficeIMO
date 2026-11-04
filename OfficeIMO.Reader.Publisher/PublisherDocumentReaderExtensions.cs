@@ -29,7 +29,7 @@ public static class PublisherDocumentReaderExtensions {
         using var scope = ReaderReadScope.Enter(effective);
         OfficeDocumentReadResult result = new PublisherReadProjection(document, name, effective, configured, cancellationToken).Build();
         cancellationToken.ThrowIfCancellationRequested();
-        DocumentReaderEngine.ApplyExternalSourceMetadata(result, DocumentReaderEngine.BuildSourceId(name),
+        DocumentReaderEngine.ApplyExternalSourceMetadata(result, DocumentReaderEngine.BuildPortableSourceId(name),
             lastWriteUtc: null, lengthBytes: null, computeHashes: effective.ComputeHashes);
         cancellationToken.ThrowIfCancellationRequested();
         return ReaderReadScope.Complete(result);

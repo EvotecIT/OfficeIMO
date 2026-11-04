@@ -4,7 +4,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel {
     internal static partial class ExcelRangeImageRenderer {
-        private static void RenderRasterSparklines(OfficeRasterCanvas canvas, ExcelRangeVisualSnapshot snapshot, ExcelImageExportOptions options) {
+        private static void RenderRasterSparklines(OfficeRasterCanvas canvas, ExcelRangeVisualInfo snapshot, ExcelImageExportOptions options) {
             double scale = options.Scale;
             foreach (ExcelVisualSparkline sparkline in snapshot.Sparklines) {
                 using (canvas.PushClipRectangle(sparkline.X * scale, sparkline.Y * scale, sparkline.Width * scale, sparkline.Height * scale)) {
@@ -27,7 +27,7 @@ namespace OfficeIMO.Excel {
 
         private static void AppendSvgSparklines(
             StringBuilder builder,
-            ExcelRangeVisualSnapshot snapshot,
+            ExcelRangeVisualInfo snapshot,
             ExcelImageExportOptions options,
             System.Threading.CancellationToken cancellationToken,
             OfficeSvgUtf8CompositionBudget? budget) {

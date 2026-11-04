@@ -25,10 +25,10 @@ This custom block uses the delegate-based block parser API.
 
             var options = CreateReaderOptions();
             var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
-            var html = result.Document.ToHtmlFragment(new HtmlOptions {
-                Kind = HtmlKind.Fragment,
+            var html = result.Document.ToHtml(new MarkdownHtmlExportOptions {
+                Kind = MarkdownHtmlKind.Fragment,
                 Title = "Custom block parser sample",
-                Style = HtmlStyle.GithubAuto
+                Style = MarkdownHtmlStyle.GithubAuto
             });
 
             string markdownPath = Path.Combine(mdFolder, "CustomBlockParsers.Source.md");
@@ -48,8 +48,8 @@ This custom block uses the delegate-based block parser API.
             }
         }
 
-        private static MarkdownReaderOptions CreateReaderOptions() {
-            var options = MarkdownReaderOptions.CreatePortableProfile();
+        private static MarkdownLoadOptions CreateReaderOptions() {
+            var options = MarkdownLoadOptions.CreatePortableProfile();
             options.BlockParserExtensions.Add(new MarkdownBlockParserExtension(
                 "panel-block",
                 MarkdownBlockParserPlacement.BeforeParagraphs,
@@ -57,7 +57,7 @@ This custom block uses the delegate-based block parser API.
             return options;
         }
 
-        private static string DescribeParseResult(MarkdownParseResult result) {
+        private static string DescribeParseResult(MarkdownParseInfo result) {
             var sb = new StringBuilder();
             sb.AppendLine("Document blocks:");
             foreach (var block in result.Document.Blocks) {
@@ -158,8 +158,8 @@ This custom block uses the delegate-based block parser API.
             string IContextualHtmlMarkdownBlock.RenderHtml(MarkdownBodyRenderContext context) {
                 var body = string.Concat(ChildBlocks.Select(block => block.RenderHtml()));
                 var blockIndex = context.GetBlockIndex(this);
-                var tocOptions = new TocOptions {
-                    Scope = TocScope.PreviousHeading,
+                var tocOptions = new MarkdownTocOptions {
+                    Scope = MarkdownTocScope.PreviousHeading,
                     IncludeTitle = true,
                     MinLevel = 2,
                     MaxLevel = 6

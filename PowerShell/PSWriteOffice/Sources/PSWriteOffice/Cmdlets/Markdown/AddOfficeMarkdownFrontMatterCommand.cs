@@ -17,7 +17,7 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeMarkdownFrontMatter", DefaultParameterSetName = ParameterSetContext)]
 [Alias("MarkdownFrontMatter")]
-[OutputType(typeof(MarkdownDoc))]
+[OutputType(typeof(MarkdownDocument))]
 public sealed class AddOfficeMarkdownFrontMatterCommand : PSCmdlet
 {
     private const string ParameterSetContext = "Context";
@@ -25,7 +25,7 @@ public sealed class AddOfficeMarkdownFrontMatterCommand : PSCmdlet
 
     /// <summary>Markdown document to update outside the DSL context.</summary>
     [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public MarkdownDoc Document { get; set; } = null!;
+    public MarkdownDocument Document { get; set; } = null!;
 
     /// <summary>Front matter data expressed as a hashtable or object.</summary>
     [Parameter(Mandatory = true, Position = 0)]
@@ -129,7 +129,7 @@ public sealed class AddOfficeMarkdownFrontMatterCommand : PSCmdlet
         return value;
     }
 
-    private MarkdownDoc ResolveDocument()
+    private MarkdownDocument ResolveDocument()
     {
         if (ParameterSetName == ParameterSetDocument)
         {

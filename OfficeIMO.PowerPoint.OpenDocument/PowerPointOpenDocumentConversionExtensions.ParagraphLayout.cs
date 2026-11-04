@@ -59,7 +59,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                 && percentage > 0D) {
                 target.LineSpacingMultiplier = percentage / 100D;
             } else if (source.LineHeight.Value.TryToPoints(out double points) && points >= 0D) {
-                target.LineSpacingPoints = points;
+                target.LineSpacing = global::OfficeIMO.OfficeLength.Points(points);
             } else {
                 unsupportedMeasurements++;
             }
@@ -93,8 +93,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         if (source.LineSpacingMultiplier.HasValue) {
             target.LineHeight = OdfLength.Parse(
                 (source.LineSpacingMultiplier.Value * 100D).ToString("0.###", CultureInfo.InvariantCulture) + "%");
-        } else if (source.LineSpacingPoints.HasValue) {
-            target.LineHeight = OdfLength.Points(source.LineSpacingPoints.Value);
+        } else if (source.LineSpacing.HasValue) {
+            target.LineHeight = OdfLength.Points(source.LineSpacing.Value.ToPoints());
         }
         return approximatedAlignment;
     }

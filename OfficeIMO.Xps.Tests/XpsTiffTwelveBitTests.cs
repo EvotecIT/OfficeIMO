@@ -33,14 +33,14 @@ public sealed class XpsTiffTwelveBitTests {
                     "{ColorConvertedBitmap " + source + " " + profileUri + "}");
                 document.Pages[0].ReplaceMarkup(markup);
             }
-            var loaded = XpsDocument.Load(document.Save());
+            var loaded = XpsDocument.Load(document.ToBytes());
             var page = loaded.Pages[0];
             var svg = page.ToSvg();
             Assert.Empty(svg.Diagnostics);
             var direct = OfficeDrawingRasterRenderer.Render(page.ToDrawing(), background: OfficeColor.White);
             Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg.Svg), out var drawing));
             var svgImage = OfficeDrawingRasterRenderer.Render(drawing!, background: OfficeColor.White);
-            var pdfPage = Assert.Single(PdfReadDocument.Open(loaded.ToPdf()).Pages);
+            var pdfPage = Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(loaded.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).Pages);
             var pdfImage = OfficeDrawingRasterRenderer.Render(pdfPage.ToDrawing(), scale: 4D / 3D, background: OfficeColor.White);
             for (int y = 0; y < 19; y++) for (int x = 0; x < 35; x++) {
                 int at = (y * 35 + x) * 3;

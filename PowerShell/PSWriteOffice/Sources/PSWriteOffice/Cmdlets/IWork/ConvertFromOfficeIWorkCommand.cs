@@ -79,23 +79,23 @@ public sealed class ConvertFromOfficeIWorkCommand : PSCmdlet
         switch (source.Kind)
         {
             case IWorkDocumentKind.Pages:
-                using (var result = source.ToWordDocumentResult(ConversionOptions))
+                using (var result = source.ToWordResult(ConversionOptions))
                 {
-                    if (FailOnLoss.IsPresent) result.RequireNoLoss();
+                    if (FailOnLoss.IsPresent) result.ThrowIfLoss();
                     OfficeFileOutput.Write(output, Force.IsPresent, temporaryPath => result.Value.Save(temporaryPath));
                     return result.Report;
                 }
             case IWorkDocumentKind.Numbers:
-                using (var result = source.ToExcelDocumentResult(ConversionOptions))
+                using (var result = source.ToExcelResult(ConversionOptions))
                 {
-                    if (FailOnLoss.IsPresent) result.RequireNoLoss();
+                    if (FailOnLoss.IsPresent) result.ThrowIfLoss();
                     OfficeFileOutput.Write(output, Force.IsPresent, temporaryPath => result.Value.Save(temporaryPath));
                     return result.Report;
                 }
             case IWorkDocumentKind.Keynote:
-                using (var result = source.ToPowerPointPresentationResult(ConversionOptions))
+                using (var result = source.ToPowerPointResult(ConversionOptions))
                 {
-                    if (FailOnLoss.IsPresent) result.RequireNoLoss();
+                    if (FailOnLoss.IsPresent) result.ThrowIfLoss();
                     OfficeFileOutput.Write(output, Force.IsPresent, temporaryPath => result.Value.Save(temporaryPath));
                     return result.Report;
                 }

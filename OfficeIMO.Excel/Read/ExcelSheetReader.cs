@@ -22,7 +22,7 @@ namespace OfficeIMO.Excel {
         private readonly bool _hasSdkWorksheetPart;
         private readonly SharedStringCache _sst;
         private readonly StylesCacheProvider _styles;
-        private readonly ExcelReadOptions _opt;
+        private readonly ExcelReaderOptions _opt;
         private readonly ExcelDateSystem _dateSystem;
         private readonly bool _canStreamWorksheetPart;
         private readonly OpenXmlPackagePartBufferReader? _partBufferReader;
@@ -32,6 +32,7 @@ namespace OfficeIMO.Excel {
         private string? _usedRangeA1;
         private char[]? _xmlValueTextBuffer;
         private static readonly XmlReaderSettings WorksheetXmlReaderSettings = CreateWorksheetXmlReaderSettings();
+        private static readonly XmlReaderSettings CellEnumerationXmlReaderSettings = CreateCellEnumerationXmlReaderSettings();
         private static readonly object BoxedTrue = true;
         private static readonly object BoxedFalse = false;
 
@@ -40,7 +41,7 @@ namespace OfficeIMO.Excel {
             WorksheetPart wsPart,
             SharedStringCache sst,
             StylesCacheProvider styles,
-            ExcelReadOptions opt,
+            ExcelReaderOptions opt,
             ExcelDateSystem dateSystem,
             bool canStreamWorksheetPart,
             OpenXmlPackagePartBufferReader? partBufferReader = null) {
@@ -63,7 +64,7 @@ namespace OfficeIMO.Excel {
             string worksheetPartName,
             SharedStringCache sst,
             StylesCacheProvider styles,
-            ExcelReadOptions opt,
+            ExcelReaderOptions opt,
             ExcelDateSystem dateSystem,
             OpenXmlPackagePartBufferReader partBufferReader,
             Lazy<RichValueErrorLookup>? richValueErrors = null) {
@@ -90,7 +91,7 @@ namespace OfficeIMO.Excel {
 
         // Native tabular readers retain the opened package snapshot. A worksheet
         // that is too large to index can still use the existing XML projection.
-        private Stream OpenDataReaderWorksheetStream(CancellationToken ct) {
+        private Stream OpenReaderWorksheetStream(CancellationToken ct) {
             ct.ThrowIfCancellationRequested();
             if (_partBufferReader != null
                 && _partBufferReader.TryGetLength(_worksheetPartName, out long length)
@@ -156,10 +157,12 @@ namespace OfficeIMO.Excel {
         private IEnumerable<ExcelCellValueInfo> EnumerateCellsXmlFast(CancellationToken ct) {
             using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
             RewindWorksheetStream(stream);
-            using var reader = OpenWorksheetXmlReader(stream);
+            using var reader = OpenCellEnumerationXmlReader(stream);
             var worksheetRows = new WorksheetXmlRowSelector();
             bool canCancel = ct.CanBeCanceled;
-            bool hasCustomConverter = _opt.CellValueConverter != null;
+            // A culture also changes how text parses as a number, which only the raw conversion honours.
+            bool hasCustomConverter = _opt.CellValueConverter != null
+                || !ReferenceEquals(_opt.Culture, System.Globalization.CultureInfo.InvariantCulture);
             int nextRowIndex = 1;
 
             while (reader.Read()) {
@@ -212,11 +215,12 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    if (reader.IsEmptyElement) {
+                    string? cellType = ReadValidatedXmlCellType(reader);
+                    if (reader.IsEmptyElement && cellType != "e") {
                         continue;
                     }
 
-                    object? cellValue = ReadXmlCellValue(reader);
+                    object? cellValue = ReadXmlCellValue(reader, cellType);
                     if (cellValue != null) {
                         yield return new ExcelCellValueInfo(rowIndex, columnIndex, cellValue);
                     }
@@ -224,34 +228,35 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        /// <summary>Rejects a cell type the SDK model rejects, which the tolerant XML projection would read as a number.</summary>
+        private static string? ReadValidatedXmlCellType(XmlReader cellReader) {
+            string? cellType = ReadXmlCellTypeAttribute(cellReader);
+            return IsKnownXmlCellType(cellType)
+                ? cellType
+                : throw new FormatException($"The cell type '{cellType}' is not valid.");
+        }
+
+        private static bool IsKnownXmlCellType(string? cellType) =>
+            cellType is null or "n" or "s" or "str" or "b" or "e" or "d" or "inlineStr";
+
         private bool TryReadXmlCellValueForCellEnumeration(XmlReader cellReader, int rowIndex, int columnIndex, out object? value, out bool explicitBlank) {
-            XmlCellKind cellKind = ParseXmlCellKind(ReadXmlCellTypeAttribute(cellReader));
+            XmlCellKind cellKind = ParseXmlCellKind(ReadValidatedXmlCellType(cellReader));
             bool readStyleIndex = true;
 
             CellRaw raw = ReadXmlCellRaw(cellReader, rowIndex, columnIndex, cellKind, readStyleIndex);
             explicitBlank = raw.RawText != null && raw.RawText.Length == 0 && raw.InlineText == null && raw.FormulaText == null;
-            if (raw.RawText == null && raw.InlineText == null && raw.FormulaText == null) {
-                value = null;
-                return false;
-            }
-
             value = ConvertRaw(raw).TypedValue;
             return true;
         }
 
         private bool CanUseEnumerateCellsXmlReader() {
-            return (_opt.CellValueConverter != null || _opt.Culture == CultureInfo.InvariantCulture)
-                && CanStreamWorksheetPart();
+            return CanStreamWorksheetPart();
         }
 
         // ---------- Internals ----------
 
         private static bool CellHasExplicitBlank(Cell cell) {
             return cell.CellValue is not null && string.IsNullOrEmpty(cell.CellValue.InnerText);
-        }
-
-        private static string? ExtractRawText(Cell cell) {
-            return cell.CellValue?.InnerText;
         }
 
         private IEnumerable<Row> EnumerateWorksheetRows(CancellationToken ct = default) {
@@ -345,6 +350,17 @@ namespace OfficeIMO.Excel {
             return XmlReader.Create(stream, OpenXmlReadNameTable.WithSchemaNames(WorksheetXmlReaderSettings));
         }
 
+        // A value such as <v>   </v> is cell text, so cell enumeration keeps whitespace nodes.
+        private static XmlReader OpenCellEnumerationXmlReader(Stream stream) {
+            return XmlReader.Create(stream, OpenXmlReadNameTable.WithSchemaNames(CellEnumerationXmlReaderSettings));
+        }
+
+        private static XmlReaderSettings CreateCellEnumerationXmlReaderSettings() {
+            XmlReaderSettings settings = CreateWorksheetXmlReaderSettings();
+            settings.IgnoreWhitespace = false;
+            return settings;
+        }
+
         private static XmlReaderSettings CreateWorksheetXmlReaderSettings() {
             return new XmlReaderSettings {
                 DtdProcessing = DtdProcessing.Prohibit,
@@ -355,14 +371,9 @@ namespace OfficeIMO.Excel {
             };
         }
 
-        private static string? ExtractFormulaText(Cell cell) {
-            return cell.CellFormula?.Text;
-        }
+        private static string? ExtractInlineString(InlineString? inline, CellValues? typeHint) {
+            if (typeHint != CellValues.InlineString && inline is null) return null;
 
-        private static string? ExtractInlineString(Cell cell, CellValues? typeHint) {
-            if (typeHint != CellValues.InlineString && cell.InlineString is null) return null;
-
-            var inline = cell.InlineString;
             if (inline?.Text?.Text != null) return inline.Text.Text;
             if (inline?.HasChildren == true) {
                 return SharedStringCache.GetRunText(inline);
@@ -375,28 +386,52 @@ namespace OfficeIMO.Excel {
             return value;
         }
 
+        /// <summary>The SDK's child properties each allocate a lookup key, which dominates reading a large worksheet.</summary>
+        private static void GetCellChildren(Cell cell, out CellFormula? formula, out CellValue? cellValue, out InlineString? inlineString) {
+            formula = null;
+            cellValue = null;
+            inlineString = null;
+            for (OpenXmlElement? child = cell.FirstChild; child != null; child = child.NextSibling()) {
+                switch (child) {
+                    case CellFormula candidate:
+                        formula ??= candidate;
+                        break;
+                    case CellValue candidate:
+                        cellValue ??= candidate;
+                        break;
+                    case InlineString candidate:
+                        inlineString ??= candidate;
+                        break;
+                }
+            }
+        }
+
         private bool TryConvertCell(Cell cell, out object? value) {
             value = null;
             CellValues? typeHint = cell.DataType?.Value;
-            bool hasFormula = cell.CellFormula is not null;
+            GetCellChildren(cell, out CellFormula? formula, out CellValue? cellValue, out InlineString? inlineString);
+            bool hasFormula = formula is not null;
             string? formulaText = null;
             if (hasFormula) {
-                formulaText = ExtractFormulaText(cell);
+                formulaText = formula!.Text;
                 if (!_opt.UseCachedFormulaResult && formulaText != null) {
                     value = formulaText;
                     return true;
                 }
             }
 
-            string? rawText = ExtractRawText(cell);
-            string? inlineText = ExtractInlineString(cell, typeHint);
+            string? cellText = cellValue?.InnerText;
+            string? rawText = typeHint == CellValues.Error && cell.ValueMetaIndex != null
+                ? _richValueErrors.Value.Resolve(cell.ValueMetaIndex.Value, cellText)
+                : cellText;
+            string? inlineText = ExtractInlineString(inlineString, typeHint);
             if (hasFormula && _opt.UseCachedFormulaResult && rawText == null && formulaText != null) {
                 value = formulaText;
                 return true;
             }
 
             if (rawText == null && inlineText == null && formulaText == null) {
-                if (!CellHasExplicitBlank(cell) && !_opt.FillBlanksInRanges) {
+                if (!(cellValue is not null && cellText!.Length == 0) && !_opt.FillBlanksInRanges) {
                     return false;
                 }
             }
@@ -474,8 +509,9 @@ namespace OfficeIMO.Excel {
         }
 
         private CellRaw SnapshotCell(Cell cell, int row = 0, int col = 0) {
-            var hasFormula = cell.CellFormula is not null;
-            var formulaText = hasFormula ? ExtractFormulaText(cell) : null;
+            GetCellChildren(cell, out CellFormula? formula, out CellValue? cellValue, out InlineString? inlineString);
+            var hasFormula = formula is not null;
+            var formulaText = formula?.Text;
             var preferFormulaText = hasFormula && !_opt.UseCachedFormulaResult && formulaText != null;
             var typeHint = cell.DataType?.Value;
 
@@ -487,8 +523,8 @@ namespace OfficeIMO.Excel {
                 HasFormula = hasFormula,
                 FormulaText = formulaText,
                 RawText = preferFormulaText ? null : typeHint == CellValues.Error && cell.ValueMetaIndex != null
-                    ? _richValueErrors.Value.Resolve(cell.ValueMetaIndex.Value, ExtractRawText(cell)) : ExtractRawText(cell),
-                InlineText = preferFormulaText ? null : ExtractInlineString(cell, typeHint)
+                    ? _richValueErrors.Value.Resolve(cell.ValueMetaIndex.Value, cellValue?.InnerText) : cellValue?.InnerText,
+                InlineText = preferFormulaText ? null : ExtractInlineString(inlineString, typeHint)
             };
         }
 

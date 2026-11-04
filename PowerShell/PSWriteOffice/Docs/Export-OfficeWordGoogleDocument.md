@@ -6,44 +6,59 @@ schema: 2.0.0
 ---
 # Export-OfficeWordGoogleDocument
 ## SYNOPSIS
-Plans, compiles, or exports a Word document to Google Docs.
+Plans, compiles or exports Word documents to Google Docs.
 
 ## SYNTAX
-### Path (Default)
+### Document (Default)
 ```powershell
-Export-OfficeWordGoogleDocument [-Path] <string> [-Options <GoogleDocsSaveOptions>] [-Session <GoogleWorkspaceSession>] [-PlanOnly] [-AsBatch] [-FailOnLoss] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeWordGoogleDocument [-Options <Object[]>] [-Session <GoogleWorkspaceSession>] [-Mode <GoogleDocsExportMode>] [-FailOnLoss] [-Document <WordDocument>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
-### Document
+### Path
 ```powershell
-Export-OfficeWordGoogleDocument -Document <WordDocument> [-Options <GoogleDocsSaveOptions>] [-Session <GoogleWorkspaceSession>] [-PlanOnly] [-AsBatch] [-FailOnLoss] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeWordGoogleDocument [-Path] <string[]> [-Options <Object[]>] [-Session <GoogleWorkspaceSession>] [-Mode <GoogleDocsExportMode>] [-FailOnLoss] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Export-OfficeWordGoogleDocument -LiteralPath <string[]> [-Options <Object[]>] [-Session <GoogleWorkspaceSession>] [-Mode <GoogleDocsExportMode>] [-FailOnLoss] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Plans, compiles, or exports a Word document to Google Docs.
+Plans, compiles or exports Word documents to Google Docs.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-Export-OfficeWordGoogleDocument -Path 'C:\Path'
-```
-
-
-### EXAMPLE 2
-```powershell
-Export-OfficeWordGoogleDocument -Document 'Value'
+Export-OfficeWordGoogleDocument -Path .\Report.docx -Mode Plan
 ```
 
 
 ## PARAMETERS
 
-### -AsBatch
-Return the provider-neutral request batch without contacting Google.
+### -Document
+Caller-owned document; omission uses the enclosing content block.
+
+```yaml
+Type: WordDocument
+Parameter Sets: Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
+### -FailOnLoss
+Reject translation warnings or errors before returning a result or mutating Google.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Path, Document
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -54,30 +69,30 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Document
-Word document to export.
+### -LiteralPath
+Literal source paths; FileInfo.FullName and provider PSPath bind here.
 
 ```yaml
-Type: WordDocument
-Parameter Sets: Document
-Aliases: None
+Type: String[]
+Parameter Sets: LiteralPath
+Aliases: FullName, PSPath
 Possible values:
 
 Required: True
 Position: named
 Default value: None
-Accept pipeline input: True (ByValue)
+Accept pipeline input: True (ByPropertyName)
 Accept wildcard characters: False
 ```
 
-### -FailOnLoss
-Throw when translation reports a warning or error.
+### -Mode
+Export by default, or return an offline Plan or Batch.
 
 ```yaml
-Type: SwitchParameter
-Parameter Sets: Path, Document
+Type: GoogleDocsExportMode
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
-Possible values:
+Possible values: Export, Plan, Batch
 
 Required: False
 Position: named
@@ -87,11 +102,11 @@ Accept wildcard characters: False
 ```
 
 ### -Options
-Google Docs translation and destination settings.
+One native options object and property hashtables applied to an independent snapshot.
 
 ```yaml
-Type: GoogleDocsSaveOptions
-Parameter Sets: Path, Document
+Type: Object[]
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -103,10 +118,10 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Path to a Word document.
+Source document paths, including filesystem wildcard patterns.
 
 ```yaml
-Type: String
+Type: String[]
 Parameter Sets: Path
 Aliases: None
 Possible values:
@@ -114,32 +129,16 @@ Possible values:
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -PlanOnly
-Return the translation plan without compiling requests or contacting Google.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Path, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: True
 ```
 
 ### -Session
-Configured Google Workspace session used for a live export.
+Configured Google Workspace session, required for Export mode.
 
 ```yaml
 Type: GoogleWorkspaceSession
-Parameter Sets: Path, Document
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -155,6 +154,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
+- `System.String[]`
 - `OfficeIMO.Word.WordDocument`
 
 ## OUTPUTS

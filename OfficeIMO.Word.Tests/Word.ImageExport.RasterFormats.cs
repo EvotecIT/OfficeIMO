@@ -30,17 +30,17 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void WordDocument_ThinRasterWrappersUseSharedEncoder() {
+        public void WordDocument_OptionsChooseTheSharedEncoder() {
             using var package = new MemoryStream();
             using WordDocument document = WordDocument.Create(package);
             document.AddParagraph("Thin wrappers");
 
             using var output = new MemoryStream();
-            OfficeImageExportResult saved = document.SaveAsWebp(output);
+            OfficeConversionReport saved = document.SaveAsImage(output, new WordImageExportOptions { Format = OfficeImageExportFormat.Webp });
 
-            Assert.Equal(OfficeImageExportFormat.Webp, saved.Format);
-            Assert.Equal(OfficeImageFormat.Jpeg, OfficeImageReader.Identify(document.ToJpeg()).Format);
-            Assert.Equal(OfficeImageFormat.Tiff, OfficeImageReader.Identify(document.ToTiff()).Format);
+            Assert.Equal("Webp", saved.Target);
+            Assert.Equal(OfficeImageFormat.Jpeg, OfficeImageReader.Identify(document.ToImage(new WordImageExportOptions { Format = OfficeImageExportFormat.Jpeg })).Format);
+            Assert.Equal(OfficeImageFormat.Tiff, OfficeImageReader.Identify(document.ToImage(new WordImageExportOptions { Format = OfficeImageExportFormat.Tiff })).Format);
             Assert.Equal(OfficeImageFormat.Webp, OfficeImageReader.Identify(output.ToArray()).Format);
         }
     }

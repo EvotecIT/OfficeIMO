@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace OfficeIMO.Drawing;
 
-public static partial class OfficeGeometry {
+internal static partial class OfficeGeometry {
     private const double MaxCubicArcSegmentRadians = Math.PI / 2D;
     private const int MaxCubicArcSegments = 4096;
 

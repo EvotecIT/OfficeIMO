@@ -12,10 +12,10 @@ internal static partial class Html {
     /// <summary>Renders a tagged report using the same embedded fonts for layout and PDF text.</summary>
     public static HtmlPdfRenderRequestResult CreateAccessibleReport(string html, byte[] regularFont,
         byte[] boldFont, PdfComplianceProfile profile = PdfComplianceProfile.PdfUa1) {
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             DefaultFontFamily = "Helvetica",
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
-            PdfOptions = new PdfOptions().UsePdfUa(profile, "en")
+            PdfOptions = new PdfCreateOptions().UsePdfUa(profile, "en")
                 .EmbedStandardFont(PdfStandardFont.Helvetica, regularFont, "Carlito")
                 .EmbedStandardFont(PdfStandardFont.HelveticaBold, boldFont, "Carlito Bold")
         };
@@ -25,7 +25,7 @@ internal static partial class Html {
         HtmlPdfAccessibilityValidationResult validation = HtmlPdfAccessibilityValidator.Validate(result);
         if (!validation.IsValid)
             throw new InvalidDataException(string.Join(Environment.NewLine, validation.Issues.Select(issue => issue.Message)));
-        result.Output.RequireNoLoss();
+        result.Output.ThrowIfLoss();
         return result;
     }
 

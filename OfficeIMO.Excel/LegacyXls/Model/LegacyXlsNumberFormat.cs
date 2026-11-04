@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents a number format declared by a legacy XLS FORMAT record.
     /// </summary>
-    public sealed class LegacyXlsNumberFormat {
+    internal sealed class LegacyXlsNumberFormat {
         /// <summary>
         /// Creates a parsed legacy XLS number format.
         /// </summary>

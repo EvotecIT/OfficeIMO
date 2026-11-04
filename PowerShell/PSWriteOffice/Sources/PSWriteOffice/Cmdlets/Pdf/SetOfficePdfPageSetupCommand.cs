@@ -82,9 +82,9 @@ public sealed class SetOfficePdfPageSetupCommand : PSCmdlet
                 page.Size(PdfCommandUtilities.ResolvePageSize(PageSize, Width, Height, Landscape.IsPresent));
             }
 
-            if (Margin.HasValue) page.Margin(Margin.Value);
+            if (Margin.HasValue) page.Margin(global::OfficeIMO.OfficeLength.Points(Margin.Value));
             else if (Left.HasValue || Top.HasValue || Right.HasValue || Bottom.HasValue)
-                page.Margin(Left ?? 72, Top ?? 72, Right ?? 72, Bottom ?? 72);
+                page.Margin(global::OfficeIMO.OfficeLength.Points(Left ?? 72), global::OfficeIMO.OfficeLength.Points(Top ?? 72), global::OfficeIMO.OfficeLength.Points(Right ?? 72), global::OfficeIMO.OfficeLength.Points(Bottom ?? 72));
         });
 
         if (PassThru.IsPresent && document != null)

@@ -85,7 +85,7 @@ internal sealed partial class LegacyXlsPreservingWorkbook {
             }
             if (dimension < 0 || index < 0) throw new NotSupportedException("The worksheet requires native Dimensions and Index records.");
             foreach (var edit in encoding.Cells.Where(item => item.Key.Sheet == currentName)) {
-                var address = A1.ParseCellRef(edit.Key.Address);
+                var address = ExcelA1.ParseCellRef(edit.Key.Address);
                 var key = (checked((ushort)(address.Row - 1)), checked((ushort)(address.Col - 1)));
                 if (edit.Value.Count == 0) cells.Remove(key);
                 else cells[key] = edit.Value.ToList();

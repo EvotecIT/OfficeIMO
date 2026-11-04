@@ -51,7 +51,12 @@ public sealed partial class PdfPageViewModel {
             return;
         }
         if (!ReferenceEquals(_inlineFormMap, map)) {
-            var fields = _inlineFormFields.ToDictionary(field => field.Name, StringComparer.Ordinal);
+            // A malformed PDF can declare distinct terminal fields with the same
+            // qualified name. Leave those widgets out instead of binding an edit
+            // to an arbitrary field or throwing during Forms mode activation.
+            var fields = _inlineFormFields.GroupBy(field => field.Name, StringComparer.Ordinal)
+                .Where(group => group.Count() == 1)
+                .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
             InlineFormWidgets = map.Regions.Where(region => region.Kind == PdfInteractionKind.FormWidget)
                 .Select(region => region.FieldName is not null && fields.TryGetValue(region.FieldName, out var field)
                     ? PdfInlineFormWidgetViewModel.Create(this, field, region) : null)

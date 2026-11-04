@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents a projected worksheet table/list definition parsed from BIFF Feature11/Feature12 records.
     /// </summary>
-    public sealed class LegacyXlsTableDefinition {
+    internal sealed class LegacyXlsTableDefinition {
         /// <summary>
         /// Initializes a new instance of the <see cref="LegacyXlsTableDefinition"/> class.
         /// </summary>

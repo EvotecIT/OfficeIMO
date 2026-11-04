@@ -19,11 +19,11 @@ namespace OfficeIMO.Excel {
         /// <summary>One-based anchor column.</summary>
         public int Column { get; set; } = 1;
 
-        /// <summary>Rendered width in pixels.</summary>
-        public int WidthPixels { get; set; } = 180;
+        /// <summary>Rendered width.</summary>
+        public OfficeLength Width { get; set; } = OfficeLength.Pixels(180);
 
-        /// <summary>Rendered height in pixels.</summary>
-        public int HeightPixels { get; set; } = 240;
+        /// <summary>Rendered height.</summary>
+        public OfficeLength Height { get; set; } = OfficeLength.Pixels(240);
 
         /// <summary>Number of item columns displayed by the slicer.</summary>
         public int ItemColumns { get; set; } = 1;
@@ -67,11 +67,11 @@ namespace OfficeIMO.Excel {
         /// <summary>One-based anchor column.</summary>
         public int Column { get; set; } = 1;
 
-        /// <summary>Rendered width in pixels.</summary>
-        public int WidthPixels { get; set; } = 480;
+        /// <summary>Rendered width.</summary>
+        public OfficeLength Width { get; set; } = OfficeLength.Pixels(480);
 
-        /// <summary>Rendered height in pixels.</summary>
-        public int HeightPixels { get; set; } = 120;
+        /// <summary>Rendered height.</summary>
+        public OfficeLength Height { get; set; } = OfficeLength.Pixels(120);
 
         /// <summary>Initial display level.</summary>
         public ExcelTimelineLevel Level { get; set; } = ExcelTimelineLevel.Month;

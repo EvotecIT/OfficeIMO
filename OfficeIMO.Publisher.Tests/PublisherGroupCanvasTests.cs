@@ -26,11 +26,11 @@ public sealed class PublisherGroupCanvasTests {
             });
         }
         PublisherDocument document = PublisherProjectionFixture.Project(source, text, escher,
-            new PublisherParseContext(new PublisherReadOptions(), default));
+            new PublisherParseContext(new PublisherLoadOptions(), default));
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(document.Pages[0].CreateDrawing());
         Assert.Equal(OfficeColor.White, raster.GetPixel(300, 300));
         Assert.DoesNotContain(PublisherNativeTests.Elements(document.Pages[0].CreateDrawing()), item => item is OfficeDrawingEffectGroup);
-        Assert.DoesNotContain(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_OBJECT_NOT_PROJECTED");
+        Assert.DoesNotContain(document.ReadReport.Diagnostics, item => item.Code == "PUB_OBJECT_NOT_PROJECTED");
     }
 
     [Theory]
@@ -58,14 +58,14 @@ public sealed class PublisherGroupCanvasTests {
         PublisherDocument document = TextPaint(true, false, horizontal);
         Assert.Empty(document.Pages[0].TextFrames);
         Assert.Equal("j", Assert.Single(document.TextStories).Text);
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_TEXT_CHAIN_FRAME_UNAVAILABLE");
+        Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == "PUB_TEXT_CHAIN_FRAME_UNAVAILABLE");
     }
 
     [Fact]
     public void Collapsed_wrap_obstacles_do_not_abort_available_text_frames() {
         PublisherDocument document = TextPaint(true, false, collapsedObstacle: true);
         Assert.Single(document.Pages[0].TextFrames);
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_TEXT_WRAP_REFERENCE_UNRESOLVED");
+        Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == "PUB_TEXT_WRAP_REFERENCE_UNRESOLVED");
     }
 
     [Fact]
@@ -80,9 +80,9 @@ public sealed class PublisherGroupCanvasTests {
         }) { Bounds = new PublisherNativeRectangle(0, 0, 12700, 12700),
             GroupTransform = OfficeTransform.Scale(0, 1), LayoutTransform = OfficeTransform.Scale(0, 1) });
         PublisherDocument document = PublisherProjectionFixture.Project(source, new PublisherQuillText(), escher,
-            new PublisherParseContext(new PublisherReadOptions(), default));
+            new PublisherParseContext(new PublisherLoadOptions(), default));
         Assert.DoesNotContain(PublisherNativeTests.Elements(document.Pages[0].CreateDrawing()), item => item is OfficeDrawingShape drawing && drawing.Shape.Kind == OfficeShapeKind.Line);
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_DEGENERATE_OBJECT_OMITTED");
+        Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == "PUB_DEGENERATE_OBJECT_OMITTED");
     }
 
     private static PublisherDocument TextPaint(bool grouped, bool condensed, bool? collapseHorizontal = null, bool collapsedObstacle = false) {
@@ -118,7 +118,7 @@ public sealed class PublisherGroupCanvasTests {
             });
         }
         return PublisherProjectionFixture.Project(source, text, escher,
-            new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None));
+            new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None));
     }
 
     [Theory]
@@ -162,7 +162,7 @@ public sealed class PublisherGroupCanvasTests {
             GroupTransform = grouped ? OfficeTransform.Translate(12700, 12700) : OfficeTransform.Identity
         });
         return PublisherProjectionFixture.Project(source, new PublisherQuillText(), escher,
-            new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None));
+            new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None));
     }
 
     [Theory]
@@ -214,6 +214,6 @@ public sealed class PublisherGroupCanvasTests {
             });
         }
         return PublisherProjectionFixture.Project(source, new PublisherQuillText(), escher,
-            new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None));
+            new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None));
     }
 }

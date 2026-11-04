@@ -19,7 +19,7 @@ public sealed class HtmlHyperlinkImageTests {
             : "<img src='" + image + "' alt='Photo'>Photo title";
         string html = "<p><a href='https://example.test/gallery'>" + content + "</a></p>";
 
-        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence();
         using var stream = new MemoryStream();
         using (var document = result.RequireValue()) document.Save(stream);
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(stream.ToArray()), false);
@@ -37,7 +37,7 @@ public sealed class HtmlHyperlinkImageTests {
             + "<header class='word-header'><a href='https://example.test/gallery'>"
             + "<img src='" + image + "'></a></header>";
 
-        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence();
         using var stream = new MemoryStream();
         using (var document = result.RequireValue()) document.Save(stream);
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(stream.ToArray()), false);
@@ -56,7 +56,7 @@ public sealed class HtmlHyperlinkImageTests {
         string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
         string html = "<" + story + " class='word-" + story + "'><a href='https://example.test/gallery'><img src='"
             + image + "'></a><img src='" + image + "'></" + story + "><p>Body</p>";
-        using var document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using var document = HtmlConversionDocument.Parse(html).ToWord();
         using var bytes = new MemoryStream(document.ToBytes());
         using var package = WordprocessingDocument.Open(bytes, false);
         OpenXmlPart part = story == "header" ? Assert.Single(package.MainDocumentPart!.HeaderParts) : Assert.Single(package.MainDocumentPart!.FooterParts);

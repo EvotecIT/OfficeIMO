@@ -6,7 +6,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Gets explicit worksheet column definitions such as custom widths and hidden ranges.
         /// </summary>
-        public IReadOnlyList<ExcelColumnSnapshot> GetColumnDefinitions() =>
+        public IReadOnlyList<ExcelColumnInfo> GetColumnDefinitions() =>
             GetColumnDefinitions(CancellationToken.None);
 
         /// <summary>
@@ -14,10 +14,10 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="cancellationToken">Cancels deferred materialization and column inspection.</param>
         /// <exception cref="OperationCanceledException">The operation was canceled.</exception>
-        public IReadOnlyList<ExcelColumnSnapshot> GetColumnDefinitions(CancellationToken cancellationToken) =>
+        public IReadOnlyList<ExcelColumnInfo> GetColumnDefinitions(CancellationToken cancellationToken) =>
             _excelDocument.ExecuteReadAfterMaterializing(() => GetColumnDefinitionsCore(cancellationToken), cancellationToken);
 
-        private IReadOnlyList<ExcelColumnSnapshot> GetColumnDefinitionsCore(CancellationToken cancellationToken) {
+        private IReadOnlyList<ExcelColumnInfo> GetColumnDefinitionsCore(CancellationToken cancellationToken) {
             Columns? columns = WorksheetRoot.GetFirstChild<Columns>();
             IReadOnlyList<double>? pendingWidths = _excelDocument.GetDirectColumnWidthsForSnapshot(this, cancellationToken);
             if (pendingWidths != null) {
@@ -36,10 +36,10 @@ namespace OfficeIMO.Excel {
                 if (indexes.Count > 0) SetColumnWidthsCore(columns, indexes, widths.ToArray());
             }
             if (columns == null) {
-                return Array.Empty<ExcelColumnSnapshot>();
+                return Array.Empty<ExcelColumnInfo>();
             }
 
-            var result = new List<ExcelColumnSnapshot>();
+            var result = new List<ExcelColumnInfo>();
             foreach (Column column in columns.Elements<Column>()) {
                 cancellationToken.ThrowIfCancellationRequested();
                 int start = checked((int)(column.Min?.Value ?? 0U));
@@ -48,10 +48,10 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                result.Add(new ExcelColumnSnapshot {
+                result.Add(new ExcelColumnInfo {
                     StartIndex = start,
                     EndIndex = end,
-                    Width = column.Width?.Value,
+                    StoredWidth = column.Width?.Value,
                     Hidden = column.Hidden?.Value == true,
                     CustomWidth = column.CustomWidth?.Value == true,
                     StyleIndex = column.Style?.Value,

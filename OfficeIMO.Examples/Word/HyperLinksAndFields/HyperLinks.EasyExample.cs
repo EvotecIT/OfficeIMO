@@ -13,8 +13,8 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "Basic Document with HyperLink.docx");
 
             using (WordDocument document = WordDocument.Create(filePath)) {
-                var para = document.AddHyperLink("Test", new Uri("https://evotec.xyz"));
-                var para1 = document.AddHyperLink("Test", new Uri("https://evotec.xyz"), addStyle: true);
+                var para = document.AddHyperLink("Test", new Uri("https://evotec.xyz")).Paragraph;
+                var para1 = document.AddHyperLink("Test", new Uri("https://evotec.xyz"), addStyle: true).Paragraph;
 
                 document.Save();
                 if (openWord) document.OpenInApplication();

@@ -1,10 +1,10 @@
 namespace OfficeIMO.Markdown;
 
 /// <summary>
-/// Visual layout variants for the HTML Table of Contents.
+/// Visual layout variants for the HTML MarkdownTable of Contents.
 /// Affects container element/classes only (Markdown output is unchanged).
 /// </summary>
-public enum TocLayout {
+public enum MarkdownTocLayout {
     /// <summary>Render just a nested list (legacy behavior). No wrapper container is emitted.</summary>
     List = 0,
     /// <summary>Render inside a styled panel/card with optional title.</summary>

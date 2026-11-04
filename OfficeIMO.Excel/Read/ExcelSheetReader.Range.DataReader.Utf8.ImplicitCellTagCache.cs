@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Buffers;
 
 namespace OfficeIMO.Excel {

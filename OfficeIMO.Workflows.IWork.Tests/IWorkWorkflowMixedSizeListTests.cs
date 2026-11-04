@@ -5,7 +5,7 @@ using Xunit;
 namespace OfficeIMO.Workflows.IWork.Tests;
 
 public sealed partial class IWorkWorkflowTests {
-    private static void AssertMixedSizeList(PdfReadDocument pdf, bool edited, bool nativeReference) {
+    private static void AssertMixedSizeList(PdfDocument pdf, bool edited, bool nativeReference) {
         AssertMixedFontList(pdf, edited, nativeReference ? "Mixed family decimal items" : "Mixed size decimal items");
         var spans = Assert.Single(pdf.Pages).GetTextSpans();
         double[] sizes = [18, 12, 12, 12, 12, 12, 12, 12, 12, 12, 8, 8, 12, 12, 12, 12, 12];

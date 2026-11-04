@@ -3,7 +3,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Per-point sparkline rendering style resolved by a source adapter.
 /// </summary>
-public readonly struct OfficeSparklinePointStyle {
+internal readonly struct OfficeSparklinePointStyle {
     /// <summary>
     /// Creates a per-point sparkline style.
     /// </summary>

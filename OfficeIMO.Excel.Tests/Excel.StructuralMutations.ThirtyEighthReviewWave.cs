@@ -11,11 +11,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_CellValueValidation_PreservesExclusiveInCellImageOnFailure() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Images");
+            ExcelSheet sheet = document.AddSheet("Images");
             sheet.SetInCellImage(1, 1, TinyPng, altText: "Preserved image");
 
             ArgumentException exception = Assert.Throws<ArgumentException>(() =>
-                sheet.CellValue(1, 1, new string('x', 32_768)));
+                sheet.Cell(1, 1).SetValue(new string('x', 32_768)));
 
             Assert.Equal("value", exception.ParamName);
             ExcelInCellImage image = Assert.Single(sheet.GetInCellImages());
@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_AllowedEditRangeValidation_RejectsInvalidXmlBeforeMutation() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.Protect();
             sheet.SetAllowedEditRange("Inputs", new[] { "A1" }, securityDescriptor: "existing");
             string originalXml = sheet.WorksheetPart.Worksheet.OuterXml;
@@ -79,11 +79,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaInspection_MarksCrossSheetCachesDirtyAfterInputMutation() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
-            ExcelSheet calculations = document.AddWorksheet("Calculations");
-            data.CellValue(1, 1, 2d);
-            calculations.CellValue(1, 1, 4d);
-            calculations.CellFormula(1, 1, "Data!A1*2");
+            ExcelSheet data = document.AddSheet("Data");
+            ExcelSheet calculations = document.AddSheet("Calculations");
+            data.Cell(1, 1).SetValue(2d);
+            calculations.Cell(1, 1).SetValue(4d);
+            calculations.Cell(1, 1).SetFormula("Data!A1*2");
             Cell formulaCell = calculations.WorksheetPart.Worksheet.Descendants<Cell>()
                 .Single(cell => cell.CellReference?.Value == "A1");
             formulaCell.CellFormula!.CalculateCell = false;
@@ -96,7 +96,7 @@ namespace OfficeIMO.Tests {
             Assert.True(evaluated.State.HasFlag(ExcelFormulaState.Evaluated));
             Assert.False(evaluated.State.HasFlag(ExcelFormulaState.Dirty));
 
-            data.CellValue(1, 1, 5d);
+            data.Cell(1, 1).SetValue(5d);
 
             ExcelFormulaCellInfo stale = Assert.Single(calculations.GetFormulaCells());
             Assert.Equal("4", stale.CachedValue);

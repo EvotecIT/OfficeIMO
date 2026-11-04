@@ -46,7 +46,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Equal(control[index].StartBaseLine.Y, authored[index].StartBaseLine.Y, 6);
         }
         AssertTransformLinkDelta(before, after, "https://example.test/inline", 0D, 0D);
-        actual.RequireNoLoss();
+        actual.ThrowIfLoss();
     }
 
     [Theory]
@@ -83,7 +83,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.InRange(Math.Abs((expected[index].StartBaseLine.Y - translated[index].StartBaseLine.Y) / .75D - 5D),
                 0D, .001D / .75D + .000001D);
         }
-        actual.RequireNoLoss();
+        actual.ThrowIfLoss();
     }
 
     [Theory]
@@ -105,7 +105,7 @@ public sealed partial class HtmlRenderingTests {
             0D, .0005D / .75D + .000001D);
         Assert.Contains("Hgyp", rendered.Text, StringComparison.Ordinal);
         Assert.Contains("FIX", rendered.Text, StringComparison.Ordinal);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -135,7 +135,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Equal(expected[index].Value, observed[index].Value);
             Assert.Equal(expected[index].StartBaseLine, observed[index].StartBaseLine);
         }
-        actual.RequireNoLoss();
+        actual.ThrowIfLoss();
     }
 
     [Theory]
@@ -157,7 +157,7 @@ public sealed partial class HtmlRenderingTests {
             OrdinaryFontBoxShape(actual, "div#following").Y, 6);
         AssertTransformLinkDelta(TransformApplicabilityPdf(Source(false)),
             TransformApplicabilityPdf(Source(true)), uri, 30D, 5D);
-        actual.RequireNoLoss();
+        actual.ThrowIfLoss();
     }
 
     [Fact]
@@ -170,11 +170,11 @@ public sealed partial class HtmlRenderingTests {
             .Pages.SelectMany(page => page.GetLinkAnnotations()).Where(link => link.Uri == uri).ToArray();
         Assert.NotEmpty(links);
         Assert.Contains("LINK", rendered.Text, StringComparison.Ordinal);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
-    private static byte[] TransformApplicabilityPdf(string html) => HtmlConversionDocument.Parse(html)
-        .ToPdfBytes(new HtmlToPdfOptions(OrdinaryBaselineOptions()));
+    private static byte[] TransformApplicabilityPdf(string html) => (HtmlConversionDocument.Parse(html)
+        .ToPdf(new HtmlPdfExportOptions(OrdinaryBaselineOptions()))).ToBytes();
 
     private static void AssertTransformLinkDelta(byte[] before, byte[] after, string uri, double x, double y) {
         PdfLinkAnnotation[] Read(byte[] bytes) => PdfReadDocument.Open(bytes).Pages

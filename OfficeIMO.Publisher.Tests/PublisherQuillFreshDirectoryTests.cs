@@ -42,7 +42,7 @@ public sealed class PublisherQuillFreshDirectoryTests {
             remaining -= assigned;
         }
         Assert.Equal(count, ordinal);
-        var context = new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None);
+        var context = new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None);
         var actual = PublisherQuillDirectory.Read(new PublisherBinaryData(bytes, "Quill/QuillSub/CONTENTS"), context);
         Assert.Equal(rows.Select(row => (row.Tag, (int)row.Id, row.Offset, row.Length)),
             actual.Select(row => (row.Tag, row.Id, row.Offset, row.Length)));

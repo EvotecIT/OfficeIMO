@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents List12 block-level formatting references for projected table regions.
     /// </summary>
-    public sealed class LegacyXlsTableBlockLevelFormatting {
+    internal sealed class LegacyXlsTableBlockLevelFormatting {
         internal LegacyXlsTableBlockLevelFormatting(
             int? headerStyleRecordIndex,
             string? headerStyleName,

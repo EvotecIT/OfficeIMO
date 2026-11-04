@@ -61,13 +61,13 @@ internal sealed class PdfImageRegionDetectionStage : IPdfImageRegionDetectionSta
             PdfImagePlacement placement = context.ImagePlacements[imageIndex];
             var evidence = new List<PdfInferenceEvidence> {
                 new PdfInferenceEvidence(
-                    "image-region.placement-geometry",
+                    "image-region-placement-geometry",
                     "The content stream provides an image placement invocation and page-space bounds.",
                     0.75D)
             };
             if (placement.MarkedContentId.HasValue) {
                 evidence.Add(new PdfInferenceEvidence(
-                    "image-region.marked-content",
+                    "image-region-marked-content",
                     "The image placement preserves tagged-PDF marked-content ownership.",
                     0.95D));
             }
@@ -79,12 +79,12 @@ internal sealed class PdfImageRegionDetectionStage : IPdfImageRegionDetectionSta
                 caption = semanticElements[association.SemanticIndex];
                 confidence = PdfInference.Clamp(0.78D + association.Score * 0.18D);
                 evidence.Add(new PdfInferenceEvidence(
-                    "image-region.caption-proximity",
+                    "image-region-caption-proximity",
                     "A caption region is vertically adjacent and horizontally aligned with the image placement.",
                     association.Score));
                 if (association.PaintDistance.HasValue) {
                     evidence.Add(new PdfInferenceEvidence(
-                        "image-region.paint-order",
+                        "image-region-paint-order",
                         "Image and caption paint positions provide a deterministic association tie-break.",
                         Math.Max(0.1D, 1D / (1D + association.PaintDistance.Value))));
                 }
@@ -154,7 +154,7 @@ internal sealed class PdfImageRegionDetectionStage : IPdfImageRegionDetectionSta
             PdfUnicodeScalarAnalysis.CountScalars(text) <= 512 &&
             !region.Evidence.Any(static evidence => string.Equals(
                 evidence.Code,
-                "region.canonical-table",
+                "region-canonical-table",
                 StringComparison.Ordinal));
     }
 

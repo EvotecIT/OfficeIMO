@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Identifies the value kind stored in a PivotCache cache item record.
     /// </summary>
-    public enum LegacyXlsPivotCacheItemKind {
+    internal enum LegacyXlsPivotCacheItemKind {
         /// <summary>Empty PivotCache item from an SxNil record.</summary>
         Empty,
 

@@ -15,7 +15,7 @@ New-OfficeExcel -Path $path {
         ExcelCell -Address 'B1' -Value 'Qty'
         ExcelCell -Address 'C1' -Value 'Status'
 
-        ExcelTable -Data $orders -TableName 'InventoryTable'
+        ExcelTable -Data $orders -Name 'InventoryTable'
     }
 }
 

@@ -11,7 +11,7 @@ Joins multiple PDF files into a single PDF.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Join-OfficePdf [-Path] <string[]> [-OutputPath] <string> [-Password <string[]>] [-IgnorePermissionRestrictions] [-PassThru] [-PassThruReport] [-FlattenVisualAnnotations] [-PageSize <string>] [-Width <Double>] [-Height <Double>] [-Landscape] [-ResizeMode <PdfPageResizeMode>] [-ResizeMargin <Double>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Join-OfficePdf [-Path] <string[]> [-OutputPath] <string> [-Password <securestring[]>] [-IgnorePermissionRestrictions] [-PassThru] [-PassThruReport] [-FlattenVisualAnnotations] [-PageSize <string>] [-Width <Double>] [-Height <Double>] [-Landscape] [-ResizeMode <PdfPageResizeMode>] [-ResizeMargin <Double>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -175,7 +175,7 @@ Accept wildcard characters: False
 Passwords used to authenticate encrypted sources. Supply one value for every source, or one value to reuse for all sources.
 
 ```yaml
-Type: String[]
+Type: SecureString[]
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

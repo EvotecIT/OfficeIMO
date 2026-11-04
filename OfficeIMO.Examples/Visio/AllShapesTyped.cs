@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 using OfficeIMO.Visio;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Examples.Visio {
     /// <summary>
@@ -29,25 +29,25 @@ namespace OfficeIMO.Examples.Visio {
                 foreach (var c in candidates) if (File.Exists(c)) doc.LearnMastersFromVsdx(c);
             } catch { /* optional */ }
 
-            var page = doc.AddPage("All Shapes (Typed)", 29.7, 21.0, VisioMeasurementUnit.Centimeters);
+            var page = doc.AddPage("All Shapes (Typed)", OfficeLength.Centimeters(29.7), OfficeLength.Centimeters(21.0), scaleUnit: VisioMeasurementUnit.Centimeters);
 
             double y1 = 15;
             double y2 = 9;
 
-            var rect = page.AddRectangle(4.0, y1, 4.0, 2.5, "Rectangle");
+            var rect = page.AddRectangle(OfficeLength.Centimeters(4.0), OfficeLength.Centimeters(y1), OfficeLength.Centimeters(4.0), OfficeLength.Centimeters(2.5), "Rectangle");
             rect.FillColor = Color.LightBlue; rect.LineColor = Color.DarkBlue; rect.LineWeight = 0.02;
-            var square = page.AddSquare(10.0, y1, 3.5, "Square");
+            var square = page.AddSquare(OfficeLength.Centimeters(10.0), OfficeLength.Centimeters(y1), OfficeLength.Centimeters(3.5), "Square");
             square.FillColor = Color.Beige; square.LineColor = Color.Brown; square.LineWeight = 0.02;
-            var circle = page.AddCircle(16.0, y1, 3.5, "Circle", VisioMeasurementUnit.Centimeters);
+            var circle = page.AddCircle(OfficeLength.Centimeters(16.0), OfficeLength.Centimeters(y1), OfficeLength.Centimeters(3.5), "Circle");
             circle.FillColor = Color.LightGreen; circle.LineColor = Color.DarkGreen; circle.LineWeight = 0.02;
-            var ellipse = page.AddEllipse(22.0, y1, 4.5, 3.0, "Ellipse");
+            var ellipse = page.AddEllipse(OfficeLength.Centimeters(22.0), OfficeLength.Centimeters(y1), OfficeLength.Centimeters(4.5), OfficeLength.Centimeters(3.0), "Ellipse");
             ellipse.FillColor = Color.MistyRose; ellipse.LineColor = Color.IndianRed; ellipse.LineWeight = 0.02;
-            var diamond = page.AddDiamond(27.0, y1, 3.5, 3.0, "Diamond");
+            var diamond = page.AddDiamond(OfficeLength.Centimeters(27.0), OfficeLength.Centimeters(y1), OfficeLength.Centimeters(3.5), OfficeLength.Centimeters(3.0), "Diamond");
             diamond.FillColor = Color.Lavender; diamond.LineColor = Color.MediumPurple; diamond.LineWeight = 0.02;
 
-            var triangle = page.AddTriangle(6.5, y2, 4.0, 3.0, "Triangle");
+            var triangle = page.AddTriangle(OfficeLength.Centimeters(6.5), OfficeLength.Centimeters(y2), OfficeLength.Centimeters(4.0), OfficeLength.Centimeters(3.0), "Triangle");
             triangle.FillColor = Color.LightGoldenrodYellow; triangle.LineColor = Color.Goldenrod; triangle.LineWeight = 0.02;
-            var endShape = page.AddRectangle(18.0, y2, 4.5, 3.0, "End");
+            var endShape = page.AddRectangle(OfficeLength.Centimeters(18.0), OfficeLength.Centimeters(y2), OfficeLength.Centimeters(4.5), OfficeLength.Centimeters(3.0), "End");
             endShape.FillColor = Color.LightGray; endShape.LineColor = Color.DimGray; endShape.LineWeight = 0.02;
 
             // No explicit connection-point handling; AddConnector ensures side glue internally when sides are specified
@@ -58,9 +58,9 @@ namespace OfficeIMO.Examples.Visio {
             page.AddConnector(diamond, endShape, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left).LineColor = Color.DarkRed;
 
             // Page 3: connector variants (straight, right-angle, curved, dynamic)
-            var page3 = doc.AddPage("Connectors", 29.7, 21.0, VisioMeasurementUnit.Centimeters);
+            var page3 = doc.AddPage("Connectors", OfficeLength.Centimeters(29.7), OfficeLength.Centimeters(21.0), scaleUnit: VisioMeasurementUnit.Centimeters);
             VisioShape MakeBox(double x, double y, double w, double h, string text, Color fill, Color line) {
-                var s = page3.AddRectangle(x, y, w, h, text);
+                var s = page3.AddRectangle(OfficeLength.Centimeters(x), OfficeLength.Centimeters(y), OfficeLength.Centimeters(w), OfficeLength.Centimeters(h), text);
                 s.FillColor = fill; s.LineColor = line; s.LineWeight = 0.02;
                 return s;
             }

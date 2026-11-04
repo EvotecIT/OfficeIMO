@@ -73,7 +73,7 @@ public sealed class PdfLogicalTableValueProfile {
 }
 
 /// <summary>Culture-aware typed-value inference shared by reverse-conversion adapters.</summary>
-public static class PdfLogicalTableValueAnalysis {
+internal static class PdfLogicalTableValueAnalysis {
     /// <summary>Infers typed value profiles for normalized table data.</summary>
     public static IReadOnlyList<PdfLogicalTableValueProfile> Analyze(
         PdfLogicalTableData data,

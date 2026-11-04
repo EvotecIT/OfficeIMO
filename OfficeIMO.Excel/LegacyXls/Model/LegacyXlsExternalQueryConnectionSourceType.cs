@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Identifies the data source family declared by a legacy XLS DBQueryExt record.
     /// </summary>
-    public enum LegacyXlsExternalQueryConnectionSourceType {
+    internal enum LegacyXlsExternalQueryConnectionSourceType {
         /// <summary>The DBQueryExt source type is not one of the currently decoded values.</summary>
         Unknown = 0,
 

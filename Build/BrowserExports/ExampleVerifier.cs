@@ -39,7 +39,7 @@ internal static class ExampleVerifier {
             string xlsx = Path.Combine(evidence, baseName + ".xlsx");
             await download.SaveAsAsync(xlsx);
             WorkbookVerifier.Verify(xlsx);
-            using (var reader = ExcelDocument.OpenDataReader(xlsx, new ExcelReadOptions { HasHeaderRow = false })) {
+            using (var reader = ExcelDocument.OpenReader(xlsx, new ExcelReaderOptions { HasHeaderRow = false })) {
                 WorkbookVerifier.Require(reader.Read() && reader.GetString(0) == headers["site"] && reader.GetString(1) == headers["name"] && reader.GetString(2) == headers["latency"], "Example column order/translated headings differ.");
                 WorkbookVerifier.Require(reader.Read() && reader.GetString(0) == "Warsaw" && reader.GetString(1) == "DC03" && Convert.ToDouble(reader.GetValue(2)) == 21, "Example sort/filter differs.");
                 WorkbookVerifier.Require(reader.Read() && reader.GetString(1) == "DC01" && !reader.Read(), "Example exported extra rows.");
@@ -60,7 +60,7 @@ internal static class ExampleVerifier {
             xlsx = Path.Combine(evidence, baseName + "-empty.xlsx");
             await download.SaveAsAsync(xlsx);
             WorkbookVerifier.Verify(xlsx);
-            using (var reader = ExcelDocument.OpenDataReader(xlsx, new ExcelReadOptions { HasHeaderRow = false })) {
+            using (var reader = ExcelDocument.OpenReader(xlsx, new ExcelReaderOptions { HasHeaderRow = false })) {
                 WorkbookVerifier.Require(reader.Read() && reader.GetString(0) == headers["name"] && reader.GetString(1) == headers["latency"] && !reader.Read(), "Empty example must retain only the current visible headings.");
             }
             download = await page.RunAndWaitForDownloadAsync(() => page.Locator("#export-csv").ClickAsync());

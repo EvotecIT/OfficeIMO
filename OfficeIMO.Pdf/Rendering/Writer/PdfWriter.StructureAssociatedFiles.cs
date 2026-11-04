@@ -3,7 +3,7 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
-    private static PdfFileVersion RequireStructureAssociatedFileVersion(LayoutResult layout, PdfOptions options) {
+    private static PdfFileVersion RequireStructureAssociatedFileVersion(LayoutResult layout, PdfCreateOptions options) {
         if (!layout.Pages.Any(page => page.StructElements.Any(element => element.AssociatedFiles.Count > 0)))
             return options.FileVersion;
         // PDF/A-3 introduced AF with PDF 1.7. Plain PDFs use the PDF 2.0 mechanism;
@@ -13,7 +13,7 @@ internal static partial class PdfWriter {
         return PdfFileAssembler.RequireAtLeast(options.FileVersion, minimum);
     }
 
-    private static void ValidateAssociatedFileMetadata(PdfOptions options, PdfFileVersion version) {
+    private static void ValidateAssociatedFileMetadata(PdfCreateOptions options, PdfFileVersion version) {
         if (version < PdfFileVersion.Pdf20) return;
         foreach (PdfEmbeddedFile file in options.EmbeddedFilesForInspection) {
             if (string.IsNullOrWhiteSpace(file.MimeType))
@@ -21,7 +21,7 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static void ValidateEmittedAssociatedFiles(LayoutResult layout, PdfOptions options,
+    private static void ValidateEmittedAssociatedFiles(LayoutResult layout, PdfCreateOptions options,
         CancellationToken cancellationToken) {
         var catalogNames = new HashSet<string>(StringComparer.Ordinal);
         long totalBytes = 0L;

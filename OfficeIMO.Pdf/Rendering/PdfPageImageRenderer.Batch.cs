@@ -145,7 +145,7 @@ internal static partial class PdfPageImageRenderer {
 
             cancellationToken.ThrowIfCancellationRequested();
             byte[] bytes;
-            if (options.Format == PdfPageRenderFormat.Png) {
+            if (options.Format == global::OfficeIMO.Drawing.OfficeImageExportFormat.Png) {
                 bytes = RenderDrawingAsPng(
                     drawing,
                     scale,

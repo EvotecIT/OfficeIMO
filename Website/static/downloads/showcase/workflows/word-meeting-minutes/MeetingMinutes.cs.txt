@@ -7,11 +7,8 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 internal static class MeetingMinutes {
     internal static void Create(string folder) {
         using WordDocument document = WordDocument.Create(Path.Combine(folder, "example.docx"));
-        document.Settings.FontFamily = "Carlito";
-        document.Settings.FontSize = 11;
-        document.AddHeadersAndFooters();
-        document.Header!.Default!.AddParagraph("NORTHWIND / DELIVERY REVIEW");
-        document.Footer!.Default!.AddParagraph("Sample meeting record | Internal working copy");
+        document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(11);
+        document.PageSetup.Header.AddParagraph("NORTHWIND / DELIVERY REVIEW");
         document.AddParagraph("Delivery review minutes").Style = WordParagraphStyles.Heading1;
         document.AddParagraph("14 September 2026 | Facilitator: Jordan Lee | Duration: 30 minutes");
         document.AddParagraph("Attendees: Product, Engineering, Operations and Support.");
@@ -32,24 +29,23 @@ internal static class MeetingMinutes {
             for (int column = 0; column < 3; column++) {
                 actions.Rows[row].Cells[column].Paragraphs[0].Text = values[row, column];
                 actions.Rows[row].Cells[column].Paragraphs[0].Bold = row == 0;
-                if (row == 0) actions.Rows[row].Cells[column].ShadingFillColorHex = "E8EEF8";
+                if (row == 0) actions.Rows[row].Cells[column].ShadingFillColor = OfficeColor.Parse("E8EEF8");
             }
         }
         document.AddParagraph("Next meeting").Style = WordParagraphStyles.Heading2;
         document.AddParagraph("28 September: review pilot feedback and decide whether to expand access.");
         foreach (WordParagraph paragraph in document.Paragraphs) {
-            paragraph.FontFamily = "Carlito";
-            paragraph.FontSize = 11;
-            paragraph.LineSpacingAfterPoints = 7;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(11);
+            paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(7D);
             if (paragraph.Style == WordParagraphStyles.Heading1) {
-                paragraph.FontSize = 26;
+                paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(26);
                 paragraph.Bold = true;
-                paragraph.LineSpacingAfterPoints = 12;
+                paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(12D);
             } else if (paragraph.Style == WordParagraphStyles.Heading2) {
-                paragraph.FontSize = 15;
+                paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(15);
                 paragraph.Bold = true;
-                paragraph.LineSpacingBeforePoints = 12;
-                paragraph.LineSpacingAfterPoints = 6;
+                paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(12D);
+                paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(6D);
             }
         }
         foreach (WordTable styledTable in document.Tables) {
@@ -57,16 +53,16 @@ internal static class MeetingMinutes {
             styledTable.SetColumnWidthsPercentage(50, 25, 25);
             foreach (var row in styledTable.Rows) {
                 foreach (var cell in row.Cells) {
-                    cell.MarginTopCentimeters = 0.10;
-                    cell.MarginBottomCentimeters = 0.10;
+                    cell.MarginTop = global::OfficeIMO.OfficeLength.Centimeters(0.1D);
+                    cell.MarginBottom = global::OfficeIMO.OfficeLength.Centimeters(0.1D);
                     foreach (var paragraph in cell.Paragraphs) {
-                        paragraph.FontFamily = "Carlito";
-                        paragraph.FontSize = 11;
-                        paragraph.LineSpacingAfterPoints = 3;
+                        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(11);
+                        paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(3D);
                     }
                 }
             }
         }
+        WorkflowFooter.Add(document, "Delivery review minutes");
         document.Save();
     }
 }

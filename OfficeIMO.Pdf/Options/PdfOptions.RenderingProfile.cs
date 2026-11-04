@@ -3,7 +3,7 @@ using System.Collections.ObjectModel;
 
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfOptions {
+public sealed partial class PdfCreateOptions {
     private Dictionary<string, PdfEmbeddedFontFallbackCandidate[]>? _renderingProfileFamilyFallbacks;
     private PdfEmbeddedFontFallbackCandidate[]? _renderingProfileDeclaredFallbackCandidates;
     private HashSet<string>? _renderingProfileOwnedNamedFamilyNames;
@@ -13,12 +13,12 @@ public sealed partial class PdfOptions {
     /// </summary>
     /// <remarks>
     /// PDF-specific pagination, conformance, metadata, and document security remain configured on
-    /// <see cref="PdfOptions"/>. The profile supplies only format-neutral shaping, language, and fonts.
+    /// <see cref="PdfCreateOptions"/>. The profile supplies only format-neutral shaping, language, and fonts.
     /// </remarks>
     /// <param name="profile">Shared rendering profile.</param>
     /// <param name="mode">Whether profile-owned resources replace or overlay existing PDF settings.</param>
     /// <returns>This options instance for fluent configuration.</returns>
-    public PdfOptions UseRenderingProfile(
+    public PdfCreateOptions UseRenderingProfile(
         OfficeRenderingProfile profile,
         OfficeRenderingProfileApplyMode mode = OfficeRenderingProfileApplyMode.Replace) {
         Guard.NotNull(profile, nameof(profile));

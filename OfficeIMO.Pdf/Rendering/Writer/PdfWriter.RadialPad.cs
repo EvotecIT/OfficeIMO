@@ -19,7 +19,7 @@ internal static partial class PdfWriter {
         List<(string Name, int Id)> xobjects, PdfPrintColorTransform? printColorTransform, CancellationToken cancellationToken) {
         if (shading.OutsideColor is not OfficeColor outside) return;
         var buffer = new StringBuilder();
-        new ContentStreamBuilder(buffer).FillColor(PdfColor.FromOfficeColor(outside))
+        new ContentStreamBuilder(buffer).FillColor(outside)
             .Rectangle(shading.AlphaLeft, shading.AlphaBottom, shading.AlphaRight - shading.AlphaLeft, shading.AlphaTop - shading.AlphaBottom, preciseCoordinates: true)
             .FillPath().Shading("A");
         string content = buffer.ToString();

@@ -18,7 +18,7 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentNullException(nameof(document));
             }
 
-            return document.CreateInspectionSnapshot().CreateStencilProfile();
+            return document.Inspect().CreateStencilProfile();
         }
 
         /// <summary>

@@ -16,7 +16,7 @@ public sealed class HtmlPdfSvgFontTests {
     [InlineData("", "<g opacity='0.75'>", "</g>")]
     public void SvgTextRegistersExplicitUnicodeFontsInsideDrawingGroups(string rootAttributes, string beforeText, string afterText) {
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(PolishText.Select(character => (int)character).Distinct().ToArray());
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         };
@@ -24,7 +24,7 @@ public sealed class HtmlPdfSvgFontTests {
         string html = "<svg xmlns='http://www.w3.org/2000/svg' width='400' height='80' " + rootAttributes + ">"
             + beforeText + "<text x='8' y='30' font-family='Chart Unicode' font-size='20'>" + PolishText + "</text>" + afterText + "</svg>";
 
-        byte[] bytes = HtmlConversionDocument.Parse(html).ToPdfBytes(options);
+        byte[] bytes = (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
 
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         Assert.Contains(PolishText, pdf.GetPage(1).Text, StringComparison.Ordinal);
@@ -33,13 +33,14 @@ public sealed class HtmlPdfSvgFontTests {
 
     [Fact]
     public void SvgUnicodeTextStillRequiresCoverageWhenHostFontsAreDisabled() {
-        var options = new HtmlToPdfOptions {
-            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
+        var options = new HtmlPdfExportOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         };
         const string html = "<svg xmlns='http://www.w3.org/2000/svg' width='200' height='60'><svg width='200' height='60'><text x='5' y='30'>ęłź</text></svg></svg>";
 
         HtmlConversionException failure = Assert.Throws<HtmlConversionException>(() =>
-            HtmlConversionDocument.Parse(html).ToPdfBytes(options));
+            (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes());
         Assert.Contains(failure.Diagnostics, diagnostic => diagnostic.Code == "unsupported-text-glyph"
             && diagnostic.Severity == HtmlDiagnosticSeverity.Error
             && diagnostic.LossKind == OfficeConversionLossKind.Failure

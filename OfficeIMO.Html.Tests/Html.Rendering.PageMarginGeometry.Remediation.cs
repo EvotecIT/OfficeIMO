@@ -17,10 +17,10 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(0D, Assert.Single(box.Visuals.OfType<HtmlRenderClipGroup>()).ClipHeight);
         Assert.Equal("HEADER", Assert.Single(EnumerateRenderVisuals(box.Visuals).OfType<HtmlRenderText>()).Text);
         Assert.Equal("BODY", rendered.Text.Trim());
-        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Source == box.Source
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic => diagnostic.Source == box.Source
             && diagnostic.Detail == "margin-height" && diagnostic.LossKind == OfficeConversionLossKind.Omission);
-        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Detail == "margin-page-bounds");
-        Assert.ThrowsAny<InvalidOperationException>(() => rendered.RequireNoLoss());
+        Assert.DoesNotContain(rendered.NativeDiagnostics, diagnostic => diagnostic.Detail == "margin-page-bounds");
+        Assert.ThrowsAny<InvalidOperationException>(() => rendered.ThrowIfLoss());
     }
 
     [Theory]
@@ -39,16 +39,16 @@ public sealed partial class HtmlRenderingTests {
         if (decoration.Length > 0) {
             Assert.Equal(24D, box.Height, 6);
             Assert.Equal(-24D, box.Y, 6);
-            Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Detail == "margin-page-bounds"
+            Assert.Contains(rendered.NativeDiagnostics, diagnostic => diagnostic.Detail == "margin-page-bounds"
                 && diagnostic.Source == box.Source && diagnostic.LossKind == OfficeConversionLossKind.Omission);
         } else if (content == "'PAD'") {
             Assert.Equal(0D, Assert.Single(box.Visuals.OfType<HtmlRenderClipGroup>()).ClipHeight);
             Assert.Equal("PAD", Assert.Single(EnumerateRenderVisuals(box.Visuals).OfType<HtmlRenderText>()).Text);
-            Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Detail == "margin-height"
+            Assert.Contains(rendered.NativeDiagnostics, diagnostic => diagnostic.Detail == "margin-height"
                 && diagnostic.Source == box.Source && diagnostic.LossKind == OfficeConversionLossKind.Omission);
         } else Assert.Empty(box.Visuals);
-        if (expectedLoss) Assert.ThrowsAny<InvalidOperationException>(() => rendered.RequireNoLoss());
-        else rendered.RequireNoLoss();
+        if (expectedLoss) Assert.ThrowsAny<InvalidOperationException>(() => rendered.ThrowIfLoss());
+        else rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -70,9 +70,9 @@ public sealed partial class HtmlRenderingTests {
         else Assert.Equal(page.Height - page.Margins.Bottom, box.Y, 6);
         Assert.Contains(EnumerateRenderVisuals(box.Visuals).OfType<HtmlRenderShape>(),
             visual => visual.Shape.StrokeColor == OfficeColor.Red);
-        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Source == "@page @" + side + "-center"
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic => diagnostic.Source == "@page @" + side + "-center"
             && diagnostic.Detail == "margin-page-bounds" && diagnostic.LossKind == OfficeConversionLossKind.Omission);
-        Assert.ThrowsAny<InvalidOperationException>(() => rendered.RequireNoLoss());
+        Assert.ThrowsAny<InvalidOperationException>(() => rendered.ThrowIfLoss());
     }
 
     [Theory]
@@ -89,10 +89,10 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("HEADER", PageMarginTypographyText(page, "top-center").Text);
         Assert.Equal(expectedLoss, rendered.HasLoss);
         if (expectedLoss) {
-            Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Source == "@page @top-center"
+            Assert.Contains(rendered.NativeDiagnostics, diagnostic => diagnostic.Source == "@page @top-center"
                 && diagnostic.Detail == "margin-page-bounds" && diagnostic.LossKind == OfficeConversionLossKind.Omission);
-            Assert.ThrowsAny<InvalidOperationException>(() => rendered.RequireNoLoss());
-        } else rendered.RequireNoLoss();
+            Assert.ThrowsAny<InvalidOperationException>(() => rendered.ThrowIfLoss());
+        } else rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -113,10 +113,10 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("BODY", rendered.Text.Trim());
         Assert.Equal(expectedLoss, rendered.HasLoss);
         if (expectedLoss) {
-            Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Source == box.Source
+            Assert.Contains(rendered.NativeDiagnostics, diagnostic => diagnostic.Source == box.Source
                 && diagnostic.Detail == "margin-page-bounds" && diagnostic.LossKind == OfficeConversionLossKind.Omission);
-            Assert.ThrowsAny<InvalidOperationException>(() => rendered.RequireNoLoss());
-        } else rendered.RequireNoLoss();
+            Assert.ThrowsAny<InvalidOperationException>(() => rendered.ThrowIfLoss());
+        } else rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -128,7 +128,7 @@ public sealed partial class HtmlRenderingTests {
             body: "<p style='position:running(heading);text-align:left;" + paintStyle + "'>HEADER</p><p>BODY</p>");
 
         Assert.Equal("BODY", rendered.Text.Trim());
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -142,9 +142,9 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(expectedLoss, rendered.HasLoss);
         if (expectedLoss) {
-            Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Source == "@page @top-center"
+            Assert.Contains(rendered.NativeDiagnostics, diagnostic => diagnostic.Source == "@page @top-center"
                 && diagnostic.Code == HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported);
-            Assert.ThrowsAny<InvalidOperationException>(() => rendered.RequireNoLoss());
-        } else rendered.RequireNoLoss();
+            Assert.ThrowsAny<InvalidOperationException>(() => rendered.ThrowIfLoss());
+        } else rendered.ThrowIfLoss();
     }
 }

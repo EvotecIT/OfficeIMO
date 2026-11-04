@@ -49,17 +49,17 @@ public sealed class PublisherTableBorderAuthoringTests {
         uint id = document.Pages[0].Tables[0].Id;
         // Clearing an already absent edge does not change native representation.
         document.SetTableBorderStyle(id, 2, 0, 2, 1, null);
-        Assert.Equal(source, document.ToPubBytes());
+        Assert.Equal(source, document.ToBytes());
         var black = new OfficeBorderSide(OfficeColor.Black, 1);
         if (operation == 0) document.SetTableBorderStyle(id, 1, 1, 2, 1, black);
         else if (operation == 1) document.SetTableBorderStyle(id, 0, 0, 1, 0, null);
         else document.SetTableBorderStyle(id, 0, 0, 0, 2, black);
         Assert.Equal(operation == 0 ? 7 : operation == 1 ? 5 : 6, document.Pages[0].Tables[0].BorderSegments.Count);
-        byte[] saved = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        byte[] saved = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         PublisherNativeWritingTests.AssertPreservedStorage(source, saved, "Escher/EscherStm");
         PublisherTable reopened = PublisherDocument.Load(saved).Pages[0].Tables[0];
         Assert.Equal(PublisherTableBorderTopologyTests.Coverage(document.Pages[0].Tables[0]), PublisherTableBorderTopologyTests.Coverage(reopened));
-        Assert.Equal(saved, PublisherDocument.Load(saved).ToPubBytes());
+        Assert.Equal(saved, PublisherDocument.Load(saved).ToBytes());
     }
 
     [Fact]
@@ -80,7 +80,7 @@ public sealed class PublisherTableBorderAuthoringTests {
 
     [Fact]
     public void Border_creation_obeys_the_copied_projection_budget_and_cancels_atomically() {
-        var options = new PublisherReadOptions { Limits = new OfficeLegacyImportLimits { MaxItems = 6 } };
+        var options = new PublisherLoadOptions { Limits = new OfficeLegacyImportLimits { MaxItems = 6 } };
         PublisherDocument document = PublisherDocument.Create(612, 792, options);
         uint id = document.AddTable(document.Pages[0].Id, 72, 144, new[] { 120D, 180D }, new[] { 42D }).Id;
         options.Limits.MaxItems = 100;

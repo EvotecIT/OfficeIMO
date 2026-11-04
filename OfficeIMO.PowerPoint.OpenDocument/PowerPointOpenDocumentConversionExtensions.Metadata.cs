@@ -6,12 +6,12 @@ namespace OfficeIMO.PowerPoint.OpenDocument;
 
 public static partial class PowerPointOpenDocumentConversionExtensions {
     private static readonly Lazy<IReadOnlyDictionary<string, string>> DefaultPowerPointExtendedMetadata = new(() => {
-        using PowerPointPresentation baseline = PowerPointPresentation.Create(new MemoryStream(),
+        using PowerPointDocument baseline = PowerPointDocument.Create(new MemoryStream(),
             new PowerPointCreateOptions());
         return ReadExtendedMetadata(baseline);
     });
 
-    private static IReadOnlyDictionary<string, string> ReadExtendedMetadata(PowerPointPresentation presentation) =>
+    private static IReadOnlyDictionary<string, string> ReadExtendedMetadata(PowerPointDocument presentation) =>
         presentation.OpenXmlDocument.ExtendedFilePropertiesPart?.Properties?.ChildElements
             .Where(element => element.LocalName is not (
                 "Company" or "Manager" or "Slides" or "Notes" or "HiddenSlides" or
@@ -20,19 +20,19 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             .ToDictionary(element => element.LocalName, element => element.InnerText, StringComparer.Ordinal)
         ?? new Dictionary<string, string>(StringComparer.Ordinal);
 
-    private static void CopyPowerPointMetadata(PowerPointPresentation source,
+    private static void CopyPowerPointMetadata(PowerPointDocument source,
         OdpPresentation target, OdfConversionReport report) {
-        PowerPointBuiltinDocumentProperties properties = source.BuiltinDocumentProperties;
-        target.Metadata.Title = properties.Title;
-        target.Metadata.Subject = properties.Subject;
-        target.Metadata.Description = properties.Description;
-        target.Metadata.Creator = properties.Creator;
-        target.Metadata.LastModifiedBy = properties.LastModifiedBy;
-        target.Metadata.Language = source.OpenXmlDocument.PackageProperties.Language;
+        PowerPointBuiltinDocumentProperties properties = source.Properties;
+        target.Properties.Title = properties.Title;
+        target.Properties.Subject = properties.Subject;
+        target.Properties.Description = properties.Description;
+        target.Properties.Creator = properties.Creator;
+        target.Properties.LastModifiedBy = properties.LastModifiedBy;
+        target.Properties.Language = source.OpenXmlDocument.PackageProperties.Language;
         if (properties.Created.HasValue)
-            target.Metadata.CreationDate = AsUtc(properties.Created.Value);
+            target.Properties.CreationDate = AsUtc(properties.Created.Value);
         if (properties.Modified.HasValue)
-            target.Metadata.ModifiedDate = AsUtc(properties.Modified.Value);
+            target.Properties.ModifiedDate = AsUtc(properties.Modified.Value);
 
         int unsupported = CountNonempty(properties.Keywords, properties.Category,
             properties.Revision, properties.Version);
@@ -55,15 +55,15 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     }
 
     private static void CopyOdpMetadata(OdpPresentation source,
-        PowerPointPresentation target, OdfConversionReport report) {
-        target.BuiltinDocumentProperties.Title = source.Metadata.Title;
-        target.BuiltinDocumentProperties.Subject = source.Metadata.Subject;
-        target.BuiltinDocumentProperties.Description = source.Metadata.Description;
-        target.BuiltinDocumentProperties.Creator = source.Metadata.Creator;
-        target.BuiltinDocumentProperties.LastModifiedBy = source.Metadata.LastModifiedBy;
-        target.OpenXmlDocument.PackageProperties.Language = source.Metadata.Language;
-        target.BuiltinDocumentProperties.Created = source.Metadata.CreationDate?.UtcDateTime;
-        target.BuiltinDocumentProperties.Modified = source.Metadata.ModifiedDate?.UtcDateTime;
+        PowerPointDocument target, OdfConversionReport report) {
+        target.Properties.Title = source.Properties.Title;
+        target.Properties.Subject = source.Properties.Subject;
+        target.Properties.Description = source.Properties.Description;
+        target.Properties.Creator = source.Properties.Creator;
+        target.Properties.LastModifiedBy = source.Properties.LastModifiedBy;
+        target.OpenXmlDocument.PackageProperties.Language = source.Properties.Language;
+        target.Properties.Created = source.Properties.CreationDate?.UtcDateTime;
+        target.Properties.Modified = source.Properties.ModifiedDate?.UtcDateTime;
 
         var mapped = new HashSet<System.Xml.Linq.XName> {
             OdfNamespaces.Dc + "title", OdfNamespaces.Dc + "subject",

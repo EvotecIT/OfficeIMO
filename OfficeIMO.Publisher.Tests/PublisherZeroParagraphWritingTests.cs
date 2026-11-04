@@ -15,24 +15,24 @@ public sealed class PublisherZeroParagraphWritingTests {
         byte[] source = File.ReadAllBytes(PublisherNativeTests.Fixture(fixture));
         var original = PublisherDocument.Load(source); var d = PublisherDocument.Load(source); uint id = d.TextStories[0].Id;
         d.ReplaceStoryParagraphs(id, Array.Empty<OfficeRichTextParagraph>()); var snapshot = d.Pages[0].TextFrames[0];
-        var result = d.ToPubBytesResult(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
-        var diagnostic = Assert.Single(result.Report.FidelityDiagnostics, x => x.Code == "PUB_NATIVE_EMPTY_STORY_PARAGRAPH");
+        byte[] savedBytes = d.ToBytes(new PublisherSaveOptions { AllowLoss = true }, out PublisherSaveReport saveReport);
+        var diagnostic = Assert.Single(saveReport.Diagnostics, x => x.Code == "PUB_NATIVE_EMPTY_STORY_PARAGRAPH");
         Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
-        Assert.False(result.Report.HasErrors); Assert.True(result.Report.HasLoss);
+        Assert.False(saveReport.HasErrors); Assert.True(saveReport.HasLoss);
         Assert.Empty(d.TextStories.Single(s => s.Id == id).Paragraphs); Assert.Empty(d.TextStories.Single(s => s.Id == id).Text);
         Assert.Same(snapshot, d.Pages[0].TextFrames[0]);
-        var saved = PublisherDocument.Load(result.Value); var story = saved.TextStories.Single(s => s.Id == id);
+        var saved = PublisherDocument.Load(savedBytes); var story = saved.TextStories.Single(s => s.Id == id);
         Assert.Equal("\n", story.Text); var paragraph = Assert.Single(story.Paragraphs); Assert.Empty(Assert.Single(paragraph.Runs).Text);
-        Assert.Equal(Definition(original, source, id, "FDPP"), Definition(saved, result.Value, id, "FDPP"));
-        Assert.Equal(Definition(original, source, id, "FDPC"), Definition(saved, result.Value, id, "FDPC"));
+        Assert.Equal(Definition(original, source, id, "FDPP"), Definition(saved, savedBytes, id, "FDPP"));
+        Assert.Equal(Definition(original, source, id, "FDPC"), Definition(saved, savedBytes, id, "FDPC"));
         foreach (var neighbor in original.TextStories.Where(s => s.Id != id)) Assert.Equal(neighbor.Text, saved.TextStories.Single(s => s.Id == neighbor.Id).Text);
-        if (fixture != "native-cleared-text.pub") PublisherNativeWritingTests.AssertPreservedStorage(source, result.Value, "Quill/QuillSub/CONTENTS");
-        Assert.Equal(result.Value, saved.ToPubBytes()); Assert.Equal(result.Value, d.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
-        if (fixture == "native-cleared-text.pub") { Assert.True(result.Report.IsExactSourceCopy); Assert.Equal(source, result.Value); }
+        if (fixture != "native-cleared-text.pub") PublisherNativeWritingTests.AssertPreservedStorage(source, savedBytes, "Quill/QuillSub/CONTENTS");
+        Assert.Equal(savedBytes, saved.ToBytes()); Assert.Equal(savedBytes, d.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
+        if (fixture == "native-cleared-text.pub") { Assert.True(saveReport.IsExactSourceCopy); Assert.Equal(source, savedBytes); }
         var refill = new OfficeRichTextParagraph(new[] { new OfficeRichTextRun("Refilled after native clear", 12, OfficeColor.Blue, fontFamily: "Arial") },
             paragraph.Alignment, paragraph.LineHeight, paragraph.Margins, paragraph.Indent, paragraph.LineHeightFactor).WithTabStops(paragraph.TabStops);
         saved.ReplaceStoryParagraphs(id, new[] { refill });
-        var reloaded = PublisherDocument.Load(saved.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        var reloaded = PublisherDocument.Load(saved.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         Assert.True(PublisherTextComparison.ParagraphEqual(refill, Assert.Single(reloaded.TextStories.Single(s => s.Id == id).Paragraphs)));
     }
 
@@ -43,7 +43,7 @@ public sealed class PublisherZeroParagraphWritingTests {
         using var destination = new MemoryStream(); destination.Write(new byte[] { 9, 8, 7, 6 }, 0, 4); destination.Position = 2;
         var error = Assert.Throws<OfficeConversionException>(() => d.Save(destination));
         var report = Assert.IsType<PublisherSaveReport>(error.Report); Assert.False(report.HasErrors);
-        Assert.Contains(report.FidelityDiagnostics, x => x.Code == "PUB_NATIVE_EMPTY_STORY_PARAGRAPH" && x.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.Contains(report.Diagnostics, x => x.Code == "PUB_NATIVE_EMPTY_STORY_PARAGRAPH" && x.LossKind == OfficeConversionLossKind.Approximation);
         Assert.Equal(new byte[] { 9, 8, 7, 6 }, destination.ToArray()); Assert.Equal(2, destination.Position); Assert.True(destination.CanWrite);
         Assert.Empty(d.TextStories[0].Paragraphs);
     }
@@ -53,9 +53,9 @@ public sealed class PublisherZeroParagraphWritingTests {
         var d = PublisherDocument.Load(PublisherNativeTests.Fixture("NativeComparison/TextLabelFitting/native-textlabelfitting.pub"));
         var story = d.TextStories[0]; Assert.Contains(story.Paragraphs, p => p.Label != null);
         d.ReplaceStoryParagraphs(story.Id, Array.Empty<OfficeRichTextParagraph>());
-        var error = Assert.Throws<OfficeConversionException>(() => d.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        var error = Assert.Throws<OfficeConversionException>(() => d.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         Assert.True(Assert.IsType<PublisherSaveReport>(error.Report).HasErrors);
-        Assert.DoesNotContain(error.Report.FidelityDiagnostics, x => x.Code == "PUB_NATIVE_EMPTY_STORY_PARAGRAPH");
+        Assert.DoesNotContain(error.Report.Diagnostics, x => x.Code == "PUB_NATIVE_EMPTY_STORY_PARAGRAPH");
     }
 
     private static byte[] Definition(PublisherDocument d, byte[] source, uint id, string tag) {

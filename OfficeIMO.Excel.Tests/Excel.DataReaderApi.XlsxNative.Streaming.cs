@@ -27,7 +27,7 @@ public partial class Excel {
                 """;
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml",
                 (utf16 ? Encoding.Unicode : Encoding.UTF8).GetBytes(xml));
-            using XlsxTabularWorkbook workbook = XlsxTabularWorkbook.Open(path, new ExcelReadOptions());
+            using XlsxTabularWorkbook workbook = XlsxTabularWorkbook.Open(path, new ExcelReaderOptions());
             using DbDataReader reader = workbook.OpenTable("Data", true, CancellationToken.None);
             Assert.Equal(3, reader.FieldCount);
             Assert.Equal("Id", reader.GetName(0));

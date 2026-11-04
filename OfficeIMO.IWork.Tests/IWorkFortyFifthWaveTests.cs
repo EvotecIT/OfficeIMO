@@ -11,11 +11,11 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Width", 1, 1, 1d, defaultColumnWidth: 73d)
         });
 
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
 
         Assert.False(result.IsVisualFallback);
-        double width = Assert.IsType<double>(
-            result.Value.Sheets[0].DefaultColumnWidth);
+        var sheet = result.Value.Sheets[0];
+        double width = sheet.DefaultColumnWidth!.Value.ToCharacters(sheet);
         Assert.Equal(13.19047619047619d, width, 12);
     }
 

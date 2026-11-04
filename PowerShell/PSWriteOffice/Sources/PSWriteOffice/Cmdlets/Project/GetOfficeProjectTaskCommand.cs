@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Project;
 ///   <summary>Returns project tasks as pipeline objects.</summary>
 ///   <code>$project | Get-OfficeProjectTask | Select-Object Uid, Name, Start, Finish</code>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeProjectTask")]
+[Cmdlet(VerbsCommon.Get, "OfficeProjectTask", DefaultParameterSetName = "Document")]
 [OutputType(typeof(ProjectTask))]
 public sealed class GetOfficeProjectTaskCommand : PSCmdlet {
     /// <summary>Project to inspect or change.</summary>

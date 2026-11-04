@@ -6,24 +6,24 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         [Fact]
         public void Double_Backticks_With_Inner_Backticks() {
             var md = "``Use `backticks` inside``";
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
-            var html = doc.ToHtmlFragment();
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
+            var html = doc.ToHtml();
             Assert.Contains("Use `backticks` inside", html);
         }
 
         [Fact]
         public void Triple_Backticks_Code_Span() {
             var md = "start ```a ` b``` end";
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
-            var html = doc.ToHtmlFragment();
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
+            var html = doc.ToHtml();
             Assert.Contains("a ` b", html);
         }
 
         [Fact]
         public void Unmatched_MultiBacktick_Run_Remains_Literal() {
             var md = "``` c`sharp";
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
-            var html = doc.ToHtmlFragment();
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
+            var html = doc.ToHtml();
 
             Assert.Contains("``` c`sharp", html, StringComparison.Ordinal);
             Assert.DoesNotContain("<code>c</code>", html, StringComparison.Ordinal);

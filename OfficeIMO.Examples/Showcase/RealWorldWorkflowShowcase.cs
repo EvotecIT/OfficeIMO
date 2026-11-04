@@ -30,12 +30,10 @@ internal static class RealWorldWorkflowShowcase {
         string sourcePath = Path.Combine(output, "customer-delivery-summary.docx");
         #region Excerpt:customer-delivery-summary
         using WordDocument document = WordDocument.Create(sourcePath);
-        document.Settings.FontFamily = "Carlito";
-        document.Settings.FontSize = 11;
-        document.BuiltinDocumentProperties.Title = "Customer delivery summary";
-        document.AddHeadersAndFooters();
-        document.HeaderDefaultOrCreate.AddParagraph("Northwind Operations · Quarterly service review").FontSize = 9;
-        document.FooterDefaultOrCreate.AddPageNumber(includeTotalPages: true);
+        document.Settings.FontSize = OfficeLength.Points(11);
+        document.Properties.Title = "Customer delivery summary";
+        document.PageSetup.Header.AddParagraph("Northwind Operations · Quarterly service review").FontSize = global::OfficeIMO.OfficeLength.Points(9);
+        document.PageSetup.Footer.AddPageNumber(includeTotalPages: true);
 
         AddTitleBlock(document, "NORTHWIND OPERATIONS / QUARTERLY SERVICE REVIEW", "Customer delivery summary",
             "Ready for acceptance. Illustrative figures from structured project data.");
@@ -46,25 +44,24 @@ internal static class RealWorldWorkflowShowcase {
         AddStatusTable(document, DeliveredOutcomes, 34, 30, 18, 18);
 
         AddHeading(document, "Incidents per week");
-        document.AddChart(OfficeChartKind.ColumnClustered, WeeklyIncidents, width: 790, height: 200);
+        // 600 px (6.25 in) fits the text width of both Letter and A4 pages with 1 in margins.
+        document.AddChart(OfficeChartType.ColumnClustered, WeeklyIncidents, new OfficeChartOptions { Width = OfficeLength.Pixels(600), Height = OfficeLength.Pixels(220) });
 
         AddHeading(document, "Next steps");
         AddStatusTable(document, NextSteps, 40, 24, 18, 18);
 
         WordParagraph decision = document.AddParagraph("Decision requested: approve the delivery notes so the improvement backlog can start next sprint.");
-        decision.ShadingFillColorHex = "EAF1FB";
-        decision.LineSpacingBeforePoints = 8;
+        decision.ShadingFillColor = OfficeColor.Parse("EAF1FB");
+        decision.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(8D);
         decision.Borders.LeftStyle = WordBorderStyle.Single;
-        decision.Borders.LeftColorHex = "235FB4";
-        decision.Borders.LeftSize = 24;
+        decision.Borders.LeftColor = OfficeColor.Parse("235FB4");
+        decision.Borders.LeftSize = OfficeLength.Points(3);
         #endregion
 
         document.Save();
-        PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(
-            new OfficeIMO.Word.Pdf.WordToPdfOptions().UseProfile(PdfExportProfile.Faithful));
-        SavePdf(
-            conversion,
-            Path.Combine(output, "customer-delivery-summary.pdf"));
+        string pdfPath = Path.Combine(output, "customer-delivery-summary.pdf");
+        document.SaveAsPdf(pdfPath, new OfficeIMO.Word.Pdf.WordPdfExportOptions().UseProfile(PdfExportProfile.Faithful));
+        Console.WriteLine($"✓ PDF: {pdfPath}");
     }
 
     // Sample data for the delivery summary.
@@ -85,29 +82,29 @@ internal static class RealWorldWorkflowShowcase {
     private static readonly OfficeChartData WeeklyIncidents = new(
         new[] { "Week 1", "Week 2", "Week 3", "Week 4", "Week 5", "Week 6" },
         new[] {
-            new OfficeChartSeries("Last quarter", new double[] { 14, 13, 16, 12, 13, 14 }),
-            new OfficeChartSeries("This quarter", new double[] { 11, 9, 8, 7, 6, 5 })
+            new OfficeSeries("Last quarter", new double[] { 14, 13, 16, 12, 13, 14 }),
+            new OfficeSeries("This quarter", new double[] { 11, 9, 8, 7, 6, 5 })
         });
 
     // Small layout helpers for the delivery summary; every call inside them is the public OfficeIMO.Word API.
     private static WordParagraph AddHeading(WordDocument document, string text, int size = 14, int before = 8) {
         WordParagraph heading = document.AddParagraph(text);
         heading.Style = size > 20 ? WordParagraphStyles.Heading1 : WordParagraphStyles.Heading2;
-        heading.FontSize = size;
+        heading.FontSize = global::OfficeIMO.OfficeLength.Points(size);
         heading.Bold = true;
-        heading.SetColorHex("17365D");
-        heading.LineSpacingBeforePoints = before;
-        heading.LineSpacingAfterPoints = 5;
+        heading.SetColor(OfficeColor.Parse("17365D"));
+        heading.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(before);
+        heading.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(5D);
         return heading;
     }
 
     private static void AddTitleBlock(WordDocument document, string eyebrow, string title, string subtitle) {
         WordParagraph label = document.AddParagraph(eyebrow);
-        label.FontSize = 9;
+        label.FontSize = global::OfficeIMO.OfficeLength.Points(9);
         label.Bold = true;
-        label.SetColorHex("235FB4");
+        label.SetColor(OfficeColor.Parse("235FB4"));
         AddHeading(document, title, 28, 4);
-        document.AddParagraph(subtitle).SetColorHex("526179");
+        document.AddParagraph(subtitle).SetColor(OfficeColor.Parse("526179"));
     }
 
     private static void AddKpiStrip(WordDocument document, params (string Value, string Label)[] kpis) {
@@ -115,16 +112,16 @@ internal static class RealWorldWorkflowShowcase {
         strip.SetWidthPercentage(100);
         for (int i = 0; i < kpis.Length; i++) {
             WordTableCell cell = strip.Rows[0].Cells[i];
-            cell.ShadingFillColorHex = "EAF1FB";
-            cell.MarginTopCentimeters = 0.1;
-            cell.MarginBottomCentimeters = 0.1;
+            cell.ShadingFillColor = OfficeColor.Parse("EAF1FB");
+            cell.MarginTop = global::OfficeIMO.OfficeLength.Centimeters(0.1D);
+            cell.MarginBottom = global::OfficeIMO.OfficeLength.Centimeters(0.1D);
             cell.Paragraphs[0].Text = kpis[i].Value;
-            cell.Paragraphs[0].FontSize = 22;
+            cell.Paragraphs[0].FontSize = global::OfficeIMO.OfficeLength.Points(22);
             cell.Paragraphs[0].Bold = true;
-            cell.Paragraphs[0].SetColorHex("17365D");
+            cell.Paragraphs[0].SetColor(OfficeColor.Parse("17365D"));
             WordParagraph label = cell.AddParagraph(kpis[i].Label);
-            label.FontSize = 9;
-            label.SetColorHex("526179");
+            label.FontSize = global::OfficeIMO.OfficeLength.Points(9);
+            label.SetColor(OfficeColor.Parse("526179"));
         }
     }
 
@@ -133,18 +130,18 @@ internal static class RealWorldWorkflowShowcase {
         for (int row = 0; row < rows.Length; row++) {
             for (int column = 0; column < widths.Length; column++) {
                 WordTableCell cell = grid.Rows[row].Cells[column];
-                cell.MarginTopCentimeters = 0.12;
-                cell.MarginBottomCentimeters = 0.12;
+                cell.MarginTop = global::OfficeIMO.OfficeLength.Centimeters(0.12D);
+                cell.MarginBottom = global::OfficeIMO.OfficeLength.Centimeters(0.12D);
                 cell.Paragraphs[0].Text = rows[row][column];
                 if (row == 0) {
-                    cell.ShadingFillColorHex = "17365D";
+                    cell.ShadingFillColor = OfficeColor.Parse("17365D");
                     cell.Paragraphs[0].Bold = true;
-                    cell.Paragraphs[0].SetColorHex("FFFFFF");
+                    cell.Paragraphs[0].SetColor(OfficeColor.Parse("FFFFFF"));
                 } else if (column == widths.Length - 1) {
-                    cell.ShadingFillColorHex = rows[row][column] is "Accepted" or "Complete" ? "E7F6ED" : "FFF4CC";
+                    cell.ShadingFillColor = OfficeColor.Parse(rows[row][column] is "Accepted" or "Complete" ? "E7F6ED" : "FFF4CC");
                     cell.Paragraphs[0].Bold = true;
                 } else if (row % 2 == 0) {
-                    cell.ShadingFillColorHex = "F5F8FC";
+                    cell.ShadingFillColor = OfficeColor.Parse("F5F8FC");
                 }
             }
         }
@@ -157,8 +154,8 @@ internal static class RealWorldWorkflowShowcase {
 
         #region Excerpt:change-approval-memo
         RtfDocument document = RtfDocument.Create();
-        document.Info.Title = "Change approval memo";
-        document.Info.Author = "Platform operations";
+        document.Properties.Title = "Change approval memo";
+        document.Properties.Author = "Platform operations";
 
         int accent = document.AddColor(35, 95, 180);
         int headerFill = document.AddColor(226, 236, 250);
@@ -229,10 +226,9 @@ internal static class RealWorldWorkflowShowcase {
         #endregion
 
         File.WriteAllText(sourcePath, document.ToRtf(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
-        PdfDocumentConversionResult conversion = document.ToPdfDocumentResult();
-        SavePdf(
-            conversion,
-            Path.Combine(output, "change-approval-memo.pdf"));
+        string pdfPath = Path.Combine(output, "change-approval-memo.pdf");
+        document.SaveAsPdf(pdfPath);
+        Console.WriteLine($"✓ PDF: {pdfPath}");
     }
     private static void CreateMarkdownReleaseReadiness(string output) {
         string sourcePath = Path.Combine(output, "release-readiness-report.md");
@@ -240,7 +236,7 @@ internal static class RealWorldWorkflowShowcase {
             .WithColorScheme(MarkdownColorSchemeKind.Blue);
 
         #region Excerpt:release-readiness-report
-        MarkdownDoc document = MarkdownDoc.Create()
+        MarkdownDocument document = MarkdownDocument.Create()
             .H1("Release readiness report")
             .P(p => p.Bold("Release 4.2.0").Text(" · candidate ").Code("4.2.0-rc.3").Text(" · decision due Friday"))
             .H2("Readiness summary")
@@ -269,13 +265,12 @@ internal static class RealWorldWorkflowShowcase {
         #endregion
 
         File.WriteAllText(sourcePath, document.ToMarkdown(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
-        MarkdownToPdfOptions options = new MarkdownToPdfOptions {
+        MarkdownPdfExportOptions options = new MarkdownPdfExportOptions {
             Theme = theme
         }.UseProfile(PdfExportProfile.Faithful);
-        PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(options);
-        SavePdf(
-            conversion,
-            Path.Combine(output, "release-readiness-report.pdf"));
+        string pdfPath = Path.Combine(output, "release-readiness-report.pdf");
+        document.SaveAsPdf(pdfPath, options);
+        Console.WriteLine($"✓ PDF: {pdfPath}");
     }
     private static void CreateOpenDocumentHandover(string output) {
         string sourcePath = Path.Combine(output, "project-handover-brief.odt");
@@ -337,14 +332,8 @@ internal static class RealWorldWorkflowShowcase {
         #endregion
         document.Save(sourcePath);
 
-        PdfDocumentConversionResult conversion = document.ToPdfDocumentResult();
-        SavePdf(
-            conversion,
-            Path.Combine(output, "project-handover-brief.pdf"));
-    }
-
-    private static void SavePdf(PdfDocumentConversionResult conversion, string pdfPath) {
-        conversion.Save(pdfPath);
+        string pdfPath = Path.Combine(output, "project-handover-brief.pdf");
+        document.SaveAsPdf(pdfPath);
         Console.WriteLine($"✓ PDF: {pdfPath}");
     }
 

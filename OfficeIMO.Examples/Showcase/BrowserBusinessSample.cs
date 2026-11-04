@@ -7,11 +7,11 @@ internal static class BrowserBusinessSample {
     internal static void Create(string outputDirectory) {
         Directory.CreateDirectory(outputDirectory);
         using WordDocument document = WordDocument.Create(Path.Combine(outputDirectory, "business-summary.docx"));
-        document.BuiltinDocumentProperties.Title = "Monthly operations brief";
-        document.BuiltinDocumentProperties.Creator = "OfficeIMO";
+        document.Properties.Title = "Monthly operations brief";
+        document.Properties.Creator = "OfficeIMO";
         document.Settings.FontFamily = "Carlito";
         document.Settings.FontFamilyHighAnsi = "Carlito";
-        document.Settings.FontSize = 11;
+        document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(11);
 
         Paragraph("NORTHWIND OPERATIONS", 10, true);
         Paragraph("Monthly operations brief", 26, true);
@@ -43,11 +43,11 @@ internal static class BrowserBusinessSample {
         void Paragraph(string text, int size, bool bold = false) {
             WordParagraph paragraph = document.AddParagraph(text);
             paragraph.FontFamily = "Carlito";
-            paragraph.FontSize = size;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(size);
             paragraph.Bold = bold;
-            paragraph.Color = OfficeIMO.Drawing.OfficeColor.FromRgb(15, 23, 42);
-            paragraph.LineSpacingBeforePoints = size == 16 ? 14 : 3;
-            paragraph.LineSpacingAfterPoints = size == 26 ? 10 : 6;
+            paragraph.Color = OfficeIMO.OfficeColor.FromRgb(15, 23, 42);
+            paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(size == 16 ? 14 : 3);
+            paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(size == 26 ? 10 : 6);
         }
 
         void Table(string[,] values) {
@@ -57,14 +57,14 @@ internal static class BrowserBusinessSample {
                     WordParagraph paragraph = table.Rows[row].Cells[column].Paragraphs[0];
                     paragraph.Text = values[row, column];
                     paragraph.FontFamily = "Carlito";
-                    paragraph.FontSize = 11;
+                    paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(11);
                     paragraph.Bold = row == 0;
-                    paragraph.LineSpacingBeforePoints = 3;
-                    paragraph.LineSpacingAfterPoints = 3;
-                    table.Rows[row].Cells[column].MarginTopCentimeters = 0.08;
-                    table.Rows[row].Cells[column].MarginBottomCentimeters = 0.08;
+                    paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(3D);
+                    paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(3D);
+                    table.Rows[row].Cells[column].MarginTop = global::OfficeIMO.OfficeLength.Centimeters(0.08D);
+                    table.Rows[row].Cells[column].MarginBottom = global::OfficeIMO.OfficeLength.Centimeters(0.08D);
                     if (row == 0) {
-                        table.Rows[row].Cells[column].ShadingFillColorHex = "E8EEF8";
+                        table.Rows[row].Cells[column].ShadingFillColor = OfficeColor.Parse("E8EEF8");
                     }
                 }
             }

@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes a BIFF Theme record discovered during legacy XLS import.
     /// </summary>
-    public sealed class LegacyXlsThemeRecord {
+    internal sealed class LegacyXlsThemeRecord {
         private readonly byte[] _themeBytes;
 
         /// <summary>

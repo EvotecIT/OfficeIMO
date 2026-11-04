@@ -89,14 +89,13 @@ internal static class BrowserPortablePdfProfile {
 
     internal static OfficeFontFaceCollection CreateDrawingFonts() => CreateLayoutFonts(Data.Value, Fallback);
 
-    internal static PdfOptions CreateOptions(BrowserPdfProfile profile) {
+    internal static PdfCreateOptions CreateOptions(BrowserPdfProfile profile) {
         ArgumentNullException.ThrowIfNull(profile);
         FontPackData data = Data.Value;
         FallbackFontData? fallback = Fallback;
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.Helvetica,
-            HeaderFont = PdfStandardFont.Helvetica,
-            FooterFont = PdfStandardFont.Helvetica,
+            PageSetup = { Header = { StandardFont = PdfStandardFont.Helvetica }, Footer = { StandardFont = PdfStandardFont.Helvetica } },
             FileVersion = PdfFileVersion.Pdf17,
             ObjectSerializationMode = PdfObjectSerializationMode.ForwardOnly,
             TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers,
@@ -131,10 +130,10 @@ internal static class BrowserPortablePdfProfile {
         return options;
     }
 
-    internal static HtmlToPdfOptions CreateHtmlOptions(BrowserPdfProfile profile) {
+    internal static HtmlPdfExportOptions CreateHtmlOptions(BrowserPdfProfile profile) {
         FontPackData data = Data.Value;
         FallbackFontData? fallback = Fallback;
-        return new HtmlToPdfOptions {
+        return new HtmlPdfExportOptions {
             DefaultFontFamily = fallback != null ? DefaultLayoutFontFamilies : DefaultFontFamily,
             Fonts = CreateLayoutFonts(data, fallback),
             PdfOptions = CreateOptions(profile),

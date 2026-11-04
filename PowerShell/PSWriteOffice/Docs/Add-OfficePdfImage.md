@@ -11,12 +11,12 @@ Adds an image to a PDF document.
 ## SYNTAX
 ### Context (Default)
 ```powershell
-Add-OfficePdfImage [-Path] <string> -Width <double> -Height <double> [-Align <PdfAlign>] [-AlternativeText <string>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfImage [-Path] <string> -Width <double> -Height <double> [-Align <OfficeAlignment>] [-AlternativeText <string>] [-PassThru] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Add-OfficePdfImage [-Path] <string> -Document <PdfDocument> -Width <double> -Height <double> [-Align <PdfAlign>] [-AlternativeText <string>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfImage [-Path] <string> -Document <PdfDocument> -Width <double> -Height <double> [-Align <OfficeAlignment>] [-AlternativeText <string>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -41,10 +41,10 @@ Embeds an image with alternative text in the generated PDF.
 Image alignment.
 
 ```yaml
-Type: PdfAlign
+Type: OfficeAlignment
 Parameter Sets: Context, Document
 Aliases: None
-Possible values: Left, Center, Right, Justify
+Possible values: Left, Center, Right, Justify, Start, End
 
 Required: False
 Position: named

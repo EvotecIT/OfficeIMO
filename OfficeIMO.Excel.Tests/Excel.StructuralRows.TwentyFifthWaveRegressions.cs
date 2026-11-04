@@ -43,9 +43,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_IgnoresMalformedImplicitCellsWithoutSharedFormulas() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet edited = document.AddWorksheet("Edited");
-            edited.CellAt(1, 1).SetValue("Keep");
-            ExcelSheet malformed = document.AddWorksheet("Malformed");
+            ExcelSheet edited = document.AddSheet("Edited");
+            edited.Cell(1, 1).SetValue("Keep");
+            ExcelSheet malformed = document.AddSheet("Malformed");
             malformed.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!.Append(
                 new Row(new Cell { CellValue = new CellValue("value") }) {
                     RowIndex = uint.MaxValue
@@ -53,14 +53,14 @@ namespace OfficeIMO.Tests {
 
             edited.InsertRows(1);
 
-            Assert.Equal("Keep", edited.CellAt(2, 1).GetValue<string>());
+            Assert.Equal("Keep", edited.Cell(2, 1).GetValue<string>());
         }
 
         [Fact]
         public void Test_StructuralRows_HandlesMalformedImplicitSharedFormulaCoordinatesWithoutOverflow() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet edited = document.AddWorksheet("Edited");
-            ExcelSheet malformed = document.AddWorksheet("Malformed");
+            ExcelSheet edited = document.AddSheet("Edited");
+            ExcelSheet malformed = document.AddSheet("Malformed");
             malformed.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!.Append(
                 new Row(new Cell {
                     CellFormula = new CellFormula("A1") {
@@ -83,7 +83,7 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_IgnoresSameNamedDefinitionsFromOtherSheetScopes() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet data = CreatePivotSheet(document);
-            document.AddWorksheet("Other");
+            document.AddSheet("Other");
             WorksheetSource source = Assert.Single(
                 data.WorksheetPart.PivotTableParts).PivotTableCacheDefinitionPart!
                 .PivotCacheDefinition!.CacheSource!.WorksheetSource!;
@@ -110,7 +110,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_PreservesActiveCellIdForSingleCellSelections() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             var selection = new Selection {
                 ActiveCell = "B6",
                 ActiveCellId = 1U,

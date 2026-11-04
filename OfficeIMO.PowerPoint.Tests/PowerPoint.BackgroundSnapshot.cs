@@ -8,7 +8,7 @@ public class PowerPointBackgroundSnapshotTests {
     [Fact]
     public void GetBackground_ReturnsReusableSolidGradientAndImageSnapshots() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         PowerPointSlide slide = presentation.AddSlide();
 
         slide.BackgroundColor = "112233";
@@ -39,7 +39,7 @@ public class PowerPointBackgroundSnapshotTests {
     [Fact]
     public void Explicit_no_fill_replaces_local_fill_and_suppresses_inherited_background_after_reopen() {
         using var stream = new MemoryStream();
-        using var presentation = PowerPointPresentation.Create(stream);
+        using var presentation = PowerPointDocument.Create(stream);
         var slide = presentation.AddSlide();
         slide.SlidePart.SlideLayoutPart!.SlideLayout.CommonSlideData!.Background =
             new DocumentFormat.OpenXml.Presentation.Background(
@@ -50,7 +50,7 @@ public class PowerPointBackgroundSnapshotTests {
         Assert.Equal(PowerPointSlideBackgroundKind.None, slide.GetBackground().Kind);
         Assert.Empty(presentation.ValidateDocument());
         using var saved = new MemoryStream(); presentation.Save(saved); saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         Assert.Equal(PowerPointSlideBackgroundKind.None, reopened.Slides[0].GetBackground().Kind);
         Assert.IsType<A.NoFill>(Assert.Single(reopened.Slides[0].SlidePart.Slide.CommonSlideData!.Background!.BackgroundProperties!.ChildElements));
     }
@@ -58,7 +58,7 @@ public class PowerPointBackgroundSnapshotTests {
     [Fact]
     public void GetBackground_PreservesImageSourceCrop() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         PowerPointSlide slide = presentation.AddSlide();
         string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
         slide.SetBackgroundImage(imagePath);

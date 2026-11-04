@@ -18,8 +18,8 @@ public class Markdown_Reader_Callout_RichBody_Tests {
 > ```
 """;
 
-        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, new MarkdownReaderOptions { HtmlBlocks = false, InlineHtml = false });
-        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md, new MarkdownLoadOptions { HtmlBlocks = false, InlineHtml = false });
+        var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.Contains("blockquote class=\"callout note\"", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("<strong>Title</strong>", html, StringComparison.Ordinal);
@@ -55,8 +55,8 @@ Console.WriteLine("x");
 > Body
 """;
 
-        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, new MarkdownReaderOptions { HtmlBlocks = false, InlineHtml = false });
-        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md, new MarkdownLoadOptions { HtmlBlocks = false, InlineHtml = false });
+        var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
         var markdown = doc.ToMarkdown();
 
         Assert.Contains("<strong>Use <strong>strong</strong> <a href=\"https://example.com\">links</a></strong>", html, StringComparison.Ordinal);
@@ -75,7 +75,7 @@ Body
 # Next
 """;
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
 
         Assert.Collection(document.Blocks,
             block => {
@@ -96,8 +96,8 @@ Body
 > Body
 """;
 
-        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, new MarkdownReaderOptions { HtmlBlocks = false, InlineHtml = false });
-        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md, new MarkdownLoadOptions { HtmlBlocks = false, InlineHtml = false });
+        var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.Contains("<strong><img src=\"/icon.svg\" alt=\"\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("<strong>Tip</strong>", html, StringComparison.Ordinal);
@@ -114,13 +114,13 @@ Body
 > Body
 """;
 
-        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, new MarkdownReaderOptions { HtmlBlocks = false, InlineHtml = false });
+        var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md, new MarkdownLoadOptions { HtmlBlocks = false, InlineHtml = false });
 
         var callout = Assert.IsType<CalloutBlock>(Assert.Single(doc.Blocks));
         Assert.Equal("Use linked code", callout.Title);
         Assert.Equal("Use [linked `code`](https://example.com)", callout.TitleInlines.RenderMarkdown());
 
-        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
         Assert.Contains("<strong>Use <a href=\"https://example.com\">linked <code>code</code></a></strong>", html, StringComparison.Ordinal);
     }
 
@@ -163,7 +163,7 @@ Body
 
     [Fact]
     public void MarkdownDoc_Callout_BodyBuilder_Adds_Structured_ChildBlocks() {
-        var document = MarkdownDoc.Create()
+        var document = MarkdownDocument.Create()
             .Callout("warning", "Structured", body => body
                 .P("Intro")
                 .Ul(list => list.Item("first").Item("second"))

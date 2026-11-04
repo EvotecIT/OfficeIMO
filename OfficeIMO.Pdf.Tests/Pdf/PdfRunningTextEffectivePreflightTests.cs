@@ -11,10 +11,10 @@ public sealed class PdfRunningTextEffectivePreflightTests {
     [InlineData("Footer")]
     public void CustomRunningTextSegmentsPreflightAndRenderWithoutSupersededFormatGlyphs(string owner) {
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'x');
-        var options = new PdfOptions { HeaderFormat = "Page {page}/{pages}", CompressContentStreams = false }
+        var options = new PdfCreateOptions { PageSetup = { Header = { Format = "Page {page}/{pages}" } }, CompressContentStreams = false }
             .EmbedStandardFont(PdfStandardFont.Helvetica, font, "Selected running text");
         PdfDocument document = PdfDocument.Create(options).Compose(composition => composition.Page(page => {
-            page.Content(content => content.Text("x"));
+            page.Content(content => content.AddParagraph("x"));
             if (owner == "Header") page.Header(header => header.Text(text => text.Run(new PdfTextRun("xxx"))));
             else page.Footer(footer => footer.Text(text => text.Run(new PdfTextRun("xxx"))));
         }));

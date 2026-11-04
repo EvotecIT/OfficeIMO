@@ -7,7 +7,7 @@ using VersOneBook = VersOne.Epub.EpubBook;
 namespace OfficeIMO.Epub.Benchmarks.Comparisons;
 
 internal static class EpubComparisonWorkflows {
-    private static readonly EpubReadOptions OfficeIMOOptions = new() {
+    private static readonly EpubLoadOptions OfficeIMOOptions = new() {
         IncludeRawHtml = true,
         IncludeResourceData = false,
         PreferSpineOrder = true,

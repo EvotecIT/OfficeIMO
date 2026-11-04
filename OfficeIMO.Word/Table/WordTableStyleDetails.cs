@@ -20,25 +20,24 @@ public partial class WordTableStyleDetails {
     }
 
     /// <summary>
-    /// Get or set the top margin in twips
+    /// Gets or sets the nonnegative default top cell margin; null removes the direct override.
+    /// Values round to whole twips and must fit 0 through 32767 twips.
     /// </summary>
-    public short? MarginDefaultTopWidth {
-        get {
-            string? widthValue = _tableProperties.TableCellMarginDefault?.TopMargin?.Width?.Value;
-            return ParseOptionalShort(widthValue);
-        }
+    public global::OfficeIMO.OfficeLength? MarginDefaultTop {
+        get => ReadNonnegativeTwips(_tableProperties.TableCellMarginDefault?.TopMargin?.Width?.InnerText);
         set {
+            short? native = ToMarginTwips(value, nameof(value));
             _table.CheckTableProperties();
 
             if (_tableProperties.TableCellMarginDefault == null) {
                 _tableProperties.TableCellMarginDefault = new TableCellMarginDefault();
             }
 
-            if (value.HasValue) {
+            if (native.HasValue) {
                 if (_tableProperties.TableCellMarginDefault.TopMargin == null) {
                     _tableProperties.TableCellMarginDefault.TopMargin = new TopMargin();
                 }
-                _tableProperties.TableCellMarginDefault.TopMargin.Width = value.Value.ToString(CultureInfo.InvariantCulture);
+                _tableProperties.TableCellMarginDefault.TopMargin.Width = native.Value.ToString(CultureInfo.InvariantCulture);
                 _tableProperties.TableCellMarginDefault.TopMargin.Type = TableWidthUnitValues.Dxa;
             } else {
                 if (_tableProperties.TableCellMarginDefault.TopMargin != null) {
@@ -49,44 +48,24 @@ public partial class WordTableStyleDetails {
     }
 
     /// <summary>
-    /// Get or set the top margin in centimeters
+    /// Gets or sets the nonnegative default bottom cell margin; null removes the direct override.
+    /// Values round to whole twips and must fit 0 through 32767 twips.
     /// </summary>
-    public double? MarginDefaultTopCentimeters {
-        get {
-            if (MarginDefaultTopWidth != null) {
-                return Helpers.ConvertTwipsToCentimeters(MarginDefaultTopWidth.Value);
-            }
-            return null;
-        }
+    public global::OfficeIMO.OfficeLength? MarginDefaultBottom {
+        get => ReadNonnegativeTwips(_tableProperties.TableCellMarginDefault?.BottomMargin?.Width?.InnerText);
         set {
-            if (value != null) {
-                MarginDefaultTopWidth = (Int16)Helpers.ConvertCentimetersToTwips(value.Value);
-            } else {
-                MarginDefaultTopWidth = null;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Get or set the bottom margin in twips
-    /// </summary>
-    public short? MarginDefaultBottomWidth {
-        get {
-            string? widthValue = _tableProperties.TableCellMarginDefault?.BottomMargin?.Width?.Value;
-            return ParseOptionalShort(widthValue);
-        }
-        set {
+            short? native = ToMarginTwips(value, nameof(value));
             _table.CheckTableProperties();
 
             if (_tableProperties.TableCellMarginDefault == null) {
                 _tableProperties.TableCellMarginDefault = new TableCellMarginDefault();
             }
 
-            if (value.HasValue) {
+            if (native.HasValue) {
                 if (_tableProperties.TableCellMarginDefault.BottomMargin == null) {
                     _tableProperties.TableCellMarginDefault.BottomMargin = new BottomMargin();
                 }
-                _tableProperties.TableCellMarginDefault.BottomMargin.Width = value.Value.ToString(CultureInfo.InvariantCulture);
+                _tableProperties.TableCellMarginDefault.BottomMargin.Width = native.Value.ToString(CultureInfo.InvariantCulture);
                 _tableProperties.TableCellMarginDefault.BottomMargin.Type = TableWidthUnitValues.Dxa;
             } else {
                 if (_tableProperties.TableCellMarginDefault.BottomMargin != null) {
@@ -97,46 +76,24 @@ public partial class WordTableStyleDetails {
     }
 
     /// <summary>
-    /// Get or set the bottom margin in centimeters
+    /// Gets or sets the nonnegative default left cell margin; null removes the direct override.
+    /// Values round to whole twips and must fit 0 through 32767 twips.
     /// </summary>
-    public double? MarginDefaultBottomCentimeters {
-        get {
-            if (MarginDefaultBottomWidth != null) {
-                return Helpers.ConvertTwipsToCentimeters(MarginDefaultBottomWidth.Value);
-            }
-            return null;
-        }
+    public global::OfficeIMO.OfficeLength? MarginDefaultLeft {
+        get => ReadNonnegativeTwips(_tableProperties.TableCellMarginDefault?.TableCellLeftMargin?.Width?.InnerText);
         set {
-            if (value != null) {
-                MarginDefaultBottomWidth = (Int16)Helpers.ConvertCentimetersToTwips(value.Value);
-            } else {
-                MarginDefaultBottomWidth = null;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Get or set the left margin in twips
-    /// </summary>
-    public Int16? MarginDefaultLeftWidth {
-        get {
-            if (_tableProperties?.TableCellMarginDefault?.TableCellLeftMargin?.Width != null) {
-                return _tableProperties.TableCellMarginDefault.TableCellLeftMargin.Width;
-            }
-            return null;
-        }
-        set {
+            short? native = ToMarginTwips(value, nameof(value));
             _table.CheckTableProperties();
 
             if (_tableProperties.TableCellMarginDefault == null) {
                 _tableProperties.TableCellMarginDefault = new TableCellMarginDefault();
             }
 
-            if (value != null) {
+            if (native != null) {
                 if (_tableProperties.TableCellMarginDefault.TableCellLeftMargin == null) {
                     _tableProperties.TableCellMarginDefault.TableCellLeftMargin = new TableCellLeftMargin();
                 }
-                _tableProperties.TableCellMarginDefault.TableCellLeftMargin.Width = value;
+                _tableProperties.TableCellMarginDefault.TableCellLeftMargin.Width = native;
                 _tableProperties.TableCellMarginDefault.TableCellLeftMargin.Type = TableWidthValues.Dxa;
             } else {
                 if (_tableProperties.TableCellMarginDefault.TableCellLeftMargin != null) {
@@ -147,46 +104,24 @@ public partial class WordTableStyleDetails {
     }
 
     /// <summary>
-    /// Get or set the left margin in centimeters
+    /// Gets or sets the nonnegative default right cell margin; null removes the direct override.
+    /// Values round to whole twips and must fit 0 through 32767 twips.
     /// </summary>
-    public double? MarginDefaultLeftCentimeters {
-        get {
-            if (MarginDefaultLeftWidth != null) {
-                return Helpers.ConvertTwipsToCentimeters(MarginDefaultLeftWidth.Value);
-            }
-            return null;
-        }
+    public global::OfficeIMO.OfficeLength? MarginDefaultRight {
+        get => ReadNonnegativeTwips(_tableProperties.TableCellMarginDefault?.TableCellRightMargin?.Width?.InnerText);
         set {
-            if (value != null) {
-                MarginDefaultLeftWidth = (Int16)Helpers.ConvertCentimetersToTwips(value.Value);
-            } else {
-                MarginDefaultLeftWidth = null;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Get or set the right margin in twips
-    /// </summary>
-    public Int16? MarginDefaultRightWidth {
-        get {
-            if (_tableProperties?.TableCellMarginDefault?.TableCellRightMargin?.Width != null) {
-                return (short)_tableProperties.TableCellMarginDefault.TableCellRightMargin.Width!;
-            }
-            return null;
-        }
-        set {
+            short? native = ToMarginTwips(value, nameof(value));
             _table.CheckTableProperties();
 
             if (_tableProperties.TableCellMarginDefault == null) {
                 _tableProperties.TableCellMarginDefault = new TableCellMarginDefault();
             }
 
-            if (value != null) {
+            if (native != null) {
                 if (_tableProperties.TableCellMarginDefault.TableCellRightMargin == null) {
                     _tableProperties.TableCellMarginDefault.TableCellRightMargin = new TableCellRightMargin();
                 }
-                _tableProperties.TableCellMarginDefault.TableCellRightMargin.Width = value;
+                _tableProperties.TableCellMarginDefault.TableCellRightMargin.Width = native;
                 _tableProperties.TableCellMarginDefault.TableCellRightMargin.Type = TableWidthValues.Dxa;
             } else {
                 if (_tableProperties.TableCellMarginDefault.TableCellRightMargin != null) {
@@ -197,40 +132,20 @@ public partial class WordTableStyleDetails {
     }
 
     /// <summary>
-    /// Get or set the right margin in centimeters
+    /// Gets or sets nonnegative cell spacing; null removes the direct override.
+    /// Values round to whole twips and must fit 0 through 32767 twips.
     /// </summary>
-    public double? MarginDefaultRightCentimeters {
-        get {
-            if (MarginDefaultRightWidth != null) {
-                return Helpers.ConvertTwipsToCentimeters(MarginDefaultRightWidth.Value);
-            }
-            return null;
-        }
+    public global::OfficeIMO.OfficeLength? CellSpacing {
+        get => ReadNonnegativeTwips(_tableProperties.TableCellSpacing?.Width?.Value);
         set {
-            if (value != null) {
-                MarginDefaultRightWidth = (Int16)Helpers.ConvertCentimetersToTwips(value.Value);
-            } else {
-                MarginDefaultRightWidth = null;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Get or set the cell spacing in twips
-    /// </summary>
-    public short? CellSpacing {
-        get {
-            string? widthValue = _tableProperties.TableCellSpacing?.Width?.Value;
-            return ParseOptionalShort(widthValue);
-        }
-        set {
+            short? native = ToMarginTwips(value, nameof(value));
             _table.CheckTableProperties();
 
-            if (value.HasValue) {
+            if (native.HasValue) {
                 if (_tableProperties.TableCellSpacing == null) {
                     _tableProperties.TableCellSpacing = new TableCellSpacing();
                 }
-                _tableProperties.TableCellSpacing.Width = value.Value.ToString(CultureInfo.InvariantCulture);
+                _tableProperties.TableCellSpacing.Width = native.Value.ToString(CultureInfo.InvariantCulture);
                 _tableProperties.TableCellSpacing.Type = TableWidthUnitValues.Dxa;
             } else {
                 if (_tableProperties.TableCellSpacing != null) {
@@ -241,65 +156,24 @@ public partial class WordTableStyleDetails {
     }
 
     /// <summary>
-    /// Get or set the cell spacing in centimeters
+    /// Gets or sets signed table indentation; null removes the direct override.
+    /// Values round to whole twips within the signed 32-bit native range.
     /// </summary>
-    public double? CellSpacingCentimeters {
-        get {
-            if (CellSpacing != null) {
-                return Helpers.ConvertTwipsToCentimeters(CellSpacing.Value);
-            }
-            return null;
-        }
+    public global::OfficeIMO.OfficeLength? TableIndentation {
+        get => ReadIndentation(_tableProperties.TableIndentation?.Width?.Value);
         set {
-            if (value != null) {
-                CellSpacing = (Int16)Helpers.ConvertCentimetersToTwips(value.Value);
-            } else {
-                CellSpacing = null;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Get or set the table indentation in twips.
-    /// </summary>
-    public short? TableIndentationWidth {
-        get {
-            int? widthValue = _tableProperties.TableIndentation?.Width?.Value;
-            return widthValue.HasValue && widthValue.Value >= short.MinValue && widthValue.Value <= short.MaxValue
-                ? checked((short)widthValue.Value)
-                : null;
-        }
-        set {
+            int? native = ToIndentationTwips(value, nameof(value));
             _table.CheckTableProperties();
 
-            if (value.HasValue) {
+            if (native.HasValue) {
                 if (_tableProperties.TableIndentation == null) {
                     _tableProperties.TableIndentation = new TableIndentation();
                 }
 
-                _tableProperties.TableIndentation.Width = value.Value;
+                _tableProperties.TableIndentation.Width = native.Value;
                 _tableProperties.TableIndentation.Type = TableWidthUnitValues.Dxa;
             } else if (_tableProperties.TableIndentation != null) {
                 _tableProperties.TableIndentation.Remove();
-            }
-        }
-    }
-
-    /// <summary>
-    /// Get or set the table indentation in centimeters.
-    /// </summary>
-    public double? TableIndentationCentimeters {
-        get {
-            if (TableIndentationWidth != null) {
-                return Helpers.ConvertTwipsToCentimeters(TableIndentationWidth.Value);
-            }
-            return null;
-        }
-        set {
-            if (value != null) {
-                TableIndentationWidth = (Int16)Helpers.ConvertCentimetersToTwips(value.Value);
-            } else {
-                TableIndentationWidth = null;
             }
         }
     }
@@ -348,9 +222,27 @@ public partial class WordTableStyleDetails {
         }
     }
 
-    private static short? ParseOptionalShort(string? value) {
-        return short.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out short result)
-            ? result
-            : null;
+    private static global::OfficeIMO.OfficeLength? ReadNonnegativeTwips(string? value) {
+        return short.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out short twips) && twips >= 0
+            ? global::OfficeIMO.OfficeLength.Emus((long)twips * 635) : (global::OfficeIMO.OfficeLength?)null;
+    }
+
+    private static global::OfficeIMO.OfficeLength? ReadIndentation(int? value) => value.HasValue
+        ? global::OfficeIMO.OfficeLength.Emus((long)value.Value * 635) : (global::OfficeIMO.OfficeLength?)null;
+
+    private static short? ToMarginTwips(global::OfficeIMO.OfficeLength? value, string parameter) {
+        if (!value.HasValue) return null;
+        long twips = value.Value.ToTwips();
+        if (value.Value < global::OfficeIMO.OfficeLength.Zero || twips > short.MaxValue)
+            throw new ArgumentOutOfRangeException(parameter, "The length must fit 0 through 32767 twips.");
+        return (short)twips;
+    }
+
+    private static int? ToIndentationTwips(global::OfficeIMO.OfficeLength? value, string parameter) {
+        if (!value.HasValue) return null;
+        long twips = value.Value.ToTwips();
+        if (twips < int.MinValue || twips > int.MaxValue)
+            throw new ArgumentOutOfRangeException(parameter, "Indentation must fit Word's signed 32-bit twip range.");
+        return (int)twips;
     }
 }

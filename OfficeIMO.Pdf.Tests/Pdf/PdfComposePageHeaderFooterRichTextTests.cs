@@ -10,21 +10,20 @@ namespace OfficeIMO.Tests.Pdf {
     public partial class PdfDocumentBuilderPageOptionsTests {
         [Fact]
         public void HeaderFooterRichText_RendersStylesAndStyledPageTokens() {
-            var options = new PdfOptions {
+            var options = new PdfCreateOptions {
                 CompressContentStreams = false,
-                HeaderFont = PdfStandardFont.Helvetica,
-                FooterFont = PdfStandardFont.Helvetica
+                PageSetup = { Header = { StandardFont = PdfStandardFont.Helvetica }, Footer = { StandardFont = PdfStandardFont.Helvetica } }
             };
             var doc = PdfDocument.Create(options)
                 .Header(header => header.Text(text => text
-                    .Run(PdfTextRun.Bolded("Rich header ", PdfColor.FromRgb(255, 0, 0), fontSize: 14, backgroundColor: PdfColor.FromRgb(255, 255, 0)))
-                    .CurrentPage(PdfTextRun.Italicized(string.Empty, PdfColor.FromRgb(0, 0, 255), fontSize: 11))
+                    .Run(PdfTextRun.Bolded("Rich header ", global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0), fontSize: global::OfficeIMO.OfficeLength.Points(14), backgroundColor: global::OfficeIMO.OfficeColor.FromRgb(255, 255, 0)))
+                    .CurrentPage(PdfTextRun.Italicized(string.Empty, global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255), fontSize: global::OfficeIMO.OfficeLength.Points(11)))
                     .Text("/")
-                    .TotalPages(PdfTextRun.Underlined(string.Empty, PdfColor.FromRgb(0, 128, 0), fontSize: 11))))
+                    .TotalPages(PdfTextRun.Underlined(string.Empty, global::OfficeIMO.OfficeColor.FromRgb(0, 128, 0), fontSize: global::OfficeIMO.OfficeLength.Points(11)))))
                 .Footer(footer => footer.Text(text => text
-                    .Run(PdfTextRun.Strikethrough("Rich footer ", PdfColor.FromRgb(128, 0, 128), fontSize: 9))
-                    .CurrentPage(PdfTextRun.Superscript(string.Empty, fontSize: 9))))
-                .Paragraph(p => p.Text("Body content."));
+                    .Run(PdfTextRun.Strikethrough("Rich footer ", global::OfficeIMO.OfficeColor.FromRgb(128, 0, 128), fontSize: global::OfficeIMO.OfficeLength.Points(9)))
+                    .CurrentPage(PdfTextRun.Superscript(string.Empty, fontSize: global::OfficeIMO.OfficeLength.Points(9)))))
+                .Paragraph(p => p.AddText("Body content."));
 
             byte[] bytes = doc.ToBytes();
             string rawPdf = Encoding.ASCII.GetString(bytes);
@@ -56,11 +55,11 @@ namespace OfficeIMO.Tests.Pdf {
                     .Text(text => text.Run(PdfTextRun.Bolded("Odd footer")))
                     .FirstPageText(text => text.Run(PdfTextRun.Italicized("First footer")))
                     .EvenPagesText(text => text.Run(PdfTextRun.Underlined("Even footer"))))
-                .Paragraph(p => p.Text("Page one"))
+                .Paragraph(p => p.AddText("Page one"))
                 .PageBreak()
-                .Paragraph(p => p.Text("Page two"))
+                .Paragraph(p => p.AddText("Page two"))
                 .PageBreak()
-                .Paragraph(p => p.Text("Page three"))
+                .Paragraph(p => p.AddText("Page three"))
                 .ToBytes();
 
             using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -80,7 +79,7 @@ namespace OfficeIMO.Tests.Pdf {
             }
 
             const string familyName = "Rich Header Family";
-            var options = new PdfOptions {
+            var options = new PdfCreateOptions {
                 CompressContentStreams = false
             }.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(familyName, File.ReadAllBytes(fontPath)));
 
@@ -95,7 +94,7 @@ namespace OfficeIMO.Tests.Pdf {
                     .Text(text => text
                         .Run(new PdfTextRun("Footer "))
                         .TotalPages(new PdfTextRun(string.Empty))))
-                .Paragraph(paragraph => paragraph.Text("Body"))
+                .Paragraph(paragraph => paragraph.AddText("Body"))
                 .ToBytes();
 
             using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -115,7 +114,7 @@ namespace OfficeIMO.Tests.Pdf {
                     .Text("NormalOne\nNormalTwo")
                     .Run(PdfTextRun.Superscript("Raised\n"))
                     .Text("NormalThree")))
-                .Paragraph(paragraph => paragraph.Text("Body"))
+                .Paragraph(paragraph => paragraph.AddText("Body"))
                 .ToBytes();
 
             using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -137,7 +136,7 @@ namespace OfficeIMO.Tests.Pdf {
                         left => left.Text("Before").Run(marker).Text("After"),
                         null,
                         null))
-                    .Paragraph(paragraph => paragraph.Text("Body"))
+                    .Paragraph(paragraph => paragraph.AddText("Body"))
                     .ToBytes();
                 using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
                 var letters = pdf.GetPage(1).Letters;
@@ -157,14 +156,14 @@ namespace OfficeIMO.Tests.Pdf {
         public void StyledHeaderZonesAnalyzeEachSegmentsEffectiveFont() {
             const string familyName = "Styled Header Diagnostic Family";
             byte[] font = OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFont('\u0105', ' ');
-            var options = new PdfOptions()
+            var options = new PdfCreateOptions()
                 .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(familyName, font));
             PdfDocument document = PdfDocument.Create(options)
                 .Header(header => header.StyledZones(
                     left => left.Run(new PdfTextRun("\u0105", fontFamily: familyName)),
                     center => center.Text("\u0105"),
                     right => right.Text("ASCII")))
-                .Paragraph(paragraph => paragraph.Text("Body"));
+                .Paragraph(paragraph => paragraph.AddText("Body"));
 
             PdfTextEncodingDiagnostic diagnostic = Assert.Single(
                 document.AnalyzeTextEncoding(),
@@ -177,14 +176,14 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void HeaderFooterRichText_RejectsInteractiveAndInlineRuns() {
             var link = PdfTextRun.Link("Link", "https://example.com");
-            var inline = PdfTextRun.Inline(new PdfInlineBox(12, 8));
+            var inline = PdfTextRun.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(12), global::OfficeIMO.OfficeLength.Points(8)));
 
             Assert.Throws<ArgumentException>(() =>
                 PdfDocument.Create().Header(header => header.Text(text => text.Run(link))));
             Assert.Throws<ArgumentException>(() =>
                 PdfDocument.Create().Footer(footer => footer.Text(text => text.Run(inline))));
             Assert.Throws<ArgumentException>(() =>
-                FooterSegment.PageNumber(PdfTextRun.Tab()));
+                PdfFooterSegment.PageNumber(PdfTextRun.Tab()));
         }
     }
 }

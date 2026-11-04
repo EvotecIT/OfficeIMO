@@ -1,3 +1,4 @@
+using OfficeIMO.Word.Pdf;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -8,6 +9,31 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
+        [Fact]
+        public void Test_PdfLayoutPaginationSelectionKeepsCallerOptionsIndependent() {
+            var options = new WordFieldUpdateOptions {
+                CurrentDateTime = new DateTime(2020, 2, 3), UpdateTablesOfContents = true
+            };
+            WordFieldUpdateOptions selected = options.WithPdfLayoutPagination();
+            Assert.NotSame(options, selected);
+            Assert.False(options.UseLayoutPagination);
+            Assert.True(selected.UseLayoutPagination);
+            Assert.Equal(options.CurrentDateTime, selected.CurrentDateTime);
+            Assert.True(selected.UpdateTablesOfContents);
+        }
+
+        [Fact]
+        public void Test_MissingLayoutEngineLeavesTheTableOfContentsUnchanged() {
+            using WordDocument document = WordDocument.Create();
+            document.AddTableOfContent();
+            document.AddParagraph("Chapter").Style = WordParagraphStyles.Heading1;
+            string before = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
+            Assert.Throws<InvalidOperationException>(() => document.UpdateFieldsAndGetReport(new WordFieldUpdateOptions {
+                UpdateTablesOfContents = true, UseLayoutPagination = true
+            }));
+            Assert.Equal(before, document._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
+        }
+
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
@@ -39,7 +65,7 @@ namespace OfficeIMO.Tests {
             section.AddPageNumbering(10);
             section.AddParagraph("Target").AddBookmark("RestartTarget");
             section.AddParagraph("Reference").AddField(WordFieldType.PageRef, parameters: new List<string> { "RestartTarget" });
-            WordFieldUpdateReport report = document.UpdateFieldsAndGetReport(new WordFieldUpdateOptions { UseLayoutPagination = true });
+            WordFieldUpdateReport report = document.UpdateFieldsAndGetReport(new WordFieldUpdateOptions { UseLayoutPagination = true }.WithPdfLayoutPagination());
             Assert.Equal("10", report.Results.Single(x => x.FieldType == WordFieldType.PageRef).ResultText);
         }
 
@@ -52,7 +78,7 @@ namespace OfficeIMO.Tests {
             section.AddParagraph("Target").AddBookmark("RomanTarget");
             section.AddParagraph("Reference").AddField(WordFieldType.PageRef, parameters: new List<string> { "RomanTarget" });
             section.AddParagraph("Arabic override").AddField(WordFieldType.PageRef, WordFieldFormat.Arabic, parameters: new List<string> { "RomanTarget" });
-            WordFieldUpdateReport report = document.UpdateFieldsAndGetReport(new WordFieldUpdateOptions { UseLayoutPagination = true });
+            WordFieldUpdateReport report = document.UpdateFieldsAndGetReport(new WordFieldUpdateOptions { UseLayoutPagination = true }.WithPdfLayoutPagination());
             var references = report.Results.Where(x => x.FieldType == WordFieldType.PageRef).ToList();
             Assert.Equal(new[] { "x", "10" }, references.Select(x => x.ResultText));
         }
@@ -67,7 +93,7 @@ namespace OfficeIMO.Tests {
             section.AddPageNumbering(10, format);
             section.AddParagraph("Target").AddBookmark("OrdinalTarget");
             section.AddParagraph("Reference").AddField(WordFieldType.PageRef, parameters: new List<string> { "OrdinalTarget" });
-            WordFieldUpdateReport report = document.UpdateFieldsAndGetReport(new WordFieldUpdateOptions { UseLayoutPagination = true });
+            WordFieldUpdateReport report = document.UpdateFieldsAndGetReport(new WordFieldUpdateOptions { UseLayoutPagination = true }.WithPdfLayoutPagination());
             Assert.Equal(WordFieldUpdateStatus.Unsupported, report.Results.Single(x => x.FieldType == WordFieldType.PageRef).Status);
         }
 
@@ -93,7 +119,7 @@ namespace OfficeIMO.Tests {
             Table table = document._document.Body!.Descendants<Table>().First();
             table.GetFirstChild<TableGrid>()!.Elements<GridColumn>().First().Width = "3500";
             string before = table.OuterXml;
-            document.UpdateFields(new WordFieldUpdateOptions { UseLayoutPagination = true });
+            document.UpdateFields(new WordFieldUpdateOptions { UseLayoutPagination = true }.WithPdfLayoutPagination());
             Assert.Equal(before, table.OuterXml);
         }
 
@@ -133,7 +159,7 @@ namespace OfficeIMO.Tests {
                 WordFieldUpdateReport report = document.UpdateFieldsAndGetReport(new WordFieldUpdateOptions {
                     UpdateTablesOfContents = true,
                     UseLayoutPagination = true
-                });
+                }.WithPdfLayoutPagination());
 
                 WordFieldUpdateResult toc = report.Results.Single(_ => _.FieldType == WordFieldType.TOC);
                 Assert.Equal(WordFieldUpdateStatus.Updated, toc.Status);
@@ -164,7 +190,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
 
                 // Updating again rebuilds the same entries from the regenerated field.
-                document.UpdateFields(new WordFieldUpdateOptions { UpdateTablesOfContents = true, UseLayoutPagination = true });
+                document.UpdateFields(new WordFieldUpdateOptions { UpdateTablesOfContents = true, UseLayoutPagination = true }.WithPdfLayoutPagination());
                 Assert.Equal(pages, ReadTocEntryPages(document.TableOfContent!.SdtBlock));
             }
         }
@@ -177,7 +203,7 @@ namespace OfficeIMO.Tests {
             File.Copy(sourcePath, filePath, overwrite: true);
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                document.UpdateFields(new WordFieldUpdateOptions { UpdateTablesOfContents = true, UseLayoutPagination = true });
+                document.UpdateFields(new WordFieldUpdateOptions { UpdateTablesOfContents = true, UseLayoutPagination = true }.WithPdfLayoutPagination());
                 document.Save();
             }
 
@@ -239,7 +265,7 @@ namespace OfficeIMO.Tests {
             document.AddParagraph("Short ").AddField(WordFieldType.PageRef, parameters: new List<string> { "ShortCellTarget" });
             document.AddParagraph("Long ").AddField(WordFieldType.PageRef, parameters: new List<string> { "LongCellTarget" });
 
-            WordFieldUpdateReport report = document.UpdateFieldsAndGetReport(new WordFieldUpdateOptions { UseLayoutPagination = true });
+            WordFieldUpdateReport report = document.UpdateFieldsAndGetReport(new WordFieldUpdateOptions { UseLayoutPagination = true }.WithPdfLayoutPagination());
 
             WordFieldUpdateResult shortCell = report.Results.Single(_ => _.InstructionText.Contains("ShortCellTarget"));
             Assert.Equal(WordFieldUpdateStatus.Updated, shortCell.Status);

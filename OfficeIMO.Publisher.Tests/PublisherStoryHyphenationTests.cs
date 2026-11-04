@@ -18,7 +18,7 @@ public sealed class PublisherStoryHyphenationTests {
         PublisherTextStory story = document.TextStories[0];
         Assert.Equal(true, story.AutomaticHyphenation);
         Assert.All(story.Paragraphs, p => Assert.Equal(initiallySuppressed, p.SuppressAutomaticHyphenation));
-        Assert.Equal(source, document.ToPubBytes());
+        Assert.Equal(source, document.ToBytes());
         document.ReplaceStoryParagraphs(story.Id, story.Paragraphs.Select(p =>
             p.WithAutomaticHyphenationSuppressed(!initiallySuppressed).WithTabStops(p.TabStops)).ToArray());
         byte[] saved = Save(document);
@@ -31,7 +31,7 @@ public sealed class PublisherStoryHyphenationTests {
         Assert.Equal(document.TextStories.Select(s => (s.Id, s.Text)), reloaded.TextStories.Select(s => (s.Id, s.Text)));
         Assert.All(reloaded.TextStories.Where(s => s.Id != story.Id).SelectMany(s => s.Paragraphs),
             p => Assert.Equal(initiallySuppressed, p.SuppressAutomaticHyphenation));
-        Assert.Equal(saved, reloaded.ToPubBytes());
+        Assert.Equal(saved, reloaded.ToBytes());
         Assert.All(story.Paragraphs, p => Assert.Equal(initiallySuppressed, p.SuppressAutomaticHyphenation));
     }
 
@@ -41,7 +41,7 @@ public sealed class PublisherStoryHyphenationTests {
     public void Unknown_paragraph_flag_is_preserved_and_refuses_an_explicit_setting_edit(bool suppressed) {
         const string fixture = "NativeComparison/TextHyphenation/native-paragraph-suppressed.pub";
         byte[] source = PublisherInputContractTests.Mutate(Quill, bytes => {
-            var context = new PublisherParseContext(new PublisherReadOptions(), default);
+            var context = new PublisherParseContext(new PublisherLoadOptions(), default);
             var data = new PublisherBinaryData(bytes, Quill); var blocks = new PublisherBlockReader(data, context);
             var page = PublisherQuillDirectory.Read(data, context).First(chunk => chunk.Tag == "FDPP");
             int offset = page.Offset + data.U16(page.Offset + 8 + data.U16(page.Offset) * 4);
@@ -50,9 +50,9 @@ public sealed class PublisherStoryHyphenationTests {
         }, fixture);
         PublisherDocument document = PublisherDocument.Load(source);
         PublisherTextStory story = document.TextStories[0];
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, d => d.Code == "PUB_HYPHENATION_SUPPRESSION_UNASSESSED");
+        Assert.Contains(document.ReadReport.Diagnostics, d => d.Code == "PUB_HYPHENATION_SUPPRESSION_UNASSESSED");
         Assert.Null(story.Paragraphs[0].SuppressAutomaticHyphenation);
-        Assert.Equal(source, document.ToPubBytes());
+        Assert.Equal(source, document.ToBytes());
         document.ReplaceStoryParagraphs(story.Id, story.Paragraphs.Select(p => p.WithAutomaticHyphenationSuppressed(suppressed)).ToArray());
         Assert.False(document.PrepareNativeBytes(MaximumBytes).IsPrepared);
         Assert.Throws<OfficeConversionException>(() => Save(document));
@@ -66,9 +66,9 @@ public sealed class PublisherStoryHyphenationTests {
         PublisherDocument document = PublisherDocument.Load(source);
         PublisherTextStory original = document.TextStories[0];
         Assert.Equal(true, original.AutomaticHyphenation);
-        Assert.Equal(source, document.ToPubBytes());
+        Assert.Equal(source, document.ToBytes());
         document.SetStoryAutomaticHyphenation(original.Id, true);
-        Assert.Equal(source, document.ToPubBytes());
+        Assert.Equal(source, document.ToBytes());
 
         document.SetStoryAutomaticHyphenation(original.Id, false);
         document.ReplaceStoryParagraphs(original.Id, original.Paragraphs);
@@ -80,7 +80,7 @@ public sealed class PublisherStoryHyphenationTests {
         PublisherDocument reloaded = PublisherDocument.Load(disabled);
         Assert.Equal(document.TextStories.Select(s => (s.Id, s.Text, s.AutomaticHyphenation)),
             reloaded.TextStories.Select(s => (s.Id, s.Text, s.AutomaticHyphenation)));
-        Assert.Equal(disabled, reloaded.ToPubBytes());
+        Assert.Equal(disabled, reloaded.ToBytes());
         Assert.All(reloaded.TextStories.Where(s => s.Id != original.Id), s => Assert.Equal(true, s.AutomaticHyphenation));
 
         reloaded.SetStoryAutomaticHyphenation(original.Id, true);
@@ -106,7 +106,7 @@ public sealed class PublisherStoryHyphenationTests {
         PublisherTextFrame frame = Assert.Single(document.Pages[0].TextFrames);
         document.SetTextFrameLayout(frame.Id, frame.ColumnCount, frame.ColumnSpacing, frame.Padding, OfficeTextVerticalAlignment.Bottom);
         var prepared = document.PrepareNativeBytes(MaximumBytes);
-        Assert.True(prepared.IsPrepared, string.Join("\n", prepared.FidelityDiagnostics.Select(d => d.Code + ": " + d.Message)));
+        Assert.True(prepared.IsPrepared, string.Join("\n", prepared.Diagnostics.Select(d => d.Code + ": " + d.Message)));
         PublisherDocument reloaded = PublisherDocument.Load(Save(document));
         PublisherTextStory saved = Assert.Single(reloaded.TextStories);
         Assert.Equal(false, saved.AutomaticHyphenation);
@@ -117,7 +117,7 @@ public sealed class PublisherStoryHyphenationTests {
     [Fact]
     public void Missing_catalog_remains_unknown_and_cannot_silently_discard_a_setting_edit() {
         byte[] source = PublisherInputContractTests.Mutate("Contents", bytes => {
-            var context = new PublisherParseContext(new PublisherReadOptions(), default);
+            var context = new PublisherParseContext(new PublisherLoadOptions(), default);
             var data = new PublisherBinaryData(bytes, "Contents"); var blocks = new PublisherBlockReader(data, context);
             var contents = new PublisherContentsReader(data, context).Read();
             var document = contents.Chunks.Values.Single(chunk => chunk.Kind == 0x44);
@@ -134,7 +134,7 @@ public sealed class PublisherStoryHyphenationTests {
         byte[] source = Save(document);
         OfficeCompoundFile compound = Compound(source);
         byte[] contentsBytes = (byte[])compound.Streams["Contents"].Clone();
-        var context = new PublisherParseContext(new PublisherReadOptions(), default);
+        var context = new PublisherParseContext(new PublisherLoadOptions(), default);
         var data = new PublisherBinaryData(contentsBytes, "Contents"); var blocks = new PublisherBlockReader(data, context);
         var contents = new PublisherContentsReader(data, context).Read();
         var catalog = contents.Chunks.Values.Single(chunk => chunk.Kind == 0x65);
@@ -163,16 +163,16 @@ public sealed class PublisherStoryHyphenationTests {
         PublisherDocument document = PublisherDocument.Load(source);
         PublisherTextStory story = Assert.Single(document.TextStories);
         Assert.Null(story.AutomaticHyphenation);
-        Assert.Equal(source, document.ToPubBytes());
-        Assert.Equal(expectedDiagnostic, document.ReadReport.FidelityDiagnostics.Any(d => d.Code == "PUB_HYPHENATION_SETTING_UNASSESSED"));
+        Assert.Equal(source, document.ToBytes());
+        Assert.Equal(expectedDiagnostic, document.ReadReport.Diagnostics.Any(d => d.Code == "PUB_HYPHENATION_SETTING_UNASSESSED"));
         document.SetStoryAutomaticHyphenation(story.Id, false);
         PublisherNativePreparation prepared = document.PrepareNativeBytes(MaximumBytes);
         Assert.False(prepared.IsPrepared);
-        Assert.Contains(prepared.FidelityDiagnostics, d => d.LossKind == OfficeConversionLossKind.Failure && d.Location == "Contents/story/" + story.Id);
+        Assert.Contains(prepared.Diagnostics, d => d.LossKind == OfficeConversionLossKind.Failure && d.Location == "Contents/story/" + story.Id);
         Assert.Throws<OfficeConversionException>(() => Save(document));
     }
 
-    private static byte[] Save(PublisherDocument document) => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+    private static byte[] Save(PublisherDocument document) => document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
     private static OfficeCompoundFile Compound(byte[] bytes) {
         Assert.True(OfficeCompoundFileReader.TryRead(bytes, new OfficeCompoundReadOptions(), default, out var compound, out var error), error);
         return compound!;

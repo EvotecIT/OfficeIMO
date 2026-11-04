@@ -9,13 +9,13 @@ public sealed class Markdown_Reader_Semantic_Parse_Tests {
     public void ParseSemantic_CommonMark_Flat_Inline_Tokens_Match_SourceBacked_Contract() {
         const string markdown =
             "Paragraph with **strong**, _emphasis_, `code`, [link](https://example.com), and ![image](https://example.com/a.png).\n";
-        var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+        var options = MarkdownLoadOptions.CreateCommonMarkProfile();
 
         var semanticDocument = MarkdownReader.ParseSemantic(markdown, options);
         var sourceBackedDocument = MarkdownReader.ParseWithSyntaxTree(markdown, options).Document;
         var htmlOptions = CommonMarkHtmlComparison.CreatePlainHtmlOptions();
-        string semanticHtml = semanticDocument.ToHtmlFragment(htmlOptions);
-        string sourceBackedHtml = sourceBackedDocument.ToHtmlFragment(htmlOptions);
+        string semanticHtml = semanticDocument.ToHtml(htmlOptions);
+        string sourceBackedHtml = sourceBackedDocument.ToHtml(htmlOptions);
         string markdigHtml = Markdig.Markdown.ToHtml(markdown);
 
         Assert.Equal(
@@ -38,13 +38,13 @@ public sealed class Markdown_Reader_Semantic_Parse_Tests {
     [InlineData("First **strong** segment, then literal **unfinished markers:**remain visible.")]
     [InlineData("Następny krok: **`ad_domain_controller_facts`**")]
     public void ParseSemantic_CommonMark_MalformedAndNestedStrong_Matches_SourceBacked_Contract(string markdown) {
-        var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+        var options = MarkdownLoadOptions.CreateCommonMarkProfile();
 
         var semanticDocument = MarkdownReader.ParseSemantic(markdown, options);
         var sourceBackedDocument = MarkdownReader.ParseWithSyntaxTree(markdown, options).Document;
         var htmlOptions = CommonMarkHtmlComparison.CreatePlainHtmlOptions();
-        string semanticHtml = semanticDocument.ToHtmlFragment(htmlOptions);
-        string sourceBackedHtml = sourceBackedDocument.ToHtmlFragment(htmlOptions);
+        string semanticHtml = semanticDocument.ToHtml(htmlOptions);
+        string sourceBackedHtml = sourceBackedDocument.ToHtml(htmlOptions);
 
         Assert.Equal(
             CommonMarkHtmlComparison.Normalize(Markdig.Markdown.ToHtml(markdown)),
@@ -59,7 +59,7 @@ public sealed class Markdown_Reader_Semantic_Parse_Tests {
         const string markdown = "- prefix **bold 中** and [link](https://example.com).\n";
         var result = MarkdownReader.ParseWithSyntaxTree(
             markdown,
-            MarkdownReaderOptions.CreateCommonMarkProfile());
+            MarkdownLoadOptions.CreateCommonMarkProfile());
 
         var strong = Assert.Single(
             result.FinalSyntaxTree.DescendantsAndSelf(),
@@ -81,15 +81,15 @@ public sealed class Markdown_Reader_Semantic_Parse_Tests {
             "  - nested [link](https://example.com)\n\n" +
             "  trailing paragraph\n" +
             "- second `code` item\n";
-        var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+        var options = MarkdownLoadOptions.CreateCommonMarkProfile();
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = MarkdownDocument.Parse(markdown, options);
         var explicitSyntax = MarkdownReader.ParseWithSyntaxTree(markdown, options);
-        var attached = Assert.IsType<MarkdownParseResult>(document.AttachedParseResult);
+        var attached = Assert.IsType<MarkdownParseInfo>(document.AttachedParseResult);
 
         Assert.Same(attached.SyntaxTree, attached.FinalSyntaxTree);
         Assert.Equal(explicitSyntax.Document.ToMarkdown(), document.ToMarkdown());
-        Assert.Equal(explicitSyntax.Document.ToHtmlFragment(), document.ToHtmlFragment());
+        Assert.Equal(explicitSyntax.Document.ToHtml(), document.ToHtml());
         Assert.Equal(
             explicitSyntax.FinalSyntaxTree.DescendantsAndSelf().Select(NodeSignature),
             attached.FinalSyntaxTree.DescendantsAndSelf().Select(NodeSignature));
@@ -108,15 +108,15 @@ public sealed class Markdown_Reader_Semantic_Parse_Tests {
             "    - [ ] capture result\r\n" +
             "    - [x] preserve text\r\n" +
             "- Continue with the next check.\r\n";
-        var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+        var options = MarkdownLoadOptions.CreateCommonMarkProfile();
 
         var semanticDocument = MarkdownReader.ParseSemantic(markdown, options);
         var sourceBacked = MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
-        Assert.Equal(sourceBacked.Document.ToHtmlFragment(), semanticDocument.ToHtmlFragment());
+        Assert.Equal(sourceBacked.Document.ToHtml(), semanticDocument.ToHtml());
         Assert.Equal(sourceBacked.Document.ToMarkdown(), semanticDocument.ToMarkdown());
-        Assert.Contains("[ ] capture result", semanticDocument.ToHtmlFragment(), StringComparison.Ordinal);
-        Assert.Contains("[x] preserve text", semanticDocument.ToHtmlFragment(), StringComparison.Ordinal);
+        Assert.Contains("[ ] capture result", semanticDocument.ToHtml(), StringComparison.Ordinal);
+        Assert.Contains("[x] preserve text", semanticDocument.ToHtml(), StringComparison.Ordinal);
         var link = Assert.Single(semanticDocument.DescendantObjectsOfType<LinkInline>());
         Assert.NotNull(link.LabelInlines);
         Assert.Same(link, link.LabelInlines!.Parent);
@@ -140,12 +140,12 @@ public sealed class Markdown_Reader_Semantic_Parse_Tests {
             "- second `code` item",
             string.Empty
         });
-        var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+        var options = MarkdownLoadOptions.CreateCommonMarkProfile();
 
         var semanticDocument = MarkdownReader.ParseSemantic(markdown, options);
         var sourceBacked = MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
-        Assert.Equal(sourceBacked.Document.ToHtmlFragment(), semanticDocument.ToHtmlFragment());
+        Assert.Equal(sourceBacked.Document.ToHtml(), semanticDocument.ToHtml());
         Assert.Equal(sourceBacked.Document.ToMarkdown(), semanticDocument.ToMarkdown());
         MarkdownInvariantAssert.SemanticTreeIsWellFormed(semanticDocument);
     }
@@ -166,17 +166,17 @@ public sealed class Markdown_Reader_Semantic_Parse_Tests {
         Assert.NotNull(examples);
         Assert.NotEmpty(examples!);
         foreach (var example in examples!) {
-            var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+            var options = MarkdownLoadOptions.CreateCommonMarkProfile();
             var semanticDocument = MarkdownReader.ParseSemantic(example.Markdown, options);
             var sourceBackedDocument = MarkdownReader.ParseWithSyntaxTree(example.Markdown, options).Document;
 
             Assert.True(
                 string.Equals(
-                    CommonMarkHtmlComparison.Normalize(sourceBackedDocument.ToHtmlFragment()),
-                    CommonMarkHtmlComparison.Normalize(semanticDocument.ToHtmlFragment()),
+                    CommonMarkHtmlComparison.Normalize(sourceBackedDocument.ToHtml()),
+                    CommonMarkHtmlComparison.Normalize(semanticDocument.ToHtml()),
                     StringComparison.Ordinal),
                 $"CommonMark example {example.Example} ({example.Section}) produced different HTML. " +
-                $"Source-backed: {Escape(sourceBackedDocument.ToHtmlFragment())}; semantic: {Escape(semanticDocument.ToHtmlFragment())}.");
+                $"Source-backed: {Escape(sourceBackedDocument.ToHtml())}; semantic: {Escape(semanticDocument.ToHtml())}.");
             MarkdownInvariantAssert.SemanticTreeIsWellFormed(semanticDocument);
         }
     }
@@ -217,7 +217,7 @@ public sealed class Markdown_Reader_Semantic_Parse_Tests {
         const string markdown = "```text\n\ta\tb\n```\n";
 
         var semanticDocument = MarkdownReader.ParseSemantic(markdown);
-        var sourceBackedDocument = MarkdownReader.Parse(markdown);
+        var sourceBackedDocument = MarkdownDocument.Parse(markdown);
 
         Assert.Equal("\ta\tb", Assert.Single(semanticDocument.DescendantObjectsOfType<CodeBlock>()).Content);
         Assert.Equal(
@@ -230,8 +230,8 @@ public sealed class Markdown_Reader_Semantic_Parse_Tests {
         var nestedInlines = new InlineSequence().Text("inline child");
         var blockChild = new ParagraphBlock(new InlineSequence().Text("block child"));
         var custom = new CompositeContainerInline(nestedInlines, blockChild);
-        var document = MarkdownDoc.Create()
-            .Add(new ParagraphBlock(new InlineSequence().AddRaw(custom)));
+        var document = MarkdownDocument.Create();
+        document.Add(new ParagraphBlock(new InlineSequence().AddRaw(custom)));
 
         Assert.Same(custom, nestedInlines.Parent);
         Assert.Same(custom, blockChild.Parent);

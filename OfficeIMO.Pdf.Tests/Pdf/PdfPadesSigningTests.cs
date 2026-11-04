@@ -113,7 +113,7 @@ public sealed class PdfPadesSigningTests {
             cancellationToken: cancellation.Token));
     }
 
-    private static PdfDocument Source() => PdfDocument.Create().Paragraph(paragraph => paragraph.Text("PAdES signature test"));
+    private static PdfDocument Source() => PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("PAdES signature test"));
 
     private static PdfCmsSignatureCryptographyProvider Provider() {
         var options = new CmsVerificationOptions();

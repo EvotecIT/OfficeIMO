@@ -5,7 +5,7 @@ using System.Linq;
 using System.Xml.Linq;
 using OfficeIMO.Visio;
 using Xunit;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Tests {
     public class VisioProtectionTests {
@@ -15,18 +15,18 @@ namespace OfficeIMO.Tests {
             string unlockedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Protection", 8.5, 6);
+            VisioPage page = document.AddPage("Protection", OfficeLength.Inches(8.5), OfficeLength.Inches(6));
 
-            VisioShape background = page.AddRectangle(4.25, 3, 7.5, 4.8, "Background");
+            VisioShape background = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4.25, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(7.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4.8, page.DefaultUnit)), "Background");
             background.FillColor = Color.LightCyan;
             background.Protect(protection => protection.Size().Position().Selection().Formatting());
 
-            VisioShape label = page.AddRectangle(4.25, 5.2, 3.2, 0.6, "Generated label");
+            VisioShape label = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4.25, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.6, page.DefaultUnit)), "Generated label");
             label.LockSize();
             label.Protection.LockTextEdit = true;
             label.Protection.LockDelete = true;
 
-            VisioShape editable = page.AddRectangle(4.25, 3, 2, 1, "Editable");
+            VisioShape editable = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4.25, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Editable");
             VisioConnector connector = page.AddConnector(label, editable, ConnectorKind.Dynamic, VisioSide.Bottom, VisioSide.Top);
             connector.Label = "protected route";
             connector.Protect(protection => protection.Endpoints().Text().Deletion());

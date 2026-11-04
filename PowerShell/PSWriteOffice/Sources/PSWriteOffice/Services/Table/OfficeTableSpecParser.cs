@@ -75,7 +75,7 @@ internal static class OfficeTableSpecParser
         string[]? columns = propertyNames;
         foreach (var row in rows)
         {
-            if (TryCreateCell(row, requireExplicitCellShape: true, allowStyleOnlyCell: false, allowRunEnumerable: false, out var singleCell))
+            if (TryCreateCell(row, requireExplicitCellShape: true, allowStyleOnlyCell: false, allowRunEnumerable: false, out var singleCell, normalizationOptions))
             {
                 tableRows.Add(new[] { singleCell });
                 continue;
@@ -120,7 +120,7 @@ internal static class OfficeTableSpecParser
         var cells = new List<OfficeTableCellSpec>();
         foreach (var value in Enumerate(row))
         {
-            cells.Add(TryCreateCell(value, requireExplicitCellShape: false, allowStyleOnlyCell: true, allowRunEnumerable: true, out var spec)
+            cells.Add(TryCreateCell(value, requireExplicitCellShape: false, allowStyleOnlyCell: true, allowRunEnumerable: true, out var spec, normalizationOptions)
                 ? spec
                 : ToCell(value, normalizationOptions));
         }
@@ -159,7 +159,8 @@ internal static class OfficeTableSpecParser
         bool requireExplicitCellShape,
         bool allowStyleOnlyCell,
         bool allowRunEnumerable,
-        out OfficeTableCellSpec spec)
+        out OfficeTableCellSpec spec,
+        PowerShellObjectNormalizerOptions? normalizationOptions = null)
     {
         value = UnwrapPSObject(value);
         if (value is OfficeTableCellSpec typed)
@@ -214,7 +215,7 @@ internal static class OfficeTableSpecParser
 
         var runs = hasRuns ? OfficeTextRunParser.ParseMany(runValue) : null;
         var text = hasText
-            ? Convert.ToString(UnwrapPSObject(textValue), CultureInfo.InvariantCulture)
+            ? PowerShellObjectNormalizer.NormalizeCellText(UnwrapPSObject(textValue), normalizationOptions)
             : runs != null
                 ? OfficeTextRunParser.GetPlainText(runs)
             : string.Empty;

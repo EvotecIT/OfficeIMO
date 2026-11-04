@@ -5,7 +5,7 @@ using System.Linq;
 namespace OfficeIMO.Drawing.Binary;
 
 /// <summary>Decodes user-facing name and description metadata from OfficeArt properties.</summary>
-public sealed class OfficeArtShapeMetadata {
+internal sealed class OfficeArtShapeMetadata {
     private OfficeArtShapeMetadata(IReadOnlyList<OfficeArtProperty> properties) {
         Properties = properties?.ToArray() ?? Array.Empty<OfficeArtProperty>();
         Name = GetText(0x0380);

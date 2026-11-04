@@ -15,12 +15,12 @@ public sealed class ReaderOfficeRichMappingTests {
     public void DocumentReader_WordRichMapping_UsesInspectionBlocksTablesLinksAndProperties() {
         using var stream = new MemoryStream();
         using (WordDocument document = WordDocument.Create(stream)) {
-            document.BuiltinDocumentProperties.Title = "Rich policy";
-            document.BuiltinDocumentProperties.Creator = "OfficeIMO";
+            document.Properties.Title = "Rich policy";
+            document.Properties.Creator = "OfficeIMO";
             document.AddParagraph("Policy").Style = WordParagraphStyles.Heading1;
             document.AddParagraph("Read ").AddHyperLink("the policy", new Uri("https://example.test/policy"));
             WordParagraph noteReference = document.AddParagraph("Supporting references");
-            WordParagraph footnoteReference = noteReference.AddFootNote("Footnote detail ");
+            WordParagraph footnoteReference = noteReference.AddFootNote("Footnote detail ").Paragraph;
             footnoteReference.FootNote!.Paragraphs![1].AddHyperLink(
                 "footnote source",
                 new Uri("https://example.test/footnote"));
@@ -108,7 +108,7 @@ public sealed class ReaderOfficeRichMappingTests {
             WordParagraph paragraph = document.AddParagraph();
             paragraph.AddText(plainBoundaryRun);
             paragraph.AddText(formattedBoundaryRun).Bold = true;
-            WordParagraph hyperlink = paragraph.AddHyperLink(hyperlinkText, new Uri(hyperlinkUri));
+            WordParagraph hyperlink = paragraph.AddHyperLink(hyperlinkText, new Uri(hyperlinkUri)).Paragraph;
             hyperlink.Bold = true;
             hyperlink.Italic = true;
             paragraph.AddText(finalRun).Italic = true;
@@ -191,24 +191,24 @@ public sealed class ReaderOfficeRichMappingTests {
     public void DocumentReader_ExcelRichMapping_UsesFormalTablesCellLinksAndProperties() {
         using var stream = new MemoryStream();
         using (ExcelDocument document = ExcelDocument.Create(stream)) {
-            document.BuiltinDocumentProperties.Title = "Rich workbook";
-            document.BuiltinDocumentProperties.Creator = "OfficeIMO";
-            ExcelSheet sheet = document.AddWorksheet("Inventory");
-            sheet.Cell(1, 1, "Name");
-            sheet.Cell(1, 2, "Qty");
-            sheet.Cell(2, 1, "Bandage");
-            sheet.Cell(2, 2, 4);
+            document.Properties.Title = "Rich workbook";
+            document.Properties.Creator = "OfficeIMO";
+            ExcelSheet sheet = document.AddSheet("Inventory");
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(1, 2).SetValue("Qty");
+            sheet.Cell(2, 1).SetValue("Bandage");
+            sheet.Cell(2, 2).SetValue(4);
             sheet.AddTable("A1:B2", hasHeader: true, name: "InventoryTable", style: ExcelTableStyle.TableStyleMedium2);
             sheet.SetHyperlink(2, 1, "https://example.test/bandage", display: "Bandage");
-            sheet.Cell(1, 4, "Loose");
-            sheet.Cell(1, 5, "Value");
-            sheet.Cell(2, 4, "Unstructured");
-            sheet.Cell(2, 5, 7);
-            ExcelSheet rawSheet = document.AddWorksheet("Raw");
-            rawSheet.Cell(1, 1, "Metric");
-            rawSheet.Cell(1, 2, "Value");
-            rawSheet.Cell(2, 1, "Retries");
-            rawSheet.Cell(2, 2, 3);
+            sheet.Cell(1, 4).SetValue("Loose");
+            sheet.Cell(1, 5).SetValue("Value");
+            sheet.Cell(2, 4).SetValue("Unstructured");
+            sheet.Cell(2, 5).SetValue(7);
+            ExcelSheet rawSheet = document.AddSheet("Raw");
+            rawSheet.Cell(1, 1).SetValue("Metric");
+            rawSheet.Cell(1, 2).SetValue("Value");
+            rawSheet.Cell(2, 1).SetValue("Retries");
+            rawSheet.Cell(2, 2).SetValue(3);
             document.Save();
         }
         stream.Position = 0;
@@ -238,17 +238,17 @@ public sealed class ReaderOfficeRichMappingTests {
     public void DocumentReader_ExcelRichMapping_HonorsSelectedRangeAcrossRichArtifacts() {
         using var stream = new MemoryStream();
         using (ExcelDocument document = ExcelDocument.Create(stream)) {
-            ExcelSheet sheet = document.AddWorksheet("Inventory");
-            sheet.Cell(1, 1, "Name");
-            sheet.Cell(1, 2, "Qty");
-            sheet.Cell(2, 1, "Bandage");
-            sheet.CellFormula(2, 2, "1+1");
-            sheet.Cell(3, 1, "Gauze");
-            sheet.Cell(3, 2, 3);
+            ExcelSheet sheet = document.AddSheet("Inventory");
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(1, 2).SetValue("Qty");
+            sheet.Cell(2, 1).SetValue("Bandage");
+            sheet.Cell(2, 2).SetFormula("1+1");
+            sheet.Cell(3, 1).SetValue("Gauze");
+            sheet.Cell(3, 2).SetValue(3);
             sheet.AddTable("A1:B3", hasHeader: true, name: "InventoryTable", style: ExcelTableStyle.TableStyleMedium2);
             sheet.SetHyperlink(2, 1, "https://example.test/inside", display: "Bandage");
             sheet.SetComment(2, 1, "Inside comment");
-            sheet.CellFormula(2, 4, "2+2");
+            sheet.Cell(2, 4).SetFormula("2+2");
             sheet.SetHyperlink(2, 4, "https://example.test/outside", display: "Outside");
             sheet.SetComment(2, 4, "Outside comment");
             document.Save();
@@ -271,9 +271,9 @@ public sealed class ReaderOfficeRichMappingTests {
     [Fact]
     public void DocumentReader_PowerPointRichMapping_UsesShapesTablesChartsLinksAndSlideGeometry() {
         using var stream = new MemoryStream();
-        using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
-            presentation.BuiltinDocumentProperties.Title = "Rich deck";
-            presentation.BuiltinDocumentProperties.Creator = "OfficeIMO";
+        using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
+            presentation.Properties.Title = "Rich deck";
+            presentation.Properties.Creator = "OfficeIMO";
             PowerPointSlide slide = presentation.AddSlide();
             slide.Notes.Text = "Speaker guidance";
             PowerPointTextBox title = slide.AddTextBox("Overview");
@@ -281,14 +281,14 @@ public sealed class ReaderOfficeRichMappingTests {
             title.Paragraphs[0].Runs[0].SetHyperlink("https://example.test/deck");
             PowerPointTextBox hidden = slide.AddTextBox("Hidden guidance");
             hidden.Hidden = true;
-            PowerPointTable table = slide.AddTable(2, 2);
+            PowerPointTable table = slide.AddTable(2,2);
             table.GetCell(0, 0).Text = "Name";
             table.GetCell(0, 1).Text = "Qty";
             table.GetCell(1, 0).Text = "Bandage";
             table.GetCell(1, 1).Text = "4";
-            slide.AddChart(OfficeChartKind.ColumnClustered, new OfficeChartData(
+            slide.AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(
                 new[] { "Q1", "Q2" },
-                new[] { new OfficeChartSeries("Sales", new[] { 1D, 2D }) }));
+                new[] { new OfficeSeries("Sales", new[] { 1D, 2D }) }));
             presentation.Save();
         }
         stream.Position = 0;
@@ -307,6 +307,8 @@ public sealed class ReaderOfficeRichMappingTests {
         ReaderVisual chart = Assert.Single(result.Visuals);
         Assert.Equal("chart", chart.Kind);
         Assert.Contains("Sales", chart.Content, StringComparison.Ordinal);
+        using var chartJson = System.Text.Json.JsonDocument.Parse(chart.Content);
+        Assert.Equal("ColumnClustered", chartJson.RootElement.GetProperty("kind").GetString());
         Assert.Equal("4", Assert.Single(result.Metadata, item => item.Name == "ShapeCount").Value);
         OfficeDocumentBlock notes = Assert.Single(result.Blocks, block => block.Kind == "speaker-notes");
         Assert.Equal("Speaker guidance", notes.Text);
@@ -322,8 +324,8 @@ public sealed class ReaderOfficeRichMappingTests {
     [Fact]
     public void DocumentReader_PowerPointRichMapping_PreservesHeaderlessFirstRow() {
         using var stream = new MemoryStream();
-        using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
-            PowerPointTable table = presentation.AddSlide().AddTable(2, 1);
+        using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
+            PowerPointTable table = presentation.AddSlide().AddTable(2,1);
             table.HeaderRow = false;
             table.GetCell(0, 0).Text = "First value";
             table.GetCell(1, 0).Text = "Second value";
@@ -344,7 +346,7 @@ public sealed class ReaderOfficeRichMappingTests {
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=");
         uint hiddenImageFillId;
         using var stream = new MemoryStream();
-        using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
+        using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTextBox visible = slide.AddTextBox("Visible guidance");
             visible.Paragraphs[0].Runs[0].SetHyperlink("https://example.test/visible");
@@ -352,28 +354,28 @@ public sealed class ReaderOfficeRichMappingTests {
             hiddenTitle.PlaceholderType = PowerPointPlaceholderType.Title;
             hiddenTitle.Hidden = true;
             hiddenTitle.Paragraphs[0].Runs[0].SetHyperlink("https://example.test/hidden");
-            PowerPointTable hiddenTable = slide.AddTable(1, 1);
+            PowerPointTable hiddenTable = slide.AddTable(1,1);
             hiddenTable.GetCell(0, 0).Text = "Hidden table";
             hiddenTable.Hidden = true;
-            PowerPointChart hiddenChart = slide.AddChart(OfficeChartKind.ColumnClustered, new OfficeChartData(
+            PowerPointChart hiddenChart = slide.AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(
                 new[] { "Q1" },
-                new[] { new OfficeChartSeries("Hidden series", new[] { 1D }) }));
+                new[] { new OfficeSeries("Hidden series", new[] { 1D }) }));
             hiddenChart.Hidden = true;
 
-            PowerPointPicture visiblePicture = slide.AddPicture(
+            PowerPointImage visiblePicture = slide.AddImage(
                 new MemoryStream(png, writable: false), OfficeIMO.Drawing.OfficeImageFormat.Png);
             visiblePicture.AltText = "Visible direct picture";
-            PowerPointPicture hiddenPicture = slide.AddPicture(
+            PowerPointImage hiddenPicture = slide.AddImage(
                 new MemoryStream(png, writable: false), OfficeIMO.Drawing.OfficeImageFormat.Png);
             hiddenPicture.AltText = "Hidden direct picture";
             hiddenPicture.Hidden = true;
 
-            PowerPointAutoShape hiddenImageFill = slide.AddRectangle(0, 0, 914400, 914400);
+            PowerPointAutoShape hiddenImageFill = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(914400), OfficeIMO.OfficeLength.Emus(914400));
             hiddenImageFill.Hidden = true;
             hiddenImageFillId = hiddenImageFill.Id ?? throw new InvalidOperationException("Hidden image-fill shape has no id.");
 
             PowerPointTextBox hiddenGroupText = slide.AddTextBox("Hidden group guidance");
-            PowerPointPicture hiddenGroupPicture = slide.AddPicture(
+            PowerPointImage hiddenGroupPicture = slide.AddImage(
                 new MemoryStream(png, writable: false), OfficeIMO.Drawing.OfficeImageFormat.Png);
             hiddenGroupPicture.AltText = "Hidden group picture";
             PowerPointGroupShape hiddenGroup = slide.GroupShapes(
@@ -381,10 +383,10 @@ public sealed class ReaderOfficeRichMappingTests {
             hiddenGroup.Hidden = true;
 
             PowerPointTextBox visibleGroupText = slide.AddTextBox("Visible group guidance");
-            PowerPointPicture visibleGroupPicture = slide.AddPicture(
+            PowerPointImage visibleGroupPicture = slide.AddImage(
                 new MemoryStream(png, writable: false), OfficeIMO.Drawing.OfficeImageFormat.Png);
             visibleGroupPicture.AltText = "Visible group picture";
-            PowerPointPicture hiddenGroupChildPicture = slide.AddPicture(
+            PowerPointImage hiddenGroupChildPicture = slide.AddImage(
                 new MemoryStream(png, writable: false), OfficeIMO.Drawing.OfficeImageFormat.Png);
             hiddenGroupChildPicture.AltText = "Hidden group child picture";
             hiddenGroupChildPicture.Hidden = true;

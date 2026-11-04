@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ConditionalFormattingLifecycle_AuthorsSchemaLexicalNamesAndChildOrder() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Schema");
+            ExcelSheet sheet = document.AddSheet("Schema");
             sheet.AddConditionalFormattingRule(new ExcelConditionalFormattingInfo {
                 Source = ExcelConditionalFormattingSource.Office2010Extension,
                 Range = "A1:A3",
@@ -51,7 +51,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ConditionalFormattingLifecycle_RejectsStaleSnapshotsAndInvalidTypeConversions() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Rules");
+            ExcelSheet sheet = document.AddSheet("Rules");
             var firstRule = new ConditionalFormattingRule(new Formula("A1>0")) {
                 Type = ConditionalFormatValues.Expression,
                 Priority = 1
@@ -96,7 +96,7 @@ namespace OfficeIMO.Tests {
         public void ConditionalFormattingLifecycle_VisualEditsPreserveImportedThemeAndUnknownMarkup() {
             const string vendorNamespace = "urn:officeimo:test:conditional-visual";
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Imported");
+            ExcelSheet sheet = document.AddSheet("Imported");
             var minimum = new X14.ConditionalFormattingValueObject();
             minimum.SetAttribute(new OpenXmlAttribute("type", string.Empty, "autoMin"));
             var maximum = new X14.ConditionalFormattingValueObject();
@@ -159,7 +159,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ConditionalFormattingLifecycle_VisualEditsPreserveTintedAndMixedColorKinds() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("MixedColors");
+            ExcelSheet sheet = document.AddSheet("MixedColors");
 
             var standardBarColor = new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = "FF112233", Tint = 0.2D };
             var standardBar = new DataBar(
@@ -261,7 +261,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ConditionalFormattingLifecycle_StylesApplyBordersAndCanBeCleared() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Styles");
+            ExcelSheet sheet = document.AddSheet("Styles");
             ExcelConditionalFormattingInfo rule = sheet.AddConditionalFormattingRule(new ExcelConditionalFormattingInfo {
                 Range = "A1",
                 Type = "Expression",
@@ -269,8 +269,8 @@ namespace OfficeIMO.Tests {
                 DifferentialFillColorArgb = "FFFFC000"
             });
             rule.DifferentialFillColorArgb = null;
-            rule.DifferentialBorder = new ExcelCellBorderSnapshot(
-                left: new ExcelBorderSideSnapshot("Thin", "FFFF0000"));
+            rule.DifferentialBorder = new ExcelCellBorderInfo(
+                left: new ExcelBorderSideInfo("Thin", "FFFF0000"));
             sheet.UpdateConditionalFormattingRule(rule);
 
             ExcelConditionalFormattingInfo bordered = Assert.Single(sheet.GetConditionalFormattingRules());
@@ -288,8 +288,8 @@ namespace OfficeIMO.Tests {
                 Type = "Expression",
                 Formulas = new[] { "B1>0" }
             });
-            invalid.DifferentialBorder = new ExcelCellBorderSnapshot(
-                left: new ExcelBorderSideSnapshot("unsupported-border"));
+            invalid.DifferentialBorder = new ExcelCellBorderInfo(
+                left: new ExcelBorderSideInfo("unsupported-border"));
             Assert.Throws<ArgumentException>(() => sheet.UpdateConditionalFormattingRule(invalid));
             Assert.Null(sheet.GetConditionalFormattingRules().Single(item => item.Range == "B1").DifferentialBorder);
         }
@@ -297,7 +297,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ConditionalFormattingLifecycle_PartialClearTranslatesFormulaAnchors() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Anchors");
+            ExcelSheet sheet = document.AddSheet("Anchors");
             var standard = new ConditionalFormattingRule(new Formula("A1>0")) {
                 Type = ConditionalFormatValues.Expression,
                 Priority = 1
@@ -328,7 +328,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ConditionalFormattingLifecycle_FeatureReportCountsRulesInsideSharedOwners() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Imported");
+            ExcelSheet sheet = document.AddSheet("Imported");
             sheet.WorksheetPart.Worksheet.Append(new ConditionalFormatting(
                 new ConditionalFormattingRule(new Formula("A1>0")) { Type = ConditionalFormatValues.Expression, Priority = 1 },
                 new ConditionalFormattingRule(new Formula("A1<0")) { Type = ConditionalFormatValues.Expression, Priority = 2 }) {

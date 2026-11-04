@@ -91,8 +91,8 @@ namespace OfficeIMO.Visio {
             var frame = new VisioShape(id, pinX, pinY, width, height, string.Empty) {
                 Name = "Data Graphic Legend",
                 NameU = "OfficeIMO Data Graphic Legend",
-                FillColor = OfficeIMO.Drawing.OfficeColor.FromRgb(248, 250, 252),
-                LineColor = OfficeIMO.Drawing.OfficeColor.FromRgb(148, 163, 184),
+                FillColor = OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
+                LineColor = OfficeIMO.OfficeColor.FromRgb(148, 163, 184),
                 LineWeight = 0.01D
             };
             frame.SetUserCell(VisioSemanticUserCells.Kind,
@@ -117,7 +117,7 @@ namespace OfficeIMO.Visio {
 
             for (int index = 0; index < definition.Items.Count; index++) {
                 VisioDataGraphicItem item = definition.Items[index];
-                double y = heading.PinY - titleHeight / 2D - rowHeight / 2D -
+                double y = heading.PinYInches - titleHeight / 2D - rowHeight / 2D -
                            index * rowHeight;
                 string legendText = string.IsNullOrWhiteSpace(item.Label)
                     ? item.FieldName

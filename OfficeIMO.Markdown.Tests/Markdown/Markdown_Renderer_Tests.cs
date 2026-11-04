@@ -13,8 +13,8 @@ public class Markdown_Renderer_Tests {
     [Fact]
     public void Reader_Disallows_Javascript_Links_ByDefault() {
         var md = "[x](javascript:alert(1))";
-        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
-        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
+        var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.DoesNotContain("javascript:", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains(">x<", html, StringComparison.Ordinal); // rendered as plain text
@@ -22,13 +22,13 @@ public class Markdown_Renderer_Tests {
 
     [Fact]
     public void Nested_Parsing_Respects_DisallowFileUrls() {
-        var options = new MarkdownReaderOptions { DisallowFileUrls = true, HtmlBlocks = false, InlineHtml = false };
+        var options = new MarkdownLoadOptions { DisallowFileUrls = true, HtmlBlocks = false, InlineHtml = false };
         string md = """
 - outer
   > [x](file:///c:/test)
 """;
-        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, options);
-        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md, options);
+        var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.DoesNotContain("file:", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains(">x<", html, StringComparison.Ordinal);
@@ -83,7 +83,7 @@ public class Markdown_Renderer_Tests {
         var opts = new MarkdownRendererOptions {
             MaxMarkdownChars = 5,
             MarkdownOverflowHandling = OverflowHandling.Truncate,
-            HtmlOptions = new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null }
+            HtmlOptions = new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null }
         };
         var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("0123456789", opts);
         Assert.Contains("01234", html, StringComparison.Ordinal);
@@ -95,7 +95,7 @@ public class Markdown_Renderer_Tests {
         var opts = new MarkdownRendererOptions {
             MaxBodyHtmlBytes = 1,
             BodyHtmlOverflowHandling = OverflowHandling.RenderError,
-            HtmlOptions = new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = "markdown-body" }
+            HtmlOptions = new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = "markdown-body" }
         };
         var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("Hello", opts);
         Assert.Contains("data-omd=\"overflow\"", html, StringComparison.OrdinalIgnoreCase);
@@ -133,10 +133,11 @@ public class Markdown_Renderer_Tests {
     [Fact]
     public void MarkdownRenderer_Copies_Full_Profile_ReaderOptions() {
         var options = new MarkdownRendererOptions {
-            ReaderOptions = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile(),
-            HtmlOptions = new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
+            ReaderOptions = MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile(),
+            HtmlOptions = new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
                 BodyClass = null,
                 EscapeNonAsciiText = false
             }
@@ -605,11 +606,11 @@ public class Markdown_Renderer_Tests {
         });
         var transform = new MarkdownJsonVisualCodeBlockTransform(MarkdownVisualFenceLanguageMode.GenericSemanticFence);
         var rendererTransform = new RendererAppendParagraphTransform("renderer tail");
-        var elementConverter = new HtmlElementBlockConverter(
+        var elementConverter = new MarkdownHtmlBlockConverter(
             "vendor.custom-html",
             "Vendor custom HTML",
             _ => Array.Empty<IMarkdownBlock>());
-        var inlineConverter = new HtmlInlineElementConverter(
+        var inlineConverter = new MarkdownHtmlInlineConverter(
             "vendor.inline-html",
             "Vendor inline HTML",
             _ => Array.Empty<IMarkdownInline>());
@@ -702,7 +703,7 @@ public class Markdown_Renderer_Tests {
 
     [Fact]
     public void MarkdownReaderOptions_Can_Apply_Renderer_Plugin_Reader_Contract_Idempotently() {
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
 
         options.ApplyPlugin(SampleMarkdownRenderer.StatusPanelPlugin);
         options.ApplyPlugin(SampleMarkdownRenderer.StatusPanelPlugin);
@@ -715,7 +716,7 @@ public class Markdown_Renderer_Tests {
 
     [Fact]
     public void MarkdownReaderOptions_Can_Apply_Renderer_FeaturePack_Reader_Contract_Idempotently() {
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
 
         options.ApplyFeaturePack(SampleMarkdownRenderer.StatusPanelFeaturePack);
         options.ApplyFeaturePack(SampleMarkdownRenderer.StatusPanelFeaturePack);
@@ -729,10 +730,10 @@ public class Markdown_Renderer_Tests {
 
     [Fact]
     public void SampleMarkdownRenderer_StatusBadgeReaderTransform_Upgrades_Source_Tokens_To_Typed_Inline_Ast() {
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.ApplyFeaturePack(SampleMarkdownRenderer.StatusPanelFeaturePack);
 
-        MarkdownDoc document = OfficeIMO.Markdown.MarkdownReader.Parse("System {{status:Healthy}} now", options);
+        MarkdownDocument document = OfficeIMO.Markdown.MarkdownDocument.Parse("System {{status:Healthy}} now", options);
 
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
         var highlight = Assert.IsType<HighlightInline>(Assert.Single(paragraph.Inlines.Nodes.OfType<HighlightInline>()));
@@ -742,70 +743,72 @@ public class Markdown_Renderer_Tests {
 
     [Fact]
     public void InlineNormalization_Preserves_Heading_GenericAttributes() {
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.GenericAttributes = true;
         options.DocumentTransforms.Add(new MarkdownInlineNormalizationTransform(new MarkdownInputNormalizationOptions {
             NormalizeTightColonSpacing = true
         }));
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse("# Key:value {#heading}", options);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse("# Key:value {#heading}", options);
 
         var heading = Assert.IsType<HeadingBlock>(Assert.Single(document.Blocks));
         Assert.Equal("heading", heading.Attributes.ElementId);
         Assert.Equal("# Key: value {#heading}", document.ToMarkdown().Trim());
-        Assert.Contains("<h1 id=\"heading\">Key: value</h1>", document.ToHtmlFragment(new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
-            BodyClass = null
+        Assert.Contains("<h1 id=\"heading\">Key: value</h1>", document.ToHtml(new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
+            BodyClass = null,
+
+            Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
         }), StringComparison.Ordinal);
     }
 
     [Fact]
     public void InlineSequence_Inserted_Writes_Markdig_EmphasisExtra_Syntax_And_Renders_Ins() {
-        var document = new MarkdownDoc()
-            .Add(new ParagraphBlock(new InlineSequence()
-                .Text("Add")
-                .Inserted("inserted")
-                .Text("text")));
+        var document = MarkdownDocument.Create();
+        document.Add(new ParagraphBlock(new InlineSequence().Text("Add").Inserted("inserted").Text("text")));
 
         Assert.Equal("Add ++inserted++ text", document.ToMarkdown().Trim());
-        Assert.Equal("<p>Add <ins>inserted</ins> text</p>", document.ToHtmlFragment(new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
-            BodyClass = null
+        Assert.Equal("<p>Add <ins>inserted</ins> text</p>", document.ToHtml(new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
+            BodyClass = null,
+
+            Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
         }).Trim());
     }
 
     [Fact]
     public void InlineSequence_Superscript_Writes_Markdig_EmphasisExtra_Syntax_And_Renders_Sup() {
-        var document = new MarkdownDoc()
-            .Add(new ParagraphBlock(new InlineSequence()
-                .Text("Power")
-                .Text("2")
-                .Superscript("10")));
+        var document = MarkdownDocument.Create();
+        document.Add(new ParagraphBlock(new InlineSequence().Text("Power").Text("2").Superscript("10")));
 
         Assert.Equal("Power 2 ^10^", document.ToMarkdown().Trim());
-        Assert.Equal("<p>Power 2 <sup>10</sup></p>", document.ToHtmlFragment(new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
-            BodyClass = null
+        Assert.Equal("<p>Power 2 <sup>10</sup></p>", document.ToHtml(new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
+            BodyClass = null,
+
+            Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
         }).Trim());
     }
 
     [Fact]
     public void InlineSequence_Subscript_Writes_Markdig_EmphasisExtra_Syntax_And_Renders_Sub() {
-        var document = new MarkdownDoc()
-            .Add(new ParagraphBlock(new InlineSequence()
-                .Text("Water")
-                .Text("H")
-                .Subscript("2")
-                .Text("O")));
+        var document = MarkdownDocument.Create();
+        document.Add(new ParagraphBlock(new InlineSequence().Text("Water").Text("H").Subscript("2").Text("O")));
 
         Assert.Equal("Water H ~2~ O", document.ToMarkdown().Trim());
-        Assert.Equal("<p>Water H <sub>2</sub> O</p>", document.ToHtmlFragment(new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
-            BodyClass = null
+        Assert.Equal("<p>Water H <sub>2</sub> O</p>", document.ToHtml(new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
+            BodyClass = null,
+
+            Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
         }).Trim());
     }
 
@@ -1793,7 +1796,7 @@ second
     [Fact]
     public void MarkdownRenderer_Preserves_PreParse_Normalization_From_ReaderInputNormalization() {
         var opts = new MarkdownRendererOptions {
-            ReaderOptions = new MarkdownReaderOptions {
+            ReaderOptions = new MarkdownLoadOptions {
                 InputNormalization = new MarkdownInputNormalizationOptions {
                     NormalizeOrderedListParenMarkers = true
                 },
@@ -1957,8 +1960,8 @@ Visit https://example.com now.
 - [ ] Todo
 - [x] Done
 """;
-        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
-        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
+        var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.Contains("contains-task-list", html, StringComparison.Ordinal);
         Assert.Contains("task-list-item", html, StringComparison.Ordinal);
@@ -1973,7 +1976,7 @@ Status: Healthy
 Next paragraph.
 """;
         var opts = new MarkdownRendererOptions {
-            ReaderOptions = new MarkdownReaderOptions {
+            ReaderOptions = new MarkdownLoadOptions {
                 PreferNarrativeSingleLineDefinitions = true,
                 HtmlBlocks = false,
                 InlineHtml = false
@@ -1994,7 +1997,7 @@ Next paragraph.
 - [x] Done
 """;
         var opts = new MarkdownRendererOptions {
-            ReaderOptions = new MarkdownReaderOptions {
+            ReaderOptions = new MarkdownLoadOptions {
                 TaskLists = false,
                 HtmlBlocks = false,
                 InlineHtml = false
@@ -2018,7 +2021,7 @@ Lead[^1]
 
 [^1]: Footnote text
 """;
-        var readerOptions = MarkdownReaderOptions.CreateCommonMarkProfile();
+        var readerOptions = MarkdownLoadOptions.CreateCommonMarkProfile();
         readerOptions.HtmlBlocks = false;
         readerOptions.InlineHtml = false;
 
@@ -2036,7 +2039,7 @@ Lead[^1]
     public void MarkdownRenderer_DocumentTransform_BlockSpans_Skip_Consumed_Abbreviation_Definitions() {
         var seenSpan = default(MarkdownSourceSpan?);
         var options = new MarkdownRendererOptions {
-            ReaderOptions = new MarkdownReaderOptions {
+            ReaderOptions = new MarkdownLoadOptions {
                 Abbreviations = true
             }
         };
@@ -2079,7 +2082,7 @@ Lead[^1]
     }
 
     private sealed class RendererAppendParagraphTransform(string text) : IMarkdownDocumentTransform {
-        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+        public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
             Assert.Equal(MarkdownDocumentTransformSource.MarkdownRenderer, context.Source);
             Assert.NotNull(context.ReaderOptions);
             Assert.IsType<MarkdownRendererOptions>(context.SourceOptions);
@@ -2090,7 +2093,7 @@ Lead[^1]
     }
 
     private sealed class ReaderAppendParagraphTransform(string text) : IMarkdownDocumentTransform {
-        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+        public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
             Assert.Equal(MarkdownDocumentTransformSource.MarkdownReader, context.Source);
             Assert.NotNull(context.ReaderOptions);
 
@@ -2100,12 +2103,12 @@ Lead[^1]
     }
 
     private sealed class RendererRewriteFirstParagraphTransform(string text) : IMarkdownDocumentTransform {
-        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+        public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
             Assert.Equal(MarkdownDocumentTransformSource.MarkdownRenderer, context.Source);
             Assert.NotNull(context.ReaderOptions);
             Assert.IsType<MarkdownRendererOptions>(context.SourceOptions);
 
-            var rewritten = MarkdownDoc.Create();
+            var rewritten = MarkdownDocument.Create();
             rewritten.Add(new ParagraphBlock(new InlineSequence().Text(text)));
             for (var i = 1; i < document.Blocks.Count; i++) {
                 rewritten.Add(document.Blocks[i]);
@@ -2116,12 +2119,12 @@ Lead[^1]
     }
 
     private sealed class RendererRewriteSecondParagraphTransform(string text) : IMarkdownDocumentTransform {
-        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+        public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
             Assert.Equal(MarkdownDocumentTransformSource.MarkdownRenderer, context.Source);
             Assert.NotNull(context.ReaderOptions);
             Assert.IsType<MarkdownRendererOptions>(context.SourceOptions);
 
-            var rewritten = MarkdownDoc.Create();
+            var rewritten = MarkdownDocument.Create();
             if (document.DocumentHeader != null) {
                 rewritten.Add(document.DocumentHeader);
             }
@@ -2138,8 +2141,8 @@ Lead[^1]
         }
     }
 
-    private sealed class RendererInspectFirstParagraphSourceTransform(Func<MarkdownDoc, MarkdownDocumentTransformContext, MarkdownDoc> inspect) : IMarkdownDocumentTransform {
-        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+    private sealed class RendererInspectFirstParagraphSourceTransform(Func<MarkdownDocument, MarkdownDocumentTransformContext, MarkdownDocument> inspect) : IMarkdownDocumentTransform {
+        public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
             Assert.Equal(MarkdownDocumentTransformSource.MarkdownRenderer, context.Source);
             return inspect(document, context);
         }

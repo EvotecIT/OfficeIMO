@@ -18,8 +18,8 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(sourcePath)) {
                 const string expectedSheetName = "Sheet1";
                 const string expectedCellValue = "Directory save";
-                var sheet = document.AddWorksheet(expectedSheetName);
-                sheet.CellValue(1, 1, expectedCellValue);
+                var sheet = document.AddSheet(expectedSheetName);
+                sheet.Cell(1, 1).SetValue(expectedCellValue);
 
                 document.Save(destinationPath);
 
@@ -50,8 +50,8 @@ namespace OfficeIMO.Tests {
             await using (var document = ExcelDocument.Create(sourcePath)) {
                 const string expectedSheetName = "AsyncSheet";
                 const string expectedCellValue = "Async directory save";
-                var sheet = document.AddWorksheet(expectedSheetName);
-                sheet.CellValue(1, 1, expectedCellValue);
+                var sheet = document.AddSheet(expectedSheetName);
+                sheet.Cell(1, 1).SetValue(expectedCellValue);
 
                 await document.SaveAsync(destinationPath);
 
@@ -78,7 +78,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using ExcelDocument document = ExcelDocument.Create(sourcePath);
-                document.AddWorksheet("CopyData").CellValue(1, 1, "Directory copy");
+                document.AddSheet("CopyData").Cell(1, 1).SetValue("Directory copy");
 
                 document.SaveCopy(destinationPath);
                 using ExcelDocument copy = ExcelDocument.Load(destinationPath);
@@ -100,7 +100,7 @@ namespace OfficeIMO.Tests {
             string destinationPath = Path.Combine(_directoryWithFiles, $"AsyncCopy_{Guid.NewGuid():N}.xlsx");
             try {
                 await using ExcelDocument document = ExcelDocument.Create(sourcePath);
-                document.AddWorksheet("CopyData").CellValue(1, 1, "Async copy");
+                document.AddSheet("CopyData").Cell(1, 1).SetValue("Async copy");
                 document.Save();
 
                 await document.SaveCopyAsync(destinationPath);
@@ -125,7 +125,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using ExcelDocument document = ExcelDocument.Create(sourcePath);
-                document.AddWorksheet("Data").CellValue(1, 1, "Must not overwrite");
+                document.AddSheet("Data").Cell(1, 1).SetValue("Must not overwrite");
 
                 Assert.Throws<IOException>(() => document.SaveCopy(destinationPath));
 

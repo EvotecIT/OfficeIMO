@@ -29,12 +29,24 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         [Benchmark]
         public long OfficeIMO() {
             using MemoryStream stream = new MemoryStream(4 * 1024 * 1024);
-            ExcelDocument.WriteRows(stream, _records, ["Name", "Id", "Date", "Value"], static (row, record) => {
-                row.Write(record.Name);
-                row.Write(record.Id);
-                row.Write(record.Date);
-                row.Write(record.Value);
-            });
+            var destination1 = stream;
+
+            var writeOptions1 = new ExcelWriterOptions {
+                UseSharedStrings = false,
+                CreateTable = false
+            };
+
+            using (var workbookWriter1 = ExcelDocument.CreateWriter(destination1, writeOptions1, leaveOpen: true)) {
+                workbookWriter1.WriteTable(writeOptions1.SheetName, _records, ["Name", "Id", "Date", "Value"], static (row, record) => {
+                    row.Write(record.Name);
+                    row.Write(record.Id);
+                    row.Write(record.Date);
+                    row.Write(record.Value);
+                });
+            }
+
+            if (destination1.CanSeek)
+                destination1.Position = 0;
             return stream.Length;
         }
 
@@ -64,12 +76,24 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         }
 
         private void WriteOfficeIMO(Stream stream) {
-            ExcelDocument.WriteRows(stream, _records, ["Name", "Id", "Date", "Value"], static (row, record) => {
-                row.Write(record.Name);
-                row.Write(record.Id);
-                row.Write(record.Date);
-                row.Write(record.Value);
-            });
+            var destination2 = stream;
+
+            var writeOptions2 = new ExcelWriterOptions {
+                UseSharedStrings = false,
+                CreateTable = false
+            };
+
+            using (var workbookWriter2 = ExcelDocument.CreateWriter(destination2, writeOptions2, leaveOpen: true)) {
+                workbookWriter2.WriteTable(writeOptions2.SheetName, _records, ["Name", "Id", "Date", "Value"], static (row, record) => {
+                    row.Write(record.Name);
+                    row.Write(record.Id);
+                    row.Write(record.Date);
+                    row.Write(record.Value);
+                });
+            }
+
+            if (destination2.CanSeek)
+                destination2.Position = 0;
         }
 
         private async Task WriteExcelReaderAsync(Stream stream) {

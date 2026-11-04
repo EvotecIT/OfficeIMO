@@ -2,8 +2,10 @@ using OfficeIMO.Excel;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         private static string PivotDateGroupOraclePath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
             "Documents", "ExcelPivotCorpus", "date-group-conformance.xlsx");
         private static string PivotDateGroupRefreshOraclePath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
@@ -42,7 +44,7 @@ namespace OfficeIMO.Tests {
                 lookups.ClearCachedFormulaResults();
                 Assert.Equal(6, lookups.RecalculateSupportedFormulas());
                 for (int row = 0; row < 6; row++)
-                    AssertPivotLookupOracleValue(expectedLookups[row, 0], lookups.CellAt(row + 1, 2).GetValue().Value);
+                    AssertPivotLookupOracleValue(expectedLookups[row, 0], lookups.Cell(row + 1, 2).GetValue().Value);
                 document.Save(output);
             }
             using var reopened = ExcelDocumentReader.Open(output);
@@ -53,36 +55,50 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_PivotDateGroupMaterialization_TemplateFreePublicApi() {
+        public void Test_PivotDateGroupMaterialization_TemplateFreePublicApi()
+        {
             string output = Path.Combine(_directoryWithFiles, "DateGroup.TemplateFree.xlsx");
-            using (var document = ExcelDocument.Create(output)) {
-                var sheet = document.AddWorksheet("Source");
-                sheet.CellValue(1, 1, "OrderDate");
-                sheet.CellValue(1, 2, "Sales");
-                var dates = new[] { new DateTime(2025, 1, 15), new DateTime(2025, 3, 20),
-                    new DateTime(2025, 7, 1), new DateTime(2026, 1, 10), new DateTime(2026, 4, 5) };
-                for (int index = 0; index < dates.Length; index++) {
-                    sheet.CellValue(index + 2, 1, dates[index]);
-                    sheet.CellValue(index + 2, 2, (index + 1) * 10d);
+            using (var document = ExcelDocument.Create(output))
+            {
+                var sheet = document.AddSheet("Source");
+                sheet.Cell(1, 1).SetValue("OrderDate");
+                sheet.Cell(1, 2).SetValue("Sales");
+                var dates = new[]
+                {
+                    new DateTime(2025, 1, 15),
+                    new DateTime(2025, 3, 20),
+                    new DateTime(2025, 7, 1),
+                    new DateTime(2026, 1, 10),
+                    new DateTime(2026, 4, 5)
+                };
+                for (int index = 0; index < dates.Length; index++)
+                {
+                    sheet.Cell(index + 2, 1).SetValue(dates[index]);
+                    sheet.Cell(index + 2, 2).SetValue((index + 1) * 10d);
                 }
-                sheet.Pivot("A1:B6").Rows("OrderDate").Sum("Sales", "Metric")
-                    .DateHierarchy("OrderDate", ExcelPivotGroupBy.Years, ExcelPivotGroupBy.Months)
-                    .Layout(ExcelPivotLayout.Tabular).At("D4", "PivotDateGrouped");
+
+                {
+                    var pivotOptions1 = new ExcelPivotTableOptions();
+                    pivotOptions1.RowFields.Add("OrderDate");
+                    pivotOptions1.DataFields.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, displayName: "Metric"));
+                    pivotOptions1.Groupings.Add(ExcelPivotGrouping.DateHierarchy("OrderDate", ExcelPivotGroupBy.Years, ExcelPivotGroupBy.Months));
+                    pivotOptions1.Layout = ExcelPivotLayout.Tabular;
+                    pivotOptions1.Name = "PivotDateGrouped";
+                    sheet.AddPivotTable("A1:B6", "D4", pivotOptions1);
+                }
+
                 var result = sheet.MaterializePivotTable("PivotDateGrouped");
                 Assert.Equal("D4:F12", result.OutputRange);
-                Assert.True(result.Mutation.PackageIsValid,
-                    string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
+                Assert.True(result.Mutation.PackageIsValid, string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
                 Assert.Equal(150d, sheet.GetPivotData("PivotDateGrouped", "Metric").Value);
-                Assert.Equal(60d, sheet.GetPivotData("PivotDateGrouped", "Metric",
-                    new Dictionary<string, object?> { ["OrderDate Years"] = "2025" }).Value);
-                Assert.Equal(40d, sheet.GetPivotData("PivotDateGrouped", "Metric",
-                    new Dictionary<string, object?> { ["OrderDate Years"] = "2026", ["OrderDate Months"] = "January" }).Value);
+                Assert.Equal(60d, sheet.GetPivotData("PivotDateGrouped", "Metric", new Dictionary<string, object?> { ["OrderDate Years"] = "2025" }).Value);
+                Assert.Equal(40d, sheet.GetPivotData("PivotDateGrouped", "Metric", new Dictionary<string, object?> { ["OrderDate Years"] = "2026", ["OrderDate Months"] = "January" }).Value);
                 document.Save(output);
             }
+
             using var reopened = ExcelDocument.Load(output);
             Assert.Empty(reopened.ValidateOpenXml());
-            Assert.Equal(90d, reopened.GetSheet("Source").GetPivotData("PivotDateGrouped", "Metric",
-                new Dictionary<string, object?> { ["OrderDate Years"] = "2026" }).Value);
+            Assert.Equal(90d, reopened.GetSheet("Source").GetPivotData("PivotDateGrouped", "Metric", new Dictionary<string, object?> { ["OrderDate Years"] = "2026" }).Value);
         }
 
         [Fact]
@@ -92,8 +108,8 @@ namespace OfficeIMO.Tests {
             var expected = oracle.GetSheet("Grouped").ReadRange("A4:C10");
             using (var document = ExcelDocument.Load(PivotDateGroupOraclePath)) {
                 var source = document.GetSheet("Source");
-                source.CellValue(3, 1, new DateTime(2025, 1, 15));
-                source.CellValue(4, 1, new DateTime(2025, 1, 15));
+                source.Cell(3, 1).SetValue(new DateTime(2025, 1, 15));
+                source.Cell(4, 1).SetValue(new DateTime(2025, 1, 15));
                 var grouped = document.GetSheet("Grouped");
                 Assert.Equal("A4:C10", grouped.MaterializePivotTable("PivotDateGrouped").OutputRange);
                 var pivotPart = grouped.WorksheetPart.PivotTableParts.Single();

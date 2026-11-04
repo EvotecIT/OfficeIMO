@@ -93,7 +93,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<HtmlFloatExclusion>? inheritedFloats = null,
         InlinePaintCapture? paintCapture = null,
         InlineFloatContext? sharedContext = null) {
-        var context = sharedContext ?? new InlineFloatContext(width, inheritedFloats);
+        var context = sharedContext ?? new InlineFloatContext(width,
+            count => ChargeLayoutOperations(count, "inline float placement scans"), inheritedFloats);
         context.FirstLineIndent = paragraphStyle.TextIndent?.Resolve(width) ?? 0D;
         context.IndentAtRight = paragraphStyle.Direction == "rtl";
         var placements = new List<InlineFloatPlacement>();

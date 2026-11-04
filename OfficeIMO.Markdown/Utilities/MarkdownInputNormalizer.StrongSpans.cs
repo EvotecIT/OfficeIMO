@@ -4,7 +4,7 @@ using System.Text;
 
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownInputNormalizer {
+internal static partial class MarkdownInputNormalizer {
     private static string FlattenNestedStrongSpansOutsideFencedCodeBlocks(string value) {
         return MarkdownFence.ApplyTransformOutsideFencedCodeBlocks(
             value,

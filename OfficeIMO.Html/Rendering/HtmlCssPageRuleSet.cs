@@ -52,8 +52,8 @@ internal sealed partial class HtmlCssPageRuleSet {
             geometry = layoutGeometry;
         }
         options.PageSize = new OfficePageSize(
-            geometry.Width / HtmlRenderOptions.CssPixelsPerInch,
-            geometry.Height / HtmlRenderOptions.CssPixelsPerInch);
+            global::OfficeIMO.OfficeLength.Inches(geometry.Width / HtmlRenderOptions.CssPixelsPerInch),
+            global::OfficeIMO.OfficeLength.Inches(geometry.Height / HtmlRenderOptions.CssPixelsPerInch));
         options.Margins = geometry.Margins;
     }
 

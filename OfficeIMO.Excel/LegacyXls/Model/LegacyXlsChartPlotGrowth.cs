@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes decoded PlotGrowth chart font-scaling metadata.
     /// </summary>
-    public sealed class LegacyXlsChartPlotGrowth {
+    internal sealed class LegacyXlsChartPlotGrowth {
         internal LegacyXlsChartPlotGrowth(
             short horizontalIntegral,
             ushort horizontalFractional,

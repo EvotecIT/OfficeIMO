@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes preserve-only CrtMlFrt chart XML token-chain metadata.
     /// </summary>
-    public sealed class LegacyXlsChartXmlTokenChain {
+    internal sealed class LegacyXlsChartXmlTokenChain {
         internal LegacyXlsChartXmlTokenChain(uint declaredByteCount, int firstSegmentByteCount, uint trailingUnusedValue) {
             DeclaredByteCount = declaredByteCount;
             FirstSegmentByteCount = firstSegmentByteCount;

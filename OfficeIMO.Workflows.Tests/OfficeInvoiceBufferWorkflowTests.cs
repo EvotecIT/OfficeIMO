@@ -98,7 +98,7 @@ public class OfficeInvoiceBufferWorkflowTests {
     [InlineData(OfficeInvoiceWorkflowOperation.RenderHybridPdf)]
     public async Task RenderedPdfAndXmlUseOneCapturedModel(OfficeInvoiceWorkflowOperation operation) {
         byte[] font = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", "SourceSerif4-Regular.otf"));
-        var options = new PdfOptions().EmbedStandardFont(PdfStandardFont.Helvetica, font, "Source Serif")
+        var options = new PdfCreateOptions().EmbedStandardFont(PdfStandardFont.Helvetica, font, "Source Serif")
             .EmbedStandardFont(PdfStandardFont.HelveticaBold, font, "Source Serif");
         var contract = new InvoiceXmlOptions(InvoiceSpecificationRelease.FacturX_1_09_2_Zugferd_2_5_2, InvoiceSyntax.Cii, InvoiceProfile.En16931);
         OfficeInvoiceWorkflowResult result = await OfficeInvoiceBufferWorkflow.RunAsync(new(Xml(), operation, contract, pdfOptions: options));

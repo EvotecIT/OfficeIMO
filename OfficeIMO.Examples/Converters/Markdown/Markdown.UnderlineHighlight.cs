@@ -15,10 +15,10 @@ namespace OfficeIMO.Examples.Markdown {
             paragraph.AddText(" and ");
             paragraph.AddText("highlighted").Highlight = WordHighlightColor.Yellow;
 
-            string markdown = doc.ToMarkdown(new WordToMarkdownOptions {
+            string markdown = (doc.ToMarkdown(new WordMarkdownExportOptions {
                 EnableUnderline = true,
                 EnableHighlight = true
-            });
+            })).ToMarkdown();
             Console.WriteLine(markdown);
 
             doc.Save(filePath);

@@ -10,7 +10,7 @@ internal static class MarkdownToRtfConverter {
     private const int MarkdownListIdBase = 7000;
     private const int ListIndentTwips = 720;
 
-    internal static RtfDocument Convert(MarkdownDoc markdown, MarkdownToRtfConversionContext context) {
+    internal static RtfDocument Convert(MarkdownDocument markdown, MarkdownToRtfConversionContext context) {
         var document = RtfDocument.Create();
         EnsureDocumentDefaults(document);
         var footnoteDefinitions = BuildFootnoteDefinitions(markdown);
@@ -31,7 +31,7 @@ internal static class MarkdownToRtfConverter {
         document.AddFont("Consolas");
     }
 
-    private static Dictionary<string, FootnoteDefinitionBlock> BuildFootnoteDefinitions(MarkdownDoc markdown) {
+    private static Dictionary<string, FootnoteDefinitionBlock> BuildFootnoteDefinitions(MarkdownDocument markdown) {
         var definitions = new Dictionary<string, FootnoteDefinitionBlock>(StringComparer.OrdinalIgnoreCase);
         for (int i = 0; i < markdown.Blocks.Count; i++) {
             if (markdown.Blocks[i] is FootnoteDefinitionBlock footnote && !string.IsNullOrEmpty(footnote.Label)) {
@@ -430,7 +430,7 @@ internal static class MarkdownToRtfConverter {
         }
     }
 
-    private static void FillTableRow(RtfTableRow row, IReadOnlyList<InlineSequence> cells, IReadOnlyList<ColumnAlignment> alignments, RtfDocument document, MarkdownToRtfConversionContext context, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions) {
+    private static void FillTableRow(RtfTableRow row, IReadOnlyList<InlineSequence> cells, IReadOnlyList<MarkdownColumnAlignment> alignments, RtfDocument document, MarkdownToRtfConversionContext context, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions) {
         for (int column = 0; column < row.Cells.Count; column++) {
             RtfParagraph paragraph = row.Cells[column].AddParagraph();
             if (TryMapAlignment(alignments, column, out RtfTextAlignment alignment)) {
@@ -443,20 +443,20 @@ internal static class MarkdownToRtfConverter {
         }
     }
 
-    private static bool TryMapAlignment(IReadOnlyList<ColumnAlignment> alignments, int column, out RtfTextAlignment alignment) {
+    private static bool TryMapAlignment(IReadOnlyList<MarkdownColumnAlignment> alignments, int column, out RtfTextAlignment alignment) {
         alignment = RtfTextAlignment.Left;
         if (alignments == null || column < 0 || column >= alignments.Count) {
             return false;
         }
 
         switch (alignments[column]) {
-            case ColumnAlignment.Left:
+            case MarkdownColumnAlignment.Left:
                 alignment = RtfTextAlignment.Left;
                 return true;
-            case ColumnAlignment.Center:
+            case MarkdownColumnAlignment.Center:
                 alignment = RtfTextAlignment.Center;
                 return true;
-            case ColumnAlignment.Right:
+            case MarkdownColumnAlignment.Right:
                 alignment = RtfTextAlignment.Right;
                 return true;
             default:

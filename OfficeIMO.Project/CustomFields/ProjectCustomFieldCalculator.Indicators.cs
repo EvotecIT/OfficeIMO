@@ -5,7 +5,7 @@ internal sealed partial class ProjectCustomFieldCalculator {
         var values = new List<ProjectEntityIndicator>();
         // Populate the same definition resolver and computed-field cache used by normal field calculation.
         var fields = Calculate();
-        if (fields.Report.HasErrors) return new ProjectIndicatorResult(_revision, kind, values, fields.Report.Diagnostics);
+        if (fields.Report.HasErrors) return new ProjectIndicatorResult(_revision, kind, values, fields.Report.NativeDiagnostics);
         IEnumerable<ProjectEntity> entities = kind == ProjectCustomFieldEntityKind.Task ? _document.AllTasks.Cast<ProjectEntity>() : _document.Resources.Cast<ProjectEntity>();
         int operations = 0;
         foreach (var entity in entities) {

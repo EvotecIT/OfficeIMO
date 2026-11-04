@@ -1,8 +1,14 @@
 {
-  "schema": "officeimo.conversion.job.v1",
-  "name": "Recover a partial batch",
-  "inputPaths": ["Inputs/brief.txt", "Inputs/repair.docx"],
-  "outputDirectory": "Outputs/Retry",
-  "checkpointDirectory": "Checkpoints/Retry",
-  "targetExtension": ".pdf"
+  "schema": "officeimo.conversion.job.v2",
+  "batch": {
+    "name": "Recover a partial batch",
+    "inputPaths": [
+      "Inputs/brief.txt",
+      "Inputs/repair.docx"
+    ],
+    "outputDirectory": "Outputs/Retry",
+    "targetExtension": ".pdf",
+    "resumeFrom": "Checkpoints/Retry/plan.json"
+  },
+  "settings": {}
 }

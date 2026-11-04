@@ -18,14 +18,14 @@ Console.WriteLine(document.SourceFormat); // WordFileFormat.Doc
 
 document.Save("output.docx");
 document.Save("copy.doc", new WordSaveOptions {
-    LossPolicy = OfficeConversionLossPolicy.Allow
+    AllowLoss = true
 });
 
 byte[] docx = document.ToBytes();
-byte[] doc = document.ToBytes(WordFileFormat.Doc);
+byte[] doc = document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
 ```
 
-For an independent copy that does not change the current document association, use `SaveCopy`. For a writable stream, call `Save(stream, WordFileFormat.Docx)` or `Save(stream, WordFileFormat.Doc)`.
+For an independent copy that does not change the current document association, use `SaveCopy`. For a writable stream, pass `new WordSaveOptions { Format = WordFileFormat.Docx }` or `new WordSaveOptions { Format = WordFileFormat.Doc }` to `Save(stream, options)`.
 
 For a file-to-file conversion with a structured result:
 
@@ -52,7 +52,7 @@ The defaults are intentionally conservative:
 - output is staged and committed atomically, so a failed save does not expose a partial file;
 - cross-family OLE input, such as XLS passed to Word, is rejected with a format-specific error.
 
-Set `LossPolicy = OfficeConversionLossPolicy.Allow` only after reviewing the reported legacy features. The policy is available on both `WordDocumentConversionOptions` and `WordSaveOptions`.
+Set `AllowLoss = true` only after reviewing the reported legacy features. The policy is available on both `WordDocumentConversionOptions` and `WordSaveOptions`.
 
 ## DOC import capability
 
@@ -125,20 +125,20 @@ This is practical feature parity, not a claim that arbitrary DOCX packages can b
 
 ## Detailed import assessment
 
-Normal application code can use a cached compact summary:
+Normal application code can read the conversion report returned by `Load`:
 
 ```csharp
-using OfficeIMO.Word.LegacyDoc;
+using OfficeIMO;
+using OfficeIMO.Word;
 
-using LegacyDocLoadResult load = WordDocument.LoadLegacyDocWithReport("input.doc");
-LegacyDocImportSummary summary = load.Summary;
-
-if (summary.HasConversionLoss) {
-    load.EnsureNoConversionLoss();
-}
+using WordDocument document = WordDocument.Load("input.doc", null,
+    out OfficeConversionReport report);
+foreach (OfficeDiagnostic diagnostic in report.Diagnostics)
+    Console.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
+report.ThrowIfLoss();
 ```
 
-For corpus analysis or forensic detail, use `load.AdvancedDocument` and `load.CreateAdvancedImportReport()`. Import options use the common names `MaxInputBytes` and `ReportUnsupportedContent`. File conversion always enables unsupported-content discovery—even when a supplied import option disables reporting—because `LossPolicy.Block` must never be bypassed silently. Import options are selected from detected physical content, so format-specific limits still apply when a legacy file has a misleading extension.
+Load options use `MaxInputBytes` and `ReportUnsupportedContent`. Conversion diagnostics describe recognized source features and any loss during projection into the editable document. File conversion always enables unsupported-content discovery, so a loss policy cannot be bypassed by disabling diagnostic reporting. Import limits are selected from the detected physical content, even when a source has a misleading extension.
 
 ## Validation
 

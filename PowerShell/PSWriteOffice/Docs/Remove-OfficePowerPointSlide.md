@@ -6,54 +6,39 @@ schema: 2.0.0
 ---
 # Remove-OfficePowerPointSlide
 ## SYNOPSIS
-Removes a slide by index.
+Removes selected native slides or one-based slide positions.
 
 ## SYNTAX
-### __AllParameterSets
+### Slide (Default)
 ```powershell
-Remove-OfficePowerPointSlide -Presentation <PowerPointPresentation> -Index <int> [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Remove-OfficePowerPointSlide [-Slide] <PowerPointSlideSelector[]> [-PassThru] [-Document <PowerPointDocument>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Supports -WhatIf/-Confirm thanks to SupportsShouldProcess.
+Removes selected native slides or one-based slide positions.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $ppt = New-OfficePowerPoint -Path .\Examples\Documents\PowerPointRemoveSlide.pptx -NoSave
-Add-OfficePowerPointSlide -Presentation $ppt -Layout 1
-Add-OfficePowerPointSlide -Presentation $ppt -Layout 1
-Remove-OfficePowerPointSlide -Presentation $ppt -Index 0 -Confirm:$false
-Close-OfficePowerPoint -Presentation $ppt -Save
+Remove-OfficePowerPointSlide -Document $deck -Slide 1, 3 -Confirm:$false
 ```
 
-Removes the first slide and saves the updated deck.
+
+### EXAMPLE 2
+```powershell
+$slide | Remove-OfficePowerPointSlide -WhatIf
+```
+
 
 ## PARAMETERS
 
-### -Index
-Zero-based slide index.
+### -Document
+Gets or sets the document for numeric selection; omission uses the enclosing scope or native slide owner.
 
 ```yaml
-Type: Int32
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -PassThru
-Emit the object created or changed by the command.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Type: PowerPointDocument
+Parameter Sets: Slide
 Aliases: None
 Possible values:
 
@@ -64,19 +49,35 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Presentation
-Presentation to modify.
+### -PassThru
+Return the live document after at least one slide is removed.
 
 ```yaml
-Type: PowerPointPresentation
-Parameter Sets: __AllParameterSets
+Type: SwitchParameter
+Parameter Sets: Slide
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Slide
+Gets or sets native slides or their one-based positions; each argument array is resolved before removal.
+
+```yaml
+Type: PowerPointSlideSelector[]
+Parameter Sets: Slide
 Aliases: None
 Possible values:
 
 Required: True
-Position: named
+Position: 0
 Default value: None
-Accept pipeline input: False
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
@@ -85,11 +86,11 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `None`
+- `PSWriteOffice.Foundation.PowerPointSlideSelector[]`: A live slide or a one-based slide position in a document.
 
 ## OUTPUTS
 
-- `None`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 
 ## RELATED LINKS
 

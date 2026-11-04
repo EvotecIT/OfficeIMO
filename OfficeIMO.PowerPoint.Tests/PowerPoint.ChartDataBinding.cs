@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
                 new MetricRow { Label = "Q3", Current = 9, Target = 13 }
             };
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
                 slide.AddChart(
                     rows,

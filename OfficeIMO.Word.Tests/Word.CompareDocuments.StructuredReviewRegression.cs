@@ -86,16 +86,16 @@ namespace OfficeIMO.Tests {
             string replacementPath = Path.Combine(_directoryWithImages, "Kulek.jpg");
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_inserted_image_before_modified.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
-                doc.AddParagraph().AddImage(logoPath, 80, 40);
-                doc.AddParagraph().AddImage(replacementPath, 50, 50);
+                doc.AddParagraph().AddImage(logoPath, OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
+                doc.AddParagraph().AddImage(replacementPath, OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50));
                 doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_inserted_image_before_modified.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
-                doc.AddParagraph().AddImage(replacementPath, 120, 60);
-                doc.AddParagraph().AddImage(replacementPath, 80, 40);
-                doc.AddParagraph().AddImage(replacementPath, 50, 50);
+                doc.AddParagraph().AddImage(replacementPath, OfficeIMO.OfficeLength.Pixels(120), OfficeIMO.OfficeLength.Pixels(60));
+                doc.AddParagraph().AddImage(replacementPath, OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
+                doc.AddParagraph().AddImage(replacementPath, OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50));
                 doc.Save();
             }
 
@@ -115,13 +115,13 @@ namespace OfficeIMO.Tests {
         public void CompareStructureDistinguishesDefaultAndFirstPageHeaders() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_default_header_variant.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
-                doc.HeaderDefaultOrCreate.AddParagraph("Classification: Confidential");
+                doc.PageSetup.Header.AddParagraph("Classification: Confidential");
                 doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_first_header_variant.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
-                doc.HeaderFirstOrCreate.AddParagraph("Classification: Confidential");
+                doc.PageSetup.FirstPageHeader.AddParagraph("Classification: Confidential");
                 doc.Save();
             }
 
@@ -239,7 +239,7 @@ namespace OfficeIMO.Tests {
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_changed_body_to_header.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
-                doc.HeaderDefaultOrCreate.AddParagraph("Status: Approved");
+                doc.PageSetup.Header.AddParagraph("Status: Approved");
                 doc.Save();
             }
 
@@ -265,13 +265,13 @@ namespace OfficeIMO.Tests {
             string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_picture_local_ids.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
-                doc.AddParagraph().AddImage(imagePath, 80, 40);
+                doc.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_picture_local_ids.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
-                doc.AddParagraph().AddImage(imagePath, 80, 40);
+                doc.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 doc.Save();
             }
 

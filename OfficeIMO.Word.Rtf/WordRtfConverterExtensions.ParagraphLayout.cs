@@ -7,9 +7,9 @@ namespace OfficeIMO.Word.Rtf;
 public static partial class WordRtfConverterExtensions {
     private static void CopyParagraphLayout(WordParagraph source, RtfParagraph destination) {
         destination.DirectAlignment = ToRtfTextAlignment(source._paragraphProperties?.Justification?.Val?.Value);
-        destination.LeftIndentTwips = source.IndentationBefore;
-        destination.RightIndentTwips = source.IndentationAfter;
-        destination.FirstLineIndentTwips = source.IndentationFirstLine ?? Negate(source.IndentationHanging);
+        destination.LeftIndentTwips = checked((int?)(source.IndentationBefore?.ToTwips()));
+        destination.RightIndentTwips = checked((int?)(source.IndentationAfter?.ToTwips()));
+        destination.FirstLineIndentTwips = checked((int?)(source.IndentationFirstLine?.ToTwips())) ?? Negate(checked((int?)(source.IndentationHanging?.ToTwips())));
         destination.DirectPageBreakBefore = ReadToggle(source._paragraphProperties?.PageBreakBefore);
         destination.DirectKeepWithNext = ReadToggle(source._paragraphProperties?.KeepNext);
         destination.DirectKeepLinesTogether = ReadToggle(source._paragraphProperties?.KeepLines);
@@ -21,13 +21,13 @@ public static partial class WordRtfConverterExtensions {
         destination.WidowControl = GetWidowControl(source);
         Int32Value? outlineLevel = source._paragraphProperties?.OutlineLevel?.Val;
         destination.OutlineLevel = outlineLevel?.Value;
-        destination.SpaceBeforeTwips = source.LineSpacingBefore;
-        destination.SpaceAfterTwips = source.LineSpacingAfter;
+        destination.SpaceBeforeTwips = checked((int?)(source.LineSpacingBefore?.ToTwips()));
+        destination.SpaceAfterTwips = checked((int?)(source.LineSpacingAfter?.ToTwips()));
         SpacingBetweenLines? spacing = source._paragraphProperties?.SpacingBetweenLines;
         destination.SpaceBeforeAuto = spacing?.BeforeAutoSpacing?.Value;
         destination.SpaceAfterAuto = spacing?.AfterAutoSpacing?.Value;
-        destination.LineSpacingTwips = ToRtfLineSpacingValue(source.LineSpacing, source.LineSpacingRule.ToOpenXml());
-        destination.LineSpacingMultiple = ToRtfLineSpacingMultiple(source.LineSpacing, source.LineSpacingRule.ToOpenXml());
+        destination.LineSpacingTwips = ToRtfLineSpacingValue(source.NativeLineSpacingValue, spacing?.LineRule?.Value);
+        destination.LineSpacingMultiple = ToRtfLineSpacingMultiple(source.NativeLineSpacingValue, spacing?.LineRule?.Value);
         destination.Direction = source.BiDi ? RtfTextDirection.RightToLeft : null;
     }
 
@@ -73,11 +73,11 @@ public static partial class WordRtfConverterExtensions {
         }
 
         if (source.SpaceBeforeTwips.HasValue) {
-            destination.LineSpacingBefore = source.SpaceBeforeTwips.Value;
+            destination.LineSpacingBefore= ((source.SpaceBeforeTwips.Value) is { } wordLength4961 ? global::OfficeIMO.OfficeLength.Points((wordLength4961) / 20D) : (global::OfficeIMO.OfficeLength?)null);
         }
 
         if (source.SpaceAfterTwips.HasValue) {
-            destination.LineSpacingAfter = source.SpaceAfterTwips.Value;
+            destination.LineSpacingAfter= ((source.SpaceAfterTwips.Value) is { } wordLength5093 ? global::OfficeIMO.OfficeLength.Points((wordLength5093) / 20D) : (global::OfficeIMO.OfficeLength?)null);
         }
 
         if (source.SpaceBeforeAuto.HasValue || source.SpaceAfterAuto.HasValue) {
@@ -93,10 +93,10 @@ public static partial class WordRtfConverterExtensions {
         }
 
         int? lineSpacing = ToWordLineSpacingValue(source.LineSpacingTwips, source.LineSpacingMultiple);
-        if (lineSpacing.HasValue) destination.LineSpacing = lineSpacing.Value;
+        if (lineSpacing.HasValue) destination.NativeLineSpacingValue = lineSpacing.Value;
         LineSpacingRuleValues? lineSpacingRule = ToWordLineSpacingRule(source.LineSpacingTwips, source.LineSpacingMultiple);
         if (lineSpacingRule.HasValue) {
-            destination.LineSpacingRule = lineSpacingRule.Value.ToOfficeEnum();
+            destination.NativeLineSpacingRule = lineSpacingRule.Value.ToOfficeEnum();
         }
 
         if (source.WidowControl.HasValue) {

@@ -12,11 +12,11 @@ namespace OfficeIMO.Excel {
     // Represents a chart on a worksheet.
     public sealed partial class ExcelChart {
         private static void ApplyGridlines(OpenXmlCompositeElement axis, bool showMajor, bool showMinor,
-            string? lineColor, double? lineWidthPoints) {
-            OfficeChartStyleBounds.ValidateLineWidth(lineWidthPoints, nameof(lineWidthPoints), allowZero: true);
+            OfficeColor? lineColor, OfficeLength? lineWidth) {
+            OfficeChartStyleBounds.ValidateLineWidth(lineWidth?.ToPoints(), nameof(lineWidth), allowZero: true);
             if (showMajor) {
                 C.MajorGridlines major = axis.GetFirstChild<C.MajorGridlines>() ?? new C.MajorGridlines();
-                ApplyGridlineStyle(major, lineColor, lineWidthPoints);
+                ApplyGridlineStyle(major, lineColor, lineWidth);
                 if (major.Parent == null) {
                     axis.Append(major);
                 }
@@ -26,7 +26,7 @@ namespace OfficeIMO.Excel {
 
             if (showMinor) {
                 C.MinorGridlines minor = axis.GetFirstChild<C.MinorGridlines>() ?? new C.MinorGridlines();
-                ApplyGridlineStyle(minor, lineColor, lineWidthPoints);
+                ApplyGridlineStyle(minor, lineColor, lineWidth);
                 if (minor.Parent == null) {
                     axis.Append(minor);
                 }
@@ -37,8 +37,8 @@ namespace OfficeIMO.Excel {
 
         private static void ApplyTrendline(OpenXmlCompositeElement series, OfficeChartTrendlineType type, int? order, int? period,
             double? forward, double? backward, double? intercept, bool displayEquation, bool displayRSquared,
-            string? lineColor, double? lineWidthPoints) {
-            OfficeChartStyleBounds.ValidateLineWidth(lineWidthPoints, nameof(lineWidthPoints), allowZero: true);
+            OfficeColor? lineColor, OfficeLength? lineWidth) {
+            OfficeChartStyleBounds.ValidateLineWidth(lineWidth?.ToPoints(), nameof(lineWidth), allowZero: true);
             if (!IsTrendlineSupportedSeries(series)) {
                 throw new InvalidOperationException("Trendlines are only supported for line, bar/column, area, scatter, and bubble series.");
             }
@@ -46,10 +46,10 @@ namespace OfficeIMO.Excel {
             series.RemoveAllChildren<C.Trendline>();
             C.Trendline trendline = new C.Trendline();
 
-            if (lineColor != null || lineWidthPoints != null) {
+            if (lineColor != null || lineWidth != null) {
                 C.ChartShapeProperties props = new C.ChartShapeProperties();
-                string? normalizedLine = lineColor != null ? NormalizeHexColor(lineColor) : null;
-                ApplyOptionalLine(props, normalizedLine, lineWidthPoints);
+                OfficeColor? normalizedLine = lineColor != null ? lineColor : null;
+                ApplyOptionalLine(props, normalizedLine, lineWidth);
                 trendline.Append(props);
             }
 
@@ -106,13 +106,13 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void ApplyGridlineStyle(OpenXmlCompositeElement gridlines, string? lineColor, double? lineWidthPoints) {
-            if (lineColor == null && lineWidthPoints == null) {
+        private static void ApplyGridlineStyle(OpenXmlCompositeElement gridlines, OfficeColor? lineColor, OfficeLength? lineWidth) {
+            if (lineColor == null && lineWidth == null) {
                 return;
             }
             C.ChartShapeProperties props = gridlines.GetFirstChild<C.ChartShapeProperties>() ?? new C.ChartShapeProperties();
-            string? normalizedLine = lineColor != null ? NormalizeHexColor(lineColor) : null;
-            ApplyOptionalLine(props, normalizedLine, lineWidthPoints);
+            OfficeColor? normalizedLine = lineColor != null ? lineColor : null;
+            ApplyOptionalLine(props, normalizedLine, lineWidth);
             if (props.Parent == null) {
                 gridlines.Append(props);
             }
@@ -279,9 +279,23 @@ namespace OfficeIMO.Excel {
             return props;
         }
 
-        private static void ApplySolidFill(OpenXmlCompositeElement props, string color) {
+        // Native theme slots remain linked; status roles are literal colors from the shared theme.
+        private static A.SolidFill CreateChartSolidFill(OfficeColor? color) {
+            OfficeColor value = color ?? throw new ArgumentNullException(nameof(color));
+            if (value.ThemeSlot is string slot) {
+                var scheme = new A.SchemeColor();
+                scheme.SetAttribute(new OpenXmlAttribute("val", string.Empty, slot));
+                return new A.SolidFill(scheme);
+            }
+            value = value.Resolve(OfficeTheme.Default);
+            var rgb = new A.RgbColorModelHex { Val = value.ToRgbHex() };
+            if (value.A != 255) rgb.Append(new A.Alpha { Val = (int)Math.Round(value.A * 100000D / 255) });
+            return new A.SolidFill(rgb);
+        }
+
+        private static void ApplySolidFill(OpenXmlCompositeElement props, OfficeColor? color) {
             RemoveShapeFillChoices(props);
-            InsertShapeFill(props, new A.SolidFill(new A.RgbColorModelHex { Val = color }));
+            InsertShapeFill(props, CreateChartSolidFill(color));
         }
 
         private static void RemoveShapeFillChoices(OpenXmlCompositeElement props) {
@@ -325,13 +339,13 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void ApplyTextSolidFill(A.TextCharacterPropertiesType props, string color) {
+        private static void ApplyTextSolidFill(A.TextCharacterPropertiesType props, OfficeColor? color) {
             props.RemoveAllChildren<A.SolidFill>();
             props.RemoveAllChildren<A.NoFill>();
             props.RemoveAllChildren<A.GradientFill>();
             props.RemoveAllChildren<A.PatternFill>();
 
-            var fill = new A.SolidFill(new A.RgbColorModelHex { Val = color });
+            var fill = CreateChartSolidFill(color);
             OpenXmlElement? insertBefore = props.ChildElements.FirstOrDefault(child =>
                 child is A.LatinFont
                 || child is A.EastAsianFont
@@ -348,13 +362,13 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void ApplyLine(OpenXmlCompositeElement props, string color, double? widthPoints) {
-            OfficeChartStyleBounds.ValidateLineWidth(widthPoints, nameof(widthPoints), allowZero: true);
+        private static void ApplyLine(OpenXmlCompositeElement props, OfficeColor? color, OfficeLength? width) {
+            OfficeChartStyleBounds.ValidateLineWidth(width?.ToPoints(), nameof(width), allowZero: true);
             A.Outline outline = props.GetFirstChild<A.Outline>() ?? new A.Outline();
             RemoveShapeFillChoices(outline);
-            outline.PrependChild(new A.SolidFill(new A.RgbColorModelHex { Val = color }));
-            if (widthPoints != null) {
-                outline.Width = (int)Math.Round(widthPoints.Value * 12700d);
+            outline.PrependChild(CreateChartSolidFill(color));
+            if (width != null) {
+                outline.Width = checked((int)width.Value.ToEmus());
             }
 
             if (outline.Parent == null) {
@@ -362,37 +376,37 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void ApplyOptionalLine(OpenXmlCompositeElement props, string? color, double? widthPoints) {
-            OfficeChartStyleBounds.ValidateLineWidth(widthPoints, nameof(widthPoints), allowZero: true);
+        private static void ApplyOptionalLine(OpenXmlCompositeElement props, OfficeColor? color, OfficeLength? width) {
+            OfficeChartStyleBounds.ValidateLineWidth(width?.ToPoints(), nameof(width), allowZero: true);
             A.Outline outline = props.GetFirstChild<A.Outline>() ?? new A.Outline();
             if (color != null) {
                 RemoveShapeFillChoices(outline);
-                outline.PrependChild(new A.SolidFill(new A.RgbColorModelHex { Val = color }));
+                outline.PrependChild(CreateChartSolidFill(color));
             }
-            if (widthPoints != null) {
-                outline.Width = (int)Math.Round(widthPoints.Value * 12700d);
+            if (width != null) {
+                outline.Width = checked((int)width.Value.ToEmus());
             }
             if (outline.Parent == null) {
                 InsertOutline(props, outline);
             }
         }
 
-        private static void ApplyMarker(C.Marker marker, OfficeChartMarkerShape style, int? size, string? fillColor, string? lineColor, double? lineWidthPoints) {
-            OfficeChartStyleBounds.ValidateLineWidth(lineWidthPoints, nameof(lineWidthPoints), allowZero: true);
-            if (size is < 2 or > 72) throw new ArgumentOutOfRangeException(nameof(size), "Native marker sizes must be between 2 and 72.");
+        private static void ApplyMarker(C.Marker marker, OfficeChartMarkerShape style, OfficeLength? size, OfficeColor? fillColor, OfficeColor? lineColor, OfficeLength? lineWidth) {
+            OfficeChartStyleBounds.ValidateLineWidth(lineWidth?.ToPoints(), nameof(lineWidth), allowZero: true);
+            if (size.HasValue && (size.Value < OfficeLength.Points(2) || size.Value > OfficeLength.Points(72))) throw new ArgumentOutOfRangeException(nameof(size), "Native marker sizes must be between 2 and 72.");
             marker.Symbol = new C.Symbol { Val = style.ToOpenXml() };
             if (size != null) {
-                marker.Size = new C.Size { Val = (byte)size.Value };
+                marker.Size = new C.Size { Val = checked((byte)decimal.Round(size.Value.ToEmus() / 12700m, 0, MidpointRounding.AwayFromZero)) };
             }
 
-            if (fillColor != null || lineColor != null || lineWidthPoints != null) {
+            if (fillColor != null || lineColor != null || lineWidth != null) {
                 C.ChartShapeProperties props = marker.ChartShapeProperties ?? new C.ChartShapeProperties();
                 if (fillColor != null) {
-                    ApplySolidFill(props, NormalizeHexColor(fillColor));
+                    ApplySolidFill(props, fillColor);
                 }
-                if (lineColor != null || lineWidthPoints != null) {
-                    string? normalizedLine = lineColor != null ? NormalizeHexColor(lineColor) : null;
-                    ApplyOptionalLine(props, normalizedLine, lineWidthPoints);
+                if (lineColor != null || lineWidth != null) {
+                    OfficeColor? normalizedLine = lineColor != null ? lineColor : null;
+                    ApplyOptionalLine(props, normalizedLine, lineWidth);
                 }
                 if (props.Parent == null) {
                     marker.Append(props);

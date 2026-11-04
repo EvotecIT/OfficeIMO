@@ -15,29 +15,29 @@ internal static partial class FixtureCorpus {
         Directory.CreateDirectory(output);
         const string family = "Consistency Sans";
         using (var word = WordDocument.Create()) {
-            word.Sections[0].PageSettings.PageSize = WordPageSize.Letter;
+            word.Sections[0].PageSetup.Size.PageSize = WordPageSize.Letter;
             for (int page = 1; page <= 2; page++) {
                 if (page > 1) word.AddPageBreak();
                 var heading = word.AddParagraph("SERVICE REVIEW " + page);
-                heading.FontFamily = family; heading.FontSize = 18;
+                heading.FontFamily = family; heading.FontSize = OfficeLength.Points(18);
                 var body = word.AddParagraph("Availability 99.95 percent. Reviewed actions: 12. Completed actions: 9.");
-                body.FontFamily = family; body.FontSize = 12;
+                body.FontFamily = family; body.FontSize = OfficeLength.Points(12);
             }
             word.Save(Path.Combine(output, "service-review.docx"));
-            word.ToOpenDocumentResult().Value.Save(Path.Combine(output, "service-review.odt"));
+            using (var converted = word.ToOpenDocument()) converted.Save(Path.Combine(output, "service-review.odt"));
         }
         using (var excel = ExcelDocument.Create()) {
             for (int page = 1; page <= 2; page++) {
-                var sheet = excel.AddWorksheet("Review " + page);
-                sheet.CellValue(1, 1, "SERVICE REVIEW " + page);
-                sheet.CellValue(2, 1, "Availability"); sheet.CellValue(2, 2, 99.95D);
-                sheet.CellValue(3, 1, "Completed"); sheet.CellValue(3, 2, 9);
-                // Author the existing 304px canvas using stored widths, which already
-                // include padding: 196px in column A and 108px in column B at 7px/digit.
-                sheet.SetColumnWidth(1, 28); sheet.SetColumnWidth(2, 108D / 7D);
+                var sheet = excel.AddSheet("Review " + page);
+                sheet.Cell(1, 1).SetValue("SERVICE REVIEW " + page);
+                sheet.Cell(2, 1).SetValue("Availability"); sheet.Cell(2, 2).SetValue(99.95D);
+                sheet.Cell(3, 1).SetValue("Completed"); sheet.Cell(3, 2).SetValue(9);
+                // The pinned Open Sans font has an 8px maximum digit advance at 11pt.
+                // Stored widths include padding: retain the 196px + 108px authored canvas.
+                sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(196D / 8D)); sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(108D / 8D));
                 for (int row = 1; row <= 3; row++) {
-                    sheet.SetRowHeight(row, 24);
-                    for (int column = 1; column <= 2; column++) sheet.CellFontName(row, column, family);
+                    sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
+                    for (int column = 1; column <= 2; column++) sheet.Cell(row, column).SetFontName(family);
                 }
             }
             // Column units also use workbook font zero, independently of painted cell
@@ -46,20 +46,20 @@ internal static partial class FixtureCorpus {
                 .Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().First();
             defaultFont.FontName = new DocumentFormat.OpenXml.Spreadsheet.FontName { Val = family };
             excel.Save(Path.Combine(output, "service-review.xlsx"));
-            excel.ToOpenDocumentResult().Value.Save(Path.Combine(output, "service-review.ods"));
+            using (var converted = excel.ToOpenDocument()) converted.Save(Path.Combine(output, "service-review.ods"));
         }
-        using (var presentation = PowerPointPresentation.Create()) {
-            presentation.SlideSize.WidthCm = 12.7;
-            presentation.SlideSize.HeightCm = 8.4666666667;
+        using (var presentation = PowerPointDocument.Create()) {
+            presentation.SlideSize.Width= OfficeIMO.OfficeLength.Centimeters(12.7);
+            presentation.SlideSize.Height= OfficeIMO.OfficeLength.Centimeters(8.4666666667);
             for (int page = 1; page <= 2; page++) {
                 var slide = presentation.AddSlide();
-                var heading = slide.AddTextBoxPoints("SERVICE REVIEW " + page, 18, 18, 320, 30);
-                heading.FontName = family; heading.FontSize = 18;
-                var body = slide.AddTextBoxPoints("Completed actions: 9 of 12", 18, 66, 320, 30);
-                body.FontName = family; body.FontSize = 12;
+                var heading = slide.AddTextBox("SERVICE REVIEW " + page,global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(320),global::OfficeIMO.OfficeLength.Points(30));
+                heading.FontFamily = family; heading.FontSize = OfficeLength.Points(18);
+                var body = slide.AddTextBox("Completed actions: 9 of 12",global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(66),global::OfficeIMO.OfficeLength.Points(320),global::OfficeIMO.OfficeLength.Points(30));
+                body.FontFamily = family; body.FontSize = OfficeLength.Points(12);
             }
             presentation.Save(Path.Combine(output, "service-review.pptx"));
-            presentation.ToOpenDocumentResult().Value.Save(Path.Combine(output, "service-review.odp"));
+            using (var converted = presentation.ToOpenDocument()) converted.Save(Path.Combine(output, "service-review.odp"));
         }
         var section = new OneNoteSection { Name = "Service review" };
         for (int number = 1; number <= 2; number++) {
@@ -88,9 +88,12 @@ internal static partial class FixtureCorpus {
                         "The native OneNote visual PDF contains raster pages and has no searchable text layer. SVG labels and PDF pixels are checked.",
                         "The OneNote title requests bold. This regular-face fixture profile deliberately exercises synthetic bold and accepts the reported substitution to its pinned regular face."
                     } : new(),
-                AllowedDiagnostics = item.Item1 == "ods" ? new() { "ODF_IMAGE_COLUMN_LAYOUT_APPROXIMATED", "ODF_IMAGE_CELL_STYLES_APPROXIMATED" }
-                    : item.Item1 == "one" ? new() { "IMAGE_FONT_SUBSTITUTED" }
-                    : item.Item1 == "odp" ? new() { "ODF_IMAGE_MASTERS_LAYOUTS_APPROXIMATED" } : new(),
+                AllowedDiagnostics = item.Item1 == "ods" ? new() {
+                    "ODF_CONVERTED", "ODF_APPROXIMATED:column-layout", "ODF_APPROXIMATED:cell-styles",
+                    "ODF_IMAGE_COLUMN_LAYOUT_APPROXIMATED", "ODF_IMAGE_CELL_STYLES_APPROXIMATED"
+                } : item.Item1 == "one" ? new() { global::OfficeIMO.OfficeDiagnosticCodes.FontFamilySubstitution }
+                    : item.Item1 == "odp" ? new() { "ODF_CONVERTED", "ODF_IMAGE_MASTERS_LAYOUTS_APPROXIMATED" }
+                    : item.Item1 == "odt" ? new() { "ODF_CONVERTED" } : new(),
                 Pages = Enumerable.Range(1,2).Select(number => new PageExpectation {
                     Width = item.Item2, Height = item.Item3,
                     PdfWidth = item.Item1 is "xlsx" or "ods" ? 816 : null,

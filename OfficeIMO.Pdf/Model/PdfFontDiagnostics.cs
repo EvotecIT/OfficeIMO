@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Provides reusable font preflight helpers for generated PDF output.
 /// </summary>
-public static class PdfFontDiagnostics {
+internal static class PdfFontDiagnostics {
     private const uint TrueTypeScalerType = 0x00010000;
     private const uint AppleTrueTypeScalerType = 0x74727565;
     private const uint OpenTypeCffScalerType = 0x4F54544F;

@@ -5,7 +5,7 @@ using System.IO;
 namespace OfficeIMO.Excel.GoogleSheets {
     internal static partial class GoogleSheetsBatchCompiler {
         private static GoogleSheetsCellValue BuildCellValue(
-            ExcelCellSnapshot cell,
+            ExcelCellInfo cell,
             GoogleSheetsFormulaOptions formulaOptions) {
             if (!string.IsNullOrWhiteSpace(cell.Formula)) {
                 GoogleSheetsFormulaTranslation translation = GoogleSheetsFormulaCatalog.Translate(cell.Formula!, formulaOptions);
@@ -45,7 +45,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             return GoogleSheetsCellValue.String(Convert.ToString(typedValue, System.Globalization.CultureInfo.InvariantCulture));
         }
 
-        private static string? GetNumberFormatHint(object? typedValue, ExcelCellStyleSnapshot? style) {
+        private static string? GetNumberFormatHint(object? typedValue, ExcelCellStyleInfo? style) {
             if (style?.IsDateLike == true || typedValue is DateTime || typedValue is DateTimeOffset) {
                 return "DateTime";
             }
@@ -57,7 +57,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             return null;
         }
 
-        private static GoogleSheetsCellStyle? BuildCellStyle(ExcelCellStyleSnapshot? style) {
+        private static GoogleSheetsCellStyle? BuildCellStyle(ExcelCellStyleInfo? style) {
             if (style == null) {
                 return null;
             }
@@ -72,7 +72,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 Underline = style.Underline,
                 Strikethrough = style.Strikethrough,
                 FontName = style.FontName,
-                FontSize = style.FontSize,
+                FontSize = style.FontSize?.ToPoints(),
                 FontColorArgb = style.FontColorArgb,
                 FillColorArgb = style.FillColorArgb,
                 Borders = BuildBorders(style.Border),
@@ -84,7 +84,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             };
         }
 
-        private static GoogleSheetsCellBorders? BuildBorders(ExcelCellBorderSnapshot? border) {
+        private static GoogleSheetsCellBorders? BuildBorders(ExcelCellBorderInfo? border) {
             if (border == null) {
                 return null;
             }
@@ -106,7 +106,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             };
         }
 
-        private static GoogleSheetsBorderSide? BuildBorderSide(ExcelBorderSideSnapshot? side) {
+        private static GoogleSheetsBorderSide? BuildBorderSide(ExcelBorderSideInfo? side) {
             if (side == null) {
                 return null;
             }
@@ -121,7 +121,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             };
         }
 
-        private static GoogleSheetsHyperlink? BuildHyperlink(ExcelHyperlinkSnapshot? hyperlink) {
+        private static GoogleSheetsHyperlink? BuildHyperlink(ExcelHyperlinkInfo? hyperlink) {
             if (hyperlink == null) {
                 return null;
             }
@@ -132,7 +132,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             };
         }
 
-        private static GoogleSheetsComment? BuildComment(ExcelCommentSnapshot? comment) {
+        private static GoogleSheetsComment? BuildComment(ExcelCommentInspectionInfo? comment) {
             if (comment == null || string.IsNullOrWhiteSpace(comment.Text)) {
                 return null;
             }
@@ -156,7 +156,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                         Underline = run.Underline,
                         Strikethrough = run.Strikethrough,
                         FontName = run.FontName,
-                        FontSize = run.FontSize,
+                        FontSize = run.FontSize?.ToPoints(),
                         FontColorArgb = run.FontColor,
                     },
                 });

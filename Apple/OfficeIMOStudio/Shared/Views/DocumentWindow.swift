@@ -8,6 +8,7 @@ struct DocumentWindow: View {
     @State private var isAddingNote = false
     #if os(macOS)
     @Environment(\.newDocument) private var newDocument
+    @Environment(\.dismissWindow) private var dismissWindow
     #endif
     @State private var noteText = ""
     @State private var importPassword = ""
@@ -39,12 +40,17 @@ struct DocumentWindow: View {
             #if os(macOS)
             // Continuity Camera delivers here; a scan becomes a new document rather than changing this one.
             .importsItemProviders([.image]) { ScanSources.newDocument(from: $0, newDocument) }
+            .onAppear { dismissWindow(id: StartWindow.id) }
             #endif
             .focusedSceneValue(\.documentSession, session)
             .task {
                 if session.isPageListShown == nil { session.isPageListShown = !isCompact }
                 session.undoManager = undoManager
                 await session.load(originalURL: fileURL)
+                #if os(iOS)
+                session.transientNotice = LaunchDocuments.pendingNotice
+                LaunchDocuments.pendingNotice = nil
+                #endif
             }
             .onChange(of: undoManager) { session.undoManager = undoManager }
             .onChange(of: fileURL) { _, url in Task { await session.updateOriginalURL(url) } }
@@ -237,10 +243,46 @@ struct DocumentWindow: View {
                 Text(message)
             }
         case .ready:
-            switch session.task {
-            case .read, .markup: ReadView(session: session)
-            case .pages: PagesTaskView(session: session, isCompact: isCompact)
+            VStack(spacing: 0) {
+                taskHeader
+                switch session.task {
+                case .read, .markup: ReadView(session: session)
+                case .pages: PagesTaskView(session: session, isCompact: isCompact)
+                }
             }
+            .onChange(of: session.task) { _, task in
+                if task == .markup, session.formFields(session.currentPage)?.fields.contains(where: \.isFillable) == true {
+                    session.transientNotice = String(localized: "To fill in the form, go back to Read.")
+                }
+            }
+            .task(id: session.transientNotice) {
+                guard session.transientNotice != nil else { return }
+                try? await Task.sleep(for: .seconds(5))
+                if !Task.isCancelled { session.transientNotice = nil }
+            }
+        }
+    }
+
+    /// What sits above the pages: the tasks on iPad and iPhone, search when it is open, and short notices.
+    @ViewBuilder private var taskHeader: some View {
+        #if os(iOS)
+        if session.task != .markup {
+            Picker("Task", selection: $session.task) {
+                ForEach(StudioTask.allCases) { Text($0.title).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 6)
+        }
+        if session.isSearchFocused, session.task != .pages { SearchField(session: session) }
+        #endif
+        if let notice = session.transientNotice {
+            Label(notice, systemImage: "info.circle")
+                .font(.callout)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .glassEffect(.regular, in: .capsule)
+                .padding(.vertical, 6)
         }
     }
 
@@ -319,8 +361,10 @@ struct ReadView: View {
                 }
                 .padding(.bottom, 12)
             }
+            #if os(macOS)
             .searchable(text: $session.searchText, isPresented: $session.isSearchFocused, prompt: Text("Search"))
             .onSubmit(of: .search) { session.runSearch() }
+            #endif
             .onChange(of: session.searchText) { _, text in
                 if text.isEmpty { session.clearSearch() }
             }
@@ -356,6 +400,39 @@ struct ReadView: View {
 }
 
 /// The search hit count with previous and next, as Safari and Preview show it while finding.
+#if os(iOS)
+/// The search field on iPad and iPhone, under the navigation bar while search is open.
+private struct SearchField: View {
+    @Bindable var session: DocumentSession
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Label("Search", systemImage: "magnifyingglass").labelStyle(.iconOnly).foregroundStyle(.secondary)
+            TextField("Search", text: $session.searchText)
+                .focused($isFocused)
+                .submitLabel(.search)
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+                .onSubmit { session.runSearch() }
+            Button("Done", systemImage: "xmark.circle.fill") {
+                session.searchText = ""
+                session.clearSearch()
+                session.isSearchFocused = false
+            }
+            .labelStyle(.iconOnly)
+            .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .glassEffect(.regular, in: .capsule)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 6)
+        .onAppear { isFocused = true }
+    }
+}
+#endif
+
 struct FindBar: View {
     let session: DocumentSession
 

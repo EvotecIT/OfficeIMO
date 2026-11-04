@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 namespace OfficeIMO.Visio;
 
 /// <summary>Format-neutral image export for Visio documents and pages.</summary>
-public static class VisioImageExportExtensions {
+public static partial class VisioImageExportExtensions {
     /// <summary>Exports a Visio page to a supported raster format or SVG.</summary>
     public static OfficeImageExportResult ExportImage(
         this VisioPage page,
@@ -109,38 +109,6 @@ public static class VisioImageExportExtensions {
     /// <summary>Renders the selected Visio document page to lossless WebP bytes.</summary>
     public static byte[] ToWebp(this VisioDocument document, VisioImageExportOptions? options = null) =>
         document.ExportImage(OfficeImageExportFormat.Webp, options).Bytes;
-
-    /// <summary>Saves selected document pages to a folder as PNG files.</summary>
-    public static IReadOnlyList<OfficeImageExportResult> SaveAsImages(
-        this VisioDocument document,
-        string folderPath,
-        VisioImageExportOptions? options = null) =>
-        new VisioDocumentImageBatchExportBuilder(document, options).AsPng().Save(folderPath);
-
-    /// <summary>Saves selected document pages to a folder in the requested image format.</summary>
-    public static IReadOnlyList<OfficeImageExportResult> SaveAsImages(
-        this VisioDocument document,
-        string folderPath,
-        OfficeImageExportFormat format,
-        VisioImageExportOptions? options = null) =>
-        new VisioDocumentImageBatchExportBuilder(document, options).As(format).Save(folderPath);
-
-    /// <summary>Asynchronously saves selected document pages to a folder as PNG files.</summary>
-    public static Task<IReadOnlyList<OfficeImageExportResult>> SaveAsImagesAsync(
-        this VisioDocument document,
-        string folderPath,
-        VisioImageExportOptions? options = null,
-        CancellationToken cancellationToken = default) =>
-        new VisioDocumentImageBatchExportBuilder(document, options).AsPng().SaveAsync(folderPath, cancellationToken);
-
-    /// <summary>Asynchronously saves selected document pages to a folder in the requested image format.</summary>
-    public static Task<IReadOnlyList<OfficeImageExportResult>> SaveAsImagesAsync(
-        this VisioDocument document,
-        string folderPath,
-        OfficeImageExportFormat format,
-        VisioImageExportOptions? options = null,
-        CancellationToken cancellationToken = default) =>
-        new VisioDocumentImageBatchExportBuilder(document, options).As(format).SaveAsync(folderPath, cancellationToken);
 
     private static VisioImageExportOptions Normalize(VisioImageExportOptions? options) {
         VisioImageExportOptions resolved = options?.Clone() ?? new VisioImageExportOptions();

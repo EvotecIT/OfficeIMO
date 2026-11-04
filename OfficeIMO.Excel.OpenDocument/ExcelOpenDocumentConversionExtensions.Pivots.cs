@@ -5,7 +5,7 @@ using OfficeIMO.Spreadsheet;
 namespace OfficeIMO.Excel.OpenDocument;
 
 public static partial class ExcelOpenDocumentConversionExtensions {
-    private static int ConvertExcelPivots(ExcelDocument source, ExcelWorkbookSnapshot snapshot,
+    private static int ConvertExcelPivots(ExcelDocument source, ExcelWorkbookInfo snapshot,
         OdsDocument target, ExcelOpenDocumentConversionOptions options,
         IReadOnlyDictionary<string, HashSet<(int Row, int Column)>> convertedCellsBySheet) {
         int converted = 0;
@@ -48,7 +48,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         var omittedCellsBySheet = new Dictionary<string, List<(int Row, int Column)>>(StringComparer.Ordinal);
         var headersBySheet = new Dictionary<string, Dictionary<int, List<(int Column, string Name)>>>(StringComparer.Ordinal);
         SharedStringCache? sharedStrings = null;
-        foreach (ExcelWorksheetSnapshot worksheet in snapshot.Worksheets) {
+        foreach (ExcelWorksheetInfo worksheet in snapshot.Worksheets) {
             if (!neededHeaderRows.ContainsKey(worksheet.Name)) continue;
             if (!convertedCellsBySheet.TryGetValue(worksheet.Name, out HashSet<(int Row, int Column)>? convertedCells)) continue;
             ExcelSheet? sourceSheet = source.Sheets.FirstOrDefault(sheet =>
@@ -57,7 +57,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             var headerRows = new Dictionary<int, List<(int Column, string Name)>>();
             neededHeaderRows.TryGetValue(worksheet.Name, out HashSet<int>? neededRows);
             rangeIndexes.TryGetValue(worksheet.Name, out PivotRangeIndex? rangeIndex);
-            foreach (ExcelCellSnapshot cell in worksheet.Cells) {
+            foreach (ExcelCellInfo cell in worksheet.Cells) {
                 if (rangeIndex == null) continue;
                 bool relevant = rangeIndex.Intersects(cell.Row, cell.Row, cell.Column, cell.Column, ref remainingIndexWork);
                 if (remainingIndexWork <= 0) return 0;
@@ -111,7 +111,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
     }
 
     private static bool TryGetExcelPivotRanges(ExcelPivotTableInfo pivot,
-        ExcelOpenDocumentConversionOptions options, ExcelWorkbookSnapshot snapshot, OdsDocument target,
+        ExcelOpenDocumentConversionOptions options, ExcelWorkbookInfo snapshot, OdsDocument target,
         IReadOnlyDictionary<string, List<(int Row, int Column)>> omittedCellsBySheet,
         IReadOnlyDictionary<string, Dictionary<int, List<(int Column, string Name)>>> headersBySheet,
         IReadOnlyDictionary<string, PivotRangeIndex> mergeIndexes, ref long remainingIndexWork,
@@ -127,7 +127,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             || destination.End.Row > options.MaximumRows || destination.End.Column > options.MaximumColumns
             || source.End.Row < source.Start.Row || source.End.Column < source.Start.Column
             || destination.End.Row < destination.Start.Row || destination.End.Column < destination.Start.Column) return false;
-        ExcelWorksheetSnapshot? sourceSheet = snapshot.Worksheets.FirstOrDefault(item =>
+        ExcelWorksheetInfo? sourceSheet = snapshot.Worksheets.FirstOrDefault(item =>
             string.Equals(item.Name, pivot.SourceSheet, StringComparison.OrdinalIgnoreCase));
         if (sourceSheet == null || !omittedCellsBySheet.TryGetValue(sourceSheet.Name, out List<(int Row, int Column)>? omitted)) return false;
         if (!headersBySheet.TryGetValue(sourceSheet.Name, out Dictionary<int, List<(int Column, string Name)>>? headerRows)
@@ -310,9 +310,13 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 || (sourceIndexes.TryGetValue(pair.Source.Name, out PivotRangeIndex? sourceIndex)
                     && sourceIndex.Intersects(destinationRow, generatedLastRow, destinationColumn, generatedLastColumn, ref remainingCollisionWork))) continue;
             try {
-                pair.Target.AddPivotTable(sourceRange!, destination!, pivot.Name,
-                    rowFields: rows, columnFields: columns, dataFields: data,
-                    layout: ExcelPivotLayout.Outline);
+                pair.Target.AddPivotTable(sourceRange!, destination!, options: new ExcelPivotTableOptions {
+                    Name = pivot.Name,
+                    RowFields = rows,
+                    ColumnFields = columns,
+                    DataFields = data,
+                    Layout = ExcelPivotLayout.Outline
+                });
                 convertedNames.Add(pivot.Name);
                 generatedIndexes[pair.Source.Name].Enable(pivot);
                 converted++;

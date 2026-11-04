@@ -36,7 +36,7 @@ internal static partial class PdfStaticFormRecognizer {
             if (item.PageNumber > document.Pages.Count) throw new ArgumentOutOfRangeException(nameof(ocrText), "OCR evidence names a page outside the PDF.");
         }
 
-        PdfDocumentReadResult logical = PdfDocumentReadEngine.Read(document, new PdfReadOptions {
+        PdfDocumentReadResult logical = PdfDocumentReadEngine.Read(document, new PdfLoadOptions {
             Profile = PdfReadProfile.Fast,
             PageSelection = PdfPageSelection.From(pageNumbers),
             Pipeline = new PdfUnderstandingPipelineOptions { MaxPages = effective.MaxPages }
@@ -289,7 +289,7 @@ internal static partial class PdfStaticFormRecognizer {
     private static bool IsEmptyFill(PdfPageVisualPrimitive primitive) =>
         primitive.FillOpacity == 0D || !primitive.HasFillPaint ||
         primitive.FillGradient is null && primitive.FillRadialGradient is null && primitive.FillTilingPattern is null &&
-        primitive.FillColor is OfficeIMO.Drawing.OfficeColor color && color.R >= 245 && color.G >= 245 && color.B >= 245;
+        primitive.FillColor is OfficeIMO.OfficeColor color && color.R >= 245 && color.G >= 245 && color.B >= 245;
 
     private static bool IsOpaqueWhiteFill(PdfPageVisualPrimitive primitive) =>
         IsOpaqueCover(primitive) &&

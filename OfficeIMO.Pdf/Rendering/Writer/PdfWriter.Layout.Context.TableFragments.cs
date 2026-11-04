@@ -59,23 +59,23 @@ internal static partial class PdfWriter {
             int row = start.Row, line = start.Line;
             bool tail = start.SpanTail, initial = position == null;
             IReadOnlyDictionary<int, CellFlowCursor>? cellsPosition = start.Cells;
-            double before = initial ? style.SpacingBefore : 0D, used = before;
+            double before = initial ? style.SpacingBefore.ToPoints() : 0D, used = before;
             double gap = prepared.Gap;
-            bool keepWhole = style.KeepTogether && style.SpacingBefore +
-                GetTableRowsHeight(prepared.Rows.Heights, 0, table.Rows.Count, gap) + style.SpacingAfter <= fullHeight + .001D;
+            bool keepWhole = style.KeepTogether && style.SpacingBefore.ToPoints() +
+                GetTableRowsHeight(prepared.Rows.Heights, 0, table.Rows.Count, gap) + style.SpacingAfter.ToPoints() <= fullHeight + .001D;
             if (keepWhole) minimumOnly = false;
             int repeated = !initial && row >= style.HeaderRowCount ? GetTableRepeatHeaderRowCount(style) : 0;
             double repeatedHeight = 0D;
             for (int header = 0; header < repeated; header++)
                 repeatedHeight += rows.Heights[header] + GetTableRowGapAfter(header, table.Rows.Count, gap);
             double textFrameHeight = Math.Max(0D, fullHeight - repeatedHeight);
-            if (!initial && style.PageContinuationSpacingBefore > 0D) {
+            if (!initial && style.PageContinuationSpacingBefore.ToPoints() > 0D) {
                 double required = geometry.CellFlows.ContainsKey(row)
                     ? PlanContainedCellRow(geometry, row, cellsPosition, double.PositiveInfinity, textFrameHeight, true, out _)?.Height ?? 0D
                     : tail ? MeasureTableSpanRemainderHeight(spans, style, rows, prepared.Widths, gap, row,
                     minimumFragmentFrameHeight: textFrameHeight) : MeasurePreparedTableRowSegmentHeight(table, style, rows,
                     columns, prepared.Widths, gap, row, line, 1, false);
-                before = Math.Min(style.PageContinuationSpacingBefore, Math.Max(0D, available - repeatedHeight - required));
+                before = Math.Min(style.PageContinuationSpacingBefore.ToPoints(), Math.Max(0D, available - repeatedHeight - required));
                 used = before;
             }
             for (int header = 0; header < repeated; header++) {
@@ -101,10 +101,10 @@ internal static partial class PdfWriter {
                     if (firstRows > 0 && firstHeight <= textFrameHeight + .001D && firstHeight > room + .001D) break;
                     int lastRows = Math.Min(style.MinimumBodyRowsOnLastPage, Math.Max(0, footerStart - style.HeaderRowCount));
                     if (cellsPosition == null && lastRows > 0 && footerStart - row == lastRows) {
-                        double lastHeight = GetTableRowsHeight(rows.Heights, row, table.Rows.Count - row, gap) + style.SpacingAfter;
+                        double lastHeight = GetTableRowsHeight(rows.Heights, row, table.Rows.Count - row, gap) + style.SpacingAfter.ToPoints();
                         if (lastHeight <= textFrameHeight + .001D && lastHeight > room + .001D) break;
                     }
-                    if (row == table.Rows.Count - 1) room = Math.Max(0D, room - style.SpacingAfter - finalOutset);
+                    if (row == table.Rows.Count - 1) room = Math.Max(0D, room - style.SpacingAfter.ToPoints() - finalOutset);
                     TableRowSlice? contained = PlanContainedCellRow(geometry, row, cellsPosition, room, textFrameHeight,
                         minimumOnly, out var nextCells);
                     if (contained == null) break;
@@ -123,8 +123,8 @@ internal static partial class PdfWriter {
                 int take;
                 if (tail) {
                     double required = MeasureTableSpanRemainderHeight(spans, style, rows, prepared.Widths, gap, row);
-                    if (row == table.Rows.Count - 1 && required + style.SpacingAfter + finalOutset > room + .001D)
-                        room = Math.Max(0D, room - style.SpacingAfter - finalOutset);
+                    if (row == table.Rows.Count - 1 && required + style.SpacingAfter.ToPoints() + finalOutset > room + .001D)
+                        room = Math.Max(0D, room - style.SpacingAfter.ToPoints() - finalOutset);
                     height = Math.Min(required, room);
                     bool progress = spans.ActiveCells.Any(span => span.EndRow == row + 1 &&
                         GetTableSpanAdmittedLineCount(span, style, rows, textFrameHeight, 0D, height, span.ProcessedHeight,
@@ -134,14 +134,14 @@ internal static partial class PdfWriter {
                 } else {
                     height = MeasurePreparedTableRowSegmentHeight(table, style, rows, columns, prepared.Widths,
                         gap, row, line, remaining, false);
-                    if (row == table.Rows.Count - 1 && height + style.SpacingAfter + finalOutset > room + .001D)
-                        room = Math.Max(0D, room - style.SpacingAfter - finalOutset);
+                    if (row == table.Rows.Count - 1 && height + style.SpacingAfter.ToPoints() + finalOutset > room + .001D)
+                        room = Math.Max(0D, room - style.SpacingAfter.ToPoints() - finalOutset);
                     int minimumRows = initial && row == 0
                         ? Math.Min(table.Rows.Count, style.HeaderRowCount + style.MinimumBodyRowsOnFirstPage) : 0;
                     double groupHeight = GetTableRowsHeight(rows.Heights, row, minimumRows, gap);
                     int finalMinimum = Math.Min(style.MinimumBodyRowsOnLastPage, Math.Max(0, footerStart - style.HeaderRowCount));
                     if (line == 0 && finalMinimum > 0 && footerStart - row == finalMinimum) {
-                        double finalHeight = GetTableRowsHeight(rows.Heights, row, table.Rows.Count - row, gap) + style.SpacingAfter;
+                        double finalHeight = GetTableRowsHeight(rows.Heights, row, table.Rows.Count - row, gap) + style.SpacingAfter.ToPoints();
                         if (finalHeight <= textFrameHeight + .001D && finalHeight > room + .001D) break;
                     }
                     if (minimumRows > 0 && groupHeight <= textFrameHeight + .001D && groupHeight > room + .001D) break;
@@ -196,7 +196,7 @@ internal static partial class PdfWriter {
             if (row < table.Rows.Count && tail && GetTableSpanRemainingLineCount(spans, rows, row) == 0) {
                 row++; line = 0; tail = false;
             }
-            double after = row == table.Rows.Count ? style.SpacingAfter : 0D;
+            double after = row == table.Rows.Count ? style.SpacingAfter.ToPoints() : 0D;
             if (used + after + (row == table.Rows.Count ? finalOutset : 0D) > available + .001D) return null;
             if (keepWhole && row < table.Rows.Count) return null;
             return new TableFragmentPlan(geometry, start, new TableFlowCursor(row, line, spans, tail, cellsPosition), slices,
@@ -225,24 +225,26 @@ internal static partial class PdfWriter {
             TableBlock table = geometry.Table;
             PdfTableStyle style = geometry.Style;
             TableSpanFlow spans = plan.Start.Spans.CloneCursor();
-            double left = ResolveTableX(table.Align, style, (originX ?? currentOpts.MarginLeft) + frameX, frameWidth, geometry.Width);
+            double left = ResolveTableX(table.Align, style, (originX ?? currentOpts.MarginLeft.ToPoints()) + frameX, frameWidth, geometry.Width);
             int? parent = structureParent ?? (noteContext ? RegisterStructureContainer("Note") : null);
             int? structure = RegisterStructureContainer("Table", parent, alternativeText: style.AlternativeText);
             StringBuilder? paired = null;
             top -= plan.Before;
+            var collapsedBorders = style.CollapseHorizontalCellBorders ? new CollapsedTableBorders() : null;
             foreach (TableRowSlice slice in plan.Slices) {
                 cancellationToken.ThrowIfCancellationRequested();
-                PaintPreparedTableRow(geometry, spans, slice, left, top, structure, ref paired);
+                PaintPreparedTableRow(geometry, spans, slice, left, top, structure, ref paired, collapsedBorders: collapsedBorders);
                 if (slice.CompletedSpans != null)
                     FlushTableSpanFragments(table, style, spans, geometry.Rows, geometry.Widths, geometry.Gap, geometry.Gap,
                         left, structure, ref paired, slice.Row, geometry.CornerRadius, plan.FullHeight,
-                        acceptedLineCounts: slice.CompletedSpans);
+                        acceptedLineCounts: slice.CompletedSpans, collapsedBorders: collapsedBorders);
                 top -= slice.Height + slice.GapAfter;
             }
             FlushTableSpanFragments(table, style, spans, geometry.Rows, geometry.Widths, geometry.Gap, geometry.Gap,
                 left, structure, ref paired, cornerRadius: geometry.CornerRadius, fullFrameHeight: plan.FullHeight,
-                acceptedLineCounts: plan.FinalSpans);
+                acceptedLineCounts: plan.FinalSpans, collapsedBorders: collapsedBorders);
             if (paired != null) sb.Append(paired);
+            collapsedBorders?.Flush(sb);
             top -= plan.After;
         }
     }

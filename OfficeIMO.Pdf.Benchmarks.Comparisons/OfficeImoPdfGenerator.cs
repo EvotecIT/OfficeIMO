@@ -6,9 +6,9 @@ namespace OfficeIMO.Pdf.Benchmarks.Comparisons;
 
 internal static class OfficeImoPdfGenerator {
     internal static byte[] Generate(PdfBenchmarkScenario scenario) {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             CompressContentStreams = true,
-            DefaultFontSize = 9,
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9),
             FileVersion = PdfFileVersion.Pdf17,
             ObjectSerializationMode = PdfObjectSerializationMode.ForwardOnly
         };
@@ -21,9 +21,9 @@ internal static class OfficeImoPdfGenerator {
                 content.H1(scenario.PageTitle(page));
                 for (int paragraph = 0; paragraph < scenario.ParagraphsPerPage; paragraph++) {
                     string narrative = scenario.Narrative(page, paragraph);
-                    content.Paragraph(builder => builder.Text(narrative));
+                    content.AddParagraph(builder => builder.AddText(narrative));
                 }
-                content.Table(scenario.TableRows(page));
+                content.AddTable(scenario.TableRows(page));
                 if (page < scenario.PageCount) {
                     content.PageBreak();
                 }
@@ -33,9 +33,9 @@ internal static class OfficeImoPdfGenerator {
         return document.ToBytes();
     }
 
-    internal static byte[] GenerateHtml(string html, PdfEmbeddedFontFamily? fontFamily = null) =>
-        HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
-            FontFamily = fontFamily
-        });
-
+    internal static byte[] GenerateHtml(string html, PdfEmbeddedFontFamily? fontFamily = null) {
+        HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
+        using PdfDocument document = source.ToPdf(new HtmlPdfExportOptions { FontFamily = fontFamily });
+        return document.ToBytes();
+    }
 }

@@ -17,7 +17,7 @@ public sealed class Markdown_Reader_Performance_Contract_Tests {
 #if MARKDOWN_PERFORMANCE_EVIDENCE
         long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
 #endif
-        MarkdownParseResult result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
+        MarkdownParseInfo result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 #if MARKDOWN_PERFORMANCE_EVIDENCE
         long allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
 #endif

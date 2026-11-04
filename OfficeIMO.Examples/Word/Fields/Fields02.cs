@@ -21,14 +21,14 @@ namespace OfficeIMO.Examples.Word {
                 // Ensure headers/footers exist when needed; OrCreate accessors will create on demand
 
                 // added page number using fields which triggers fields refresh
-                document.AddField(WordFieldType.Page).AddText(" of ").AddField(WordFieldType.NumPages);
+                document.AddField(WordFieldType.Page).Paragraph.AddText(" of ").AddField(WordFieldType.NumPages);
 
                 document.AddField(WordFieldType.Author);
 
                 document.AddField(WordFieldType.GreetingLine);
 
                 // added page number using dedicated way
-                var pageNumber = document.HeaderDefaultOrCreate.AddPageNumber(WordPageNumberStyle.Roman);
+                var pageNumber = document.PageSetup.Header.AddPageNumber(WordPageNumberStyle.Roman);
 
                 document.Save();
                 if (openWord) document.OpenInApplication();

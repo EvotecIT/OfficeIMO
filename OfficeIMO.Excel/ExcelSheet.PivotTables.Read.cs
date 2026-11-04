@@ -281,17 +281,17 @@ namespace OfficeIMO.Excel {
             int index = 0;
             foreach (var field in cacheDef.CacheFields.Elements<CacheField>()) {
                 RangeProperties? range = field.FieldGroup?.GetFirstChild<RangeProperties>();
-                if (range != null) {
+                if (range != null || field.FieldGroup?.GetFirstChild<DiscreteProperties>() != null) {
                     list.Add(new ExcelPivotGroupingInfo(
                         ResolveFieldName(index, cacheFields),
-                        range.GroupBy?.Value.ToOfficeEnum(),
-                        range.StartDate?.Value,
-                        range.EndDate?.Value,
-                        range.StartNumber?.Value,
-                        range.EndNum?.Value,
-                        range.GroupInterval?.Value,
-                        range.AutoStart?.Value,
-                        range.AutoEnd?.Value,
+                        range?.GroupBy?.Value.ToOfficeEnum(),
+                        range?.StartDate?.Value,
+                        range?.EndDate?.Value,
+                        range?.StartNumber?.Value,
+                        range?.EndNum?.Value,
+                        range?.GroupInterval?.Value,
+                        range?.AutoStart?.Value,
+                        range?.AutoEnd?.Value,
                         ResolveGroupItems(field.FieldGroup?.GetFirstChild<GroupItems>()),
                         field.FieldGroup?.Base?.Value,
                         field.FieldGroup?.ParentId?.Value));

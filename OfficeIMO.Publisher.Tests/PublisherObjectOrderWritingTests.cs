@@ -22,19 +22,19 @@ public sealed class PublisherObjectOrderWritingTests {
             Assert.Equal(target[i], PublisherMixedObjectOrderTests.Order(d.Pages[i]));
             Assert.Equal(reversed ? normal[i].AsEnumerable().Reverse() : normal[i], snapshots[i].ObjectIds);
         }
-        Assert.Throws<OfficeConversionException>(() => d.ToPubBytes());
-        var result = d.ToPubBytesResult(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
-        Assert.False(result.Report.HasErrors); Assert.False(result.Report.IsExactSourceCopy);
-        Assert.Contains(result.Report.FidelityDiagnostics, x => x.Code == "PUB_NATIVE_OBJECT_ORDER_UNQUALIFIED");
-        var loaded = PublisherDocument.Load(result.Value);
+        Assert.Throws<OfficeConversionException>(() => d.ToBytes());
+        byte[] savedBytes = d.ToBytes(new PublisherSaveOptions { AllowLoss = true }, out PublisherSaveReport saveReport);
+        Assert.False(saveReport.HasErrors); Assert.False(saveReport.IsExactSourceCopy);
+        Assert.Contains(saveReport.Diagnostics, x => x.Code == "PUB_NATIVE_OBJECT_ORDER_UNQUALIFIED");
+        var loaded = PublisherDocument.Load(savedBytes);
         for (int i = 0; i < target.Length; i++) Assert.Equal(target[i], loaded.Pages[i].ObjectIds);
         Assert.Equal(stories, loaded.TextStories.Select(s => (s.Id, s.Text)).ToArray());
-        PublisherNativeWritingTests.AssertPreservedStorage(source, result.Value);
-        var original = ShapeRecords(source); var saved = ShapeRecords(result.Value);
+        PublisherNativeWritingTests.AssertPreservedStorage(source, savedBytes);
+        var original = ShapeRecords(source); var saved = ShapeRecords(savedBytes);
         Assert.Equal(original.Keys.OrderBy(id => id), saved.Keys.OrderBy(id => id));
         foreach (var item in original) Assert.Equal(item.Value, saved[item.Key]);
-        Assert.Equal(result.Value, loaded.ToPubBytes());
-        Assert.Equal(result.Value, d.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        Assert.Equal(savedBytes, loaded.ToBytes());
+        Assert.Equal(savedBytes, d.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
     }
 
     [Fact]
@@ -44,7 +44,7 @@ public sealed class PublisherObjectOrderWritingTests {
         PublisherTextFrame frame = page.TextFrames.Single(f => f.Id == 302);
         d.SetTextFrameLayout(frame.Id, 2, 12, new OfficeTextPadding(4, 5, 6, 7), OfficeTextVerticalAlignment.Center);
         d.SetPageObjectOrder(page.Id, order);
-        var loaded = PublisherDocument.Load(d.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        var loaded = PublisherDocument.Load(d.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         Assert.Equal(order, loaded.Pages[0].ObjectIds);
         var current = loaded.Pages[0].TextFrames.Single(f => f.Id == frame.Id);
         Assert.Equal(2, current.ColumnCount); Assert.Equal(12, current.ColumnSpacing);
@@ -64,7 +64,7 @@ public sealed class PublisherObjectOrderWritingTests {
         d.SetPageObjectOrder(master.Id, order);
         Assert.Equal(before, master.ObjectIds);
         Assert.Equal(order, PublisherMixedObjectOrderTests.Order(d.MasterPages.Single(p => p.Id == master.Id)));
-        byte[] bytes = d.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        byte[] bytes = d.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         var loaded = PublisherDocument.Load(bytes);
         Assert.Equal(order, loaded.MasterPages.Single(p => p.Id == master.Id).ObjectIds);
         foreach (var page in pages) {
@@ -85,7 +85,7 @@ public sealed class PublisherObjectOrderWritingTests {
         if (kind == "missing") order = order.Take(order.Length - 1).ToArray();
         else order[0] = kind == "duplicate" ? order[1] : d.Pages[2].ObjectIds[0];
         Assert.Throws<ArgumentException>(() => d.SetPageObjectOrder(page.Id, order));
-        Assert.Same(page, d.Pages[0]); Assert.Equal(source, d.ToPubBytes());
+        Assert.Same(page, d.Pages[0]); Assert.Equal(source, d.ToBytes());
     }
 
     [Fact]
@@ -96,7 +96,7 @@ public sealed class PublisherObjectOrderWritingTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => d.SetPageObjectOrder(uint.MaxValue, order));
         Assert.Throws<ArgumentNullException>(() => d.SetPageObjectOrder(page.Id, null!));
         d.SetPageObjectOrder(d.Pages[1].Id, Array.Empty<uint>());
-        Assert.Equal(page.ObjectIds, d.Pages[0].ObjectIds); Assert.Equal(source, d.ToPubBytes());
+        Assert.Equal(page.ObjectIds, d.Pages[0].ObjectIds); Assert.Equal(source, d.ToBytes());
     }
 
     [Fact]
@@ -105,14 +105,14 @@ public sealed class PublisherObjectOrderWritingTests {
         byte[] stream = (byte[])compound!.Streams["Escher/EscherStm"].Clone();
         var data = new PublisherBinaryData(stream, "Escher/EscherStm");
         var art = new PublisherEscherReader(data, new PublisherBinaryData(compound.Streams["Escher/EscherDelayStm"], "delay"),
-            new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None)).Read();
+            new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None)).Read();
         int offset = art.Shapes.Single(s => s.Id == 299).NativeBinding!.SpidOffset + 4;
         uint flags = data.U32(offset) | 1U;
         for (int i = 0; i < 4; i++) stream[offset + i] = (byte)(flags >> (i * 8));
         byte[] source = OfficeCompoundFileWriter.Rewrite(compound, new Dictionary<string, byte[]> { ["Escher/EscherStm"] = stream });
         var d = PublisherDocument.Load(source); var page = d.Pages[0];
         Assert.Throws<NotSupportedException>(() => d.SetPageObjectOrder(page.Id, page.ObjectIds.Reverse().ToArray()));
-        Assert.Same(page, d.Pages[0]); Assert.Equal(source, d.ToPubBytes());
+        Assert.Same(page, d.Pages[0]); Assert.Equal(source, d.ToBytes());
     }
 
     [Fact]
@@ -124,7 +124,7 @@ public sealed class PublisherObjectOrderWritingTests {
         uint[] before = page.ObjectIds.ToArray(), desired = before.AsEnumerable().Reverse().ToArray();
         Assert.All(page.TextFrames, frame => Assert.Empty(frame.WrapObjectIds));
         d.SetPageObjectOrder(page.Id, desired);
-        var loaded = PublisherDocument.Load(d.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        var loaded = PublisherDocument.Load(d.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         Assert.Equal(desired, loaded.Pages[0].ObjectIds);
         Assert.All(loaded.Pages[0].TextFrames, frame => Assert.Empty(frame.WrapObjectIds));
         Assert.Equal(before, page.ObjectIds);
@@ -141,7 +141,7 @@ public sealed class PublisherObjectOrderWritingTests {
         Assert.Equal(new[] { b, a }, d.Pages[0].ObjectIds);
         Assert.Equal(new[] { b, a }, PublisherMixedObjectOrderTests.Order(d.Pages[0]));
         Assert.Equal(new[] { a, b }, PublisherMixedObjectOrderTests.Order(snapshot));
-        Assert.Throws<OfficeConversionException>(() => d.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        Assert.Throws<OfficeConversionException>(() => d.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
     }
 
     private static byte[] Source(bool reversed) => File.ReadAllBytes(PublisherNativeTests.Fixture(reversed
@@ -153,7 +153,7 @@ public sealed class PublisherObjectOrderWritingTests {
         byte[] stream = compound!.Streams["Escher/EscherStm"];
         var art = new PublisherEscherReader(new PublisherBinaryData(stream, "Escher/EscherStm"),
             compound.Streams.TryGetValue("Escher/EscherDelayStm", out byte[]? delay) ? new PublisherBinaryData(delay, "delay") : null,
-            new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None)).Read();
+            new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None)).Read();
         return art.Shapes.ToDictionary(s => s.Id, s => stream.Skip(s.NativeBinding!.BodyOffset - 8).Take(s.NativeBinding.BodyLength + 8).ToArray());
     }
 }

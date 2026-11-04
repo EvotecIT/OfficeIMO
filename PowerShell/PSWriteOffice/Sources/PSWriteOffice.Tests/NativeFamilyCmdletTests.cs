@@ -1,35 +1,12 @@
 using System.Management.Automation;
 using System.Management.Automation.Runspaces;
 using OfficeIMO.Epub;
-using OfficeIMO.Invoicing;
 using PSWriteOffice.Cmdlets.Access;
 
 namespace PSWriteOffice.Tests;
 
 [Collection(PowerShellRunspaceCollection.Name)]
 public sealed class NativeFamilyCmdletTests {
-    [Fact]
-    public void InvoiceLineIdentityGenerationAvoidsExistingNonSequentialIds() {
-        using var runspace = CreateRunspace();
-        using var shell = PowerShell.Create();
-        shell.Runspace = runspace;
-        shell.AddScript("""
-            $seller = New-OfficeInvoiceParty -Name Seller -CountryCode DE
-            $buyer = New-OfficeInvoiceParty -Name Buyer -CountryCode DE
-            $invoice = New-OfficeInvoice -Number INV-001 -IssueDate 2026-10-20 -Seller $seller -Buyer $buyer
-            $invoice | Add-OfficeInvoiceLine -Id 1 -Name First -Quantity 1 -UnitPrice 10 -TaxRate 19
-            $invoice | Add-OfficeInvoiceLine -Id 3 -Name Third -Quantity 1 -UnitPrice 10 -TaxRate 19
-            $invoice | Add-OfficeInvoiceLine -Name Automatic -Quantity 1 -UnitPrice 10 -TaxRate 19
-            $rejected = $false
-            try { $invoice | Add-OfficeInvoiceLine -Id 1 -Name Duplicate -Quantity 1 -UnitPrice 10 -ErrorAction Stop } catch { $rejected = $true }
-            if (-not $rejected) { throw 'Duplicate identity was accepted' }
-            $invoice | Get-OfficeInvoiceLine
-            """);
-        var output = shell.Invoke();
-        Assert.Empty(shell.Streams.Error);
-        Assert.Equal(new[] { "1", "3", "2" }, output.Select(item => Assert.IsType<InvoiceLine>(item.BaseObject).Id));
-    }
-
     [Theory]
     [InlineData("Accdb", ".accdb")]
     [InlineData("Mdb", ".mdb")]
@@ -86,14 +63,15 @@ public sealed class NativeFamilyCmdletTests {
             using var shell = PowerShell.Create();
             shell.Runspace = runspace;
             shell.AddScript("""
-                $book = New-OfficeEpub -Title Operations -Language en -Author Example
+                $book = New-OfficeEpub -Path $outputPath -Title Operations -Language en -Author Example
+                if (Test-Path -LiteralPath $outputPath) { throw 'Live creation wrote an EPUB' }
                 $book | Add-OfficeEpubChapter -Title Opening -Text 'Safety & care'
                 $book | Add-OfficeEpubChapter -Title Procedures -Markdown '# Procedure A'
                 $book | Set-OfficeEpubMetadata -Title 'Operations handbook'
-                $book | Save-OfficeEpub -Path $outputPath -WhatIf
+                $book | Save-OfficeEpub -WhatIf
                 if (Test-Path -LiteralPath $outputPath) { throw 'WhatIf wrote an EPUB' }
-                $book | Save-OfficeEpub -Path $outputPath -ReportVariable evidence
-                Get-Item -LiteralPath $outputPath | Get-OfficeEpub | Get-OfficeEpubChapter
+                $evidence = $book | Save-OfficeEpub -PassThru
+                Get-Item -LiteralPath $outputPath | Open-OfficeEpub | Get-OfficeEpubChapter
                 """);
             var chapters = shell.Invoke();
             AssertNoErrors(shell);
@@ -103,42 +81,7 @@ public sealed class NativeFamilyCmdletTests {
             Assert.Equal("Operations handbook", saved.Title);
             Assert.Equal("Example", saved.Creator);
             Assert.Equal(2, saved.Spine.Count);
-            Assert.False(Assert.IsType<EpubWriteReport>(runspace.SessionStateProxy.GetVariable("evidence")).HasLoss);
-        });
-    }
-
-    [Fact]
-    public void InvoicePipelineValidatesAndConvertsWithoutDotNetConstruction() {
-        InDirectory(directory => {
-            using var runspace = CreateRunspace();
-            string path = Path.Combine(directory, "invoice.xml");
-            runspace.SessionStateProxy.SetVariable("outputPath", path);
-            using var shell = PowerShell.Create();
-            shell.Runspace = runspace;
-            shell.AddScript("""
-                $seller = New-OfficeInvoiceParty -Name Seller -CountryCode DE -VatId DE123456789
-                $buyer = New-OfficeInvoiceParty -Name Buyer -CountryCode DE
-                $invoice = New-OfficeInvoice -Number INV-001 -IssueDate 2026-10-20 -Seller $seller -Buyer $buyer
-                $invoice | Add-OfficeInvoiceLine -Name Consulting -Quantity 2 -UnitPrice 100 -TaxRate 19
-                $validation = $invoice | Test-OfficeInvoice
-                $invoice | Save-OfficeInvoice -Path $outputPath -WhatIf
-                if (Test-Path -LiteralPath $outputPath) { throw 'WhatIf wrote invoice XML' }
-                $invoice | Save-OfficeInvoice -Path $outputPath
-                $loaded = Get-Item -LiteralPath $outputPath | Get-OfficeInvoice
-                $loaded | Set-OfficeInvoice -Number INV-002
-                $loaded | Save-OfficeInvoice -Path ($outputPath + '.cii.xml') -Syntax Cii
-                Get-OfficeInvoice -Path ($outputPath + '.cii.xml') -AsResult
-                """);
-            var output = shell.Invoke();
-            AssertNoErrors(shell);
-            var source = Assert.IsType<InvoiceReadResult>(Assert.Single(output).BaseObject);
-            Assert.Equal("INV-002", source.Invoice.Number);
-            Assert.Single(source.Invoice.Lines);
-            Assert.Equal(2m, source.Invoice.Lines[0].Quantity);
-            Assert.Equal(19m, source.Invoice.Lines[0].Tax.Rate);
-            Assert.True(source.HasCompleteMapping);
-            var validation = PSObject.AsPSObject(runspace.SessionStateProxy.GetVariable("validation")).BaseObject;
-            Assert.True(Assert.IsType<InvoiceModelValidationResult>(validation).IsValid);
+            Assert.False(Assert.IsType<EpubWriteReport>(PSObject.AsPSObject(runspace.SessionStateProxy.GetVariable("evidence")).BaseObject).HasLoss);
         });
     }
 

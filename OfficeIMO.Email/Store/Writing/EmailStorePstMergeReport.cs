@@ -1,8 +1,8 @@
 namespace OfficeIMO.Email.Store;
 
 /// <summary>Outcome of merging multiple stores into a new Unicode PST.</summary>
-public sealed class EmailStorePstMergeReport : IOfficeConversionReport {
-    private readonly IReadOnlyList<OfficeConversionFidelityDiagnostic> _fidelityDiagnostics;
+public sealed class EmailStorePstMergeReport : OfficeConversionReport {
+    private readonly IReadOnlyList<OfficeDiagnostic> _fidelityDiagnostics;
 
     internal EmailStorePstMergeReport(EmailStorePstWriteReport writeReport,
         IReadOnlyList<EmailStoreMergeSourceReport> sources, int inspectedItems,
@@ -15,9 +15,9 @@ public sealed class EmailStorePstMergeReport : IOfficeConversionReport {
         DuplicateItems = duplicateItems;
         SkippedItems = skippedItems;
         RetryCount = retryCount;
-        Diagnostics = diagnostics;
+        NativeDiagnostics = diagnostics;
         DiagnosticsTruncated = diagnosticsTruncated;
-        var aggregate = new List<OfficeConversionFidelityDiagnostic>();
+        var aggregate = new List<OfficeDiagnostic>();
         if (duplicateItems > 0) {
             aggregate.Add(EmailStoreFidelityProjection.Create(
                 "EMAIL_STORE_MERGE_DUPLICATES_OMITTED",
@@ -46,10 +46,10 @@ public sealed class EmailStorePstMergeReport : IOfficeConversionReport {
                 OfficeConversionLossKind.Failure,
                 writeReport.DestinationPath));
         }
-        IReadOnlyList<OfficeConversionFidelityDiagnostic> projected =
+        IReadOnlyList<OfficeDiagnostic> projected =
             EmailStoreFidelityProjection.AppendMissing(
                 EmailStoreFidelityProjection.Project(diagnostics),
-                writeReport.FidelityDiagnostics);
+                writeReport.Diagnostics);
         _fidelityDiagnostics = EmailStoreFidelityProjection.Append(projected, aggregate.ToArray());
     }
 
@@ -68,20 +68,19 @@ public sealed class EmailStorePstMergeReport : IOfficeConversionReport {
     /// <summary>Total transient source I/O retries consumed.</summary>
     public int RetryCount { get; }
     /// <summary>Bounded merge and writer diagnostics.</summary>
-    public IReadOnlyList<EmailStoreDiagnostic> Diagnostics { get; }
+    public IReadOnlyList<EmailStoreDiagnostic> NativeDiagnostics { get; }
     /// <summary>Whether additional detailed diagnostics were omitted.</summary>
     public bool DiagnosticsTruncated { get; }
     /// <summary>Whether any warning or error was reported.</summary>
-    public bool HasIssues => Diagnostics.Any(diagnostic =>
+    public bool HasIssues => NativeDiagnostics.Any(diagnostic =>
         diagnostic.Severity != EmailStoreDiagnosticSeverity.Information);
 
     /// <summary>Category-preserving merge, omission, completion, and writer diagnostics.</summary>
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => _fidelityDiagnostics;
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics => _fidelityDiagnostics;
 
     /// <summary>Whether merge approximated, omitted, or failed to preserve selected source content.</summary>
-    public bool HasLoss => _fidelityDiagnostics.Any(static diagnostic =>
+    public override bool HasLoss => _fidelityDiagnostics.Any(static diagnostic =>
         diagnostic.LossKind != OfficeConversionLossKind.None);
 
-    /// <summary>Throws when merge reported possible content loss.</summary>
-    public void RequireNoLoss() => EmailStoreFidelityProjection.RequireNoLoss(_fidelityDiagnostics);
 }

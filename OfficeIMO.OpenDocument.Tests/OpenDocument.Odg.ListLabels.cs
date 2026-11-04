@@ -8,6 +8,21 @@ using Xunit;
 namespace OfficeIMO.OpenDocument.Tests;
 
 public sealed class OpenDocumentOdgListLabelTests {
+    [Fact]
+    public void LabelExpansionUsesTheDrawingTextBudgetDuringListResolution() {
+        var document = OdgDocument.Create();
+        var list = Shape(document).AddList(true);
+        for (int index = 0; index < 30; index++) list.AddItem("Body");
+        XElement level = Style(document, list).Elements().Single();
+        level.SetAttributeValue(OdfNamespaces.Style + "num-prefix", new string('x', 4095));
+
+        var result = document.Pages[0].ToDrawing();
+
+        Assert.DoesNotContain(result.Value.Elements, element => element is OfficeDrawingRichText);
+        Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "shape:Lists:text" &&
+            mapping.Status == OdfConversionMappingStatus.Skipped);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

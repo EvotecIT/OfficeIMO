@@ -19,7 +19,8 @@ namespace OfficeIMO.Excel {
             internal readonly HashSet<long> WrittenOwners = new HashSet<long>();
         }
 
-        private DynamicSpillOwnership SpillOwnership => DynamicSpillOwnerships.GetOrCreateValue(_worksheetPart);
+        private DynamicSpillOwnership? _spillOwnership;
+        private DynamicSpillOwnership SpillOwnership => _spillOwnership ??= DynamicSpillOwnerships.GetOrCreateValue(_worksheetPart);
         private Dictionary<long, DynamicSpillCacheSnapshot> DynamicSpillCacheSnapshots =>
             SpillOwnership.Cells;
 
@@ -33,13 +34,13 @@ namespace OfficeIMO.Excel {
         private static DynamicSpillCacheSnapshot SnapshotDynamicSpillCell(Cell cell) => new DynamicSpillCacheSnapshot {
             SourceCell = cell,
             Type = cell.DataType?.Value,
-            Value = cell.CellValue?.Text,
+            Value = ExcelWorksheetScan.FindValue(cell)?.Text,
             ValueMetaIndex = cell.ValueMetaIndex?.Value
         };
 
         private static bool MatchesDynamicSpillSnapshot(Cell cell, DynamicSpillCacheSnapshot snapshot) =>
             cell.DataType?.Value == snapshot.Type
-            && string.Equals(cell.CellValue?.Text, snapshot.Value, StringComparison.Ordinal)
+            && string.Equals(ExcelWorksheetScan.FindValue(cell)?.Text, snapshot.Value, StringComparison.Ordinal)
             && cell.ValueMetaIndex?.Value == snapshot.ValueMetaIndex;
 
         private void InvalidateDynamicArrayWriteIndex() => SpillOwnership.WriteIndexInitialized = false;
@@ -52,11 +53,11 @@ namespace OfficeIMO.Excel {
             if (part != null) {
                 if (!part.IsRootElementLoaded) ValidateInCellImageMetadataPart(part, "Cell metadata");
                 Metadata? metadata = part.Metadata;
-                foreach (Cell cell in WorksheetRoot.Descendants<Cell>()) {
-                    if (cell.CellFormula?.FormulaType?.Value != CellFormulaValues.Array
+                foreach (Cell cell in ExcelWorksheetScan.FormulaCells(WorksheetRoot)) {
+                    if (ExcelWorksheetScan.FindFormula(cell)?.FormulaType?.Value != CellFormulaValues.Array
                         || cell.CellMetaIndex == null
                         || CreateFormulaArrayInfo(cell, metadata)?.IsDynamic != true
-                        || !TryFixedArrayBounds(cell.CellFormula.Reference?.Value ?? "",
+                        || !TryFixedArrayBounds(ExcelWorksheetScan.FindFormula(cell)!.Reference?.Value ?? "",
                             out int top, out int left, out int bottom, out int right)) continue;
                     ownership.WriteRanges.Add((top, left, bottom, right));
                 }
@@ -66,9 +67,12 @@ namespace OfficeIMO.Excel {
 
         private void EnsureDynamicArrayCellWritable(int row, int column) {
             EnsureDynamicArrayWriteIndex();
-            if (SpillOwnership.WriteRanges.Any(range => row >= range.Top && row <= range.Bottom
-                && column >= range.Left && column <= range.Right))
-                throw new InvalidOperationException($"Cell '{A1.CellReference(row, column)}' belongs to a dynamic array; clear its array formula first.");
+            List<(int Top, int Left, int Bottom, int Right)> ranges = SpillOwnership.WriteRanges;
+            for (int i = 0; i < ranges.Count; i++) {
+                var range = ranges[i];
+                if (row >= range.Top && row <= range.Bottom && column >= range.Left && column <= range.Right)
+                    throw new InvalidOperationException($"Cell '{ExcelA1.CellReference(row, column)}' belongs to a dynamic array; clear its array formula first.");
+            }
         }
 
         private Cell GetWritableValueCell(int row, int column) {
@@ -114,14 +118,14 @@ namespace OfficeIMO.Excel {
         private void WriteDynamicArrayFormulaCache(DynamicArrayPlan plan) {
             Cell anchor = plan.Owner.Cell;
             SpillOwnership.WrittenOwners.Add(DynamicCellKey(plan.Owner.Top, plan.Owner.Left));
-            string? previousReference = anchor.CellFormula?.Reference?.Value;
+            string? previousReference = ExcelWorksheetScan.FindFormula(anchor)?.Reference?.Value;
             if (plan.ErrorSubtype != 0) {
-                anchor.CellFormula!.Reference = anchor.CellReference!.Value!;
+                ExcelWorksheetScan.FindFormula(anchor)!.Reference = anchor.CellReference!.Value!;
                 TryWriteRichFormulaError(anchor, "#SPILL!", plan);
             } else {
                 FormulaArrayValue array = plan.Array!;
-                anchor.CellFormula!.Reference = A1.CellReference(plan.Top, plan.Left) + ":"
-                    + A1.CellReference(plan.Bottom, plan.Right);
+                ExcelWorksheetScan.FindFormula(anchor)!.Reference = ExcelA1.CellReference(plan.Top, plan.Left) + ":"
+                    + ExcelA1.CellReference(plan.Bottom, plan.Right);
                 for (int row = plan.Top; row <= plan.Bottom; row++)
                     for (int column = plan.Left; column <= plan.Right; column++) {
                         Cell cell = row == plan.Top && column == plan.Left ? anchor : GetCell(row, column);
@@ -147,7 +151,7 @@ namespace OfficeIMO.Excel {
                     DynamicSpillCacheSnapshots.Remove(key);
                     if (cell.StyleIndex == null && !cell.HasChildren) cell.Remove();
                 }
-            if (!string.Equals(previousReference, anchor.CellFormula?.Reference?.Value, StringComparison.Ordinal))
+            if (!string.Equals(previousReference, ExcelWorksheetScan.FindFormula(anchor)?.Reference?.Value, StringComparison.Ordinal))
                 InvalidateDynamicArrayWriteIndex();
         }
 
@@ -160,12 +164,12 @@ namespace OfficeIMO.Excel {
             long bottom = (long)top + array.Rows - 1, right = (long)left + array.Columns - 1;
             var plan = new DynamicArrayPlan {
                 Owner = owner, Top = top, Left = left,
-                Bottom = bottom <= A1.MaxRows ? (int)bottom : top,
-                Right = right <= A1.MaxColumns ? (int)right : left,
-                ErrorColumns = right <= A1.MaxColumns ? array.Columns - 1 : 0,
-                ErrorRows = bottom <= A1.MaxRows ? array.Rows - 1 : 0
+                Bottom = bottom <= ExcelA1.MaxRows ? (int)bottom : top,
+                Right = right <= ExcelA1.MaxColumns ? (int)right : left,
+                ErrorColumns = right <= ExcelA1.MaxColumns ? array.Columns - 1 : 0,
+                ErrorRows = bottom <= ExcelA1.MaxRows ? array.Rows - 1 : 0
             };
-            if (bottom > A1.MaxRows || right > A1.MaxColumns) {
+            if (bottom > ExcelA1.MaxRows || right > ExcelA1.MaxColumns) {
                 plan.ErrorSubtype = 3;
             } else {
                 var target = (top, left, plan.Bottom, plan.Right);
@@ -234,28 +238,28 @@ namespace OfficeIMO.Excel {
             FormulaArgumentValue expected) {
             if (row >= owner.Top && row <= owner.Bottom && column >= owner.Left && column <= owner.Right)
                 return !IsOwnedDynamicSpillCachedCell(cell, DynamicCellKey(row, column), expected);
-            return cell.CellValue != null || cell.InlineString != null || cell.ValueMetaIndex != null
-                || cell.CellFormula != null || cell.CellMetaIndex != null;
+            return ExcelWorksheetScan.FindValue(cell) != null || cell.InlineString != null || cell.ValueMetaIndex != null
+                || ExcelWorksheetScan.FindFormula(cell) != null || cell.CellMetaIndex != null;
         }
 
         private bool IsOwnedDynamicSpillCachedCell(Cell cell, long key, FormulaArgumentValue? expected = null) {
-            if (cell.CellFormula != null || cell.CellMetaIndex != null || cell.InlineString != null) return false;
+            if (ExcelWorksheetScan.FindFormula(cell) != null || cell.CellMetaIndex != null || cell.InlineString != null) return false;
             if (DynamicSpillCacheSnapshots.TryGetValue(key, out DynamicSpillCacheSnapshot? snapshot))
                 return MatchesDynamicSpillSnapshot(cell, snapshot);
-            if (cell.CellValue == null && cell.ValueMetaIndex == null) return true;
+            if (ExcelWorksheetScan.FindValue(cell) == null && cell.ValueMetaIndex == null) return true;
             if (expected == null) return false;
             FormulaArgumentValue value = expected.Value;
             if (value.IsError)
                 return cell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.Error
-                    && ResolveRichValueError(cell, cell.CellValue?.Text) == value.ErrorCode;
+                    && ResolveRichValueError(cell, ExcelWorksheetScan.FindValue(cell)?.Text) == value.ErrorCode;
             if (cell.ValueMetaIndex != null) return false;
             if (value.IsBoolean)
                 return cell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean
-                    && cell.CellValue?.Text == (value.Number == 0 ? "0" : "1");
+                    && ExcelWorksheetScan.FindValue(cell)?.Text == (value.Number == 0 ? "0" : "1");
             if (value.Number.HasValue)
                 return (cell.DataType == null
                         || cell.DataType.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.Number)
-                    && double.TryParse(cell.CellValue?.Text, System.Globalization.NumberStyles.Float,
+                    && double.TryParse(ExcelWorksheetScan.FindValue(cell)?.Text, System.Globalization.NumberStyles.Float,
                         System.Globalization.CultureInfo.InvariantCulture, out double numeric)
                     && numeric == value.Number.Value;
             return value.Text != null && string.Equals(GetCellText(cell), value.Text, StringComparison.Ordinal);
@@ -284,10 +288,12 @@ namespace OfficeIMO.Excel {
             if (context.DynamicCells.TryGetValue(key, out result)) return true;
             if (context.PlanningDynamicOwners && !context.DynamicOwnersPlanned) {
                 bool occupied = context.Cells.TryGetValue(key, out Cell? existing)
-                    && (existing.CellValue != null || existing.InlineString != null
-                        || existing.CellFormula != null || existing.CellMetaIndex != null || existing.ValueMetaIndex != null);
-                bool oldSpillChild = context.DynamicOwners.Any(owner => row >= owner.Top && row <= owner.Bottom
-                    && column >= owner.Left && column <= owner.Right);
+                    && (ExcelWorksheetScan.FindValue(existing) != null || existing.InlineString != null
+                        || ExcelWorksheetScan.FindFormula(existing) != null || existing.CellMetaIndex != null || existing.ValueMetaIndex != null);
+                bool oldSpillChild = false;
+                foreach (FixedArrayOwner owner in context.DynamicOwners) {
+                    if (row >= owner.Top && row <= owner.Bottom && column >= owner.Left && column <= owner.Right) { oldSpillChild = true; break; }
+                }
                 if (!occupied || oldSpillChild) {
                     for (int i = context.DynamicOwners.Count - 1; i >= 0; i--) {
                         FixedArrayOwner owner = context.DynamicOwners[i];

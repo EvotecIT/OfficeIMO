@@ -11,7 +11,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <code>Add-OfficeWordParagraph { Add-OfficeWordText -Text 'Intro'; Add-OfficeWordBookmark -Name 'Intro' }</code>
 ///   <para>Creates a bookmark named <c>Intro</c> on the paragraph.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeWordBookmark")]
+[Cmdlet(VerbsCommon.Add, "OfficeWordBookmark", DefaultParameterSetName = "Default")]
 [Alias("WordBookmark")]
 public sealed class AddOfficeWordBookmarkCommand : PSCmdlet
 {

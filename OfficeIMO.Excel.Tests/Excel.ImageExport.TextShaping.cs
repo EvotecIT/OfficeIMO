@@ -10,9 +10,9 @@ public partial class ExcelImageExportTests {
     public void ExcelRasterExport_ReachesTheSharedTextShapingProvider() {
         string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
         using ExcelDocument document = ExcelDocument.Create(filePath);
-        ExcelSheet sheet = document.AddWorksheet("Shaping");
-        sheet.CellValue(1, 1, "A");
-        sheet.CellAt(1, 1).SetFontName(ManagedTextShapingTestAssets.FamilyName);
+        ExcelSheet sheet = document.AddSheet("Shaping");
+        sheet.Cell(1, 1).SetValue("A");
+        sheet.Cell(1, 1).SetFontName(ManagedTextShapingTestAssets.FamilyName);
         var provider = new ManagedTextShapingTestAssets.RecordingProvider();
         var options = new ExcelImageExportOptions {
             ShowGridlines = false,

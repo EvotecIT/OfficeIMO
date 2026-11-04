@@ -4,7 +4,7 @@ using DocumentFormat.OpenXml;
 namespace OfficeIMO.Word;
 
 /// <summary>Machine-readable catalog of Word formats supported or classified by OfficeIMO.</summary>
-public static class WordFormatCatalog {
+internal static class WordFormatCatalog {
     private static readonly IReadOnlyList<OfficeFormatDescriptor> Formats = Array.AsReadOnly(new[] {
         new OfficeFormatDescriptor("Word.Doc", ".doc", OfficeDocumentFamily.Word, OfficeDocumentKind.Document,
             OfficeFormatGeneration.Legacy, OfficeFormatEncoding.CompoundBinary, macroEnabled: true),

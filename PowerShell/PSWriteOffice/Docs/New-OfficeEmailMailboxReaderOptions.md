@@ -9,7 +9,7 @@ schema: 2.0.0
 Creates bounded mbox reader settings through ordinary PowerShell parameters.
 
 ## SYNTAX
-### __AllParameterSets
+### Options (Default)
 ```powershell
 New-OfficeEmailMailboxReaderOptions [-MessageOptions <EmailReaderOptions>] [-Variant <MboxVariant>] [-MaxMessageCount <int>] [-MaxMailboxBytes <long>] [<CommonParameters>]
 ```
@@ -34,7 +34,7 @@ Maximum aggregate source bytes consumed from one mailbox.
 
 ```yaml
 Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -50,7 +50,7 @@ Maximum messages in one mailbox.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -66,7 +66,7 @@ Bounded policy applied independently to each message.
 
 ```yaml
 Type: EmailReaderOptions
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -82,7 +82,7 @@ Escaping convention to decode.
 
 ```yaml
 Type: MboxVariant
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values: Auto, Mboxo, Mboxrd
 

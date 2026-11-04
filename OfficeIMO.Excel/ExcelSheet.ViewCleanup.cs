@@ -47,7 +47,7 @@ namespace OfficeIMO.Excel {
                     pane.Remove();
                     pane = null;
                 } else {
-                    paneCell = A1.CellReference(frozenRows + 1, frozenColumns + 1);
+                    paneCell = ExcelA1.CellReference(frozenRows + 1, frozenColumns + 1);
                     pane.TopLeftCell = paneCell;
 
                     if (frozenRows > 0 && frozenColumns > 0) {
@@ -125,7 +125,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool IsValidCellReference(string? reference) {
-            var (row, column) = A1.ParseCellRef(reference ?? string.Empty);
+            var (row, column) = ExcelA1.ParseCellRef(reference ?? string.Empty);
             return row > 0 && column > 0;
         }
 
@@ -150,7 +150,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                if (A1.TryParseRange(reference, out _, out _, out _, out _)) {
+                if (ExcelA1.TryParseRange(reference, out _, out _, out _, out _)) {
                     continue;
                 }
 

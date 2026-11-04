@@ -44,7 +44,7 @@ public sealed partial class IWorkBoundaryTests {
         IWorkConversionReport report = ConvertUnitReport(package, kind,
             readOptions: new IWorkReadOptions { PreserveSourceRecords = false });
         Assert.Empty(report.PreservedRecords);
-        Assert.Contains(report.FidelityDiagnostics, issue => issue.Code == "IWORK_SOURCE_DECLARATIONS_UNASSESSED"
+        Assert.Contains(report.Diagnostics, issue => issue.Code == "IWORK_SOURCE_DECLARATIONS_UNASSESSED"
             && issue.LossKind == OfficeConversionLossKind.Unassessed);
         Assert.Equal(new[] { "47/2/3[1]/2", "47/2/3[2]/2" }, report.SourceDeclarationIssues.Select(issue => issue.FieldPath));
     }
@@ -64,9 +64,9 @@ public sealed partial class IWorkBoundaryTests {
         var options = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         using var saved = new MemoryStream();
         if (kind == IWorkDocumentKind.Pages) {
-            using var automatic = source.ToWordDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var automatic = source.ToWordResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
-            using var partial = source.ToWordDocumentResult(options);
+            using var partial = source.ToWordResult(options);
             Assert.False(partial.IsVisualFallback);
             Assert.True(partial.Report.IsPartialEditableReconstruction);
             partial.Value.Save(saved); saved.Position = 0;
@@ -74,24 +74,24 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal("42", reopened.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
             Assert.Equal(unreadableRange ? 4 : 3, reopened.Tables[0].Rows[3].Cells.Count);
         } else if (kind == IWorkDocumentKind.Numbers) {
-            using var automatic = source.ToExcelDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var automatic = source.ToExcelResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
-            using var partial = source.ToExcelDocumentResult(options);
+            using var partial = source.ToExcelResult(options);
             Assert.False(partial.IsVisualFallback);
             Assert.True(partial.Report.IsPartialEditableReconstruction);
             partial.Value.Save(saved); saved.Position = 0;
             using ExcelDocument reopened = ExcelDocument.Load(saved);
-            Assert.Equal(42d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+            Assert.Equal(42d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
             if (unreadableRange) Assert.Empty(reopened.Sheets[0].GetMergedRanges());
             else Assert.Equal("A4:B4", Assert.Single(reopened.Sheets[0].GetMergedRanges()).A1Range);
         } else {
-            using var automatic = source.ToPowerPointPresentationResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var automatic = source.ToPowerPointResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
-            using var partial = source.ToPowerPointPresentationResult(options);
+            using var partial = source.ToPowerPointResult(options);
             Assert.False(partial.IsVisualFallback);
             Assert.True(partial.Report.IsPartialEditableReconstruction);
             partial.Value.Save(saved); saved.Position = 0;
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(saved);
+            using PowerPointDocument reopened = PowerPointDocument.Load(saved);
             Assert.Equal("42", reopened.Slides[0].Tables.First().GetCell(0, 0).Text);
             Assert.Equal(unreadableRange ? 1 : 2, reopened.Slides[0].Tables.First().GetCell(3, 0).Merge.columns);
         }
@@ -168,7 +168,7 @@ public sealed partial class IWorkBoundaryTests {
         };
         using MemoryStream package = MergeTestPackage(IWorkDocumentKind.Numbers, owner);
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaximumProtobufFieldCount = 8 });
+            new IWorkReadOptions { MaxProtobufFieldCount = 8 });
         Assert.Contains("field limit", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 
@@ -176,7 +176,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Merge_formula_depth_is_preserved_through_physical_entry_parsing() {
         using MemoryStream package = MergeTestPackage(IWorkDocumentKind.Numbers, MergeTestOwner(MergeTestPair(3, 0, 3, 1)));
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaximumProtobufDepth = 6 });
+            new IWorkReadOptions { MaxProtobufDepth = 6 });
         Assert.Contains("depth", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 
@@ -187,16 +187,16 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = MergeTestPackage(IWorkDocumentKind.Numbers,
             MergeTestOwner(BytesField(3, new byte[] { 0x80 }), BytesField(3, BytesField(2, formula))));
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaximumFormulaNodes = 1 });
+            new IWorkReadOptions { MaxFormulaNodes = 1 });
         Assert.Contains("syntax-node limit", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 
     [Fact]
     public void Merge_evidence_budget_is_fatal_cumulative_and_snapshotted() {
         using MemoryStream package = MergeTestPackage(IWorkDocumentKind.Numbers, ConflictingMergeTestOwner());
-        var options = new IWorkReadOptions { MaximumSourceDeclarationIssues = 1 };
+        var options = new IWorkReadOptions { MaxSourceDeclarationIssues = 1 };
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers, options);
-        options.MaximumSourceDeclarationIssues = 10;
+        options.MaxSourceDeclarationIssues = 10;
         Assert.Contains("declaration issues", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 
@@ -204,7 +204,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Shared_model_conflicts_report_each_physical_path_once() {
         using MemoryStream package = MergeTestPackage(IWorkDocumentKind.Numbers, ConflictingMergeTestOwner(), repeatModel: true);
         IWorkNumbersProjection projection = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaximumSourceDeclarationIssues = 2 }).ReadNumbers();
+            new IWorkReadOptions { MaxSourceDeclarationIssues = 2 }).ReadNumbers();
         Assert.Equal(2, Assert.Single(projection.Sheets).Tables.Count);
         Assert.Equal(2, projection.SourceDeclarationIssues.Count);
     }

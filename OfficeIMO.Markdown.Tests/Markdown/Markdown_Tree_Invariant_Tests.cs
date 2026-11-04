@@ -109,7 +109,7 @@ Lead[^1]
     [Theory]
     [MemberData(nameof(RepresentativeTransformedMarkdownDocuments))]
     public void ParseWithSyntaxTreeAndDiagnostics_RepresentativeNestedTransforms_Satisfy_FinalTreeInvariants(string markdown) {
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.DocumentTransforms.Add(new MergeFirstTwoParagraphsInNestedBlockListsTransform("merged"));
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
@@ -122,7 +122,7 @@ Lead[^1]
 
     [Fact]
     public void FluentDocument_RepresentativeStructure_Satisfies_SemanticTreeInvariants() {
-        var document = MarkdownDoc.Create()
+        var document = MarkdownDocument.Create()
             .H1("Title")
             .P("Lead paragraph")
             .Ul(list => {
@@ -140,17 +140,17 @@ Lead[^1]
     [Fact]
     public void ReaderDocumentTransforms_ObserveCurrentTreeBindings() {
         var probe = new CaptureTreeBindingTransform();
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.DocumentTransforms.Add(new AppendParagraphTransform());
         options.DocumentTransforms.Add(probe);
 
-        OfficeIMO.Markdown.MarkdownReader.Parse("First paragraph", options);
+        OfficeIMO.Markdown.MarkdownDocument.Parse("First paragraph", options);
 
         Assert.True(probe.ObservedCurrentBindings);
     }
 
     private sealed class AppendParagraphTransform : IMarkdownDocumentTransform {
-        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+        public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
             document.Add(new ParagraphBlock(new InlineSequence().Text("Appended")));
             return document;
         }
@@ -159,7 +159,7 @@ Lead[^1]
     private sealed class CaptureTreeBindingTransform : IMarkdownDocumentTransform {
         public bool ObservedCurrentBindings { get; private set; }
 
-        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+        public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
             ObservedCurrentBindings = document.Blocks
                 .Select((block, index) => (Block: block as MarkdownObject, Index: index))
                 .All(item => item.Block?.Parent == document && item.Block.IndexInParent == item.Index);
@@ -168,7 +168,7 @@ Lead[^1]
     }
 
     private sealed class MergeFirstTwoParagraphsInNestedBlockListsTransform(string text) : IMarkdownDocumentTransform {
-        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+        public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
             MarkdownDocumentBlockListExpander.RewriteDocument(document, context, (blocks, _) => {
                 if (blocks.Count >= 2
                     && blocks[0] is ParagraphBlock

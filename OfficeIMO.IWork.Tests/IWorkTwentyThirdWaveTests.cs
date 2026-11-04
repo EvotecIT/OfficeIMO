@@ -9,7 +9,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Pages_header_footer_variants_map_to_distinct_word_parts() {
         using MemoryStream package = CreatePagesPackageWithHeaderFooterVariants();
 
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult();
         IWorkPagesSection source = Assert.Single(result.Projection.Sections);
         WordSection section = Assert.Single(result.Value.Sections);
 
@@ -20,23 +20,23 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal("First header", Assert.Single(source.FirstPageHeaderContents).PlainText);
         Assert.Equal("Even header", Assert.Single(source.EvenPageHeaderContents).PlainText);
         Assert.Equal("Default header", Assert.Single(source.DefaultPageHeaderContents).PlainText);
-        Assert.Contains(section.Header.First!.Paragraphs, paragraph => paragraph.Text == "First header");
-        Assert.Contains(section.Header.Even!.Paragraphs, paragraph => paragraph.Text == "Even header");
-        Assert.Contains(section.Header.Default!.Paragraphs, paragraph => paragraph.Text == "Default header");
-        Assert.Contains(section.Footer.First!.Paragraphs, paragraph => paragraph.Text == "First footer");
-        Assert.Contains(section.Footer.Even!.Paragraphs, paragraph => paragraph.Text == "Even footer");
-        Assert.Contains(section.Footer.Default!.Paragraphs, paragraph => paragraph.Text == "Default footer");
-        Assert.True(section.DifferentFirstPage);
-        Assert.True(section.DifferentOddAndEvenPages);
+        Assert.Contains(section.PageSetup.FirstPageHeader.Paragraphs, paragraph => paragraph.Text == "First header");
+        Assert.Contains(section.PageSetup.EvenPageHeader.Paragraphs, paragraph => paragraph.Text == "Even header");
+        Assert.Contains(section.PageSetup.Header.Paragraphs, paragraph => paragraph.Text == "Default header");
+        Assert.Contains(section.PageSetup.FirstPageFooter.Paragraphs, paragraph => paragraph.Text == "First footer");
+        Assert.Contains(section.PageSetup.EvenPageFooter.Paragraphs, paragraph => paragraph.Text == "Even footer");
+        Assert.Contains(section.PageSetup.Footer.Paragraphs, paragraph => paragraph.Text == "Default footer");
+        Assert.True(section.PageSetup.DifferentFirstPage);
+        Assert.True(section.PageSetup.DifferentOddAndEvenPages);
 
         using var saved = new MemoryStream();
         result.Value.Save(saved);
         saved.Position = 0;
         using WordDocument reopened = WordDocument.Load(saved);
         WordSection persisted = Assert.Single(reopened.Sections);
-        Assert.Contains(persisted.Header.First!.Paragraphs, paragraph => paragraph.Text == "First header");
-        Assert.Contains(persisted.Header.Even!.Paragraphs, paragraph => paragraph.Text == "Even header");
-        Assert.Contains(persisted.Header.Default!.Paragraphs, paragraph => paragraph.Text == "Default header");
+        Assert.Contains(persisted.PageSetup.FirstPageHeader.Paragraphs, paragraph => paragraph.Text == "First header");
+        Assert.Contains(persisted.PageSetup.EvenPageHeader.Paragraphs, paragraph => paragraph.Text == "Even header");
+        Assert.Contains(persisted.PageSetup.Header.Paragraphs, paragraph => paragraph.Text == "Default header");
     }
 
     [Theory]
@@ -44,7 +44,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(true)]
     public void Pages_template_declarations_do_not_enable_unselected_variants(bool hideFirstPage) {
         using MemoryStream package = CreatePagesPackageWithHeaderFooterVariants(false, false, hideFirstPage);
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult();
         IWorkPagesSection source = Assert.Single(result.Projection.Sections);
         Assert.True(source.HasFirstPageTemplate);
         Assert.True(source.HasEvenPageTemplate);
@@ -56,13 +56,13 @@ public sealed partial class IWorkBoundaryTests {
         saved.Position = 0;
         using WordDocument reopened = WordDocument.Load(saved);
         WordSection section = Assert.Single(reopened.Sections);
-        Assert.Equal(hideFirstPage, section.DifferentFirstPage);
-        Assert.False(section.DifferentOddAndEvenPages);
-        Assert.Contains(section.Header.Default!.Paragraphs, p => p.Text == "Default header");
-        Assert.Contains(section.Footer.Default!.Paragraphs, p => p.Text == "Default footer");
+        Assert.Equal(hideFirstPage, section.PageSetup.DifferentFirstPage);
+        Assert.False(section.PageSetup.DifferentOddAndEvenPages);
+        Assert.Contains(section.PageSetup.Header.Paragraphs, p => p.Text == "Default header");
+        Assert.Contains(section.PageSetup.Footer.Paragraphs, p => p.Text == "Default footer");
         if (hideFirstPage) {
-            Assert.DoesNotContain(section.Header.First!.Paragraphs, p => !string.IsNullOrEmpty(p.Text));
-            Assert.DoesNotContain(section.Footer.First!.Paragraphs, p => !string.IsNullOrEmpty(p.Text));
+            Assert.DoesNotContain(section.PageSetup.FirstPageHeader.Paragraphs, p => !string.IsNullOrEmpty(p.Text));
+            Assert.DoesNotContain(section.PageSetup.FirstPageFooter.Paragraphs, p => !string.IsNullOrEmpty(p.Text));
         }
         Assert.Empty(reopened.ValidateDocument());
     }
@@ -87,7 +87,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Partial_keynote_numbered_lists_continue_after_the_initial_marker() {
         using MemoryStream package = CreateKeynotePackageWithNumberedSequence(0);
 
-        using var result = IWorkSourceDocument.Open(package).ToPowerPointPresentationResult(
+        using var result = IWorkSourceDocument.Open(package).ToPowerPointResult(
             new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         PowerPointParagraph[] paragraphs = Assert.Single(
             Assert.Single(result.Value.Slides).TextBoxes).Paragraphs.ToArray();
@@ -105,7 +105,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
             text: "Item", listLabel: "custom:");
 
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);

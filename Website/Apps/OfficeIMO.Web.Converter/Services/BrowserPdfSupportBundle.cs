@@ -21,6 +21,8 @@ internal static class BrowserPdfSupportBundle {
             throw new InvalidOperationException("Support bundles are available for PDF conversion results.");
         }
 
+        using var outputStream = new MemoryStream(result.Bytes, writable: false);
+        using var outputDocument = PdfDocument.Load(outputStream);
         var document = new SupportSummaryDocument(
             "1",
             new SupportPrivacy(includeDocumentContent, "fingerprints-and-diagnostics-only"),
@@ -29,7 +31,7 @@ internal static class BrowserPdfSupportBundle {
                 result.Bytes.LongLength,
                 Sha256(result.Bytes),
                 result.PageCount,
-                PdfReadDocument.Open(result.Bytes).HasTaggedContent),
+                outputDocument.HasTaggedContent),
             result.Profile is null
                 ? null
                 : new ManifestProfile(result.Profile.Id, result.Profile.Label, result.Profile.Description),

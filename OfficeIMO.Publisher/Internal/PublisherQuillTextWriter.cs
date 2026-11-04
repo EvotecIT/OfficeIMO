@@ -16,7 +16,7 @@ internal static class PublisherQuillTextWriter {
             || after.Text.Count(value => value == '\n') != paragraphCount
             || !after.Text.EndsWith("\n", StringComparison.Ordinal)) return null;
         var data = new PublisherBinaryData(source, "Quill/QuillSub/CONTENTS");
-        var context = new PublisherParseContext(new PublisherReadOptions { Limits = limits }, token);
+        var context = new PublisherParseContext(new PublisherLoadOptions { Limits = limits }, token);
         IReadOnlyList<PublisherQuillChunk> chunks = PublisherQuillDirectory.Read(data, context);
         // This is one observed producer profile, not a generic relocation rule
         // for unknown Quill records or chained directories.

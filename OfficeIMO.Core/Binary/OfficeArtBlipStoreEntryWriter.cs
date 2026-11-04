@@ -4,7 +4,7 @@ using OfficeIMO.Core.Internal;
 namespace OfficeIMO.Drawing.Binary;
 
 /// <summary>Writes bounded OfficeArt File BLIP Store Entry and image BLIP records.</summary>
-public static class OfficeArtBlipStoreEntryWriter {
+internal static class OfficeArtBlipStoreEntryWriter {
     private const ushort OfficeArtFbse = 0xF007;
     private const int MaximumImageBytes = 64 * 1024 * 1024;
 

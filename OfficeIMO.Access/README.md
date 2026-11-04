@@ -176,7 +176,7 @@ using (AccessUpdateScope edit = database.BeginUpdate()) {
     edit.Commit();
 }
 AccessOperationReport assessment = database.AssessSave("contacts.accdb");
-assessment.RequireNoLoss();
+assessment.ThrowIfLoss();
 database.Save("contacts.accdb");
 ```
 
@@ -190,7 +190,7 @@ Models retain supplied values and typed references. Modeled rows distinguish omi
 
 ```csharp
 using AccessDocument source = AccessDocument.Load("application.mdb");
-source.AssessSave("archive.mdb").RequireNoLoss();
+source.AssessSave("archive.mdb").ThrowIfLoss();
 source.Save("archive.mdb");
 ```
 

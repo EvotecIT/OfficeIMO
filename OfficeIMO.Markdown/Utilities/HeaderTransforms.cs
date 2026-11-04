@@ -5,7 +5,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Common header transform helpers for converting property names to human-friendly headers.
 /// </summary>
-public static class HeaderTransforms {
+public static class MarkdownHeaderTransforms {
     private static readonly Regex SplitPascal = new Regex("(?<!^)(?=[A-Z])", RegexOptions.Compiled);
     private static readonly string[] DefaultAcronyms = new[] { "DNS", "SPF", "DKIM", "DMARC", "BIMI", "TLS", "SSL", "MX", "PTR", "WHOIS", "URL", "HTML", "PDF", "CPU", "GPU" };
 

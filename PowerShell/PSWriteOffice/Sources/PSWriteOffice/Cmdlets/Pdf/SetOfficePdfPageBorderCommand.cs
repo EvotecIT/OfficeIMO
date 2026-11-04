@@ -63,7 +63,7 @@ public sealed class SetOfficePdfPageBorderCommand : PSCmdlet
         var document = PdfCommandUtilities.ComposePage(this, Document, ParameterSetName, ParameterSetDocument, page =>
         {
             if (Clear.IsPresent) page.PageBorder(null);
-            else page.PageBorder(PdfCommandUtilities.ParseColor(Color), Width, Inset, Opacity, DashStyle);
+            else page.PageBorder(PdfCommandUtilities.ParseColor(Color), ((Width).HasValue ? global::OfficeIMO.OfficeLength.Points((Width).Value) : (global::OfficeIMO.OfficeLength?)null), ((Inset).HasValue ? global::OfficeIMO.OfficeLength.Points((Inset).Value) : (global::OfficeIMO.OfficeLength?)null), Opacity, DashStyle);
         });
 
         if (PassThru.IsPresent && document != null)

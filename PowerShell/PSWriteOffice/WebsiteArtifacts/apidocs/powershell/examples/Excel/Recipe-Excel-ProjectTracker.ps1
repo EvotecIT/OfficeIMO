@@ -6,15 +6,15 @@ $tasks = @(
     [pscustomobject]@{ Task = 'Publish runbook'; Owner = 'Support'; Status = 'Not started'; Progress = 0; Due = '2026-09-08' }
 )
 
-ExcelNew -Path $path {
+New-OfficeExcel -Path $path {
     ExcelSheet 'Tracker' {
-        ExcelTable -Data $tasks -TableName 'ProjectTasks' -StartRow 1 -StartColumn 1 -TableStyle 'TableStyleMedium9' -AutoFit
-        ExcelFreeze -TopRows 1
+        ExcelTable -Data $tasks -Name 'ProjectTasks' -StartRow 1 -StartColumn 1 -TableStyle 'TableStyleMedium9' -AutoFit
+        ExcelSheetView -FreezeRows 1
         ExcelValidationList -TableName 'ProjectTasks' -HeaderName 'Status' `
             -Values 'Not started', 'In progress', 'Blocked', 'Done'
         ExcelConditionalColorScale -Range 'D2:D20' -StartColor '#FEE2E2' -EndColor '#DCFCE7'
         ExcelConditionalRule -TableName 'ProjectTasks' -HeaderName 'Status' -RuleType ContainsText -Text 'Blocked'
-        ExcelChart -Range 'A1:D5' -Row 7 -Column 1 -Type BarClustered -Title 'Task progress' -WidthPixels 720 -HeightPixels 320
+        ExcelChart -Range 'A1:D5' -Address A7 -Type BarClustered -Title 'Task progress' -Width 720px -Height 320px
         ExcelHeaderFooter -HeaderCenter 'Project tracker' -FooterRight 'Page &P of &N'
         ExcelOrientation -Orientation Landscape
         ExcelPageSetup -FitToWidth 1 -FitToHeight 0

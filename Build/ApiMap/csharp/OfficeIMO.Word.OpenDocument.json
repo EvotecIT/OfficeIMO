@@ -1,0 +1,50 @@
+{
+  "package": "OfficeIMO.Word.OpenDocument",
+  "summary": "Word snapshot geometry consumers retain physical measurements at the OpenDocument boundary.",
+  "changes": [
+    {
+      "old": "WordDocument.ToOpenDocument(options) / ToOpenDocumentResult(options) : OdfConversionResult<OdtDocument>",
+      "kind": "method",
+      "action": "merge",
+      "new": "WordDocument.ToOpenDocument(WordOpenDocumentConversionOptions options[, out OfficeConversionReport report], CancellationToken) : OdtDocument; ToOpenDocumentAsync; SaveAsOpenDocument(path | stream); SaveAsOpenDocumentAsync",
+      "reason": "Converters use the shared shape: To{Target}(options[, out OfficeConversionReport], ct), To{Target}Async returning OfficeConversionResult<T>, and SaveAs{Target}(path | stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed.",
+      "category": "conversion",
+      "replacement": "The out report is the typed OdfConversionReport with per-feature mappings.",
+      "applied": true
+    },
+    {
+      "old": "OdtDocument.ToWordDocument(options) / ToWordDocumentResult(options)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OdtDocument.ToWord(WordOpenDocumentConversionOptions options[, out OfficeConversionReport report], CancellationToken); ToWordAsync; SaveAsWord(path | stream); SaveAsWordAsync",
+      "reason": "Converters use the shared shape: To{Target}(options[, out OfficeConversionReport], ct), To{Target}Async returning OfficeConversionResult<T>, and SaveAs{Target}(path | stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Word.OpenDocument.WordOpenDocumentConversionOptions",
+      "kind": "type",
+      "action": "change",
+      "new": "OfficeIMO.Word.OpenDocument.WordOpenDocumentConversionOptions.Clone()",
+      "reason": "Both directions share every setting, so one options type stays; LossPolicy keeps its three levels instead of FailOnLoss.",
+      "category": "options",
+      "applied": true
+    }
+  ],
+  "extraChanges": [
+    {
+      "phase": "B",
+      "action": "change",
+      "applied": "phase-b-applied",
+      "old": "Word-to-ODT inline image export treats snapshot pixels as points; ODT-to-Word import wraps source points as pixels.",
+      "new": "Convert physical image lengths to explicit points only at the ODF boundary and retain point dimensions when importing to Word.",
+      "reason": "The snapshot geometry migration exposed reciprocal unit interpretation errors. Preserve actual image frames in either conversion direction, including independently authored input.",
+      "note": "The existing ODT image-order workflow now checks centimeter-sized image frames after native Word save/load and ODT save/load, so reciprocal scale errors cannot cancel unnoticed.",
+      "files": [
+        "OfficeIMO.Word.OpenDocument/WordOpenDocumentConversionExtensions.cs",
+        "OfficeIMO.Word.OpenDocument/WordOpenDocumentConversionExtensions.WordParagraphs.cs",
+        "OfficeIMO.OpenDocument.Converters.Tests/OpenDocumentConversionContracts.cs"
+      ]
+    }
+  ]
+}

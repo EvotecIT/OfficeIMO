@@ -127,7 +127,7 @@ namespace OfficeIMO.Tests {
 
             VisioDocument loaded = VisioDocument.Load(filePath);
             loaded.AsFluent()
-                .ExistingPage("Fulfillment", page => page
+                .GetPage("Fulfillment", page => page
                     .MoveSwimlaneActivity("pick", "sales", "review", options => {
                         options.AvoidShapes = false;
                         options.ActivityGap = 0.18D;
@@ -143,10 +143,10 @@ namespace OfficeIMO.Tests {
             OfficeIMO.Visio.VisioShapeBounds salesBounds = sales!.Body.GetShapeBounds();
             Assert.Equal("sales", pick.GetUserCellValue(VisioSemanticUserCells.SwimlaneLaneId));
             Assert.Equal("review", pick.GetUserCellValue(VisioSemanticUserCells.SwimlanePhaseId));
-            Assert.Equal(review!.Header.PinX, pick.PinX, 6);
-            Assert.InRange(pick.PinY, salesBounds.Bottom, salesBounds.Top);
-            Assert.InRange(qualify.PinY, salesBounds.Bottom, salesBounds.Top);
-            Assert.NotEqual(qualify.PinY, pick.PinY);
+            Assert.Equal(review!.Header.PinX.ToInches(), pick.PinX.ToInches(), 6);
+            Assert.InRange(pick.PinY.ToInches(), salesBounds.Bottom.ToInches(), salesBounds.Top.ToInches());
+            Assert.InRange(qualify.PinY.ToInches(), salesBounds.Bottom.ToInches(), salesBounds.Top.ToInches());
+            Assert.NotEqual(qualify.PinY.ToInches(), pick.PinY.ToInches());
             Assert.All(page.Connectors, connector => Assert.NotEmpty(connector.Waypoints));
 
             loaded.Save(editedPath);
@@ -179,8 +179,8 @@ namespace OfficeIMO.Tests {
 
             VisioPage page = Assert.Single(document.Pages);
             Assert.Equal(6, page.Shapes.Count);
-            Assert.True(page.FindShapeById("start")!.PinY > page.FindShapeById("work")!.PinY);
-            Assert.True(page.FindShapeById("work")!.PinY > page.FindShapeById("done")!.PinY);
+            Assert.True(page.FindShapeById("start")!.PinY.ToInches() > page.FindShapeById("work")!.PinY.ToInches());
+            Assert.True(page.FindShapeById("work")!.PinY.ToInches() > page.FindShapeById("done")!.PinY.ToInches());
             Assert.Empty(page.AnalyzeVisualQuality().Select(issue => issue.ToString()));
         }
 
@@ -204,7 +204,7 @@ namespace OfficeIMO.Tests {
             VisioShape phaseHeader = Assert.Single(page.Shapes, shape => shape.Id == "phase-request");
             Assert.Equal("Text Box", title.NameU);
             Assert.Equal("Order Fulfillment", title.Text);
-            Assert.True(title.PinY > phaseHeader.PinY);
+            Assert.True(title.PinY.ToInches() > phaseHeader.PinY.ToInches());
             Assert.Empty(page.AnalyzeVisualQuality().Select(issue => issue.ToString()));
 
             document.Save();
@@ -241,8 +241,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Escalate exceptions before fulfillment", callout.Text);
             Assert.Equal(target.Id, callout.CalloutTargetId);
             Assert.Contains("Annotations", callout.LayerNames);
-            Assert.Equal(2.8, callout.Width);
-            Assert.Equal(0.72, callout.Height);
+            Assert.Equal(2.8, callout.Width.ToInches());
+            Assert.Equal(0.72, callout.Height.ToInches());
 
             VisioConnector leader = Assert.Single(page.Connectors, connector => ReferenceEquals(connector.From, callout));
             Assert.Same(target, leader.To);
@@ -282,11 +282,11 @@ namespace OfficeIMO.Tests {
             VisioShape explicitCallout = Assert.Single(page.Callouts(), shape => shape.Id == "approval-note");
             VisioShape generatedCallout = Assert.Single(page.Callouts(), shape => shape.Id == "qualify-callout");
 
-            Assert.True(explicitCallout.PinX > approved.PinX);
-            Assert.Equal(approved.PinY, explicitCallout.PinY, 6);
+            Assert.True(explicitCallout.PinX.ToInches() > approved.PinX.ToInches());
+            Assert.Equal(approved.PinY.ToInches(), explicitCallout.PinY.ToInches(), 6);
             Assert.Equal(approved.Id, explicitCallout.CalloutTargetId);
-            Assert.Equal(2.65, explicitCallout.Width);
-            Assert.True(generatedCallout.PinX < qualify.PinX);
+            Assert.Equal(2.65, explicitCallout.Width.ToInches());
+            Assert.True(generatedCallout.PinX.ToInches() < qualify.PinX.ToInches());
             Assert.Equal(qualify.Id, generatedCallout.CalloutTargetId);
 
             VisioConnector leader = Assert.Single(page.Connectors, connector => ReferenceEquals(connector.From, explicitCallout));
@@ -316,11 +316,11 @@ namespace OfficeIMO.Tests {
             VisioShape activity = Assert.Single(page.Shapes, shape => shape.Id == "qualify");
             VisioShape callout = Assert.Single(page.Callouts());
 
-            Assert.Equal(2D.ToInches(VisioMeasurementUnit.Centimeters), laneHeader.Width, 6);
-            Assert.Equal(2D.ToInches(VisioMeasurementUnit.Centimeters), laneHeader.Height, 6);
-            Assert.InRange(activity.PinX, 0D, page.Width);
-            Assert.Equal(9D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinX, 6);
-            Assert.Equal(7D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinY, 6);
+            Assert.Equal(2D.ToInches(VisioMeasurementUnit.Centimeters), laneHeader.Width.ToInches(), 6);
+            Assert.Equal(2D.ToInches(VisioMeasurementUnit.Centimeters), laneHeader.Height.ToInches(), 6);
+            Assert.InRange(activity.PinX.ToInches(), 0D, page.Width.ToInches());
+            Assert.Equal(9D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinX.ToInches(), 6);
+            Assert.Equal(7D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinY.ToInches(), 6);
         }
 
         [Fact]

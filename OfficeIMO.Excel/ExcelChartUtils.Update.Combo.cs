@@ -55,35 +55,35 @@ namespace OfficeIMO.Excel {
                 uint valueAxisId = group.AxisGroup == OfficeChartAxisGroup.Secondary ? axisIds.SecondaryValueId : axisIds.PrimaryValueId;
 
                 switch (group.ChartType) {
-                    case ExcelChartType.ColumnClustered:
+                    case OfficeChartType.ColumnClustered:
                         usedCharts.Add(UpdateOrCreateBarChart(plotArea, group.Descriptors, data, range, BarDirectionValues.Column, BarGroupingValues.Clustered, categoryAxisId, valueAxisId));
                         break;
-                    case ExcelChartType.ColumnStacked:
+                    case OfficeChartType.ColumnStacked:
                         usedCharts.Add(UpdateOrCreateBarChart(plotArea, group.Descriptors, data, range, BarDirectionValues.Column, BarGroupingValues.Stacked, categoryAxisId, valueAxisId));
                         break;
-                    case ExcelChartType.ColumnStacked100:
+                    case OfficeChartType.ColumnStacked100:
                         usedCharts.Add(UpdateOrCreateBarChart(plotArea, group.Descriptors, data, range, BarDirectionValues.Column, BarGroupingValues.PercentStacked, categoryAxisId, valueAxisId));
                         break;
-                    case ExcelChartType.BarClustered:
+                    case OfficeChartType.BarClustered:
                         usedCharts.Add(UpdateOrCreateBarChart(plotArea, group.Descriptors, data, range, BarDirectionValues.Bar, BarGroupingValues.Clustered, categoryAxisId, valueAxisId));
                         break;
-                    case ExcelChartType.BarStacked:
+                    case OfficeChartType.BarStacked:
                         usedCharts.Add(UpdateOrCreateBarChart(plotArea, group.Descriptors, data, range, BarDirectionValues.Bar, BarGroupingValues.Stacked, categoryAxisId, valueAxisId));
                         break;
-                    case ExcelChartType.BarStacked100:
+                    case OfficeChartType.BarStacked100:
                         usedCharts.Add(UpdateOrCreateBarChart(plotArea, group.Descriptors, data, range, BarDirectionValues.Bar, BarGroupingValues.PercentStacked, categoryAxisId, valueAxisId));
                         break;
-                    case ExcelChartType.Line:
-                    case ExcelChartType.LineStacked:
-                    case ExcelChartType.LineStacked100:
+                    case OfficeChartType.Line:
+                    case OfficeChartType.LineStacked:
+                    case OfficeChartType.LineStacked100:
                         usedCharts.Add(UpdateOrCreateLineChart(plotArea, group.Descriptors, data, range, GetLineGrouping(group.ChartType), categoryAxisId, valueAxisId));
                         break;
-                    case ExcelChartType.Area:
-                    case ExcelChartType.AreaStacked:
-                    case ExcelChartType.AreaStacked100:
+                    case OfficeChartType.Area:
+                    case OfficeChartType.AreaStacked:
+                    case OfficeChartType.AreaStacked100:
                         usedCharts.Add(UpdateOrCreateAreaChart(plotArea, group.Descriptors, data, range, GetAreaGrouping(group.ChartType), categoryAxisId, valueAxisId));
                         break;
-                    case ExcelChartType.Scatter:
+                    case OfficeChartType.Scatter:
                         usedCharts.Add(UpdateOrCreateScatterChart(plotArea, group.Descriptors, data, range, categoryAxisId, valueAxisId));
                         break;
                     default:

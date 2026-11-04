@@ -18,11 +18,11 @@ Describe 'PowerPoint chart calculated properties' {
             [pscustomobject]@{ Site = 'Remote'; Tickets = 30 }
         ) | Select-Object @{Name='Location';Expression={$_.Site}}, @{Name='Reviewed tickets';Expression={$_.Tickets * 2}}
         $path = Join-Path $TestDrive 'categorical.pptx'
-        $deck = New-OfficePowerPoint -Path $path -NoSave
+        $deck = New-OfficePowerPoint -Path $path
         try {
-            $slide = Add-OfficePowerPointSlide -Presentation $deck -Layout 1 -PassThru
-            Add-OfficePowerPointChart -Slide $slide -InputObject $rows -CategoryProperty Location -SeriesProperty 'Reviewed tickets' -ErrorAction Stop
-            Save-OfficePowerPoint -Presentation $deck
+            $slide = $deck.AddSlide()
+            Add-OfficePowerPointChart -Slide $slide -InputObject $rows -Category Location -Value 'Reviewed tickets' -ErrorAction Stop
+            Save-OfficePowerPoint -Document $deck
         } finally { $deck.Dispose() }
         $chart = Read-SavedChart $path
         ($chart.SelectNodes("//*[local-name()='cat']//*[local-name()='pt']/*[local-name()='v']") | ForEach-Object InnerText) -join ',' | Should -Be 'Łódź,Remote'
@@ -35,11 +35,11 @@ Describe 'PowerPoint chart calculated properties' {
             [pscustomobject]@{ Period = 2; Tickets = 30 }
         ) | Select-Object @{Name='Quarter';Expression={$_.Period}}, @{Name='Demand';Expression={$_.Tickets / 2}}
         $path = Join-Path $TestDrive 'scatter.pptx'
-        $deck = New-OfficePowerPoint -Path $path -NoSave
+        $deck = New-OfficePowerPoint -Path $path
         try {
-            $slide = Add-OfficePowerPointSlide -Presentation $deck -Layout 1 -PassThru
-            Add-OfficePowerPointChart -Slide $slide -Type Scatter -InputObject $rows -XProperty Quarter -YProperty Demand -ErrorAction Stop
-            Save-OfficePowerPoint -Presentation $deck
+            $slide = $deck.AddSlide()
+            Add-OfficePowerPointChart -Slide $slide -Type Scatter -InputObject $rows -Category Quarter -Value Demand -ErrorAction Stop
+            Save-OfficePowerPoint -Document $deck
         } finally { $deck.Dispose() }
         $chart = Read-SavedChart $path
         ($chart.SelectNodes("//*[local-name()='xVal']//*[local-name()='pt']/*[local-name()='v']") | ForEach-Object InnerText) -join ',' | Should -Be '1,2'
@@ -47,13 +47,13 @@ Describe 'PowerPoint chart calculated properties' {
     }
 
     It 'still rejects null and nonnumeric projected series values' {
-        $deck = New-OfficePowerPoint -Path (Join-Path $TestDrive 'invalid.pptx') -NoSave
+        $deck = New-OfficePowerPoint -Path (Join-Path $TestDrive 'invalid.pptx')
         try {
-            $slide = Add-OfficePowerPointSlide -Presentation $deck -Layout 1 -PassThru
+            $slide = $deck.AddSlide()
             $bad = [pscustomobject]@{ Site = 'Depot'; Value = 'pending' } | Select-Object Site, @{Name='Tickets';Expression={$_.Value}}
-            { Add-OfficePowerPointChart -Slide $slide -InputObject $bad -CategoryProperty Site -SeriesProperty Tickets -ErrorAction Stop } | Should -Throw '*must be numeric*'
+            { Add-OfficePowerPointChart -Slide $slide -InputObject $bad -Category Site -Value Tickets -ErrorAction Stop } | Should -Throw '*must be numeric*'
             $nullValue = [pscustomobject]@{ Site = 'Depot' } | Select-Object Site, @{Name='Tickets';Expression={$null}}
-            { Add-OfficePowerPointChart -Slide $slide -InputObject $nullValue -CategoryProperty Site -SeriesProperty Tickets -ErrorAction Stop } | Should -Throw '*cannot be null*'
+            { Add-OfficePowerPointChart -Slide $slide -InputObject $nullValue -Category Site -Value Tickets -ErrorAction Stop } | Should -Throw '*cannot be null*'
             @($slide.Charts).Count | Should -Be 0
         } finally { $deck.Dispose() }
     }

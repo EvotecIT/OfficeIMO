@@ -10,15 +10,15 @@ public partial class Excel {
     [Fact]
     public void DataReader_RequiredArrowColumnRejectsNullFromTheWorkbookFastPath() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
-        sheet.CellValue(1, 1, "Id");
-        sheet.CellValue(1, 2, "Name");
-        sheet.CellValue(2, 2, "Alpha");
-        sheet.CellValue(3, 1, 42);
-        sheet.CellValue(3, 2, "Beta");
+        ExcelSheet sheet = document.AddSheet("Data");
+        sheet.Cell(1, 1).SetValue("Id");
+        sheet.Cell(1, 2).SetValue("Name");
+        sheet.Cell(2, 2).SetValue("Alpha");
+        sheet.Cell(3, 1).SetValue(42);
+        sheet.Cell(3, 2).SetValue("Beta");
         byte[] workbook = document.ToBytes();
 
-        using (ExcelWorkbookDataReader nullableReader = ExcelDocument.OpenDataReader(workbook)) {
+        using (ExcelWorkbookDataReader nullableReader = ExcelDocument.OpenReader(workbook)) {
             using RecordBatch batch = Assert.Single(nullableReader.ReadArrowBatches(new ArrowReadOptions {
                 ColumnTypes = [typeof(long), typeof(string)]
             }));
@@ -26,7 +26,7 @@ public partial class Excel {
             Assert.Equal(42L, Assert.IsType<Int64Array>(batch.Column(0)).GetValue(1));
         }
 
-        using ExcelWorkbookDataReader requiredReader = ExcelDocument.OpenDataReader(workbook);
+        using ExcelWorkbookDataReader requiredReader = ExcelDocument.OpenReader(workbook);
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
             requiredReader.ReadArrowBatches(new ArrowReadOptions {
                 ColumnTypes = [typeof(long), typeof(string)],

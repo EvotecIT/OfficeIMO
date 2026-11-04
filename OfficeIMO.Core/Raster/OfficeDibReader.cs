@@ -7,7 +7,7 @@ namespace OfficeIMO.Drawing;
 /// Decodes Windows device-independent bitmap payloads that omit the BMP file header,
 /// as commonly embedded in RTF <c>\dibitmap</c> pictures.
 /// </summary>
-public static class OfficeDibReader {
+internal static class OfficeDibReader {
     private const int BitmapFileHeaderSize = 14;
     private const int BitmapInfoHeaderSize = 40;
 

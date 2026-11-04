@@ -4,64 +4,72 @@ internal static partial class PdfStamper {
     /// <summary>
     /// Adds an image stamp to selected pages, or every page when no page selection is supplied.
     /// </summary>
-    public static byte[] StampImage(byte[] pdf, byte[] imageBytes, PdfImageStampOptions? options = null, PdfLoadOptions? readOptions = null) {
+    public static byte[] StampImage(byte[] pdf, byte[] imageBytes, PdfImageStampOptions? options = null, PdfLoadOptions? readOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         return StampImageCore(pdf, imageBytes, options, watermarkDefaults: false, readOptions);
     }
 
     /// <summary>
     /// Adds an image stamp from the current position of a readable image stream to selected pages, or every page when no page selection is supplied.
     /// </summary>
-    public static byte[] StampImage(byte[] pdf, Stream imageStream, PdfImageStampOptions? options = null) {
-        return StampImage(pdf, ReadImageStream(imageStream, nameof(imageStream), options), options);
+    public static byte[] StampImage(byte[] pdf, Stream imageStream, PdfImageStampOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return StampImage(pdf, ReadImageStream(imageStream, nameof(imageStream), options), options, cancellationToken: cancellationToken);
     }
 
     /// <summary>
     /// Adds an image stamp to selected pages from the current position of a readable stream, or every page when no page selection is supplied.
     /// </summary>
-    public static byte[] StampImage(Stream stream, byte[] imageBytes, PdfImageStampOptions? options = null) {
-        return StampImage(ReadStream(stream, nameof(stream), cancellationToken: options?.CancellationToken ?? default), imageBytes, options);
+    public static byte[] StampImage(Stream stream, byte[] imageBytes, PdfImageStampOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return StampImage(ReadStream(stream, nameof(stream), cancellationToken: options?.CancellationToken ?? default), imageBytes, options, cancellationToken: cancellationToken);
     }
 
     /// <summary>
     /// Adds an image stamp from the current position of readable PDF and image streams to selected pages, or every page when no page selection is supplied.
     /// </summary>
-    public static byte[] StampImage(Stream stream, Stream imageStream, PdfImageStampOptions? options = null) {
+    public static byte[] StampImage(Stream stream, Stream imageStream, PdfImageStampOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         return StampImage(
             ReadStream(stream, nameof(stream), cancellationToken: options?.CancellationToken ?? default),
             ReadImageStream(imageStream, nameof(imageStream), options),
-            options);
+            options, cancellationToken: cancellationToken);
     }
 
     /// <summary>
     /// Adds an image stamp to selected pages and writes the result to <paramref name="outputStream"/>.
     /// </summary>
-    public static void StampImage(byte[] pdf, Stream outputStream, byte[] imageBytes, PdfImageStampOptions? options = null) {
+    public static void StampImage(byte[] pdf, Stream outputStream, byte[] imageBytes, PdfImageStampOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         ValidateWritableOutputStream(outputStream);
-        WriteOutput(outputStream, StampImage(pdf, imageBytes, options), options?.CancellationToken ?? default);
+        WriteOutput(outputStream, StampImage(pdf, imageBytes, options, cancellationToken: cancellationToken), options?.CancellationToken ?? default);
     }
 
     /// <summary>
     /// Adds an image stamp from the current position of a readable image stream and writes the result to <paramref name="outputStream"/>.
     /// </summary>
-    public static void StampImage(byte[] pdf, Stream outputStream, Stream imageStream, PdfImageStampOptions? options = null) {
+    public static void StampImage(byte[] pdf, Stream outputStream, Stream imageStream, PdfImageStampOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         ValidateWritableOutputStream(outputStream);
-        WriteOutput(outputStream, StampImage(pdf, imageStream, options), options?.CancellationToken ?? default);
+        WriteOutput(outputStream, StampImage(pdf, imageStream, options, cancellationToken: cancellationToken), options?.CancellationToken ?? default);
     }
 
     /// <summary>
     /// Adds an image stamp from the current position of a readable PDF stream and writes the result to <paramref name="outputStream"/>.
     /// </summary>
-    public static void StampImage(Stream stream, Stream outputStream, byte[] imageBytes, PdfImageStampOptions? options = null) {
+    public static void StampImage(Stream stream, Stream outputStream, byte[] imageBytes, PdfImageStampOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         ValidateWritableOutputStream(outputStream);
-        WriteOutput(outputStream, StampImage(stream, imageBytes, options), options?.CancellationToken ?? default);
+        WriteOutput(outputStream, StampImage(stream, imageBytes, options, cancellationToken: cancellationToken), options?.CancellationToken ?? default);
     }
 
     /// <summary>
     /// Adds an image stamp from the current position of readable PDF and image streams and writes the result to <paramref name="outputStream"/>.
     /// </summary>
-    public static void StampImage(Stream stream, Stream outputStream, Stream imageStream, PdfImageStampOptions? options = null) {
+    public static void StampImage(Stream stream, Stream outputStream, Stream imageStream, PdfImageStampOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         ValidateWritableOutputStream(outputStream);
-        WriteOutput(outputStream, StampImage(stream, imageStream, options), options?.CancellationToken ?? default);
+        WriteOutput(outputStream, StampImage(stream, imageStream, options, cancellationToken: cancellationToken), options?.CancellationToken ?? default);
     }
 
     private static byte[] StampImageCore(byte[] pdf, byte[] imageBytes, PdfImageStampOptions? options, bool watermarkDefaults, PdfLoadOptions? readOptions = null) {
@@ -81,8 +89,8 @@ internal static partial class PdfStamper {
 
         if (!PdfWriter.TryBuildImageStream(
                 prepared,
-                effectiveOptions.Width ?? Math.Max(1, prepared.Info.Width),
-                effectiveOptions.Height ?? Math.Max(1, prepared.Info.Height),
+                effectiveOptions.Width?.ToPoints() ?? Math.Max(1, prepared.Info.Width),
+                effectiveOptions.Height?.ToPoints() ?? Math.Max(1, prepared.Info.Height),
                 out var imageStream,
                 out string? unsupportedReason)) {
             throw new NotSupportedException(unsupportedReason ?? "Image format is not supported.");
@@ -110,7 +118,6 @@ internal static partial class PdfStamper {
                 cancellationToken.ThrowIfCancellationRequested();
                 int pageNumber = i + 1;
                 if (!selectedSet.Contains(pageNumber)) continue;
-                var size = document.Pages[i].GetPageSize();
                 if (!effectiveOptions.BehindContent) {
                     IsolateExistingContents(rewrittenObjects, pageObjectNumbers[i], ref nextObjectNumber);
                 }
@@ -120,8 +127,7 @@ internal static partial class PdfStamper {
                     0,
                     BuildImageStampStream(
                         imageResourceName,
-                        size.Width,
-                        size.Height,
+                        document.Pages[i],
                         imageStream.LayoutPixelWidth,
                         imageStream.LayoutPixelHeight,
                         imageStream.Orientation,
@@ -147,90 +153,99 @@ internal static partial class PdfStamper {
     /// <summary>
     /// Writes a new PDF with an image stamp on selected pages, or every page when no page selection is supplied.
     /// </summary>
-    public static void StampImage(string inputPath, string outputPath, byte[] imageBytes, PdfImageStampOptions? options = null) {
+    public static void StampImage(string inputPath, string outputPath, byte[] imageBytes, PdfImageStampOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        WriteOutput(fullOutputPath, StampImage(ReadPath(inputPath, options?.CancellationToken ?? default), imageBytes, options), options?.CancellationToken ?? default);
+        WriteOutput(fullOutputPath, StampImage(ReadPath(inputPath, options?.CancellationToken ?? default), imageBytes, options, cancellationToken: cancellationToken), options?.CancellationToken ?? default);
     }
 
     /// <summary>
     /// Adds an image stamp to selected pages from a PDF file and writes the result to <paramref name="outputStream"/>.
     /// </summary>
-    public static void StampImage(string inputPath, Stream outputStream, byte[] imageBytes, PdfImageStampOptions? options = null) {
+    public static void StampImage(string inputPath, Stream outputStream, byte[] imageBytes, PdfImageStampOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
         ValidateWritableOutputStream(outputStream);
-        WriteOutput(outputStream, StampImage(ReadPath(inputPath, options?.CancellationToken ?? default), imageBytes, options), options?.CancellationToken ?? default);
+        WriteOutput(outputStream, StampImage(ReadPath(inputPath, options?.CancellationToken ?? default), imageBytes, options, cancellationToken: cancellationToken), options?.CancellationToken ?? default);
     }
 
     /// <summary>
     /// Writes a new PDF with an image stamp from the current position of a readable image stream.
     /// </summary>
-    public static void StampImage(string inputPath, string outputPath, Stream imageStream, PdfImageStampOptions? options = null) {
+    public static void StampImage(string inputPath, string outputPath, Stream imageStream, PdfImageStampOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        WriteOutput(fullOutputPath, StampImage(ReadPath(inputPath, options?.CancellationToken ?? default), imageStream, options), options?.CancellationToken ?? default);
+        WriteOutput(fullOutputPath, StampImage(ReadPath(inputPath, options?.CancellationToken ?? default), imageStream, options, cancellationToken: cancellationToken), options?.CancellationToken ?? default);
     }
 
     /// <summary>
     /// Adds an image stamp from the current position of a readable image stream to selected pages from a PDF file and writes the result to <paramref name="outputStream"/>.
     /// </summary>
-    public static void StampImage(string inputPath, Stream outputStream, Stream imageStream, PdfImageStampOptions? options = null) {
+    public static void StampImage(string inputPath, Stream outputStream, Stream imageStream, PdfImageStampOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
         ValidateWritableOutputStream(outputStream);
-        WriteOutput(outputStream, StampImage(ReadPath(inputPath, options?.CancellationToken ?? default), imageStream, options), options?.CancellationToken ?? default);
+        WriteOutput(outputStream, StampImage(ReadPath(inputPath, options?.CancellationToken ?? default), imageStream, options, cancellationToken: cancellationToken), options?.CancellationToken ?? default);
     }
 
     /// <summary>
     /// Writes a new PDF with an image stamp from the current position of a readable PDF stream.
     /// </summary>
-    public static void StampImage(Stream stream, string outputPath, byte[] imageBytes, PdfImageStampOptions? options = null) {
+    public static void StampImage(Stream stream, string outputPath, byte[] imageBytes, PdfImageStampOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        WriteOutput(fullOutputPath, StampImage(stream, imageBytes, options), options?.CancellationToken ?? default);
+        WriteOutput(fullOutputPath, StampImage(stream, imageBytes, options, cancellationToken: cancellationToken), options?.CancellationToken ?? default);
     }
 
     /// <summary>
     /// Writes a new PDF with an image stamp from the current position of readable PDF and image streams.
     /// </summary>
-    public static void StampImage(Stream stream, string outputPath, Stream imageStream, PdfImageStampOptions? options = null) {
+    public static void StampImage(Stream stream, string outputPath, Stream imageStream, PdfImageStampOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        WriteOutput(fullOutputPath, StampImage(stream, imageStream, options), options?.CancellationToken ?? default);
+        WriteOutput(fullOutputPath, StampImage(stream, imageStream, options, cancellationToken: cancellationToken), options?.CancellationToken ?? default);
     }
 
     /// <summary>
     /// Adds an image stamp to selected pages from a PDF file and returns the stamped PDF bytes.
     /// </summary>
-    public static byte[] StampImageToBytes(string inputPath, byte[] imageBytes, PdfImageStampOptions? options = null) {
+    public static byte[] StampImageToBytes(string inputPath, byte[] imageBytes, PdfImageStampOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
 
-        return StampImage(ReadPath(inputPath, options?.CancellationToken ?? default), imageBytes, options);
+        return StampImage(ReadPath(inputPath, options?.CancellationToken ?? default), imageBytes, options, cancellationToken: cancellationToken);
     }
 
     /// <summary>
     /// Adds an image stamp from the current position of a readable image stream to selected pages from a PDF file and returns the stamped PDF bytes.
     /// </summary>
-    public static byte[] StampImageToBytes(string inputPath, Stream imageStream, PdfImageStampOptions? options = null) {
+    public static byte[] StampImageToBytes(string inputPath, Stream imageStream, PdfImageStampOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
 
-        return StampImage(ReadPath(inputPath, options?.CancellationToken ?? default), imageStream, options);
+        return StampImage(ReadPath(inputPath, options?.CancellationToken ?? default), imageStream, options, cancellationToken: cancellationToken);
     }
 
     /// <summary>
     /// Adds a centered image watermark to selected pages, or every page when no page selection is supplied.
     /// Simple PNG alpha and transparency soft masks are supported for compatible PNG inputs.
     /// </summary>
-    public static byte[] WatermarkImage(byte[] pdf, byte[] imageBytes, PdfImageStampOptions? options = null, PdfLoadOptions? readOptions = null) {
+    public static byte[] WatermarkImage(byte[] pdf, byte[] imageBytes, PdfImageStampOptions? options = null, PdfLoadOptions? readOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         var effectiveOptions = BuildImageWatermarkOptions(options);
         return StampImageCore(pdf, imageBytes, effectiveOptions, watermarkDefaults: true, readOptions);
     }
@@ -239,153 +254,168 @@ internal static partial class PdfStamper {
     /// Adds a centered image watermark from the current position of a readable image stream to selected pages, or every page when no page selection is supplied.
     /// Simple PNG alpha and transparency soft masks are supported for compatible PNG inputs.
     /// </summary>
-    public static byte[] WatermarkImage(byte[] pdf, Stream imageStream, PdfImageStampOptions? options = null) {
-        return WatermarkImage(pdf, ReadImageStream(imageStream, nameof(imageStream), options), options);
+    public static byte[] WatermarkImage(byte[] pdf, Stream imageStream, PdfImageStampOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return WatermarkImage(pdf, ReadImageStream(imageStream, nameof(imageStream), options), options, cancellationToken: cancellationToken);
     }
 
     /// <summary>
     /// Adds a centered image watermark to selected pages from the current position of a readable stream, or every page when no page selection is supplied.
     /// Simple PNG alpha and transparency soft masks are supported for compatible PNG inputs.
     /// </summary>
-    public static byte[] WatermarkImage(Stream stream, byte[] imageBytes, PdfImageStampOptions? options = null) {
-        return WatermarkImage(ReadStream(stream, nameof(stream), cancellationToken: options?.CancellationToken ?? default), imageBytes, options);
+    public static byte[] WatermarkImage(Stream stream, byte[] imageBytes, PdfImageStampOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return WatermarkImage(ReadStream(stream, nameof(stream), cancellationToken: options?.CancellationToken ?? default), imageBytes, options, cancellationToken: cancellationToken);
     }
 
     /// <summary>
     /// Adds a centered image watermark from the current position of readable PDF and image streams to selected pages, or every page when no page selection is supplied.
     /// Simple PNG alpha and transparency soft masks are supported for compatible PNG inputs.
     /// </summary>
-    public static byte[] WatermarkImage(Stream stream, Stream imageStream, PdfImageStampOptions? options = null) {
+    public static byte[] WatermarkImage(Stream stream, Stream imageStream, PdfImageStampOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         return WatermarkImage(
             ReadStream(stream, nameof(stream), cancellationToken: options?.CancellationToken ?? default),
             ReadImageStream(imageStream, nameof(imageStream), options),
-            options);
+            options, cancellationToken: cancellationToken);
     }
 
     /// <summary>
     /// Adds a centered image watermark to selected pages and writes the result to <paramref name="outputStream"/>.
     /// Simple PNG alpha and transparency soft masks are supported for compatible PNG inputs.
     /// </summary>
-    public static void WatermarkImage(byte[] pdf, Stream outputStream, byte[] imageBytes, PdfImageStampOptions? options = null) {
+    public static void WatermarkImage(byte[] pdf, Stream outputStream, byte[] imageBytes, PdfImageStampOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         ValidateWritableOutputStream(outputStream);
-        WriteOutput(outputStream, WatermarkImage(pdf, imageBytes, options), options?.CancellationToken ?? default);
+        WriteOutput(outputStream, WatermarkImage(pdf, imageBytes, options, cancellationToken: cancellationToken), options?.CancellationToken ?? default);
     }
 
     /// <summary>
     /// Adds a centered image watermark from the current position of a readable image stream and writes the result to <paramref name="outputStream"/>.
     /// Simple PNG alpha and transparency soft masks are supported for compatible PNG inputs.
     /// </summary>
-    public static void WatermarkImage(byte[] pdf, Stream outputStream, Stream imageStream, PdfImageStampOptions? options = null) {
+    public static void WatermarkImage(byte[] pdf, Stream outputStream, Stream imageStream, PdfImageStampOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         ValidateWritableOutputStream(outputStream);
-        WriteOutput(outputStream, WatermarkImage(pdf, imageStream, options), options?.CancellationToken ?? default);
+        WriteOutput(outputStream, WatermarkImage(pdf, imageStream, options, cancellationToken: cancellationToken), options?.CancellationToken ?? default);
     }
 
     /// <summary>
     /// Adds a centered image watermark from the current position of a readable PDF stream and writes the result to <paramref name="outputStream"/>.
     /// Simple PNG alpha and transparency soft masks are supported for compatible PNG inputs.
     /// </summary>
-    public static void WatermarkImage(Stream stream, Stream outputStream, byte[] imageBytes, PdfImageStampOptions? options = null) {
+    public static void WatermarkImage(Stream stream, Stream outputStream, byte[] imageBytes, PdfImageStampOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         ValidateWritableOutputStream(outputStream);
-        WriteOutput(outputStream, WatermarkImage(stream, imageBytes, options), options?.CancellationToken ?? default);
+        WriteOutput(outputStream, WatermarkImage(stream, imageBytes, options, cancellationToken: cancellationToken), options?.CancellationToken ?? default);
     }
 
     /// <summary>
     /// Adds a centered image watermark from the current position of readable PDF and image streams and writes the result to <paramref name="outputStream"/>.
     /// Simple PNG alpha and transparency soft masks are supported for compatible PNG inputs.
     /// </summary>
-    public static void WatermarkImage(Stream stream, Stream outputStream, Stream imageStream, PdfImageStampOptions? options = null) {
+    public static void WatermarkImage(Stream stream, Stream outputStream, Stream imageStream, PdfImageStampOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         ValidateWritableOutputStream(outputStream);
-        WriteOutput(outputStream, WatermarkImage(stream, imageStream, options), options?.CancellationToken ?? default);
+        WriteOutput(outputStream, WatermarkImage(stream, imageStream, options, cancellationToken: cancellationToken), options?.CancellationToken ?? default);
     }
 
     /// <summary>
     /// Writes a new PDF with a centered image watermark on selected pages, or every page when no page selection is supplied.
     /// Simple PNG alpha and transparency soft masks are supported for compatible PNG inputs.
     /// </summary>
-    public static void WatermarkImage(string inputPath, string outputPath, byte[] imageBytes, PdfImageStampOptions? options = null) {
+    public static void WatermarkImage(string inputPath, string outputPath, byte[] imageBytes, PdfImageStampOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        WriteOutput(fullOutputPath, WatermarkImage(ReadPath(inputPath, options?.CancellationToken ?? default), imageBytes, options), options?.CancellationToken ?? default);
+        WriteOutput(fullOutputPath, WatermarkImage(ReadPath(inputPath, options?.CancellationToken ?? default), imageBytes, options, cancellationToken: cancellationToken), options?.CancellationToken ?? default);
     }
 
     /// <summary>
     /// Adds a centered image watermark to selected pages from a PDF file and writes the result to <paramref name="outputStream"/>.
     /// Simple PNG alpha and transparency soft masks are supported for compatible PNG inputs.
     /// </summary>
-    public static void WatermarkImage(string inputPath, Stream outputStream, byte[] imageBytes, PdfImageStampOptions? options = null) {
+    public static void WatermarkImage(string inputPath, Stream outputStream, byte[] imageBytes, PdfImageStampOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
         ValidateWritableOutputStream(outputStream);
-        WriteOutput(outputStream, WatermarkImage(ReadPath(inputPath, options?.CancellationToken ?? default), imageBytes, options), options?.CancellationToken ?? default);
+        WriteOutput(outputStream, WatermarkImage(ReadPath(inputPath, options?.CancellationToken ?? default), imageBytes, options, cancellationToken: cancellationToken), options?.CancellationToken ?? default);
     }
 
     /// <summary>
     /// Writes a new PDF with a centered image watermark from the current position of a readable image stream.
     /// Simple PNG alpha and transparency soft masks are supported for compatible PNG inputs.
     /// </summary>
-    public static void WatermarkImage(string inputPath, string outputPath, Stream imageStream, PdfImageStampOptions? options = null) {
+    public static void WatermarkImage(string inputPath, string outputPath, Stream imageStream, PdfImageStampOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        WriteOutput(fullOutputPath, WatermarkImage(ReadPath(inputPath, options?.CancellationToken ?? default), imageStream, options), options?.CancellationToken ?? default);
+        WriteOutput(fullOutputPath, WatermarkImage(ReadPath(inputPath, options?.CancellationToken ?? default), imageStream, options, cancellationToken: cancellationToken), options?.CancellationToken ?? default);
     }
 
     /// <summary>
     /// Adds a centered image watermark from the current position of a readable image stream to selected pages from a PDF file and writes the result to <paramref name="outputStream"/>.
     /// Simple PNG alpha and transparency soft masks are supported for compatible PNG inputs.
     /// </summary>
-    public static void WatermarkImage(string inputPath, Stream outputStream, Stream imageStream, PdfImageStampOptions? options = null) {
+    public static void WatermarkImage(string inputPath, Stream outputStream, Stream imageStream, PdfImageStampOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
         ValidateWritableOutputStream(outputStream);
-        WriteOutput(outputStream, WatermarkImage(ReadPath(inputPath, options?.CancellationToken ?? default), imageStream, options), options?.CancellationToken ?? default);
+        WriteOutput(outputStream, WatermarkImage(ReadPath(inputPath, options?.CancellationToken ?? default), imageStream, options, cancellationToken: cancellationToken), options?.CancellationToken ?? default);
     }
 
     /// <summary>
     /// Writes a new PDF with a centered image watermark from the current position of a readable PDF stream.
     /// Simple PNG alpha and transparency soft masks are supported for compatible PNG inputs.
     /// </summary>
-    public static void WatermarkImage(Stream stream, string outputPath, byte[] imageBytes, PdfImageStampOptions? options = null) {
+    public static void WatermarkImage(Stream stream, string outputPath, byte[] imageBytes, PdfImageStampOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        WriteOutput(fullOutputPath, WatermarkImage(stream, imageBytes, options), options?.CancellationToken ?? default);
+        WriteOutput(fullOutputPath, WatermarkImage(stream, imageBytes, options, cancellationToken: cancellationToken), options?.CancellationToken ?? default);
     }
 
     /// <summary>
     /// Writes a new PDF with a centered image watermark from the current position of readable PDF and image streams.
     /// Simple PNG alpha and transparency soft masks are supported for compatible PNG inputs.
     /// </summary>
-    public static void WatermarkImage(Stream stream, string outputPath, Stream imageStream, PdfImageStampOptions? options = null) {
+    public static void WatermarkImage(Stream stream, string outputPath, Stream imageStream, PdfImageStampOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        WriteOutput(fullOutputPath, WatermarkImage(stream, imageStream, options), options?.CancellationToken ?? default);
+        WriteOutput(fullOutputPath, WatermarkImage(stream, imageStream, options, cancellationToken: cancellationToken), options?.CancellationToken ?? default);
     }
 
     /// <summary>
     /// Adds a centered image watermark to selected pages from a PDF file and returns the watermarked PDF bytes.
     /// Simple PNG alpha and transparency soft masks are supported for compatible PNG inputs.
     /// </summary>
-    public static byte[] WatermarkImageToBytes(string inputPath, byte[] imageBytes, PdfImageStampOptions? options = null) {
+    public static byte[] WatermarkImageToBytes(string inputPath, byte[] imageBytes, PdfImageStampOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
 
-        return WatermarkImage(ReadPath(inputPath, options?.CancellationToken ?? default), imageBytes, options);
+        return WatermarkImage(ReadPath(inputPath, options?.CancellationToken ?? default), imageBytes, options, cancellationToken: cancellationToken);
     }
 
     /// <summary>
     /// Adds a centered image watermark from the current position of a readable image stream to selected pages from a PDF file and returns the watermarked PDF bytes.
     /// Simple PNG alpha and transparency soft masks are supported for compatible PNG inputs.
     /// </summary>
-    public static byte[] WatermarkImageToBytes(string inputPath, Stream imageStream, PdfImageStampOptions? options = null) {
+    public static byte[] WatermarkImageToBytes(string inputPath, Stream imageStream, PdfImageStampOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
 
-        return WatermarkImage(ReadPath(inputPath, options?.CancellationToken ?? default), imageStream, options);
+        return WatermarkImage(ReadPath(inputPath, options?.CancellationToken ?? default), imageStream, options, cancellationToken: cancellationToken);
     }
 
     private static PdfImageStampOptions BuildImageWatermarkOptions(PdfImageStampOptions? options) {

@@ -26,7 +26,7 @@ internal static partial class LatexToMarkdownConverter {
     }
 
     internal static IReadOnlyList<IMarkdownBlock> ConvertContent(LatexProjectionContext context, LatexSourceSpan span,
-        LatexToMarkdownOptions options, List<LatexMarkdownConversionDiagnostic> diagnostics) {
+        LatexMarkdownExportOptions options, List<LatexMarkdownConversionDiagnostic> diagnostics) {
         var candidates = new List<BlockCandidate>();
         int cursor = span.Start.Offset;
         foreach (BlockCandidate candidate in context.ContentCandidates(span)) {
@@ -37,7 +37,7 @@ internal static partial class LatexToMarkdownConverter {
             cursor = candidate.Span.End.Offset;
         }
         AddContentParagraphs(context, cursor, span.End.Offset, candidates);
-        var target = MarkdownDoc.Create();
+        var target = MarkdownDocument.Create();
         foreach (BlockCandidate candidate in WithCommandFallbacks(context, candidates.ToArray(), span)) {
             context.CheckCancellation();
             AddCandidate(context, target, candidate, options, diagnostics);
@@ -55,7 +55,7 @@ internal static partial class LatexToMarkdownConverter {
     }
 
     private static ListItem ConvertStructuredListItem(LatexProjectionContext context, LatexListItem item,
-        LatexToMarkdownOptions options, List<LatexMarkdownConversionDiagnostic> diagnostics) {
+        LatexMarkdownExportOptions options, List<LatexMarkdownConversionDiagnostic> diagnostics) {
         IReadOnlyList<IMarkdownBlock> blocks = ConvertContent(context, item.ContentSpan, options, diagnostics);
         InlineSequence content = blocks.FirstOrDefault() is ParagraphBlock paragraph
             ? paragraph.Inlines : new InlineSequence { AutoSpacing = false };

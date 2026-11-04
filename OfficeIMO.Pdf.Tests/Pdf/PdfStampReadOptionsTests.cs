@@ -14,21 +14,21 @@ public class PdfStampReadOptionsTests {
     [InlineData("Content")]
     [InlineData("Watermark")]
     public void ExplicitReadOptionsRemainOnStampResultAndSubsequentMutations(string operation) {
-        byte[] original = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Original body")).ToBytes();
+        byte[] original = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Original body")).ToBytes();
         var originalOptions = new PdfLoadOptions { Limits = new PdfReadLimits { MaxJavaScripts = 19 } };
         var explicitOptions = new PdfLoadOptions { Limits = new PdfReadLimits { MaxJavaScripts = 3 } };
         PdfDocument source = PdfDocument.Load(original, originalOptions);
         byte[] image = PdfPngTestImages.CreateRgbPng(20, 80, 180);
-        byte[] overlay = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Imported page")).ToBytes();
+        byte[] overlay = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Imported page")).ToBytes();
 
         PdfDocument stamped = operation switch {
             "Text" => source.Stamp.Text("Stamp", null, explicitOptions),
             "TextWatermark" => source.Stamp.TextWatermark("Watermark", null, explicitOptions),
-            "Image" => source.Stamp.Image(image, new PdfImageStampOptions { Width = 24D, Height = 24D }, explicitOptions),
-            "ImageWatermark" => source.Stamp.ImageWatermark(image, new PdfImageStampOptions { Width = 24D, Height = 24D }, explicitOptions),
+            "Image" => source.Stamp.Image(image, new PdfImageStampOptions { Width = global::OfficeIMO.OfficeLength.Points(24D), Height = global::OfficeIMO.OfficeLength.Points(24D) }, explicitOptions),
+            "ImageWatermark" => source.Stamp.ImageWatermark(image, new PdfImageStampOptions { Width = global::OfficeIMO.OfficeLength.Points(24D), Height = global::OfficeIMO.OfficeLength.Points(24D) }, explicitOptions),
             "OverlayPage" => source.Stamp.OverlayPage(overlay, null, explicitOptions),
             "UnderlayPage" => source.Stamp.UnderlayPage(overlay, null, explicitOptions),
-            "Content" => source.Stamp.Content((canvas, _) => canvas.Text("Canvas", 30D, 30D, 200D, 24D), readOptions: explicitOptions),
+            "Content" => source.Stamp.Content((canvas, _) => canvas.Text("Canvas", global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(200D), global::OfficeIMO.OfficeLength.Points(24D)), readOptions: explicitOptions),
             "Watermark" => source.Stamp.Watermark(new PdfWatermarkOptions { Text = "Watermark" }, explicitOptions),
             _ => throw new ArgumentOutOfRangeException(nameof(operation))
         };

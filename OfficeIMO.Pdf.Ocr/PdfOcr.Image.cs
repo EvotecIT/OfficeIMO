@@ -37,7 +37,7 @@ internal static partial class PdfOcr {
         OfficeImageInfo info = preparedImage.Info;
         PdfDocument source = PdfDocument.CreateFromImages(
             new[] { new PdfImageDocumentSource(preparedImage.Data, image.Name) },
-            new PdfImageDocumentOptions { MaximumEncodedImageBytes = effective.MaxRenderedBytesPerPage }, cancellationToken);
+            new PdfImageImportOptions { MaximumEncodedImageBytes = effective.MaxRenderedBytesPerPage }, cancellationToken);
         PdfReadDocument readDocument = PdfReadDocument.Open(source.GetBytesForOperation(cancellationToken), source.ReadOptions, cancellationToken);
         PdfDocumentReadResult native = PdfDocumentReadEngine.Read(readDocument, effective.ReadOptions,
             out IReadOnlyList<PdfUnderstandingPageResult> analyses, cancellationToken);

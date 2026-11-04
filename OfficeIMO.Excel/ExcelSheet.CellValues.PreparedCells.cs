@@ -52,7 +52,7 @@ namespace OfficeIMO.Excel {
 
             for (int i = 0; i < prepared.Length; i++) {
                 var p = prepared[i];
-                if (p.Row <= 0 || p.Col <= 0 || p.Col > A1.MaxColumns || p.Row < currentRow) {
+                if (p.Row <= 0 || p.Col <= 0 || p.Col > ExcelA1.MaxColumns || p.Row < currentRow) {
                     return false;
                 }
 
@@ -156,7 +156,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    int columnIndex = A1.ParseColumnIndexFromCellReference(existingCell.CellReference.Value);
+                    int columnIndex = ExcelA1.ParseColumnIndexFromCellReference(existingCell.CellReference.Value);
                     if (columnIndex <= 0 || columnIndex > maxColumn) {
                         continue;
                     }

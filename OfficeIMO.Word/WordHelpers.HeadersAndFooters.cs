@@ -3,7 +3,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     // Provides helper methods for Word document manipulation.
-    public static partial class WordHelpers {
+    internal static partial class WordHelpers {
         /// <summary>
         /// Removes headers and footers from the file at <paramref name="filename"/>.
         /// When no <paramref name="types"/> are provided all headers and footers are removed.

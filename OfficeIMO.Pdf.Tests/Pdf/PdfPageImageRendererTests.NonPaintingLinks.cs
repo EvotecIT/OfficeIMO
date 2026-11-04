@@ -24,7 +24,7 @@ public partial class PdfPageImageRendererTests {
         var page = PdfReadDocument.Open(bytes).Pages[0];
         Assert.Equal(expectedOmission, page.GetRenderCapabilityDiagnostics().Any(
             item => item.Code == PdfRenderCapabilities.AnnotationAppearanceId));
-        var options = new PdfImageExportOptions { Policy = new OfficeImageExportPolicy { RequireNoLoss = true } };
+        var options = new PdfImageExportOptions { Policy = new OfficeImageExportPolicy { FailOnLoss = true } };
         if (expectedOmission) {
             var failure = Assert.Throws<OfficeImageExportPolicyException>(() => page.ExportImage(OfficeImageExportFormat.Png, options));
             Assert.Contains(failure.Diagnostics, item => item.Code == PdfRenderCapabilities.AnnotationAppearanceId);

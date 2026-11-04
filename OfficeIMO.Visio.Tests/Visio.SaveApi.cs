@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             try {
                 VisioDocument document = VisioDocument.Create(path);
-                document.AddPage("Page-1").Shapes.Add(new VisioShape("1", 1, 1, 2, 1, "Start"));
+                document.AddPage("Page-1").Shapes.Add(new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Start"));
 
                 byte[] bytes = document.ToBytes();
                 Assert.NotEmpty(bytes);
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
                 using var cancellation = new CancellationTokenSource();
                 cancellation.Cancel();
 
-                await Assert.ThrowsAsync<OperationCanceledException>(() =>
+                await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
                     document.SaveAsync(canceledPath, cancellation.Token));
                 Assert.False(File.Exists(canceledPath));
 

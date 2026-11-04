@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Records the source BIFF record for decoded workbook-level legacy metadata.
     /// </summary>
-    public sealed class LegacyXlsWorkbookMetadataRecord {
+    internal sealed class LegacyXlsWorkbookMetadataRecord {
         /// <summary>
         /// Creates a workbook metadata provenance record.
         /// </summary>

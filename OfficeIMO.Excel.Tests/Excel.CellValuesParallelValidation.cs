@@ -12,10 +12,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "WorksheetValidation.Diagnostics.xlsx");
 
             using var document = ExcelDocument.Create(filePath);
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
 
             var cells = Enumerable.Range(1, 10).Select(i => (i, 1, (object)$"Value {i}"));
-            sheet.CellValues(cells, ExcelExecutionMode.Parallel);
+            sheet.SetValues(cells, ExcelExecutionMode.Parallel);
 
             var sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
             var firstCell = sheetData.Elements<Row>().First().Elements<Cell>().First();
@@ -37,11 +37,11 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "WorksheetValidation.Corruption.xlsx");
 
             using var document = ExcelDocument.Create(filePath);
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
 
             var cells = Enumerable.Range(1, 5).SelectMany(row =>
                 Enumerable.Range(1, 3).Select(col => (row, col, (object)$"R{row}C{col}")));
-            sheet.CellValues(cells, ExcelExecutionMode.Parallel);
+            sheet.SetValues(cells, ExcelExecutionMode.Parallel);
 
             var sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
             var secondRow = sheetData.Elements<Row>().ElementAt(1);

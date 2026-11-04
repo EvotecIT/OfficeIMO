@@ -90,10 +90,10 @@ public sealed class PdfPageChangeAnalyzerTests {
     }));
 
     private static PdfDocument BuildPages(params string[] texts) {
-        PdfDocument document = PdfDocument.Create(new PdfOptions { PageSize = new PageSize(240, 180) });
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions { PageSetup = { Size = new PdfPageSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(180)) } });
         for (int index = 0; index < texts.Length; index++) {
             if (index != 0) document.PageBreak();
-            document.Paragraph(paragraph => paragraph.Text(texts[index]));
+            document.Paragraph(paragraph => paragraph.AddText(texts[index]));
         }
         return PdfDocument.Load(document.ToBytes());
     }

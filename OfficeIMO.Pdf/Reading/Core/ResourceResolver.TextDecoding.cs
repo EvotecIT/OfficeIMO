@@ -1,6 +1,27 @@
+using System.Runtime.CompilerServices;
+
 namespace OfficeIMO.Pdf;
 
 internal static partial class ResourceResolver {
+    private static readonly ConditionalWeakTable<Lazy<string?[]?>, Lazy<string?[]>> BuiltinEncodingValues = new();
+    private static readonly Lazy<string[]> WinAnsiCodeValues = new(() =>
+        Enumerable.Range(0, 256).Select(static code =>
+            PdfWinAnsiEncoding.Decode(new[] { (byte)code }, int.MaxValue)).ToArray());
+
+    private static string?[] GetBuiltinEncodingValues(PdfFontResource font) =>
+        BuiltinEncodingValues.GetValue(font.BuiltinEncodingSource!, static source =>
+            new Lazy<string?[]>(() => {
+                string?[]? names = source.Value;
+                var values = new string?[256];
+                if (names == null) return values;
+                for (int code = 0; code < values.Length; code++) {
+                    string? name = names[code];
+                    if (name != null && TryDecodeGlyphName(name, out string? value))
+                        values[code] = value;
+                }
+                return values;
+            })).Value;
+
     private static System.Func<byte[], string> BuildDecoderForFont(PdfFontResource font, int maxDecodedTextCharacters) {
         if (UsesNamedCompositeEncoding(font)) {
             return bytes => DecodeNamedComposite(font, bytes, maxDecodedTextCharacters);
@@ -31,6 +52,7 @@ internal static partial class ResourceResolver {
                 throw new PdfUnsupportedTextMappingException(font);
             };
         }
+        Func<byte[], int, string> baseDecoder = BuildBudgetedFontBaseDecoder(font, useWinAnsiFallback);
         return (bytes, maximum) => {
             if (!useWinAnsiFallback && font.Differences != null) {
                 foreach (byte code in bytes)
@@ -54,8 +76,8 @@ internal static partial class ResourceResolver {
                 return text.ToString();
             }
             return font.Differences is { Count: > 0 }
-                ? DecodeWithDifferences(bytes, font.Differences, BuildFontBaseDecoder(font, maximum, useWinAnsiFallback), maximum)
-                : BuildBudgetedFontBaseDecoder(font, useWinAnsiFallback)(bytes, maximum);
+                ? DecodeWithDifferences(bytes, font.Differences, input => baseDecoder(input, maximum), maximum)
+                : baseDecoder(bytes, maximum);
         };
     }
 
@@ -78,10 +100,11 @@ internal static partial class ResourceResolver {
 
         if (font.Differences is not null && font.Differences.Count > 0) {
             var differences = font.Differences;
+            Func<byte[], int, string> baseDecoder = BuildBudgetedFontBaseDecoder(font);
             return (bytes, maximumCharacters) => DecodeWithDifferences(
                 bytes,
                 differences,
-                BuildFontBaseDecoder(font, maximumCharacters),
+                input => baseDecoder(input, maximumCharacters),
                 maximumCharacters);
         }
 
@@ -116,19 +139,12 @@ internal static partial class ResourceResolver {
         if (!font.HasBuiltinEncoding) return BuildBudgetedBaseEncodingDecoder(font.Encoding);
         return (bytes, maximum) => {
             if (bytes.Length == 0) return string.Empty;
-            string?[]? names = font.BuiltinEncoding;
-            if (names == null) {
-                if (useWinAnsiFallback) return PdfWinAnsiEncoding.Decode(bytes, maximum);
-                throw new PdfUnsupportedTextMappingException(font);
-            }
+            string?[] values = GetBuiltinEncodingValues(font);
+            string[]? fallback = useWinAnsiFallback ? WinAnsiCodeValues.Value : null;
             var text = new StringBuilder();
             foreach (byte code in bytes) {
-                string? name = names[code];
-                string? value = null;
-                if (name == null || !TryDecodeGlyphName(name, out value) || value == null) {
-                    if (!useWinAnsiFallback) throw new PdfUnsupportedTextMappingException(font);
-                    value = PdfWinAnsiEncoding.Decode(new[] { code }, maximum);
-                }
+                string? value = values[code] ?? fallback?[code];
+                if (value == null) throw new PdfUnsupportedTextMappingException(font);
                 if ((long)text.Length + value.Length > maximum)
                     throw PdfReadLimitException.Create(PdfReadLimitKind.DecodedTextCharacters, maximum, (long)text.Length + value.Length);
                 text.Append(value);

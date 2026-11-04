@@ -16,23 +16,23 @@ public class Markdown_Reader_LinkLabelInlines_Tests {
     [Theory]
     [MemberData(nameof(BareAutolinkLabels))]
     public void BareAutolinksStayTextInsideEveryKindOfLinkLabel(string source, string label) {
-        var options = new MarkdownReaderOptions { AutolinkBareSchemeUrls = true };
-        var document = MarkdownReader.Parse(source, options);
-        var html = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var options = new MarkdownLoadOptions { AutolinkBareSchemeUrls = true };
+        var document = MarkdownDocument.Parse(source, options);
+        var html = document.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
         var paragraph = System.Xml.Linq.XElement.Parse(html.Trim());
         var link = Assert.Single(paragraph.Descendants("a"));
         Assert.Equal("https://outer.example", (string?)link.Attribute("href"));
         Assert.Equal(label, link.Value);
         Assert.Empty(link.Descendants("a"));
 
-        var standalone = System.Xml.Linq.XElement.Parse(MarkdownReader.Parse(label, options).ToHtmlFragment().Trim());
+        var standalone = System.Xml.Linq.XElement.Parse(MarkdownDocument.Parse(label, options).ToHtml().Trim());
         Assert.Single(standalone.Descendants("a"));
     }
 
     [Fact]
     public void FormattingInsideLinkLabelsDoesNotReenableAutolinks() {
         const string source = "[**https://example.com** <u>person@example.com</u>](https://outer.example)";
-        var paragraph = System.Xml.Linq.XElement.Parse(MarkdownReader.Parse(source).ToHtmlFragment().Trim());
+        var paragraph = System.Xml.Linq.XElement.Parse(MarkdownDocument.Parse(source).ToHtml().Trim());
         var link = Assert.Single(paragraph.Descendants("a"));
         Assert.Equal("https://outer.example", (string?)link.Attribute("href"));
         Assert.Equal("https://example.com", Assert.Single(link.Descendants("strong")).Value);
@@ -46,8 +46,8 @@ public class Markdown_Reader_LinkLabelInlines_Tests {
     [InlineData("[<sup><u><https://inner.example></u></sup>](https://outer.example)", 1)]
     [InlineData("[<ins><https://inner.example></ins>][ref]\n\n[ref]: https://outer.example", 2)]
     public void AngleAutolinkDeactivatesTheContainingLink(string source, int expectedLinks) {
-        var document = MarkdownReader.Parse(source, MarkdownReaderOptions.CreateCommonMarkProfile());
-        var html = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var document = MarkdownDocument.Parse(source, MarkdownLoadOptions.CreateCommonMarkProfile());
+        var html = document.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
         var paragraph = System.Xml.Linq.XElement.Parse(html.Trim());
         var links = paragraph.Descendants("a").ToArray();
         Assert.Equal(expectedLinks, links.Length); // [ref] remains an independent shortcut reference.
@@ -64,8 +64,8 @@ public class Markdown_Reader_LinkLabelInlines_Tests {
     [InlineData("shown ![<https://inner.example>](image.png)", true, false)]
     public void CodeEscapesAndImageAltDoNotDeactivateTheOuterLink(string content, bool image, bool wrapper) {
         string label = wrapper ? "<u>" + content + "</u>" : content;
-        var document = MarkdownReader.Parse("[" + label + "](https://outer.example)", MarkdownReaderOptions.CreateCommonMarkProfile());
-        var paragraph = System.Xml.Linq.XElement.Parse(document.ToHtmlFragment().Trim());
+        var document = MarkdownDocument.Parse("[" + label + "](https://outer.example)", MarkdownLoadOptions.CreateCommonMarkProfile());
+        var paragraph = System.Xml.Linq.XElement.Parse(document.ToHtml().Trim());
         var link = Assert.Single(paragraph.Descendants("a"));
         Assert.Equal("https://outer.example", (string?)link.Attribute("href"));
         Assert.Equal(image ? 1 : 0, link.Descendants("img").Count());
@@ -74,9 +74,9 @@ public class Markdown_Reader_LinkLabelInlines_Tests {
     [Fact]
     public void Link_Label_Can_Contain_Emphasis() {
         var md = "[*x*](https://example.com)";
-        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+        var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
 
-        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
         Assert.Contains("<a href=\"https://example.com\"><em>x</em></a>", html, StringComparison.Ordinal);
 
         var round = doc.ToMarkdown().Trim();
@@ -90,17 +90,17 @@ public class Markdown_Reader_LinkLabelInlines_Tests {
 
 [r]: https://example.com
 """;
-        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
-        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
+        var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
         Assert.Contains("<a href=\"https://example.com\"><em>x</em></a>", html, StringComparison.Ordinal);
     }
 
     [Fact]
     public void Strong_Can_Wrap_Inline_Link() {
         const string md = "**[Installation](/docs/installation/)**";
-        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+        var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
 
-        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
         Assert.Contains("<strong><a href=\"/docs/installation/\">Installation</a></strong>", html, StringComparison.Ordinal);
 
         var round = doc.ToMarkdown().Trim();
@@ -114,9 +114,9 @@ public class Markdown_Reader_LinkLabelInlines_Tests {
 
 [install]: /docs/installation/
 """;
-        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
+        var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
 
-        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
         Assert.Contains("<strong><a href=\"/docs/installation/\">Installation</a></strong>", html, StringComparison.Ordinal);
     }
 
@@ -127,26 +127,26 @@ public class Markdown_Reader_LinkLabelInlines_Tests {
 bar>)
 """;
 
-        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md, MarkdownLoadOptions.CreateCommonMarkProfile());
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
 
         Assert.Empty(paragraph.Inlines.Nodes.OfType<LinkInline>());
         var rawHtml = Assert.Single(paragraph.Inlines.Nodes.OfType<HtmlRawInline>());
         Assert.Equal("<foo\nbar>", rawHtml.Html);
 
-        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
         Assert.Contains("[link](<foo\nbar>)", html, StringComparison.Ordinal);
     }
 
     [Fact]
     public void Link_Label_Does_Not_Skip_Literal_Html_When_InlineHtml_Is_Disabled() {
         const string md = "[<u>[</u>](url)";
-        var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+        var options = MarkdownLoadOptions.CreateCommonMarkProfile();
         options.InlineHtml = false;
 
-        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, options);
+        var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md, options);
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
-        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         var link = Assert.Single(paragraph.Inlines.Nodes.OfType<LinkInline>());
         Assert.Equal("</u>", link.Text);

@@ -85,7 +85,7 @@ internal sealed partial class LegacyXlsPreservingWorkbook {
 
     private void AddCell(string sheet, int index, int column, int valueOffset, string kind) {
         int row = BiffRecordReader.ReadUInt16(_records[index].Payload, 0);
-        var key = (sheet, A1.CellReference(row + 1, column + 1));
+        var key = (sheet, ExcelA1.CellReference(row + 1, column + 1));
         if (_cells.ContainsKey(key)) throw new NotSupportedException("The preserving profile cannot edit duplicate native cell records.");
         _cells.Add(key, new CellSlot(index, valueOffset, kind));
     }

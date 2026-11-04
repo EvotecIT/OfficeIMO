@@ -9,7 +9,7 @@ schema: 2.0.0
 Creates discoverable structural comparison settings for Compare-OfficeWordDocument.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 New-OfficeWordComparisonOptions [-IgnoreWhitespace] [-IgnoreCase] [-CompareRunFormatting] [-CompareEffectiveFormatting] [-CompareParagraphStyleIds] [-CompareRunStyleIds] [-IncludeScope <WordComparisonScope[]>] [-ExcludeScope <WordComparisonScope[]>] [-CompareFields] [-CompareContentControls] [-CompareBookmarks] [-CompareHyperlinks] [-CompareLists] [-CompareComments] [-CompareCommentAuthors] [-CompareCommentText] [-CompareCommentResolvedState] [-CompareCommentTargets] [-CompareCommentReplies] [-CompareRevisions] [-CompareRevisionAuthors] [-CompareRevisionText] [-CompareRevisionLocations] [-CompareImages] [-CompareShapes] [-CompareBlockOrder] [-CompareGeneratedIds] [-CompareVolatileMetadata] [<CommonParameters>]
 ```
@@ -33,7 +33,7 @@ Compare document block order.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -49,7 +49,7 @@ Compare bookmarks.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -65,7 +65,7 @@ Compare comment authors.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -81,7 +81,7 @@ Compare comment replies.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -97,7 +97,7 @@ Compare comment resolved state.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -113,7 +113,7 @@ Compare comments.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -129,7 +129,7 @@ Compare comment targets.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -145,7 +145,7 @@ Compare comment text.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -161,7 +161,7 @@ Compare content controls.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -177,7 +177,7 @@ Compare resolved effective formatting.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -193,7 +193,7 @@ Compare fields.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -209,7 +209,7 @@ Compare generated identifiers.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -225,7 +225,7 @@ Compare hyperlinks.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -241,7 +241,7 @@ Compare images.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -257,7 +257,7 @@ Compare lists.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -273,7 +273,7 @@ Compare paragraph style identifiers.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -289,7 +289,7 @@ Compare revision authors.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -305,7 +305,7 @@ Compare revision locations.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -321,7 +321,7 @@ Compare tracked revisions.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -337,7 +337,7 @@ Compare revision text.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -353,7 +353,7 @@ Compare direct run formatting.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -369,7 +369,7 @@ Compare run style identifiers.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -385,7 +385,7 @@ Compare supported shapes.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -401,7 +401,7 @@ Compare volatile timestamps and metadata.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -417,7 +417,7 @@ Remove these comparison scopes from results.
 
 ```yaml
 Type: WordComparisonScope[]
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: Paragraph, Run, Field, ContentControl, Bookmark, Hyperlink, List, Comment, Revision, Table, TableRow, TableCell, Image, Shape
 
@@ -433,7 +433,7 @@ Ignore character casing.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -449,7 +449,7 @@ Ignore differences caused only by whitespace runs.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -465,7 +465,7 @@ Limit results to these comparison scopes.
 
 ```yaml
 Type: WordComparisonScope[]
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: Paragraph, Run, Field, ContentControl, Bookmark, Hyperlink, List, Comment, Revision, Table, TableRow, TableCell, Image, Shape
 

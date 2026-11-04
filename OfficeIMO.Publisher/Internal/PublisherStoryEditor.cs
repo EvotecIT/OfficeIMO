@@ -8,11 +8,11 @@ internal static class PublisherStoryEditor {
 
     /// <summary>Creates an independent authored story without a native-only final terminator.</summary>
     internal static PublisherTextStory Create(uint storyId, IReadOnlyList<OfficeRichTextParagraph> paragraphs,
-        PublisherReadOptions options, CancellationToken token) =>
+        PublisherLoadOptions options, CancellationToken token) =>
         Replace(new PublisherTextStory(storyId, string.Empty, Array.Empty<OfficeRichTextParagraph>(), false), paragraphs, options, token);
 
     internal static PublisherTextStory Replace(PublisherTextStory original, IReadOnlyList<OfficeRichTextParagraph> paragraphs,
-        PublisherReadOptions options, CancellationToken token) {
+        PublisherLoadOptions options, CancellationToken token) {
         if (paragraphs.Count > 4096) throw new ArgumentException("The story exceeds the paragraph limit.", nameof(paragraphs));
         var copied = new List<OfficeRichTextParagraph>(paragraphs.Count);
         var text = new StringBuilder();
@@ -61,7 +61,7 @@ internal static class PublisherStoryEditor {
     internal static long CharacterCount(PublisherTextStory story) => story.Text.Length
         + story.Paragraphs.Sum(paragraph => (long)(paragraph.Label?.Run.Text.Length ?? 0));
 
-    internal static void ValidatePageName(string name, PublisherReadOptions options) {
+    internal static void ValidatePageName(string name, PublisherLoadOptions options) {
         if (name.Length > options.Limits.MaxTextCharacters)
             throw new ArgumentException("The page name exceeds the configured character limit.", nameof(name));
         ValidateText(name, nameof(name));

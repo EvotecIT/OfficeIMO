@@ -8,10 +8,10 @@ namespace OfficeIMO.Publisher.Tests;
 // Model-only admission and wrap variants decoded from independent Publisher
 // input. These do not qualify native writing, native edits or native appearance.
 internal static class PublisherTableEditingFixture {
-    internal static PublisherDocument Load(string? variant = null, bool withWrap = false, PublisherReadOptions? options = null) {
+    internal static PublisherDocument Load(string? variant = null, bool withWrap = false, PublisherLoadOptions? options = null) {
         byte[] bytes = File.ReadAllBytes(PublisherNativeTests.Fixture("Sample.pub"));
         Assert.True(OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compound, out string? error), error);
-        var context = new PublisherParseContext((options ?? new PublisherReadOptions()).Clone(), default);
+        var context = new PublisherParseContext((options ?? new PublisherLoadOptions()).Clone(), default);
         var data = new PublisherBinaryData(compound!.Streams["Contents"], "Contents");
         PublisherContents source = new PublisherContentsReader(data, context).Read();
         PublisherTextFrameCatalogReader.Read(data, source, context);

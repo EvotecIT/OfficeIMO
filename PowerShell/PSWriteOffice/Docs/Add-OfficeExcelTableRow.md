@@ -39,7 +39,7 @@ and should close or save the workbook after all edits are complete.
 
 ### EXAMPLE 1
 ```powershell
-PS> $doc = Get-OfficeExcel -Path .\Report.xlsx
+PS> $doc = Open-OfficeExcel -Path .\Report.xlsx
 $doc | Add-OfficeExcelTableRow -Sheet Data -TableName Sales -InputObject ([pscustomobject]@{ Region='APAC'; Revenue=300 })
 $doc | Close-OfficeExcel -Save
 ```

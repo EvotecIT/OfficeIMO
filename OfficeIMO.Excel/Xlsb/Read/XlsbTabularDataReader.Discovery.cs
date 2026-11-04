@@ -50,7 +50,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 int pendingRecordBudget = 0;
                 int pendingCellBudget = 0;
                 var currentRowSpanBounds = new int[32];
-                var rowPlanBuilder = new XlsbValidatedRowPlanBuilder();
+                XlsbValidatedRowPlanBuilder? rowPlanBuilder = new XlsbValidatedRowPlanBuilder();
                 int currentRowSpanCount = 0;
                 cancellationToken.ThrowIfCancellationRequested();
                 // Discovery is the full-buffer validation pass. Fuse BIFF12 framing with the
@@ -201,7 +201,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
                         currentRow = nextRow;
                         previousCellColumn = -1;
-                        rowPlanBuilder.BeginRow(nextRow, position);
+                        rowPlanBuilder = rowPlanBuilder?.BeginRow(nextRow, position);
                         continue;
                     }
                     if (!IsCellRecord(recordType)) {
@@ -243,6 +243,11 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                             BrtCellError or BrtCellBool => valueBytes >= sizeof(byte),
                             BrtCellReal => valueBytes >= sizeof(double),
                             BrtCellIsst => valueBytes >= sizeof(uint),
+                            // A fitting inline string; any other shape keeps the cursor's exact errors.
+                            BrtCellSt => valueBytes >= sizeof(uint)
+                                && Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref payload, sizeof(int) + sizeof(uint))) is uint characters
+                                && characters <= (long)limits.MaxStringCharacters
+                                && characters <= (uint)(valueBytes - sizeof(uint)) / sizeof(char),
                             _ => false
                         };
                         if (validFixedPayload && recordType == BrtCellIsst) {
@@ -278,7 +283,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                             sharedStringCount,
                             limits.MaxStringCharacters);
                     }
-                    if (column < 0 || column >= A1.MaxColumns) {
+                    if (column < 0 || column >= ExcelA1.MaxColumns) {
                         throw new InvalidDataException(
                             $"The XLSB cell record at offset {recordOffset} contains invalid column index {column}.");
                     }
@@ -288,7 +293,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                             $"The XLSB cell record at offset {recordOffset} is duplicated or out of order within its row.");
                     }
                     previousCellColumn = column;
-                    rowPlanBuilder.ObserveCell(
+                    rowPlanBuilder?.ObserveCell(
                         recordType,
                         payloadOffset,
                         recordSize,
@@ -333,7 +338,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     throw new InvalidDataException(
                         "The XLSB worksheet ended before the required BrtEndSheetData record.");
                 }
-                validatedRowPlan = rowPlanBuilder.Build();
+                validatedRowPlan = rowPlanBuilder?.Build();
             }
         }
 
@@ -362,9 +367,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             uint firstColumnValue = cursor.ReadUInt32();
             uint lastColumnValue = cursor.ReadUInt32();
             if (firstRow > lastRow
-                || lastRow >= A1.MaxRows
+                || lastRow >= ExcelA1.MaxRows
                 || firstColumnValue > lastColumnValue
-                || lastColumnValue >= A1.MaxColumns) {
+                || lastColumnValue >= ExcelA1.MaxColumns) {
                 throw new InvalidDataException(
                     $"The BrtWsDim record at offset {record.RecordOffset} contains an invalid worksheet range.");
             }

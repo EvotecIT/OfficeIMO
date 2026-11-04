@@ -164,8 +164,8 @@ public class ExcelWorksheetPreparationBenchmarks {
 
     private ExcelWorkbookDataReader OpenReader() => OpenReader(_workbook);
 
-    private ExcelWorkbookDataReader OpenReader(byte[] workbook) => ExcelDocument.OpenDataReader(workbook,
-        new ExcelReadOptions {
+    private ExcelWorkbookDataReader OpenReader(byte[] workbook) => ExcelDocument.OpenReader(workbook,
+        new ExcelReaderOptions {
             HasHeaderRow = false,
             NumericAsDecimal = false,
             EnableWorksheetPrefetch = EnableWorksheetPrefetch

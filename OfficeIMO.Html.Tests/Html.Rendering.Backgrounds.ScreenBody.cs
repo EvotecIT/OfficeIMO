@@ -22,7 +22,7 @@ public sealed partial class HtmlRenderingTests {
         var options = new HtmlRenderOptions {
             ViewportWidth = 384D,
             ViewportHeight = 288D,
-            PageSize = new OfficePageSize(4D, 1.5D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(4D), global::OfficeIMO.OfficeLength.Inches(1.5D)),
             Margins = HtmlRenderMargins.All(0D),
             HonorCssPageRules = false
         };
@@ -62,7 +62,7 @@ public sealed partial class HtmlRenderingTests {
         var options = new HtmlRenderOptions {
             ViewportWidth = 384D,
             ViewportHeight = 288D,
-            PageSize = new OfficePageSize(4D, 1.5D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(4D), global::OfficeIMO.OfficeLength.Inches(1.5D)),
             Margins = HtmlRenderMargins.All(0D),
             HonorCssPageRules = false,
             UserAgentStyles = userAgentStyles

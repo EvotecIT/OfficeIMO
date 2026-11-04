@@ -140,7 +140,7 @@ namespace OfficeIMO.Word {
         /// Adds the level using custom simplified list number.
         /// </summary>
         /// <param name="wordListLevel">The word list level.</param>
-        public void AddLevel(WordListLevel wordListLevel) {
+        public WordListLevel AddLevel(WordListLevel wordListLevel) {
             // before adding new level, we need to find the last level index and increment it by 1
             // once we have LevelIndex we need to set it to the level
             if (wordListLevel == null) throw new ArgumentNullException(nameof(wordListLevel));
@@ -151,6 +151,7 @@ namespace OfficeIMO.Word {
             // add the level to the abstractNum
             _abstractNum.Append(wordListLevel._level);
             WordListNumberingResolver.InvalidateNumbering(_abstractNum.Ancestors<Numbering>().FirstOrDefault());
+            return wordListLevel;
         }
 
         /// <summary>

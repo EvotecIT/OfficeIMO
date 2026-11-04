@@ -77,7 +77,7 @@ internal sealed partial class PublisherContentsReader {
             PublisherBlock? nameField = Field(fields, 0x0F) ?? shortCode;
             string name = nameField.HasValue && nameField.Value.Type == 0xC0
                 ? _data.Utf16(nameField.Value.Offset + 4, nameField.Value.Length - 4).TrimEnd('\0') : string.Empty;
-            if (result.Pages.Count >= _context.Options.MaximumPages) throw new InvalidDataException("Publisher page limit exceeded.");
+            if (result.Pages.Count >= _context.Options.MaxPages) throw new InvalidDataException("Publisher page limit exceeded.");
             PublisherBlock[] masterReferences = fields.Where(field => field.Id == 0x0D).ToArray();
             PublisherBlock[] masterDisplay = fields.Where(field => field.Id == 7).ToArray();
             bool? displayMaster = masterDisplay.Length == 0 ? true

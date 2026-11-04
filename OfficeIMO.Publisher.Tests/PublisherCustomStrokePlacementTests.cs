@@ -23,7 +23,7 @@ public sealed class PublisherCustomStrokePlacementTests {
             new OfficeArtProperty(2, 0x01C0, 0xFF)
         }) { Bounds = new PublisherNativeRectangle(0, 0, horizontal ? 127000 : 0, horizontal ? 0 : 127000) });
         PublisherDocument document = PublisherProjectionFixture.Project(source, new PublisherQuillText(), escher,
-            new PublisherParseContext(new PublisherReadOptions(), default));
+            new PublisherParseContext(new PublisherLoadOptions(), default));
         OfficeShape path = Assert.Single(PublisherNativeTests.Elements(document.Pages[0].CreateDrawing()).OfType<OfficeDrawingShape>(),
             item => item.Shape.Kind == OfficeShapeKind.Path).Shape;
         Assert.Equal(new OfficePoint(horizontal ? 10 : 0, horizontal ? 0 : 10), path.PathCommands[1].Point);
@@ -36,7 +36,7 @@ public sealed class PublisherCustomStrokePlacementTests {
         Assert.False(inspected.CanEdit);
         Assert.Contains("geometry", inspected.EditLimitation!);
         Assert.Throws<NotSupportedException>(() => inspected.CreateShape());
-        Assert.DoesNotContain(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_CUSTOM_PATH_INVALID" || item.Code == "PUB_CUSTOM_PATH_GEOMETRY_UNSUPPORTED");
+        Assert.DoesNotContain(document.ReadReport.Diagnostics, item => item.Code == "PUB_CUSTOM_PATH_INVALID" || item.Code == "PUB_CUSTOM_PATH_GEOMETRY_UNSUPPORTED");
     }
     [Theory]
     [InlineData(true, 0)]
@@ -62,8 +62,8 @@ public sealed class PublisherCustomStrokePlacementTests {
             new OfficeArtProperty(5, 0x0183, 0xFF0000)
         }) { Bounds = new PublisherNativeRectangle(0, 0, horizontal ? 127000 : 0, horizontal ? 0 : 127000) });
         PublisherDocument document = PublisherProjectionFixture.Project(source, new PublisherQuillText(), escher,
-            new PublisherParseContext(new PublisherReadOptions(), default));
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_CUSTOM_PATH_COMMAND_UNSUPPORTED");
+            new PublisherParseContext(new PublisherLoadOptions(), default));
+        Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == "PUB_CUSTOM_PATH_COMMAND_UNSUPPORTED");
         OfficeShape fallback = Assert.Single(PublisherNativeTests.Elements(document.Pages[0].CreateDrawing()).OfType<OfficeDrawingShape>(),
             item => item.Shape.StrokeColor == OfficeColor.FromRgb(255, 0, 0)).Shape;
         Assert.Equal(horizontal ? 10 : 0.01, fallback.Width);
@@ -71,6 +71,6 @@ public sealed class PublisherCustomStrokePlacementTests {
         // The positive fallback canvas is not a native two-dimensional fill
         // frame. Preserve the logical zero extent and its gradient loss.
         Assert.Null(fallback.FillGradient);
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_GRADIENT_INVALID");
+        Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == "PUB_GRADIENT_INVALID");
     }
 }

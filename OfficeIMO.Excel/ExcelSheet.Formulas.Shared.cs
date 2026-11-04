@@ -21,11 +21,12 @@ namespace OfficeIMO.Excel {
         private IReadOnlyDictionary<uint, SharedFormulaDefinition> BuildSharedFormulaDefinitions(
             IReadOnlyDictionary<Cell, (int Row, int Column)>? effectiveCoordinates = null,
             IEnumerable<Cell>? cells = null) {
-            effectiveCoordinates ??= BuildEffectiveCellCoordinates();
-            cells ??= WorksheetRoot.Descendants<Cell>();
             var definitions = new Dictionary<uint, SharedFormulaDefinition>();
+            if (cells == null && !HasSharedFormulas()) return definitions;
+            effectiveCoordinates ??= BuildEffectiveCellCoordinates();
+            cells ??= ExcelWorksheetScan.Cells(WorksheetRoot);
             foreach (Cell cell in cells) {
-                CellFormula? cellFormula = cell.CellFormula;
+                CellFormula? cellFormula = ExcelWorksheetScan.FindFormula(cell);
                 if (cellFormula?.FormulaType?.Value != CellFormulaValues.Shared
                     || cellFormula.SharedIndex?.Value is not uint sharedIndex
                     || string.IsNullOrWhiteSpace(cellFormula.Text)
@@ -48,11 +49,18 @@ namespace OfficeIMO.Excel {
             return definitions;
         }
 
+        private bool HasSharedFormulas() {
+            foreach (CellFormula formula in ExcelWorksheetScan.CellFormulas(WorksheetRoot)) {
+                if (formula.FormulaType?.Value == CellFormulaValues.Shared) return true;
+            }
+            return false;
+        }
+
         private string ResolveCellFormulaText(
             Cell cell,
             IReadOnlyDictionary<uint, SharedFormulaDefinition>? sharedFormulaDefinitions = null,
             IReadOnlyDictionary<Cell, (int Row, int Column)>? effectiveCoordinates = null) {
-            CellFormula? cellFormula = cell.CellFormula;
+            CellFormula? cellFormula = ExcelWorksheetScan.FindFormula(cell);
             if (cellFormula == null) {
                 return string.Empty;
             }
@@ -68,7 +76,7 @@ namespace OfficeIMO.Excel {
 
             int row;
             int column;
-            if (!A1.TryParseCellReferenceFast(cell.CellReference?.Value, out row, out column)) {
+            if (!ExcelA1.TryParseCellReferenceFast(cell.CellReference?.Value, out row, out column)) {
                 effectiveCoordinates ??= BuildEffectiveCellCoordinates();
                 if (!effectiveCoordinates.TryGetValue(cell, out var coordinate)) {
                     return string.Empty;
@@ -111,7 +119,7 @@ namespace OfficeIMO.Excel {
             IReadOnlyDictionary<uint, SharedFormulaDefinition> sharedFormulaDefinitions =
                 BuildSharedFormulaDefinitions(effectiveCoordinates);
             var formulas = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (Cell cell in WorksheetRoot.Descendants<Cell>().Where(candidate => candidate.CellFormula != null)) {
+            foreach (Cell cell in ExcelWorksheetScan.FormulaCells(WorksheetRoot)) {
                 if (effectiveCoordinates.TryGetValue(cell, out var coordinate)) {
                     formulas[BuildCellReference(coordinate.Row, coordinate.Column)] =
                         ResolveCellFormulaText(cell, sharedFormulaDefinitions, effectiveCoordinates);
@@ -122,10 +130,7 @@ namespace OfficeIMO.Excel {
         }
 
         private IReadOnlyList<string> ResolveSharedFormulaTextsForStructuralValidation() {
-            List<Cell> sharedCells = WorksheetRoot.Descendants<Cell>()
-                .Where(candidate => candidate.CellFormula?.FormulaType?.Value == CellFormulaValues.Shared
-                    && candidate.CellFormula.SharedIndex?.Value != null)
-                .ToList();
+            List<Cell> sharedCells = FindSharedFormulaCells();
             if (sharedCells.Count == 0) {
                 return Array.Empty<string>();
             }
@@ -139,11 +144,23 @@ namespace OfficeIMO.Excel {
                 string text = ResolveCellFormulaText(cell, definitions, effectiveCoordinates);
                 if (string.IsNullOrWhiteSpace(text)) {
                     throw new InvalidOperationException(
-                        $"Cannot edit rows because shared formula group {cell.CellFormula!.SharedIndex!.Value} cannot be validated safely.");
+                        $"Cannot edit rows because shared formula group {ExcelWorksheetScan.FindFormula(cell)!.SharedIndex!.Value} cannot be validated safely.");
                 }
                 resolved.Add(text);
             }
             return resolved;
+        }
+
+        private List<Cell> FindSharedFormulaCells() {
+            var cells = new List<Cell>();
+            foreach (CellFormula formula in ExcelWorksheetScan.CellFormulas(WorksheetRoot)) {
+                if (formula.FormulaType?.Value == CellFormulaValues.Shared
+                    && formula.SharedIndex?.Value != null
+                    && formula.Parent is Cell cell) {
+                    cells.Add(cell);
+                }
+            }
+            return cells;
         }
 
         private void MaterializeWorkbookSharedFormulasForStructuralEdit() {
@@ -183,10 +200,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void MaterializeSharedFormulasForStructuralEdit() {
-            List<Cell> sharedCells = WorksheetRoot.Descendants<Cell>()
-                .Where(cell => cell.CellFormula?.FormulaType?.Value == CellFormulaValues.Shared
-                    && cell.CellFormula.SharedIndex?.Value != null)
-                .ToList();
+            List<Cell> sharedCells = FindSharedFormulaCells();
             if (sharedCells.Count == 0) {
                 return;
             }
@@ -196,7 +210,7 @@ namespace OfficeIMO.Excel {
                 BuildSharedFormulaDefinitions(effectiveCoordinates);
             var resolved = new List<(CellFormula Formula, string Text)>();
             foreach (Cell cell in sharedCells) {
-                CellFormula formula = cell.CellFormula!;
+                CellFormula formula = ExcelWorksheetScan.FindFormula(cell)!;
                 if (formula.SharedIndex?.Value is not uint sharedIndex) {
                     continue;
                 }
@@ -236,14 +250,14 @@ namespace OfficeIMO.Excel {
                     : cellsByRow[row];
                 foreach (Cell cell in rowCells) {
                     int effectiveColumn = previousColumn + 1;
-                    if (A1.TryParseCellReferenceFast(
+                    if (ExcelA1.TryParseCellReferenceFast(
                         cell.CellReference?.Value,
                         out int explicitRow,
                         out int explicitColumn)) {
                         coordinates[cell] = (explicitRow, explicitColumn);
                         effectiveColumn = explicitColumn;
-                    } else if (effectiveRow <= (uint)A1.MaxRows
-                        && effectiveColumn <= A1.MaxColumns) {
+                    } else if (effectiveRow <= (uint)ExcelA1.MaxRows
+                        && effectiveColumn <= ExcelA1.MaxColumns) {
                         coordinates[cell] = (checked((int)effectiveRow), effectiveColumn);
                     }
 
@@ -261,7 +275,7 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            return A1.TryParseRange(
+            return ExcelA1.TryParseRange(
                     definition.Reference!.Replace("$", string.Empty),
                     out int firstRow,
                     out int firstColumn,
@@ -390,26 +404,26 @@ namespace OfficeIMO.Excel {
         private static string TranslateSharedFormulaCell(ExcelReferencePoint point, int rowOffset, int columnOffset) {
             int targetRow = point.RowAbsolute ? point.Row : point.Row + rowOffset;
             int targetColumn = point.ColumnAbsolute ? point.Column : point.Column + columnOffset;
-            if (targetRow <= 0 || targetRow > A1.MaxRows || targetColumn <= 0 || targetColumn > A1.MaxColumns) {
+            if (targetRow <= 0 || targetRow > ExcelA1.MaxRows || targetColumn <= 0 || targetColumn > ExcelA1.MaxColumns) {
                 return "#REF!";
             }
 
             return (point.ColumnAbsolute ? "$" : string.Empty)
-                + A1.ColumnIndexToLetters(targetColumn)
+                + ExcelA1.ColumnIndexToLetters(targetColumn)
                 + (point.RowAbsolute ? "$" : string.Empty)
                 + targetRow.ToString(CultureInfo.InvariantCulture);
         }
 
         private static string TranslateSharedFormulaColumn(ExcelReferencePoint point, int columnOffset) {
             int targetColumn = point.ColumnAbsolute ? point.Column : point.Column + columnOffset;
-            return targetColumn <= 0 || targetColumn > A1.MaxColumns
+            return targetColumn <= 0 || targetColumn > ExcelA1.MaxColumns
                 ? "#REF!"
-                : (point.ColumnAbsolute ? "$" : string.Empty) + A1.ColumnIndexToLetters(targetColumn);
+                : (point.ColumnAbsolute ? "$" : string.Empty) + ExcelA1.ColumnIndexToLetters(targetColumn);
         }
 
         private static string TranslateSharedFormulaRow(ExcelReferencePoint point, int rowOffset) {
             int targetRow = point.RowAbsolute ? point.Row : point.Row + rowOffset;
-            return targetRow <= 0 || targetRow > A1.MaxRows
+            return targetRow <= 0 || targetRow > ExcelA1.MaxRows
                 ? "#REF!"
                 : (point.RowAbsolute ? "$" : string.Empty) + targetRow.ToString(CultureInfo.InvariantCulture);
         }

@@ -365,11 +365,11 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         private static bool TryParseBiff8Reference(string? reference, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn) {
             firstRow = firstColumn = lastRow = lastColumn = 0;
             string normalized = (reference ?? string.Empty).Replace("$", string.Empty);
-            if (A1.TryParseRange(normalized, out firstRow, out firstColumn, out lastRow, out lastColumn)) {
+            if (ExcelA1.TryParseRange(normalized, out firstRow, out firstColumn, out lastRow, out lastColumn)) {
                 return IsInBiff8Grid(firstRow, firstColumn) && IsInBiff8Grid(lastRow, lastColumn);
             }
 
-            (int row, int column) = A1.ParseCellRef(normalized);
+            (int row, int column) = ExcelA1.ParseCellRef(normalized);
             if (!IsInBiff8Grid(row, column)) {
                 return false;
             }

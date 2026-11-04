@@ -34,9 +34,9 @@ public sealed class PublisherPageAuthoringTests {
             document.ReplaceTableCellParagraphs(table.Id, 0, 0, PublisherAuthoringTests.Paragraphs("Retained table ownership"));
             Assert.Equal("Retained table ownership", Assert.Single(document.Pages.SelectMany(page => page.Tables)).Cells[0].Text);
         }
-        var pdfOptions = new PdfOptions();
+        var pdfOptions = new PdfCreateOptions();
         if (caseName == "TableLabel") pdfOptions.UseTextFallbacks();
-        PdfReadDocument pdf = PdfReadDocument.Open(document.ToPdfBytes(pdfOptions));
+        using PdfDocument pdf = PublisherNativeTests.ExportAndReloadPdf(document, pdfOptions);
         Assert.Equal(document.Pages.Count, pdf.Pages.Count);
         Assert.Equal(first.Width, pdf.Pages[pdf.Pages.Count - 1].GetPageSize().Width, 4);
         Assert.Equal(first.Height, pdf.Pages[pdf.Pages.Count - 1].GetPageSize().Height, 4);
@@ -64,7 +64,7 @@ public sealed class PublisherPageAuthoringTests {
         Assert.All(document.MasterPages, master => Assert.Single(master.TextFrames));
         Assert.All(document.Pages.Concat(document.MasterPages), page => Assert.True(page.HasNativeOrigin));
         Assert.Same(source, document.SourceReadReport);
-        PdfReadDocument pdf = PdfReadDocument.Open(document.ToPdfBytes());
+        using PdfDocument pdf = PublisherNativeTests.ExportAndReloadPdf(document);
         Assert.Contains("Master Beta", pdf.Pages[0].ExtractText()); Assert.DoesNotContain("Master Alpha", pdf.Pages[0].ExtractText());
         Assert.DoesNotContain("Master Alpha", pdf.Pages[2].ExtractText());
         Assert.Throws<NotSupportedException>(() => document.SetPageMaster(masters[0].Id, masters[1].Id));
@@ -109,7 +109,7 @@ public sealed class PublisherPageAuthoringTests {
         Assert.Equal(2, document.Pages[0].Pictures.Count); Assert.Empty(added.Pictures);
         Assert.Equal(inherited.Id, Assert.Single(document.MasterPages[0].Pictures).Id);
         Assert.Same(asset, Assert.Single(document.Images)); Assert.Equal(objects, document.ReadReport.CurrentObjectCount);
-        PdfReadDocument pdf = PdfReadDocument.Open(document.ToPdfBytes());
+        using PdfDocument pdf = PublisherNativeTests.ExportAndReloadPdf(document);
         Assert.Equal(new[] { 2, 1, 1 }, pdf.Pages.Select(page => page.GetImagePlacements().Count));
     }
 
@@ -128,7 +128,7 @@ public sealed class PublisherPageAuthoringTests {
         if (variant == "unqualified-master")
             Assert.Throws<NotSupportedException>(() => document.AddTextFrame(master, 12, 12, 100, 30, PublisherAuthoringTests.Paragraphs("Unqualified")));
         Assert.Same(pages, document.Pages); Assert.Same(masters, document.MasterPages); Assert.Same(source, document.SourceReadReport);
-        Assert.Equal(before, document.ToSvg()); Assert.NotEmpty(document.ReadReport.FidelityDiagnostics);
+        Assert.Equal(before, document.ToSvg()); Assert.NotEmpty(document.ReadReport.Diagnostics);
     }
 
     private static PublisherDocument Load(string name) => PublisherDocument.Load(PublisherNativeTests.Fixture(
@@ -142,7 +142,7 @@ public sealed class PublisherPageAuthoringTests {
     private static PublisherDocument PageVariant(string variant) {
         byte[] bytes = File.ReadAllBytes(PublisherNativeTests.Fixture("NativeComparison/TextBlank/native-textblank.pub"));
         Assert.True(OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compound, out string? error), error);
-        var context = new PublisherParseContext(new PublisherReadOptions(), default);
+        var context = new PublisherParseContext(new PublisherLoadOptions(), default);
         var data = new PublisherBinaryData(compound!.Streams["Contents"], "Contents");
         PublisherContents source = new PublisherContentsReader(data, context).Read();
         PublisherTextFrameCatalogReader.Read(data, source, context);

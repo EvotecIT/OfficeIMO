@@ -10,6 +10,26 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LegacyDoc_RejectsDeepNoteReferenceStyleChains(bool endnote) {
+        using var document = WordDocument.Create();
+        WordParagraph paragraph = document.AddParagraph("Note marker");
+        if (endnote) paragraph.AddEndNote("Note body"); else paragraph.AddFootNote("Note body");
+        Styles styles = document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        Style reference = styles.Elements<Style>().Single(style => style.StyleId == (endnote ? "EndnoteReference" : "FootnoteReference"));
+        reference.BasedOn = new BasedOn { Val = "DeepNote255" };
+        for (int index = 0; index < 256; index++) {
+            var style = new Style { Type = StyleValues.Character, StyleId = "DeepNote" + index };
+            if (index > 0) style.BasedOn = new BasedOn { Val = "DeepNote" + (index - 1) };
+            styles.Append(style);
+        }
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.ToBytes(WordFileFormat.Doc));
+        Assert.Contains("note reference style chains", exception.Message);
+    }
+
+    [Theory]
     [InlineData(false, false)]
     [InlineData(false, true)]
     [InlineData(true, false)]
@@ -34,7 +54,7 @@ public partial class Word {
                 new RunFonts { Ascii = "Times New Roman", HighAnsi = "Times New Roman", EastAsia = "Times New Roman", ComplexScript = "Times New Roman" },
                 new Color { Val = "990000" });
         }
-        using var reopened = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Doc)));
+        using var reopened = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Run imported = reopened._document!.Body!.Descendants<Run>().Single(run => endnote
             ? run.Elements<EndnoteReference>().Any() : run.Elements<FootnoteReference>().Any());
         Assert.Equal(directOverride ? "36" : "28", imported.RunProperties?.FontSize?.Val?.Value);
@@ -61,7 +81,7 @@ public partial class Word {
         reference.InsertBeforeSelf(revision);
         reference.Remove();
         revision.Append(reference);
-        using var reopened = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Doc)));
+        using var reopened = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Run imported = reopened._document!.Body!.Descendants<Run>().Single(run => endnote
             ? run.Elements<EndnoteReference>().Any() : run.Elements<FootnoteReference>().Any());
         Assert.Equal("28", imported.RunProperties?.FontSize?.Val?.Value);

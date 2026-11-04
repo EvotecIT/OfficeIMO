@@ -22,20 +22,20 @@ public sealed class ExcelLegacyCellEditingTests {
         var sheet = document.Sheets[0];
         string deletedAddress = sheet.WorksheetPart.Worksheet!.Descendants<Cell>().First(cell => cell.CellReference?.Value != "A1" && cell.CellFormula == null).CellReference!.Value!;
         sheet.WorksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == deletedAddress).Remove();
-        sheet.CellValue(1, 1, 3.141592653589793D);
-        sheet.CellValue(200, 3, true);
-        sheet.CellValue(201, 3, "Added Unicode Łódź value");
-        sheet.CellFormula(200, 4, "1+2");
+        sheet.Cell(1, 1).SetValue(3.141592653589793D);
+        sheet.Cell(200, 3).SetValue(true);
+        sheet.Cell(201, 3).SetValue("Added Unicode Łódź value");
+        sheet.Cell(200, 4).SetFormula("1+2");
         sheet.RecalculateSupportedFormulas();
-        sheet.CellBold(201, 3);
-        sheet.CellValue(202, 3, "removed cell");
+        sheet.Cell(201, 3).SetBold();
+        sheet.Cell(202, 3).SetValue("removed cell");
         sheet.WorksheetPart.Worksheet!.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "C202").Remove();
-        byte[] saved = document.ToBytes(ExcelFileFormat.Xls);
+        byte[] saved = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
         using var reloaded = ExcelDocument.Load(new MemoryStream(saved));
-        Assert.Equal(3.141592653589793D, reloaded.Sheets[0].CellAt(1, 1).GetValue<double>());
-        Assert.True(reloaded.Sheets[0].CellAt(200, 3).GetValue<bool>());
-        Assert.Equal("Added Unicode Łódź value", reloaded.Sheets[0].CellAt(201, 3).GetValue<string>());
-        Assert.True(reloaded.Sheets[0].CellAt(201, 3).GetStyle().Bold);
+        Assert.Equal(3.141592653589793D, reloaded.Sheets[0].Cell(1, 1).GetValue<double>());
+        Assert.True(reloaded.Sheets[0].Cell(200, 3).GetValue<bool>());
+        Assert.Equal("Added Unicode Łódź value", reloaded.Sheets[0].Cell(201, 3).GetValue<string>());
+        Assert.True(reloaded.Sheets[0].Cell(201, 3).GetStyle().Bold);
         Assert.Equal("1+2", reloaded.Sheets[0].WorksheetPart.Worksheet!.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "D200").CellFormula?.Text);
         Assert.DoesNotContain(reloaded.Sheets[0].WorksheetPart.Worksheet.Descendants<Cell>(), cell => cell.CellReference?.Value == "C202" || cell.CellReference?.Value == deletedAddress);
         Assert.Equal(4, reloaded.LegacyXlsChartSheets.Count);
@@ -50,14 +50,14 @@ public sealed class ExcelLegacyCellEditingTests {
     }
     [Fact]
     public void Repeated_native_load_edit_save_cycles_reuse_existing_format_records() {
-        using var seed = ExcelDocument.Create(); seed.AddWorksheet("Data").CellValue(1, 1, "Native format reuse");
-        byte[] bytes = seed.ToBytes(ExcelFileFormat.Xls); int firstCount = 0, firstReferences = 0, firstBooks = 0;
+        using var seed = ExcelDocument.Create(); seed.AddSheet("Data").Cell(1, 1).SetValue("Native format reuse");
+        byte[] bytes = seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls }); int firstCount = 0, firstReferences = 0, firstBooks = 0;
         for (int iteration = 0; iteration < 5; iteration++) {
             using var document = ExcelDocument.Load(new MemoryStream(bytes));
-            document.Sheets[0].CellValue(200 + iteration, 1, 3.141592653589793D);
-            document.Sheets[0].CellFormula(200 + iteration, 2, "'Data'!A" + (200 + iteration) + "+1");
+            document.Sheets[0].Cell(200 + iteration, 1).SetValue(3.141592653589793D);
+            document.Sheets[0].Cell(200 + iteration, 2).SetFormula("'Data'!A" + (200 + iteration) + "+1");
             document.Sheets[0].RecalculateSupportedFormulas();
-            bytes = document.ToBytes(ExcelFileFormat.Xls);
+            bytes = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
             int count = LegacyXlsWorkbook.Load(new MemoryStream(bytes)).CellFormats.Count;
             Assert.True(OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compound, out _));
             var records = BiffRecordReader.ReadRecords(compound!.Streams["Workbook"], new());
@@ -66,24 +66,24 @@ public sealed class ExcelLegacyCellEditingTests {
             if (iteration == 0) { firstCount = count; firstReferences = references; firstBooks = books; }
             else { Assert.Equal(firstCount, count); Assert.Equal(firstReferences, references); Assert.Equal(firstBooks, books); }
             using var loaded = ExcelDocument.Load(new MemoryStream(bytes));
-            Assert.Equal(3.141592653589793D, loaded.Sheets[0].CellAt(200 + iteration, 1).GetValue<double>());
+            Assert.Equal(3.141592653589793D, loaded.Sheets[0].Cell(200 + iteration, 1).GetValue<double>());
         }
     }
     [Fact]
     public void New_RGB_styles_reuse_only_unreferenced_native_palette_slots() {
-        using var seed = ExcelDocument.Create(); var sheet = seed.AddWorksheet("Data");
-        sheet.CellValue(1, 1, "Original"); sheet.CellAt(1, 1).SetFillColor("#ABCDEF");
-        byte[] bytes = seed.ToBytes(ExcelFileFormat.Xls);
+        using var seed = ExcelDocument.Create(); var sheet = seed.AddSheet("Data");
+        sheet.Cell(1, 1).SetValue("Original"); sheet.Cell(1, 1).SetFillColor("#ABCDEF");
+        byte[] bytes = seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
         for (int iteration = 0; iteration < 3; iteration++) {
             using var document = ExcelDocument.Load(new MemoryStream(bytes));
-            document.Sheets[0].CellValue(2, 1, "New color");
-            document.Sheets[0].CellAt(2, 1).SetFillColor("#123456");
-            document.Sheets[0].CellFontColor(2, 1, "#654321");
-            bytes = document.ToBytes(ExcelFileFormat.Xls);
+            document.Sheets[0].Cell(2, 1).SetValue("New color");
+            document.Sheets[0].Cell(2, 1).SetFillColor("#123456");
+            document.Sheets[0].Cell(2, 1).SetFontColor("#654321");
+            bytes = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
             using var loaded = ExcelDocument.Load(new MemoryStream(bytes));
-            Assert.Equal("FFABCDEF", loaded.Sheets[0].GetCellStyle(1, 1).FillColorArgb);
-            Assert.Equal("FF123456", loaded.Sheets[0].GetCellStyle(2, 1).FillColorArgb);
-            Assert.Equal("FF654321", loaded.Sheets[0].GetCellStyle(2, 1).FontColorArgb);
+            Assert.Equal("FFABCDEF", loaded.Sheets[0].Cell(1, 1).GetStyle().FillColorArgb);
+            Assert.Equal("FF123456", loaded.Sheets[0].Cell(2, 1).GetStyle().FillColorArgb);
+            Assert.Equal("FF654321", loaded.Sheets[0].Cell(2, 1).GetStyle().FontColorArgb);
         }
     }
 

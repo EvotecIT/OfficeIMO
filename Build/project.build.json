@@ -32,6 +32,7 @@
     "OfficeIMO.DocBook": "3.5.X",
     "OfficeIMO.Drawing.CodeGlyphX": "3.5.X",
     "OfficeIMO.Drawing.HarfBuzz": "3.5.X",
+    "OfficeIMO.Drawing.ImageIO": "3.5.X",
     "OfficeIMO.Email": "3.5.X",
     "OfficeIMO.Email.Html": "3.5.X",
     "OfficeIMO.Email.Image": "3.5.X",
@@ -142,6 +143,10 @@
     "OfficeIMO.Word.Html": "3.5.X",
     "OfficeIMO.Word.Markdown": "3.5.X",
     "OfficeIMO.Word.Pdf": "3.5.X",
+    "OfficeIMO": "3.5.X",
+    "OfficeIMO.Pdf.Word": "3.5.X",
+    "OfficeIMO.Pdf.PowerPoint": "3.5.X",
+    "OfficeIMO.Pdf.Excel": "3.5.X",
     "OfficeIMO.Word.Rtf": "3.5.X",
     "OfficeIMO.Workflows": "3.5.X",
     "OfficeIMO.Workflows.IWork": "3.5.X"

@@ -14,10 +14,3 @@ public sealed class ProjectImageExportOptions : OfficeImageExportOptions {
     public override double LogicalUnitsPerInch => 72;
     internal ProjectImageExportOptions Snapshot() => CopyImageExportOptionsTo(new ProjectImageExportOptions());
 }
-
-/// <summary>Fluent access to shared density presets, fonts, formats, bounded batches and file saving.</summary>
-public sealed class ProjectImageExportBuilder : OfficeImageExportBatchBuilder<ProjectImageExportBuilder, ProjectImageExportOptions> {
-    internal ProjectImageExportBuilder(OfficeIMO.Project.ProjectView view, ProjectImageExportOptions options)
-        : base(options, (format, effective) => ProjectReportWorkflow.ExportImages(view, format, effective),
-            (format, effective, consumer, token) => ProjectReportWorkflow.ExportImages(view, format, consumer, effective, token)) { }
-}

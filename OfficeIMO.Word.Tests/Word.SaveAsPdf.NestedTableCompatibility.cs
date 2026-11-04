@@ -53,7 +53,7 @@ public partial class Word {
         WordTable outer = document.AddTable(1, 1, WordTableStyle.TableGrid);
         ConfigureNestedLayoutTable(outer, 6000, 6000);
         WordTableCell parent = outer.Rows[0].Cells[0];
-        parent.MarginLeftWidth = parent.MarginRightWidth = 180;
+        parent.MarginLeft = parent.MarginRight = global::OfficeIMO.OfficeLength.Points(9D);
         ConfigureNestedLayoutParagraph(parent.Paragraphs[0], "FRAMEANCHOR");
         WordTable inner = parent.AddTable(1, 2, WordTableStyle.TableGrid);
         ConfigureNestedLayoutTable(inner, 2000 + 4 * childMarginTwips,
@@ -61,14 +61,14 @@ public partial class Word {
         inner._tableProperties!.TableIndentation = new W.TableIndentation { Width = 0, Type = W.TableWidthUnitValues.Dxa };
         if (separateBorders)
             inner._tableProperties.TableCellSpacing = new W.TableCellSpacing { Width = "60", Type = W.TableWidthUnitValues.Dxa };
-        foreach (WordTableCell cell in inner.Rows[0].Cells) cell.MarginLeftWidth = cell.MarginRightWidth = childMarginTwips;
+        foreach (WordTableCell cell in inner.Rows[0].Cells) cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Points((childMarginTwips) / 20D);
         ConfigureNestedLayoutParagraph(inner.Rows[0].Cells[0].Paragraphs[0], "X");
         ConfigureNestedLayoutParagraph(inner.Rows[0].Cells[1].Paragraphs[0], "Y");
         Assert.Empty(document.ValidateDocument());
         var main = document._wordprocessingDocument.MainDocumentPart!;
         string original = main.Document.OuterXml + main.StyleDefinitionsPart!.Styles!.OuterXml + main.DocumentSettingsPart!.Settings!.OuterXml;
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordToPdfOptions {
-            IncludePageNumbers = false, PageSize = new PageSize(400D, 500D), Margins = PageMargins.Uniform(30D),
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions {
+            IncludePageNumbers = false, PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(400D),OfficeIMO.OfficeLength.Points(500D)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30D)),
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
         });
         using var pdf = PdfPigDocument.Open(result.ToBytes());
@@ -77,7 +77,7 @@ public partial class Word {
         var left = Assert.Single(words, word => word.Text == "X");
         var right = Assert.Single(words, word => word.Text == "Y");
         Assert.Equal(left.BoundingBox.Bottom, right.BoundingBox.Bottom, precision: 2);
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeNestedTableLayoutApproximated");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "native-nested-table-layout-approximated");
         Assert.Equal(original, main.Document.OuterXml + main.StyleDefinitionsPart.Styles.OuterXml + main.DocumentSettingsPart.Settings.OuterXml);
         return right.BoundingBox.Left - left.BoundingBox.Left;
     }
@@ -99,12 +99,11 @@ public partial class Word {
         WordTable outer = document.AddTable(1, 1, WordTableStyle.TableGrid);
         ConfigureNestedLayoutTable(outer, 4320, 4320);
         WordTableCell parent = outer.Rows[0].Cells[0];
-        parent.MarginLeftWidth = parent.MarginRightWidth = 180;
+        parent.MarginLeft = parent.MarginRight = global::OfficeIMO.OfficeLength.Points(9D);
         ConfigureNestedLayoutParagraph(parent.Paragraphs[0], "FRAMEANCHOR");
         WordTable inner = parent.AddTable(2, 2, WordTableStyle.TableGrid);
         ConfigureNestedLayoutTable(inner, 3000, 900, 2100);
-        inner.WidthType = WordTableWidthUnit.Pct;
-        inner.Width = 2500;
+        inner.Width = WordTableWidth.Percent((2500) / 50d);
         inner.LayoutMode = automatic ? WordTableLayoutMode.AutoFit : WordTableLayoutMode.Fixed;
         inner._tableProperties!.TableIndentation = new W.TableIndentation { Width = 0, Type = W.TableWidthUnitValues.Dxa };
         inner._tableProperties.TableBorders = new W.TableBorders(
@@ -115,7 +114,7 @@ public partial class Word {
             new W.InsideHorizontalBorder { Val = W.BorderValues.Single, Size = 8U },
             new W.InsideVerticalBorder { Val = W.BorderValues.Single, Size = 8U });
         foreach (WordTableRow row in inner.Rows)
-            foreach (WordTableCell cell in row.Cells) cell.MarginLeftWidth = cell.MarginRightWidth = 40;
+            foreach (WordTableCell cell in row.Cells) cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Points(2D);
         ConfigureNestedLayoutParagraph(inner.Rows[0].Cells[0].Paragraphs[0], "X");
         ConfigureNestedLayoutParagraph(inner.Rows[1].Cells[0].Paragraphs[0], "Y");
         ConfigureNestedLayoutParagraph(inner.Rows[0].Cells[1].Paragraphs[0], "R1 A characteristically detailed description.");
@@ -124,8 +123,8 @@ public partial class Word {
         Assert.Empty(document.ValidateDocument());
         var main = document._wordprocessingDocument.MainDocumentPart!;
         string original = main.Document.OuterXml + main.StyleDefinitionsPart!.Styles!.OuterXml + main.DocumentSettingsPart!.Settings!.OuterXml;
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordToPdfOptions {
-            IncludePageNumbers = false, PageSize = new PageSize(400D, 500D), Margins = PageMargins.Uniform(30D),
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions {
+            IncludePageNumbers = false, PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(400D),OfficeIMO.OfficeLength.Points(500D)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30D)),
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
         });
         using var pdf = PdfPigDocument.Open(result.ToBytes());
@@ -136,7 +135,7 @@ public partial class Word {
         var letters = page.Letters.ToArray();
         Assert.Equal("FRAMEANCHORXR1Acharacteristicallydetaileddescription.YR2Acharacteristicallydetaileddescription.BODYAFTER",
             string.Concat(letters.Select(letter => letter.Value)).Replace(" ", ""));
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeNestedTableLayoutApproximated");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "native-nested-table-layout-approximated");
         Assert.Equal(original, main.Document.OuterXml + main.StyleDefinitionsPart.Styles.OuterXml + main.DocumentSettingsPart.Settings.OuterXml);
         return (right.BoundingBox.Left - left.BoundingBox.Left, letters.Select(letter =>
             (letter.Value, Math.Round(letter.BoundingBox.Left, 2), Math.Round(letter.BoundingBox.Bottom, 2))).ToArray());
@@ -156,7 +155,7 @@ public partial class Word {
         WordTable outer = document.AddTable(1, 1, WordTableStyle.TableGrid);
         ConfigureNestedLayoutTable(outer, parentWidthTwips, parentWidthTwips);
         WordTableCell parent = outer.Rows[0].Cells[0];
-        parent.MarginLeftWidth = parent.MarginRightWidth = parentMarginTwips;
+        parent.MarginLeft = parent.MarginRight = global::OfficeIMO.OfficeLength.Points((parentMarginTwips) / 20D);
         ConfigureNestedLayoutParagraph(parent.Paragraphs[0], "FRAMEANCHOR");
         WordTable inner = parent.AddTable(1, 2, WordTableStyle.TableGrid);
         ConfigureNestedLayoutTable(inner, declaredWidthTwips, 900, 2100);
@@ -169,15 +168,15 @@ public partial class Word {
             new W.RightBorder { Val = W.BorderValues.Single, Size = borderSizeEighthsOfPoint },
             new W.InsideHorizontalBorder { Val = W.BorderValues.Single, Size = borderSizeEighthsOfPoint },
             new W.InsideVerticalBorder { Val = W.BorderValues.Single, Size = borderSizeEighthsOfPoint });
-        if (percentage) { inner.WidthType = WordTableWidthUnit.Pct; inner.Width = percentageFiftieths; }
-        foreach (WordTableCell cell in inner.Rows[0].Cells) cell.MarginLeftWidth = cell.MarginRightWidth = 40;
+        if (percentage) { inner.Width = WordTableWidth.Percent((percentageFiftieths) / 50d); }
+        foreach (WordTableCell cell in inner.Rows[0].Cells) cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Points(2D);
         ConfigureNestedLayoutParagraph(inner.Rows[0].Cells[0].Paragraphs[0], "LEFT");
         ConfigureNestedLayoutParagraph(inner.Rows[0].Cells[1].Paragraphs[0], "RIGHT");
         Assert.Empty(document.ValidateDocument());
         var main = document._wordprocessingDocument.MainDocumentPart!;
         string original = main.Document.OuterXml + main.StyleDefinitionsPart!.Styles!.OuterXml + main.DocumentSettingsPart!.Settings!.OuterXml;
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordToPdfOptions {
-            IncludePageNumbers = false, PageSize = new PageSize(400D, 500D), Margins = PageMargins.Uniform(30D),
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions {
+            IncludePageNumbers = false, PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(400D),OfficeIMO.OfficeLength.Points(500D)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30D)),
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
         });
         using var pdf = PdfPigDocument.Open(result.ToBytes());
@@ -185,7 +184,7 @@ public partial class Word {
         var anchor = Assert.Single(words, word => word.Text == "FRAMEANCHOR");
         var left = Assert.Single(words, word => word.Text == "LEFT");
         var right = Assert.Single(words, word => word.Text == "RIGHT");
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeNestedTableLayoutApproximated");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "native-nested-table-layout-approximated");
         Assert.Equal(original, main.Document.OuterXml + main.StyleDefinitionsPart.Styles.OuterXml + main.DocumentSettingsPart.Settings.OuterXml);
         return (left.BoundingBox.Left - anchor.BoundingBox.Left, right.BoundingBox.Left - left.BoundingBox.Left);
     }
@@ -197,17 +196,16 @@ public partial class Word {
         WordTable outer = document.AddTable(1, 1, WordTableStyle.TableGrid);
         ConfigureNestedLayoutTable(outer, 6000, 6000);
         WordTableCell parent = outer.Rows[0].Cells[0];
-        parent.MarginLeftWidth = parent.MarginRightWidth = 180;
+        parent.MarginLeft = parent.MarginRight = global::OfficeIMO.OfficeLength.Points(9D);
         ConfigureNestedLayoutParagraph(parent.Paragraphs[0], "FRAMEANCHOR");
         WordTable inner = parent.AddTable(1, 2, WordTableStyle.TableGrid);
         ConfigureNestedLayoutTable(inner, 3000, 900, 2100);
         inner._tableProperties!.TableIndentation = new W.TableIndentation { Width = 0, Type = W.TableWidthUnitValues.Dxa };
         if (percentage) {
-            inner.WidthType = WordTableWidthUnit.Pct;
-            inner.Width = 2500;
+            inner.Width = WordTableWidth.Percent((2500) / 50d);
         }
         foreach (WordTableCell cell in inner.Rows[0].Cells)
-            cell.MarginLeftWidth = cell.MarginRightWidth = childMarginTwips;
+            cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Points((childMarginTwips) / 20D);
         ConfigureNestedLayoutParagraph(inner.Rows[0].Cells[0].Paragraphs[0], "LEFT");
         ConfigureNestedLayoutParagraph(inner.Rows[0].Cells[1].Paragraphs[0], "RIGHT");
         Assert.Empty(document.ValidateDocument());
@@ -215,8 +213,8 @@ public partial class Word {
         string SourceXml() => main.Document.OuterXml + main.StyleDefinitionsPart?.Styles?.OuterXml +
             main.DocumentSettingsPart?.Settings?.OuterXml;
         string original = SourceXml();
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordToPdfOptions {
-            IncludePageNumbers = false, PageSize = new PageSize(400D, 500D), Margins = PageMargins.Uniform(30D),
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions {
+            IncludePageNumbers = false, PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(400D),OfficeIMO.OfficeLength.Points(500D)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30D)),
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
         });
         using var pdf = PdfPigDocument.Open(result.ToBytes());
@@ -225,7 +223,7 @@ public partial class Word {
         var left = Assert.Single(words, word => word.Text == "LEFT");
         var right = Assert.Single(words, word => word.Text == "RIGHT");
         Assert.Equal(left.BoundingBox.Bottom, right.BoundingBox.Bottom, precision: 2);
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeNestedTableLayoutApproximated");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "native-nested-table-layout-approximated");
         Assert.Equal(original, SourceXml());
         return (anchor.BoundingBox.Left, left.BoundingBox.Left - anchor.BoundingBox.Left,
             right.BoundingBox.Left - left.BoundingBox.Left);

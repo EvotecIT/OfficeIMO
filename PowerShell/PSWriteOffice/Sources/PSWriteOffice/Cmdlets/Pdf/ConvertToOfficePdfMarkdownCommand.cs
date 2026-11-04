@@ -1,7 +1,9 @@
 using OfficeIMO.Core.Internal;
 using System.IO;
 using System.Management.Automation;
+using System.Security;
 using OfficeIMO.Pdf;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Pdf;
@@ -30,7 +32,8 @@ public sealed class ConvertToOfficePdfMarkdownCommand : PSCmdlet
 
     /// <summary>Password used to read a Standard password-encrypted PDF.</summary>
     [Parameter]
-    public string? Password { get; set; }
+    [OfficePasswordTransformation]
+    public SecureString? Password { get; set; }
 
     /// <summary>After successful password authentication, explicitly ignore owner-imposed extraction restrictions.</summary>
     [Parameter]
@@ -45,11 +48,11 @@ public sealed class ConvertToOfficePdfMarkdownCommand : PSCmdlet
     {
         var readOptions = string.IsNullOrWhiteSpace(PageRange)
             ? null
-            : new PdfReadOptions { PageSelection = PdfPageSelection.Parse(PageRange!) };
+            : new PdfLoadOptions { PageSelection = PdfPageSelection.Parse(PageRange!) };
         var document = PdfDocument.Load(
             PdfCommandUtilities.ResolvePath(this, Path),
             PdfCommandUtilities.CreateReadOptions(Password, IgnorePermissionRestrictions.IsPresent));
-        var markdown = document.Read(readOptions).ToMarkdown();
+        var markdown = document.Read(readOptions).ExtractMarkdown();
 
         if (!string.IsNullOrWhiteSpace(OutputPath))
         {

@@ -1,5 +1,3 @@
-#nullable enable
-
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.IO;
 using System.Threading;
@@ -10,7 +8,7 @@ namespace OfficeIMO.Excel {
         private bool ValidateDataReaderProjection(CancellationToken ct) {
             if (_canStreamWorksheetPart) {
                 try {
-                    using var stream = OpenDataReaderWorksheetStream(ct);
+                    using var stream = OpenReaderWorksheetStream(ct);
                     if (TryPrepareWorksheetStream(stream)) {
                         return ValidateDataReaderProjectionXml(stream, ct);
                     }

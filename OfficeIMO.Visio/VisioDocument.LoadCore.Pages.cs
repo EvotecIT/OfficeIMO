@@ -58,7 +58,7 @@ namespace OfficeIMO.Visio {
             return value >= 0 && (value & ~allKnownFlags) == 0;
         }
 
-        private static OfficeIMO.Drawing.OfficeColor ParseColor(string? value, OfficeIMO.Drawing.OfficeColor fallback) {
+        private static OfficeIMO.OfficeColor ParseColor(string? value, OfficeIMO.OfficeColor fallback) {
             string? normalized = NormalizeCellLiteral(value);
             return string.IsNullOrWhiteSpace(normalized) ? fallback : VisioHelpers.FromVisioColor(normalized!);
         }

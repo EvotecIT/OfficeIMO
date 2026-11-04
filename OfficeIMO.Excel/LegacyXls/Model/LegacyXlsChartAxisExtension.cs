@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes preserve-only AxcExt date-axis extension metadata from a BIFF chart stream.
     /// </summary>
-    public sealed class LegacyXlsChartAxisExtension {
+    internal sealed class LegacyXlsChartAxisExtension {
         /// <summary>
         /// Creates date-axis extension metadata.
         /// </summary>

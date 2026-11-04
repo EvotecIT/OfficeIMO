@@ -46,8 +46,18 @@ public enum PdfProjectionFormPolicy {
 /// Email attachment, EPUB resource/pagination, and diagram-page decisions all flow through these options.
 /// </summary>
 public sealed class PdfProjectionOptions {
+    internal PdfProjectionOptions Snapshot() {
+        var copy = (PdfProjectionOptions)MemberwiseClone();
+        copy.PdfOptions = PdfOptions?.Clone();
+        copy.RasterDecodeOptions = RasterDecodeOptions?.Clone();
+        return copy;
+    }
+
+    /// <summary>Rejects projection or writer loss before publishing output.</summary>
+    public bool FailOnLoss { get; set; }
+
     /// <summary>PDF generation options. The converter snapshots this value.</summary>
-    public OfficeIMO.Pdf.PdfOptions? PdfOptions { get; set; }
+    public OfficeIMO.Pdf.PdfCreateOptions? PdfOptions { get; set; }
 
     /// <summary>Normalized page handling.</summary>
     public PdfProjectionPagePolicy PagePolicy { get; set; } = PdfProjectionPagePolicy.PreserveSourcePages;

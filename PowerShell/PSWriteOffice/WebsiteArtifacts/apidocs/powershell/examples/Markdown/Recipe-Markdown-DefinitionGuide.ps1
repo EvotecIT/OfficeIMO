@@ -1,6 +1,6 @@
 $path = '.\Operations-Glossary.md'
 
-MarkdownNew -Path $path {
+New-OfficeMarkdown -Path $path {
     MarkdownHeading -Level 1 -Text 'Operations glossary'
     MarkdownDefinitionList -Definition @{
         SLO = 'The service level objective agreed with the owner.'

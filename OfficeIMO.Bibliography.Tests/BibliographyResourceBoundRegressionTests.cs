@@ -32,9 +32,9 @@ public sealed class BibliographyResourceBoundRegressionTests {
         string fields = string.Concat(Enumerable.Repeat("<text variable=\"title\"/>", 200));
         CslStyle style = CslStyle.Parse(header + "<bibliography" + alignment + "><layout>" + fields + "</layout></bibliography></style>");
         BibliographyDocument source = BibliographyDocument.Parse("[{\"id\":\"one\",\"type\":\"book\",\"title\":\"Alpha\"}]", BibliographyFormat.CslJson).Document;
-        var processor = new CslProcessor(source, style, new CslRenderOptions { MaximumIntermediateCharacters = 20, MaximumRenderingOperations = 100 });
+        var processor = new CslProcessor(source, style, new CslRenderOptions { MaxIntermediateCharacters = 20, MaxRenderingOperations = 100 });
 
         InvalidDataException error = Assert.Throws<InvalidDataException>(() => processor.RenderBibliography());
-        Assert.Contains("MaximumIntermediateCharacters", error.Message);
+        Assert.Contains("MaxIntermediateCharacters", error.Message);
     }
 }

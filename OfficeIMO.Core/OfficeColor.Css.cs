@@ -1,7 +1,7 @@
+using OfficeIMO.Drawing;
 using System;
-using System.Globalization;
 
-namespace OfficeIMO.Drawing;
+namespace OfficeIMO;
 
 public readonly partial struct OfficeColor {
     private const int MaximumCssColorLength = 256;

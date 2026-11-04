@@ -9,7 +9,7 @@ schema: 2.0.0
 Creates Word/OpenDocument conversion settings.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 New-OfficeWordOpenDocumentOptions [-LossPolicy <OdfConversionLossPolicy>] [-IncludeImages] [-IncludeHeadersAndFooters] [<CommonParameters>]
 ```
@@ -33,7 +33,7 @@ Copy default headers and footers.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -49,7 +49,7 @@ Copy supported inline images.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -65,7 +65,7 @@ Whether conversion loss is reported or rejected.
 
 ```yaml
 Type: OdfConversionLossPolicy
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: ReportOnly, ThrowOnSkippedOrUnsupported, ThrowOnAnyLoss
 

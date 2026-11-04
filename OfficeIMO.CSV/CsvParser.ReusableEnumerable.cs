@@ -1,12 +1,10 @@
-#nullable enable
-
 using System.Text;
 
 namespace OfficeIMO.CSV;
 
 internal static partial class CsvParser
 {
-    internal static IEnumerable<IReadOnlyList<string>> ParseReusable(TextReader reader, CsvLoadOptions options)
+    internal static IEnumerable<IReadOnlyList<string>> ParseReusable(TextReader reader, CsvParsingSettings options)
     {
         if (UsesTextDelimiter(options))
         {
@@ -24,7 +22,7 @@ internal static partial class CsvParser
         }
     }
 
-    private static IEnumerable<IReadOnlyList<string>> ParseLineOrQuotedReusable(TextReader reader, CsvLoadOptions options)
+    private static IEnumerable<IReadOnlyList<string>> ParseLineOrQuotedReusable(TextReader reader, CsvParsingSettings options)
     {
         var delimiter = GetDelimiterChar(options);
         var trim = options.TrimWhitespace;

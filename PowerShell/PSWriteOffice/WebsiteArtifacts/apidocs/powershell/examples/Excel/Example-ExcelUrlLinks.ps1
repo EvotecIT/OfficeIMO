@@ -9,7 +9,7 @@ $rows = @(
 
 New-OfficeExcel -Path $path {
     Add-OfficeExcelSheet -Name 'Summary' -Content {
-        Add-OfficeExcelTable -Data $rows -TableName 'LinksTable' -AutoFit
+        Add-OfficeExcelTable -Data $rows -Name 'LinksTable' -AutoFit
         Set-OfficeExcelCell -Address 'D1' -Value 'Spec'
         Set-OfficeExcelCell -Address 'D2' -Value 'rfc5321'
         Set-OfficeExcelCell -Address 'D3' -Value 'rfc1035'

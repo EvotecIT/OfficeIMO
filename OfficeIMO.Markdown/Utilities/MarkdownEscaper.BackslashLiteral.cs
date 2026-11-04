@@ -2,7 +2,7 @@ namespace OfficeIMO.Markdown;
 
 using System.Text;
 
-public static partial class MarkdownEscaper {
+internal static partial class MarkdownEscaper {
     internal static bool UsesBackslashLiteralText => MarkdownRenderContext.Options?.TextEscapingMode == MarkdownTextEscapingMode.LiteralBackslash;
 
     internal static string EscapeTextForWriter(string? text) => UsesBackslashLiteralText ? EscapeBackslashLiteralText(text) : EscapeText(text);

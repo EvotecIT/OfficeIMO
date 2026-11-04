@@ -13,7 +13,7 @@ internal static partial class PublisherNativeCreationCodec {
     private static readonly Guid QuillSubClassId = new("08c8f6da-969d-11d1-8e02-00c04fb6fece");
 
     /// <summary>Creates candidate bytes under an independent operation budget; this does not admit public source-free saving.</summary>
-    internal static byte[] Create(PublisherNativeCreationPlan plan, PublisherReadOptions options, long maxOutputBytes, CancellationToken token) {
+    internal static byte[] Create(PublisherNativeCreationPlan plan, PublisherLoadOptions options, long maxOutputBytes, CancellationToken token) {
         if (plan == null) throw new ArgumentNullException(nameof(plan));
         if (options == null) throw new ArgumentNullException(nameof(options));
         if (maxOutputBytes < 1 || maxOutputBytes > int.MaxValue) throw new ArgumentOutOfRangeException(nameof(maxOutputBytes));

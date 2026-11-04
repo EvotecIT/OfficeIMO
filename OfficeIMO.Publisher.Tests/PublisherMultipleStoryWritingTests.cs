@@ -22,12 +22,12 @@ public sealed class PublisherMultipleStoryWritingTests {
             document.ReplaceStoryParagraphs(stories[index].Id, Replace(stories[index], text, 18, true));
             expected[index] = string.Join("\n", text) + "\n";
         }
-        var result = document.ToPubBytesResult(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
-        Assert.True(result.Report.HasLoss); Assert.False(result.Report.HasErrors);
-        PublisherDocument reopened = PublisherDocument.Load(result.Value);
+        byte[] savedBytes = document.ToBytes(new PublisherSaveOptions { AllowLoss = true }, out PublisherSaveReport saveReport);
+        Assert.True(saveReport.HasLoss); Assert.False(saveReport.HasErrors);
+        PublisherDocument reopened = PublisherDocument.Load(savedBytes);
         Assert.Equal(new uint[] { 2, 3, 4 }, reopened.TextStories.Select(story => story.Id));
         Assert.Equal(expected, reopened.TextStories.Select(story => story.Text));
-        PublisherNativeWritingTests.AssertPreservedStorage(source, result.Value, "Quill/QuillSub/CONTENTS");
+        PublisherNativeWritingTests.AssertPreservedStorage(source, savedBytes, "Quill/QuillSub/CONTENTS");
         Assert.Equal(3, reopened.Pages[0].TextFrames.Count);
         Assert.Equal(source, File.ReadAllBytes(PublisherNativeTests.Fixture("NativeComparison/TextStories/native-textstories.pub")));
     }
@@ -43,13 +43,13 @@ public sealed class PublisherMultipleStoryWritingTests {
         Assert.True(Assert.Single(document.Pages[0].TextFrames).HasOverflow);
         string[] text = Enumerable.Range(1, 96).Select(index => shrink ? "P" + index : "Changed paragraph " + index + new string('i', 24)).ToArray();
         document.ReplaceStoryParagraphs(original.Id, Replace(original, text, 18, true));
-        var result = document.ToPubBytesResult(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
-        PublisherTextStory saved = Assert.Single(PublisherDocument.Load(result.Value).TextStories);
+        byte[] savedBytes = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
+        PublisherTextStory saved = Assert.Single(PublisherDocument.Load(savedBytes).TextStories);
         Assert.Equal(string.Join("\n", text) + "\n", saved.Text);
         Assert.Equal(96, saved.Paragraphs.Count);
         Assert.All(saved.Paragraphs, paragraph => { Assert.Equal(18, paragraph.Runs[0].FontSize); Assert.True(paragraph.Runs[0].Bold); });
-        PublisherNativeWritingTests.AssertPreservedStorage(source, result.Value, "Quill/QuillSub/CONTENTS");
-        Assert.Throws<InvalidDataException>(() => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow, MaxOutputBytes = 1 }));
+        PublisherNativeWritingTests.AssertPreservedStorage(source, savedBytes, "Quill/QuillSub/CONTENTS");
+        Assert.Throws<InvalidDataException>(() => document.ToBytes(new PublisherSaveOptions { AllowLoss = true, MaxOutputBytes = 1 }));
     }
 
     [Theory]
@@ -59,13 +59,13 @@ public sealed class PublisherMultipleStoryWritingTests {
         byte[] source = PublisherInputContractTests.Mutate("Quill/QuillSub/CONTENTS", bytes => bytes[indexOffset + 16] ^= 1,
             "NativeComparison/TextStories/native-textstories.pub");
         PublisherDocument document = PublisherDocument.Load(source);
-        Assert.Equal(source, document.ToPubBytes());
+        Assert.Equal(source, document.ToBytes());
         PublisherTextStory story = document.TextStories[0];
         document.ReplaceStoryParagraphs(story.Id, Replace(story, new[] { "Changed first story" }, 18, true));
-        var error = Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        var error = Assert.Throws<OfficeConversionException>(() => document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         var report = Assert.IsType<PublisherSaveReport>(error.Report);
         Assert.True(report.HasErrors); Assert.Equal(0, report.OutputByteCount);
-        Assert.Contains(report.FidelityDiagnostics, diagnostic => diagnostic.Location == "Quill" && diagnostic.Code == "PUB_NATIVE_EDIT_UNSUPPORTED");
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Location == "Quill" && diagnostic.Code == "PUB_NATIVE_EDIT_UNSUPPORTED");
         Assert.Equal("Changed first story\n", document.TextStories[0].Text);
     }
 
@@ -75,7 +75,7 @@ public sealed class PublisherMultipleStoryWritingTests {
         PublisherTextStory source = Assert.Single(document.TextStories);
         var paragraphs = source.Paragraphs.Select((paragraph, index) => ReplaceParagraph(paragraph, paragraph.Runs[0].Text, 12 + index, true)).ToArray();
         document.ReplaceStoryParagraphs(source.Id, paragraphs);
-        byte[] bytes = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        byte[] bytes = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         PublisherDocument reopened = PublisherDocument.Load(bytes);
         Assert.Equal(source.Text, reopened.TextStories[0].Text);
         Assert.Equal(Enumerable.Range(12, 96).Select(size => (double)size), reopened.TextStories[0].Paragraphs.Select(paragraph => paragraph.Runs[0].FontSize));

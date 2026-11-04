@@ -13,7 +13,7 @@ public class WordReadComparisonBenchmarks {
     private byte[] _fixture = Array.Empty<byte>();
     private WordReadObservation _expected;
 
-    [Params(100, 1000)]
+    [Params(100, 1000, 10000)]
     public int ItemCount { get; set; }
 
     [GlobalSetup]

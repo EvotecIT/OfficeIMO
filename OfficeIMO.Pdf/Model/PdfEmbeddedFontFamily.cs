@@ -9,11 +9,12 @@ public sealed partial class PdfEmbeddedFontFamily {
     private readonly byte[]? _italic;
     private readonly byte[]? _boldItalic;
     private readonly bool _regularHasPhysicalSlant;
+    private readonly bool _regularHasPhysicalWeight;
 
     /// <summary>Creates a reusable TrueType font family from font file bytes.</summary>
     /// <param name="familyName">Family name used for generated PDF font resource names.</param>
     /// <param name="regular">Regular TrueType face bytes.</param>
-    /// <param name="bold">Optional bold TrueType face bytes. When null, the regular face is reused.</param>
+    /// <param name="bold">Optional bold TrueType face bytes. When null, the selected regular face is emboldened while painting.</param>
     /// <param name="italic">Optional italic TrueType face bytes. When null, generated italic text uses a slanted regular face.</param>
     /// <param name="boldItalic">Optional bold-italic TrueType face bytes. When null, generated text uses the best supplied face and simulates the missing slant when needed.</param>
     public PdfEmbeddedFontFamily(
@@ -51,6 +52,24 @@ public sealed partial class PdfEmbeddedFontFamily {
     /// <summary>Family name used for generated PDF font resource names.</summary>
     public string FamilyName { get; }
 
+    // Converter resource identities can include a style or content fingerprint. Those
+    // remain lookup keys; the embedded program supplies the reader-visible font name.
+    internal bool UsesProgramFontNames { get; }
+
+    internal PdfEmbeddedFontFamily WithProgramFontNames() =>
+        UsesProgramFontNames ? this : new PdfEmbeddedFontFamily(this);
+
+    private PdfEmbeddedFontFamily(PdfEmbeddedFontFamily source) {
+        FamilyName = source.FamilyName;
+        _regular = source._regular;
+        _bold = source._bold;
+        _italic = source._italic;
+        _boldItalic = source._boldItalic;
+        _regularHasPhysicalSlant = source._regularHasPhysicalSlant;
+        _regularHasPhysicalWeight = source._regularHasPhysicalWeight;
+        UsesProgramFontNames = true;
+    }
+
     /// <summary>Regular TrueType face bytes.</summary>
     public byte[] Regular => (byte[])_regular.Clone();
 
@@ -73,16 +92,19 @@ public sealed partial class PdfEmbeddedFontFamily {
 
     internal PdfEmbeddedFontFamily Clone() => this;
 
-    internal PdfEmbeddedFontFamily CreateCoverageStableFallbackSnapshot(string? familyName = null) =>
-        new PdfEmbeddedFontFamily(familyName ?? FamilyName, _regular, _regularHasPhysicalSlant);
+    internal PdfEmbeddedFontFamily CreateCoverageStableFallbackSnapshot(string? familyName = null) {
+        var snapshot = new PdfEmbeddedFontFamily(familyName ?? FamilyName, _regular, _regularHasPhysicalSlant, _regularHasPhysicalWeight);
+        return UsesProgramFontNames ? snapshot.WithProgramFontNames() : snapshot;
+    }
 
-    private PdfEmbeddedFontFamily(string familyName, byte[] regular, bool hasPhysicalSlant) {
+    private PdfEmbeddedFontFamily(string familyName, byte[] regular, bool hasPhysicalSlant, bool hasPhysicalWeight = false) {
         FamilyName = familyName;
         _regular = regular;
-        _bold = null;
+        _regularHasPhysicalWeight = hasPhysicalWeight;
+        _bold = hasPhysicalWeight ? regular : null;
         _regularHasPhysicalSlant = hasPhysicalSlant;
         _italic = hasPhysicalSlant ? regular : null;
-        _boldItalic = hasPhysicalSlant ? regular : null;
+        _boldItalic = hasPhysicalSlant && hasPhysicalWeight ? regular : null;
     }
 
     /// <summary>Creates a reusable TrueType font family from font files on disk.</summary>

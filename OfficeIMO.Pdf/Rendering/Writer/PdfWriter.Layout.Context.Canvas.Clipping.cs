@@ -12,7 +12,7 @@ internal static partial class PdfWriter {
             } else {
                 ValidateCanvasBox(item.X, item.Y, item.Width, item.Height, "Canvas clip");
             }
-            double bottomY = currentOpts.PageHeight - item.Y - item.Height;
+            double bottomY = currentOpts.PageHeight.ToPoints() - item.Y - item.Height;
             int annotationStart = currentPage!.Annotations.Count;
             int textAnnotationStart = currentPage.TextAnnotations.Count;
             int freeTextAnnotationStart = currentPage.FreeTextAnnotations.Count;

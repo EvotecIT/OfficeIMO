@@ -39,7 +39,7 @@ public sealed class ReaderPublisherShapeEditingTests {
         Assert.Empty(after.Assets);
         Assert.Empty(after.Tables);
         Assert.Contains(after.Diagnostics, diagnostic => diagnostic.Code == "PUB_READER_LAYOUT_OMITTED");
-        foreach (var finding in document.ReadReport.FidelityDiagnostics)
+        foreach (var finding in document.ReadReport.Diagnostics)
             Assert.Contains(after.Diagnostics, diagnostic => diagnostic.Code == finding.Code && diagnostic.Message == finding.Message);
         Assert.Null(after.Source.SourceHash);
         Assert.Null(after.Source.LengthBytes);

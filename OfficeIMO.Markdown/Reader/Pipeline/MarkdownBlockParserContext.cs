@@ -53,13 +53,13 @@ public readonly struct MarkdownBlockParseResult {
 /// </summary>
 public sealed class MarkdownBlockParserContext {
     private readonly string[] _lines;
-    private readonly MarkdownDoc _document;
+    private readonly MarkdownDocument _document;
 
     internal MarkdownBlockParserContext(
         string[] lines,
         int lineIndex,
-        MarkdownReaderOptions options,
-        MarkdownDoc document,
+        MarkdownLoadOptions options,
+        MarkdownDocument document,
         MarkdownReaderState state) {
         _lines = lines ?? Array.Empty<string>();
         LineIndex = lineIndex;
@@ -91,12 +91,12 @@ public sealed class MarkdownBlockParserContext {
     /// <summary>
     /// Reader options active for the current parse.
     /// </summary>
-    public MarkdownReaderOptions Options { get; }
+    public MarkdownLoadOptions Options { get; }
 
     /// <summary>
     /// Markdown document being built.
     /// </summary>
-    public MarkdownDoc Document {
+    public MarkdownDocument Document {
         get {
             _document.EnsureObjectTreeBound();
             return _document;
@@ -275,7 +275,7 @@ internal sealed class DelegateMarkdownBlockParser : IMarkdownBlockParser {
         _parser = parser ?? throw new ArgumentNullException(nameof(parser));
     }
 
-    public bool TryParse(string[] lines, ref int i, MarkdownReaderOptions options, MarkdownDoc doc, MarkdownReaderState state) {
+    public bool TryParse(string[] lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
         var context = new MarkdownBlockParserContext(lines, i, options, doc, state);
         if (!_parser(context, out var result)) {
             return false;

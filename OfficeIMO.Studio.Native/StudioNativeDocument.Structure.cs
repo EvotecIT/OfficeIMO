@@ -16,7 +16,7 @@ internal sealed partial class StudioNativeDocument {
     internal async Task<StudioNativeStructure> GetStructureAsync(CancellationToken cancellationToken) {
         await EnterAsync(cancellationToken).ConfigureAwait(false);
         try {
-            PdfMetadata? metadata = _workspace.Metadata;
+            PdfDocumentProperties? metadata = _workspace.Metadata;
             var properties = new StudioNativeProperties(metadata?.Title, metadata?.Author, metadata?.Subject, metadata?.Keywords,
                 Timestamp(metadata?.CreationDate), Timestamp(metadata?.ModificationDate));
             int nextId = 0;
@@ -74,7 +74,7 @@ internal sealed partial class StudioNativeDocument {
     private Task EditProperties(StudioNativeProperties properties, CancellationToken cancellationToken) {
         if (!_workspace.CanEditMetadata) throw new NotSupportedException("This document's properties can't be changed.");
         // Fields the request leaves out keep their value; an empty string clears one.
-        PdfMetadata? current = _workspace.Metadata;
+        PdfDocumentProperties? current = _workspace.Metadata;
         return _workspace.UpdateMetadataAsync(properties.Title ?? current?.Title ?? string.Empty, properties.Author ?? current?.Author ?? string.Empty,
             properties.Subject ?? current?.Subject ?? string.Empty, properties.Keywords ?? current?.Keywords ?? string.Empty, cancellationToken);
     }
@@ -150,7 +150,7 @@ internal sealed partial class StudioNativeDocument {
             null or "fit" => PdfPageResizeMode.Fit, "fill" => PdfPageResizeMode.Fill, "stretch" => PdfPageResizeMode.Stretch,
             _ => throw new ArgumentException($"“{size.Mode}” isn't a way to fit content.", nameof(size))
         };
-        return _workspace.ResizePagesAsync(AllOrChosenPages(size.Pages), new PageSize(size.Width, size.Height), mode, cancellationToken);
+        return _workspace.ResizePagesAsync(AllOrChosenPages(size.Pages), new PdfPageSize(OfficeIMO.OfficeLength.Points(size.Width),OfficeIMO.OfficeLength.Points(size.Height)), mode, cancellationToken);
     }
 
     private int[] AllOrChosenPages(IReadOnlyList<int>? pages) => pages is { Count: > 0 }
@@ -171,11 +171,11 @@ internal sealed partial class StudioNativeDocument {
         RequirePageContent();
         if (string.IsNullOrWhiteSpace(edit.Text)) throw new ArgumentException("Enter the watermark's text.", nameof(edit));
         var options = new PdfWatermarkOptions {
-            Text = edit.Text.Trim(), FontSize = Bounded(edit.FontSize ?? 42D, 6D, 288D, "font size"),
+            Text = edit.Text.Trim(), FontSize = global::OfficeIMO.OfficeLength.Points(Bounded(edit.FontSize ?? 42D, 6D, 288D, "font size")),
             Opacity = Bounded(edit.Opacity ?? 0.35D, 0.05D, 1D, "opacity"), RotationDegrees = Bounded(edit.Rotation ?? -35D, -180D, 180D, "angle"),
             BehindContent = edit.BehindContent
         };
-        if (edit.Color is { } color) options.Color = PdfColor.FromRgb(Channel(color.Red), Channel(color.Green), Channel(color.Blue));
+        if (edit.Color is { } color) options.Color = global::OfficeIMO.OfficeColor.FromRgb(Channel(color.Red), Channel(color.Green), Channel(color.Blue));
         int[] pages = edit.Pages is { Count: > 0 } chosen ? RequirePages(chosen) : Enumerable.Range(1, _workspace.Pages.Count).ToArray();
         if (edit.Pages is { Count: > 0 }) options.TargetPages = PdfPageSelector.Parse(RangeOf(pages)!);
         PdfWatermarkPreview prepared = await _workspace.PrepareWatermarkAsync(options, pages[0], cancellationToken).ConfigureAwait(false);
@@ -351,7 +351,7 @@ internal sealed partial class StudioNativeDocument {
         bool allowed = format == "text" ? _workspace.ViewInfo.CanExtractText : _workspace.ViewInfo.CanExtractContent;
         if (!allowed) throw new NotSupportedException("This document doesn't allow its content to be copied.");
         if (PdfConversion.PdfTargets.ContainsKey(format)) {
-            PdfConversionResult result = await PdfConversion.ConvertPdfAsync(_workspace.CopyBytes(), _workspace.ReadOptions?.Password, format,
+            PdfConversionResult result = await PdfConversion.ConvertPdfAsync(_workspace.CopyBytes(), _workspace.ReadOptions, format,
                 Path.GetFullPath(export.Path), cancellationToken).ConfigureAwait(false);
             string? notes = result.Notes.Count == 0 ? null : string.Join("\n", result.Notes.Select(static note => note.Message).Distinct(StringComparer.Ordinal));
             return ([export.Path], notes);

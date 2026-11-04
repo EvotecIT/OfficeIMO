@@ -208,12 +208,13 @@ internal static partial class DocumentReaderEngine {
         ReaderOptions? options = null,
         ReaderBatchOptions? batchOptions = null,
         CancellationToken cancellationToken = default) {
+        var policy = new ReaderBatchReadPolicy(options, batchOptions);
         return ReaderBatchExecutor.ExecuteAsync(
             paths,
-            batchOptions,
+            policy.BatchOptions,
             DefaultMaxConcurrentReads,
             MaximumConcurrentReads,
-            (index, path, token) => ReadDocumentAsync(path, options, token),
+            (index, path, token) => policy.ReadAsync(path, ReadDocumentAsync, token),
             onCompleted: null,
             cancellationToken);
     }

@@ -30,7 +30,7 @@ public sealed class PdfTaggedMergeReadBudgetTests {
 
     private static byte[] CreateReportWithIndependentClassArrays(string label) {
         PdfDocument document = PdfDocument.Create().TaggedPdfCatalogMarkers().Language("en-US");
-        for (int index = 0; index < 40; index++) document.Paragraph(paragraph => paragraph.Text(label + " ordinary paragraph " + index));
+        for (int index = 0; index < 40; index++) document.Paragraph(paragraph => paragraph.AddText(label + " ordinary paragraph " + index));
         return PdfDocumentObjectGraphRewriter.Rewrite(document.ToBytes(), null, null, (objects, security) => {
             var catalog = (PdfDictionary)objects[security.RootObjectNumber!.Value].Value;
             var root = (PdfDictionary)PdfObjectLookup.Resolve(objects, catalog.Items["StructTreeRoot"])!;

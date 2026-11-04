@@ -15,21 +15,21 @@ namespace OfficeIMO.OpenDocument.Converters.Tests;
 
 public sealed class SpreadsheetChartConversionTests {
     [Theory]
-    [InlineData("column", ExcelChartType.ColumnClustered)]
-    [InlineData("bar", ExcelChartType.BarClustered)]
-    [InlineData("line", ExcelChartType.Line)]
-    public void ExcelProducedOdsChartConvertsToReopenableXlsx(string kind, ExcelChartType expectedType) {
+    [InlineData("column", OfficeChartType.ColumnClustered)]
+    [InlineData("bar", OfficeChartType.BarClustered)]
+    [InlineData("line", OfficeChartType.Line)]
+    public void ExcelProducedOdsChartConvertsToReopenableXlsx(string kind, OfficeChartType expectedType) {
         string path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "microsoft-excel-" + kind + "-chart.ods");
         OdsDocument source = OdsDocument.Load(path);
-        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> result = source.ConvertToExcelWithEvidence();
         using ExcelDocument converted = result.Value;
 
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "charts"
             && mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
         Assert.DoesNotContain(result.Report.Mappings, mapping => mapping.Feature == "source-embedded-objects");
         ExcelChart chart = Assert.Single(converted["Data"].Charts);
-        Assert.Equal(14.5, converted["Data"].DefaultRowHeight);
-        Assert.Equal(8.43, converted["Data"].DefaultColumnWidth);
+        Assert.Equal(OfficeIMO.Excel.ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(14.5)), converted["Data"].DefaultRowHeight);
+        Assert.Equal(OfficeIMO.Excel.ExcelColumnWidth.Characters(8.43), converted["Data"].DefaultColumnWidth);
         Assert.Equal(expectedType, chart.ChartType);
         Assert.Equal("Sales", chart.Title);
         Assert.True(chart.TryGetData(out ExcelChartData data));
@@ -42,7 +42,7 @@ public sealed class SpreadsheetChartConversionTests {
         }
         using ExcelDocument reopened = ExcelDocument.Load(new MemoryStream(xlsx));
         Assert.Equal(expectedType, Assert.Single(reopened["Data"].Charts).ChartType);
-        Assert.Throws<OdfConversionLossException>(() => source.ToExcelDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToExcelWithEvidence(
             new ExcelOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -53,7 +53,7 @@ public sealed class SpreadsheetChartConversionTests {
             xml.Descendants(chart + "chart").Single().SetAttributeValue(chart + "class", "chart:radar");
         });
         OdsDocument source = OdsDocument.Load(new MemoryStream(package));
-        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> result = source.ConvertToExcelWithEvidence();
         using ExcelDocument converted = result.Value;
 
         Assert.Empty(converted["Data"].Charts);
@@ -69,8 +69,8 @@ public sealed class SpreadsheetChartConversionTests {
                 properties.Attribute(chart + "vertical")?.Remove();
         });
         OdsDocument source = OdsDocument.Load(new MemoryStream(package));
-        using ExcelDocument converted = source.ToExcelDocumentResult().Value;
-        Assert.Equal(ExcelChartType.ColumnClustered, Assert.Single(converted["Data"].Charts).ChartType);
+        using ExcelDocument converted = source.ConvertToExcelWithEvidence().Value;
+        Assert.Equal(OfficeChartType.ColumnClustered, Assert.Single(converted["Data"].Charts).ChartType);
     }
 
     [Fact]
@@ -84,7 +84,7 @@ public sealed class SpreadsheetChartConversionTests {
                         new XAttribute(chart + "vertical", "invalid"))));
         });
         OdsDocument source = OdsDocument.Load(new MemoryStream(package));
-        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> result = source.ConvertToExcelWithEvidence();
         using ExcelDocument converted = result.Value;
         Assert.Empty(converted["Data"].Charts);
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "source-embedded-objects"
@@ -95,7 +95,7 @@ public sealed class SpreadsheetChartConversionTests {
     public void ChartDataRespectsTheGlobalExpandedCellBudget() {
         string path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "microsoft-excel-column-chart.ods");
         OdsDocument source = OdsDocument.Load(path);
-        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult(
+        OdfConversionResult<ExcelDocument> result = source.ConvertToExcelWithEvidence(
             new ExcelOpenDocumentConversionOptions { MaximumExpandedCells = 1 });
         using ExcelDocument converted = result.Value;
 
@@ -110,7 +110,7 @@ public sealed class SpreadsheetChartConversionTests {
     public void ChartDataRespectsTheHiddenWorksheetRowLimit() {
         string path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "microsoft-excel-column-chart.ods");
         OdsDocument source = OdsDocument.Load(path);
-        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult(
+        OdfConversionResult<ExcelDocument> result = source.ConvertToExcelWithEvidence(
             new ExcelOpenDocumentConversionOptions { MaximumRows = 4 });
         using ExcelDocument converted = result.Value;
 
@@ -129,7 +129,7 @@ public sealed class SpreadsheetChartConversionTests {
             categories.SetAttributeValue(OdfNamespaces.Table + "cell-range-address", "Data.$A$99:Data.$A$100");
         });
         OdsDocument source = OdsDocument.Load(new MemoryStream(package));
-        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult(
+        OdfConversionResult<ExcelDocument> result = source.ConvertToExcelWithEvidence(
             new ExcelOpenDocumentConversionOptions { MaximumRows = 50 });
         using ExcelDocument converted = result.Value;
         Assert.Empty(converted["Data"].Charts);
@@ -142,12 +142,12 @@ public sealed class SpreadsheetChartConversionTests {
         string path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "microsoft-excel-column-chart.ods");
         OdsDocument source = OdsDocument.Load(path);
         source.AddNamedRange("_OfficeIMO_ChartDataOwner", "$'Data'.$A$1");
-        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> result = source.ConvertToExcelWithEvidence();
         using ExcelDocument converted = result.Value;
         Assert.Single(converted["Data"].Charts);
         Assert.NotNull(converted.GetNamedRange("_OfficeIMO_ChartDataOwner_2"));
-        Assert.NotEqual(converted.GetNamedRange("_OfficeIMO_ChartDataOwner_2"),
-            converted.GetNamedRange("_OfficeIMO_ChartDataOwner"));
+        Assert.NotEqual(NamedTarget(converted, "_OfficeIMO_ChartDataOwner_2"),
+            NamedTarget(converted, "_OfficeIMO_ChartDataOwner"));
         using ExcelDocument reopened = ExcelDocument.Load(new MemoryStream(converted.ToBytes()));
         Assert.NotNull(reopened.GetNamedRange("_OfficeIMO_ChartDataOwner"));
         Assert.NotNull(reopened.GetNamedRange("_OfficeIMO_ChartDataOwner_2"));
@@ -163,7 +163,7 @@ public sealed class SpreadsheetChartConversionTests {
                 .SetAttributeValue(OdfNamespaces.Table + "cell-range-address", ".$A$2:.$A$3");
         });
         OdsDocument source = OdsDocument.Load(new MemoryStream(package));
-        using ExcelDocument converted = source.ToExcelDocumentResult().Value;
+        using ExcelDocument converted = source.ConvertToExcelWithEvidence().Value;
         Assert.Single(converted["Data"].Charts);
     }
 
@@ -179,7 +179,7 @@ public sealed class SpreadsheetChartConversionTests {
                 new XAttribute(OdfNamespaces.Style + "family", "paragraph")));
         });
         OdsDocument source = OdsDocument.Load(new MemoryStream(package));
-        using ExcelDocument converted = source.ToExcelDocumentResult().Value;
+        using ExcelDocument converted = source.ConvertToExcelWithEvidence().Value;
         Assert.Single(converted["Data"].Charts);
     }
 
@@ -191,7 +191,7 @@ public sealed class SpreadsheetChartConversionTests {
             series.AddAfterSelf(new XElement(series));
         });
         OdsDocument source = OdsDocument.Load(new MemoryStream(package));
-        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult(
+        OdfConversionResult<ExcelDocument> result = source.ConvertToExcelWithEvidence(
             new ExcelOpenDocumentConversionOptions { MaximumColumns = 2 });
         using ExcelDocument converted = result.Value;
         Assert.Empty(converted["Data"].Charts);
@@ -214,7 +214,7 @@ public sealed class SpreadsheetChartConversionTests {
             }
         });
         OdsDocument source = OdsDocument.Load(new MemoryStream(package));
-        using ExcelDocument converted = source.ToExcelDocumentResult().Value;
+        using ExcelDocument converted = source.ConvertToExcelWithEvidence().Value;
         Assert.Single(converted["Data"].Charts);
     }
 
@@ -225,7 +225,7 @@ public sealed class SpreadsheetChartConversionTests {
             xml.Descendants(chart + "series").Single().Attribute(chart + "label-cell-address")!.Remove();
         });
         OdsDocument source = OdsDocument.Load(new MemoryStream(package));
-        using ExcelDocument converted = source.ToExcelDocumentResult().Value;
+        using ExcelDocument converted = source.ConvertToExcelWithEvidence().Value;
         ExcelChart chart = Assert.Single(converted["Data"].Charts);
         Assert.True(chart.TryGetData(out ExcelChartData data));
         Assert.Equal("Series 1", Assert.Single(data.Series).Name);
@@ -243,7 +243,7 @@ public sealed class SpreadsheetChartConversionTests {
                 new XElement(style + "chart-properties", new XAttribute(chart + "stacked", "true"))));
         });
         OdsDocument source = OdsDocument.Load(new MemoryStream(package));
-        using ExcelDocument converted = source.ToExcelDocumentResult().Value;
+        using ExcelDocument converted = source.ConvertToExcelWithEvidence().Value;
         Assert.Empty(converted["Data"].Charts);
     }
 
@@ -256,7 +256,7 @@ public sealed class SpreadsheetChartConversionTests {
         });
         OdsDocument source = OdsDocument.Load(new MemoryStream(package));
         Assert.Equal("Sales\nForecast", Assert.Single(source.GetSheet("Data")!.Charts).Title);
-        using ExcelDocument converted = source.ToExcelDocumentResult().Value;
+        using ExcelDocument converted = source.ConvertToExcelWithEvidence().Value;
         Assert.Equal("Sales\nForecast", Assert.Single(converted["Data"].Charts).Title);
     }
 
@@ -271,7 +271,7 @@ public sealed class SpreadsheetChartConversionTests {
         });
         OdsDocument source = OdsDocument.Load(new MemoryStream(package));
         Assert.Equal("Net  Sales", Assert.Single(source.GetSheet("Data")!.Charts).Title);
-        using ExcelDocument converted = source.ToExcelDocumentResult().Value;
+        using ExcelDocument converted = source.ConvertToExcelWithEvidence().Value;
         Assert.Equal("Net  Sales", Assert.Single(converted["Data"].Charts).Title);
     }
 
@@ -287,7 +287,7 @@ public sealed class SpreadsheetChartConversionTests {
         OdsChart inspected = Assert.Single(source.GetSheet("Data")!.Charts);
         Assert.Equal("Data.$C$1", inspected.TitleCellRangeAddress);
         Assert.Null(inspected.Title);
-        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> result = source.ConvertToExcelWithEvidence();
         using ExcelDocument converted = result.Value;
         Assert.Empty(converted["Data"].Charts);
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "source-embedded-objects"
@@ -305,7 +305,7 @@ public sealed class SpreadsheetChartConversionTests {
         });
         OdsDocument source = OdsDocument.Load(new MemoryStream(package));
         Assert.Equal("chart:bar", Assert.Single(source.GetSheet("Data")!.Charts).ChartClass);
-        using ExcelDocument converted = source.ToExcelDocumentResult().Value;
+        using ExcelDocument converted = source.ConvertToExcelWithEvidence().Value;
         Assert.Single(converted["Data"].Charts);
     }
 
@@ -320,7 +320,7 @@ public sealed class SpreadsheetChartConversionTests {
         });
         OdsDocument source = OdsDocument.Load(new MemoryStream(package));
         Assert.Equal("chart:bar", Assert.Single(source.GetSheet("Data")!.Charts).ChartClass);
-        using ExcelDocument converted = source.ToExcelDocumentResult().Value;
+        using ExcelDocument converted = source.ConvertToExcelWithEvidence().Value;
         Assert.Single(converted["Data"].Charts);
     }
 
@@ -334,7 +334,7 @@ public sealed class SpreadsheetChartConversionTests {
             seriesStyle.Element(style + "chart-properties")!.SetAttributeValue(chart + "stacked", "1");
         });
         OdsDocument source = OdsDocument.Load(new MemoryStream(package));
-        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> result = source.ConvertToExcelWithEvidence();
         using ExcelDocument converted = result.Value;
 
         Assert.Empty(converted["Data"].Charts);
@@ -361,7 +361,7 @@ public sealed class SpreadsheetChartConversionTests {
                     new XElement(style + "chart-properties", new XAttribute(chart + "stacked", "true"))));
         });
         OdsDocument source = OdsDocument.Load(new MemoryStream(package));
-        using ExcelDocument converted = source.ToExcelDocumentResult().Value;
+        using ExcelDocument converted = source.ConvertToExcelWithEvidence().Value;
         Assert.Empty(converted["Data"].Charts);
     }
 
@@ -384,7 +384,7 @@ public sealed class SpreadsheetChartConversionTests {
                     new XElement(style + "chart-properties", new XAttribute(chart + "stacked", "true"))));
         });
         OdsDocument source = OdsDocument.Load(new MemoryStream(package));
-        using ExcelDocument converted = source.ToExcelDocumentResult().Value;
+        using ExcelDocument converted = source.ConvertToExcelWithEvidence().Value;
         Assert.Single(converted["Data"].Charts);
     }
 
@@ -402,7 +402,7 @@ public sealed class SpreadsheetChartConversionTests {
         OdsChart chart = Assert.Single(source.GetSheet("Data")!.Charts);
         Assert.Null(chart.AnchorRow);
         Assert.Null(chart.AnchorColumn);
-        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> result = source.ConvertToExcelWithEvidence();
         using ExcelDocument converted = result.Value;
         Assert.Empty(converted["Data"].Charts);
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "source-embedded-objects"
@@ -419,7 +419,7 @@ public sealed class SpreadsheetChartConversionTests {
         });
         OdsDocument source = OdsDocument.Load(new MemoryStream(package));
         Assert.Equal(18, Assert.Single(source.GetSheet("Data")!.Charts).Series.Count);
-        using ExcelDocument converted = source.ToExcelDocumentResult().Value;
+        using ExcelDocument converted = source.ConvertToExcelWithEvidence().Value;
         Assert.Empty(converted["Data"].Charts);
     }
 
@@ -432,7 +432,7 @@ public sealed class SpreadsheetChartConversionTests {
         });
         OdsDocument source = OdsDocument.Load(new MemoryStream(package));
         Assert.Empty(source.GetSheet("Data")!.Charts);
-        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> result = source.ConvertToExcelWithEvidence();
         using ExcelDocument converted = result.Value;
 
         Assert.Empty(converted["Data"].Charts);
@@ -448,5 +448,10 @@ public sealed class SpreadsheetChartConversionTests {
             edit(xml);
             return Encoding.UTF8.GetBytes(xml.ToString(SaveOptions.DisableFormatting));
         });
+    }
+
+    private static string NamedTarget(ExcelDocument document, string name) {
+        ExcelRange range = document.GetNamedRange(name)!;
+        return range.Sheet.Name + "!" + range.Address;
     }
 }

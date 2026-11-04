@@ -11,6 +11,19 @@ internal sealed class HtmlCssGradientStops {
         _maximumStops = maximumStops;
     }
 
+    /// <summary>Unweighted mean of the stop colors, for routes that can paint only one color.</summary>
+    internal OfficeColor MeanColor() {
+        int red = 0, green = 0, blue = 0, alpha = 0;
+        foreach (HtmlCssGradientStop stop in _stops) {
+            red += stop.Color.R;
+            green += stop.Color.G;
+            blue += stop.Color.B;
+            alpha += stop.Color.A;
+        }
+        int count = Math.Max(1, _stops.Count);
+        return OfficeColor.FromRgba((byte)(red / count), (byte)(green / count), (byte)(blue / count), (byte)(alpha / count));
+    }
+
     internal static bool TryParse(
         IReadOnlyList<string> arguments,
         int startIndex,

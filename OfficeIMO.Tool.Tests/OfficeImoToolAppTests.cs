@@ -59,7 +59,7 @@ public sealed class OfficeImoToolAppTests {
         string evidence = Path.Combine(directory, "evidence.json");
         const string sensitive = "CliSecret-881";
         try {
-            PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(sensitive)))))).Save(source);
+            PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText(sensitive)))))).Save(source);
             await File.WriteAllTextAsync(recipe, """
                 {
                   "schema": "officeimo.pdf.redaction.recipe.v1",
@@ -110,7 +110,7 @@ public sealed class OfficeImoToolAppTests {
             }
             """;
         try {
-            PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("protected recipe")))))).Save(source);
+            PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("protected recipe")))))).Save(source);
             await File.WriteAllTextAsync(recipe, recipeJson);
             await using var input = new MemoryStream();
             await using var output = new MemoryStream();
@@ -134,7 +134,7 @@ public sealed class OfficeImoToolAppTests {
         string manifest = Path.Combine(directory, "batch-result.json");
         Directory.CreateDirectory(inputRoot);
         try {
-            PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("BatchCliSecret")))))).Save(Path.Combine(inputRoot, "source.pdf"));
+            PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("BatchCliSecret")))))).Save(Path.Combine(inputRoot, "source.pdf"));
             await File.WriteAllTextAsync(request, JsonSerializer.Serialize(new {
                 schema = "officeimo.pdf.redaction.batch-request.v1",
                 mode = "PlanOnly",

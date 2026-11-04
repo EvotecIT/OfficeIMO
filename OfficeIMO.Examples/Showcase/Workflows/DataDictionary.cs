@@ -12,7 +12,7 @@ internal static class DataDictionary {
             new Field("opened_at", "datetime", "ISO 8601 UTC", "When the request entered the service"),
             new Field("age_days", "integer", "Zero or greater", "Whole elapsed days at export time")
         };
-        var document = MarkdownDoc.Create()
+        var document = MarkdownDocument.Create()
             .H1("Service request export dictionary")
             .P("Schema 1.0 / one record per request / UTF-8 JSON Lines")
             .H2("Fields")

@@ -23,4 +23,7 @@ public sealed class RtfControlSymbol : RtfNode {
 
     /// <summary>Raw source text.</summary>
     public string RawText { get; }
+
+    /// <summary>A backslash before a carriage return or line feed, which RTF defines as the same as <c>\par</c>.</summary>
+    internal bool IsParagraphBreak => Symbol == '\r' || Symbol == '\n';
 }

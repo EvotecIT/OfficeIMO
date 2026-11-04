@@ -45,6 +45,26 @@ public sealed class EpubContentBatchContracts {
         Assert.Equal(before, book.Write().Bytes);
     }
 
+    [Fact]
+    public void AggregateRetentionIsEnforcedWhileBatchPayloadsAreStaged() {
+        var book = EpubPublication.Create("Bounded", "en", retentionLimits: new EpubPublicationLoadOptions {
+            MaxExpandedBytes = 12_000,
+            MaxEntryBytes = 8_000
+        });
+        foreach (string id in new[] { "a", "b", "c" })
+            book.AddChapter(id, "EPUB/" + id + ".xhtml", id, "<p>Original</p>");
+        byte[] before = book.Write().Bytes;
+        var edits = new Dictionary<string, XDocument>();
+        foreach (string id in new[] { "a", "b", "c" }) {
+            XDocument document = book.GetContentXml(id);
+            document.Descendants(Html + "p").Single().Value = new string('x', 5_000);
+            edits.Add(id, document);
+        }
+
+        Assert.Throws<InvalidDataException>(() => book.SetContentXml(edits));
+        Assert.Equal(before, book.Write().Bytes);
+    }
+
     private static EpubPublication Book() {
         var book = EpubPublication.Create("Editorial", "en");
         book.AddChapter("target", "EPUB/target.xhtml", "Target", "<p id='old'>Original</p>");

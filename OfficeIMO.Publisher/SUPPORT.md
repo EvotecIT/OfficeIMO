@@ -90,7 +90,7 @@ other recovery paths and the repair-positive control unqualified.
 
 The internal codec in `OfficeIMO.Publisher/Internal/NativeCreation` is qualified
 through the opt-in [native writer probe](../Build/Publisher/WriterProbe/README.md)
-for bounded source-free specimens. Its operation uses a `PublisherReadOptions`
+for bounded source-free specimens. Its operation uses a `PublisherLoadOptions`
 snapshot and explicit cancellation token and complete compound-output byte limit.
 The public native save path still requires a loaded source and retains
 the `PUB_NATIVE_SOURCE_REQUIRED` gate. The two-image page profile
@@ -146,7 +146,7 @@ still consume the image-processing byte budget.
 | Text wrapping | Native frame exclusion references and object wrap distances; transformed rectangular exclusions; Top-aligned rectangular Both uses successive intervals on a shared baseline; Left, Right and Larger select the permitted side per column, with left selected on an equal-width Larger tie | Center/Bottom and unqualified outline modes retain the widest-band fallback; native line fitting, hyphenation, transformed-side behavior and additional producers need broader qualification. Side rendering does not qualify native wrap relationship editing |
 | Pictures | Embedded and delayed OfficeArt payload extraction, Publisher GIF envelopes, positioned images, source crop and supported custom-path masks | WMF/EMF use a supplied application codec or reported placeholder; native custom-mask appearance remains unqualified |
 | Placed-picture model | `PublisherPage.Pictures` separates page/master ownership, stable object IDs, asset references, page-point bounds, transforms and normalized crop from embedded bytes; unsupported placements expose an edit limitation | Unresolved image references can remain unresolved; inspection does not qualify native save-back or editable effects |
-| Picture creation | `AddPicture` appends an uncropped rectangular placement from owned static PNG/JPEG bytes or an existing document image ID on a qualified document/master page, with explicit point bounds, no fill/outline/effects/transform or story/wrap references; shared object and separate image allocators, current exports | Non-normal EXIF orientation, animated PNG, other formats and invalid content reject creation. No automatic DPI sizing, effect authoring, external links or public native PUB creation; the crop API applies to eligible authored and imported placements |
+| Picture creation | `AddImage` appends an uncropped rectangular placement from owned static PNG/JPEG bytes or an existing document image ID on a qualified document/master page, with explicit point bounds, no fill/outline/effects/transform or story/wrap references; shared object and separate image allocators, current exports | Non-normal EXIF orientation, animated PNG, other formats and invalid content reject creation. No automatic DPI sizing, effect authoring, external links or public native PUB creation; the crop API applies to eligible authored and imported placements |
 | Picture crop editing | `SetPictureCrop` sets normalized source-edge fractions through the shared `OfficeImageSourceCrop` type; updates current drawing/export scenes while preserving frame, image, identity, paint, other placements and old snapshots | Positive visible area is required. Native source save rounds to signed 16.16 values and reports approximation; rounded collapse refuses output. Outsets, custom masks, effects and transformed/grouped placements remain outside the crop-edit profile |
 | Picture controls | Source-RGB transparency keys, encoded-RGB brightness/contrast, preserve-grays tone handling, BT.709 grayscale and a 50-percent two-color threshold; original assets remain available | Color space, effect ordering and native Publisher pixels remain unqualified; recoloring and extended color controls are unassessed; invalid tone values or unresolved keys report omission |
 | Fields, links and active content | Cached story characters are retained; source active content stays inert | No field evaluation, hyperlink reconstruction, macro execution, link refresh or object activation |
@@ -159,7 +159,7 @@ still consume the image-processing byte budget.
 | Ordinary text creation | `AddTextFrame` creates a complete independent styled story and resolved one-frame chain on a qualified document/master page; one column, zero gap/insets, top alignment, no paint/transform/wrap; existing continuation API handles document-page chains | Authored ordinary stories have no implicit final terminator; full overflow is retained. Frame/story IDs reserve atomically; master-owned stories cannot continue across physical pages; no native text records are authored |
 | Text-frame layout edits | `SetTextFrameLayout` replaces equal-width columns/full intercolumn gap, Core padding and Top/Center/Bottom alignment on qualified resolved document/master frames, including mixed text artwork. Imported frames can use the bounded native source-save profile; snapshots expose operation-specific eligibility | No table stories/aliases, grouped/transformed/unresolved placement, native balancing, distributed alignment or vertical writing. Unqualified native layout overrides remain read-only for this operation; bounds/read behavior stays separate. Native saving requires exact distances and safely editable local properties/chunk-directory records; fidelity remains Unassessed |
 | Continuation-frame creation | Append an ordinary untransformed text frame to a resolved non-table story's tail on an existing document page; one complete styled story, current links/ranges/overflow, copied columns/padding/alignment, no fill/outline, and shared SVG/PDF/Reader projection | The source chain must contain ordinary visible untransformed document-page frames; master chains, ambiguous links and non-tail insertion are rejected; this is in-memory model creation, not native PUB creation |
-| Native source saving | `ToPubBytes(Result)`, `Save` and `SaveAsync` with detached bytes, explicit `.pub` paths or caller-owned streams; exact unchanged source copies and bounded existing-source edits described below | Default strict loss policy blocks unassessed edits. Explicit `Allow` does not enable refused profiles. No source-free writer, general image/table/page topology changes or earlier-generation output |
+| Native source saving | `ToBytes`, `Save` and `SaveAsync` with detached bytes, explicit `.pub` paths or caller-owned streams; exact unchanged source copies and bounded existing-source edits described below | Default strict loss policy blocks unassessed edits. Explicit `AllowLoss = true` does not enable refused profiles. No source-free writer, general image/table/page topology changes or earlier-generation output |
 | Rendered output | SVG per document page and multi-page PDF through shared engines | Reconstructed output carries source and rendering losses independently of native saving |
 
 `OfficeIMO.Workflows` uses the same native codec for its `publisher-pdf` route,
@@ -413,7 +413,7 @@ their stored model height is 97.200551 points. This is opening-time native reflo
 not a promise of fixed rendered dimensions. Resizing expanded rows, incomplete
 or ambiguous track fields, unsupported wrap relationships and nonrepresentable
 values refuse output. Successful edits remain `Unassessed`, report
-`PUB_NATIVE_TABLE_BOUNDS_UNQUALIFIED` and require explicit `Allow`. Native editing,
+`PUB_NATIVE_TABLE_BOUNDS_UNQUALIFIED` and require explicit `AllowLoss = true`. Native editing,
 resave/reopen, repair-free opening and broader producer/reflow profiles remain
 unqualified.
 
@@ -433,7 +433,7 @@ IDs again after requested property/image-store edits, so earlier FOPT growth doe
 not leave stale offsets. Pure ordering retains complete shape bytes, Quill,
 assets and unrelated streams; cached-preview invalidation follows the existing
 save contract. The operation reports `PUB_NATIVE_OBJECT_ORDER_UNQUALIFIED` as
-`Unassessed`, requiring explicit `Allow`.
+`Unassessed`, requiring explicit `AllowLoss = true`.
 
 Independent native controls use overlapping text, rectangles and shared pictures
 on the first and last of three pages, with a blank middle page. Nine public saved
@@ -467,7 +467,7 @@ chunk-directory owner. It merges these fields with supported layout and picture
 metadata edits, then orders complete OfficeArt records after property/image-store
 rewriting. Unchanged semantic state retains the exact-source copy path. Changed
 exclusions report `PUB_NATIVE_WRAP_REFERENCES_UNQUALIFIED` as `Unassessed` and
-require explicit `Allow`.
+require explicit `AllowLoss = true`.
 
 The profile covers resolved, untransformed document-page frames, square-wrapped
 rectangular pictures/shapes and ordinary rectangular native defaults, including
@@ -663,7 +663,7 @@ font faces; native decoration weights and whole-page pixel parity remain outside
 this contract.
 
 Conflicting opaque definitions and unspecified language or kerning disagreements
-refuse saving, including with an Allow loss policy. Labels, empty-body/typing
+refuse saving, including with loss explicitly allowed. Labels, empty-body/typing
 reshapes, paragraph-count changes, alternate unsupported native carriers and
 broader producer/style profiles remain separate limits. Native repair status is
 unassessed; this source-editing qualification does not promote native creation.
@@ -756,7 +756,7 @@ explicit zero remains distinct and can be saved when adding columns. The
 `ImplicitColumnGap` fixture retains the omitted-property input and independent
 native inventory used to qualify this boundary. Ambiguous local overrides,
 flagged scalar targets, incomplete complex payloads and unqualified Contents
-relocation headers refuse output, including with `Allow`.
+relocation headers refuse output, including with `AllowLoss = true`.
 
 The `sourceEditing.frameLayout` qualification record covers eleven public-save
 specimens over 44 native physical page states. They include default-field growth,
@@ -863,7 +863,7 @@ spacing, a region's final line fits and aligns by its content height; its unused
 and paragraph-after spacing still separate following text. Ordinary drawing
 paragraphs retain their existing layout defaults.
 
-`PublisherReadOptions.Fonts` supplies scoped faces for story flow and retained page
+`PublisherLoadOptions.Fonts` supplies scoped faces for story flow and retained page
 drawings. Options and drawing snapshots clone the collection; application font
 providers remain shared. The PDF adapter passes those faces through the existing
 PDF rendering profile, so its measurement and embedded glyphs use the same selected
@@ -1054,7 +1054,7 @@ page comparisons across the initial and resaved stages match at 100 dpi. This
 qualifies only first-character mutation in that exact three-frame profile.
 
 Public `ReplaceStoryParagraphs` restores the initial `M` in the native-edited
-generated story. Source saving with explicit `Allow` and reload retain the three
+generated story. Source saving with explicit `AllowLoss = true` and reload retain the three
 paragraphs and complete text matching the pristine independent linked control.
 The save reports `PUB_NATIVE_PREVIEW_INVALIDATED` and
 `PUB_NATIVE_QUILL_TEXT_UNQUALIFIED`; PSWriteOffice's `ConvertTo-OfficeDocument`
@@ -1122,7 +1122,7 @@ Native opening, inventory, PDF export, save-as and reopening retain these stored
 document/master dimensions, table tracks, complete text, intended run styles and
 None wrapping. Public `SetPictureBounds` moves the physical-page picture six points
 right on generated and independently authored sources at each size. Explicit
-`Allow` saving and reload preserve ownership, story content, the shared image
+`AllowLoss = true` saving and reload preserve ownership, story content, the shared image
 payload and other picture bounds; no-op source copies remain exact. Default strict
 saving still refuses only `PUB_NATIVE_FIXED_PATCH_UNQUALIFIED` as `Unassessed`.
 PSWriteOffice converts all six edited sources to PDF.
@@ -1134,7 +1134,7 @@ frames exposing the complete 148-character native range, the intended first/fina
 CR typing and all ten mixed objects' invariants retained.
 
 Public `ReplaceStoryParagraphs` restores `M` to `N` on those six native-edited
-sources. Explicit `Allow` saving preserves every story's complete text, the
+sources. Explicit `AllowLoss = true` saving preserves every story's complete text, the
 source's 1/146-character run split and final-CR formatting, its own tab profile,
 page/master and frame identities, picture bindings and shared image payload.
 Generated sources retain five stories and 36-point default tabs; native controls
@@ -1203,7 +1203,7 @@ retaining each source's run partitions, tab profile, other stories, frame/layout
 state and assets. Assignment and story-restoration outputs complete native
 save/reopen and PSWriteOffice PDF conversion; effective and selected master states
 remain distinct throughout. Exact no-op source copies and detached earlier
-snapshots are preserved. These edits use explicit `Allow`; default strict policy
+snapshots are preserved. These edits use explicit `AllowLoss = true`; default strict policy
 continues to refuse the unassessed master-assignment or Quill-text operation.
 
 The six public assignment transitions preserve unrelated Contents records and
@@ -1251,7 +1251,7 @@ definitions. The left-member picture is placed at x=72 pt, and the centered/righ
 pictures at x=504 pt; placement across other native pair halves is unqualified.
 
 Public `SetPictureBounds` moves the left-master picture from x=72 to x=84 pt on
-both the generated file and the independent control. Explicit `Allow` saving and
+both the generated file and the independent control. Explicit `AllowLoss = true` saving and
 reload preserve its master binding, all four picture references, the single
 shared image payload and every other picture's bounds. Default strict saving
 still refuses `PUB_NATIVE_FIXED_PATCH_UNQUALIFIED` as `Unassessed`; this profile
@@ -1405,7 +1405,7 @@ logical definitions. Public `ReplaceTableCellParagraphs` then restores `Horizont
 through zero-based anchor `(0,0)` in the native-edited fresh file. Managed save/reload,
 PSWriteOffice PDF conversion and native Full opening/export and SaveAs/reopen
 retain the other cell text, spans, paint and geometry. Source saving uses the
-existing `Allow` loss policy and retains `PUB_NATIVE_PREVIEW_INVALIDATED` and
+existing explicit loss acceptance and retains `PUB_NATIVE_PREVIEW_INVALIDATED` and
 `PUB_NATIVE_QUILL_TEXT_UNQUALIFIED` diagnostics.
 
 Four native PDF comparisons match at 100 dpi with zero changed pixels: the fresh
@@ -1491,7 +1491,7 @@ tables and latent colors remain preserved. Missing color insertion uses the
 existing property-table and enclosing-record length rewriter, without allocating
 utility records or changing drawing instances/counts. Unsupported paint,
 ambiguous owning fields and complex or BLIP-role local fill-boolean fields refuse
-output even under Allow. Edited output reports `PUB_NATIVE_TABLE_FILL_UNQUALIFIED`
+output even with loss explicitly allowed. Edited output reports `PUB_NATIVE_TABLE_FILL_UNQUALIFIED`
 for broader native/producer uncertainty.
 
 Three independent controls cover hiding the first fill, activating the previously
@@ -1516,7 +1516,7 @@ their IDs remain allocated. Removed records reduce active counts without rolling
 back cursors or used slots. New records consume fresh slots, update counts and
 enclosing lengths, and retain unrelated records and drawing-instance separators.
 Outside the initialization profiles below, missing drawings, conflicting counts/cursors, overlapping
-ownership or unsupported paint refuse output, including under Allow.
+ownership or unsupported paint refuse output, including when loss is explicitly allowed.
 
 Existing source ranges remain intact. Newly authored ranges use unit cell edges
 to reproduce Publisher's joins; reload can change segmentation and record order
@@ -1753,7 +1753,7 @@ Calibri 10-point CR from a full-range Arial 12-point caption. Their observed
 language is 1033. Native clear/refill retains each control's CR font and size.
 Three public source clear/save/reload/refill workflows preserve those distinct
 font, size and language values; all six initial/resaved native inventory
-comparisons match every key. These source saves use the `Allow` loss policy and retain
+comparisons match every key. These source saves use explicit loss acceptance and retain
 the existing empty-paragraph, preview-invalidation and unqualified-Quill diagnostics.
 
 Four fresh specimens cover unspecified and explicit language before and after
@@ -1997,7 +1997,7 @@ native slots and reports renumbering with `PUB_NATIVE_IMAGE_BINDINGS_RENUMBERED`
 An unresolved source reference cannot be satisfied accidentally by a newly
 appended slot. Ambiguous picture properties, filename ownership, allocation
 counters, image stores or reference-count underflow refuse output even with
-`Allow`.
+`AllowLoss = true`.
 
 Native resave can remove the local filename reference from an ordinary embedded
 picture while retaining older filename resources. For a picture chunk of kind
@@ -2076,7 +2076,7 @@ from nonuniform definitions within the edited cell
 refuse edited output. New table creation, imported grid/topology changes and cell
 merges remain outside native source saving. Qualified [table bounds](#native-table-placement-and-fixed-track-resizing)
 and [solid styles](#native-cell-fills-and-shared-borders) use their separate profiles.
-These limits apply with `Allow`; unchanged content still returns an exact copy.
+These limits apply with `AllowLoss = true`; unchanged content still returns an exact copy.
 
 The `sourceEditing.cellParagraphRetention` record covers ten public saves from
 the seven-page `TableNonuniformParagraphs` control. First/final cells contain
@@ -2171,7 +2171,7 @@ Preparation creates that native representation in a save-only publication
 snapshot. The edited document keeps zero paragraphs and empty text, with the same
 public frame snapshots and original source baseline. Native reload exposes one
 styled empty paragraph. The operation report adds
-`PUB_NATIVE_EMPTY_STORY_PARAGRAPH` as `Approximation`; explicit `Allow` is required,
+`PUB_NATIVE_EMPTY_STORY_PARAGRAPH` as `Approximation`; explicit `AllowLoss = true` is required,
 including when the source is already natively empty and output bytes are an exact
 source copy. `Block` refuses before destination publication. Refilling the
 reloaded paragraph uses the existing native character/paragraph codecs without a
@@ -2209,7 +2209,7 @@ qualify exact font metrics, vertical positions or general rendering parity.
 Public native saving prepares and bounds the complete candidate before destination
 publication. `PublisherSaveOptions` defaults to a 64 MiB ceiling, `Block` loss
 policy and `FailIfExists` file conflicts. `Block` also rejects unassessed fidelity;
-`Allow` permits the documented candidate profiles but never bypasses preparation
+`AllowLoss = true` permits the documented candidate profiles but never bypasses preparation
 refusal. `PublisherSaveReport` separates save diagnostics from its original
 `SourceReadReport`, reports prepared byte count and identifies exact source copies.
 Saving neither changes the semantic model nor rebinds its original source baseline.
@@ -2351,7 +2351,7 @@ Imported definitions keep their provenance after editing; appended definitions
 are authored. Source-free source counts and inspected native records are zero.
 Pages and masters share the object/story allocator, but do not inflate
 `CurrentObjectCount` or `ProjectedObjectCount`; their counts come from the page
-collections. `MaximumPages` applies to document and master pages together.
+collections. `MaxPages` applies to document and master pages together.
 All supported pages have one publication size. Topology changes preserve the
 exact imported registration and coordinate edit envelopes; new loaded-document
 pages use the physical page's centered envelope. Source-free geometry requires

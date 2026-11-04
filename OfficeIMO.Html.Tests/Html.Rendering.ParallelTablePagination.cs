@@ -27,12 +27,12 @@ public sealed partial class HtmlRenderingTests {
         if (scope == "item") {
             Assert.Single(text, item => item == "LeftHeader");
             Assert.Single(text, item => item == "LeftFooter");
-            Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.TableHeaderRepeatSuppressed
+            Assert.Contains(rendered.NativeDiagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.TableHeaderRepeatSuppressed
                 && diagnostic.Detail?.StartsWith("effect-table-repetition;", StringComparison.Ordinal) == true);
-            Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+            Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
         } else {
             Assert.True(text.Count(item => item == "LeftHeader") > 1);
-            Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Detail?.StartsWith("effect-table-repetition;", StringComparison.Ordinal) == true);
+            Assert.DoesNotContain(rendered.NativeDiagnostics, diagnostic => diagnostic.Detail?.StartsWith("effect-table-repetition;", StringComparison.Ordinal) == true);
         }
         foreach (HtmlRenderPage page in rendered.Pages.Where(page => EnumerateRenderVisuals(page.Scene)
             .OfType<HtmlRenderText>().Any(item => item.Text == "LeftHeader"))) {
@@ -203,7 +203,7 @@ public sealed partial class HtmlRenderingTests {
             : HtmlRenderDiagnosticCodes.TableHeaderRepeatSuppressed;
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == loss
             && diagnostic.LossKind == OfficeIMO.OfficeConversionLossKind.Approximation);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
     }
 
     private static string ParallelReportStyle(string display) => "<style>@page{size:320px 220px;margin:10px}"

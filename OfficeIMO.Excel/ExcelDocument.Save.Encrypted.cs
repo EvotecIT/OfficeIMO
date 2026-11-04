@@ -17,7 +17,7 @@ public partial class ExcelDocument {
     /// <param name="password">Password to open the file; XLS admits 1–15 UTF-16 code units.</param>
     /// <param name="format">Physical workbook format before encryption.</param>
     /// <param name="saveOptions">Format-specific save policy and limits.</param>
-    public void SaveEncrypted(Stream destination, string password, ExcelFileFormat format, ExcelSaveOptions? saveOptions = null) {
+    internal void SaveEncrypted(Stream destination, string password, ExcelFileFormat format, ExcelSaveOptions? saveOptions = null) {
         if (destination == null) throw new ArgumentNullException(nameof(destination));
         if (password == null) throw new ArgumentNullException(nameof(password));
         if (!destination.CanWrite) throw new ArgumentException("Destination must be writable.", nameof(destination));
@@ -96,10 +96,10 @@ public partial class ExcelDocument {
         return output.ToArray();
     }
 
-    /// <summary>Encrypted associated destinations require explicit saves; no password is retained for automatic persistence.</summary>
+    /// <summary>Plaintext copyback always stops; SaveOnDispose stays only when a retained password can re-encrypt the destination.</summary>
     private void DisableImplicitPersistenceAfterEncryptedSave(Stream? destination = null) {
         if (destination != null && !ReferenceEquals(destination, _sourceStream)) return;
-        _persistenceMode = DocumentPersistenceMode.Explicit;
+        if (_loadedPassword == null) _persistenceMode = DocumentPersistenceMode.Explicit;
         _copyPackageToSourceOnDispose = false;
         _copyPackageToFilePathOnDispose = false;
     }

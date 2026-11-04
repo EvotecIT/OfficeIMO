@@ -1,0 +1,1101 @@
+{
+  "measuredOn": "2026-11-03",
+  "baselineCommit": "28881d6e68b71374d5ae40a81e9f365b76cf2e5c",
+  "runtimeCommit": "9a2876d8eb0088725210a65311649b11a0b7e33a",
+  "sourceSha256": {
+    "OfficeIMO.Excel/Read/ExcelSheetReader.Range.DataReader.Utf8.UsedRange.cs": "2f6012bade1ef693106554aa7e8d228e67b31aae33446f34ba5c6741d6632d98"
+  },
+  "change": "Portable SIMD row-candidate search for net8/net10; exact token/boundary/row-cap checks, scalar tail and legacy fallback. Full index/XML validation, API, dependencies and grid loader unchanged.",
+  "host": {
+    "BenchmarkDotNetCaption": "BenchmarkDotNet",
+    "BenchmarkDotNetVersion": "0.15.8",
+    "OsVersion": "macOS 27.0.1 (26A434) [Darwin 27.0.0]",
+    "ProcessorName": "Apple M4",
+    "PhysicalProcessorCount": 1,
+    "PhysicalCoreCount": 10,
+    "LogicalCoreCount": 10,
+    "RuntimeVersion": ".NET 10.0.14 (10.0.14, 10.0.1426.52326)",
+    "Architecture": "Arm64",
+    "HasAttachedDebugger": false,
+    "HasRyuJit": true,
+    "Configuration": "RELEASE",
+    "DotNetCliVersion": "10.0.403",
+    "ChronometerFrequency": {
+      "Hertz": 1000000000
+    },
+    "HardwareTimerKind": "Unknown"
+  },
+  "measurement": {
+    "tool": "BenchmarkDotNet 0.15.8",
+    "inProcess": true,
+    "warmupCount": 8,
+    "iterationCount": 12,
+    "invocationCount": 32,
+    "unrollFactor": 1,
+    "outliers": "DontRemove",
+    "lock": "shared heavy-run lock",
+    "buildWorkers": 2,
+    "affinity": "none; OS schedules across four performance and six efficiency cores",
+    "priority": "normal; elevated priority unavailable"
+  },
+  "packages": {
+    "ExcelReader.NET": "7.3.4",
+    "Sylvan.Data.Excel": "0.5.8",
+    "ExcelDataReader": "3.9.0"
+  },
+  "packageLicenseEvidence": "excel-tabular-data-2026-11-02.json; exact comparison versions unchanged, benchmark projects only",
+  "inputs": {
+    "producer": "3cc5e134b9",
+    "rows": 50000,
+    "files": [
+      {
+        "file": "generated-four-columns-50000.xlsx",
+        "bytes": 926935,
+        "sha256": "8FFA84C5DDF6A282B861C5A2BDAAF13C0A0D411CAE5F3B178A6DCD2EAEE60B44"
+      },
+      {
+        "file": "generated-four-columns-50000.xlsb",
+        "bytes": 846930,
+        "sha256": "870DF6BA8ED20131D0811E5BBAF16A00967BD581DA7AD962CB75FE9CFC628E5A"
+      },
+      {
+        "file": "generated-four-columns-50000.xls",
+        "bytes": 5203456,
+        "sha256": "57A4D6F06964444B8E35AB1830BC3E0F1C3AC9A1FCDAD003E74AFE3D9A3BAAE2"
+      }
+    ]
+  },
+  "cohorts": {
+    "before": [
+      {
+        "method": "OfficeIMO_Parse",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 10.514097,
+        "allocatedBytes": 4784084,
+        "samplesNs": [
+          10481651.671875,
+          10585970.703125,
+          12406076.140625,
+          10541926.421875,
+          10547921.203125,
+          10477960.296875,
+          10517676.421875,
+          10520013.671875,
+          10510517.578125,
+          10472775.359375,
+          10447802.734375,
+          10461582.671875
+        ]
+      },
+      {
+        "method": "ExcelReaderNet_Parse",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 8.1046614375,
+        "allocatedBytes": 4724714,
+        "samplesNs": [
+          8168070.281250001,
+          8033122.375,
+          7962855.4375,
+          8042427.0625,
+          7952002.593750001,
+          7986858.0625,
+          8026075.500000001,
+          8169589.84375,
+          8186444,
+          8215545.562499999,
+          8178342.406249999,
+          8166895.8125
+        ]
+      },
+      {
+        "method": "OfficeIMO_Read",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 9.9663476875,
+        "allocatedBytes": 2383949,
+        "samplesNs": [
+          9987437.5,
+          10054500.03125,
+          10041156.28125,
+          9960332.0625,
+          9972363.3125,
+          9994647.15625,
+          9807833.34375,
+          9840777.375,
+          9707319,
+          10027824.25,
+          9874272.15625,
+          9812484.375
+        ]
+      },
+      {
+        "method": "Sylvan_Read",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 28.953783203125,
+        "allocatedBytes": 2669234,
+        "samplesNs": [
+          28967916.015625,
+          29179619.140625,
+          28939650.390625,
+          28991653.015625,
+          28877345.703125,
+          28849077.484375,
+          28895289.734375,
+          28978496.734375,
+          28977195.953125,
+          28879253.265625,
+          28921326.171875,
+          31076218.109375
+        ]
+      },
+      {
+        "method": "ExcelDataReader_Read",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 62.88221353125,
+        "allocatedBytes": 35526140,
+        "samplesNs": [
+          62597022.15625001,
+          62670813.81249999,
+          62809816.40625,
+          62547416.65625,
+          62795790.375,
+          63892669.28125,
+          63437902.34374999,
+          63355098.96875,
+          65095414.0625,
+          63165523.4375,
+          62666572.90625,
+          62954610.65625
+        ]
+      },
+      {
+        "method": "ExcelReaderNet_Read",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 6.78240821875,
+        "allocatedBytes": 2324170,
+        "samplesNs": [
+          6651635.40625,
+          6696126.3125,
+          6865863.28125,
+          6651384.125,
+          6795826.84375,
+          6901013.03125,
+          7255894.53125,
+          6757385.40625,
+          6768989.59375,
+          6903389.3125,
+          6715571.625,
+          6796953.125
+        ]
+      }
+    ],
+    "vector-1": [
+      {
+        "method": "OfficeIMO_Parse",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 12.5198046875,
+        "allocatedBytes": 4784084,
+        "samplesNs": [
+          25212207.671875,
+          15037578.765625,
+          11301646.453125,
+          11402844.390625,
+          10847762.359375,
+          11216565.734375,
+          14925333.984375,
+          11494021.484375,
+          14437396.453125,
+          12426352.203125,
+          12613257.171875,
+          16899827.453125
+        ]
+      },
+      {
+        "method": "ExcelReaderNet_Parse",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 8.643214859375,
+        "allocatedBytes": 4724703,
+        "samplesNs": [
+          8540811.1875,
+          8585118.46875,
+          8566464.84375,
+          8647005.21875,
+          8554933.59375,
+          9041963.5625,
+          9679921.875,
+          8671817.71875,
+          8639424.5,
+          8637149.75,
+          8933648.4375,
+          10339976.5625
+        ]
+      },
+      {
+        "method": "OfficeIMO_Read",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 9.828625,
+        "allocatedBytes": 2383949,
+        "samplesNs": [
+          10015845.046875,
+          9865872.390625,
+          9737183.578125,
+          9700523.453125,
+          9872994.796875,
+          9738040.359375,
+          9714976.578125,
+          9815821.609375,
+          9910742.203125,
+          10048140.640625,
+          9841428.390625,
+          9759778.640625
+        ]
+      },
+      {
+        "method": "ExcelReaderNet_Read",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 6.50450715625,
+        "allocatedBytes": 2324170,
+        "samplesNs": [
+          6608570.34375,
+          6597440.09375,
+          6563656.25,
+          6579130.21875,
+          6586598.96875,
+          6449800.78125,
+          6491276.03125,
+          6430899.75,
+          6517738.28125,
+          6485250.03125,
+          6434458.34375,
+          6464688.8125
+        ]
+      }
+    ],
+    "vector-control": [
+      {
+        "method": "OfficeIMO_Parse",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 10.82551040625,
+        "allocatedBytes": 4784084,
+        "samplesNs": [
+          10572695.328125,
+          10760391.921875,
+          11183776.046875,
+          11191029.953125,
+          10772445.296875,
+          10759193.984375,
+          10663209.640625,
+          10865794.265625,
+          12649816.390625,
+          10994269.546875,
+          10939792.984375,
+          10785226.546875
+        ]
+      },
+      {
+        "method": "ExcelReaderNet_Parse",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 8.486925109375,
+        "allocatedBytes": 4724714,
+        "samplesNs": [
+          8476608.078125,
+          8450304.703125,
+          8671388.015625,
+          10550604.171875,
+          8460830.734375,
+          8459210.921875,
+          8482490.859375,
+          8543692.703125,
+          8552115.859375,
+          8424992.171875,
+          8520847.640625,
+          8491359.359375
+        ]
+      },
+      {
+        "method": "OfficeIMO_Read",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 10.0663685,
+        "allocatedBytes": 2383932,
+        "samplesNs": [
+          9987446.625,
+          10061061.21875,
+          10024895.84375,
+          9916502.625,
+          10025535.15625,
+          10071675.78125,
+          10000376.3125,
+          11010520.84375,
+          10618135.40625,
+          11695532.5625,
+          10559651.0625,
+          10380813.8125
+        ]
+      },
+      {
+        "method": "ExcelReaderNet_Read",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 6.3895638125,
+        "allocatedBytes": 2324170,
+        "samplesNs": [
+          6659157.5625,
+          6686062.53125,
+          6645492.1875,
+          6455205.75,
+          6383890.625,
+          6405669.28125,
+          6358860.6875,
+          6356673.1875,
+          6359523.46875,
+          6395237,
+          6380726.59375,
+          6364179.6875
+        ]
+      }
+    ],
+    "vector-2": [
+      {
+        "method": "OfficeIMO_Parse",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 10.2960481875,
+        "allocatedBytes": 4784084,
+        "samplesNs": [
+          10344403.65625,
+          10208554.6875,
+          10266302.09375,
+          10341209.65625,
+          12568471.34375,
+          10301622.40625,
+          10321668,
+          10290473.96875,
+          10403652.34375,
+          10227873.71875,
+          10175592.46875,
+          10234777.34375
+        ]
+      },
+      {
+        "method": "ExcelReaderNet_Parse",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 8.08761521875,
+        "allocatedBytes": 4724714,
+        "samplesNs": [
+          7916895.84375,
+          8151488.249999999,
+          7983049.468750001,
+          7897205.718750001,
+          7922729.15625,
+          7872838.53125,
+          8273132.8125,
+          8184070.312500001,
+          8076971.343750001,
+          8098259.09375,
+          8253730.468750001,
+          8141821.59375
+        ]
+      },
+      {
+        "method": "OfficeIMO_Read",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 9.496155609375,
+        "allocatedBytes": 2383949,
+        "samplesNs": [
+          9533378.90625,
+          9536348.96875,
+          9612295.5625,
+          12182609.375,
+          9599575.53125,
+          9461205.75,
+          9515962.25,
+          9413162.78125,
+          9476348.96875,
+          9453977.875,
+          9416735.6875,
+          9392720.0625
+        ]
+      },
+      {
+        "method": "ExcelReaderNet_Read",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 6.353415375,
+        "allocatedBytes": 2324170,
+        "samplesNs": [
+          6356773.4375,
+          6362000,
+          6323024.75,
+          6414454.4375,
+          6372938.8125,
+          6352730.46875,
+          6553304.6875,
+          6320555.96875,
+          6354100.28125,
+          6344020.84375,
+          6321260.40625,
+          6335221.34375
+        ]
+      }
+    ],
+    "after-1": [
+      {
+        "method": "OfficeIMO_Parse",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 10.3416171875,
+        "allocatedBytes": 4783802,
+        "samplesNs": [
+          10367556,
+          10333247.375,
+          10427507.8125,
+          10349987,
+          10457250,
+          10462490.875,
+          10281464.84375,
+          10490442.6875,
+          10285217.46875,
+          10274161.46875,
+          10223013.03125,
+          10283516.90625
+        ]
+      },
+      {
+        "method": "ExcelReaderNet_Parse",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 7.8645019375,
+        "allocatedBytes": 4724714,
+        "samplesNs": [
+          7943759.765625,
+          7834861.328124999,
+          7821304.046874999,
+          7898598.296875,
+          7867883.453125,
+          7846845.671874999,
+          7828923.828125,
+          8111951.140625,
+          7858780.609375001,
+          7931074.859374999,
+          7966094.390625001,
+          7861120.421875001
+        ]
+      },
+      {
+        "method": "OfficeIMO_Read",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 9.56711525,
+        "allocatedBytes": 2383664,
+        "samplesNs": [
+          9789809.90625,
+          9639239.59375,
+          9612847.65625,
+          9820752.625,
+          9526126.3125,
+          9505638.03125,
+          9555658.875,
+          9649596.375,
+          9578571.625,
+          9535592.46875,
+          9481610.6875,
+          9475421.90625
+        ]
+      },
+      {
+        "method": "Sylvan_Read",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 28.87569725,
+        "allocatedBytes": 2669234,
+        "samplesNs": [
+          28932838.53125,
+          28888173.15625,
+          29041875,
+          28828526.03125,
+          28863221.34375,
+          28744938.78125,
+          28922929.65625,
+          28967354.15625,
+          28777190.09375,
+          28693130.1875,
+          28713942.6875,
+          29042777.34375
+        ]
+      },
+      {
+        "method": "ExcelDataReader_Read",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 61.05346678125,
+        "allocatedBytes": 35526140,
+        "samplesNs": [
+          60933156.21875,
+          61687419.25,
+          61029158.84375,
+          61195009.09375,
+          61624610.65625,
+          60997037.75,
+          61339084.59375,
+          60968972.625,
+          61077774.71875,
+          61393204.40625,
+          60947476.5625,
+          60993121.0625
+        ]
+      },
+      {
+        "method": "ExcelReaderNet_Read",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 6.3812994375,
+        "allocatedBytes": 2324162,
+        "samplesNs": [
+          6358031.21875,
+          6367273.40625,
+          6366014.28125,
+          6377920.53125,
+          6408083.3125,
+          6433282.53125,
+          6480985.65625,
+          6456842.4375,
+          6408257.78125,
+          6384678.34375,
+          6361746.09375,
+          6367333.3125
+        ]
+      }
+    ],
+    "before-2": [
+      {
+        "method": "OfficeIMO_Parse",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 10.453547515625,
+        "allocatedBytes": 4783802,
+        "samplesNs": [
+          10509700.53125,
+          10450269.53125,
+          10456764.3125,
+          10413052.09375,
+          10408552.0625,
+          10477167.96875,
+          10418045.5625,
+          10419457.03125,
+          10502173.1875,
+          10450330.71875,
+          10577227.84375,
+          10541390.625
+        ]
+      },
+      {
+        "method": "ExcelReaderNet_Parse",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 8.05190559375,
+        "allocatedBytes": 4724714,
+        "samplesNs": [
+          8056113.28125,
+          8109703.125000001,
+          8100687.5,
+          8044424.500000001,
+          8017712.250000001,
+          8017519.531250001,
+          8068338.562500001,
+          8166731.78125,
+          8047697.906249999,
+          7992749.999999999,
+          8064161.46875,
+          8013416.6875
+        ]
+      },
+      {
+        "method": "OfficeIMO_Read",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 9.669358703125,
+        "allocatedBytes": 2383664,
+        "samplesNs": [
+          9807471.34375,
+          9607667.96875,
+          9667170.5625,
+          9641311.1875,
+          9677222.625,
+          9677709.625,
+          9671546.84375,
+          9845423.15625,
+          9788095.03125,
+          9654902.34375,
+          9616679.65625,
+          9630333.3125
+        ]
+      },
+      {
+        "method": "Sylvan_Read",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 29.11630925,
+        "allocatedBytes": 2669234,
+        "samplesNs": [
+          29380126.3125,
+          29451901.03125,
+          29560471.34375,
+          29654274.71875,
+          29292013.03125,
+          28928307.28125,
+          29462223.96875,
+          28940605.46875,
+          28878175.78125,
+          28906166.65625,
+          28819493.46875,
+          28885015.59375
+        ]
+      },
+      {
+        "method": "ExcelDataReader_Read",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 61.511798828125,
+        "allocatedBytes": 35526140,
+        "samplesNs": [
+          61563076.8125,
+          61627842.4375,
+          62732673.1875,
+          61751317.71875,
+          61431915.375,
+          61379704.4375,
+          61172458.34375,
+          61460520.84375,
+          61245891.9375,
+          61784479.1875,
+          61082319.03125,
+          61708667.96875
+        ]
+      },
+      {
+        "method": "ExcelReaderNet_Read",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 6.410698578125,
+        "allocatedBytes": 2324170,
+        "samplesNs": [
+          6519787.78125,
+          6443100.28125,
+          6492865.90625,
+          6454431,
+          6402337.25,
+          6536242.1875,
+          6387363.28125,
+          6362341.15625,
+          6351691.4375,
+          6392140.625,
+          6419059.90625,
+          6342502.625
+        ]
+      }
+    ],
+    "after-2": [
+      {
+        "method": "OfficeIMO_Parse",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 10.29532421875,
+        "allocatedBytes": 4783802,
+        "samplesNs": [
+          10265620.453125,
+          10209272.796875,
+          10322581.390625,
+          10239388.671875,
+          10218595.703125,
+          10303138.671875,
+          10302186.859375,
+          10262401.671875,
+          10330916.015625,
+          10324819.640625,
+          10288461.578125,
+          10534356.109375
+        ]
+      },
+      {
+        "method": "ExcelReaderNet_Parse",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 8.15167771875,
+        "allocatedBytes": 4724714,
+        "samplesNs": [
+          8139970.03125,
+          8138944,
+          8181111.968749999,
+          8178015.624999999,
+          8113600.249999999,
+          8245365.875,
+          8144169.250000001,
+          8150214.843750001,
+          8247518.218750001,
+          8215897.125000001,
+          8153140.59375,
+          8141186.187500001
+        ]
+      },
+      {
+        "method": "OfficeIMO_Read",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 9.46187565625,
+        "allocatedBytes": 2383664,
+        "samplesNs": [
+          9419639.3125,
+          9465308.59375,
+          9419397.15625,
+          9486643.25,
+          9570312.53125,
+          9497584.65625,
+          9510863.3125,
+          9458442.71875,
+          9447867.1875,
+          9480393.25,
+          9451006.53125,
+          9432769.5625
+        ]
+      },
+      {
+        "method": "Sylvan_Read",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 28.133815125,
+        "allocatedBytes": 2669234,
+        "samplesNs": [
+          28052175.8125,
+          28080541.6875,
+          28151880.21875,
+          28063666.6875,
+          28091634.125,
+          28050753.9375,
+          28158033.84375,
+          28119263.03125,
+          28148367.21875,
+          28150750.03125,
+          28172908.875,
+          28185382.8125
+        ]
+      },
+      {
+        "method": "ExcelDataReader_Read",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 59.839492828125,
+        "allocatedBytes": 35526140,
+        "samplesNs": [
+          59637791.015625,
+          59722287.078125,
+          59891210.265625,
+          59932147.796875,
+          59725171.234375,
+          60106636.046875,
+          60197306.640625,
+          59756660.796875,
+          59787775.390625,
+          63605388.67187501,
+          60250348.296875,
+          59749182.953125
+        ]
+      },
+      {
+        "method": "ExcelReaderNet_Read",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 6.383747390625,
+        "allocatedBytes": 2324170,
+        "samplesNs": [
+          6368464.84375,
+          6415608.09375,
+          6390315.09375,
+          6370381.53125,
+          6396540.375,
+          6369183.59375,
+          6388229.15625,
+          6427582.0625,
+          6409998.6875,
+          6379265.625,
+          6343848.96875,
+          6373067.71875
+        ]
+      }
+    ]
+  },
+  "assemblies": {
+    "baseline": {
+      "OfficeIMO.Excel.Benchmarks.dll": "0be32558cfbeb5fbde1599afb266a81654cd31723d56985e8e950b60553dacd0",
+      "ExcelReader.Core.dll": "5f04e12d9f2f2cf23cc79bb0d7e7644e3d154d7887736c38fecfa08846bcf63e",
+      "OfficeIMO.Data.Arrow.dll": "d0edb0282ede8435ceac5656d9a4ed978c6614c35ab2232b8d5fc830bff995a7",
+      "ExcelDataReader.dll": "6a9ad35cc806ed39ac7cd5c83ba470d980f2d665cbf6e7ec413189f04898e84d",
+      "OfficeIMO.Core.dll": "b8df5763ee21457ecae385c36e613b3e4cc212cd87bfb61f93ce7241708fcc0d",
+      "ExcelReader.Arrow.dll": "24d962b77345fa51815f315c7fb59a3f7bf388dc8a27a2acde595d802daa46a4",
+      "OfficeIMO.Excel.dll": "7442c4030a0722f68cb4411ae79dfa9fa45e8931562378e4aefe3ef068c9024f",
+      "Sylvan.Data.Excel.dll": "304b2a317653243720cb8d60c017e6689c228b19a3bbb43add57062fbd13cfc7"
+    },
+    "vector": {
+      "OfficeIMO.Excel.Benchmarks.dll": "83623d7b57bd47011aac5534a2e2b794b1d5f36761a42be5dbefefcb5d6174e2",
+      "ExcelReader.Core.dll": "5f04e12d9f2f2cf23cc79bb0d7e7644e3d154d7887736c38fecfa08846bcf63e",
+      "OfficeIMO.Data.Arrow.dll": "7d3f4773142e4cc957afa9e41aecd6b26b43b0b7d94ed9ef79c8023a91dac111",
+      "ExcelDataReader.dll": "6a9ad35cc806ed39ac7cd5c83ba470d980f2d665cbf6e7ec413189f04898e84d",
+      "OfficeIMO.Core.dll": "97fdd643e9ee4440bda024b770bb9161afb6c93f8c706bf19adcac440057dea6",
+      "ExcelReader.Arrow.dll": "24d962b77345fa51815f315c7fb59a3f7bf388dc8a27a2acde595d802daa46a4",
+      "OfficeIMO.Excel.dll": "7217ad165879573f320b5c0a897b6871f7398d9696fade0c8488be4cd71994a1",
+      "Sylvan.Data.Excel.dll": "304b2a317653243720cb8d60c017e6689c228b19a3bbb43add57062fbd13cfc7"
+    },
+    "candidate": {
+      "OfficeIMO.Excel.Benchmarks.dll": "0be32558cfbeb5fbde1599afb266a81654cd31723d56985e8e950b60553dacd0",
+      "ExcelReader.Core.dll": "5f04e12d9f2f2cf23cc79bb0d7e7644e3d154d7887736c38fecfa08846bcf63e",
+      "OfficeIMO.Data.Arrow.dll": "d0edb0282ede8435ceac5656d9a4ed978c6614c35ab2232b8d5fc830bff995a7",
+      "ExcelDataReader.dll": "6a9ad35cc806ed39ac7cd5c83ba470d980f2d665cbf6e7ec413189f04898e84d",
+      "OfficeIMO.Core.dll": "b8df5763ee21457ecae385c36e613b3e4cc212cd87bfb61f93ce7241708fcc0d",
+      "ExcelReader.Arrow.dll": "24d962b77345fa51815f315c7fb59a3f7bf388dc8a27a2acde595d802daa46a4",
+      "OfficeIMO.Excel.dll": "beeb2525cafaa56bfa21b7ca123d1a12516329388bc519f3ebca2a6963d8b3e9",
+      "Sylvan.Data.Excel.dll": "304b2a317653243720cb8d60c017e6689c228b19a3bbb43add57062fbd13cfc7"
+    }
+  },
+  "originalBaselineHashes": "7442c4030a0722f68cb4411ae79dfa9fa45e8931562378e4aefe3ef068c9024f  OfficeIMO.Excel.dll\nd926a22a6e283801de7bb8660490597f7f57742efed742ace966bd48b89d27ef  OfficeIMO.Core.dll\nb88b5cf7b5be063c5f26cb7f829e9228fa7f24b45a5a27a6e5eb30aa5547e00b  OfficeIMO.Excel.Benchmarks.dll\n",
+  "dependencyAlignment": {
+    "beforeControlLaunch": true,
+    "source": "Unchanged dependency sources; informational/source-link metadata changes after committing.",
+    "cohorts": [
+      "after-1",
+      "before-2",
+      "after-2"
+    ],
+    "changes": {
+      "OfficeIMO.Core.dll": {
+        "beforeSha256": "d926a22a6e283801de7bb8660490597f7f57742efed742ace966bd48b89d27ef",
+        "matchedSha256": "b8df5763ee21457ecae385c36e613b3e4cc212cd87bfb61f93ce7241708fcc0d"
+      },
+      "OfficeIMO.Core.pdb": {
+        "beforeSha256": "039650d12ac568a07d1dd06327d0a9e3e2f753ae159a39a60cb671601b1389a2",
+        "matchedSha256": "10baf3e328af8079ada4633501e5a21fce26dc67b6eaacc49ec247da4da892f9"
+      },
+      "OfficeIMO.Data.Arrow.dll": {
+        "beforeSha256": "868620e8598639a2722854c7edb3c2aff865af58df24a8cb190a8c761185ce4c",
+        "matchedSha256": "d0edb0282ede8435ceac5656d9a4ed978c6614c35ab2232b8d5fc830bff995a7"
+      },
+      "OfficeIMO.Data.Arrow.pdb": {
+        "beforeSha256": "12e9ad20be002b405a9f9fd5e44e9f14524e2e803183ea2835901425a9af26aa",
+        "matchedSha256": "313440f2cceebae1c0f30b99e6e1855673ac0e763697c7b8154d2bed8337b627"
+      }
+    }
+  },
+  "profiles": {
+    "before": {
+      "OfficeIMO_Parse()": {
+        "sampledTimeUnits": 53499.11670513651,
+        "selectedExclusivePercent": {
+          "System.Private.CoreLib!System.SpanHelpers.IndexOf(unsigned int8&,int32,unsigned int8&,int32)": 5.376409180590606,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelUtf8RangeRowSource.TryInferUndeclaredRange(value class System.Threading.CancellationToken,int32&,int32&,int32&,int32&)": 0.9445822568711449,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelUtf8RangeRowSource.TryCreateForUsedRange(class OfficeIMO.Excel.ExcelSheetReader,value class System.Threading.CancellationToken,class ExcelUtf8RangeRowSource&,int32&)": 0.06178466328306746
+        },
+        "hotExclusivePercent": {
+          "?!?": 22.90746329937465,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelUtf8RangeRowSource.TryIndexCanonicalImplicitDenseRow(int32&,int32,int32,value class System.Threading.CancellationToken)": 15.823322728799317,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelXmlRangeDataReader.GetDouble(int32)": 8.163800893975493,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelXmlRangeDataReader.CanUseTypedMappingGetter(int32,class System.Type,bool)": 7.187468480369031,
+          "System.Private.CoreLib!System.SpanHelpers.IndexOf(unsigned int8&,int32,unsigned int8&,int32)": 5.376409180590606,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelXmlRangeDataReader.GetString(int32)": 3.7140081899596202,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelXmlRangeDataReader.TryGetUnloadedDateTime(int32,value class System.DateTime&)": 3.691601497363334,
+          "OfficeIMO.Core!OfficeIMO.Data.DataReaderMappingExtensions+<EnumerateAutomatic>d__4`1[System.__Canon].MoveNext()": 3.273958783926175,
+          "System.Private.CoreLib!System.Threading.Thread.<PollGC>g__PollGCWorker|67_0()": 3.1137964377075,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelXmlRangeDataReader.GetInt32(int32)": 2.5105969390045617,
+          "OfficeIMO.Excel.Benchmarks!OfficeIMO.Excel.Benchmarks.ExcelReaderGeneratedBenchmarks.OfficeIMO_Parse()": 2.5037539433677796,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelUtf8NumberParser.TryParseCommonFixedPoint(value class System.ReadOnlySpan`1<unsigned int8>,float64&)": 2.3980224018222165
+        },
+        "selectedInclusivePercent": {
+          "OfficeIMO.Excel!OfficeIMO.Excel.OpenXmlPackagePartBufferReader.ReadPartContents(class System.IO.Stream,unsigned int8[],int32,class System.String,value class System.Threading.CancellationToken,int32)": 24.483289127883324,
+          "System.IO.Compression!System.IO.Compression.Inflater.Inflate(value class FlushCode)": 22.80833341941364,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelUtf8RangeRowSource.CountUndeclaredRowCandidate(value class System.Threading.CancellationToken)": 0.164377779198954,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelUtf8RangeRowSource.TryInferUndeclaredRange(value class System.Threading.CancellationToken,int32&,int32&,int32&,int32&)": 4.8465484024587795,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelUtf8RangeRowSource.TryIndexCanonicalImplicitDenseRow(int32&,int32,int32,value class System.Threading.CancellationToken)": 16.817915840101474,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelUtf8RangeRowSource.IsCanonicalWorksheetXmlFullyValidated(value class System.Threading.CancellationToken)": 5.093463184561287
+        }
+      },
+      "OfficeIMO_Read()": {
+        "sampledTimeUnits": 36846.923209812136,
+        "selectedExclusivePercent": {
+          "System.Private.CoreLib!System.SpanHelpers.IndexOf(unsigned int8&,int32,unsigned int8&,int32)": 5.56971688462156,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelUtf8RangeRowSource.TryInferUndeclaredRange(value class System.Threading.CancellationToken,int32&,int32&,int32&,int32&)": 1.1863602965983135,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelUtf8RangeRowSource.TryCreateForUsedRange(class OfficeIMO.Excel.ExcelSheetReader,value class System.Threading.CancellationToken,class ExcelUtf8RangeRowSource&,int32&)": 0.07446109872246304
+        },
+        "hotExclusivePercent": {
+          "?!?": 26.34543918649369,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelUtf8RangeRowSource.TryIndexCanonicalImplicitDenseRow(int32&,int32,int32,value class System.Threading.CancellationToken)": 17.777494815058766,
+          "OfficeIMO.Excel.Benchmarks!OfficeIMO.Excel.Benchmarks.ExcelReaderGeneratedBenchmarks.OfficeIMO_Read()": 8.308238407598827,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelXmlRangeDataReader.GetDouble(int32)": 8.234989226184112,
+          "System.Private.CoreLib!System.SpanHelpers.IndexOf(unsigned int8&,int32,unsigned int8&,int32)": 5.56971688462156,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelXmlRangeDataReader.GetDateTime(int32)": 3.321237534294716,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelUtf8RangeRowSource.ContainsInvalidCanonicalXmlBytes(value class System.ReadOnlySpan`1<unsigned int8>)": 2.9615854205647105,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelUtf8NumberParser.TryParseCommonFixedPoint(value class System.ReadOnlySpan`1<unsigned int8>,float64&)": 2.8517011590818986,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelXmlRangeDataReader.GetInt32(int32)": 2.83167344777126,
+          "System.Private.CoreLib!System.Threading.Thread.<PollGC>g__PollGCWorker|67_0()": 2.725623285350313,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelXmlRangeDataReader.Read()": 2.14729088875432,
+          "System.Private.CoreLib!System.Text.Unicode.Utf8Utility.GetPointerToFirstInvalidByte(unsigned int8*,int32,int32&,int32&)": 1.719340239070575
+        },
+        "selectedInclusivePercent": {
+          "OfficeIMO.Excel!OfficeIMO.Excel.OpenXmlPackagePartBufferReader.ReadPartContents(class System.IO.Stream,unsigned int8[],int32,class System.String,value class System.Threading.CancellationToken,int32)": 27.532427554183336,
+          "System.IO.Compression!System.IO.Compression.Inflater.Inflate(value class FlushCode)": 26.305305467065633,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelUtf8RangeRowSource.TryIndexCanonicalImplicitDenseRow(int32&,int32,int32,value class System.Threading.CancellationToken)": 18.200940500502043,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelUtf8RangeRowSource.IsCanonicalWorksheetXmlFullyValidated(value class System.Threading.CancellationToken)": 5.682428735881021,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelUtf8RangeRowSource.TryInferUndeclaredRange(value class System.Threading.CancellationToken,int32&,int32&,int32&,int32&)": 5.177775856413885
+        }
+      }
+    },
+    "after": {
+      "OfficeIMO_Parse()": {
+        "sampledTimeUnits": 40224.6312095241,
+        "selectedExclusivePercent": {
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelUtf8RangeRowSource.CountUndeclaredRowCandidate(value class System.Threading.CancellationToken)": 0.16756451316460502,
+          "System.Private.CoreLib!System.SpanHelpers.IndexOf(unsigned int8&,int32,unsigned int8&,int32)": 1.5126895329353867,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelUtf8RangeRowSource.TryCreateForUsedRange(class OfficeIMO.Excel.ExcelSheetReader,value class System.Threading.CancellationToken,class ExcelUtf8RangeRowSource&,int32&)": 2.9610136799274676
+        },
+        "hotExclusivePercent": {
+          "?!?": 24.81459118672399,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelUtf8RangeRowSource.TryIndexCanonicalImplicitDenseRow(int32&,int32,int32,value class System.Threading.CancellationToken)": 16.45410587834477,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelXmlRangeDataReader.GetDouble(int32)": 7.974664710127925,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelXmlRangeDataReader.CanUseTypedMappingGetter(int32,class System.Type,bool)": 7.451496831019593,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelXmlRangeDataReader.GetString(int32)": 3.6129462703513724,
+          "OfficeIMO.Core!OfficeIMO.Data.DataReaderMappingExtensions+<EnumerateAutomatic>d__4`1[System.__Canon].MoveNext()": 3.1968929237674795,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelXmlRangeDataReader.TryGetUnloadedDateTime(int32,value class System.DateTime&)": 3.1857057184237685,
+          "System.Private.CoreLib!System.Threading.Thread.<PollGC>g__PollGCWorker|67_0()": 3.1601440321585152,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelUtf8RangeRowSource.TryCreateForUsedRange(class OfficeIMO.Excel.ExcelSheetReader,value class System.Threading.CancellationToken,class ExcelUtf8RangeRowSource&,int32&)": 2.9610136799274676,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelUtf8NumberParser.TryParseCommonFixedPoint(value class System.ReadOnlySpan`1<unsigned int8>,float64&)": 2.9202716618425657,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelUtf8RangeRowSource.ContainsInvalidCanonicalXmlBytes(value class System.ReadOnlySpan`1<unsigned int8>)": 2.7174407647592136,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelXmlRangeDataReader.GetInt32(int32)": 2.679657559492254
+        },
+        "selectedInclusivePercent": {
+          "OfficeIMO.Excel!OfficeIMO.Excel.OpenXmlPackagePartBufferReader.ReadPartContents(class System.IO.Stream,unsigned int8[],int32,class System.String,value class System.Threading.CancellationToken,int32)": 25.884877597877008,
+          "System.IO.Compression!System.IO.Compression.Inflater.Inflate(value class FlushCode)": 24.770334145531226,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelUtf8RangeRowSource.TryIndexCanonicalImplicitDenseRow(int32&,int32,int32,value class System.Threading.CancellationToken)": 17.037154928119516,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelUtf8RangeRowSource.IsCanonicalWorksheetXmlFullyValidated(value class System.Threading.CancellationToken)": 5.422572296018677,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelUtf8RangeRowSource.TryInferUndeclaredRange(value class System.Threading.CancellationToken,int32&,int32&,int32&,int32&)": 0.17102083335114063,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelUtf8RangeRowSource.CountUndeclaredRowCandidate(value class System.Threading.CancellationToken)": 0.16756451316460502
+        }
+      },
+      "OfficeIMO_Read()": {
+        "sampledTimeUnits": 36595.09577918928,
+        "selectedExclusivePercent": {
+          "System.Private.CoreLib!System.SpanHelpers.IndexOf(unsigned int8&,int32,unsigned int8&,int32)": 1.67286461097706,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelUtf8RangeRowSource.TryCreateForUsedRange(class OfficeIMO.Excel.ExcelSheetReader,value class System.Threading.CancellationToken,class ExcelUtf8RangeRowSource&,int32&)": 3.0879022607635136
+        },
+        "hotExclusivePercent": {
+          "?!?": 26.631705411368173,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelUtf8RangeRowSource.TryIndexCanonicalImplicitDenseRow(int32&,int32,int32,value class System.Threading.CancellationToken)": 18.45037631094606,
+          "OfficeIMO.Excel.Benchmarks!OfficeIMO.Excel.Benchmarks.ExcelReaderGeneratedBenchmarks.OfficeIMO_Read()": 8.676515738268531,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelXmlRangeDataReader.GetDouble(int32)": 8.232661318309164,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelXmlRangeDataReader.GetDateTime(int32)": 3.609304363878813,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelUtf8RangeRowSource.TryCreateForUsedRange(class OfficeIMO.Excel.ExcelSheetReader,value class System.Threading.CancellationToken,class ExcelUtf8RangeRowSource&,int32&)": 3.0879022607635136,
+          "System.Private.CoreLib!System.Threading.Thread.<PollGC>g__PollGCWorker|67_0()": 2.9317099757102327,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelXmlRangeDataReader.GetInt32(int32)": 2.836760554219112,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelUtf8RangeRowSource.ContainsInvalidCanonicalXmlBytes(value class System.ReadOnlySpan`1<unsigned int8>)": 2.8273554562442524,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelXmlRangeDataReader.Read()": 2.811346755049719,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelUtf8NumberParser.TryParseCommonFixedPoint(value class System.ReadOnlySpan`1<unsigned int8>,float64&)": 2.617445449750847,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelWorkbookDataReader.get_CurrentReader()": 1.7310586033906612
+        },
+        "selectedInclusivePercent": {
+          "OfficeIMO.Excel!OfficeIMO.Excel.OpenXmlPackagePartBufferReader.ReadPartContents(class System.IO.Stream,unsigned int8[],int32,class System.String,value class System.Threading.CancellationToken,int32)": 27.878989984275037,
+          "System.IO.Compression!System.IO.Compression.Inflater.Inflate(value class FlushCode)": 26.58274336784785,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelUtf8RangeRowSource.TryIndexCanonicalImplicitDenseRow(int32&,int32,int32,value class System.Threading.CancellationToken)": 18.876253825511625,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelUtf8RangeRowSource.IsCanonicalWorksheetXmlFullyValidated(value class System.Threading.CancellationToken)": 5.530624720431742
+        }
+      }
+    }
+  },
+  "profileLimits": "Inclusive sampled-thread-time, same fixed benchmark workload; not isolated native decompressor throughput or benchmark timing. After JIT optimization, separate inference/counter frames are largely absent and work appears in the range-creation caller. Missing frames do not mean zero cost; no exact standalone after-phase percentage is claimed.",
+  "review": {
+    "result": "Independent read-only static review: no actionable findings",
+    "scope": "Token counts, vector/tail bounds, cancellation, modern/legacy guards, full validation and API/dependency boundaries.",
+    "reviewedFileSha256": "2f6012bade1ef693106554aa7e8d228e67b31aae33446f34ba5c6741d6632d98"
+  },
+  "verification": {
+    "tests": {
+      "vector-focused": {
+        "counters": {
+          "total": "479",
+          "executed": "479",
+          "passed": "479",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "omittedReferencePassedCases": 12,
+        "sha256": "61f96d62ee4c6fe393c4f40a1ae01abea7f6f93b02cf8c8fc575146b818ec58e"
+      },
+      "excel-final": {
+        "counters": {
+          "total": "7759",
+          "executed": "7754",
+          "passed": "7754",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "omittedReferencePassedCases": 12,
+        "sha256": "1df5cd1ce98174c8f7897908ae105551b70e54126b12e9abf2ecc63c5e2beeed"
+      },
+      "csv-final": {
+        "counters": {
+          "total": "938",
+          "executed": "938",
+          "passed": "938",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "omittedReferencePassedCases": 0,
+        "sha256": "ae1c8aa2cfb0983582ad4fb0944de57caaf3a0488de751324c9b0b502152d0a6"
+      }
+    },
+    "frameworks": {
+      "netstandard2.0": {
+        "result": "Passed, zero warnings/errors",
+        "logSha256": "351b64fa58d36f2755c581ea1b03a1568b1aab17a6d75616cfae1b1130f3d881"
+      },
+      "net8.0": {
+        "result": "Passed, zero warnings/errors",
+        "logSha256": "4bdf4a4bafe53763e92a4c01aa579ce5c088c90cfc9c5b13e97eaefb63c28c62"
+      },
+      "net10.0": {
+        "result": "Passed, zero warnings/errors",
+        "logSha256": "c2e7adfb2d8d0e675d461823cc46b92dd9fab65c929a4f92719153464746bdd8"
+      },
+      "net472": {
+        "result": "Passed, zero warnings/errors",
+        "logSha256": "1fda2d2ee4669774cdd5470661b35485eb32ac8fda6a3923df5d73690455c912"
+      }
+    },
+    "nativeAot": {
+      "rid": "osx-arm64",
+      "result": "Publish and smoke passed",
+      "buildLogSha256": "e49143474f725e6285786390854d5893131206c512ff71748d1ba182aedc39a9",
+      "smokeLogSha256": "0089e2101868fe39e78c11098377d14fad96eb1060d38394c47131bd7b219d7b",
+      "executableSha256": "0b94a40a7f69a8405e4b67a30508ec42047b17107f331f3b7a01420a5642148d"
+    },
+    "limits": [
+      "net472 is cross-built on macOS; no Windows Framework/PowerShell5.1 runtime proof.",
+      "Four-performance/six-efficiency-core M4; no affinity or quiet-host claim. All samples and initial typed-parse regression retained.",
+      "No writer, binary-format, CSV runtime, grid loader, cell/range API or formatting change.",
+      "Inflation still uses the native platform decompressor; no useful read-size improvement established.",
+      "Test compilation retains existing nullable, obsolete API and xUnit analyzer warnings in unchanged test sources."
+    ]
+  },
+  "cohortAssemblyVariants": {
+    "before": "Original baseline hashes; original harness, unchanged dependency sources.",
+    "vector-1/vector-2": "vector assembly hashes; precommit runtime with the same reviewed source SHA.",
+    "vector-control": "Original baseline Excel/Core binaries with the vector harness copied before launch.",
+    "after-1/after-2": "candidate assembly hashes.",
+    "before-2": "baseline assembly hashes; same harness/Core/Arrow/third-party DLLs as candidate, original Excel DLL."
+  }
+}

@@ -97,8 +97,8 @@ public static class EmailDataArtifact {
             throw new InvalidDataException("An individual email artifact must be a file.");
         var reader = new EmailDocumentReader(options.Email);
         EmailReadResult result = options.UseStreamingEmailReader
-            ? reader.ReadStreaming(path, cancellationToken)
-            : reader.Read(path, cancellationToken);
+            ? reader.ReadDocument(path, OfficeIMO.Email.EmailReadContentStorage.TemporaryFiles, cancellationToken)
+            : reader.ReadDocument(path, cancellationToken);
         if (result.Document.Format != EmailFileFormat.Unknown) return new EmailDataOpenResult(path, result);
         string detail = result.Diagnostics.FirstOrDefault(diagnostic =>
             diagnostic.Severity == EmailDiagnosticSeverity.Error)?.Message ?? "The artifact format is unknown.";

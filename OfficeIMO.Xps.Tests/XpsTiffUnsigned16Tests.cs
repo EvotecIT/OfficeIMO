@@ -20,7 +20,7 @@ public sealed class XpsTiffUnsigned16Tests {
             var document = XpsDocument.Create(format);
             string source = document.AddResource("Images/source.tif", File.ReadAllBytes(Path.Combine(Corpus, fields[0])), "image/tiff");
             document.AddPage(57, 39).AddImage(source, 0, 0, 57, 39);
-            var page = XpsDocument.Load(document.Save()).Pages[0];
+            var page = XpsDocument.Load(document.ToBytes()).Pages[0];
             if (fields[3] == "5" && fields[5] == "0") {
                 Assert.Contains("CMYK image requires a usable ICC profile", page.ToSvg(true).Diagnostics);
                 Assert.Throws<NotSupportedException>(() => page.ToDrawing());
@@ -31,7 +31,7 @@ public sealed class XpsTiffUnsigned16Tests {
             var direct = OfficeDrawingRasterRenderer.Render(page.ToDrawing(), background: OfficeColor.White);
             Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg.Svg), out var svgDrawing));
             var svgImage = OfficeDrawingRasterRenderer.Render(svgDrawing!, scale: 1, background: OfficeColor.White);
-            var pdfPage = Assert.Single(PdfReadDocument.Open(document.ToPdf()).Pages);
+            var pdfPage = Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).Pages);
             var pdfImage = OfficeDrawingRasterRenderer.Render(pdfPage.ToDrawing(), scale: 4D / 3D, background: OfficeColor.White);
             byte[] expected = File.ReadAllBytes(Path.Combine(Corpus, Path.ChangeExtension(fields[0], ".rgba")));
             for (int y = 0; y < 13; y++) for (int x = 0; x < 19; x++) {

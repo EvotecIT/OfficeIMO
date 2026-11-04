@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Builds DataTable instances from object sequences by projecting properties or dictionary keys into columns.
     /// </summary>
-    public static class ExcelObjectDataTableBuilder {
+    internal static class ExcelObjectDataTableBuilder {
         /// <summary>
         /// Creates a DataTable from objects by using dictionary keys or public readable properties.
         /// </summary>

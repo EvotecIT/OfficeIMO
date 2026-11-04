@@ -9,15 +9,15 @@ public partial class PdfReadStreamTests {
     private static byte[] BuildPdf() {
         return PdfDocument.Create()
             .Meta(title: "Stream read", author: "OfficeIMO", subject: "Read", keywords: "stream,pdf")
-            .Paragraph(p => p.Text("Stream readable text"))
+            .Paragraph(p => p.AddText("Stream readable text"))
             .ToBytes();
     }
 
     private static byte[] BuildTwoPageLinkAnnotationPdf() {
         return PdfDocument.Create()
-            .Paragraph(p => p.Link("First", "https://evotec.xyz/first", contents: "First link metadata"))
+            .Paragraph(p => p.AddLink("First", "https://evotec.xyz/first", contents: "First link metadata"))
             .PageBreak()
-            .Paragraph(p => p.Link("Second", "https://evotec.xyz/second", contents: "Second link metadata"))
+            .Paragraph(p => p.AddLink("Second", "https://evotec.xyz/second", contents: "Second link metadata"))
             .ToBytes();
     }
 
@@ -51,19 +51,19 @@ public partial class PdfReadStreamTests {
     }
 
     private static byte[] BuildOutlinePdf() {
-        return PdfDocument.Create(new PdfOptions { CreateOutlineFromHeadings = true })
+        return PdfDocument.Create(new PdfCreateOptions { CreateOutlineFromHeadings = true })
             .H1("Executive summary")
-            .Paragraph(p => p.Text("Outline sample"))
+            .Paragraph(p => p.AddText("Outline sample"))
             .ToBytes();
     }
 
     private static byte[] BuildTwoPageOutlinePdf() {
-        return PdfDocument.Create(new PdfOptions { CreateOutlineFromHeadings = true })
+        return PdfDocument.Create(new PdfCreateOptions { CreateOutlineFromHeadings = true })
             .H1("Executive summary")
-            .Paragraph(p => p.Text("Outline sample"))
+            .Paragraph(p => p.AddText("Outline sample"))
             .PageBreak()
             .H1("Appendix")
-            .Paragraph(p => p.Text("Appendix sample"))
+            .Paragraph(p => p.AddText("Appendix sample"))
             .ToBytes();
     }
 

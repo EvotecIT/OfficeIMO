@@ -19,7 +19,7 @@ public sealed class OfficeDrawingAvaloniaRendererTests {
             "6 0 obj", $"<< /Length {cmap.Length} >>", "stream", cmap, "endstream", "endobj",
             "trailer", "<< /Root 1 0 R /Size 7 >>", "%%EOF"
         }) + "\n");
-        OfficeDrawing drawing = PdfReadDocument.Open(pdf).Pages[0].ToDrawing();
+        OfficeDrawing drawing = PdfDocument.Load(new System.IO.MemoryStream(pdf)).Pages[0].ToDrawing();
 
         Assert.Equal("Q", Assert.Single(drawing.Elements.OfType<OfficeDrawingText>()).Text);
         Assert.Contains(OfficeDrawingAvaloniaRenderer.AnalyzeRasterFallback(drawing),

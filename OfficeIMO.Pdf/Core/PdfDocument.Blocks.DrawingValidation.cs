@@ -12,11 +12,11 @@ public sealed partial class PdfDocument {
         Guard.LeftCenterRightAlign(style.Align, nameof(style.Align), "Image");
         ValidateImageFit(style.Fit, nameof(style.Fit));
         ValidateClipPathInside(style.ClipPath, width, height, clipPathParamName, "Clip paths must fit inside the image width and height.");
-        if (style.SpacingBefore < 0 || double.IsNaN(style.SpacingBefore) || double.IsInfinity(style.SpacingBefore)) {
+        if (style.SpacingBefore.ToPoints() < 0 || double.IsNaN(style.SpacingBefore.ToPoints()) || double.IsInfinity(style.SpacingBefore.ToPoints())) {
             throw new System.ArgumentException("Image spacing before must be a non-negative finite value.", nameof(style));
         }
 
-        if (style.SpacingAfter < 0 || double.IsNaN(style.SpacingAfter) || double.IsInfinity(style.SpacingAfter)) {
+        if (style.SpacingAfter.ToPoints() < 0 || double.IsNaN(style.SpacingAfter.ToPoints()) || double.IsInfinity(style.SpacingAfter.ToPoints())) {
             throw new System.ArgumentException("Image spacing after must be a non-negative finite value.", nameof(style));
         }
     }
@@ -24,11 +24,11 @@ public sealed partial class PdfDocument {
     internal static void ValidateDrawingStyle(PdfDrawingStyle style, string objectName) {
         Guard.NotNull(style, nameof(style));
         Guard.LeftCenterRightAlign(style.Align, nameof(style.Align), objectName);
-        if (style.SpacingBefore < 0 || double.IsNaN(style.SpacingBefore) || double.IsInfinity(style.SpacingBefore)) {
+        if (style.SpacingBefore.ToPoints() < 0 || double.IsNaN(style.SpacingBefore.ToPoints()) || double.IsInfinity(style.SpacingBefore.ToPoints())) {
             throw new System.ArgumentException(objectName + " spacing before must be a non-negative finite value.", nameof(style));
         }
 
-        if (style.SpacingAfter < 0 || double.IsNaN(style.SpacingAfter) || double.IsInfinity(style.SpacingAfter)) {
+        if (style.SpacingAfter.ToPoints() < 0 || double.IsNaN(style.SpacingAfter.ToPoints()) || double.IsInfinity(style.SpacingAfter.ToPoints())) {
             throw new System.ArgumentException(objectName + " spacing after must be a non-negative finite value.", nameof(style));
         }
 

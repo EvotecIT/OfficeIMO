@@ -13,8 +13,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    document.AddWorksheet("First").CellValue(1, 1, "First");
-                    document.AddWorksheet("Second").CellValue(1, 1, "Second");
+                    document.AddSheet("First").Cell(1, 1).SetValue("First");
+                    document.AddSheet("Second").Cell(1, 1).SetValue("Second");
 
                     Workbook workbook = document.WorkbookRoot;
                     workbook.RemoveAllChildren<BookViews>();
@@ -115,8 +115,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Views");
-                    sheet.CellValue(1, 1, "Equivalent worksheet views");
+                    ExcelSheet sheet = document.AddSheet("Views");
+                    sheet.Cell(1, 1).SetValue("Equivalent worksheet views");
 
                     Worksheet worksheet = sheet.WorksheetPart.Worksheet;
                     worksheet.RemoveAllChildren<SheetViews>();
@@ -166,10 +166,10 @@ namespace OfficeIMO.Tests {
                 ExcelSheet loadedSheet = loaded.Sheets.Single();
 
                 Assert.True(loaded.SourceFormat == ExcelFileFormat.Xls);
-                ExcelWorksheetViewInfo view = loadedSheet.GetViewInfo();
+                ExcelWorksheetViewInfo view = loadedSheet.View.Inspect();
                 Assert.False(view.ShowGridlines);
-                Assert.False(loadedSheet.RowColumnHeadingsVisible);
-                Assert.False(loadedSheet.ZeroValuesVisible);
+                Assert.False(loadedSheet.View.ShowRowColumnHeadings);
+                Assert.False(loadedSheet.View.ShowZeros);
                 Assert.True(view.RightToLeft);
                 Assert.Equal(125U, view.ZoomScale);
                 Assert.Equal(90U, view.ZoomScaleNormal);
@@ -196,8 +196,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Views");
-                    sheet.CellValue(1, 1, "Divergent worksheet views");
+                    ExcelSheet sheet = document.AddSheet("Views");
+                    sheet.Cell(1, 1).SetValue("Divergent worksheet views");
 
                     Worksheet worksheet = sheet.WorksheetPart.Worksheet;
                     worksheet.RemoveAllChildren<SheetViews>();

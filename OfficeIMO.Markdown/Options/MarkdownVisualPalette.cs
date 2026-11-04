@@ -28,10 +28,10 @@ public sealed class MarkdownVisualPalette {
     /// <summary>Code block background color.</summary>
     public OfficeColor CodeBackground { get; set; } = OfficeColor.Parse("#F6F8FA");
 
-    /// <summary>Table header background color.</summary>
+    /// <summary>MarkdownTable header background color.</summary>
     public OfficeColor TableHeaderBackground { get; set; } = OfficeColor.Parse("#EFF6FF");
 
-    /// <summary>Table header text color.</summary>
+    /// <summary>MarkdownTable header text color.</summary>
     public OfficeColor TableHeaderText { get; set; } = OfficeColor.Parse("#0F172A");
 
     /// <summary>Alternating table row background color.</summary>

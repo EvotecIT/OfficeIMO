@@ -88,13 +88,11 @@ public partial class PdfDocumentReadResultTests {
 
     [Fact]
     public void Load_ExposesLinkAnnotationsAsLogicalElements() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
-                PageWidth = 360,
-                PageHeight = 240,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                }
             })
             .H1("Linked heading", linkUri: "https://evotec.xyz/logical-link", linkContents: "Logical link metadata")
             .ToBytes();
@@ -125,13 +123,11 @@ public partial class PdfDocumentReadResultTests {
 
     [Fact]
     public void Reader_ExposesLinkHelpersAndDiagnostics() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
-                PageWidth = 360,
-                PageHeight = 240,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                }
             })
             .H1("Linked heading", linkUri: "https://evotec.xyz/logical-link", linkContents: "Logical link metadata")
             .ToBytes();
@@ -184,18 +180,18 @@ public partial class PdfDocumentReadResultTests {
                 .H1("Jump to details", linkDestinationName: "Details", linkContents: "Heading jump metadata")
                 .Element(element => element.Content(nested => nested.H2(
                     "Nested jump to details",
-                    PdfAlign.Left,
+                    OfficeAlignment.Left,
                     linkContents: "Nested heading jump metadata",
                     linkDestinationName: "Details")))
-                .Spacer(18)
+                .Spacer(global::OfficeIMO.OfficeLength.Points(18))
                 .Bookmark("Details")
-                .H2("Details")), new PdfOptions {
-                PageWidth = 360,
-                PageHeight = 240,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36
+                .H2("Details")), new PdfCreateOptions {
+                // Built-in heading metrics keep this reading fixture independent of the document theme.
+                DefaultHeadingStyles = new PdfHeadingStyles(),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                }
             })
             .ToBytes();
 
@@ -294,13 +290,11 @@ public partial class PdfDocumentReadResultTests {
 
     [Fact]
     public void Load_ExposesTableCellNamedDestinationLinksAsLogicalElements() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
-                PageWidth = 360,
-                PageHeight = 240,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                }
             })
             .Table(new[] {
                 new[] {

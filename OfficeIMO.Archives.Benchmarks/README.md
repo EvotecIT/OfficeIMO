@@ -30,7 +30,7 @@ heap growth. ZIP creation is corpus setup rather than a measured OfficeIMO
 product workflow, because `OfficeIMO.Archives` owns traversal policy rather than ZIP
 writing.
 
-The project stays outside `OfficeIMO.sln` so performance tooling does not affect
+The project stays outside `OfficeIMO.slnx` so performance tooling does not affect
 normal restore, build, test, or package dependencies.
 
 ## Verified member copying

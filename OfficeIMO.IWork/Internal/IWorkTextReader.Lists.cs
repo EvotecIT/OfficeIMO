@@ -19,7 +19,7 @@ internal static partial class IWorkTextReader {
             bool decodedCompletely = true;
             var style = new ListStyleData();
             var chain = IWorkStyleReader.ReadChain(index, identifier.Value,
-                projectionBudget.MaximumTextStyleInheritanceDepth,
+                projectionBudget.MaxTextStyleInheritanceDepth,
                 type => type == ListStyleArchive, tolerateStyleDepth, references, ref decodedCompletely);
             for (int styleIndex = chain.Count - 1; styleIndex >= 0; styleIndex--) {
                 IWorkWireMessage message = chain[styleIndex].Message;

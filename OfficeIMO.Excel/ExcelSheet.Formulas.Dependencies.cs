@@ -83,8 +83,8 @@ namespace OfficeIMO.Excel {
 
             internal IReadOnlyList<Cell> GetFormulaCells(ExcelSheet sheet) {
                 if (!_formulaCells.TryGetValue(sheet.Name, out IReadOnlyList<Cell>? cells)) {
-                    cells = sheet.WorksheetRoot.Descendants<Cell>()
-                        .Where(cell => cell.CellFormula != null)
+                    cells = ExcelWorksheetScan.Cells(sheet.WorksheetRoot)
+                        .Where(cell => ExcelWorksheetScan.FindFormula(cell) != null)
                         .ToList();
                     _formulaCells.Add(sheet.Name, cells);
                 }
@@ -540,7 +540,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    if (dependencyCell.CellValue == null) {
+                    if (ExcelWorksheetScan.FindValue(dependencyCell) == null) {
                         issues.Add($"Dependency '{formattedDependencyCell}' is a formula without a cached result.");
                     }
 
@@ -600,8 +600,8 @@ namespace OfficeIMO.Excel {
             out int c2,
             out string address) {
             if (TryResolveFormulaRangeReference(token, sourceRow, out sheet, out r1, out c1, out r2, out c2)) {
-                string start = A1.CellReference(r1, c1);
-                string end = A1.CellReference(r2, c2);
+                string start = ExcelA1.CellReference(r1, c1);
+                string end = ExcelA1.CellReference(r2, c2);
                 address = r1 == r2 && c1 == c2 ? start : start + ":" + end;
                 return true;
             }

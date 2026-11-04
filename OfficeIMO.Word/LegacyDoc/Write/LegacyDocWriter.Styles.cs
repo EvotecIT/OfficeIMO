@@ -13,11 +13,21 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             // Header/footer, note and comment stories share the document's style sheet.
             // Discover their referenced IDs, including custom IDs produced by native import.
             SectionProperties[] sections = body.Descendants<SectionProperties>().ToArray();
+            foreach (SectionProperties section in sections) {
+                HeaderReference[] headers = section.Elements<HeaderReference>().ToArray();
+                FooterReference[] footers = section.Elements<FooterReference>().ToArray();
+                foreach (HeaderFooterValues type in new[] { HeaderFooterValues.Default, HeaderFooterValues.First, HeaderFooterValues.Even }) {
+                    GetSingleReference(headers, type, "header");
+                    GetSingleReference(footers, type, "footer");
+                }
+            }
             IEnumerable<ParagraphStyleId> storyStyleIds = sections.SelectMany(section => section.Elements<HeaderReference>())
-                .Select(reference => GetReferencedPart<HeaderPart>(mainPart, reference.Id?.Value, "header"))
+                .Select(reference => reference.Id?.Value).Distinct(StringComparer.Ordinal)
+                .Select(id => GetReferencedPart<HeaderPart>(mainPart, id, "header")).Distinct()
                 .SelectMany(part => part.Header?.Descendants<ParagraphStyleId>() ?? Enumerable.Empty<ParagraphStyleId>())
                 .Concat(sections.SelectMany(section => section.Elements<FooterReference>())
-                    .Select(reference => GetReferencedPart<FooterPart>(mainPart, reference.Id?.Value, "footer"))
+                    .Select(reference => reference.Id?.Value).Distinct(StringComparer.Ordinal)
+                    .Select(id => GetReferencedPart<FooterPart>(mainPart, id, "footer")).Distinct()
                     .SelectMany(part => part.Footer?.Descendants<ParagraphStyleId>() ?? Enumerable.Empty<ParagraphStyleId>()))
                 .Concat(mainPart.FootnotesPart?.Footnotes?.Elements<Footnote>()
                     .Where(IsUserFootnote)

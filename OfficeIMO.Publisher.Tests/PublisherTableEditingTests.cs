@@ -43,9 +43,9 @@ public sealed class PublisherTableEditingTests {
         Assert.Equal(oldStory.Text.EndsWith("\n", StringComparison.Ordinal), story.Text.EndsWith("\n", StringComparison.Ordinal));
         string editedSvg = document.ToSvg(document.Pages.ToList().FindIndex(page => page.Id == original.PageId));
         Assert.Contains("A longer replacement", VisibleSvgText(editedSvg));
-        var pdfOptions = new PdfOptions();
+        var pdfOptions = new PdfCreateOptions();
         if (fixture == "NativeComparison/TableLabel/native-tablelabel.pub") pdfOptions.UseTextFallbacks();
-        PdfReadDocument pdf = PdfReadDocument.Open(document.ToPdfBytes(pdfOptions));
+        using PdfDocument pdf = PublisherNativeTests.ExportAndReloadPdf(document, pdfOptions);
         PdfReadPage pdfPage = pdf.Pages[document.Pages.ToList().FindIndex(page => page.Id == current.PageId)];
         PublisherTableCell editedCell = current.Cells[0];
         double left = current.X + editedCell.X, right = left + editedCell.Width;
@@ -124,7 +124,7 @@ public sealed class PublisherTableEditingTests {
         var pages = document.Pages; var stories = document.TextStories; var report = document.ReadReport;
         Assert.Throws<NotSupportedException>(() => document.ReplaceTableCellParagraphs(299, 0, 0, Paragraphs("unsafe")));
         Assert.Same(pages, document.Pages); Assert.Same(stories, document.TextStories); Assert.Same(report, document.ReadReport);
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, diagnostic => diagnostic.Code == "PUB_TABLE_CELL_TEXT_EDIT_UNSUPPORTED"
+        Assert.Contains(document.ReadReport.Diagnostics, diagnostic => diagnostic.Code == "PUB_TABLE_CELL_TEXT_EDIT_UNSUPPORTED"
             && diagnostic.Location == "Contents/object/299" && diagnostic.LossKind == OfficeConversionLossKind.None);
     }
 
@@ -144,7 +144,7 @@ public sealed class PublisherTableEditingTests {
         Assert.Same(pages, document.Pages); Assert.Same(stories, document.TextStories); Assert.Same(report, document.ReadReport);
         Assert.Same(story, document.TextStories.Single(item => item.Id == table.StoryId));
         Assert.Equal("Table on page 2", Table(document, table.Id).Cells[0].Text);
-        Assert.Contains(report.FidelityDiagnostics, diagnostic => diagnostic.Code == "PUB_TABLE_CELL_TEXT_EDIT_UNSUPPORTED"
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PUB_TABLE_CELL_TEXT_EDIT_UNSUPPORTED"
             && diagnostic.Location == "Contents/object/299" && diagnostic.LossKind == OfficeConversionLossKind.None);
 
         PublisherShape added = document.AddShape(table.PageId, OfficeShape.Rectangle(10, 10), 0, 0);
@@ -202,7 +202,7 @@ public sealed class PublisherTableEditingTests {
         Assert.Throws<NotSupportedException>(() => document.SetTableBounds(299, 10, 20, 30, 40)); Assert.Same(pages, document.Pages);
         if (variant is "hidden" or "no-anchor") Assert.DoesNotContain("Table on page 2", document.ToSvg(1));
         if (variant == "no-anchor") Assert.False(table.HasPlacement);
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, diagnostic => diagnostic.Code == "PUB_TABLE_BOUNDS_EDIT_UNSUPPORTED");
+        Assert.Contains(document.ReadReport.Diagnostics, diagnostic => diagnostic.Code == "PUB_TABLE_BOUNDS_EDIT_UNSUPPORTED");
     }
 
     [Fact]
@@ -237,8 +237,9 @@ public sealed class PublisherTableEditingTests {
         Assert.All(document.Pages, page => Assert.Contains("Master cell", document.ToSvg(document.Pages.ToList().IndexOf(page))));
         Assert.All(document.Pages, page => Assert.DoesNotContain(page.Tables, table => table.Id == master.Id));
         Assert.Empty(oldPage.Tables); Assert.Empty(first.Cells[0].Text);
-        Assert.Equal(2, PdfReadDocument.Open(document.ToPdfBytes()).Pages.Count);
-        Assert.DoesNotContain(document.ReadReport.FidelityDiagnostics, diagnostic => diagnostic.Location == "Contents/object/" + first.Id
+        using PdfDocument pdf = PublisherNativeTests.ExportAndReloadPdf(document);
+        Assert.Equal(2, pdf.Pages.Count);
+        Assert.DoesNotContain(document.ReadReport.Diagnostics, diagnostic => diagnostic.Location == "Contents/object/" + first.Id
             && diagnostic.Code == "PUB_TABLE_CELL_STYLE_UNASSESSED");
     }
 
@@ -284,7 +285,7 @@ public sealed class PublisherTableEditingTests {
 
     [Fact]
     public void Table_creation_and_text_enforce_model_and_projection_budgets_without_partial_commit() {
-        PublisherDocument document = PublisherShapeEditingFixture.Create(options: new PublisherReadOptions {
+        PublisherDocument document = PublisherShapeEditingFixture.Create(options: new PublisherLoadOptions {
             Limits = new OfficeLegacyImportLimits { MaxItems = 30, MaxTextCharacters = 100 }
         });
         PublisherTable first = document.AddTable(10, 20, 120, new[] { 80D }, new[] { 30D });
@@ -316,7 +317,7 @@ public sealed class PublisherTableEditingTests {
         PublisherShape last = oneId.AddShape(pageId, OfficeShape.Rectangle(10, 10), 0, 0);
         Assert.Equal(uint.MaxValue, last.Id);
 
-        PublisherDocument full = PublisherShapeEditingFixture.Create(hiddenObjects: 125, options: new PublisherReadOptions {
+        PublisherDocument full = PublisherShapeEditingFixture.Create(hiddenObjects: 125, options: new PublisherLoadOptions {
             Limits = new OfficeLegacyImportLimits { MaxItems = 128 }
         });
         Assert.Equal(128, full.ReadReport.CurrentObjectCount);

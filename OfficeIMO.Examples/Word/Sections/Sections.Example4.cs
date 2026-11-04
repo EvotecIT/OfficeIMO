@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Examples.Word {
     internal partial class Sections {
@@ -15,19 +15,19 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "Basic Document with some sections 3.docx");
 
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.Sections[0].PageOrientation = OfficePageOrientation.Landscape;
+                document.Sections[0].PageSetup.Orientation = OfficePageOrientation.Landscape;
                 document.AddParagraph("Test Section0").SetColor(Color.LightPink);
 
                 var section1 = document.AddSection();
-                section1.PageOrientation = OfficePageOrientation.Portrait;
+                section1.PageSetup.Orientation = OfficePageOrientation.Portrait;
 
-                section1.AddParagraph("Test Section1").SetFontFamily("Tahoma").SetFontSize(20);
+                section1.AddParagraph("Test Section1").SetFontFamily("Tahoma").SetFontSize(global::OfficeIMO.OfficeLength.Points(20));
 
                 var section2 = document.AddSection();
 
-                section2.AddParagraph("Test Section2").SetFontFamily("Tahoma").SetFontSize(20);
+                section2.AddParagraph("Test Section2").SetFontFamily("Tahoma").SetFontSize(global::OfficeIMO.OfficeLength.Points(20));
 
-                section2.PageOrientation = OfficePageOrientation.Landscape;
+                section2.PageSetup.Orientation = OfficePageOrientation.Landscape;
 
 
                 Console.WriteLine("Section 0 - Text 0: " + document.Sections[0].Paragraphs[0].Text);
@@ -53,7 +53,7 @@ namespace OfficeIMO.Examples.Word {
                 section4.AddParagraph("Test Section4");
                 var section5 = document.AddSection();
                 section5.AddParagraph("Test Section5");
-                section5.PageOrientation = OfficePageOrientation.Portrait;
+                section5.PageSetup.Orientation = OfficePageOrientation.Portrait;
 
                 document.AddParagraph("Test Section5-Par1");
                 document.AddParagraph("Test Section5-Par2");

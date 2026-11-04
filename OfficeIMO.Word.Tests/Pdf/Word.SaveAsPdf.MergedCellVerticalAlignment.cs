@@ -27,7 +27,7 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docxPath)) {
             WordTable table = document.AddTable(3, 2);
             foreach (WordTableRow row in table.Rows) {
-                row.Height = 560;
+                row.Height = global::OfficeIMO.OfficeLength.Points(28D);
                 row._tableRow.TableRowProperties!.GetFirstChild<TableRowHeight>()!.HeightType = HeightRuleValues.Exact;
             }
 
@@ -46,7 +46,7 @@ public partial class Word {
             }
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions { IncludePageNumbers = false });
         }
 
         using PdfDocument pdf = PdfDocument.Open(pdfPath);

@@ -84,7 +84,7 @@ internal static class ExcelWriteProfileRunner {
                 document.Execution.OnTiming = (operation, elapsed) => AddStage(totals, operation, elapsed.TotalMilliseconds);
             }
 
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
 
             stageWatch.Restart();
             ExcelBenchmarkScenarioFactory.InsertOfficeImoObjects(sheet, rows);

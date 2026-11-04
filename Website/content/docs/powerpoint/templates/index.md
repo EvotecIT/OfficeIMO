@@ -45,7 +45,7 @@ using var presentation = PowerPointTemplate.CreatePresentation(
     });
 
 PowerPointSlide slide = presentation.AddSlide(summary);
-slide.AddPicture("evidence.png", visual.Bounds!.Value);
+slide.AddImage("evidence.png", visual.Bounds!.Value);
 presentation.Save();
 ```
 

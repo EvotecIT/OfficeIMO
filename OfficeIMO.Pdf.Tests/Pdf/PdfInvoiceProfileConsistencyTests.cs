@@ -17,7 +17,7 @@ public class PdfInvoiceProfileConsistencyTests {
 #else
         const int attachmentLength = 64;
 #endif
-        var options = new PdfOptions().UseFacturX(Cii(InvoiceProfile.En16931), textFallbacks: PdfTextFallbackFeatures.None)
+        var options = new PdfCreateOptions().UseFacturX(Cii(InvoiceProfile.En16931), textFallbacks: PdfTextFallbackFeatures.None)
             .AddEmbeddedFile("support.bin", new byte[attachmentLength], "application/octet-stream", PdfAssociatedFileRelationship.Supplement);
         options.Validate();
 #if PDF_PERFORMANCE_EVIDENCE
@@ -39,9 +39,9 @@ public class PdfInvoiceProfileConsistencyTests {
     [InlineData((int)InvoiceProfile.ExtendedCtcFr, "EXTENDED-CTC-FR")]
     public void AttachmentHelperDerivesCanonicalXmpFromXml(int profile, string expected) {
         byte[] xml = Cii((InvoiceProfile)profile);
-        var options = new PdfOptions().UseFacturX(xml, textFallbacks: PdfTextFallbackFeatures.None);
+        var options = new PdfCreateOptions().UseFacturX(xml, textFallbacks: PdfTextFallbackFeatures.None);
         Assert.Equal(expected, options.ElectronicInvoiceMetadata!.ConformanceLevel);
-        byte[] pdf = PdfDocument.Create(options).Paragraph(p => p.Text("Invoice profile test")).ToBytes();
+        byte[] pdf = PdfDocument.Create(options).Paragraph(p => p.AddText("Invoice profile test")).ToBytes();
         Assert.Equal(xml, PdfAttachmentExtractor.ExtractAttachments(pdf).Single().Bytes);
         var report = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.FacturX, pdf);
         Assert.Equal(PdfComplianceRequirementStatus.Satisfied,
@@ -50,7 +50,7 @@ public class PdfInvoiceProfileConsistencyTests {
 
     [Fact]
     public void ExplicitMismatchIsRejectedBeforeMutatingOptions() {
-        var options = new PdfOptions();
+        var options = new PdfCreateOptions();
         Assert.Throws<ArgumentException>(() => options.UseFacturX(Cii(InvoiceProfile.En16931), "BASIC"));
         Assert.Empty(options.EmbeddedFiles);
         Assert.Null(options.ElectronicInvoiceMetadata);
@@ -61,7 +61,7 @@ public class PdfInvoiceProfileConsistencyTests {
 
     [Fact]
     public void GenericSettersCannotBypassProfileAgreement() {
-        var options = new PdfOptions().AddEmbeddedFile("factur-x.xml", Cii(InvoiceProfile.En16931), "application/xml", PdfAssociatedFileRelationship.Data)
+        var options = new PdfCreateOptions().AddEmbeddedFile("factur-x.xml", Cii(InvoiceProfile.En16931), "application/xml", PdfAssociatedFileRelationship.Data)
             .SetElectronicInvoiceMetadata("BASIC");
         var report = PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, options);
         Assert.Equal(PdfComplianceRequirementStatus.Missing,
@@ -71,8 +71,8 @@ public class PdfInvoiceProfileConsistencyTests {
 
     [Fact]
     public void SavedArtifactReadbackDetectsMetadataTampering() {
-        byte[] generated = PdfDocument.Create(new PdfOptions().UseFacturX(Cii(InvoiceProfile.En16931), textFallbacks: PdfTextFallbackFeatures.None))
-            .Paragraph(p => p.Text("Invoice profile test")).ToBytes();
+        byte[] generated = PdfDocument.Create(new PdfCreateOptions().UseFacturX(Cii(InvoiceProfile.En16931), textFallbacks: PdfTextFallbackFeatures.None))
+            .Paragraph(p => p.AddText("Invoice profile test")).ToBytes();
         string original = PdfEncoding.Latin1GetString(generated);
         // Keep stream and xref offsets unchanged; only change the invoice profile value.
         string tampered = original.Replace("<fx:ConformanceLevel>EN 16931</fx:ConformanceLevel>", "<fx:ConformanceLevel>BASIC   </fx:ConformanceLevel>");
@@ -86,7 +86,7 @@ public class PdfInvoiceProfileConsistencyTests {
 
     [Fact]
     public void DuplicateCanonicalAttachmentsCannotPassReadiness() {
-        var options = new PdfOptions().UseFacturX(Cii(InvoiceProfile.En16931), textFallbacks: PdfTextFallbackFeatures.None);
+        var options = new PdfCreateOptions().UseFacturX(Cii(InvoiceProfile.En16931), textFallbacks: PdfTextFallbackFeatures.None);
         Assert.Throws<ArgumentException>(() => options.AddEmbeddedFile("factur-x.xml", Cii(InvoiceProfile.Basic), "application/xml", PdfAssociatedFileRelationship.Data));
     }
 
@@ -94,9 +94,9 @@ public class PdfInvoiceProfileConsistencyTests {
     [InlineData(false)]
     [InlineData(true)]
     public void UnrelatedAttachmentPayloadAndMimeDoNotChangeInvoiceProfileAgreement(bool emptyPayload) {
-        var options = new PdfOptions().UseFacturX(Cii(InvoiceProfile.En16931), textFallbacks: PdfTextFallbackFeatures.None)
+        var options = new PdfCreateOptions().UseFacturX(Cii(InvoiceProfile.En16931), textFallbacks: PdfTextFallbackFeatures.None)
             .AddEmbeddedFile("support.txt", new byte[] { 88 }, "text/plain", PdfAssociatedFileRelationship.Supplement);
-        byte[] generated = PdfDocument.Create(options).Paragraph(p => p.Text("Invoice")).ToBytes();
+        byte[] generated = PdfDocument.Create(options).Paragraph(p => p.AddText("Invoice")).ToBytes();
         string original = PdfEncoding.Latin1GetString(generated);
         byte[] pdf;
         if (emptyPayload) {
@@ -130,8 +130,8 @@ public class PdfInvoiceProfileConsistencyTests {
     public void SavedArtifactRejectsNormalizedOrStructuredXmp(string property) {
         const string padding = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
         const string canonical = "<fx:ConformanceLevel>EN 16931</fx:ConformanceLevel>";
-        byte[] generated = PdfDocument.Create(new PdfOptions().UseFacturX(Cii(InvoiceProfile.En16931), textFallbacks: PdfTextFallbackFeatures.None))
-            .Meta(title: padding).Paragraph(p => p.Text("Invoice")).ToBytes();
+        byte[] generated = PdfDocument.Create(new PdfCreateOptions().UseFacturX(Cii(InvoiceProfile.En16931), textFallbacks: PdfTextFallbackFeatures.None))
+            .Meta(title: padding).Paragraph(p => p.AddText("Invoice")).ToBytes();
         string original = PdfEncoding.Latin1GetString(generated);
         string tampered = original.Replace(canonical, property)
             .Replace(">" + padding + "</rdf:li>", ">" + padding.Substring(property.Length - canonical.Length) + "</rdf:li>");
@@ -144,8 +144,8 @@ public class PdfInvoiceProfileConsistencyTests {
 
     [Fact]
     public void MetadataChangedAfterDocumentCreationIsCheckedBeforeSerialization() {
-        var document = PdfDocument.Create(new PdfOptions().UseFacturX(Cii(InvoiceProfile.En16931), textFallbacks: PdfTextFallbackFeatures.None))
-            .ElectronicInvoiceMetadata("BASIC").Paragraph(p => p.Text("Invoice"));
+        var document = PdfDocument.Create(new PdfCreateOptions().UseFacturX(Cii(InvoiceProfile.En16931), textFallbacks: PdfTextFallbackFeatures.None))
+            .ElectronicInvoiceMetadata("BASIC").Paragraph(p => p.AddText("Invoice"));
         Assert.Throws<ArgumentException>(() => document.ToBytes());
     }
 

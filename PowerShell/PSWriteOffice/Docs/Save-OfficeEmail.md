@@ -9,7 +9,7 @@ schema: 2.0.0
 Saves an email document as EML, EMLX, MSG, or TNEF with fidelity diagnostics.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
 Save-OfficeEmail [-Path] <string> -Document <EmailDocument> [-Format <EmailFileFormat>] [-Options <EmailWriterOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
@@ -33,7 +33,7 @@ Email document to save.
 
 ```yaml
 Type: EmailDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -49,7 +49,7 @@ Optional explicit output format. By default it is inferred from the filename.
 
 ```yaml
 Type: EmailFileFormat
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values: Unknown, Eml, OutlookMsg, Tnef, Mbox, OutlookTemplate, Emlx
 
@@ -65,7 +65,7 @@ Optional preservation, projection, encoding, and output limits.
 
 ```yaml
 Type: EmailWriterOptions
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -81,7 +81,7 @@ Emit the object created or changed by the command.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -97,7 +97,7 @@ Destination path.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 

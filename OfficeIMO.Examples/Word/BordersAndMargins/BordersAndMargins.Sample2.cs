@@ -1,7 +1,7 @@
 using System;
 using DocumentFormat.OpenXml.Drawing;
 using OfficeIMO.Word;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class BordersAndMargins {

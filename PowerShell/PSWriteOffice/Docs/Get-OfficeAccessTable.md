@@ -9,7 +9,7 @@ schema: 2.0.0
 Lists native table definitions and schema without executing their content.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
 Get-OfficeAccessTable [[-Name] <string[]>] -Document <AccessDocument> [<CommonParameters>]
 ```
@@ -32,7 +32,7 @@ Live database document.
 
 ```yaml
 Type: AccessDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -48,7 +48,7 @@ Optional table names.
 
 ```yaml
 Type: String[]
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 

@@ -16,7 +16,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="topRows">Number of rows at the top to freeze.</param>
         /// <param name="leftCols">Number of columns on the left to freeze.</param>
-        public void Freeze(int topRows = 0, int leftCols = 0) {
+        internal void FreezeCore(int topRows, int leftCols) {
             if (_excelDocument.TryApplyDirectWorksheetFreezeMetadata(this, topRows, leftCols)) {
                 return;
             }
@@ -60,7 +60,7 @@ namespace OfficeIMO.Excel {
                     pane.HorizontalSplit = leftCols;  // HorizontalSplit = number of columns to freeze
                 }
 
-                pane.TopLeftCell = A1.CellReference(topRows + 1, leftCols + 1);
+                pane.TopLeftCell = ExcelA1.CellReference(topRows + 1, leftCols + 1);
 
                 if (topRows > 0 && leftCols > 0) {
                     pane.ActivePane = PaneValues.BottomRight;
@@ -110,7 +110,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Shows or hides gridlines on the current sheet (view-level setting).
         /// </summary>
-        public void SetGridlinesVisible(bool visible) {
+        internal void SetGridlinesVisibleCore(bool visible) {
             WriteLock(() => {
                 SheetView view = GetOrCreateSheetView();
                 view.ShowGridLines = visible;
@@ -120,7 +120,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Gets whether worksheet row and column headings are displayed in the worksheet view.
         /// </summary>
-        public bool RowColumnHeadingsVisible => WorksheetRoot.GetFirstChild<SheetViews>()
+        internal bool RowColumnHeadingsVisibleCore => WorksheetRoot.GetFirstChild<SheetViews>()
             ?.GetFirstChild<SheetView>()
             ?.ShowRowColHeaders
             ?.Value ?? true;
@@ -128,7 +128,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Shows or hides worksheet row and column headings in the worksheet view.
         /// </summary>
-        public void SetRowColumnHeadingsVisible(bool visible) {
+        internal void SetRowColumnHeadingsVisibleCore(bool visible) {
             WriteLock(() => {
                 SheetView view = GetOrCreateSheetView();
                 view.ShowRowColHeaders = visible;
@@ -138,7 +138,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Gets whether zero values are displayed in the worksheet view.
         /// </summary>
-        public bool ZeroValuesVisible => WorksheetRoot.GetFirstChild<SheetViews>()
+        internal bool ZeroValuesVisibleCore => WorksheetRoot.GetFirstChild<SheetViews>()
             ?.GetFirstChild<SheetView>()
             ?.ShowZeros
             ?.Value ?? true;
@@ -146,7 +146,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Shows or hides zero values in the worksheet view.
         /// </summary>
-        public void SetZeroValuesVisible(bool visible) {
+        internal void SetZeroValuesVisibleCore(bool visible) {
             WriteLock(() => {
                 SheetView view = GetOrCreateSheetView();
                 view.ShowZeros = visible;
@@ -156,7 +156,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Gets whether the worksheet view is displayed from right to left.
         /// </summary>
-        public bool RightToLeft => WorksheetRoot.GetFirstChild<SheetViews>()
+        internal bool RightToLeftCore => WorksheetRoot.GetFirstChild<SheetViews>()
             ?.GetFirstChild<SheetView>()
             ?.RightToLeft
             ?.Value == true;
@@ -165,7 +165,7 @@ namespace OfficeIMO.Excel {
         /// Sets whether the worksheet view is displayed from right to left.
         /// </summary>
         /// <param name="rightToLeft">True to display the worksheet from right to left; otherwise false.</param>
-        public void SetRightToLeft(bool rightToLeft) {
+        internal void SetRightToLeftCore(bool rightToLeft) {
             WriteLock(() => {
                 SheetView view = GetOrCreateSheetView();
                 view.RightToLeft = rightToLeft;
@@ -175,7 +175,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Gets the worksheet view zoom scale percentage, or null when no explicit zoom is configured.
         /// </summary>
-        public uint? GetZoomScale() {
+        internal uint? GetZoomScaleCore() {
             return WorksheetRoot.GetFirstChild<SheetViews>()
                 ?.GetFirstChild<SheetView>()
                 ?.ZoomScale
@@ -187,7 +187,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="scale">Zoom percentage from 10 through 400.</param>
         /// <param name="save">Whether to save the worksheet XML immediately.</param>
-        public void SetZoomScale(uint scale, bool save = true) {
+        internal void SetZoomScaleCore(uint scale, bool save = true) {
             if (scale < 10U || scale > 400U) {
                 throw new ArgumentOutOfRangeException(nameof(scale), "Worksheet zoom scale must be between 10 and 400 percent.");
             }
@@ -264,7 +264,7 @@ namespace OfficeIMO.Excel {
         /// <param name="scale">Manual scale (10-400). Ignored if FitToWidth/Height are specified.</param>
         /// <param name="pageOrder">Optional multi-page print order.</param>
         /// <param name="paperSize">Optional known paper size.</param>
-        public void SetPageSetup(uint? fitToWidth = null, uint? fitToHeight = null, uint? scale = null, ExcelPageOrder? pageOrder = null, ExcelPaperSize? paperSize = null) {
+        internal void SetPageSetupCore(uint? fitToWidth = null, uint? fitToHeight = null, uint? scale = null, ExcelPageOrder? pageOrder = null, ExcelPaperSize? paperSize = null) {
             if (scale is < 10U or > 400U) {
                 throw new ArgumentOutOfRangeException(nameof(scale), "Manual print scale must be between 10 and 400 percent.");
             }
@@ -273,6 +273,7 @@ namespace OfficeIMO.Excel {
                 ValidatePaperSize(paperSize.Value);
             }
 
+            Persistence.OwnsTablePrintDefaults = false;
             WriteLock(() => {
                 var ws = WorksheetRoot;
                 var pageSetup = GetOrCreatePageSetup(ws);

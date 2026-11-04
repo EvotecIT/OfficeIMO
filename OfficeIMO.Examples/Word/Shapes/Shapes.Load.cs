@@ -9,8 +9,8 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "DocumentWithShapesToLoad.docx");
 
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddParagraph("Shape one").AddShape(90, 40, "#00FFFF");
-                document.AddParagraph("Shape two").AddShape(60, 60, "#FF00FF");
+                document.AddParagraph("Shape one").AddShape(OfficeIMO.OfficeLength.Points(90), OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeColor.Parse("#00FFFF"));
+                document.AddParagraph("Shape two").AddShape(OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeColor.Parse("#FF00FF"));
                 document.Save();
             }
 

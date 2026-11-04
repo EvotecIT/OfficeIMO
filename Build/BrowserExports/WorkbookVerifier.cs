@@ -86,7 +86,7 @@ internal static class WorkbookVerifier {
     }
 
     private static object?[,] Read(string path, string sheet, string range) {
-        using var reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions { SheetName = sheet, A1Range = range, HasHeaderRow = false });
+        using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { SheetName = sheet, A1Range = range, HasHeaderRow = false });
         var rows = new List<object?[]>();
         while (reader.Read()) {
             var values = new object[reader.FieldCount];

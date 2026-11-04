@@ -1,0 +1,32 @@
+{
+  "package": "OfficeIMO.Chm.Epub",
+  "changes": [
+    {
+      "old": "ChmDocument.ToEpubPublicationResult(ChmConversionOptions, EpubManuscriptOptions, CancellationToken) / ToEpubPublicationResultAsync",
+      "kind": "method",
+      "action": "merge",
+      "new": "ChmDocument.ToEpub(ChmEpubExportOptions options[, out OfficeConversionReport report], CancellationToken) : EpubPublication; ToEpubAsync : Task<OfficeConversionResult<EpubPublication>>",
+      "reason": "Converters use the shared shape: To{Target}(options[, out OfficeConversionReport], ct), To{Target}Async returning OfficeConversionResult<T>, and SaveAs{Target}(path | stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "ChmDocument.ToEpubBytesResult(ChmConversionOptions, EpubManuscriptOptions, EpubSaveOptions, CancellationToken)",
+      "kind": "method",
+      "action": "merge",
+      "new": "ChmDocument.SaveAsEpub(string path | Stream stream, ChmEpubExportOptions options = null, CancellationToken) : OfficeConversionReport; SaveAsEpubAsync",
+      "reason": "Converters use the shared shape: To{Target}(options[, out OfficeConversionReport], ct), To{Target}Async returning OfficeConversionResult<T>, and SaveAs{Target}(path | stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "ChmConversionOptions + EpubManuscriptOptions + EpubSaveOptions parameters",
+      "kind": "type",
+      "action": "change",
+      "new": "OfficeIMO.Chm.ChmEpubExportOptions { ConversionOptions, EpubOptions, SaveOptions, FailOnLoss }",
+      "reason": "Converter options are named {Source}{Target}ExportOptions and carry FailOnLoss.",
+      "category": "options",
+      "applied": true
+    }
+  ]
+}

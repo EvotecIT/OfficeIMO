@@ -66,6 +66,7 @@ namespace OfficeIMO.Spreadsheet {
             if (decimalPlaces.Optional > 0) {
                 text = TrimOptionalDecimalPlaces(text, decimalPlaces.Required);
             }
+            text = PadRequiredIntegerDigits(text, GetRequiredIntegerDigits(normalized), thousands);
 
             return ApplyNumericAffixes(normalized, text);
         }

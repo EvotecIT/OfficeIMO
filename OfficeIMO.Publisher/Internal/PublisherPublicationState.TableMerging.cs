@@ -3,7 +3,7 @@ namespace OfficeIMO.Publisher.Internal;
 internal sealed partial class PublisherPublicationState {
     /// <summary>Changes authored cell ownership and its complete story partition together; native topology remains refused.</summary>
     internal PublisherPublicationState MergeTableCells(uint id, int row, int column, int rowCount, int columnCount,
-        PublisherReadOptions options, CancellationToken token) {
+        PublisherLoadOptions options, CancellationToken token) {
         PublisherTableState table = Table(id);
         if (!table.IsAuthored) throw new NotSupportedException("Merging imported native table cells is not qualified.");
         if (row < 0 || row >= table.Rows.Count) throw new ArgumentOutOfRangeException(nameof(row));

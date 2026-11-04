@@ -1,0 +1,65 @@
+using System.IO;
+using System.Linq;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Validation;
+using OfficeIMO.Excel;
+using Xunit;
+
+namespace OfficeIMO.Tests;
+
+public sealed class ExcelAddedRuleObjectTests {
+    [Fact]
+    public void ReturnedConditionalRulesRetainTheirOwnIdentityThroughLaterAddsAndUpdates() {
+        using var document = ExcelDocument.Create();
+        var sheet = document.AddSheet("Values");
+        sheet.Cell(1, 1).SetValue("Amount");
+        sheet.Cell(2, 1).SetValue(10);
+        var first = sheet.Range("A2:A4").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "5");
+        var second = sheet.Range("A2:A4").ConditionalFormat().Formula("A2<2");
+        var scale = sheet.Range("B2:B4").ConditionalFormat().ColorScale("FF0000", "00FF00");
+        var bar = sheet.Range("C2:C4").ConditionalFormat().DataBar("0000FF");
+        var icons = sheet.Range("D2:D4").ConditionalFormat().IconSet();
+        Assert.Equal("ColorScale", scale.Type);
+        Assert.Equal("DataBar", bar.Type);
+        Assert.Equal("IconSet", icons.Type);
+        first.Range = "A2:A8";
+        first.Formulas = new[] { "7" };
+        first.StopIfTrue = true;
+        sheet.UpdateConditionalFormattingRule(first);
+        sheet.RemoveConditionalFormattingRule(second);
+        Assert.Equal(4, sheet.GetConditionalFormattingRules().Count);
+        using var output = new MemoryStream();
+        document.Save(output);
+        output.Position = 0;
+        using (var package = SpreadsheetDocument.Open(output, false))
+            Assert.Empty(new OpenXmlValidator().Validate(package));
+        output.Position = 0;
+        using var loaded = ExcelDocument.Load(output);
+        var restored = loaded.Sheets.Single().GetConditionalFormattingRules().Single(rule => rule.Type == "CellIs");
+        Assert.Equal("A2:A8", restored.Range);
+        Assert.Equal(new[] { "7" }, restored.Formulas);
+        Assert.True(restored.StopIfTrue);
+    }
+
+    [Fact]
+    public void AutoFilterHandleTracksTableOwnershipAndTocReturnsItsCreatedSheet() {
+        using var document = ExcelDocument.Create();
+        var sheet = document.AddSheet("Values");
+        sheet.Cell(1, 1).SetValue("Name");
+        sheet.Cell(2, 1).SetValue("Alpha");
+        var filter = sheet.Range("A1:A2").AutoFilter();
+        Assert.Same(sheet, filter.Sheet);
+        Assert.False(filter.Inspect()!.IsTableFilter);
+        sheet.AddTable("A1:A2", name: "ValuesTable");
+        Assert.Equal("ValuesTable", filter.Inspect()!.TableName);
+        var contents = document.AddTableOfContents(styled: false);
+        Assert.Equal(contents.Name, document.Sheets[0].Name);
+        contents.Cell(1, 1).SetValue("Edited navigation");
+        using var output = new MemoryStream();
+        document.Save(output);
+        output.Position = 0;
+        using var loaded = ExcelDocument.Load(output);
+        Assert.True(loaded.Sheets[0].TryGetCellText(1, 1, out var title));
+        Assert.Equal("Edited navigation", title);
+    }
+}

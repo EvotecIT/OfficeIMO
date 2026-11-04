@@ -14,12 +14,12 @@ public sealed class OpenDocumentTypedSaveDiagnosticsTests {
             Array.Empty<string>(),
             new[] { "Attachments/source.bin" });
 
-        OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(report.FidelityDiagnostics);
+        OfficeDiagnostic diagnostic = Assert.Single(report.Diagnostics);
 
         Assert.Equal("ODF_ENTRY_OMITTED", diagnostic.Code);
         Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
         Assert.Equal("Attachments/source.bin", diagnostic.Location);
         Assert.True(report.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => report.ThrowIfLoss());
     }
 }

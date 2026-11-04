@@ -19,7 +19,7 @@ public sealed class NativeOutlookOlmTests {
         }, document.Attachments.Select(attachment => Hash(attachment.Content!)).OrderBy(hash => hash));
         Assert.Contains(document.Attachments, attachment => attachment.IsInline && attachment.ContentId != null);
         byte[] eml = new EmailDocumentWriter(new EmailWriterOptions(EmailConversionLossPolicy.Warn)).ToBytes(document, EmailFileFormat.Eml);
-        EmailDocument reopened = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument reopened = new EmailDocumentReader().ReadDocument(eml).Document;
         Assert.Equal(document.Body.Html, reopened.Body.Html);
         Assert.Equal(document.Attachments.Select(attachment => Hash(attachment.Content!)).OrderBy(hash => hash),
             reopened.Attachments.Select(attachment => Hash(attachment.Content!)).OrderBy(hash => hash));
@@ -38,11 +38,11 @@ public sealed class NativeOutlookOlmTests {
 
         var writer = new EmailDocumentWriter(new EmailWriterOptions(EmailConversionLossPolicy.Warn));
         byte[] msg = writer.ToBytes(document, EmailFileFormat.OutlookMsg);
-        EmailDocument fromMsg = new EmailDocumentReader().Read(msg).Document;
+        EmailDocument fromMsg = new EmailDocumentReader().ReadDocument(msg).Document;
         Assert.Equal(10, fromMsg.Appointment!.ReminderDeltaMinutes);
         AssertNativeRecurrence(fromMsg.Appointment);
         byte[] eml = writer.ToBytes(fromMsg, EmailFileFormat.Eml);
-        EmailReadResult fromEml = new EmailDocumentReader().Read(eml);
+        EmailReadResult fromEml = new EmailDocumentReader().ReadDocument(eml);
         Assert.Equal(10, fromEml.Document.Appointment!.ReminderDeltaMinutes);
         AssertNativeRecurrence(fromEml.Document.Appointment);
         Assert.DoesNotContain(fromEml.Diagnostics, diagnostic =>

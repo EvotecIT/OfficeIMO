@@ -55,7 +55,7 @@ public class EmbeddedContentTests : VerifyTestBase {
         try {
             using var document = WordDocument.Create();
             var embedded = document.AddEmbeddedDocument(textFilePath, WordAlternativeFormatImportPartType.TextPlain);
-            var pictureControl = document.AddParagraph().AddPictureControl(GetSampleImagePath(), 48, 48, "PictureAlias", "PictureTag");
+            var pictureControl = document.AddParagraph().AddPictureControl(GetSampleImagePath(), OfficeLength.Pixels(48), OfficeLength.Pixels(48), "PictureAlias", "PictureTag");
             pictureControl.Tag = "UpdatedPictureTag";
 
             Assert.Equal("text/plain", embedded.ContentType);

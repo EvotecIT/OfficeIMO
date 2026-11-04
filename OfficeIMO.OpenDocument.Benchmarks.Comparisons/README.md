@@ -7,7 +7,7 @@ package. Both read lanes receive the same OfficeIMO-generated package and
 enumerate every populated cell.
 
 OpenStandardLibrary remains a benchmark-only dependency. This project is
-intentionally not part of `OfficeIMO.sln`, so normal restore, build, test, and
+intentionally not part of `OfficeIMO.slnx`, so normal restore, build, test, and
 package operations do not acquire it. The comparison is limited to ODS because
 OpenStandardLibrary does not expose equivalent ODT or ODP document models.
 

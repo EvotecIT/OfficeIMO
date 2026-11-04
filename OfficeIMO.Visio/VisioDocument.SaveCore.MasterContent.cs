@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Visio;
 
@@ -88,10 +88,10 @@ public partial class VisioDocument {
         writer.WriteStartElement("Shapes", ns);
         WritePreservedAttributes(writer, master.PreservedShapesAttributes);
         VisioShape shape = master.Shape;
-        double width = shape.Width > 0 ? shape.Width : 1;
-        double height = shape.Height > 0 ? shape.Height : 1;
-        double localPinX = ResolveLocalPin(shape.LocPinX, width, shape.HasExplicitLocPinX);
-        double localPinY = ResolveLocalPin(shape.LocPinY, height, shape.HasExplicitLocPinY);
+        double width = shape.WidthInches > 0 ? shape.WidthInches : 1;
+        double height = shape.HeightInches > 0 ? shape.HeightInches : 1;
+        double localPinX = ResolveLocalPin(shape.LocPinXInches, width, shape.HasExplicitLocPinX);
+        double localPinY = ResolveLocalPin(shape.LocPinYInches, height, shape.HasExplicitLocPinY);
         TryGetBuiltinMasterDefinition(master.NameU, out var definition);
         writer.WriteStartElement("Shape", ns);
         writer.WriteAttributeString("ID", "1");
@@ -122,7 +122,7 @@ public partial class VisioDocument {
             writer.WriteAttributeString("LineStyle", "1");
             writer.WriteAttributeString("FillStyle", "1");
             writer.WriteAttributeString("TextStyle", "1");
-            WriteXForm(writer, ns, shape.PinX, shape.PinY, width, height, localPinX, localPinY, shape.Angle);
+            WriteXForm(writer, ns, shape.PinXInches, shape.PinYInches, width, height, localPinX, localPinY, shape.Angle);
             WriteCell(writer, ns, "ObjType", 1);
             if (definition?.LockAspect == true) {
                 WriteCell(writer, ns, "LockAspect", 1);

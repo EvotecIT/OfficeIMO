@@ -26,12 +26,9 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         [Benchmark]
         public long OfficeIMODefaultRowStyle() {
             _output.SetLength(0);
-            ExcelDocument.WriteRows(_output, Enumerable.Range(0, Rows), ["Value"], static (row, value) => row.Write(value),
-                new ExcelTabularWriteOptions {
-                    SheetName = "S", IncludeHeaders = false, RequireStreaming = true,
-                    Styles = new Dictionary<string, ExcelStyleDefinition> { ["Bold"] = new() { Bold = true } },
-                    DefaultRowStyle = "Bold",
-                });
+            using (var writer = ExcelDocument.CreateWriter(_output, new ExcelWriterOptions { IncludeHeaders = false, Styles = new Dictionary<string, ExcelStyleDefinition> { ["Bold"] = new() { Bold = true } }, DefaultRowStyle = "Bold" }, leaveOpen: true)) {
+                writer.WriteTable("S", Enumerable.Range(0, Rows), ["Value"], static (row, value) => row.Write(value));
+            }
             return _output.Length;
         }
 

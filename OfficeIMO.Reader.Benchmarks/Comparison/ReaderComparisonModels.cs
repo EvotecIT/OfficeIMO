@@ -3,7 +3,7 @@ namespace OfficeIMO.Reader.Benchmarks.Comparison;
 internal enum ReaderComparisonProbeKind {
     ContainsText,
     MarkdownHeading,
-    MarkdownListItem,
+    ListItem,
     MarkdownTable,
     MarkdownLink,
     MarkdownImage,

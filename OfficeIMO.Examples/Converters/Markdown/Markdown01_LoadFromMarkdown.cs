@@ -36,7 +36,7 @@ var example = ""Hello World"";
 ![Logo]({imagePath})
 ";
 
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToWordDocument();
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToWord();
             string outputPath = Path.Combine(folderPath, "LoadFromMarkdown.docx");
             doc.Save(outputPath);
 

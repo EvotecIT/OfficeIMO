@@ -13,29 +13,24 @@ $priorities = @(
 $revenueGrowth = [math]::Round(($trend[-1].Revenue / $trend[0].Revenue - 1) * 100, 1)
 $marginChange = $trend[-1].Margin - $trend[0].Margin
 
-PptNew -Path $path {
-    PptSlideSize -Preset Screen16x9
+New-OfficePowerPoint -Path $path {
+    Set-OfficePowerPointSlideSize -Preset Screen16x9
 
-    PptSlide {
-        PptBackground -Color '#0F172A'
-        PptTextBox -Run @{ Text = 'NORTHWIND | YEAR-END REVIEW'; Color = '#5EEAD4'; FontSize = 18 } -X 60 -Y 90 -Width 840 -Height 40
-        PptTextBox -Run @{ Text = 'Quarterly Business Review'; Color = '#FFFFFF'; FontSize = 40; Bold = $true } -X 60 -Y 150 -Width 840 -Height 80
-        PptTextBox -Run @{ Text = 'Performance, decisions, and next-quarter priorities'; Color = '#CBD5E1'; FontSize = 22 } -X 60 -Y 250 -Width 840 -Height 70
-        PptNotes -Text 'Open with the outcome: growth continued and the team needs three decisions.'
-    }
+    $cover = PowerPointSlide -Background '#0F172A' -NoFooter -NoSlideNumber -PassThru
+    Add-OfficePowerPointTextBox -Slide $cover -Content { PowerPointText 'NORTHWIND | YEAR-END REVIEW' -Size 18 -Color '#5EEAD4' } -X 60 -Y 90 -Width 840 -Height 40
+    Add-OfficePowerPointTextBox -Slide $cover -Content { PowerPointText 'Quarterly Business Review' -Size 40 -Color '#FFFFFF' -Bold } -X 60 -Y 150 -Width 840 -Height 80
+    Add-OfficePowerPointTextBox -Slide $cover -Content { PowerPointText 'Performance, decisions, and next-quarter priorities' -Size 22 -Color '#CBD5E1' } -X 60 -Y 250 -Width 840 -Height 70
+    PowerPointNotes -Slide $cover -Text 'Open with the outcome: growth continued and the team needs three decisions.'
 
-    PptSlide {
-        PptTitle -Title 'Performance trend'
-        PptChart -Data $trend -CategoryProperty Quarter -SeriesProperty Revenue -Type ClusteredColumn -Title 'Revenue (USD millions)' -X 55 -Y 130 -Width 400 -Height 280
-        PptChart -Data $trend -CategoryProperty Quarter -SeriesProperty Margin -Type Line -Title 'Operating margin (%)' -X 500 -Y 130 -Width 400 -Height 280
-        PptTextBox -Run @{ Text = "Revenue grew $revenueGrowth% from Q1; margin improved $marginChange percentage points."; FontSize = 18; Color = '#0F172A' } -X 60 -Y 440 -Width 840 -Height 55
-        PptNotes -Text 'Explain the margin improvement before discussing revenue.'
-    }
+    $performance = PowerPointSlide -Title 'Performance trend' -PassThru
+    PowerPointChart -Slide $performance -InputObject $trend -Category Quarter -Value Revenue -Type Column -Title 'Revenue (USD millions)' -X 55 -Y 130 -Width 400 -Height 280
+    PowerPointChart -Slide $performance -InputObject $trend -Category Quarter -Value Margin -Type Line -Title 'Operating margin (%)' -X 500 -Y 130 -Width 400 -Height 280
+    Add-OfficePowerPointTextBox -Slide $performance -Content { PowerPointText "Revenue grew $revenueGrowth% from Q1; margin improved $marginChange percentage points." -Size 18 -Color '#0F172A' } -X 60 -Y 440 -Width 840 -Height 55
+    PowerPointNotes -Slide $performance -Text 'Explain the margin improvement before discussing revenue.'
 
-    PptSlide {
-        PptTitle -Title 'Next-quarter priorities'
-        PptTable -Data $priorities -X 55 -Y 130 -Width 840 -Height 200
-        PptBullets -Bullets 'Approve owners', 'Confirm targets', 'Review progress monthly' -X 80 -Y 365 -Width 800 -Height 130
-        PptNotes -Text 'Close by assigning each decision to a named owner.'
+    PowerPointSlide -Title 'Next-quarter priorities' {
+        PowerPointTable -InputObject $priorities
+        PowerPointList 'Approve owners', 'Confirm targets', 'Review progress monthly'
+        PowerPointNotes 'Close by assigning each decision to a named owner.'
     }
 }

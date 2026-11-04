@@ -1,3 +1,4 @@
+using OfficeIMO;
 using OfficeIMO.Drawing;
 using OfficeIMO.Drawing.HarfBuzz;
 using OfficeIMO.Pdf;
@@ -28,9 +29,9 @@ internal static class PdfBenchmarkCorpus {
 
     internal static PdfDocument CreateDocument(PdfObjectSerializationMode objectSerializationMode) {
         byte[] image = CreateImage();
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             CompressContentStreams = true,
-            DefaultFontSize = 10,
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
             FileVersion = objectSerializationMode == PdfObjectSerializationMode.ForwardOnly
                 ? PdfFileVersion.Pdf17
                 : PdfFileVersion.Pdf14,
@@ -41,10 +42,10 @@ internal static class PdfBenchmarkCorpus {
                 string[] boundaryItems = CreateBoundaryItems(page, page % 2 == 0 ? 6 : 5);
                 content
                     .H1("Operational report " + page)
-                    .Paragraph(paragraph => paragraph.Text(
+                    .AddParagraph(paragraph => paragraph.AddText(
                     "This deterministic page exercises parsing, text extraction, inspection, diagnostics, " +
                     "stream decoding, page-tree traversal, vector projection, image reuse, and managed rendering."))
-                    .Table(new[] {
+                    .AddTable(new[] {
                         new[] { "Metric", "Value", "Status" },
                         new[] { "Documents", (page * 37).ToString(), "Healthy" },
                         new[] { "Rules", (page * 11).ToString(), "Reviewed" },
@@ -52,18 +53,18 @@ internal static class PdfBenchmarkCorpus {
                         new[] { "Long value", "Wrapping content for table layout and width measurement on page " + page, "Measured" },
                         new[] { "Boundary", boundaryItems.Length.ToString(), "Validated" }
                     })
-                    .Bullets(boundaryItems)
+                    .AddList(boundaryItems)
                     .Row(row => row
-                        .Gap(12)
-                        .PercentColumn(50, column => column.Numbered(boundaryItems.Take(3)))
-                        .PercentColumn(50, column => column.Bullets(boundaryItems.Skip(2).Take(3))))
+                        .Gap(global::OfficeIMO.OfficeLength.Points(12))
+                        .PercentColumn(50, column => column.AddNumberedList(boundaryItems.Take(3)))
+                        .PercentColumn(50, column => column.AddList(boundaryItems.Skip(2).Take(3))))
                     .Rectangle(
-                        180,
-                        24,
-                        strokeColor: PdfColor.FromRgb(0, 64, 128),
-                        strokeWidth: 1.5,
-                        fillColor: PdfColor.FromRgb(220, 240, 252))
-                    .Image(image, 32, 32, alternativeText: "Deterministic benchmark image");
+                        global::OfficeIMO.OfficeLength.Points(180),
+                        global::OfficeIMO.OfficeLength.Points(24),
+                        strokeColor: global::OfficeIMO.OfficeColor.FromRgb(0, 64, 128),
+                        strokeWidth: global::OfficeIMO.OfficeLength.Points(1.5),
+                        fillColor: global::OfficeIMO.OfficeColor.FromRgb(220, 240, 252))
+                    .AddImage(image, global::OfficeIMO.OfficeLength.Points(32), global::OfficeIMO.OfficeLength.Points(32), altText: "Deterministic benchmark image");
                 if (page < PageCount) {
                     content.PageBreak();
                 }
@@ -83,9 +84,9 @@ internal static class PdfBenchmarkCorpus {
 
     internal static PdfDocument CreateHarfBuzzDocument() {
         byte[] fontData = CarlitoRegular.Value;
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             CompressContentStreams = true,
-            DefaultFontSize = 10,
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
             FileVersion = PdfFileVersion.Pdf17,
             ObjectSerializationMode = PdfObjectSerializationMode.ForwardOnly,
             TextShapingMode = PdfTextShapingMode.LatinLigatures
@@ -100,7 +101,7 @@ internal static class PdfBenchmarkCorpus {
             for (int page = 1; page <= PageCount; page++) {
                 content.H1("Shaped report " + page);
                 for (int paragraph = 0; paragraph < 12; paragraph++) {
-                    content.Paragraph(builder => builder.Text(shapedText));
+                    content.AddParagraph(builder => builder.AddText(shapedText));
                 }
                 if (page < PageCount) {
                     content.PageBreak();

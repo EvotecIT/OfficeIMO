@@ -1,7 +1,7 @@
 namespace OfficeIMO.Markdown;
 
 /// <summary>Built-in Prism themes.</summary>
-public enum PrismTheme {
+public enum MarkdownPrismTheme {
     /// <summary>Default light theme (prism.min.css).</summary>
     Prism,
     /// <summary>Okaidia dark theme (prism-okaidia.min.css).</summary>

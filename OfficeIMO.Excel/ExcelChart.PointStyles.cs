@@ -5,18 +5,18 @@ using OfficeIMO.OpenXml.Internal;
 namespace OfficeIMO.Excel;
 
 public sealed partial class ExcelChart {
-    internal void ApplySharedPointStyles(System.Collections.Generic.IReadOnlyList<OfficeChartSeries> series) {
+    internal void ApplySharedPointStyles(System.Collections.Generic.IReadOnlyList<OfficeSeries> series) {
         for (int index = 0; index < series.Count; index++) {
-            OfficeChartSeries data = series[index];
+            OfficeSeries data = series[index];
             if (data.PointStyles != null)
                 ApplySeriesByIndex(index, native => OfficeOpenXmlChartPointStyles.ApplySeries(native, data));
         }
         Save();
     }
 
-    internal void ApplySharedPointExplosions(System.Collections.Generic.IReadOnlyList<OfficeChartSeries> series) {
+    internal void ApplySharedPointExplosions(System.Collections.Generic.IReadOnlyList<OfficeSeries> series) {
         for (int index = 0; index < series.Count; index++) {
-            OfficeChartSeries data = series[index];
+            OfficeSeries data = series[index];
             if (data.PointExplosions != null)
                 ApplySeriesByIndex(index, native => OfficeOpenXmlChartExplosions.ApplySeries(native, data));
         }

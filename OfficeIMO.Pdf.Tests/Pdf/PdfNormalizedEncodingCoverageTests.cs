@@ -33,14 +33,14 @@ public sealed class PdfNormalizedEncodingCoverageTests {
         Assert.Equal(500, glyph.AdvanceWidth);
 
         var report = new PdfConversionReport();
-        PdfOptions options = (named
-            ? new PdfOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family, data))
-            : new PdfOptions().EmbedStandardFont(PdfStandardFont.Helvetica, data, family))
+        PdfCreateOptions options = (named
+            ? new PdfCreateOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family, data))
+            : new PdfCreateOptions().EmbedStandardFont(PdfStandardFont.Helvetica, data, family))
             .SetTextShapingMode(PdfTextShapingMode.OpenTypeLigatures)
             .ReportDiagnosticsTo(report);
         PdfDocument document = PdfDocument.Create(options).Paragraph(paragraph => {
-            if (named) paragraph.FontFamily(family);
-            paragraph.Text(source);
+            if (named) { paragraph.RunDefaults.FontFamily = family; paragraph.RunDefaults.StandardFont = null; }
+            paragraph.AddText(source);
         });
 
         Assert.Empty(document.AnalyzeTextEncoding());
@@ -49,17 +49,17 @@ public sealed class PdfNormalizedEncodingCoverageTests {
         // This single source cluster has no spatial-order ambiguity. Exact NFD
         // text proves the painted NFC glyph did not rewrite or duplicate source.
         Assert.Equal(source, PdfReadDocument.Open(bytes).ExtractText().Trim());
-        report.RequireNoLoss();
+        report.ThrowIfLoss();
     }
 
     [Fact]
     public void ExplicitScalarEncodingStillRejectsAnUnmappedOriginalMark() {
         const string source = "A\u0301";
         byte[] data = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(true, 'A', 0x00C1);
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .EmbedStandardFont(PdfStandardFont.Helvetica, data, "Scalar encoding")
             .SetTextShapingMode(PdfTextShapingMode.UnicodeScalar);
-        PdfDocument document = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text(source));
+        PdfDocument document = PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddText(source));
 
         PdfTextEncodingDiagnostic diagnostic = Assert.Single(document.AnalyzeTextEncoding());
         Assert.Equal(1, diagnostic.Index);

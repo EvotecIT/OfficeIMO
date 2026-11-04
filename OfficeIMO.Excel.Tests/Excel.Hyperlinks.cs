@@ -31,7 +31,7 @@ namespace OfficeIMO.Tests {
             if (File.Exists(filePath)) File.Delete(filePath);
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Links");
+                var sheet = document.AddSheet("Links");
                 sheet.SetHyperlink(1, 1, "https://initial.example/", display: "First");
                 sheet.SetHyperlink(1, 1, "https://final.example/", display: "Second");
                 document.Save();
@@ -64,9 +64,9 @@ namespace OfficeIMO.Tests {
             if (File.Exists(filePath)) File.Delete(filePath);
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Links");
-                var target1 = document.AddWorksheet("Target1");
-                var target2 = document.AddWorksheet("Target2");
+                var sheet = document.AddSheet("Links");
+                var target1 = document.AddSheet("Target1");
+                var target2 = document.AddSheet("Target2");
                 sheet.SetInternalLink(2, 1, target1, "A1", display: "First");
                 sheet.SetInternalLink(2, 1, target2, "B5", display: "Second");
                 document.Save();
@@ -99,8 +99,8 @@ namespace OfficeIMO.Tests {
             if (File.Exists(filePath)) File.Delete(filePath);
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Links");
-                var target = document.AddWorksheet("Target");
+                var sheet = document.AddSheet("Links");
+                var target = document.AddSheet("Target");
                 sheet.SetHyperlink(1, 1, "https://example.org/docs", display: "Docs", style: false, tooltip: "Open external docs");
                 sheet.SetInternalLink(2, 1, target, "B2", display: "Jump", style: false, tooltip: "Jump to target cell");
                 document.Save();
@@ -132,7 +132,7 @@ namespace OfficeIMO.Tests {
             if (File.Exists(filePath)) File.Delete(filePath);
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Links");
+                var sheet = document.AddSheet("Links");
                 sheet.SetHyperlink(1, 1, "https://shared.example/", display: "Primary");
                 sheet.SetHyperlink(1, 2, "https://shared.example/", display: "Secondary");
                 document.Save();

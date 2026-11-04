@@ -218,7 +218,7 @@ internal static class ExcelReadProfileRunner {
     }
 
     private static int OfficeImoReadObjectsAsCustomConverterFallback(byte[] workbookBytes, string dataRange) {
-        var options = new ExcelReadOptions {
+        var options = new ExcelReaderOptions {
             CellValueConverter = static _ => ExcelCellValue.NotHandled
         };
         using var reader = ExcelDocumentReader.Open(workbookBytes, options);
@@ -226,7 +226,7 @@ internal static class ExcelReadProfileRunner {
     }
 
     private static int OfficeImoReadObjectsAsCustomConverterCultureFallback(byte[] workbookBytes, string dataRange) {
-        var options = new ExcelReadOptions {
+        var options = new ExcelReaderOptions {
             Culture = System.Globalization.CultureInfo.GetCultureInfo("pl-PL"),
             CellValueConverter = static _ => ExcelCellValue.NotHandled
         };
@@ -240,7 +240,7 @@ internal static class ExcelReadProfileRunner {
     }
 
     private static int OfficeImoReadObjectsStreamAsCustomConverterFallback(byte[] workbookBytes, string dataRange) {
-        var options = new ExcelReadOptions {
+        var options = new ExcelReaderOptions {
             CellValueConverter = static _ => ExcelCellValue.NotHandled
         };
         using var reader = ExcelDocumentReader.Open(workbookBytes, options);
@@ -248,7 +248,7 @@ internal static class ExcelReadProfileRunner {
     }
 
     private static int OfficeImoReadObjectsStreamAsCustomConverterCultureFallback(byte[] workbookBytes, string dataRange) {
-        var options = new ExcelReadOptions {
+        var options = new ExcelReaderOptions {
             Culture = System.Globalization.CultureInfo.GetCultureInfo("pl-PL"),
             CellValueConverter = static _ => ExcelCellValue.NotHandled
         };
@@ -268,19 +268,19 @@ internal static class ExcelReadProfileRunner {
     }
 
     private static int OfficeImoReadDataTableHeadersNoInference(byte[] workbookBytes, string dataRange) {
-        using var reader = ExcelDocumentReader.Open(workbookBytes, new ExcelReadOptions { InferDataTableColumnTypes = false });
+        using var reader = ExcelDocumentReader.Open(workbookBytes, new ExcelReaderOptions { InferDataTableColumnTypes = false });
         DataTable table = reader.GetSheet("Data").ReadRangeAsDataTable(dataRange, headersInFirstRow: true, mode: ExcelExecutionMode.Sequential);
         return table.Rows.Count + table.Columns.Count;
     }
 
     private static int OfficeImoReadDataTableNoHeadersNoInference(byte[] workbookBytes, string dataRange) {
-        using var reader = ExcelDocumentReader.Open(workbookBytes, new ExcelReadOptions { InferDataTableColumnTypes = false });
+        using var reader = ExcelDocumentReader.Open(workbookBytes, new ExcelReaderOptions { InferDataTableColumnTypes = false });
         DataTable table = reader.GetSheet("Data").ReadRangeAsDataTable(dataRange, headersInFirstRow: false, mode: ExcelExecutionMode.Sequential);
         return table.Rows.Count + table.Columns.Count;
     }
 
     private static int OfficeImoReadDataTableCustomConverterFallback(byte[] workbookBytes, string dataRange) {
-        var options = new ExcelReadOptions {
+        var options = new ExcelReaderOptions {
             CellValueConverter = static _ => ExcelCellValue.NotHandled
         };
         using var reader = ExcelDocumentReader.Open(workbookBytes, options);
@@ -289,7 +289,7 @@ internal static class ExcelReadProfileRunner {
     }
 
     private static int OfficeImoReadDataTableCustomConverterCultureFallback(byte[] workbookBytes, string dataRange) {
-        var options = new ExcelReadOptions {
+        var options = new ExcelReaderOptions {
             Culture = System.Globalization.CultureInfo.GetCultureInfo("pl-PL"),
             CellValueConverter = static _ => ExcelCellValue.NotHandled
         };
@@ -332,7 +332,7 @@ internal static class ExcelReadProfileRunner {
     }
 
     private static int OfficeImoReadRangeStreamCustomConverterFallback(byte[] workbookBytes, string dataRange) {
-        var options = new ExcelReadOptions {
+        var options = new ExcelReaderOptions {
             CellValueConverter = static _ => ExcelCellValue.NotHandled
         };
         using var reader = ExcelDocumentReader.Open(workbookBytes, options);
@@ -340,7 +340,7 @@ internal static class ExcelReadProfileRunner {
     }
 
     private static int OfficeImoReadRangeStreamCustomConverterCultureFallback(byte[] workbookBytes, string dataRange) {
-        var options = new ExcelReadOptions {
+        var options = new ExcelReaderOptions {
             Culture = System.Globalization.CultureInfo.GetCultureInfo("pl-PL"),
             CellValueConverter = static _ => ExcelCellValue.NotHandled
         };
@@ -363,7 +363,7 @@ internal static class ExcelReadProfileRunner {
     }
 
     private static int OfficeImoReadRowsDenseCustomConverterFallback(byte[] workbookBytes, string dataRange) {
-        var options = new ExcelReadOptions {
+        var options = new ExcelReaderOptions {
             CellValueConverter = static _ => ExcelCellValue.NotHandled
         };
         using var reader = ExcelDocumentReader.Open(workbookBytes, options);
@@ -371,7 +371,7 @@ internal static class ExcelReadProfileRunner {
     }
 
     private static int OfficeImoReadRowsDenseCustomConverterCultureFallback(byte[] workbookBytes, string dataRange) {
-        var options = new ExcelReadOptions {
+        var options = new ExcelReaderOptions {
             Culture = System.Globalization.CultureInfo.GetCultureInfo("pl-PL"),
             CellValueConverter = static _ => ExcelCellValue.NotHandled
         };
@@ -404,7 +404,7 @@ internal static class ExcelReadProfileRunner {
     }
 
     private static int OfficeImoReadDenseColumnCustomConverterFallback(byte[] workbookBytes, string columnRange) {
-        var options = new ExcelReadOptions {
+        var options = new ExcelReaderOptions {
             CellValueConverter = static _ => ExcelCellValue.NotHandled
         };
         using var reader = ExcelDocumentReader.Open(workbookBytes, options);
@@ -412,7 +412,7 @@ internal static class ExcelReadProfileRunner {
     }
 
     private static int OfficeImoReadDenseColumnCustomConverterCultureFallback(byte[] workbookBytes, string columnRange) {
-        var options = new ExcelReadOptions {
+        var options = new ExcelReaderOptions {
             Culture = System.Globalization.CultureInfo.GetCultureInfo("pl-PL"),
             CellValueConverter = static _ => ExcelCellValue.NotHandled
         };
@@ -514,15 +514,15 @@ internal static class ExcelReadProfileRunner {
     private static int OfficeImoAutoFilterByHeadersLoaded(ExcelSheet sheet) {
         int appliedFilters = 0;
         for (int i = 0; i < HeaderOperationIterations; i++) {
-            sheet.AutoFilterByHeadersEquals(
-                ("Id", new[] { "1" }),
-                ("Region", new[] { "North" }),
-                ("Owner", new[] { "Owner 1", "Owner 2" }),
-                ("CreatedOn", new[] { "2024-01-01" }),
-                ("Amount", new[] { "100" }),
-                ("Units", new[] { "3" }),
-                ("Active", new[] { "TRUE" }),
-                ("Notes", new[] { "Note 1" }));
+            sheet.UsedRange.AutoFilter()
+                .Column("Id").Equals("1")
+                .Column("Region").Equals("North")
+                .Column("Owner").Equals("Owner 1", "Owner 2")
+                .Column("CreatedOn").Equals("2024-01-01")
+                .Column("Amount").Equals("100")
+                .Column("Units").Equals("3")
+                .Column("Active").Equals("TRUE")
+                .Column("Notes").Equals("Note 1");
             appliedFilters += 8;
         }
 
@@ -535,7 +535,7 @@ internal static class ExcelReadProfileRunner {
     }
 
     private static int OfficeImoReadSparseColumnCustomConverterFallback(byte[] workbookBytes, string sparseRange, int expectedRows) {
-        var options = new ExcelReadOptions {
+        var options = new ExcelReaderOptions {
             CellValueConverter = static _ => ExcelCellValue.NotHandled
         };
         using var reader = ExcelDocumentReader.Open(workbookBytes, options);
@@ -592,9 +592,9 @@ internal static class ExcelReadProfileRunner {
     private static byte[] CreateSparseWorkbookBytes(int lastRow) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Header");
-            sheet.CellValue(lastRow, 1, "Tail");
+            var sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Header");
+            sheet.Cell(lastRow, 1).SetValue("Tail");
             document.Save(stream);
         }
 
@@ -604,27 +604,27 @@ internal static class ExcelReadProfileRunner {
     private static byte[] CreateMixedTypeWorkbookBytes(int rowCount) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Id");
-            sheet.CellValue(1, 2, "Region");
-            sheet.CellValue(1, 3, "Owner");
-            sheet.CellValue(1, 4, "CreatedOn");
-            sheet.CellValue(1, 5, "Amount");
-            sheet.CellValue(1, 6, "Units");
-            sheet.CellValue(1, 7, "Active");
-            sheet.CellValue(1, 8, "Notes");
+            var sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Id");
+            sheet.Cell(1, 2).SetValue("Region");
+            sheet.Cell(1, 3).SetValue("Owner");
+            sheet.Cell(1, 4).SetValue("CreatedOn");
+            sheet.Cell(1, 5).SetValue("Amount");
+            sheet.Cell(1, 6).SetValue("Units");
+            sheet.Cell(1, 7).SetValue("Active");
+            sheet.Cell(1, 8).SetValue("Notes");
 
             for (int i = 0; i < rowCount; i++) {
                 int row = i + 2;
                 bool even = (i & 1) == 0;
-                sheet.CellValue(row, 1, even ? i + 1 : $"ID-{i + 1}");
-                sheet.CellValue(row, 2, even ? "North" : i);
-                sheet.CellValue(row, 3, even ? $"Owner {i % 13}" : i + 1000);
-                sheet.CellValue(row, 4, even ? new DateTime(2024, 1, 1).AddDays(i) : $"2024-{(i % 12) + 1:00}");
-                sheet.CellValue(row, 5, even ? i * 1.25D : $"Amount {i}");
-                sheet.CellValue(row, 6, even ? i % 17 : $"Units {i % 17}");
-                sheet.CellValue(row, 7, even ? i % 2 == 0 : $"Active {i % 2}");
-                sheet.CellValue(row, 8, even ? $"Note {i}" : i * 2.0D);
+                sheet.Cell(row, 1).SetValue(even ? i + 1 : $"ID-{i + 1}");
+                sheet.Cell(row, 2).SetValue(even ? "North" : i);
+                sheet.Cell(row, 3).SetValue(even ? $"Owner {i % 13}" : i + 1000);
+                sheet.Cell(row, 4).SetValue(even ? new DateTime(2024, 1, 1).AddDays(i) : $"2024-{(i % 12) + 1:00}");
+                sheet.Cell(row, 5).SetValue(even ? i * 1.25D : $"Amount {i}");
+                sheet.Cell(row, 6).SetValue(even ? i % 17 : $"Units {i % 17}");
+                sheet.Cell(row, 7).SetValue(even ? i % 2 == 0 : $"Active {i % 2}");
+                sheet.Cell(row, 8).SetValue(even ? $"Note {i}" : i * 2.0D);
             }
 
             document.Save(stream);
@@ -636,18 +636,18 @@ internal static class ExcelReadProfileRunner {
     private static byte[] CreateSharedStringHeavyWorkbookBytes(int rowCount) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Id");
-            sheet.CellValue(1, 2, "Region");
-            sheet.CellValue(1, 3, "Owner");
-            sheet.CellValue(1, 4, "Notes");
+            var sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Id");
+            sheet.Cell(1, 2).SetValue("Region");
+            sheet.Cell(1, 3).SetValue("Owner");
+            sheet.Cell(1, 4).SetValue("Notes");
 
             for (int i = 0; i < rowCount; i++) {
                 int row = i + 2;
-                sheet.CellValue(row, 1, $"ID-{i + 1:000000}");
-                sheet.CellValue(row, 2, $"Region {i:000000}");
-                sheet.CellValue(row, 3, $"Owner {i:000000}");
-                sheet.CellValue(row, 4, $"Unique note payload {i:000000}");
+                sheet.Cell(row, 1).SetValue($"ID-{i + 1:000000}");
+                sheet.Cell(row, 2).SetValue($"Region {i:000000}");
+                sheet.Cell(row, 3).SetValue($"Owner {i:000000}");
+                sheet.Cell(row, 4).SetValue($"Unique note payload {i:000000}");
             }
 
             document.Save(stream);

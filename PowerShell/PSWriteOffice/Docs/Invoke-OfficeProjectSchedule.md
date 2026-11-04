@@ -9,7 +9,7 @@ schema: 2.0.0
 Explicitly calculates a schedule and optionally applies its dates.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
 Invoke-OfficeProjectSchedule -Document <ProjectDocument> [-CalculateAssignments] [-Apply] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
@@ -32,7 +32,7 @@ Apply an error-free result to this project. Otherwise return a calculation witho
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -48,7 +48,7 @@ Also calculate assignment work and costs.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -64,7 +64,7 @@ Project to inspect or change.
 
 ```yaml
 Type: ProjectDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 

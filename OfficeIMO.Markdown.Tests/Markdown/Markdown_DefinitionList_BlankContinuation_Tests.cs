@@ -24,9 +24,9 @@ lazy continuation
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var paragraphSyntax = definitionValue.Children.Where(child => child.Kind == MarkdownSyntaxKind.Paragraph).ToArray();
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
-        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
-        var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = result.Document.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsedOffice = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal("First paragraph", firstParagraph.Inlines.RenderMarkdown());
@@ -101,9 +101,9 @@ lazy continuation
         var listItemSyntax = listSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.ListItem);
         var itemParagraphSyntax = listItemSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.Paragraph);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
-        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
-        var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = result.Document.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsedOffice = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal("First", firstParagraph.Inlines.RenderMarkdown());
@@ -173,9 +173,9 @@ lazy continuation
         var quoteSyntax = definitionValue.Children.Single(child => child.Kind == MarkdownSyntaxKind.Quote);
         var quoteParagraphSyntax = quoteSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.Paragraph);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
-        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
-        var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = result.Document.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsedOffice = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal("First", firstParagraph.Inlines.RenderMarkdown());
@@ -251,15 +251,15 @@ lazy continuation
         return builder.Build();
     }
 
-    private static MarkdownReaderOptions CreateMarkdigDefinitionListReaderOptions() {
-        var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+    private static MarkdownLoadOptions CreateMarkdigDefinitionListReaderOptions() {
+        var options = MarkdownLoadOptions.CreateCommonMarkProfile();
         options.DefinitionLists = true;
         return options;
     }
 
-    private static HtmlOptions CreateMarkdigDefinitionListHtmlOptions() => new() {
-        Style = HtmlStyle.Plain,
-        CssDelivery = CssDelivery.None,
+    private static MarkdownHtmlExportOptions CreateMarkdigDefinitionListHtmlOptions() => new() {
+        Style = MarkdownHtmlStyle.Plain,
+        CssDelivery = MarkdownCssDelivery.None,
         BodyClass = null,
         AutoHeadingIdentifiers = false
     };

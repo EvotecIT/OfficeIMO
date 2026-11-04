@@ -12,7 +12,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Retrieves bounded image content for OfficeIMO packages that explicitly opt into remote I/O.
 /// </summary>
-public static class OfficeRemoteImageLoader {
+internal static class OfficeRemoteImageLoader {
     private const int BufferSize = 81920;
 #if NET8_0_OR_GREATER
     private static readonly HttpClient PublicClient = CreatePinnedClient(

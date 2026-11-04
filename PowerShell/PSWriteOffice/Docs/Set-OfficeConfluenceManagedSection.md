@@ -9,7 +9,7 @@ schema: 2.0.0
 Safely replaces one marker-delimited section in a Confluence storage body.
 
 ## SYNTAX
-### __AllParameterSets
+### ExistingBody (Default)
 ```powershell
 Set-OfficeConfluenceManagedSection -ExistingBody <string> -SectionId <string> -Replacement <string> [-AppendIfMissing] [-PassThruBody] [<CommonParameters>]
 ```
@@ -33,7 +33,7 @@ Append a new marker pair when the section does not exist.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: ExistingBody
 Aliases: None
 Possible values:
 
@@ -49,7 +49,7 @@ Existing Confluence storage body.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: ExistingBody
 Aliases: None
 Possible values:
 
@@ -65,7 +65,7 @@ Return only the updated body string.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: ExistingBody
 Aliases: None
 Possible values:
 
@@ -81,7 +81,7 @@ Replacement storage-format content.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: ExistingBody
 Aliases: None
 Possible values:
 
@@ -97,7 +97,7 @@ Stable marker identifier.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: ExistingBody
 Aliases: None
 Possible values:
 

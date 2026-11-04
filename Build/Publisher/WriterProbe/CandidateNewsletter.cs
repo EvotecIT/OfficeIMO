@@ -14,7 +14,7 @@ internal static class CandidateNewsletter {
         document.AddPage(master.Id);
         document.AddPage(master.Id);
         Text(master.Id, "Community newsletter", 36, 30, 432, 42, 20, true);
-        PublisherPicture logo = document.AddPicture(master.Id, image, 504, 24, 72, 48);
+        PublisherPicture logo = document.AddImage(master.Id, image, 504, 24, 72, 48);
         var rule = OfficeShape.Rectangle(540, 6);
         rule.FillColor = OfficeColor.Blue; rule.StrokeColor = null;
         document.AddShape(master.Id, rule, 36, 84);
@@ -37,7 +37,7 @@ internal static class CandidateNewsletter {
             string.Concat(Enumerable.Repeat("Small projects help neighbors share skills and improve shared spaces. ", 10)).TrimEnd(),
             36, 120, 540, 240);
         document.SetTextFrameLayout(columns.Id, 2, 18, new OfficeTextPadding(6, 9, 12, 3), OfficeTextVerticalAlignment.Top);
-        document.AddPicture(document.Pages[1].Id, logo.ImageId!.Value, 36, 420, 144, 96);
+        document.AddImage(document.Pages[1].Id, logo.ImageId!.Value, 36, 420, 144, 96);
         Text(document.Pages[2].Id, "Thank you for taking part. Send your ideas for the next issue.", 36, 360, 540, 72);
         return document;
 

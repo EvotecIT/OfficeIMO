@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
         public void SlideLayoutMethodsAcceptOfficeIMOType() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 int textLayout = presentation.GetLayoutIndex(PowerPointSlideLayoutType.Text);
                 PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.Text);
 

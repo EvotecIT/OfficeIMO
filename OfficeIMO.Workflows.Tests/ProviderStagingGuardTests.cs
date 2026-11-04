@@ -9,9 +9,9 @@ namespace OfficeIMO.Workflows.Tests {
         public async Task ProviderOutputAppliesPublicationPolicyWithoutLocalDestinationStagingChecks(bool allowPublication) {
             using var scope = new Scope();
             string source = Path.Combine(scope.Root, "source.pdf");
-            byte[] sourceBytes = PdfDocument.Create(document => document.Page(page => page.Size(240, 320))).ToBytes();
+            byte[] sourceBytes = PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(320)))).ToBytes();
             File.WriteAllBytes(source, sourceBytes);
-            byte[] original = PdfDocument.Create(document => document.Page(page => page.Size(120, 160).Margin(0))).ToBytes();
+            byte[] original = PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(160)).Margin(global::OfficeIMO.OfficeLength.Points(0)))).ToBytes();
             byte[] destination = original;
             int writes = 0;
             const string providerLocation = "content://provider/selected";
@@ -22,7 +22,7 @@ namespace OfficeIMO.Workflows.Tests {
                 InputPath = source,
                 Operation = OfficeWorkflowOperation.Optimize,
                 OutputPath = providerLocation,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                ConflictPolicy = OfficePublicationPolicy.Replace,
                 PublicationGuard = guard,
                 OutputStream = new OfficeWorkflowStreamOutput("selected.pdf",
                     _ => Task.FromResult<Stream>(new MemoryStream(destination)),
@@ -52,7 +52,7 @@ namespace OfficeIMO.Workflows.Tests {
         public async Task LocalDestinationStagingPolicyRejectsBeforeCreatingAnUnadmittedDirectory() {
             using var scope = new Scope();
             string source = Path.Combine(scope.Root, "source.pdf");
-            PdfDocument.Create(document => document.Page(page => page.Size(240, 320))).Save(source);
+            PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(320)))).Save(source);
             string unadmitted = Path.Combine(scope.Root, "unadmitted", "output.pdf");
             var guard = new DestinationGuard(Path.Combine(scope.Root, "allowed"), "content://provider/selected", true);
 
@@ -70,22 +70,22 @@ namespace OfficeIMO.Workflows.Tests {
         }
 
         private sealed class DestinationGuard(string allowedLocalRoot, string providerLocation, bool allowPublication)
-            : IOfficeWorkflowPublicationGuard, IOfficeWorkflowStagingGuard {
+            : IOfficePublicationGuard, IOfficeStagingGuard {
             internal string AllowedLocalRoot { get; } = allowedLocalRoot;
             internal int PublicationChecks { get; private set; }
 
-            public ValueTask EnsureStagingDirectoryAllowedAsync(string directory, CancellationToken cancellationToken) {
+            public Task EnsureStagingDirectoryAllowedAsync(string directory, CancellationToken cancellationToken) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!string.Equals(Path.GetFullPath(directory), Path.GetFullPath(AllowedLocalRoot), StringComparison.Ordinal)) {
                     throw new UnauthorizedAccessException("Only the configured local output root is admitted for destination staging.");
                 }
-                return ValueTask.CompletedTask;
+                return Task.CompletedTask;
             }
 
-            public ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken cancellationToken) {
+            public Task<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken cancellationToken) {
                 cancellationToken.ThrowIfCancellationRequested();
                 PublicationChecks++;
-                return ValueTask.FromResult(allowPublication && string.Equals(path, providerLocation, StringComparison.Ordinal));
+                return Task.FromResult(allowPublication && string.Equals(path, providerLocation, StringComparison.Ordinal));
             }
         }
 

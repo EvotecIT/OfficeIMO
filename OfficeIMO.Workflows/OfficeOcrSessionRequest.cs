@@ -4,12 +4,12 @@ namespace OfficeIMO.Workflows;
 public sealed class OfficeOcrSessionRequest {
     /// <summary>Creates a searchable-PDF session item.</summary>
     public OfficeOcrSessionRequest(string id, PdfSearchableWorkflowRequest request) {
-        if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("A session item needs an id.", nameof(id));
+        if ((id == null || string.IsNullOrWhiteSpace(id))) throw new ArgumentException("A session item needs an id.", nameof(id));
         Id = id; Pdf = request ?? throw new ArgumentNullException(nameof(request));
     }
     /// <summary>Creates an image-to-text session item.</summary>
     public OfficeOcrSessionRequest(string id, ImageOcrWorkflowRequest request) {
-        if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("A session item needs an id.", nameof(id));
+        if ((id == null || string.IsNullOrWhiteSpace(id))) throw new ArgumentException("A session item needs an id.", nameof(id));
         Id = id; Image = request ?? throw new ArgumentNullException(nameof(request));
     }
     /// <summary>Caller identifier, unique within one session.</summary>

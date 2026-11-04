@@ -1,6 +1,8 @@
 using System.IO;
 using System.Management.Automation;
+using System.Security;
 using OfficeIMO.Pdf;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Pdf;
@@ -38,7 +40,8 @@ public sealed class MoveOfficePdfPageCommand : PSWriteOffice.Cmdlets.OfficeMutat
 
     /// <summary>Password used to authenticate an encrypted PDF.</summary>
     [Parameter]
-    public string? Password { get; set; }
+    [OfficePasswordTransformation]
+    public SecureString? Password { get; set; }
 
     /// <summary>After successful password authentication, explicitly ignore owner-imposed assembly restrictions.</summary>
     [Parameter]
@@ -55,7 +58,7 @@ public sealed class MoveOfficePdfPageCommand : PSWriteOffice.Cmdlets.OfficeMutat
         PdfDocument.Load(
                 PdfCommandUtilities.ResolvePath(this, Path),
                 PdfCommandUtilities.CreateReadOptions(Password, IgnorePermissionRestrictions.IsPresent))
-            .Pages.Move(BeforePage, PageRange).Save(outputPath).RequireSuccess();
+            .Pages.Move(BeforePage, PageRange).Save(outputPath);
         WritePassThru(new FileInfo(outputPath));
     }
 }

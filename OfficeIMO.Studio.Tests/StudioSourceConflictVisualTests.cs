@@ -20,7 +20,7 @@ public sealed class StudioSourceConflictVisualTests {
             services.Preferences.Update(current => current with { Theme = dark ? StudioThemePreference.Dark : StudioThemePreference.Light });
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "Report edited in another application.pdf");
-            PdfDocument.Create(document => document.Page(page => page.Size(200, 300))).Save(source);
+            PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300)))).Save(source);
             var window = new MainWindow(services) { Width = width, Height = height };
             try {
                 window.Show();
@@ -28,7 +28,7 @@ public sealed class StudioSourceConflictVisualTests {
                 var model = window.ViewModel;
                 model.SetOrganizerSelection([model.OrganizerPages[0]]);
                 await model.DuplicateSelectedCommand.ExecuteAsync(null);
-                byte[] external = PdfDocument.Create(document => document.Page(page => page.Size(300, 400))).ToBytes();
+                byte[] external = PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)))).ToBytes();
                 File.WriteAllBytes(source, external);
                 await model.SaveCommand.ExecuteAsync(null);
                 await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background);

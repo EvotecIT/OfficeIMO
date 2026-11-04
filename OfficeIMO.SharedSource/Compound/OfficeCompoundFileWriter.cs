@@ -127,7 +127,8 @@ namespace OfficeIMO.Core.Internal {
             return false;
         }
 
-        private static void Write(Stream output, OfficeCompoundWriterLayout directoryLayout, Guid? rootClassId, CancellationToken cancellationToken = default) {
+        /// <summary>Writes a layout prepared before the caller mutates its destination.</summary>
+        internal static void Write(Stream output, OfficeCompoundWriterLayout directoryLayout, Guid? rootClassId, CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
             PaddedStream[] paddedStreams = directoryLayout.Streams
                 .Select(PadStream)
@@ -211,7 +212,8 @@ namespace OfficeIMO.Core.Internal {
             return GetSerializedLength(OfficeCompoundWriterLayout.Create(streams));
         }
 
-        private static long GetSerializedLength(OfficeCompoundWriterLayout layout) {
+        /// <summary>Measures a prepared layout without rebuilding its directory or serializing its streams.</summary>
+        internal static long GetSerializedLength(OfficeCompoundWriterLayout layout) {
             int regularStreamSectorCount = 0;
             int miniSectorCount = 0;
             foreach (OfficeCompoundWriterEntry stream in layout.Streams) {

@@ -1,9 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Xml;
 using System.Xml.Linq;
 
 namespace OfficeIMO.Drawing;
@@ -282,6 +277,12 @@ public static partial class OfficeSvgDrawingReader {
             _ => null
         };
         if (shape == null) {
+            // Space glyphs can legitimately export an empty path. It has no paint;
+            // an authored filter may still generate paint and keeps the ordinary fallback.
+            if (name == "path" && string.IsNullOrWhiteSpace(element.Attribute("d")?.Value)) {
+                string? filter = ReadPresentationProperty(element, "filter");
+                if (string.IsNullOrWhiteSpace(filter) || string.Equals(filter, "none", StringComparison.OrdinalIgnoreCase)) return;
+            }
             unsupported++;
             return;
         }

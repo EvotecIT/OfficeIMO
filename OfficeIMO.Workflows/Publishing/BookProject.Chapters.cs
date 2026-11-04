@@ -30,7 +30,7 @@ public sealed partial class BookProject {
 
     /// <summary>Appends a chapter, retaining the first XHTML chapter's head and resolving its resource references from the new location.</summary>
     public string AddChapter(string title, CancellationToken cancellationToken = default) {
-        ArgumentException.ThrowIfNullOrWhiteSpace(title);
+        if ((title == null || string.IsNullOrWhiteSpace(title))) throw new ArgumentException("A non-empty value is required.", nameof(title));
         string addedId = string.Empty;
         Mutate(proposed => {
             int next = 1;

@@ -4,7 +4,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
     /// <summary>Creates a portable release-readiness checklist with explicit gates and a rollback record.</summary>
     internal static class ReleaseChecklist {
         internal static void Create(string folder) {
-            var document = MarkdownDoc.Create()
+            var document = MarkdownDocument.Create()
                 .H1("Release readiness checklist")
                 .P("Northwind request portal / release candidate 1.4 / illustrative process")
                 .H2("Verify the candidate")

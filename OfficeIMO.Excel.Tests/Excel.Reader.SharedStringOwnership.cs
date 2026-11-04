@@ -52,14 +52,14 @@ namespace OfficeIMO.Excel.Tests {
         }
 
         private static void AssertSharedStringReaderValues(string path, string[] expected) {
-            var options = new ExcelReadOptions {
+            var options = new ExcelReaderOptions {
                 MaxSharedStringItems = expected.Length,
                 MaxSharedStringItemCharacters = expected.Max(value => value.Length),
                 MaxSharedStringCharacters = expected.Sum(value => (long)value.Length)
             };
             foreach (CultureInfo culture in new[] { CultureInfo.InvariantCulture, CultureInfo.GetCultureInfo("de-DE") }) {
                 options.Culture = culture;
-                using (var reader = ExcelDocument.OpenDataReader(path, options)) {
+                using (var reader = ExcelDocument.OpenReader(path, options)) {
                     Assert.Equal("Value", reader.GetName(0));
                     for (int row = 0; row < expected.Length; row++) {
                         Assert.True(reader.Read());

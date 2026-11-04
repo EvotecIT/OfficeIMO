@@ -4,7 +4,7 @@ namespace OfficeIMO.Excel.LegacyXls {
     /// <summary>
     /// Controls legacy binary Excel import behavior.
     /// </summary>
-    public sealed class LegacyXlsImportOptions {
+    internal sealed class LegacyXlsImportOptions {
         /// <summary>
         /// Maximum size, in bytes, of the extracted workbook input stream.
         /// </summary>

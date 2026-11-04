@@ -4,7 +4,7 @@ using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Excel.LegacyXls.Compound {
     internal static class LegacyCompoundFeatureScanner {
-        private const string DigitalSignatureCode = "XLS-COMPOUND-FEATURE-DIGITAL-SIGNATURE-DIAGNOSED";
+        private const string DigitalSignatureCode = "xls-compound-feature-digital-signature-diagnosed";
 
         internal static void AddPreserveOnlyFeatures(
             OfficeCompoundFile compoundFile,

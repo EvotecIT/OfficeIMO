@@ -343,13 +343,13 @@ internal static partial class PdfDocumentSemanticEnricher {
         IEnumerable<PdfInferenceEvidence> evidence = region.Evidence;
         if (region.Caption is not null && !ReferenceEquals(region.Caption, caption)) {
             evidence = evidence.Where(static item =>
-                !string.Equals(item.Code, "image-region.caption-proximity", StringComparison.Ordinal) &&
-                !string.Equals(item.Code, "image-region.paint-order", StringComparison.Ordinal));
+                !string.Equals(item.Code, "image-region-caption-proximity", StringComparison.Ordinal) &&
+                !string.Equals(item.Code, "image-region-paint-order", StringComparison.Ordinal));
         }
-        if (!evidence.Any(static item => string.Equals(item.Code, "image-region.tagged-caption", StringComparison.Ordinal))) {
+        if (!evidence.Any(static item => string.Equals(item.Code, "image-region-tagged-caption", StringComparison.Ordinal))) {
             evidence = evidence.Concat(new[] {
                 new PdfInferenceEvidence(
-                    "image-region.tagged-caption",
+                    "image-region-tagged-caption",
                     "An unambiguous tagged-PDF Figure and Caption structure relationship owns the image and caption content.",
                     0.99D)
             });

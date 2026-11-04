@@ -70,7 +70,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
     }
 
     private static NamedRangeConversionPlan BuildNamedRangeConversionPlan(
-        IReadOnlyList<ExcelNamedRangeSnapshot> namedRanges) {
+        IReadOnlyList<ExcelNamedRangeInspectionInfo> namedRanges) {
         var entries = new List<NamedRangeConversionEntry>();
         var globalNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var localNames = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
@@ -79,7 +79,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         int unsupportedExpressionCount = 0;
         int disambiguatedCount = 0;
 
-        foreach (ExcelNamedRangeSnapshot named in namedRanges) {
+        foreach (ExcelNamedRangeInspectionInfo named in namedRanges) {
             if (named.IsBuiltIn) {
                 builtInCount++;
                 continue;

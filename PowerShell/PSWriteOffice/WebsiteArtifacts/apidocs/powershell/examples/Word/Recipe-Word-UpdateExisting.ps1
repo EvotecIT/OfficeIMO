@@ -1,10 +1,10 @@
 $path = '.\Word-Updated-In-Place.docx'
-WordNew -Path $path {
+New-OfficeWord -Path $path {
     WordSection {
         WordParagraph -Text 'FY24 Service Review' -Style Heading1
         WordParagraph {
             WordText 'Open the '
-            WordHyperlink -Text 'FY24 portal' -Url 'https://reports.example.test/FY24' -Tooltip 'FY24 reports'
+            WordText -Text 'FY24 portal' -Link 'https://reports.example.test/FY24' -Tooltip 'FY24 reports'
             WordText ' for supporting evidence.'
         }
         WordParagraph {

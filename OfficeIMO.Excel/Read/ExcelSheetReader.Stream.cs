@@ -19,7 +19,7 @@ namespace OfficeIMO.Excel {
         public IEnumerable<RangeChunk> ReadRangeStream(string a1Range, int chunkRows = 1024, OfficeIMO.Excel.ExcelExecutionMode? mode = null, CancellationToken ct = default) {
             if (chunkRows <= 0) throw new ArgumentOutOfRangeException(nameof(chunkRows), "Chunk row count must be greater than zero.");
 
-            (int r1, int c1, int r2, int c2) = A1.ParseRange(a1Range);
+            (int r1, int c1, int r2, int c2) = ExcelA1.ParseRange(a1Range);
             if (r1 > r2 || c1 > c2) yield break;
 
             bool canCancel = ct.CanBeCanceled;

@@ -141,7 +141,7 @@ public sealed partial class RtfLosslessEditor {
     /// <summary>
     /// Reads the edited syntax tree into a fresh semantic model.
     /// </summary>
-    public RtfReadResult ToReadResult(RtfReadOptions? options = null) => RtfDocument.Read(ToRtf(), options);
+    public RtfReadResult ToReadResult(RtfLoadOptions? options = null) => RtfDocument.ParseResult(ToRtf(), options);
 
     private static RtfGroup RewriteGroup(RtfGroup group, bool skipTextReplacement, Func<RtfNode, RtfNode> rewriteNode) {
         bool childSkip = skipTextReplacement || ShouldSkipTextReplacement(group);
@@ -461,6 +461,8 @@ public sealed partial class RtfLosslessEditor {
             AppendWithSkip("\u2011", builder, state);
         } else if (symbol.Symbol == '-') {
             AppendWithSkip("\u00AD", builder, state);
+        } else if (symbol.IsParagraphBreak) {
+            AppendWithSkip(Environment.NewLine, builder, state);
         }
     }
 

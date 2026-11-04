@@ -6,38 +6,60 @@ schema: 2.0.0
 ---
 # Get-OfficePowerPointTheme
 ## SYNOPSIS
-Gets theme information for a PowerPoint presentation master.
+Reads the selected slide master's theme, colors and fonts.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
-Get-OfficePowerPointTheme [-Presentation <PowerPointPresentation>] [-Master <int>] [<CommonParameters>]
+Get-OfficePowerPointTheme [[-Document] <PowerPointDocument>] [-Master <int>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Gets theme information for a PowerPoint presentation master.
+Reads the selected slide master's theme, colors and fonts.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $ppt = New-OfficePowerPoint -Path .\Examples\Documents\PowerPointThemeRead.pptx -NoSave
-Set-OfficePowerPointThemeName -Presentation $ppt -Name 'Service Brief'
-Set-OfficePowerPointThemeFonts -Presentation $ppt -MajorLatin 'Aptos Display' -MinorLatin 'Aptos'
-Get-OfficePowerPointTheme -Presentation $ppt | Select-Object Name, Master
-$ppt | Close-OfficePowerPoint
+$deck = Open-OfficePowerPoint -Path ./Review.pptx
+Get-OfficePowerPointTheme -Document $deck -Master 1
+Close-OfficePowerPoint -Document $deck
 ```
 
-Returns theme information after updating the deck theme metadata.
+
+### EXAMPLE 2
+```powershell
+New-OfficePowerPoint -Path ./Review.pptx -Theme Modern {
+    $theme = Get-OfficePowerPointTheme
+    PowerPointSlide -Title 'Service review'
+}
+```
+
 
 ## PARAMETERS
 
+### -Document
+Gets or sets the live document; omission uses its enclosing content block.
+
+```yaml
+Type: PowerPointDocument
+Parameter Sets: Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: 0
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
 ### -Master
-Slide master index to inspect.
+Gets or sets a one-based master position; defaults to the first.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -48,28 +70,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Presentation
-Presentation to inspect (optional inside New-OfficePowerPoint).
-
-```yaml
-Type: PowerPointPresentation
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: True (ByValue)
-Accept wildcard characters: False
-```
-
 ### CommonParameters
 This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 
 ## OUTPUTS
 

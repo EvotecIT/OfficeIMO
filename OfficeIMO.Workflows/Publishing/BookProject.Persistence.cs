@@ -1,3 +1,4 @@
+using OfficeIMO.Internal;
 using OfficeIMO.Epub;
 using OfficeIMO.Provenance;
 using System.IO.Compression;
@@ -22,7 +23,7 @@ public sealed partial class BookProject {
         var record = new BookProjectRecord {
             Version = 2, Revisions = _revisions.Select(item => item.Info).ToArray(), ImportLossAcknowledged = ImportLossAcknowledged,
             Diagnostics = _diagnostics.Select(item => new BookProjectDiagnostic {
-                Code = item.Code, Message = item.Message, LossKind = item.LossKind, Source = item.Source, Location = item.Location
+                Code = item.Code, Message = item.Message, LossKind = item.LossKind, Source = item.Format ?? string.Empty, Location = item.Location
             }).ToArray()
         };
         byte[] review = JsonSerializer.SerializeToUtf8Bytes(record, BookProjectJsonContext.Default.BookProjectRecord);
@@ -35,7 +36,7 @@ public sealed partial class BookProject {
     }
     /// <summary>Loads an .oibook project after physical ZIP, byte, schema and entry validation. No files are extracted.</summary>
     public static BookProject LoadProject(byte[] bytes, CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(bytes);
+        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
         if (bytes.LongLength > MaximumProjectBytes) throw new InvalidDataException("The project exceeds its input-byte bound.");
         cancellationToken.ThrowIfCancellationRequested();
         OfficeProvenanceZip.ValidateForOwningPackageMutation(bytes, new OfficeProvenanceOptions {
@@ -55,10 +56,9 @@ public sealed partial class BookProject {
             ?? throw new InvalidDataException("The project review record is missing.");
         if (record.Version is not (1 or 2)) throw new NotSupportedException("This book project version is unsupported.");
         if (record.Diagnostics == null || record.Diagnostics.Length > 10_000 || record.Diagnostics.Any(item => item == null ||
-            string.IsNullOrWhiteSpace(item.Code) || string.IsNullOrWhiteSpace(item.Source) || !Enum.IsDefined(item.LossKind)))
+            (item.Code == null || string.IsNullOrWhiteSpace(item.Code)) || (item.Source == null || string.IsNullOrWhiteSpace(item.Source)) || !OfficeRuntimeCompatibility.IsDefined(item.LossKind)))
             throw new InvalidDataException("The project review diagnostics are invalid or exceed their count bound.");
-        var diagnostics = record.Diagnostics.Select(item => new OfficeConversionFidelityDiagnostic(item.Code, item.Message,
-            item.LossKind, item.Source, item.Location)).ToArray();
+        var diagnostics = record.Diagnostics.Select(item => new global::OfficeIMO.OfficeDiagnostic(item.Code, item.LossKind == global::OfficeIMO.OfficeConversionLossKind.None ? global::OfficeIMO.OfficeDiagnosticSeverity.Information : global::OfficeIMO.OfficeDiagnosticSeverity.Warning, item.Message, item.Location, item.Source, item.LossKind)).ToArray();
         byte[] publicationBytes = Read(publicationEntry, MaximumPublicationBytes, cancellationToken);
         using var publicationInput = new MemoryStream(publicationBytes, false);
         EpubPublication publication = EpubPublication.Load(publicationInput, cancellationToken: cancellationToken);

@@ -12,6 +12,9 @@ public sealed class PdfImageExportOptions : OfficeImageExportOptions {
     /// <inheritdoc />
     public override double LogicalUnitsPerInch => 72D;
 
+    /// <summary>Caller-ordered, document-relative pages. Null exports every page in source order.</summary>
+    public PdfPageSelector? PageSelector { get; set; }
+
     /// <summary>Optional maximum output width or height in pixels.</summary>
     public int? ThumbnailMaxDimension { get; set; }
 
@@ -23,6 +26,7 @@ public sealed class PdfImageExportOptions : OfficeImageExportOptions {
 
     internal PdfImageExportOptions Clone() {
         PdfImageExportOptions clone = CopyImageExportOptionsTo(new PdfImageExportOptions());
+        clone.PageSelector = PageSelector; // Selectors are immutable.
         clone.ThumbnailMaxDimension = ThumbnailMaxDimension;
         clone.MaxDiagnosticsPerPage = MaxDiagnosticsPerPage;
         clone.MaxDiagnosticCharactersPerPage = MaxDiagnosticCharactersPerPage;

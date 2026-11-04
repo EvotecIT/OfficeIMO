@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfOptions {
+public sealed partial class PdfCreateOptions {
     // A reusable plan selects an immutable candidate, independently of the
     // resource name available in each options instance.
     private Dictionary<object, PdfEmbeddedFontFallbackCandidate>? _namedFallbackPlanBindings;
@@ -116,7 +116,7 @@ public sealed partial class PdfOptions {
         }
     }
 
-    private void MergeResolvedNamedFallbackFontMappingsFrom(PdfOptions nested) {
+    private void MergeResolvedNamedFallbackFontMappingsFrom(PdfCreateOptions nested) {
         if (nested._namedFallbackPlanBindings == null) return;
         foreach (PdfEmbeddedFontFallbackCandidate candidate in nested._namedFallbackPlanBindings.Values) {
             if (!nested.IsNamedFallbackRegistrationCurrent(candidate)) continue;

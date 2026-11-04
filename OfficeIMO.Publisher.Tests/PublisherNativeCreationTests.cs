@@ -10,25 +10,25 @@ public sealed class PublisherNativeCreationTests {
 
     [Fact]
     public void Internal_creation_keeps_the_populated_authored_model_behind_the_public_native_save_gate() {
-        var options = new PublisherReadOptions();
+        var options = new PublisherLoadOptions();
         PublisherDocument document = TableDocument(options);
         PublisherNativeCreationPlan plan = PublisherNativeCreationProjection.Tables(document);
         byte[] generated = PublisherNativeCreationCodec.Create(plan, options, MaximumBytes, CancellationToken.None);
         Assert.Equal("Cell", Assert.Single(Assert.Single(PublisherDocument.Load(generated).Pages[0].Tables).Cells).Text);
         Assert.False(document.HasNativeSource);
-        var failure = Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(
-            new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        var failure = Assert.Throws<OfficeConversionException>(() => document.ToBytes(
+            new PublisherSaveOptions { AllowLoss = true }));
         PublisherSaveReport report = Assert.IsType<PublisherSaveReport>(failure.Report);
         Assert.True(report.HasErrors); Assert.Equal(0, report.OutputByteCount);
-        Assert.Contains(report.FidelityDiagnostics, finding => finding.Code == "PUB_NATIVE_SOURCE_REQUIRED"
+        Assert.Contains(report.Diagnostics, finding => finding.Code == "PUB_NATIVE_SOURCE_REQUIRED"
             && finding.LossKind == OfficeConversionLossKind.Failure);
         Assert.False(document.HasNativeSource);
     }
 
     [Fact]
     public void Reduced_creation_limits_keep_semantic_pages_and_multiple_tabs_without_spending_source_records() {
-        var options = new PublisherReadOptions {
-            MaximumPages = 2,
+        var options = new PublisherLoadOptions {
+            MaxPages = 2,
             Limits = new OfficeLegacyImportLimits { MaxItems = 8, MaxTextCharacters = 64, MaxRecords = 1 }
         };
         PublisherDocument document = FrameDocument(options);
@@ -51,17 +51,17 @@ public sealed class PublisherNativeCreationTests {
     [InlineData("pages")]
     [InlineData("text")]
     public void Creation_applies_stricter_semantic_page_and_text_budgets_to_an_admitted_model(string bound) {
-        PublisherNativeCreationPlan plan = PublisherNativeCreationProjection.FrameLayouts(FrameDocument(new PublisherReadOptions()));
-        var options = new PublisherReadOptions {
-            MaximumPages = 2,
+        PublisherNativeCreationPlan plan = PublisherNativeCreationProjection.FrameLayouts(FrameDocument(new PublisherLoadOptions()));
+        var options = new PublisherLoadOptions {
+            MaxPages = 2,
             Limits = new OfficeLegacyImportLimits { MaxTextCharacters = 5 }
         };
         byte[] generated = PublisherNativeCreationCodec.Create(plan, options, MaximumBytes, CancellationToken.None);
         PublisherDocument decoded = PublisherDocument.Load(generated);
         Assert.Single(decoded.Pages); Assert.Single(decoded.MasterPages);
         Assert.Equal("A\tB\tC", Assert.Single(Assert.Single(decoded.TextStories).Paragraphs).Runs.Single().Text);
-        PublisherReadOptions smaller = options.Clone();
-        if (bound == "pages") smaller.MaximumPages = 1;
+        PublisherLoadOptions smaller = options.Clone();
+        if (bound == "pages") smaller.MaxPages = 1;
         else smaller.Limits.MaxTextCharacters = 4;
         Assert.Throws<InvalidDataException>(() => PublisherNativeCreationCodec.Create(plan, smaller, MaximumBytes, CancellationToken.None));
         Assert.Equal(generated, PublisherNativeCreationCodec.Create(plan, options, MaximumBytes, CancellationToken.None));
@@ -72,22 +72,22 @@ public sealed class PublisherNativeCreationTests {
     [InlineData("total")]
     public void Shared_picture_creation_counts_one_encoded_asset_and_enforces_each_byte_budget(string bound) {
         byte[] image = PublisherPictureEditingFixture.Image(OfficeColor.FromRgb(255, 0, 0));
-        PublisherDocument document = AuthoredDocument(new PublisherReadOptions());
+        PublisherDocument document = AuthoredDocument(new PublisherLoadOptions());
         uint pageId = document.Pages[0].Id;
-        PublisherPicture first = document.AddPicture(pageId, image, 72, 72, 40, 40);
-        PublisherPicture second = document.AddPicture(pageId, first.ImageId!.Value, 144, 72, 40, 40);
+        PublisherPicture first = document.AddImage(pageId, image, 72, 72, 40, 40);
+        PublisherPicture second = document.AddImage(pageId, first.ImageId!.Value, 144, 72, 40, 40);
         Assert.Equal(first.ImageId, second.ImageId);
         PublisherNativeCreationPlan plan = PublisherNativeCreationProjection.SingleMasterContent(document);
-        var options = new PublisherReadOptions { MaximumImageBytes = image.Length, MaximumTotalImageBytes = image.Length };
+        var options = new PublisherLoadOptions { MaxImageBytes = image.Length, MaxTotalImageBytes = image.Length };
         byte[] generated = PublisherNativeCreationCodec.Create(plan, options, MaximumBytes, CancellationToken.None);
         PublisherDocument decoded = PublisherDocument.Load(generated);
         PublisherImage asset = Assert.Single(decoded.Images);
         Assert.Equal(image, asset.GetBytes());
         IReadOnlyList<PublisherPicture> pictures = Assert.Single(decoded.Pages).Pictures;
         Assert.Equal(2, pictures.Count); Assert.All(pictures, picture => Assert.Equal(asset.Id, picture.ImageId));
-        PublisherReadOptions smaller = options.Clone();
-        if (bound == "per-image") smaller.MaximumImageBytes = image.Length - 1;
-        else smaller.MaximumTotalImageBytes = image.Length - 1;
+        PublisherLoadOptions smaller = options.Clone();
+        if (bound == "per-image") smaller.MaxImageBytes = image.Length - 1;
+        else smaller.MaxTotalImageBytes = image.Length - 1;
         Assert.Throws<InvalidDataException>(() => PublisherNativeCreationCodec.Create(plan, smaller, MaximumBytes, CancellationToken.None));
         Assert.Equal(generated, PublisherNativeCreationCodec.Create(plan, options, MaximumBytes, CancellationToken.None));
     }
@@ -97,10 +97,10 @@ public sealed class PublisherNativeCreationTests {
     [InlineData(true)]
     public void Creation_marks_each_embedded_picture_placement_independently_of_names_and_shared_assets(bool includePictureNames) {
         byte[] image = PublisherPictureEditingFixture.Image(OfficeColor.Red);
-        PublisherDocument document = AuthoredDocument(new PublisherReadOptions());
-        PublisherPicture first = document.AddPicture(document.Pages[0].Id, image, 72, 144, 96, 96);
-        document.AddPicture(document.Pages[0].Id, first.ImageId!.Value, 216, 144, 96, 96);
-        PublisherPicture master = document.AddPicture(document.MasterPages[0].Id, first.ImageId.Value, 24, 24, 48, 48);
+        PublisherDocument document = AuthoredDocument(new PublisherLoadOptions());
+        PublisherPicture first = document.AddImage(document.Pages[0].Id, image, 72, 144, 96, 96);
+        document.AddImage(document.Pages[0].Id, first.ImageId!.Value, 216, 144, 96, 96);
+        PublisherPicture master = document.AddImage(document.MasterPages[0].Id, first.ImageId.Value, 24, 24, 48, 48);
         var crop = new OfficeImageSourceCrop(.25, .125, .0625, .1875);
         document.SetPictureCrop(master.Id, crop);
         document.AddShape(document.MasterPages[0].Id, OfficeShape.Rectangle(40, 12), 72, 24);
@@ -108,7 +108,7 @@ public sealed class PublisherNativeCreationTests {
 
         byte[] generated = PublisherNativeCreationCodec.Create(
             PublisherNativeCreationProjection.SingleMasterContent(document, includePictureNames),
-            new PublisherReadOptions(), MaximumBytes, CancellationToken.None);
+            new PublisherLoadOptions(), MaximumBytes, CancellationToken.None);
         PublisherDocument decoded = PublisherDocument.Load(generated);
         Assert.False(document.HasNativeSource);
         PublisherImage asset = Assert.Single(decoded.Images);
@@ -121,7 +121,7 @@ public sealed class PublisherNativeCreationTests {
 
         Assert.True(OfficeCompoundFileReader.TryRead(generated, out OfficeCompoundFile? compound, out string? error), error);
         byte[] contentsBytes = compound!.Streams["Contents"];
-        var context = new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None);
+        var context = new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None);
         PublisherContents contents = new PublisherContentsReader(new PublisherBinaryData(contentsBytes, "Contents"), context).Read();
         var pictureIds = new HashSet<uint>(pictures.Select(picture => picture.Id));
         foreach (PublisherPicture picture in pictures) {
@@ -140,7 +140,7 @@ public sealed class PublisherNativeCreationTests {
 
     [Fact]
     public void Table_utility_creation_uses_the_supplied_item_allowance() {
-        var options = new PublisherReadOptions { Limits = new OfficeLegacyImportLimits { MaxItems = 7 } };
+        var options = new PublisherLoadOptions { Limits = new OfficeLegacyImportLimits { MaxItems = 7 } };
         PublisherDocument document = TableDocument(options);
         PublisherNativeCreationPlan plan = PublisherNativeCreationProjection.Tables(document);
         byte[] generated = PublisherNativeCreationCodec.Create(plan, options, MaximumBytes, CancellationToken.None);
@@ -148,7 +148,7 @@ public sealed class PublisherNativeCreationTests {
         Assert.Equal((1, 1, 1), (table.RowCount, table.ColumnCount, table.Cells.Count));
         Assert.Equal("Cell", table.Cells[0].Text);
         Assert.Equal(new[] { 120D }, table.ColumnWidths); Assert.Equal(new[] { 42D }, table.RowHeights);
-        var smaller = new PublisherReadOptions { Limits = new OfficeLegacyImportLimits { MaxItems = 6 } };
+        var smaller = new PublisherLoadOptions { Limits = new OfficeLegacyImportLimits { MaxItems = 6 } };
         PublisherNativeCreationPlan bounded = PublisherNativeCreationProjection.Tables(TableDocument(smaller));
         Assert.Throws<NotSupportedException>(() => PublisherNativeCreationCodec.Create(bounded, smaller, MaximumBytes, CancellationToken.None));
         Assert.Equal(generated, PublisherNativeCreationCodec.Create(plan, options, MaximumBytes, CancellationToken.None));
@@ -156,7 +156,7 @@ public sealed class PublisherNativeCreationTests {
 
     [Fact]
     public void Creation_accepts_its_exact_compound_output_budget_and_rejects_one_byte_less() {
-        var options = new PublisherReadOptions();
+        var options = new PublisherLoadOptions();
         PublisherNativeCreationPlan plan = PublisherNativeCreationProjection.FrameLayouts(FrameDocument(options));
         byte[] generated = PublisherNativeCreationCodec.Create(plan, options, MaximumBytes, CancellationToken.None);
         Assert.Equal("A\tB\tC", Assert.Single(Assert.Single(PublisherDocument.Load(generated).TextStories).Paragraphs).Runs.Single().Text);
@@ -171,7 +171,7 @@ public sealed class PublisherNativeCreationTests {
     [InlineData(false)]
     [InlineData(true)]
     public void Creation_observes_cancellation_before_entry_and_after_plan_access(bool afterEntry) {
-        var options = new PublisherReadOptions();
+        var options = new PublisherLoadOptions();
         PublisherDocument document = FrameDocument(options);
         document.AddTextFrame(document.Pages[0].Id, 72, 216, 288, 108, new[] { Paragraph("Second frame") });
         PublisherNativeCreationPlan original = PublisherNativeCreationProjection.FrameLayouts(document);
@@ -188,7 +188,7 @@ public sealed class PublisherNativeCreationTests {
             .Select(story => Assert.Single(story.Paragraphs).Runs.Single().Text));
     }
 
-    private static PublisherDocument FrameDocument(PublisherReadOptions options) {
+    private static PublisherDocument FrameDocument(PublisherLoadOptions options) {
         PublisherDocument document = AuthoredDocument(options);
         var tabs = new OfficeTextTabStops(new[] { new OfficeTextTabStop(36), new OfficeTextTabStop(72) });
         document.AddTextFrame(document.Pages[0].Id, 72, 72, 288, 108,
@@ -196,14 +196,14 @@ public sealed class PublisherNativeCreationTests {
         return document;
     }
 
-    private static PublisherDocument TableDocument(PublisherReadOptions options) {
+    private static PublisherDocument TableDocument(PublisherLoadOptions options) {
         PublisherDocument document = AuthoredDocument(options);
         PublisherTable table = document.AddTable(document.Pages[0].Id, 72, 144, new[] { 120D }, new[] { 42D });
         document.ReplaceTableCellParagraphs(table.Id, 0, 0, new[] { Paragraph("Cell") });
         return document;
     }
 
-    private static PublisherDocument AuthoredDocument(PublisherReadOptions options) {
+    private static PublisherDocument AuthoredDocument(PublisherLoadOptions options) {
         PublisherDocument document = PublisherDocument.Create(612, 792, options);
         PublisherPage master = document.AddMasterPage("A");
         document.SetPageMaster(document.Pages[0].Id, master.Id);

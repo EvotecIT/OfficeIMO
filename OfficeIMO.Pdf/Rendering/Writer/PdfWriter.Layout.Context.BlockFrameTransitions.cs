@@ -14,7 +14,7 @@ internal static partial class PdfWriter {
              GetFullPageContentHeight() < GetMaximumBlockContinuationHeight() - .001D);
 
         private bool IsBalancedColumnFrame() => activeColumnFlow is { } scope &&
-            scope.TargetHeight < scope.Top - scope.ParentOptions.MarginBottom - .001D;
+            scope.TargetHeight < scope.Top - scope.ParentOptions.MarginBottom.ToPoints() - .001D;
 
         /// <summary>Distinguishes an actual partial physical page from a shortened balance target.</summary>
         private bool IsPartialPhysicalColumnFrame() {

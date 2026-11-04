@@ -9,6 +9,21 @@ public sealed partial class EpubPublication {
         EpubManifestItem[] overlays = manifest.Where(item => HasMediaType(item.MediaType, "application/smil+xml")).ToArray();
         if (overlays.Length == 0) return Result("media-overlays", findings);
         XElement[] metadata = OverlayDurations(Root).ToArray();
+        var durationsById = new Dictionary<string, List<XElement>>(StringComparer.Ordinal);
+        foreach (XElement duration in metadata) {
+            token.ThrowIfCancellationRequested();
+            string? value = (string?)duration.Attribute("refines");
+            if (value == null) continue;
+            EpubReference reference;
+            try { reference = EpubReference.Resolve(PackagePath, value); }
+            catch (Exception error) when (IsPreflightFailure(error)) { continue; }
+            if (reference.Kind != EpubReferenceKind.Container || reference.ContainerPath != PackagePath || reference.Fragment == null) continue;
+            if (!durationsById.TryGetValue(reference.Fragment, out List<XElement>? items))
+                durationsById.Add(reference.Fragment, items = new List<XElement>());
+            items.Add(duration);
+        }
+        var overlayPathCounts = overlays.GroupBy(item => item.Reference.ContainerPath ?? item.Href, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
         var targetsByReference = manifest.GroupBy(item => OverlayReferenceKey(item.Reference), StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.Ordinal);
         var anchors = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
@@ -20,13 +35,18 @@ public sealed partial class EpubPublication {
             string path = overlay.Reference.ContainerPath ?? overlay.Href;
             TimeSpan? declared = null;
             try {
-                XElement[] durations = metadata.Where(meta => ReferencesPackageId((string?)meta.Attribute("refines") ?? string.Empty, overlay.Id)).ToArray();
-                if (durations.Length != 1) throw new InvalidDataException("Each media overlay needs exactly one media:duration refinement.");
+                if (!durationsById.TryGetValue(overlay.Id, out List<XElement>? durations) || durations.Count != 1)
+                    throw new InvalidDataException("Each media overlay needs exactly one media:duration refinement.");
                 declared = EpubSmilClock.Parse(durations[0].Value);
                 totalTicks += declared.Value.Ticks;
             } catch (Exception error) when (IsPreflightFailure(error)) {
                 allDurationsKnown = false;
                 Add(findings, "EPUB_PREFLIGHT_OVERLAY_DURATION", EpubDiagnosticSeverity.Error, error.Message, path);
+            }
+            if (overlayPathCounts[path] > 1) {
+                Add(findings, "EPUB_PREFLIGHT_OVERLAY_ALIAS_AMBIGUOUS", EpubDiagnosticSeverity.Error,
+                    "Multiple media-overlay manifest IDs refer to one SMIL resource; use one declared overlay identity.", path);
+                continue;
             }
             try {
                 if (overlay.Reference.Kind != EpubReferenceKind.Container || _encryption.Any(entry => entry.Path == path))

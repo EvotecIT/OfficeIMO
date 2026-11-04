@@ -179,5 +179,7 @@ public enum InvoicePdfText {
     /// <summary>Item description column.</summary>
     Description,
     /// <summary>Current-page label.</summary>
-    Page
+    Page,
+    /// <summary>Word between the current page and the page count, as in "Page 1 of 2".</summary>
+    PageOf
 }

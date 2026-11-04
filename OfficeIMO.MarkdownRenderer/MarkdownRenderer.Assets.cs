@@ -28,7 +28,7 @@ public static partial class MarkdownRenderer {
         return sb.ToString();
     }
 
-    private static string BuildMermaidBootstrap(MermaidOptions o, AssetMode assetMode, MarkdownExternalTextResolver? resolver) {
+    private static string BuildMermaidBootstrap(MermaidOptions o, MarkdownAssetMode assetMode, MarkdownExternalTextResolver? resolver) {
         // Mermaid bootstrap:
         // - Online: ESM import (default)
         // - Offline: non-module script (easier to bundle/host locally)
@@ -44,7 +44,7 @@ public static partial class MarkdownRenderer {
         light = ReplaceScriptCloseSequence(light);
         dark = ReplaceScriptCloseSequence(dark);
 
-        if (assetMode == AssetMode.Offline && !string.IsNullOrEmpty(scriptUrl)) {
+        if (assetMode == MarkdownAssetMode.Offline && !string.IsNullOrEmpty(scriptUrl)) {
             string src = BuildBundledScriptSrc(scriptUrl, mime: "application/javascript", resolver);
             if (string.IsNullOrEmpty(src)) src = scriptUrl;
             src = System.Net.WebUtility.HtmlEncode(src);
@@ -79,17 +79,17 @@ mermaid.initialize({{ startOnLoad: false, theme: window.matchMedia('(prefers-col
         return value.Replace("</", "<\\/");
     }
 
-    private static string BuildChartBootstrap(ChartOptions o, AssetMode assetMode, MarkdownExternalTextResolver? resolver) {
+    private static string BuildChartBootstrap(ChartOptions o, MarkdownAssetMode assetMode, MarkdownExternalTextResolver? resolver) {
         string url = (o?.ScriptUrl ?? string.Empty).Trim();
         if (string.IsNullOrEmpty(url)) return string.Empty;
 
-        string src = assetMode == AssetMode.Offline ? BuildBundledScriptSrc(url, mime: "application/javascript", resolver) : string.Empty;
+        string src = assetMode == MarkdownAssetMode.Offline ? BuildBundledScriptSrc(url, mime: "application/javascript", resolver) : string.Empty;
         if (string.IsNullOrEmpty(src)) src = url;
         src = System.Net.WebUtility.HtmlEncode(src);
         return $"\n<script defer src=\"{src}\"></script>\n";
     }
 
-    private static string BuildMathBootstrap(MathOptions o, AssetMode assetMode, MarkdownExternalTextResolver? resolver) {
+    private static string BuildMathBootstrap(MathOptions o, MarkdownAssetMode assetMode, MarkdownExternalTextResolver? resolver) {
         string css = (o?.CssUrl ?? string.Empty).Trim();
         string js = (o?.ScriptUrl ?? string.Empty).Trim();
         string ar = (o?.AutoRenderScriptUrl ?? string.Empty).Trim();
@@ -97,22 +97,22 @@ mermaid.initialize({{ startOnLoad: false, theme: window.matchMedia('(prefers-col
 
         // KaTeX should be ready before we render content via updateContent(...). Use defer so it doesn't block HTML parse,
         // and call renderMathInElement from updateContent after DOM updates.
-        string cssHref = assetMode == AssetMode.Offline ? BuildBundledCssHref(css, resolver) : string.Empty;
+        string cssHref = assetMode == MarkdownAssetMode.Offline ? BuildBundledCssHref(css, resolver) : string.Empty;
         if (string.IsNullOrEmpty(cssHref)) cssHref = css;
         cssHref = System.Net.WebUtility.HtmlEncode(cssHref);
 
-        string jsSrc = assetMode == AssetMode.Offline ? BuildBundledScriptSrc(js, mime: "application/javascript", resolver) : string.Empty;
+        string jsSrc = assetMode == MarkdownAssetMode.Offline ? BuildBundledScriptSrc(js, mime: "application/javascript", resolver) : string.Empty;
         if (string.IsNullOrEmpty(jsSrc)) jsSrc = js;
         jsSrc = System.Net.WebUtility.HtmlEncode(jsSrc);
 
-        string arSrc = assetMode == AssetMode.Offline ? BuildBundledScriptSrc(ar, mime: "application/javascript", resolver) : string.Empty;
+        string arSrc = assetMode == MarkdownAssetMode.Offline ? BuildBundledScriptSrc(ar, mime: "application/javascript", resolver) : string.Empty;
         if (string.IsNullOrEmpty(arSrc)) arSrc = ar;
         arSrc = System.Net.WebUtility.HtmlEncode(arSrc);
 
         return $"\n<link rel=\"stylesheet\" href=\"{cssHref}\">\n<script defer src=\"{jsSrc}\"></script>\n<script defer src=\"{arSrc}\"></script>\n";
     }
 
-    private static void AppendCustomShellHeadHtml(StringBuilder sb, MarkdownRendererOptions options, AssetMode assetMode) {
+    private static void AppendCustomShellHeadHtml(StringBuilder sb, MarkdownRendererOptions options, MarkdownAssetMode assetMode) {
         var renderers = options.FencedCodeBlockRenderers;
         if (renderers == null || renderers.Count == 0) {
             return;

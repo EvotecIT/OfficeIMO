@@ -20,19 +20,19 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfPageSetup.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "PageSetup")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "PageSetup" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Name");
-            sheet.Cell(1, 2, "Value");
-            sheet.Cell(2, 1, "PageWidth");
-            sheet.Cell(2, 2, "Custom");
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("PageWidth");
+            sheet.Cell(2, 2).SetValue("Custom");
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
-                PageSize = new PdfCore.PageSize(360, 240),
-                Margins = PdfCore.PageMargins.Uniform(24),
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(240)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24)),
                 HeaderRowCount = 1
-            });
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(bytes);
@@ -46,18 +46,18 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfPrintArea.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Report")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Report" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "OutsideTop");
-            sheet.Cell(2, 2, "InsideHeader");
-            sheet.Cell(3, 2, "InsideValue");
-            sheet.Cell(4, 4, "OutsideRight");
-            document.SetPrintArea(sheet, "B2:C3");
+            sheet.Cell(1, 1).SetValue("OutsideTop");
+            sheet.Cell(2, 2).SetValue("InsideHeader");
+            sheet.Cell(3, 2).SetValue("InsideValue");
+            sheet.Cell(4, 4).SetValue("OutsideRight");
+            sheet.PageSetup.PrintArea = "B2:C3";
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false
-            });
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -73,16 +73,16 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfSingleCellPrintArea.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Report")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Report" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "OnlyCell");
-            sheet.Cell(2, 1, "OutsideCell");
-            document.SetPrintArea(sheet, "A1");
+            sheet.Cell(1, 1).SetValue("OnlyCell");
+            sheet.Cell(2, 1).SetValue("OutsideCell");
+            sheet.PageSetup.PrintArea = "A1";
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false
-            });
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -96,7 +96,7 @@ public partial class Excel {
     [InlineData(ExcelPdfWorksheetLayoutMode.FlowTable)]
     public void SaveAsPdf_ExcelWorkbook_Exports_MultiArea_Print_Areas_On_Separate_Pages(ExcelPdfWorksheetLayoutMode layout) {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfMultiAreaPrintArea.xlsx");
-        var options = new ExcelToPdfOptions {
+        var options = new ExcelPdfExportOptions {
             IncludeSheetHeadings = false,
             UseWorksheetPrintAreas = true,
             WorksheetLayout = layout
@@ -104,12 +104,12 @@ public partial class Excel {
 
         byte[] bytes;
         PdfCore.PdfDocumentConversionResult result;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Report")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Report" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "UsedRangeTop");
-            sheet.Cell(2, 2, "AreaOne");
-            sheet.Cell(2, 4, "AreaTwo");
-            sheet.Cell(5, 5, "UsedRangeBottom");
+            sheet.Cell(1, 1).SetValue("UsedRangeTop");
+            sheet.Cell(2, 2).SetValue("AreaOne");
+            sheet.Cell(2, 4).SetValue("AreaTwo");
+            sheet.Cell(5, 5).SetValue("UsedRangeBottom");
             document.Save();
         }
 
@@ -126,7 +126,7 @@ public partial class Excel {
         }
 
         using (ExcelDocument document = ExcelDocument.Load(workbookPath)) {
-            result = document.ToPdfDocumentResult(options);
+            result = document.ConvertToPdfWithEvidence(options);
             bytes = result.ToBytes();
         }
 
@@ -149,26 +149,36 @@ public partial class Excel {
         byte[] imageBytes = CreateMinimalRgbPng();
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Report")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Report" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(2, 2, "Category");
-            sheet.Cell(2, 3, "Value");
-            sheet.Cell(3, 2, "Inside");
-            sheet.Cell(3, 3, 10);
-            sheet.Cell(10, 1, "OutsideData");
-            sheet.AddImage(3, 2, imageBytes, "image/png", widthPixels: 12, heightPixels: 12, name: "Inside image");
-            sheet.AddImage(10, 1, imageBytes, "image/png", widthPixels: 12, heightPixels: 12, name: "Outside image");
-            sheet.AddChartFromRange("B2:C3", row: 3, column: 2, widthPixels: 220, heightPixels: 120, type: ExcelChartType.ColumnClustered, title: "Inside Chart");
-            sheet.AddChartFromRange("B2:C3", row: 10, column: 1, widthPixels: 220, heightPixels: 120, type: ExcelChartType.ColumnClustered, title: "Outside Chart");
-            document.SetPrintArea(sheet, "B2:C3");
+            sheet.Cell(2, 2).SetValue("Category");
+            sheet.Cell(2, 3).SetValue("Value");
+            sheet.Cell(3, 2).SetValue("Inside");
+            sheet.Cell(3, 3).SetValue(10);
+            sheet.Cell(10, 1).SetValue("OutsideData");
+            sheet.AddImage(3, 2, imageBytes, new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(12),
+                Height = OfficeIMO.OfficeLength.Pixels(12),
+                Name = "Inside image"
+            });
+            sheet.AddImage(10, 1, imageBytes, new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(12),
+                Height = OfficeIMO.OfficeLength.Pixels(12),
+                Name = "Outside image"
+            });
+            sheet.AddChart(OfficeChartType.ColumnClustered, "B2:C3", new OfficeIMO.Excel.ExcelChartOptions { Row = 3, Column = 2, Width = OfficeLength.Pixels(220), Height = OfficeLength.Pixels(120), Title = "Inside Chart" });
+            sheet.AddChart(OfficeChartType.ColumnClustered, "B2:C3", new OfficeIMO.Excel.ExcelChartOptions { Row = 10, Column = 1, Width = OfficeLength.Pixels(220), Height = OfficeLength.Pixels(120), Title = "Outside Chart" });
+            sheet.PageSetup.PrintArea = "B2:C3";
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 UseWorksheetPrintAreas = true,
-                PageSize = new PdfCore.PageSize(420, 320),
-                Margins = PdfCore.PageMargins.Uniform(24)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(320)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -202,17 +212,17 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfWorksheetPageSetup.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "PageSetup")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "PageSetup" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Name");
-            sheet.Cell(2, 1, "WorksheetPageSetup");
-            sheet.SetOrientation(OfficePageOrientation.Landscape);
-            sheet.SetMargins(left: 0.25, right: 0.25, top: 0.5, bottom: 0.5);
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(2, 1).SetValue("WorksheetPageSetup");
+            sheet.PageSetup.Orientation = OfficePageOrientation.Landscape;
+            sheet.PageSetup.SetMargins(left: OfficeLength.Inches(0.25), right: OfficeLength.Inches(0.25), top: OfficeLength.Inches(0.5), bottom: OfficeLength.Inches(0.5));
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false
-            });
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(bytes);
@@ -229,16 +239,16 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfWorksheetPaperSize.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "PaperSize")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "PaperSize" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Name");
-            sheet.Cell(2, 1, "WorksheetPaperSize");
-            sheet.SetPageSetup(paperSize: ExcelPaperSize.A4);
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(2, 1).SetValue("WorksheetPaperSize");
+            sheet.PageSetup.PaperSize = ExcelPaperSize.A4;
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false
-            });
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(bytes);
@@ -252,19 +262,19 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfPreservePdfOptionsPageSize.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "PaperSize")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "PaperSize" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Name");
-            sheet.Cell(2, 1, "PdfOptionsPageSize");
-            sheet.SetPageSetup(paperSize: ExcelPaperSize.A4);
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(2, 1).SetValue("PdfOptionsPageSize");
+            sheet.PageSetup.PaperSize = ExcelPaperSize.A4;
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
-                PdfOptions = new PdfCore.PdfOptions {
-                    PageSize = new PdfCore.PageSize(300, 220)
+                PdfOptions = new PdfCore.PdfCreateOptions {
+                    PageSetup = { Size = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(220)) }
                 }
-            });
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(bytes);
@@ -280,19 +290,19 @@ public partial class Excel {
             "ExcelPdfExplicitProfileBaselinePageSize.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "PaperSize")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "PaperSize" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Name");
-            sheet.Cell(2, 1, "ExplicitLetter");
-            sheet.SetPageSetup(paperSize: ExcelPaperSize.A3);
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(2, 1).SetValue("ExplicitLetter");
+            sheet.PageSetup.PaperSize = ExcelPaperSize.A3;
             document.Save();
 
-            var options = new ExcelToPdfOptions {
+            var options = new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false
             }.UseRenderingProfile(OfficeRenderingProfile.Managed);
-            options.PdfOptions!.PageSize = new PdfCore.PageSize(612, 792);
+            options.PdfOptions!.PageSetup.Size = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(612),OfficeIMO.OfficeLength.Points(792));
 
-            bytes = document.ToPdfBytes(options);
+            bytes = document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         PdfCore.PdfPageInfo page = Assert.Single(PdfCore.PdfInspector.Inspect(bytes).Pages);
@@ -305,17 +315,17 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfDisableWorksheetPageSetup.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "PaperSize")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "PaperSize" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Name");
-            sheet.Cell(2, 1, "DefaultPdfPageSize");
-            sheet.SetPageSetup(paperSize: ExcelPaperSize.A4);
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(2, 1).SetValue("DefaultPdfPageSize");
+            sheet.PageSetup.PaperSize = ExcelPaperSize.A4;
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 UseWorksheetPageSetup = false
-            });
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(bytes);
@@ -329,28 +339,28 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfWorksheetFitToHeight.xlsx");
 
         PdfCore.PdfDocument pdfDocument;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "PageSetup")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "PageSetup" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Name");
-            sheet.Cell(1, 2, "Value");
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(1, 2).SetValue("Value");
             for (int row = 2; row <= 10; row++) {
-                sheet.Cell(row, 1, "Row " + row.ToString(CultureInfo.InvariantCulture));
-                sheet.Cell(row, 2, row);
+                sheet.Cell(row, 1).SetValue("Row " + row.ToString(CultureInfo.InvariantCulture));
+                sheet.Cell(row, 2).SetValue(row);
             }
 
             for (int row = 1; row <= 10; row++) {
-                sheet.SetRowHeight(row, 36D);
+                sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(36D)));
             }
 
-            sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 1U);
+            sheet.PageSetup.FitToWidth = 1U; sheet.PageSetup.FitToHeight = 1U;
             document.Save();
 
-            pdfDocument = document.ToPdfDocument(new ExcelToPdfOptions {
+            pdfDocument = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 WorksheetLayout = ExcelPdfWorksheetLayoutMode.FlowTable,
-                PageSize = new PdfCore.PageSize(220, 144),
-                Margins = PdfCore.PageMargins.Uniform(18)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(220),OfficeIMO.OfficeLength.Points(144)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(18))
             });
         }
 
@@ -362,14 +372,14 @@ public partial class Excel {
         Assert.Null(style.FixedRowHeights);
         Assert.NotNull(style.RowMinHeights);
         Assert.Equal(10, style.RowMinHeights!.Count);
-        Assert.InRange(style.RowMinHeights.Sum(height => height ?? 0D), 107D, 108.1D);
-        Assert.True(style.CellPaddingY < 3D, "Fit-to-height scaling should shrink default vertical padding along with row heights.");
-        Assert.NotNull(style.FontSize);
-        Assert.NotNull(style.HeaderFontSize);
-        Assert.NotNull(style.FooterFontSize);
-        Assert.InRange(style.FontSize!.Value, 3.2D, 3.4D);
-        Assert.Equal(style.FontSize.Value, style.HeaderFontSize!.Value);
-        Assert.Equal(style.FontSize.Value, style.FooterFontSize!.Value);
+        Assert.InRange(style.RowMinHeights!.Sum(height => height?.ToPoints() ?? 0D), 107D, 108.1D);
+        Assert.True(style.CellPaddingY.ToPoints() < 3D, "Fit-to-height scaling should shrink default vertical padding along with row heights.");
+        Assert.NotNull(style.FontSize?.ToPoints());
+        Assert.NotNull(style.HeaderFontSize?.ToPoints());
+        Assert.NotNull(style.FooterFontSize?.ToPoints());
+        Assert.InRange(style.FontSize!.Value.ToPoints(), 3.2D, 3.4D);
+        Assert.Equal(style.FontSize.Value.ToPoints(), style.HeaderFontSize!.Value.ToPoints());
+        Assert.Equal(style.FontSize.Value.ToPoints(), style.FooterFontSize!.Value.ToPoints());
     }
 
     [Fact]
@@ -377,25 +387,25 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfPrintTitles.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "LongReport")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "LongReport" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "RegionHeader");
-            sheet.Cell(1, 2, "AmountHeader");
+            sheet.Cell(1, 1).SetValue("RegionHeader");
+            sheet.Cell(1, 2).SetValue("AmountHeader");
             for (int row = 3; row <= 90; row++) {
-                sheet.Cell(row, 1, "Region " + row.ToString(CultureInfo.InvariantCulture));
-                sheet.Cell(row, 2, row);
+                sheet.Cell(row, 1).SetValue("Region " + row.ToString(CultureInfo.InvariantCulture));
+                sheet.Cell(row, 2).SetValue(row);
             }
 
-            document.SetPrintArea(sheet, "A3:B90");
-            document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: null, lastCol: null);
+            sheet.PageSetup.PrintArea = "A3:B90";
+            sheet.PageSetup.SetPrintTitles(firstRow: 1, lastRow: 1, firstColumn: null, lastColumn: null);
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
-                PageSize = new PdfCore.PageSize(300, 220),
-                Margins = PdfCore.PageMargins.Uniform(18)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(18))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -411,33 +421,33 @@ public partial class Excel {
 
         byte[] bytes;
         byte[] disabledBytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "ManualBreaks")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "ManualBreaks" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Name");
-            sheet.Cell(1, 2, "Value");
-            sheet.Cell(2, 1, "BeforeBreak");
-            sheet.Cell(2, 2, "FirstPage");
-            sheet.Cell(3, 1, "BreakTail");
-            sheet.Cell(3, 2, "StillFirstPage");
-            sheet.Cell(4, 1, "AfterBreak");
-            sheet.Cell(4, 2, "SecondPage");
-            sheet.Cell(5, 1, "SecondTail");
-            sheet.Cell(5, 2, "SecondPageTail");
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("BeforeBreak");
+            sheet.Cell(2, 2).SetValue("FirstPage");
+            sheet.Cell(3, 1).SetValue("BreakTail");
+            sheet.Cell(3, 2).SetValue("StillFirstPage");
+            sheet.Cell(4, 1).SetValue("AfterBreak");
+            sheet.Cell(4, 2).SetValue("SecondPage");
+            sheet.Cell(5, 1).SetValue("SecondTail");
+            sheet.Cell(5, 2).SetValue("SecondPageTail");
             sheet.AddManualRowPageBreak(3);
 
             Assert.Equal(new[] { 3 }, sheet.GetManualRowPageBreaks());
             document.Save();
 
-            var options = new ExcelToPdfOptions {
+            var options = new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PageSize(420, 420),
-                Margins = PdfCore.PageMargins.Uniform(24)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(420)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
             };
-            bytes = document.ToPdfBytes(options);
+            bytes = document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
             options.UseWorksheetPageBreaks = false;
-            disabledBytes = document.ToPdfBytes(options);
+            disabledBytes = document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -462,25 +472,25 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfManualRowBreakBeforePrintArea.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "ManualBreaks")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "ManualBreaks" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "TitleOne");
-            sheet.Cell(2, 1, "TitleTwo");
-            sheet.Cell(10, 1, "BodyHeader");
-            sheet.Cell(10, 2, "ValueHeader");
-            sheet.Cell(11, 1, "ExportedBody");
-            sheet.Cell(11, 2, "BodyValue");
+            sheet.Cell(1, 1).SetValue("TitleOne");
+            sheet.Cell(2, 1).SetValue("TitleTwo");
+            sheet.Cell(10, 1).SetValue("BodyHeader");
+            sheet.Cell(10, 2).SetValue("ValueHeader");
+            sheet.Cell(11, 1).SetValue("ExportedBody");
+            sheet.Cell(11, 2).SetValue("BodyValue");
             sheet.AddManualRowPageBreak(5);
-            document.SetPrintArea(sheet, "A10:B11");
-            document.SetPrintTitles(sheet, firstRow: 1, lastRow: 2, firstCol: null, lastCol: null);
+            sheet.PageSetup.PrintArea = "A10:B11";
+            sheet.PageSetup.SetPrintTitles(firstRow: 1, lastRow: 2, firstColumn: null, lastColumn: null);
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
-                PageSize = new PdfCore.PageSize(420, 360),
-                Margins = PdfCore.PageMargins.Uniform(24)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(360)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -496,33 +506,33 @@ public partial class Excel {
 
         byte[] bytes;
         byte[] disabledBytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "ManualColumnBreaks")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "ManualColumnBreaks" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "LeftHeader");
-            sheet.Cell(1, 2, "LeftTail");
-            sheet.Cell(1, 3, "RightHeader");
-            sheet.Cell(1, 4, "RightTail");
-            sheet.Cell(2, 1, "LeftValueA");
-            sheet.Cell(2, 2, "LeftValueB");
-            sheet.Cell(2, 3, "RightValueC");
-            sheet.Cell(2, 4, "RightValueD");
-            sheet.SetColumnWidth(1, 16);
-            sheet.SetColumnWidth(3, 22);
+            sheet.Cell(1, 1).SetValue("LeftHeader");
+            sheet.Cell(1, 2).SetValue("LeftTail");
+            sheet.Cell(1, 3).SetValue("RightHeader");
+            sheet.Cell(1, 4).SetValue("RightTail");
+            sheet.Cell(2, 1).SetValue("LeftValueA");
+            sheet.Cell(2, 2).SetValue("LeftValueB");
+            sheet.Cell(2, 3).SetValue("RightValueC");
+            sheet.Cell(2, 4).SetValue("RightValueD");
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(16));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(22));
             sheet.AddManualColumnPageBreak(2);
 
             Assert.Equal(new[] { 2 }, sheet.GetManualColumnPageBreaks());
             document.Save();
 
-            var options = new ExcelToPdfOptions {
+            var options = new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PageSize(560, 320),
-                Margins = PdfCore.PageMargins.Uniform(24)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(560),OfficeIMO.OfficeLength.Points(320)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
             };
-            bytes = document.ToPdfBytes(options);
+            bytes = document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
             options.UseWorksheetPageBreaks = false;
-            disabledBytes = document.ToPdfBytes(options);
+            disabledBytes = document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -547,22 +557,22 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfDefaultPageOrder.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "PageOrder")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "PageOrder" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "TopLeftPage");
-            sheet.Cell(3, 1, "BottomLeftPage");
-            sheet.Cell(1, 3, "TopRightPage");
-            sheet.Cell(3, 3, "BottomRightPage");
+            sheet.Cell(1, 1).SetValue("TopLeftPage");
+            sheet.Cell(3, 1).SetValue("BottomLeftPage");
+            sheet.Cell(1, 3).SetValue("TopRightPage");
+            sheet.Cell(3, 3).SetValue("BottomRightPage");
             sheet.AddManualRowPageBreak(2);
             sheet.AddManualColumnPageBreak(2);
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
-                PageSize = new PdfCore.PageSize(360, 260),
-                Margins = PdfCore.PageMargins.Uniform(24)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(260)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));

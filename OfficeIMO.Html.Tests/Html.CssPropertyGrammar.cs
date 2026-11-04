@@ -84,6 +84,16 @@ public sealed class HtmlCssPropertyGrammarTests {
     }
 
     [Fact]
+    public void NestedVarFunctionsPreserveDeferredAndInvalidResults() {
+        string deeplyNested = string.Concat(Enumerable.Repeat("var(--x,", 4_000)) + "red" + new string(')', 4_000);
+
+        Assert.Equal(HtmlCssPropertyParseStatus.Deferred,
+            HtmlCssPropertyParser.Parse("color", deeplyNested).Status);
+        Assert.Equal(HtmlCssPropertyParseStatus.InvalidSyntax,
+            HtmlCssPropertyParser.Parse("color", "var(--x, var(red))").Status);
+    }
+
+    [Fact]
     public void DeclarationParsingRetainsSourceAndSeparatesImportant() {
         HtmlCssDeclaration declaration = Assert.Single(
             HtmlCssSyntaxParser.ParseStyleBlock("color: /* tone */ ReD !/**/ IMPORTANT;").Declarations);
@@ -241,7 +251,7 @@ public sealed class HtmlCssPropertyGrammarTests {
             "<p id='large' style='--payload:" + largeValue + "'>Large</p>");
         Assert.NotNull(HtmlComputedStyleEngine.Compute(unbounded)[unbounded.QuerySelector("#large")!]);
 
-        var limits = HtmlConversionLimits.CreateTrustedProfile();
+        var limits = new HtmlConversionLimits();
         limits.MaxCssBytes = 16;
         limits.MaxTotalCssBytes = 16;
         HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() => HtmlConversionDocument.Parse(
@@ -253,7 +263,7 @@ public sealed class HtmlCssPropertyGrammarTests {
 
     [Fact]
     public void InlineSyntaxTranslatesTheConfiguredTokenLimitToTheConversionContract() {
-        var limits = HtmlConversionLimits.CreateTrustedProfile();
+        var limits = new HtmlConversionLimits();
         limits.MaxCssTokens = 2;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
             "<p id='bounded' style='color:red'>Bounded</p>",
@@ -269,7 +279,7 @@ public sealed class HtmlCssPropertyGrammarTests {
 
     [Fact]
     public void InlineSyntaxTranslatesTheConfiguredSyntaxNodeLimitToTheConversionContract() {
-        var limits = HtmlConversionLimits.CreateTrustedProfile();
+        var limits = new HtmlConversionLimits();
         limits.MaxCssTokens = 32;
         limits.MaxCssSyntaxNodes = 1;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(

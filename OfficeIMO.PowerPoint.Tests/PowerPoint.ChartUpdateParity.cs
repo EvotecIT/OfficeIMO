@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
                 new[] { new PowerPointChartSeries("Updated", new[] { 10d, 20d, 30d }) });
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     slide.AddChart(initialData);
                     presentation.Save();
@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
 
                 ConvertFirstChartToPieLike(filePath, doughnut);
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                     PowerPointChart chart = presentation.Slides.Last().Charts.Single();
                     chart.UpdateData(updatedData);
                     presentation.Save();
@@ -93,10 +93,10 @@ namespace OfficeIMO.Tests {
                 });
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddLineChart(initialData);
-                    chart.SetSeriesTrendline(0, OfficeChartTrendlineType.Linear, lineColor: "ED7D31", lineWidthPoints: 1.25)
+                    chart.SetSeriesTrendline(0, OfficeChartTrendlineType.Linear, lineColor: "ED7D31", lineWidth: OfficeLength.Points(1.25))
                         .UpdateData(updatedData);
                     presentation.Save();
                 }

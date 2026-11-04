@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Identifies a calculation setting parsed from a BIFF calculation record.
     /// </summary>
-    public enum LegacyXlsCalculationSettingKind {
+    internal enum LegacyXlsCalculationSettingKind {
         /// <summary>Maximum number of iterations for iterative calculation.</summary>
         IterationCount,
 

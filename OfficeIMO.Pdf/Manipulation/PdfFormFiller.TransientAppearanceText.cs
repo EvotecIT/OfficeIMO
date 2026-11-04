@@ -6,7 +6,7 @@ internal static partial class PdfFormFiller {
     private static bool TryBuildTransientTextAppearance(Dictionary<int, PdfIndirectObject> objects,
         string? defaultAppearance, PdfDictionary? defaultResources, double width, double height,
         string text, PdfFormFieldStyle style, out string content, out PdfDictionary? resources,
-        int maximumDecodedBytes, CancellationToken cancellationToken) {
+        int maximumDecodedBytes, int maximumMeasurementCharacters, CancellationToken cancellationToken) {
         content = string.Empty;
         resources = null;
         string displayedText = PdfAcroFormDictionaryBuilder.GetTextFieldAppearanceDisplayValue(text, style);
@@ -15,7 +15,8 @@ internal static partial class PdfFormFiller {
         double fontSize = ReadWidgetAppearanceFontSize(defaultAppearance, height);
         content = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceContent(width, height, text, fontSize, style,
             encodedTextHex: plan?.EncodedTextHex, fontResourceName: fontName,
-            encodeTextSegmentHex: plan?.EncodeTextSegmentHex, measureTextSegmentWidth: plan?.MeasureTextSegmentWidth);
+            encodeTextSegmentHex: plan?.EncodeTextSegmentHex, measureTextSegmentWidth: plan?.MeasureTextSegmentWidth,
+            maximumMeasurementCharacters: maximumMeasurementCharacters, cancellationToken: cancellationToken);
         return true;
     }
 

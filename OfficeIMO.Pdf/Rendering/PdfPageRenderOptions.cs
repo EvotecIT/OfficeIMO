@@ -2,14 +2,6 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
-/// <summary>Output format for managed PDF page batches.</summary>
-public enum PdfPageRenderFormat {
-    /// <summary>Dependency-free raster PNG.</summary>
-    Png,
-    /// <summary>UTF-8 vector SVG.</summary>
-    Svg
-}
-
 /// <summary>Options for bounded page-range and thumbnail rendering.</summary>
 public sealed class PdfPageRenderOptions : OfficeImageExportOptions {
     /// <summary>Creates legacy page-render options with fail-fast pixel-limit behavior.</summary>
@@ -17,8 +9,6 @@ public sealed class PdfPageRenderOptions : OfficeImageExportOptions {
         RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw;
     }
 
-    /// <summary>Batch output format.</summary>
-    public PdfPageRenderFormat Format { get; set; } = PdfPageRenderFormat.Png;
     /// <summary>Optional target DPI, converted from PDF's 72 points per inch.</summary>
     public double? Dpi { get; set; }
     /// <summary>PNG background color.</summary>
@@ -59,7 +49,7 @@ public sealed class PdfPageRenderOptions : OfficeImageExportOptions {
 
     internal void Validate() {
         ValidateImageExportOptions();
-        if (Format < PdfPageRenderFormat.Png || Format > PdfPageRenderFormat.Svg) throw new ArgumentOutOfRangeException(nameof(Format));
+        if (Format < global::OfficeIMO.Drawing.OfficeImageExportFormat.Png || Format > global::OfficeIMO.Drawing.OfficeImageExportFormat.Svg) throw new ArgumentOutOfRangeException(nameof(Format));
         if (Dpi.HasValue && !IsPositiveFinite(Dpi.Value)) throw new ArgumentOutOfRangeException(nameof(Dpi), Dpi, "DPI must be positive and finite.");
         if (ThumbnailMaxDimension.HasValue && ThumbnailMaxDimension.Value <= 0) throw new ArgumentOutOfRangeException(nameof(ThumbnailMaxDimension));
         if (MaxPages <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPages));
@@ -78,7 +68,7 @@ public sealed class PdfPageRenderResult {
 
     internal PdfPageRenderResult(
         int pageNumber,
-        PdfPageRenderFormat format,
+        global::OfficeIMO.Drawing.OfficeImageExportFormat format,
         byte[]? bytes,
         int width,
         int height,
@@ -111,7 +101,7 @@ public sealed class PdfPageRenderResult {
     /// <summary>One-based source page number.</summary>
     public int PageNumber { get; }
     /// <summary>Requested output format.</summary>
-    public PdfPageRenderFormat Format { get; }
+    public global::OfficeIMO.Drawing.OfficeImageExportFormat Format { get; }
     /// <summary>Rendered bytes, or null when the page failed.</summary>
     public byte[]? Bytes => _bytes == null ? null : (byte[])_bytes.Clone();
     /// <summary>Output width in pixels or SVG user units.</summary>

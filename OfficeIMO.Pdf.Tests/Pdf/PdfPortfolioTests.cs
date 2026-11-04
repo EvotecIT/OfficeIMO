@@ -6,7 +6,7 @@ namespace OfficeIMO.Tests.Pdf;
 public class PdfPortfolioTests {
     [Fact]
     public void Save_PortfolioBuildsCollectionAndRoundTripsMetadata() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .AddEmbeddedFile("cover.pdf", new byte[] { 1, 2, 3 }, "application/pdf")
             .AddEmbeddedFile("data.csv", new byte[] { 4, 5 }, "text/csv")
             .SetPortfolio(new PdfPortfolioOptions {
@@ -17,7 +17,7 @@ public class PdfPortfolioTests {
             }.SetField(new PdfPortfolioField(PdfPortfolioFieldKind.Size, "Bytes", 1)));
 
         PdfDocument document = PdfDocument.Create(options);
-        document.Paragraph(paragraph => paragraph.Text("Portfolio"));
+        document.Paragraph(paragraph => paragraph.AddText("Portfolio"));
 
         byte[] pdf = document.ToBytes();
         PdfReadDocument read = PdfReadDocument.Open(pdf);
@@ -34,10 +34,10 @@ public class PdfPortfolioTests {
 
     [Fact]
     public void Save_PortfolioRequiresEmbeddedFiles() {
-        PdfDocument document = PdfDocument.Create(new PdfOptions {
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
             Portfolio = new PdfPortfolioOptions()
         });
-        document.Paragraph(paragraph => paragraph.Text("Missing attachment"));
+        document.Paragraph(paragraph => paragraph.AddText("Missing attachment"));
 
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => document.ToBytes());
         Assert.Contains("requires at least one embedded file", exception.Message, StringComparison.Ordinal);
@@ -46,7 +46,7 @@ public class PdfPortfolioTests {
     [Fact]
     public void Options_PortfolioIsDefensivelyCloned() {
         var source = new PdfPortfolioOptions();
-        var options = new PdfOptions { Portfolio = source };
+        var options = new PdfCreateOptions { Portfolio = source };
         source.View = PdfPortfolioView.Hidden;
 
         Assert.Equal(PdfPortfolioView.Details, options.Portfolio!.View);

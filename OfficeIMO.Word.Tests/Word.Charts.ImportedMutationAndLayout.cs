@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 WordChart chart = document.AddChart("Original");
                 chart.AddCategories(new List<string> { "A", "B", "C" });
-                chart.AddBar("Before", new List<int> { 1, 2, 3 }, OfficeIMO.Drawing.OfficeColor.Blue);
+                chart.AddBar("Before", new List<int> { 1, 2, 3 }, OfficeIMO.OfficeColor.Blue);
                 C.Values values = document._wordprocessingDocument.MainDocumentPart!.ChartParts.Single()
                     .ChartSpace.GetFirstChild<C.Chart>()!.PlotArea!.GetFirstChild<C.BarChart>()!
                     .GetFirstChild<C.BarChartSeries>()!.GetFirstChild<C.Values>()!;
@@ -41,9 +41,9 @@ namespace OfficeIMO.Tests {
                 Assert.True(imported.TrySetCategories(new[] { "North", "South", "West" }));
                 Assert.True(imported.TrySetSeriesName(0, "After"));
                 Assert.True(imported.TrySetSeriesValues(0, new[] { 10.5, 20.25, 30.75 }));
-                imported.SetSize(320, 180);
+                imported.SetSize(OfficeIMO.OfficeLength.Pixels(320),OfficeIMO.OfficeLength.Pixels(180));
 
-                Assert.True(imported.TryGetSnapshot(out WordChartSnapshot snapshot));
+                Assert.True(imported.TryGetSnapshot(out WordChartInfo snapshot));
                 Assert.Equal("Imported mutation", snapshot.Title);
                 Assert.Equal(new[] { "North", "South", "West" }, snapshot.Data.Categories);
                 WordChartSeries series = Assert.Single(snapshot.Data.Series);
@@ -56,7 +56,7 @@ namespace OfficeIMO.Tests {
 
             using WordDocument reloaded = WordDocument.Load(filePath);
             WordChart persisted = Assert.Single(reloaded.Charts);
-            Assert.True(persisted.TryGetSnapshot(out WordChartSnapshot persistedSnapshot));
+            Assert.True(persisted.TryGetSnapshot(out WordChartInfo persistedSnapshot));
             Assert.Equal("Imported mutation", persistedSnapshot.Title);
             Assert.Equal(new[] { "North", "South", "West" }, persistedSnapshot.Data.Categories);
             Assert.Equal(new[] { 10.5, 20.25, 30.75 }, Assert.Single(persistedSnapshot.Data.Series).Values);
@@ -78,7 +78,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 WordChart chart = document.AddChart("Anchored");
                 chart.AddCategories(new List<string> { "A", "B" });
-                chart.AddBar("Series", new List<int> { 1, 2 }, OfficeIMO.Drawing.OfficeColor.Green);
+                chart.AddBar("Series", new List<int> { 1, 2 }, OfficeIMO.OfficeColor.Green);
                 ConvertChartToPageAnchor(chart, 36, 72);
                 DW.Anchor anchor = chart.Drawing!.Anchor!;
                 anchor.Append(new WP14.RelativeWidth(
@@ -90,14 +90,14 @@ namespace OfficeIMO.Tests {
                     RelativeFrom = WP14.SizeRelativeVerticallyValues.Page
                 });
 
-                Assert.True(chart.TryGetLayoutSnapshot(out WordDrawingLayoutSnapshot layout));
+                Assert.True(chart.TryGetLayoutSnapshot(out WordDrawingLayoutInfo layout));
                 Assert.Equal(WordDrawingPlacementKind.Anchored, layout.Placement);
                 Assert.Equal("page", layout.HorizontalRelativeFrom);
                 Assert.Equal("page", layout.VerticalRelativeFrom);
                 Assert.Equal(36D, layout.HorizontalOffsetPoints!.Value, 6);
                 Assert.Equal(72D, layout.VerticalOffsetPoints!.Value, 6);
                 Assert.Equal(WordDrawingWrapKind.Square, layout.Wrap);
-                chart.SetSize(400, 200);
+                chart.SetSize(OfficeIMO.OfficeLength.Pixels(400),OfficeIMO.OfficeLength.Pixels(200));
                 Assert.Null(anchor.GetFirstChild<WP14.RelativeWidth>());
                 Assert.Null(anchor.GetFirstChild<WP14.RelativeHeight>());
                 document.Save();
@@ -105,11 +105,11 @@ namespace OfficeIMO.Tests {
 
             using WordDocument reloaded = WordDocument.Load(filePath);
             WordChart imported = Assert.Single(reloaded.Charts);
-            Assert.True(imported.TryGetLayoutSnapshot(out WordDrawingLayoutSnapshot persisted));
+            Assert.True(imported.TryGetLayoutSnapshot(out WordDrawingLayoutInfo persisted));
             Assert.Equal(WordDrawingPlacementKind.Anchored, persisted.Placement);
             Assert.Equal(300D, persisted.WidthPoints, 6);
             Assert.Equal(150D, persisted.HeightPoints, 6);
-            Assert.True(imported.TryGetSnapshot(out WordChartSnapshot chartSnapshot));
+            Assert.True(imported.TryGetSnapshot(out WordChartInfo chartSnapshot));
             Assert.Equal(300D, chartSnapshot.WidthPoints, 6);
             Assert.Empty(new OpenXmlValidator().Validate(reloaded._wordprocessingDocument));
         }
@@ -120,19 +120,19 @@ namespace OfficeIMO.Tests {
             WordShape shape = WordShape.AddDrawingShapeAnchored(
                 document.AddParagraph("shape"),
                 WordShapeType.Rectangle,
-                80,
-                40,
-                18,
-                27);
+                OfficeIMO.OfficeLength.Points(80),
+                OfficeIMO.OfficeLength.Points(40),
+                OfficeIMO.OfficeLength.Points(18),
+                OfficeIMO.OfficeLength.Points(27));
             WordSmartArt smartArt = document.AddSmartArt(WordSmartArtType.BasicProcess);
 
-            Assert.True(shape.TryGetLayoutSnapshot(out WordDrawingLayoutSnapshot shapeLayout));
+            Assert.True(shape.TryGetLayoutSnapshot(out WordDrawingLayoutInfo shapeLayout));
             Assert.Equal(WordDrawingPlacementKind.Anchored, shapeLayout.Placement);
             Assert.Equal(18D, shapeLayout.HorizontalOffsetPoints!.Value, 6);
             Assert.Equal(27D, shapeLayout.VerticalOffsetPoints!.Value, 6);
             Assert.Equal(WordDrawingWrapKind.Square, shapeLayout.Wrap);
 
-            Assert.True(smartArt.TryGetLayoutSnapshot(out WordDrawingLayoutSnapshot smartArtLayout));
+            Assert.True(smartArt.TryGetLayoutSnapshot(out WordDrawingLayoutInfo smartArtLayout));
             Assert.Equal(WordDrawingPlacementKind.Inline, smartArtLayout.Placement);
             Assert.Equal(432D, smartArtLayout.WidthPoints, 6);
             Assert.Equal(252D, smartArtLayout.HeightPoints, 6);
@@ -144,14 +144,14 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 WordChart chart = document.AddChart("Simple position");
                 chart.AddCategories(new List<string> { "A" });
-                chart.AddBar("Series", new List<int> { 1 }, OfficeIMO.Drawing.OfficeColor.Blue);
+                chart.AddBar("Series", new List<int> { 1 }, OfficeIMO.OfficeColor.Blue);
                 ConvertChartToPageAnchor(chart, 300, 400);
                 DW.Anchor anchor = chart.Drawing!.Anchor!;
                 anchor.SimplePos = true;
                 anchor.SimplePosition!.X = (long)(21D * 12700D);
                 anchor.SimplePosition.Y = (long)(33D * 12700D);
 
-                Assert.True(chart.TryGetLayoutSnapshot(out WordDrawingLayoutSnapshot layout));
+                Assert.True(chart.TryGetLayoutSnapshot(out WordDrawingLayoutInfo layout));
                 Assert.True(layout.UsesSimplePosition);
                 Assert.Equal("page", layout.HorizontalRelativeFrom);
                 Assert.Equal("page", layout.VerticalRelativeFrom);
@@ -164,7 +164,7 @@ namespace OfficeIMO.Tests {
 
             using WordDocument reloaded = WordDocument.Load(filePath);
             WordChart imported = Assert.Single(reloaded.Charts);
-            Assert.True(imported.TryGetLayoutSnapshot(out WordDrawingLayoutSnapshot persisted));
+            Assert.True(imported.TryGetLayoutSnapshot(out WordDrawingLayoutInfo persisted));
             Assert.True(persisted.UsesSimplePosition);
             Assert.Equal(21D, persisted.HorizontalOffsetPoints!.Value, 6);
             Assert.Equal(33D, persisted.VerticalOffsetPoints!.Value, 6);

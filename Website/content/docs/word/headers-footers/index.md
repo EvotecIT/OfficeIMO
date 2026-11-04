@@ -6,36 +6,32 @@ order: 14
 
 OfficeIMO provides full support for document headers and footers, including different content for the first page, odd/even pages, and section-specific headers and footers. Page numbers can be inserted in various formats.
 
-## Enabling Headers and Footers
+## Page Setup
 
-Before adding content to headers or footers, you must enable them on the document:
+Running content belongs to a section's `PageSetup`, next to its page size, margins and orientation. `document.PageSetup` is the first section's setup. `Header` and `Footer` create the default header and footer on first use; `FirstPageHeader`/`FirstPageFooter` and `EvenPageHeader`/`EvenPageFooter` enable `DifferentFirstPage` or `DifferentOddAndEvenPages` when they create their story. `GetHeader(type)` and `GetFooter(type)` return an existing story or `null` without creating one.
 
 ```csharp
 using OfficeIMO.Word;
 
 using var document = WordDocument.Create("headers.docx");
-
-// Enable headers and footers for the current section
-document.AddHeadersAndFooters();
+WordPageSetup setup = document.PageSetup;
 ```
 
 ## Adding Header Content
 
-Each section has three header slots: `Default`, `First`, and `Even`.
+Each section has three headers: `Header`, `FirstPageHeader`, and `EvenPageHeader`.
 
 ```csharp
-document.AddHeadersAndFooters();
-
 // Default header (appears on all pages unless overridden)
-document.Header.Default.AddParagraph("Company Name - Confidential");
+document.PageSetup.Header.AddParagraph("Company Name - Confidential");
 
 // First page header (different from the rest)
-document.DifferentFirstPage = true;
-document.Header.First.AddParagraph("COVER PAGE HEADER");
+document.PageSetup.DifferentFirstPage = true;
+document.PageSetup.FirstPageHeader.AddParagraph("COVER PAGE HEADER");
 
 // Even page header (for double-sided printing)
-document.DifferentOddAndEvenPages = true;
-document.Header.Even.AddParagraph("Even Page Header");
+document.PageSetup.DifferentOddAndEvenPages = true;
+document.PageSetup.EvenPageHeader.AddParagraph("Even Page Header");
 ```
 
 ## Adding Footer Content
@@ -43,9 +39,9 @@ document.Header.Even.AddParagraph("Even Page Header");
 Footers work identically to headers:
 
 ```csharp
-document.Footer.Default.AddParagraph("Copyright 2025 - All Rights Reserved");
+document.PageSetup.Footer.AddParagraph("Copyright 2025 - All Rights Reserved");
 
-document.Footer.First.AddParagraph("Draft Document");
+document.PageSetup.FirstPageFooter.AddParagraph("Draft Document");
 ```
 
 ## Page Numbers
@@ -53,10 +49,8 @@ document.Footer.First.AddParagraph("Draft Document");
 Add page numbers to headers or footers using `AddPageNumber`:
 
 ```csharp
-document.AddHeadersAndFooters();
-
 // Add page number to the default footer
-document.Footer.Default.AddPageNumber(WordPageNumberStyle.Normal);
+document.PageSetup.Footer.AddPageNumber(WordPageNumberStyle.Normal);
 ```
 
 Available `WordPageNumberStyle` values:
@@ -69,9 +63,9 @@ Available `WordPageNumberStyle` values:
 ### Centering Page Numbers
 
 ```csharp
-var footerParagraph = document.Footer.Default.AddParagraph();
+var footerParagraph = document.PageSetup.Footer.AddParagraph();
 footerParagraph.ParagraphAlignment = WordParagraphAlignment.Center;
-document.Footer.Default.AddPageNumber(WordPageNumberStyle.Normal);
+document.PageSetup.Footer.AddPageNumber(WordPageNumberStyle.Normal);
 ```
 
 ## Different First Page
@@ -80,14 +74,13 @@ Set `DifferentFirstPage` to use separate header/footer content on the first page
 
 ```csharp
 using var document = WordDocument.Create("first-page.docx");
-document.AddHeadersAndFooters();
-document.DifferentFirstPage = true;
+document.PageSetup.DifferentFirstPage = true;
 
 // First page gets a special header
-document.Header.First.AddParagraph("TITLE PAGE");
+document.PageSetup.FirstPageHeader.AddParagraph("TITLE PAGE");
 
 // All other pages get the default header
-document.Header.Default.AddParagraph("Chapter 1 - Introduction");
+document.PageSetup.Header.AddParagraph("Chapter 1 - Introduction");
 
 document.AddParagraph("Title page content...");
 document.AddPageBreak();
@@ -101,10 +94,10 @@ document.Save();
 For double-sided printing, enable different odd/even page headers:
 
 ```csharp
-document.DifferentOddAndEvenPages = true;
+document.PageSetup.DifferentOddAndEvenPages = true;
 
-document.Header.Default.AddParagraph("Odd Page Header");   // Appears on odd pages
-document.Header.Even.AddParagraph("Even Page Header");
+document.PageSetup.Header.AddParagraph("Odd Page Header");   // Appears on odd pages
+document.PageSetup.EvenPageHeader.AddParagraph("Even Page Header");
 ```
 
 ## Section-Specific Headers and Footers
@@ -115,14 +108,12 @@ Each section can have independent headers and footers. Add a new section and con
 using var document = WordDocument.Create("sections.docx");
 
 // Section 1
-document.AddHeadersAndFooters();
-document.Header.Default.AddParagraph("Chapter 1");
+document.PageSetup.Header.AddParagraph("Chapter 1");
 document.AddParagraph("Chapter 1 content...");
 
 // Section 2 with different header
 var section2 = document.AddSection();
-document.AddHeadersAndFooters();
-document.Header.Default.AddParagraph("Chapter 2");
+section2.PageSetup.Header.AddParagraph("Chapter 2");
 document.AddParagraph("Chapter 2 content...");
 
 document.Save();
@@ -131,10 +122,8 @@ document.Save();
 ## Adding Images to Headers
 
 ```csharp
-document.AddHeadersAndFooters();
-
 // Add a logo to the default header using VML
-document.Sections[0].Header.Default.AddImageVml("logo.png", width: 120, height: 40);
+document.Sections[0].PageSetup.Header.AddImageVml("logo.png", width: 120, height: 40);
 ```
 
 ## Removing Headers
@@ -160,16 +149,14 @@ WordHeader.RemoveHeaders(
 Headers and footers support the full paragraph API, including formatted text, hyperlinks, fields, and tab stops:
 
 ```csharp
-document.AddHeadersAndFooters();
-
-var headerParagraph = document.Header.Default.AddParagraph();
+var headerParagraph = document.PageSetup.Header.AddParagraph();
 headerParagraph.Text = "Document Title";
 headerParagraph.Bold = true;
 headerParagraph.FontSize = 10;
 headerParagraph.ParagraphAlignment = WordParagraphAlignment.Center;
 
-var footerParagraph = document.Footer.Default.AddParagraph();
+var footerParagraph = document.PageSetup.Footer.AddParagraph();
 footerParagraph.Text = "Printed: " + DateTime.Now.ToString("yyyy-MM-dd");
 footerParagraph.FontSize = 8;
-footerParagraph.Color = OfficeIMO.Drawing.OfficeColor.Gray;
+footerParagraph.Color = OfficeIMO.OfficeColor.Gray;
 ```

@@ -10,9 +10,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanIncludesUnchangedFormulaRecalculation() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
-            ExcelSheet summary = document.AddWorksheet("Summary");
-            summary.CellFormula(1, 1, "1+1");
+            ExcelSheet data = document.AddSheet("Data");
+            ExcelSheet summary = document.AddSheet("Summary");
+            summary.Cell(1, 1).SetFormula("1+1");
             CellFormula formula = Assert.Single(
                 summary.WorksheetPart.Worksheet.Descendants<CellFormula>());
             formula.CalculateCell = null;
@@ -32,11 +32,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanIncludesPendingUnchangedFormulaRecalculation() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet summary = document.AddWorksheet("Summary");
+            ExcelSheet summary = document.AddSheet("Summary");
             for (int column = 1; column <= 128; column++) {
-                summary.CellValue(1, column, column);
+                summary.Cell(1, column).SetValue(column);
             }
-            summary.CellFormula(1, 129, "1+1");
+            summary.Cell(1, 129).SetFormula("1+1");
             Assert.True(document.HasPendingDirectCellValues);
             ExcelSheet data = AddWorksheetWithoutMaterializingPending(
                 document,
@@ -59,11 +59,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanIgnoresUnchangedHyperlinksAndTables() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellAt(1, 1).SetValue("Name");
-            sheet.CellAt(1, 2).SetValue("Value");
-            sheet.CellAt(2, 1).SetValue("One");
-            sheet.CellAt(2, 2).SetValue(1);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("One");
+            sheet.Cell(2, 2).SetValue(1);
             sheet.SetInternalLink(3, 1, sheet, "A1", display: "Top");
             sheet.AddTable(
                 "A1:B2",
@@ -96,8 +96,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanIncludesImplicitRowsNormalizedAboveBoundary() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Value");
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Value");
             Row row = Assert.Single(
                 sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!.Elements<Row>());
             row.RowIndex = null;
@@ -115,7 +115,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanIncludesIndependentCommentVmlAnchorMove() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.SetComment("A1", "Anchored note");
             var vmlPart = Assert.Single(sheet.WorksheetPart.VmlDrawingParts);
             string before;
@@ -142,7 +142,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanIgnoresVmlShapeWithInvalidCoordinates() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.SetComment("A1", "Malformed coordinate");
             var vmlPart = Assert.Single(sheet.WorksheetPart.VmlDrawingParts);
             XNamespace excelNamespace =
@@ -166,7 +166,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanRejectsVmlShapeWithoutObjectType() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.SetComment("A1", "Missing object type");
             var vmlPart = Assert.Single(sheet.WorksheetPart.VmlDrawingParts);
             XNamespace excelNamespace =

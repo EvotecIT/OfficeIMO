@@ -63,7 +63,7 @@ public sealed class PdfFormOcrReviewTests {
 
     [Fact]
     public async Task OverlappingFieldsRemainAmbiguousAndRequireExplicitValues() {
-        var source = PdfDocument.Create(compose => compose.Page(page => page.Size(300, 300))).Forms.Edit(edit => {
+        var source = PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)))).Forms.Edit(edit => {
             edit.Create(new() { Name = "First", X = 20, Y = 200, Width = 150, Height = 30 });
             edit.Create(new() { Name = "Second", X = 20, Y = 200, Width = 150, Height = 30 });
         }).ToDocument();
@@ -125,8 +125,8 @@ public sealed class PdfFormOcrReviewTests {
         var encryption = new PdfStandardEncryptionOptions("open") {
             OwnerPassword = "owner", AllowedPermissions = PdfStandardPermissions.CopyContents
         };
-        byte[] bytes = PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
-            .TextField("Name", width: 180, height: 24).ToBytes();
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions().SetEncryption(encryption))
+            .TextField("Name", width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(24)).ToBytes();
         var source = PdfDocument.Load(bytes, new PdfLoadOptions { Password = password });
         var widget = source.Inspect().FormFieldsByName["Name"].Widgets.Single();
         var bounds = source.GetPageLayouts()[0].MapUserSpaceRectangleToVisual(widget.X1, widget.Y1, widget.X2, widget.Y2);

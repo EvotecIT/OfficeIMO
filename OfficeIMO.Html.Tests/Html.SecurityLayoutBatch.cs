@@ -287,7 +287,7 @@ public sealed class HtmlSecurityLayoutBatchTests {
             string.Concat(Enumerable.Repeat("<p>x</p>", 100));
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item =>
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.NativeDiagnostics, item =>
             item.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported
             && item.Detail.StartsWith("quotes=", StringComparison.Ordinal));
         Assert.True(diagnostic.Detail.Length <= 263);
@@ -306,7 +306,7 @@ public sealed class HtmlSecurityLayoutBatchTests {
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html.ToString());
         Assert.Contains("1024", rendered.Text, StringComparison.Ordinal);
-        Assert.DoesNotContain(rendered.Diagnostics, item =>
+        Assert.DoesNotContain(rendered.NativeDiagnostics, item =>
             item.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported
             && item.Detail.StartsWith("quotes=", StringComparison.Ordinal));
     }
@@ -324,6 +324,18 @@ public sealed class HtmlSecurityLayoutBatchTests {
                 MaxLayoutOperations = 50000,
                 MaxLeaderCharacters = 20000
             })).LimitSource);
+    }
+
+    [Fact]
+    public void NestedAutoWidthInlineBlocksChargeRepeatedIntrinsicDescendantScans() {
+        string html = string.Concat(Enumerable.Repeat("<span style='display:inline-block'>", 20)) +
+            string.Concat(Enumerable.Repeat("<span></span>", 300)) +
+            string.Concat(Enumerable.Repeat("</span>", 20));
+
+        HtmlDomLimitException error = Assert.Throws<HtmlDomLimitException>(() =>
+            HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { MaxLayoutOperations = 10_000 }));
+        Assert.Equal(nameof(HtmlRenderOptions.MaxLayoutOperations), error.LimitSource);
+        Assert.Contains("intrinsic replaced descendant scan", error.Message, StringComparison.Ordinal);
     }
 
 }

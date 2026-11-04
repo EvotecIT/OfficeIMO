@@ -1,9 +1,32 @@
 using OfficeIMO.Drawing;
+using System.IO;
 using Xunit;
 
 namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
+    [Fact]
+    public void NonAntialiasedPictureMasksChargeEdgeChecksBeforeExcessivePaintWork() {
+        var commands = new List<OfficePathCommand> { OfficePathCommand.MoveTo(0, 0) };
+        for (int i = 0; i < 32; i++) {
+            commands.Add(OfficePathCommand.LineTo(20, 0));
+            commands.Add(OfficePathCommand.LineTo(20, 20));
+            commands.Add(OfficePathCommand.LineTo(0, 20));
+            commands.Add(OfficePathCommand.LineTo(0, 0));
+        }
+        var shape = OfficeShape.Rectangle(20, 20);
+        shape.FillColor = OfficeColor.Red;
+        var inner = new OfficeDrawing(20, 20).AddShape(shape, 0, 0);
+        var drawing = new OfficeDrawing(20, 20).AddClippedDrawing(inner, 0, 0,
+            OfficeClipPath.Path(20, 20, commands, OfficeFillRule.NonZero));
+
+        Assert.Throws<InvalidDataException>(() => OfficeDrawingRasterRenderer.Render(drawing,
+            new OfficeDrawingRasterRenderOptions { MaximumClipEdgeChecks = 1_000 }));
+        OfficeRasterImage accepted = OfficeDrawingRasterRenderer.Render(drawing,
+            new OfficeDrawingRasterRenderOptions { MaximumClipEdgeChecks = 100_000 });
+        Assert.Equal(OfficeColor.Red, accepted.GetPixel(10, 10));
+    }
+
     [Theory]
     [InlineData(OfficeStrokeLineCap.Round)]
     [InlineData(OfficeStrokeLineCap.Square)]

@@ -1,7 +1,7 @@
 using System;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Examples.Word;
 
@@ -18,12 +18,12 @@ internal static partial class Paragraphs {
 
             Console.WriteLine("Tabs count: " + paragraph.TabStops.Count);
 
-            var tab1 = paragraph.AddTabStop(1440);
+            var tab1 = paragraph.AddTabStop(OfficeLength.Points(72));
 
-            var tab2 = paragraph.AddTabStop(1440);
+            var tab2 = paragraph.AddTabStop(OfficeLength.Points(72));
             tab2.Alignment = WordTabAlignment.Left;
             tab2.Leader = WordTabLeader.Hyphen;
-            tab2.Position = 1440;
+            tab2.Position = OfficeLength.Points(72);
 
             paragraph.AddText("\tMore text");
 
@@ -31,10 +31,10 @@ internal static partial class Paragraphs {
 
             var paragraph1 = document.AddParagraph("\tNext Line");
 
-            var tab3 = paragraph1.AddTabStop(5000);
+            var tab3 = paragraph1.AddTabStop(OfficeLength.Points(250));
             tab3.Leader = WordTabLeader.Hyphen;
 
-            var tab4 = paragraph1.AddTabStop(1440 * 2);
+            var tab4 = paragraph1.AddTabStop(OfficeLength.Points(144));
             paragraph1.AddText("\tEven more text");
 
             Console.WriteLine("Tabs for Paragraph2 count: " + paragraph.TabStops.Count);

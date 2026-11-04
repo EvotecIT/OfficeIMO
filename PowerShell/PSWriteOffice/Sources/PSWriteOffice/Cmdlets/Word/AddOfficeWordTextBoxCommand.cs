@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// }</code>
 ///   <para>Creates a native OfficeIMO Word text box and applies sizing/positioning through OfficeIMO's text-box API.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeWordTextBox")]
+[Cmdlet(VerbsCommon.Add, "OfficeWordTextBox", DefaultParameterSetName = "Default")]
 [Alias("WordTextBox")]
 [OutputType(typeof(WordTextBox))]
 public sealed class AddOfficeWordTextBoxCommand : PSCmdlet
@@ -78,22 +78,24 @@ public sealed class AddOfficeWordTextBoxCommand : PSCmdlet
 
         if (WidthCentimeters.HasValue)
         {
-            textBox.WidthCentimeters = WidthCentimeters.Value;
+            textBox.Width = OfficeLength.Centimeters(WidthCentimeters.Value);
+            textBox.RelativeWidthPercentage = 0;
         }
 
         if (HeightCentimeters.HasValue)
         {
-            textBox.HeightCentimeters = HeightCentimeters.Value;
+            textBox.Height = OfficeLength.Centimeters(HeightCentimeters.Value);
+            textBox.RelativeHeightPercentage = 0;
         }
 
         if (HorizontalOffsetCentimeters.HasValue)
         {
-            textBox.HorizontalPositionOffsetCentimeters = HorizontalOffsetCentimeters.Value;
+            textBox.HorizontalPositionOffset = OfficeLength.Centimeters(HorizontalOffsetCentimeters.Value);
         }
 
         if (VerticalOffsetCentimeters.HasValue)
         {
-            textBox.VerticalPositionOffsetCentimeters = VerticalOffsetCentimeters.Value;
+            textBox.VerticalPositionOffset = OfficeLength.Centimeters(VerticalOffsetCentimeters.Value);
         }
 
         if (HorizontalAlignment.HasValue)

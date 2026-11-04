@@ -3,7 +3,8 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Options for a standard PDF /Redact review annotation.</summary>
-public sealed class PdfRedactionAnnotationOptions {
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
+public sealed class PdfRedactionAnnotationOptions : IPdfOperationCancellation {
     /// <summary>Creates options for a required review region.</summary>
     public PdfRedactionAnnotationOptions(PdfRedactionRegion region) {
         Region = region ?? throw new ArgumentNullException(nameof(region));
@@ -21,6 +22,10 @@ public sealed class PdfRedactionAnnotationOptions {
     public IReadOnlyList<double> Color { get; set; } = new[] { 1D, 0D, 0D };
     /// <summary>Maximum canonical areas authored from the region, from 1 through 64. Defaults to 16 while annotation creation performs one bounded rewrite per area.</summary>
     public int MaximumAnnotations { get; set; } = 16;
-    /// <summary>Cooperatively cancels between annotation rewrites.</summary>
-    public CancellationToken CancellationToken { get; set; }
+    // Operation cancellation; public methods take it as a parameter and bind it to a per-call copy.
+    System.Threading.CancellationToken IPdfOperationCancellation.CancellationToken { get => CancellationToken; set => CancellationToken = value; }
+
+    internal System.Threading.CancellationToken CancellationToken { get; set; }
+
+    object IPdfOperationCancellation.CloneForOperation() => MemberwiseClone();
 }

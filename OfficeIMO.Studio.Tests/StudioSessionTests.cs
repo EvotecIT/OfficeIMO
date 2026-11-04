@@ -177,7 +177,7 @@ public sealed class StudioSessionTests {
     }
     private static string CreatePdf(string root, string name, int pages) {
         string path = Path.Combine(root, name);
-        PdfDocument.Create(builder => { for (int i = 0; i < pages; i++) builder.Page(page => page.Size(600, 800)); }).Save(path);
+        PdfDocument.Create(builder => { for (int i = 0; i < pages; i++) builder.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800))); }).Save(path);
         return path;
     }
 }

@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Html;
 ///   <code>$render = New-OfficeHtmlRenderOptions -ViewportWidth 1280 -ViewportHeight 720 -MaxPageCount 10
 /// Export-OfficeHtmlImage -Path .\Report.html -OutputPath .\Report.svg -RenderOptions $render</code>
 /// </example>
-[Cmdlet(VerbsCommon.New, "OfficeHtmlRenderOptions")]
+[Cmdlet(VerbsCommon.New, "OfficeHtmlRenderOptions", DefaultParameterSetName = "Default")]
 [OutputType(typeof(HtmlRenderOptions))]
 public sealed class NewOfficeHtmlRenderOptionsCommand : OfficeImageOptionsCommandBase<HtmlRenderOptions> {
     /// <summary>HTML render mode.</summary>

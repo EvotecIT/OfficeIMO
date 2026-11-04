@@ -41,7 +41,7 @@ public sealed class IWorkPagesThirdLevelNativeExportTests {
         foreach (var item in items)
             Assert.Equal(new string(' ', item.ListLevel * 2) + item.ListNumber + ". " + item.Text,
                 IWorkReadProjection.RichTextMarkdown(item));
-        using var result = source.ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = source.ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); result.Value.Save(output);
         using (var reopened = WordDocument.Load(new MemoryStream(output.ToArray()))) {
@@ -69,7 +69,7 @@ public sealed class IWorkPagesThirdLevelNativeExportTests {
                 paths.Add(scenario.GetProperty("nativePdf").GetString()!);
             else paths.Add("pages-third-level-officeimo-docx-v15.4.pdf");
             foreach (string path in paths) {
-                var pdf = PdfReadDocument.Open(File.ReadAllBytes(Corpus(path))); Assert.Single(pdf.Pages);
+                var pdf = PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(Corpus(path)))); Assert.Single(pdf.Pages);
                 string text = Regex.Replace(pdf.ExtractText(), @"\s+", string.Empty); int previous = -1;
                 foreach (JsonElement item in scenario.GetProperty("expectedItems").EnumerateArray()) {
                     string wanted = Regex.Replace(item.GetProperty("number").GetInt32()

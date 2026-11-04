@@ -3,15 +3,15 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Helpers to scaffold common Markdown files such as README.
 /// </summary>
-public static class Scaffold {
+public static class MarkdownScaffold {
     /// <summary>
     /// Builds a README document with common sections using provided options.
     /// </summary>
-    public static MarkdownDoc Readme(string projectName, Action<ReadmeOptions> configure) {
-        var opts = new ReadmeOptions(projectName);
+    public static MarkdownDocument Readme(string projectName, Action<MarkdownReadmeOptions> configure) {
+        var opts = new MarkdownReadmeOptions(projectName);
         configure(opts);
 
-        var md = MarkdownDoc.Create()
+        var md = MarkdownDocument.Create()
             .H1(projectName)
             .P(opts.DescriptionText ?? "");
 

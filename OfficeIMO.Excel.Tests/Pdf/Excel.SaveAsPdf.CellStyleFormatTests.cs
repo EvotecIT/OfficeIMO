@@ -21,9 +21,9 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfCellStyles.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Styled")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Styled" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.CellAt(1, 1)
+            sheet.Cell(1, 1)
                 .SetValue("StyledCell")
                 .SetFontName("Consolas")
                 .SetBold()
@@ -31,9 +31,9 @@ public partial class Excel {
                 .SetUnderline()
                 .SetFontColor("112233")
                 .SetFillColor("DDEEFF");
-            sheet.CellAt(1, 2).SetValue("PlainCell");
+            sheet.Cell(1, 2).SetValue("PlainCell");
 
-            ExcelCellStyleSnapshot style = sheet.CellAt(1, 1).GetStyle();
+            ExcelCellStyleInfo style = sheet.Cell(1, 1).GetStyle();
             Assert.True(style.Bold);
             Assert.True(style.Italic);
             Assert.True(style.Underline);
@@ -43,12 +43,12 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
-                PageSize = new PdfCore.PageSize(360, 220),
-                Margins = PdfCore.PageMargins.Uniform(24)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -65,16 +65,16 @@ public partial class Excel {
     [Fact]
     public void SaveAsPdf_ExcelWorkbook_ReportsAccountingUnderlineApproximationOncePerSheet() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Accounting");
-        sheet.CellAt(1, 1).SetValue("Single").SetUnderline(ExcelUnderlineStyle.SingleAccounting);
-        sheet.CellAt(2, 1).SetValue("Double").SetUnderline(ExcelUnderlineStyle.DoubleAccounting);
+        ExcelSheet sheet = document.AddSheet("Accounting");
+        sheet.Cell(1, 1).SetValue("Single").SetUnderline(ExcelUnderlineStyle.SingleAccounting);
+        sheet.Cell(2, 1).SetValue("Double").SetUnderline(ExcelUnderlineStyle.DoubleAccounting);
 
-        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(new ExcelToPdfOptions {
+        PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false,
             HeaderRowCount = 0
         });
         PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings,
-            item => item.Code == "AccountingUnderlineApproximation");
+            item => item.Code == "accounting-underline-approximation");
 
         Assert.Equal("Accounting", warning.Source);
         Assert.Contains("2 accounting underline cell(s)", warning.Message, StringComparison.Ordinal);
@@ -86,19 +86,19 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfHelveticaCellWithTimesDefault.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Fonts")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Fonts" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.CellAt(1, 1).SetValue("ArialCell").SetFontName("Arial");
-            sheet.CellAt(1, 2).SetValue("PlainCell");
+            sheet.Cell(1, 1).SetValue("ArialCell").SetFontName("Arial");
+            sheet.Cell(1, 2).SetValue("PlainCell");
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 FontFamily = "Times New Roman",
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
-                PageSize = new PdfCore.PageSize(360, 220),
-                Margins = PdfCore.PageMargins.Uniform(24)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -115,19 +115,19 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfSameFamilyFontSlot.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Fonts")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Fonts" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.CellAt(1, 1).SetValue("FirstSerif").SetFontName("Times New Roman");
-            sheet.CellAt(1, 2).SetValue("SecondSerif").SetFontName("Georgia");
+            sheet.Cell(1, 1).SetValue("FirstSerif").SetFontName("Times New Roman");
+            sheet.Cell(1, 2).SetValue("SecondSerif").SetFontName("Georgia");
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 PdfOptions = CreateNamedGeorgiaPdfOptions(),
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
-                PageSize = new PdfCore.PageSize(360, 220),
-                Margins = PdfCore.PageMargins.Uniform(24)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -145,14 +145,14 @@ public partial class Excel {
         const string unavailableFamily = "OfficeIMO Missing Font 7F0C9D";
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfUnavailableCellFont.xlsx");
         PdfCore.PdfDocumentConversionResult result;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Fonts")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Fonts" })) {
             document.Sheets[0]
-                .CellAt(1, 1)
+                .Cell(1, 1)
                 .SetValue("Unavailable font marker")
                 .SetFontName(unavailableFamily);
             document.Save();
 
-            result = document.ToPdfDocumentResult(new ExcelToPdfOptions {
+            result = document.ConvertToPdfWithEvidence(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
                 ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
@@ -161,24 +161,24 @@ public partial class Excel {
 
         PdfCore.PdfConversionWarning warning = Assert.Single(
             result.Warnings,
-            item => item.Code == "WorksheetFontFamilySubstituted" && item.Details["fontFamily"] == unavailableFamily);
+            item => item.Code == "font-family-substitution" && item.Details["fontFamily"] == unavailableFamily);
         Assert.Equal("Fonts", warning.Source);
         Assert.Equal("FontUnavailable", warning.Details["substitutionReason"]);
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
     }
 
     [Fact]
     public void SaveAsPdf_ExcelWorkbook_Reports_Explicit_Font_Substitution_When_Host_Fonts_Are_Disabled() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfPortableCellFont.xlsx");
         PdfCore.PdfDocumentConversionResult result;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Fonts")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Fonts" })) {
             document.Sheets[0]
-                .CellAt(1, 1)
+                .Cell(1, 1)
                 .SetValue("Portable font marker")
                 .SetFontName("Arial");
             document.Save();
 
-            result = document.ToPdfDocumentResult(new ExcelToPdfOptions {
+            result = document.ConvertToPdfWithEvidence(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
                 ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
@@ -187,7 +187,7 @@ public partial class Excel {
 
         PdfCore.PdfConversionWarning warning = Assert.Single(
             result.Warnings,
-            item => item.Code == "WorksheetFontFamilySubstituted");
+            item => item.Code == "font-family-substitution");
         Assert.Equal("Arial", warning.Details["fontFamily"]);
         Assert.Equal("Helvetica", warning.Details["fallbackSlot"]);
         Assert.Equal("ResourcePolicy", warning.Details["substitutionReason"]);
@@ -200,16 +200,16 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfInheritedFontSubstitution.xlsx");
 
         PdfCore.PdfDocumentConversionResult result;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Fonts")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Fonts" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.CellAt(1, 1).SetValue("AB");
+            sheet.Cell(1, 1).SetValue("AB");
             document.Save();
 
-            ExcelCellStyleSnapshot inheritedStyle = sheet.CellAt(1, 1).GetStyle();
+            ExcelCellStyleInfo inheritedStyle = sheet.Cell(1, 1).GetStyle();
             Assert.False(inheritedStyle.IsFontFamilyExplicit);
             string sourceFamily = Assert.IsType<string>(inheritedStyle.FontName);
 
-            var configured = new PdfCore.PdfOptions();
+            var configured = new PdfCore.PdfCreateOptions();
             configured
                 .RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily(
                     targetFamily,
@@ -219,7 +219,7 @@ public partial class Excel {
                     targetFamily,
                     PdfCore.PdfFontFamilySubstitutionImpact.LayoutSensitive);
 
-            result = document.ToPdfDocumentResult(new ExcelToPdfOptions {
+            result = document.ConvertToPdfWithEvidence(new ExcelPdfExportOptions {
                 PdfOptions = configured,
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0
@@ -227,7 +227,7 @@ public partial class Excel {
             _ = result.ToBytes();
 
             PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item =>
-                item.Code == "WorksheetFontFamilySubstituted" &&
+                item.Code == "font-family-substitution" &&
                 item.Details.TryGetValue("fontFamily", out string? family) &&
                 family == sourceFamily);
             Assert.Equal(PdfCore.PdfConversionWarningSeverity.Warning, warning.Severity);
@@ -242,20 +242,20 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfDefaultFontSlot.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Fonts")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Fonts" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.CellAt(1, 1).SetValue("StyledSerif").SetFontName("Georgia");
-            sheet.CellAt(1, 2).SetValue("DefaultSerif");
+            sheet.Cell(1, 1).SetValue("StyledSerif").SetFontName("Georgia");
+            sheet.Cell(1, 2).SetValue("DefaultSerif");
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 PdfOptions = CreateNamedGeorgiaPdfOptions(),
                 FontFamily = "Times New Roman",
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
-                PageSize = new PdfCore.PageSize(360, 220),
-                Margins = PdfCore.PageMargins.Uniform(24)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -267,8 +267,8 @@ public partial class Excel {
         AssertRawPdfContainsAnyBaseFont(rawPdf, "Georgia");
     }
 
-    private static PdfCore.PdfOptions CreateNamedGeorgiaPdfOptions() =>
-        new PdfCore.PdfOptions()
+    private static PdfCore.PdfCreateOptions CreateNamedGeorgiaPdfOptions() =>
+        new PdfCore.PdfCreateOptions()
             .RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily(
                 "Georgia",
                 OfficeIMO.TestAssets.PdfTestFontAssets.LoadBundledOpenTypeCffFont()));
@@ -278,13 +278,13 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfConditionalColorScale.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Conditional")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Conditional" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Score");
-            sheet.Cell(2, 1, 0);
-            sheet.Cell(3, 1, 50);
-            sheet.Cell(4, 1, 100);
-            sheet.AddConditionalColorScale("A2:A4", "FFFF0000", "FF00FF00");
+            sheet.Cell(1, 1).SetValue("Score");
+            sheet.Cell(2, 1).SetValue(0);
+            sheet.Cell(3, 1).SetValue(50);
+            sheet.Cell(4, 1).SetValue(100);
+            sheet.Range("A2:A4").ConditionalFormat().ColorScale("FFFF0000", "FF00FF00");
 
             ExcelConditionalFormattingInfo rule = Assert.Single(sheet.GetConditionalFormattingRules("A2:A4"));
             Assert.Equal("ColorScale", rule.Type);
@@ -292,12 +292,12 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PageSize(360, 240),
-                Margins = PdfCore.PageMargins.Uniform(24)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(240)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -329,13 +329,13 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfConditionalDataBar.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Conditional")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Conditional" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Score");
-            sheet.Cell(2, 1, 0);
-            sheet.Cell(3, 1, 50);
-            sheet.Cell(4, 1, 100);
-            sheet.AddConditionalDataBar("A2:A4", "FF5B9BD5");
+            sheet.Cell(1, 1).SetValue("Score");
+            sheet.Cell(2, 1).SetValue(0);
+            sheet.Cell(3, 1).SetValue(50);
+            sheet.Cell(4, 1).SetValue(100);
+            sheet.Range("A2:A4").ConditionalFormat().DataBar("FF5B9BD5");
 
             ExcelConditionalFormattingInfo rule = Assert.Single(sheet.GetConditionalFormattingRules("A2:A4"));
             Assert.Equal("DataBar", rule.Type);
@@ -343,12 +343,12 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PageSize(360, 240),
-                Margins = PdfCore.PageMargins.Uniform(24)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(240)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -357,7 +357,7 @@ public partial class Excel {
         Assert.Contains("100", text);
 
         string rawPdf = PdfOperatorSearchText.From(bytes);
-        int barFillCount = rawPdf.Split(new[] { "0.357 0.608 0.835 rg" }, StringSplitOptions.None).Length - 1;
+        int barFillCount = rawPdf.Split(new[] { "0.678 0.804 0.918 rg" }, StringSplitOptions.None).Length - 1;
 
         Assert.Equal(2, barFillCount);
         Assert.Contains(" re f", rawPdf, StringComparison.Ordinal);
@@ -368,25 +368,25 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfConditionalNegativeDataBar.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Conditional")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Conditional" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Delta");
-            sheet.Cell(2, 1, -100);
-            sheet.Cell(3, 1, 0);
-            sheet.Cell(4, 1, 100);
-            sheet.AddConditionalDataBar("A2:A4", "FF5B9BD5");
+            sheet.Cell(1, 1).SetValue("Delta");
+            sheet.Cell(2, 1).SetValue(-100);
+            sheet.Cell(3, 1).SetValue(0);
+            sheet.Cell(4, 1).SetValue(100);
+            sheet.Range("A2:A4").ConditionalFormat().DataBar("FF5B9BD5");
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PageSize(360, 240),
-                Margins = PdfCore.PageMargins.Uniform(24)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(240)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         string rawPdf = PdfOperatorSearchText.From(bytes);
-        MatchCollection barRects = Regex.Matches(rawPdf, @"0\.357 0\.608 0\.835 rg\s+(?<x>-?\d+(?:\.\d+)?) (?<y>-?\d+(?:\.\d+)?) (?<width>-?\d+(?:\.\d+)?) (?<height>-?\d+(?:\.\d+)?) re f");
+        MatchCollection barRects = Regex.Matches(rawPdf, @"0\.678 0\.804 0\.918 rg\s+(?<x>-?\d+(?:\.\d+)?) (?<y>-?\d+(?:\.\d+)?) (?<width>-?\d+(?:\.\d+)?) (?<height>-?\d+(?:\.\d+)?) re f");
 
         Assert.Equal(2, barRects.Count);
         double firstX = double.Parse(barRects[0].Groups["x"].Value, CultureInfo.InvariantCulture);
@@ -403,13 +403,13 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfConditionalIconSet.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Conditional")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Conditional" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Score");
-            sheet.Cell(2, 1, 0);
-            sheet.Cell(3, 1, 50);
-            sheet.Cell(4, 1, 100);
-            sheet.AddConditionalIconSet("A2:A4", ExcelIconSet.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
+            sheet.Cell(1, 1).SetValue("Score");
+            sheet.Cell(2, 1).SetValue(0);
+            sheet.Cell(3, 1).SetValue(50);
+            sheet.Cell(4, 1).SetValue(100);
+            sheet.Range("A2:A4").ConditionalFormat().IconSet(ExcelIconSet.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
 
             ExcelConditionalFormattingInfo rule = Assert.Single(sheet.GetConditionalFormattingRules("A2:A4"));
             Assert.Equal("IconSet", rule.Type);
@@ -419,12 +419,12 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PageSize(360, 240),
-                Margins = PdfCore.PageMargins.Uniform(24)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(240)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -433,7 +433,7 @@ public partial class Excel {
         Assert.Contains("100", text);
 
         var expected = new[] { OfficeColor.FromRgb(220, 38, 38), OfficeColor.FromRgb(245, 158, 11), OfficeColor.FromRgb(22, 163, 74) };
-        var primitives = PdfCore.PdfReadDocument.Open(bytes).Pages[0].GetIdentityVisualPrimitives();
+        var primitives = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(bytes)).Pages[0].GetIdentityVisualPrimitives();
         var lights = primitives.Where(item => item.FillColor is OfficeColor color &&
             expected.Any(target => color.R == target.R && color.G == target.G && color.B == target.B)).OrderBy(item => item.Y).ToArray();
         Assert.Equal(3, lights.Length);
@@ -451,17 +451,17 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfCellAlignmentBorders.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "StyleLayout")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "StyleLayout" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Label");
-            sheet.Cell(1, 2, "ZZ");
-            sheet.Cell(2, 1, "Reference");
-            sheet.Cell(2, 2, "LeftInColumn");
-            sheet.CellAlign(1, 2, ExcelHorizontalAlignment.Right);
-            sheet.CellVerticalAlign(1, 2, ExcelVerticalAlignment.Bottom);
-            sheet.CellBorder(1, 2, ExcelBorderStyle.Medium, "445566");
+            sheet.Cell(1, 1).SetValue("Label");
+            sheet.Cell(1, 2).SetValue("ZZ");
+            sheet.Cell(2, 1).SetValue("Reference");
+            sheet.Cell(2, 2).SetValue("LeftInColumn");
+            sheet.Cell(1, 2).SetHorizontalAlignment(ExcelHorizontalAlignment.Right);
+            sheet.Cell(1, 2).SetVerticalAlignment(ExcelVerticalAlignment.Bottom);
+            sheet.Cell(1, 2).SetBorder(ExcelBorderStyle.Medium, "445566");
 
-            ExcelCellStyleSnapshot style = sheet.CellAt(1, 2).GetStyle();
+            ExcelCellStyleInfo style = sheet.Cell(1, 2).GetStyle();
             Assert.Equal("right", style.HorizontalAlignment);
             Assert.Equal("bottom", style.VerticalAlignment);
             Assert.NotNull(style.Border);
@@ -470,12 +470,12 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
-                PageSize = new PdfCore.PageSize(360, 220),
-                Margins = PdfCore.PageMargins.Uniform(24)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -498,27 +498,27 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfCellBorderDashStyles.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "BorderStyles")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "BorderStyles" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Dashed");
-            sheet.Cell(1, 2, "Dotted");
-            sheet.Cell(1, 3, "DashDot");
-            sheet.CellBorder(1, 1, ExcelBorderStyle.Dashed, "123456");
-            sheet.CellBorder(1, 2, ExcelBorderStyle.Dotted, "654321");
-            sheet.CellBorder(1, 3, ExcelBorderStyle.MediumDashDot, "445566");
+            sheet.Cell(1, 1).SetValue("Dashed");
+            sheet.Cell(1, 2).SetValue("Dotted");
+            sheet.Cell(1, 3).SetValue("DashDot");
+            sheet.Cell(1, 1).SetBorder(ExcelBorderStyle.Dashed, "123456");
+            sheet.Cell(1, 2).SetBorder(ExcelBorderStyle.Dotted, "654321");
+            sheet.Cell(1, 3).SetBorder(ExcelBorderStyle.MediumDashDot, "445566");
 
-            Assert.Equal("dashed", sheet.CellAt(1, 1).GetStyle().Border!.Left!.Style);
-            Assert.Equal("dotted", sheet.CellAt(1, 2).GetStyle().Border!.Left!.Style);
-            Assert.Equal("mediumdashdot", sheet.CellAt(1, 3).GetStyle().Border!.Left!.Style);
+            Assert.Equal("dashed", sheet.Cell(1, 1).GetStyle().Border!.Left!.Style);
+            Assert.Equal("dotted", sheet.Cell(1, 2).GetStyle().Border!.Left!.Style);
+            Assert.Equal("mediumdashdot", sheet.Cell(1, 3).GetStyle().Border!.Left!.Style);
 
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
-                PageSize = new PdfCore.PageSize(360, 220),
-                Margins = PdfCore.PageMargins.Uniform(24)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using (PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes))) {
@@ -540,28 +540,28 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfCellBorderDoubleDiagonal.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "BorderStyles")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "BorderStyles" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Double");
-            sheet.Cell(1, 2, "Diagonal");
-            sheet.CellBorder(1, 1, ExcelBorderStyle.Double, "123456");
-            sheet.CellDiagonalBorder(1, 2, ExcelBorderStyle.Double, "654321", diagonalUp: true, diagonalDown: true);
+            sheet.Cell(1, 1).SetValue("Double");
+            sheet.Cell(1, 2).SetValue("Diagonal");
+            sheet.Cell(1, 1).SetBorder(ExcelBorderStyle.Double, "123456");
+            sheet.Cell(1, 2).SetDiagonalBorder(ExcelBorderStyle.Double, "654321", diagonalUp: true, diagonalDown: true);
 
-            ExcelCellStyleSnapshot doubleStyle = sheet.CellAt(1, 1).GetStyle();
+            ExcelCellStyleInfo doubleStyle = sheet.Cell(1, 1).GetStyle();
             Assert.Equal("double", doubleStyle.Border!.Top!.Style);
-            ExcelCellStyleSnapshot diagonalStyle = sheet.CellAt(1, 2).GetStyle();
+            ExcelCellStyleInfo diagonalStyle = sheet.Cell(1, 2).GetStyle();
             Assert.True(diagonalStyle.Border!.DiagonalUp);
             Assert.True(diagonalStyle.Border.DiagonalDown);
             Assert.Equal("double", diagonalStyle.Border.Diagonal!.Style);
 
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
-                PageSize = new PdfCore.PageSize(320, 220),
-                Margins = PdfCore.PageMargins.Uniform(30)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         string rawPdf = PdfOperatorSearchText.From(bytes);
@@ -582,39 +582,41 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfNumberFormats.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Formats")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Formats" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Kind");
-            sheet.Cell(1, 2, "Value");
-            sheet.Cell(2, 1, "Currency");
-            sheet.CellAt(2, 2).SetValue(1234.5).Currency(2, CultureInfo.GetCultureInfo("en-US"));
-            sheet.Cell(3, 1, "Percent");
-            sheet.CellAt(3, 2).SetValue(0.257).Percent(1);
-            sheet.Cell(4, 1, "Date");
-            sheet.CellAt(4, 2).SetValue(new DateTime(2026, 1, 15)).Date("yyyy-mm-dd");
-            sheet.Cell(5, 1, "Minutes");
-            sheet.CellAt(5, 2).SetValue(new DateTime(2026, 1, 15, 0, 30, 5)).SetNumberFormat("mm:ss");
-            sheet.Cell(6, 1, "Negative");
-            sheet.CellAt(6, 2).SetValue(-1234).SetNumberFormat("#,##0;(#,##0)");
-            sheet.Cell(7, 1, "Zero");
-            sheet.CellAt(7, 2).SetValue(0).SetNumberFormat("#,##0;(#,##0);-");
+            sheet.Cell(1, 1).SetValue("Kind");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("Currency");
+            sheet.Cell(2, 2).SetValue(1234.5).SetNumberFormat("\"$\"#,##0.00");
+            sheet.Cell(3, 1).SetValue("Percent");
+            sheet.Cell(3, 2).SetValue(0.257).SetNumberFormat("0.0%");
+            sheet.Cell(4, 1).SetValue("Date");
+            sheet.Cell(4, 2).SetValue(new DateTime(2026, 1, 15)).SetNumberFormat("yyyy-mm-dd");
+            sheet.Cell(5, 1).SetValue("Minutes");
+            sheet.Cell(5, 2).SetValue(new DateTime(2026, 1, 15, 0, 30, 5)).SetNumberFormat("mm:ss");
+            sheet.Cell(6, 1).SetValue("Negative");
+            sheet.Cell(6, 2).SetValue(-1234).SetNumberFormat("#,##0;(#,##0)");
+            sheet.Cell(7, 1).SetValue("Zero");
+            sheet.Cell(7, 2).SetValue(0).SetNumberFormat("#,##0;(#,##0);-");
+            // Wide enough that Excel would show each value rather than "####".
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(24));
 
-            ExcelCellStyleSnapshot currencyStyle = sheet.CellAt(2, 2).GetStyle();
+            ExcelCellStyleInfo currencyStyle = sheet.Cell(2, 2).GetStyle();
             Assert.Equal("\"$\"#,##0.00", currencyStyle.NumberFormatCode);
-            ExcelCellStyleSnapshot percentStyle = sheet.CellAt(3, 2).GetStyle();
+            ExcelCellStyleInfo percentStyle = sheet.Cell(3, 2).GetStyle();
             Assert.Equal("0.0%", percentStyle.NumberFormatCode);
-            ExcelCellStyleSnapshot dateStyle = sheet.CellAt(4, 2).GetStyle();
+            ExcelCellStyleInfo dateStyle = sheet.Cell(4, 2).GetStyle();
             Assert.Equal("yyyy-mm-dd", dateStyle.NumberFormatCode);
             Assert.True(dateStyle.IsDateLike);
 
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PageSize(420, 360),
-                Margins = PdfCore.PageMargins.Uniform(24)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(360)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -638,23 +640,24 @@ public partial class Excel {
         string extraSections = string.Concat(Enumerable.Repeat(";[Red]0", 20000));
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Formats")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Formats" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Kind");
-            sheet.Cell(1, 2, "Value");
-            sheet.Cell(2, 1, "ManySections");
-            sheet.CellAt(2, 2).SetValue(1234).SetNumberFormat("#,##0" + extraSections);
-            sheet.Cell(3, 1, "QuotedSectionSeparator");
-            sheet.CellAt(3, 2).SetValue(-12).SetNumberFormat("0;\"minus;literal\"0" + extraSections);
+            sheet.Cell(1, 1).SetValue("Kind");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("ManySections");
+            sheet.Cell(2, 2).SetValue(1234).SetNumberFormat("#,##0" + extraSections);
+            sheet.Cell(3, 1).SetValue("QuotedSectionSeparator");
+            sheet.Cell(3, 2).SetValue(-12).SetNumberFormat("0;\"minus;literal\"0" + extraSections);
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(24));
 
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PageSize(420, 220),
-                Margins = PdfCore.PageMargins.Uniform(24)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -671,25 +674,25 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfElapsedAndQuotedFormats.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Formats")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Formats" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Kind");
-            sheet.Cell(1, 2, "Value");
-            sheet.Cell(2, 1, "Elapsed");
-            sheet.CellAt(2, 2).SetValue(1.5).SetNumberFormat("[h]:mm");
-            sheet.Cell(3, 1, "Units");
-            sheet.CellAt(3, 2).SetValue(12).SetNumberFormat("0 \"kg\"");
-            sheet.Cell(4, 1, "Elapsed units");
-            sheet.CellAt(4, 2).SetValue(1.5).SetNumberFormat("[h] \"hours\"");
+            sheet.Cell(1, 1).SetValue("Kind");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("Elapsed");
+            sheet.Cell(2, 2).SetValue(1.5).SetNumberFormat("[h]:mm");
+            sheet.Cell(3, 1).SetValue("Units");
+            sheet.Cell(3, 2).SetValue(12).SetNumberFormat("0 \"kg\"");
+            sheet.Cell(4, 1).SetValue("Elapsed units");
+            sheet.Cell(4, 2).SetValue(1.5).SetNumberFormat("[h] \"hours\"");
 
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PageSize(360, 220),
-                Margins = PdfCore.PageMargins.Uniform(24)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));

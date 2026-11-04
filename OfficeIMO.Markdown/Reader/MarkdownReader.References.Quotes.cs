@@ -1,6 +1,6 @@
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     private static bool TryUpdateQuotedFencePreScanState(string line, ref bool inFence, ref char fenceChar, ref int fenceLen) {
         if (!TryStripQuotedPreScanLine(line, out var content, out _)) {
             if (inFence && !string.IsNullOrWhiteSpace(line)) {
@@ -29,7 +29,7 @@ public static partial class MarkdownReader {
     private static bool TryParseQuotedReferenceLinkDefinition(
         string[] lines,
         int index,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state,
         out MarkdownReferenceLinkDefinition definition,
         out int consumedLines) {
@@ -121,7 +121,7 @@ public static partial class MarkdownReader {
         string[] strippedLines,
         int[] contentStartColumns,
         int index,
-        MarkdownReaderOptions options) {
+        MarkdownLoadOptions options) {
         if (strippedLines == null || contentStartColumns == null || index <= 0) {
             return false;
         }

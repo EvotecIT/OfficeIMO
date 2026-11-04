@@ -76,8 +76,8 @@ public static partial class VisioMasterEditingExtensions {
         double? width = null, height = null;
         if (resize) {
             VisioMeasurementUnit unit = stencil?.DefaultUnit ?? page.DefaultUnit;
-            width = stencil == null ? master.Shape.Width : stencil.DefaultWidth.ToInches(unit);
-            height = stencil == null ? master.Shape.Height : stencil.DefaultHeight.ToInches(unit);
+            width = stencil == null ? master.Shape.WidthInches : stencil.DefaultWidth.ToInches(unit);
+            height = stencil == null ? master.Shape.HeightInches : stencil.DefaultHeight.ToInches(unit);
         }
         Action applyFrames = VisioShapeResizing.PrepareMasterReplacement(page, roots, definitions, width, height, references, addedChildren);
         var textResolver = new VisioNativeTextStyleResolver(page.OwnerDocument, default);

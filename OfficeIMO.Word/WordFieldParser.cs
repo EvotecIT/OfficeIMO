@@ -89,8 +89,7 @@ namespace OfficeIMO.Word {
             var matches = rgx.Matches(fieldCodeDeclaration);
             foreach (Match m in matches) {
                 string formatSwitch = m.Groups[2].ToString().Trim();
-                var success = Enum.TryParse(formatSwitch, false, out WordFieldFormat fieldFormat) ||
-                    Enum.TryParse(formatSwitch, true, out fieldFormat);
+                var success = WordFieldFormatCodec.TryParse(formatSwitch, out WordFieldFormat fieldFormat);
                 if (success) {
                     this._formatSwitches.Add(fieldFormat);
                 } else {

@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Lightweight detector for visual JSON payloads that should be treated as semantic fenced blocks.
 /// </summary>
-public static class MarkdownJsonVisualPayloadDetector {
+internal static class MarkdownJsonVisualPayloadDetector {
     /// <summary>
     /// Best-effort detection of a known visual semantic kind from a JSON-like payload.
     /// </summary>

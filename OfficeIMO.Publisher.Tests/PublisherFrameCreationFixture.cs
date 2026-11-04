@@ -9,10 +9,10 @@ namespace OfficeIMO.Publisher.Tests;
 // qualify admission and identity behavior, not native writing or native editing.
 internal static class PublisherFrameCreationFixture {
     internal static (PublisherDocument Document, uint ReservedId) Load(bool danglingReference = false, int extraHiddenObjects = 0,
-        PublisherReadOptions? options = null, bool mixedPicture = false) {
+        PublisherLoadOptions? options = null, bool mixedPicture = false) {
         byte[] bytes = File.ReadAllBytes(PublisherNativeTests.Fixture("NativeComparison/TextBlank/native-textblank.pub"));
         Assert.True(OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compound, out string? error), error);
-        var context = new PublisherParseContext((options ?? new PublisherReadOptions()).Clone(), default);
+        var context = new PublisherParseContext((options ?? new PublisherLoadOptions()).Clone(), default);
         var data = new PublisherBinaryData(compound!.Streams["Contents"], "Contents");
         PublisherContents source = new PublisherContentsReader(data, context).Read();
         PublisherTextFrameCatalogReader.Read(data, source, context);

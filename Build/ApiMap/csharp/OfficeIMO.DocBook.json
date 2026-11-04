@@ -1,0 +1,33 @@
+{
+  "package": "OfficeIMO.DocBook",
+  "changes": [
+    {
+      "old": "DocBookDocument.Write / WriteAsync(Stream)",
+      "kind": "method",
+      "action": "change",
+      "new": "DocBookDocument.Save / SaveAsync(Stream)",
+      "replacement": "Save writes native output and binds a path only after success; Save(stream) leaves association and stream ownership intact. ToBytes returns native bytes. SaveCopy remains the non-rebinding operation.",
+      "category": "lifecycle",
+      "reason": "Persistence and byte serialization have distinct names; PDF and Visio already implement this contract.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.DocBook.DocBookReadOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.DocBook.DocBookLoadOptions",
+      "reason": "Lifecycle options are named {Format}LoadOptions and {Format}SaveOptions; ReaderOptions is reserved for forward-only readers.",
+      "category": "options",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.DocBook.DocBookWriteOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.DocBook.DocBookSaveOptions",
+      "reason": "Lifecycle options are named {Format}LoadOptions and {Format}SaveOptions; ReaderOptions is reserved for forward-only readers.",
+      "category": "options",
+      "applied": true
+    }
+  ]
+}

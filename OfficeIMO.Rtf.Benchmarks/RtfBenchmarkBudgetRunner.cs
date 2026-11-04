@@ -91,8 +91,8 @@ internal static class RtfBenchmarkBudgetRunner {
             string.Equals(operation, "Lossless", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(operation, "SemanticWrite", StringComparison.OrdinalIgnoreCase)
             ? null
-            : RtfDocument.Read(fixture.Rtf).Document;
-        RtfToPdfOptions? preparedPdfOptions = string.Equals(operation, "Pdf", StringComparison.OrdinalIgnoreCase)
+            : RtfDocument.ParseResult(fixture.Rtf).Document;
+        RtfPdfExportOptions? preparedPdfOptions = string.Equals(operation, "Pdf", StringComparison.OrdinalIgnoreCase)
             ? RtfBenchmarkSupport.CreatePdfOptions()
             : null;
         OfficeDocumentReader? preparedReader = string.Equals(operation, "Reader", StringComparison.OrdinalIgnoreCase)
@@ -105,32 +105,32 @@ internal static class RtfBenchmarkBudgetRunner {
         long outputBytes;
 
         if (string.Equals(operation, "Parse", StringComparison.OrdinalIgnoreCase)) {
-            RtfReadResult result = RtfDocument.Read(fixture.Rtf);
+            RtfReadResult result = RtfDocument.ParseResult(fixture.Rtf);
             outputBytes = Encoding.UTF8.GetByteCount(result.ToRtfLossless());
         } else if (string.Equals(operation, "ParseUntrusted", StringComparison.OrdinalIgnoreCase)) {
-            RtfReadResult result = RtfDocument.Read(fixture.Rtf, RtfReadOptions.CreateUntrustedProfile());
+            RtfReadResult result = RtfDocument.ParseResult(fixture.Rtf, RtfLoadOptions.UntrustedDefaults);
             outputBytes = Encoding.UTF8.GetByteCount(result.ToRtfLossless());
         } else if (string.Equals(operation, "Lossless", StringComparison.OrdinalIgnoreCase)) {
-            outputBytes = Encoding.UTF8.GetByteCount(RtfDocument.Read(fixture.Rtf).EditLossless().ToRtf());
+            outputBytes = Encoding.UTF8.GetByteCount(RtfDocument.ParseResult(fixture.Rtf).EditLossless().ToRtf());
         } else if (string.Equals(operation, "SemanticWrite", StringComparison.OrdinalIgnoreCase)) {
-            outputBytes = Encoding.UTF8.GetByteCount(RtfDocument.Read(fixture.Rtf).Document.ToRtf());
+            outputBytes = Encoding.UTF8.GetByteCount(RtfDocument.ParseResult(fixture.Rtf).Document.ToRtf());
         } else if (string.Equals(operation, "Html", StringComparison.OrdinalIgnoreCase)) {
             outputBytes = Encoding.UTF8.GetByteCount(preparedDocument!.ToHtml());
         } else if (string.Equals(operation, "HtmlWebSafe", StringComparison.OrdinalIgnoreCase)) {
-            outputBytes = Encoding.UTF8.GetByteCount(preparedDocument!.ToHtml(RtfToHtmlOptions.CreateWebSafeProfile()));
+            outputBytes = Encoding.UTF8.GetByteCount(preparedDocument!.ToHtml(RtfHtmlExportOptions.CreateWebSafeProfile()));
         } else if (string.Equals(operation, "Markdown", StringComparison.OrdinalIgnoreCase)) {
-            outputBytes = Encoding.UTF8.GetByteCount(preparedDocument!.ToMarkdown());
+            outputBytes = Encoding.UTF8.GetByteCount(preparedDocument!.ToMarkdown().ToMarkdown());
         } else if (string.Equals(operation, "Pdf", StringComparison.OrdinalIgnoreCase)) {
-            outputBytes = preparedDocument!.ToPdfDocument(preparedPdfOptions).ToBytes().LongLength;
+            outputBytes = preparedDocument!.ToPdf(preparedPdfOptions).ToBytes().LongLength;
         } else if (string.Equals(operation, "WordModel", StringComparison.OrdinalIgnoreCase)) {
-            using WordDocument word = preparedDocument!.ToWordDocument();
+            using WordDocument word = preparedDocument!.ToWord();
             outputBytes = 0;
         } else if (string.Equals(operation, "Word", StringComparison.OrdinalIgnoreCase)) {
-            using WordDocument word = preparedDocument!.ToWordDocument();
-            using MemoryStream stream = word.ToStream();
+            using WordDocument word = preparedDocument!.ToWord();
+            using MemoryStream stream = new MemoryStream(word.ToBytes());
             outputBytes = stream.Length;
         } else {
-            ReaderChunk[] chunks = preparedReader!.Read(preparedReaderInput!, "benchmark.rtf").ToArray();
+            ReaderChunk[] chunks = preparedReader!.Enumerate(preparedReaderInput!, "benchmark.rtf").ToArray();
             outputBytes = chunks.Sum(chunk => Encoding.UTF8.GetByteCount(chunk.Markdown ?? chunk.Text ?? string.Empty));
         }
 

@@ -70,12 +70,14 @@ internal static partial class PdfPageContentVisualParser {
         Func<PdfArray, int>? inlineImageArrayComponentCount = null,
         PdfStrokeDashPattern? initialStrokeDashPattern = null,
         Action? operationCheck = null,
-        double? initialMiterLimit = null) {
+        double? initialMiterLimit = null,
+        Action<int>? strokeDashProjectionConsumer = null) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageVisualPrimitive>();
         }
 
         var parser = new Parser(content, pageWidth, pageHeight, graphicsStates, colorSpaces, shadings, shadingPatterns, tilingPatterns, optionalContentVisibility, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialFillColor, initialFillColorSpace, initialFillOpacity, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, patternBaseColorSpaces, maxNestingDepth, maxOperands, primitiveVisitor, retainPrimitiveData, scaleStrokeWidthWithTransform, unsupportedShadingTransformVisitor, requireExactType3ShadingProjection, authoredShadingInvocationVisitor, unrenderedShadingVisitor, unsupportedOperatorVisitor, initialFillPattern, initialStrokePattern, textClippingBudget, initialRenderingIntent, initialFillColorSelection, initialStrokeColorSelection, outputIntentColorTransform, inlineImageArrayComponentCount, initialStrokeDashPattern, operationCheck, initialMiterLimit);
+        parser.SetStrokeDashProjectionConsumer(strokeDashProjectionConsumer);
         return parser.Parse();
     }
 
@@ -1044,7 +1046,7 @@ internal static partial class PdfPageContentVisualParser {
                     paintOrder,
                     fillTilingPaint,
                     strokeTilingPaint,
-                    GetRenderedStrokeDashPattern()));
+                    stroke && _state.StrokeWidth > 0D ? GetRenderedStrokeDashPattern() : null));
             } else if (stroke && isSingleLine) {
                 AddLine(ToPdfPoint(lineStart), ToPdfPoint(lineEnd), paintOrder);
             } else {
@@ -1088,7 +1090,7 @@ internal static partial class PdfPageContentVisualParser {
                     fill ? CreateTilingPatternPaint(_fillTilingPattern, _fillTilingTint, _fillPatternPaintTransform, _state.FillOpacity) : null,
                     stroke && _state.StrokeWidth > 0D ? CreateTilingPatternPaint(_strokeTilingPattern, _strokeTilingTint, _strokePatternPaintTransform, _state.StrokeOpacity) : null,
                     _retainPrimitiveData,
-                    GetRenderedStrokeDashPattern(),
+                    stroke && _state.StrokeWidth > 0D ? GetRenderedStrokeDashPattern() : null,
                     out PdfPageVisualPrimitive pathPrimitive)) {
                     AddPrimitive(pathPrimitive);
                 } else if (stroke && _state.StrokeWidth > 0D) {

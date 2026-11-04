@@ -12,8 +12,8 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// Export-OfficeExcelImage -Path .\Workbook.xlsx -OutputPath .\Sheets -Options $options</code>
 /// </example>
 [Cmdlet(VerbsCommon.New, "OfficeExcelWorkbookImageOptions")]
-[OutputType(typeof(ExcelWorkbookImageExportOptions))]
-public sealed class NewOfficeExcelWorkbookImageOptionsCommand : OfficeImageOptionsCommandBase<ExcelWorkbookImageExportOptions> {
+[OutputType(typeof(ExcelImageExportOptions))]
+public sealed class NewOfficeExcelWorkbookImageOptionsCommand : OfficeImageOptionsCommandBase<ExcelImageExportOptions> {
     /// <summary>Worksheet names to export.</summary>
     [Parameter] public string[]? SheetName { get; set; }
     /// <summary>Include hidden worksheets.</summary>
@@ -39,12 +39,12 @@ public sealed class NewOfficeExcelWorkbookImageOptionsCommand : OfficeImageOptio
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var options = new ExcelWorkbookImageExportOptions();
+        var options = new ExcelImageExportOptions();
         ApplyCommon(options);
         if (SheetName != null) options.SheetNames = SheetName;
         if (IsBound(nameof(IncludeHiddenSheets))) options.IncludeHiddenSheets = IncludeHiddenSheets.IsPresent;
-        if (IsBound(nameof(UseWorksheetPrintAreas))) options.UseWorksheetPrintAreas = UseWorksheetPrintAreas.IsPresent;
-        if (IsBound(nameof(SplitWorksheetsByManualPageBreaks))) options.SplitWorksheetsByManualPageBreaks = SplitWorksheetsByManualPageBreaks.IsPresent;
+        if (IsBound(nameof(UseWorksheetPrintAreas))) options.UsePrintArea = UseWorksheetPrintAreas.IsPresent;
+        if (IsBound(nameof(SplitWorksheetsByManualPageBreaks))) options.SplitByManualPageBreaks = SplitWorksheetsByManualPageBreaks.IsPresent;
         if (IsBound(nameof(ShowGridlines))) options.ShowGridlines = ShowGridlines.IsPresent;
         if (IsBound(nameof(IncludeHidden))) options.IncludeHidden = IncludeHidden.IsPresent;
         if (IsBound(nameof(IncludeImages))) options.IncludeImages = IncludeImages.IsPresent;

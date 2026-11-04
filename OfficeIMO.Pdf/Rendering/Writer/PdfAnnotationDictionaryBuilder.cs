@@ -115,10 +115,10 @@ internal static partial class PdfAnnotationDictionaryBuilder {
 
     internal static string BuildTextFieldWidgetAnnotation(double x1, double y1, double x2, double y2, string name, string value, double fontSize, int normalAppearanceId, PdfFormFieldStyle? style = null, int? structParentIndex = null, int? parentObjectId = null) {
         ValidateRectangle(x1, y1, x2, y2);
-        string fieldEntries = BuildTextFieldEntries(name, value, fontSize, style, isWidget: !parentObjectId.HasValue);
         if (parentObjectId.HasValue) {
             return BuildChildFormWidgetAnnotation(x1, y1, x2, y2, parentObjectId.Value, normalAppearanceId, style, structParentIndex);
         }
+        string fieldEntries = BuildTextFieldEntries(name, value, fontSize, style, isWidget: true);
 
         return "<< /Type /Annot /Subtype /Widget" + fieldEntries +
             " /Rect [" +
@@ -187,6 +187,9 @@ internal static partial class PdfAnnotationDictionaryBuilder {
 
     internal static string BuildChoiceFieldWidgetAnnotation(double x1, double y1, double x2, double y2, string name, IReadOnlyList<string> options, IReadOnlyList<string> values, double fontSize, int normalAppearanceId, bool isComboBox, bool allowsMultipleSelection, PdfFormFieldStyle? style = null, int? structParentIndex = null, IReadOnlyList<int>? selectedIndices = null, int? topIndex = null, int? parentObjectId = null) {
         Guard.NotNull(options, nameof(options));
+        if (parentObjectId.HasValue) {
+            return BuildChildFormWidgetAnnotation(x1, y1, x2, y2, parentObjectId.Value, normalAppearanceId, style, structParentIndex);
+        }
         var pairedOptions = options.Select(option => new PdfFormFieldOption(option, option)).ToList();
         return BuildChoiceFieldWidgetAnnotationCore(x1, y1, x2, y2, name, pairedOptions, values, fontSize, normalAppearanceId, isComboBox, allowsMultipleSelection, style, structParentIndex, requireUniqueExportValues: true, emitPairedOptions: false, selectedIndices, topIndex, parentObjectId);
     }
@@ -196,10 +199,10 @@ internal static partial class PdfAnnotationDictionaryBuilder {
 
     private static string BuildChoiceFieldWidgetAnnotationCore(double x1, double y1, double x2, double y2, string name, IReadOnlyList<PdfFormFieldOption> options, IReadOnlyList<string> values, double fontSize, int normalAppearanceId, bool isComboBox, bool allowsMultipleSelection, PdfFormFieldStyle? style, int? structParentIndex, bool requireUniqueExportValues, bool emitPairedOptions, IReadOnlyList<int>? selectedIndices = null, int? topIndex = null, int? parentObjectId = null) {
         ValidateRectangle(x1, y1, x2, y2);
-        string fieldEntries = BuildChoiceFieldEntries(name, options, values, fontSize, isComboBox, allowsMultipleSelection, style, requireUniqueExportValues, emitPairedOptions, selectedIndices, topIndex, isWidget: !parentObjectId.HasValue);
         if (parentObjectId.HasValue) {
             return BuildChildFormWidgetAnnotation(x1, y1, x2, y2, parentObjectId.Value, normalAppearanceId, style, structParentIndex);
         }
+        string fieldEntries = BuildChoiceFieldEntries(name, options, values, fontSize, isComboBox, allowsMultipleSelection, style, requireUniqueExportValues, emitPairedOptions, selectedIndices, topIndex, isWidget: true);
 
         return "<< /Type /Annot /Subtype /Widget" + fieldEntries +
             " /Rect [" +
@@ -564,7 +567,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
     private static string BuildMkEntry(PdfFormFieldStyle? style) {
         PdfFormFieldStyle effectiveStyle = style ?? new PdfFormFieldStyle();
         var sb = new StringBuilder();
-        if (effectiveStyle.BorderColor.HasValue && effectiveStyle.BorderWidth > 0) {
+        if (effectiveStyle.BorderColor.HasValue && effectiveStyle.BorderWidth.ToPoints() > 0) {
             sb.Append(" /BC [").Append(PdfAcroFormDictionaryBuilder.FormatColor(effectiveStyle.BorderColor.Value)).Append(']');
         }
 
@@ -576,7 +579,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
     }
 
     private static string BuildBorderStyleEntry(PdfFormFieldStyle? style) {
-        if (style == null || style.BorderWidth <= 0D) {
+        if (style == null || style.BorderWidth.ToPoints() <= 0D) {
             return string.Empty;
         }
 
@@ -590,11 +593,11 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         var sb = new StringBuilder(" /BS << /S /");
         sb.Append(styleName);
         sb.Append(" /W ");
-        sb.Append(FormatCoordinate(style.BorderWidth));
+        sb.Append(FormatCoordinate(style.BorderWidth.ToPoints()));
         if (isDashed) {
-            IReadOnlyList<double> dashPattern = hasDashPattern ? style.BorderDashPattern! : DefaultBorderDashPattern;
+            double[] dashPattern = hasDashPattern ? style.BorderDashPattern?.Select(static length => length.ToPoints()).ToArray()! : DefaultBorderDashPattern;
             sb.Append(" /D [");
-            for (int i = 0; i < dashPattern.Count; i++) {
+            for (int i = 0; i < dashPattern.Length; i++) {
                 if (i > 0) {
                     sb.Append(' ');
                 }

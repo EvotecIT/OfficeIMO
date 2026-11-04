@@ -15,7 +15,7 @@ public sealed partial class SharedStringIndexTests {
             declaredCount: "2147483647");
         byte[] buffer = stream.BorrowBuffer(out _);
         using SharedStringCache cache = SharedStringCache.Build(() => stream,
-            new ExcelReadOptions { MaxSharedStringItems = 3 });
+            new ExcelReaderOptions { MaxSharedStringItems = 3 });
 
         Assert.Equal(3, cache.Count);
         Assert.True(stream.CanRead);
@@ -45,7 +45,7 @@ public sealed partial class SharedStringIndexTests {
     public void IndexedTable_MaterializesSparseAndNonSequentialValuesWithoutChangingBorrowedText() {
         string[] expected = CreateIndexedValues(4099);
         using OpenXmlPooledPartStream stream = CreateStream(expected, declaredCount: "1");
-        using SharedStringCache cache = SharedStringCache.Build(() => stream, new ExcelReadOptions());
+        using SharedStringCache cache = SharedStringCache.Build(() => stream, new ExcelReaderOptions());
         Assert.Equal(expected.Length, cache.Count);
         Assert.True(cache.TryGetUtf8(expected.Length - 1, out ArraySegment<byte> last));
 
@@ -68,7 +68,7 @@ public sealed partial class SharedStringIndexTests {
         using OpenXmlPooledPartStream stream = CreateStream(
             "<si><t>" + mixed + "</t></si><si><t xml:space=\"preserve\">" + preserved + "</t></si>");
         byte[] buffer = stream.BorrowBuffer(out _);
-        using SharedStringCache cache = SharedStringCache.Build(() => stream, new ExcelReadOptions());
+        using SharedStringCache cache = SharedStringCache.Build(() => stream, new ExcelReaderOptions());
 
         Assert.Equal(2, cache.Count);
         foreach ((int index, string expected) in new[] { (0, mixed), (1, preserved) }) {
@@ -88,7 +88,7 @@ public sealed partial class SharedStringIndexTests {
         string value = new string(prefix, 16 * 1024 - 1) + suffix;
         string expected = value;
         using OpenXmlPooledPartStream stream = CreateStream("<si><t>" + value + "</t></si>", declaredCount: "1");
-        using SharedStringCache cache = SharedStringCache.Build(() => stream, new ExcelReadOptions());
+        using SharedStringCache cache = SharedStringCache.Build(() => stream, new ExcelReaderOptions());
 
         Assert.Equal(expected, cache.Get(0));
         Assert.False(stream.CanRead);
@@ -102,7 +102,7 @@ public sealed partial class SharedStringIndexTests {
     public void IndexedTable_LongMalformedUnreferencedTailPreventsValueDelivery(string invalidText) {
         using OpenXmlPooledPartStream stream = CreateStream(
             "<si><t>ready</t></si><si><t>" + new string('a', 16 * 1024 - 1) + invalidText + "</t></si>");
-        using SharedStringCache cache = SharedStringCache.Build(() => stream, new ExcelReadOptions());
+        using SharedStringCache cache = SharedStringCache.Build(() => stream, new ExcelReaderOptions());
 
         Assert.Throws<XlsxTabularFastPathNotSupportedException>(() => cache.Get(0));
         Assert.False(stream.CanRead);
@@ -115,14 +115,14 @@ public sealed partial class SharedStringIndexTests {
     public void IndexedTable_RejectsUnreferencedTextOverLimitsAndReleasesItsStream(string limit) {
         using OpenXmlPooledPartStream stream = CreateStream(
             "<si><t>first</t></si><si><t>unreferenced</t></si>");
-        var options = new ExcelReadOptions {
+        var options = new ExcelReaderOptions {
             MaxSharedStringItems = limit == "Items" ? 1 : 2,
             MaxSharedStringItemCharacters = limit == "ItemCharacters" ? 5 : 20,
             MaxSharedStringCharacters = limit == "AggregateCharacters" ? 5 : 20
         };
         using SharedStringCache cache = SharedStringCache.Build(() => stream, options);
         var error = Assert.Throws<OfficeInspectionResourceLimitException>(() => cache.EnsureLoaded());
-        string limitName = limit == "Items" ? nameof(ExcelReadOptions.MaxSharedStringItems) : limit == "ItemCharacters" ? nameof(ExcelReadOptions.MaxSharedStringItemCharacters) : nameof(ExcelReadOptions.MaxSharedStringCharacters);
+        string limitName = limit == "Items" ? nameof(ExcelReaderOptions.MaxSharedStringItems) : limit == "ItemCharacters" ? nameof(ExcelReaderOptions.MaxSharedStringItemCharacters) : nameof(ExcelReaderOptions.MaxSharedStringCharacters);
         long maximum = limit == "Items" ? options.MaxSharedStringItems : limit == "ItemCharacters" ? options.MaxSharedStringItemCharacters : options.MaxSharedStringCharacters;
         Assert.Equal("excel", error.Owner); Assert.Equal(limitName, error.LimitName); Assert.Equal(maximum, error.Maximum);
         Assert.False(stream.CanRead);
@@ -135,7 +135,7 @@ public sealed partial class SharedStringIndexTests {
         using SharedStringCache cache = SharedStringCache.Build(() => {
             cancellation.Cancel();
             return stream;
-        }, new ExcelReadOptions { CancellationToken = cancellation.Token });
+        }, new ExcelReaderOptions { CancellationToken = cancellation.Token });
 
         Assert.Throws<OperationCanceledException>(() => cache.EnsureLoaded());
         Assert.False(stream.CanRead);
@@ -147,7 +147,7 @@ public sealed partial class SharedStringIndexTests {
         using SharedStringCache cache = SharedStringCache.Build(() => {
             opens++;
             return CreateStream("<si><t>first</t></si>");
-        }, new ExcelReadOptions());
+        }, new ExcelReaderOptions());
         cache.Dispose();
         Assert.Throws<ObjectDisposedException>(() => cache.EnsureLoaded());
         Assert.Equal(0, opens);
@@ -157,7 +157,7 @@ public sealed partial class SharedStringIndexTests {
     public void IndexedTable_ConcurrentStringAndUtf8GettersKeepCanonicalValuesIndependent() {
         string[] expected = CreateIndexedValues(4099);
         using OpenXmlPooledPartStream stream = CreateStream(expected);
-        using SharedStringCache cache = SharedStringCache.Build(() => stream, new ExcelReadOptions());
+        using SharedStringCache cache = SharedStringCache.Build(() => stream, new ExcelReaderOptions());
         Assert.True(cache.TryGetUtf8(0, out ArraySegment<byte> first));
         Parallel.For(0, expected.Length * 3, iteration => {
             int index = expected.Length - 1 - iteration % expected.Length;

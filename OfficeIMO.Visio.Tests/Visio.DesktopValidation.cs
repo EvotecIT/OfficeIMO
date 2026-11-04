@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
 
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
-            page.Shapes.Add(new VisioShape("1", 1, 1, 2, 1, "Start"));
+            page.Shapes.Add(new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Start"));
             document.Save();
 
             VisioDesktopValidationResult result = VisioDesktopBaselineValidator.Validate(filePath);
@@ -47,8 +47,8 @@ namespace OfficeIMO.Tests {
             VisioDocument document = VisioDocument.Create(filePath);
             document.UseMastersByDefault = true;
             VisioPage page = document.AddPage("Page-1");
-            VisioShape start = page.AddRectangle(2, 2, 2, 1, "Start");
-            VisioShape end = page.AddRectangle(5, 2, 2, 1, "End");
+            VisioShape start = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Start");
+            VisioShape end = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "End");
             page.AddConnector(start, end, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left);
             document.Save();
 
@@ -150,7 +150,7 @@ namespace OfficeIMO.Tests {
 
                 string validPdf = Path.Combine(directory, "valid.pdf");
                 byte[] pdf = PdfCore.PdfDocument.Create(document => document
-                    .Content(content => content.Paragraph(paragraph => paragraph.Text("Desktop proof"))))
+                    .Content(content => content.AddParagraph(paragraph => paragraph.AddText("Desktop proof"))))
                     .ToBytes();
                 File.WriteAllBytes(validPdf, pdf);
                 Assert.True(VisioDesktopBaselineValidator.ValidateOutputFile(
@@ -163,9 +163,7 @@ namespace OfficeIMO.Tests {
 
                 string blankPdf = Path.Combine(directory, "blank.pdf");
                 File.WriteAllBytes(blankPdf, PdfCore.PdfDocument.Create(document => document
-                    .Content(content => content.Paragraph(paragraph => paragraph
-                        .Color(PdfCore.PdfColor.White)
-                        .Text("Invisible"))))
+                    .Content(content => content.AddParagraph(paragraph => paragraph.AddText("Invisible").SetColor(global::OfficeIMO.OfficeColor.White))))
                     .ToBytes());
                 Assert.False(VisioDesktopBaselineValidator.ValidateOutputFile(
                     blankPdf, out string blankPdfIssue));

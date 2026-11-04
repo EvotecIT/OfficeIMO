@@ -36,25 +36,25 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(expected, display);
         using var saved = new MemoryStream();
         if (kind == IWorkDocumentKind.Numbers) {
-            using var result = source.ToExcelDocumentResult();
+            using var result = source.ToExcelResult();
             result.Report.RequireCompleteEditableReconstruction();
             Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_DURATION_DISPLAY_APPROXIMATED");
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
-            Assert.Equal(seconds / 86400, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
-            Assert.Equal(code, reopened.Sheets[0].CellAt(1, 1).GetStyle().NumberFormatCode);
+            Assert.Equal(seconds / 86400, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
+            Assert.Equal(code, reopened.Sheets[0].Cell(1, 1).GetStyle().NumberFormatCode);
             Assert.Equal(expected, Assert.Single(reopened.Sheets[0].Range("A1").CreateVisualSnapshot().Cells).Text);
         } else if (kind == IWorkDocumentKind.Pages) {
-            using var result = source.ToWordDocumentResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+            using var result = source.ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.Word.WordDocument.Load(saved);
             Assert.Equal(expected, reopened.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
             Assert.Empty(reopened.ValidateDocument());
         } else {
-            using var result = source.ToPowerPointPresentationResult();
+            using var result = source.ToPowerPointResult();
             result.Report.RequireCompleteEditableReconstruction();
             result.Value.Save(saved); saved.Position = 0;
-            using var reopened = OfficeIMO.PowerPoint.PowerPointPresentation.Load(saved);
+            using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
             Assert.Equal(expected, Assert.Single(reopened.Slides[0].Tables).GetCell(0, 0).Text);
             Assert.Empty(reopened.ValidateDocument());
         }
@@ -67,12 +67,12 @@ public sealed partial class IWorkBoundaryTests {
     public void Fixed_second_ranges_preserve_explicit_formats_on_blank_saved_cells(IWorkDurationUnit largest, string code) {
         using var package = EmptyDurationFormatPackage(IWorkDocumentKind.Numbers,
             format: DurationFormat(largest: (ulong)largest, smallest: 16));
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
         result.Report.RequireCompleteEditableReconstruction();
         Assert.Equal(IWorkCellKind.Empty, Assert.Single(result.Projection.Sheets[0].Tables[0].Cells).ValueKind);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
-        Assert.Equal(code, reopened.Sheets[0].CellAt(1, 1).GetStyle().NumberFormatCode);
+        Assert.Equal(code, reopened.Sheets[0].Cell(1, 1).GetStyle().NumberFormatCode);
         Assert.Equal("", Assert.Single(reopened.Sheets[0].Range("A1").CreateVisualSnapshot().Cells).Text);
     }
 

@@ -130,14 +130,14 @@ public sealed class AddOfficeExcelSparklineCommand : PSCmdlet
             displayFirstLast: ShowFirstLast.IsPresent,
             displayNegative: ShowNegative.IsPresent,
             displayAxis: ShowAxis.IsPresent,
-            seriesColor: SeriesColor,
-            axisColor: AxisColor,
-            negativeColor: NegativeColor,
-            markersColor: MarkersColor,
-            highColor: HighColor,
-            lowColor: LowColor,
-            firstColor: FirstColor,
-            lastColor: LastColor);
+            seriesColor: PSWriteOffice.Services.Text.OfficeColorUtilities.ToExcelColor(SeriesColor, nameof(SeriesColor)),
+            axisColor: PSWriteOffice.Services.Text.OfficeColorUtilities.ToExcelColor(AxisColor, nameof(AxisColor)),
+            negativeColor: PSWriteOffice.Services.Text.OfficeColorUtilities.ToExcelColor(NegativeColor, nameof(NegativeColor)),
+            markersColor: PSWriteOffice.Services.Text.OfficeColorUtilities.ToExcelColor(MarkersColor, nameof(MarkersColor)),
+            highColor: PSWriteOffice.Services.Text.OfficeColorUtilities.ToExcelColor(HighColor, nameof(HighColor)),
+            lowColor: PSWriteOffice.Services.Text.OfficeColorUtilities.ToExcelColor(LowColor, nameof(LowColor)),
+            firstColor: PSWriteOffice.Services.Text.OfficeColorUtilities.ToExcelColor(FirstColor, nameof(FirstColor)),
+            lastColor: PSWriteOffice.Services.Text.OfficeColorUtilities.ToExcelColor(LastColor, nameof(LastColor)));
 
         if (PassThru.IsPresent)
         {

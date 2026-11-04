@@ -4,7 +4,7 @@ using System.Buffers;
 
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     private sealed class EmphasisClosingRunIndex : IDisposable {
         private const byte HasRunOfAtLeastTwo = 1 << 2;
         private const byte SingleRunCountMask = 0x03;

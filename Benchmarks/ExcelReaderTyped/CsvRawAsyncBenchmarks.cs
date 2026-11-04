@@ -2,6 +2,7 @@ using BenchmarkDotNet.Attributes;
 using ExcelReader.Core.Reader;
 using ExcelReader.Core.Reader.Csv;
 using OfficeIMO.CSV;
+using CsvReaderOptions = OfficeIMO.CSV.CsvReaderOptions;
 using Sylvan.Data.Csv;
 using System.Data.Common;
 using System.Globalization;
@@ -56,7 +57,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         [Benchmark]
         public async Task<long> OfficeIMOAsync() {
             await using MemoryStream stream = new MemoryStream(_data, false);
-            using DbDataReader reader = await CsvDocument.OpenDataReaderAsync(stream, new CsvLoadOptions { HasHeaderRow = false });
+            using DbDataReader reader = await CsvDocument.OpenReaderAsync(stream, options: new CsvReaderOptions { HasHeaderRow = false });
             return await ReadAsync(reader);
         }
 
@@ -64,7 +65,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         public async Task<long> SylvanAsync() {
             await using MemoryStream stream = new MemoryStream(_data, false);
             using StreamReader text = new StreamReader(stream);
-            using CsvDataReader reader = await global::Sylvan.Data.Csv.CsvDataReader.CreateAsync(text,
+            using global::Sylvan.Data.Csv.CsvDataReader reader = await global::Sylvan.Data.Csv.CsvDataReader.CreateAsync(text,
                 new global::Sylvan.Data.Csv.CsvDataReaderOptions { HasHeaders = false, Culture = CultureInfo.InvariantCulture });
             return await ReadAsync(reader);
         }

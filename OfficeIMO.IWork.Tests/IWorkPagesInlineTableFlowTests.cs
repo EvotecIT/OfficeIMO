@@ -1,3 +1,4 @@
+using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.IWork;
 using OfficeIMO.Word;
@@ -8,9 +9,7 @@ namespace OfficeIMO.IWork.Tests;
 public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Native_Pages_standalone_table_starts_at_the_body_boundary_with_a_fixed_grid() {
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(
-            CorpusFixture("native-exports/pages-table-borders-v15.4.pages"),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Open(CorpusFixture("native-exports/pages-table-borders-v15.4.pages"), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.Report.RequireCompleteEditableReconstruction();
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var package = WordprocessingDocument.Open(saved, false);
@@ -31,8 +30,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData("\u0005")]
     public void Removing_an_empty_table_attachment_keeps_the_following_page_or_section_break(string separator) {
         using var source = InlineFlowPackage(separator: separator);
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(source,
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(source, IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var package = WordprocessingDocument.Open(saved, false);
         var body = package.MainDocumentPart!.Document!.Body!;
@@ -57,8 +55,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData("indent")]
     public void A_table_attachment_with_meaningful_paragraph_layout_retains_its_host(string style) {
         using var source = InlineFlowPackage(style: style);
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(source,
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(source, IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var package = WordprocessingDocument.Open(saved, false);
         var blocks = package.MainDocumentPart!.Document!.Body!.ChildElements;
@@ -78,8 +75,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Floating_drawables_retain_the_table_attachment_paragraph_as_a_page_anchor() {
         using var source = InlineFlowPackage(floatingImage: true);
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(source,
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(source, IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         Assert.Equal(2, result.Projection.Drawables.Count);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var package = WordprocessingDocument.Open(saved, false);
@@ -94,17 +90,16 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Standalone_fixed_tables_preserve_unequal_column_widths_after_save() {
         using var source = InlineFlowPackage();
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(source,
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Open(source, IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.Report.RequireCompleteEditableReconstruction();
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = WordDocument.Load(saved);
         WordTable table = Assert.Single(reopened.Tables);
         Assert.Equal(WordTableLayoutMode.Fixed, table.LayoutMode);
-        Assert.Equal(WordTableWidthUnit.Dxa, table.WidthType);
-        Assert.Equal(1210, table.Width);
-        Assert.Equal(new[] { 810, 400 }, table.GridColumnWidth);
-        Assert.Equal(new[] { 810, 400 }, table.ColumnWidth);
+        Assert.Equal(WordTableWidthKind.Length, table.Width?.Kind);
+        Assert.Equal(1210, table.Width?.LengthValue?.ToTwips());
+        Assert.Equal(new[] { 810, 400 }, table.GridColumnWidth.Select(width => checked((int)width.ToTwips())).ToList());
+        Assert.Equal(new[] { 810, 400 }, table.ColumnWidth.Select(width => checked((int)width!.Value.LengthValue!.Value.ToTwips())).ToList());
         Assert.Empty(reopened.ValidateDocument());
     }
 
@@ -114,8 +109,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(2, true)]
     public void Consecutive_standalone_tables_retain_paragraph_separators_after_save(int tableCount, bool partialGeometry) {
         using var source = InlineFlowPackage(tableCount: tableCount, left: partialGeometry ? 1 : 0);
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(source,
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = partialGeometry });
+        using var result = IWorkSourceDocument.Open(source, IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = partialGeometry });
         if (partialGeometry) Assert.True(result.Report.IsPartialEditableReconstruction);
         else result.Report.RequireCompleteEditableReconstruction();
         Assert.Equal(tableCount, result.Projection.Tables.Count);
@@ -141,9 +135,9 @@ public sealed partial class IWorkBoundaryTests {
     public void Offset_or_inconsistent_inline_table_geometry_still_requires_partial_reconstruction(float left, float width) {
         using var source = InlineFlowPackage(left: left, width: width);
         var opened = IWorkSourceDocument.Open(source);
-        Assert.Contains("geometry", Assert.Throws<InvalidDataException>(() => opened.ToWordDocumentResult(
+        Assert.Contains("geometry", Assert.Throws<InvalidDataException>(() => opened.ToWordResult(
             new() { Mode = IWorkConversionMode.EditableOnly })).Message);
-        using var result = opened.ToWordDocumentResult(new() {
+        using var result = opened.ToWordResult(new() {
             Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true
         });
         Assert.True(result.Report.IsPartialEditableReconstruction);
@@ -158,9 +152,9 @@ public sealed partial class IWorkBoundaryTests {
         using var source = InlineFlowPackage(automatic: boundary == "automatic",
             pageLayout: boundary != "missing-page-layout", merged: boundary == "merged");
         var opened = IWorkSourceDocument.Open(source);
-        Assert.Contains("geometry", Assert.Throws<InvalidDataException>(() => opened.ToWordDocumentResult(
+        Assert.Contains("geometry", Assert.Throws<InvalidDataException>(() => opened.ToWordResult(
             new() { Mode = IWorkConversionMode.EditableOnly })).Message);
-        using var result = opened.ToWordDocumentResult(new() {
+        using var result = opened.ToWordResult(new() {
             Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true
         });
         Assert.True(result.Report.IsPartialEditableReconstruction);

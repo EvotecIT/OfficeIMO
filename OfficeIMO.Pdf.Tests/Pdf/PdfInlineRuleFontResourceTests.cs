@@ -16,7 +16,7 @@ public sealed class PdfInlineRuleFontResourceTests {
     [Fact]
     public void GlyphFreeRulesDoNotSelectTheirMetricOnlyNamedFonts() {
         var options = Options();
-        byte[] bytes = PdfDocument.Create(options).Paragraph(p => p.Runs(new[] {
+        byte[] bytes = PdfDocument.Create(options).Paragraph(p => p.AddRuns(new[] {
             Rule(PdfTextRun.Normal(string.Empty, fontFamily: Family)),
             Rule(PdfTextRun.Bolded(string.Empty, fontFamily: Family))
         })).ToBytes();
@@ -44,8 +44,8 @@ public sealed class PdfInlineRuleFontResourceTests {
             ? new[] { PdfTextRun.Normal("A"), Rule(sourceStyle, maximumWidth: null), PdfTextRun.Normal(" B") }
             : new[] { PdfTextRun.Normal("A"), new PdfTextRun("\t", fontFamily: Family, tabLeader: leader), Rule(sourceStyle), PdfTextRun.Normal("B") };
         var document = PdfDocument.Create(options);
-        if (artifactCanvas) document.Canvas(canvas => canvas.Artifact(artifact => artifact.TextBox(runs, 20D, 20D, 100D, 100D)));
-        else document.Paragraph(p => p.Runs(runs));
+        if (artifactCanvas) document.Canvas(canvas => canvas.Artifact(artifact => artifact.TextBox(runs, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(100D))));
+        else document.Paragraph(p => p.AddRuns(runs));
         byte[] bytes = document.ToBytes();
 
         var snapshot = ReadPageFonts(bytes);
@@ -64,7 +64,7 @@ public sealed class PdfInlineRuleFontResourceTests {
         options.TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers;
         Assert.True(options.TryResolveNamedFontFace(Family, false, false, out PdfNamedFontFace regular));
         Assert.True(options.TryResolveNamedFontFace(Family, true, false, out PdfNamedFontFace bold));
-        byte[] bytes = PdfDocument.Create(options).Paragraph(p => p.Runs(new[] {
+        byte[] bytes = PdfDocument.Create(options).Paragraph(p => p.AddRuns(new[] {
             Rule(PdfTextRun.Normal(string.Empty, fontFamily: Family)),
             Rule(PdfTextRun.Bolded(string.Empty, fontFamily: Family)), PdfTextRun.Normal("AB")
         })).ToBytes();
@@ -80,13 +80,15 @@ public sealed class PdfInlineRuleFontResourceTests {
     }
 
     private static PdfTextRun Rule(PdfTextRun style, double? maximumWidth = 30D) =>
-        PdfTextRun.Inline(new PdfInlineRule(.5D, PdfColor.Black, maximumWidth: maximumWidth), style);
+        PdfTextRun.Inline(new PdfInlineRule(global::OfficeIMO.OfficeLength.Points(.5D), global::OfficeIMO.OfficeColor.Black, maximumWidth: ((maximumWidth).HasValue ? global::OfficeIMO.OfficeLength.Points((maximumWidth).Value) : (global::OfficeIMO.OfficeLength?)null)), style);
 
-    private static PdfOptions Options() {
+    private static PdfCreateOptions Options() {
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 500, ' ', '.', 'A', 'B');
-        return new PdfOptions {
-            PageWidth = 140D, PageHeight = 160D, MarginLeft = 20D, MarginRight = 20D,
-            MarginTop = 20D, MarginBottom = 20D, DefaultFontSize = 10D, DefaultFont = PdfStandardFont.Helvetica
+        return new PdfCreateOptions {
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(140D), global::OfficeIMO.OfficeLength.Points(160D)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(20D), Right = global::OfficeIMO.OfficeLength.Points(20D), Top = global::OfficeIMO.OfficeLength.Points(20D), Bottom = global::OfficeIMO.OfficeLength.Points(20D) }
+            }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10D), DefaultFont = PdfStandardFont.Helvetica
         }.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(Family, font, bold: font));
     }
 

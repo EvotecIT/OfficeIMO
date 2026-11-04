@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             "Documents", "LegacyPptCorpus", "RichTextPowerPoint.ppt");
         [Fact]
         public void NeutralReader_DecodesMicrosoftCharacterRuns() {
-            LegacyPptPresentation legacy = LegacyPptPresentation.Load(RichTextFixturePath);
+            LegacyPptDocument legacy = LegacyPptDocument.Load(RichTextFixturePath);
             LegacyPptShape shape = Assert.Single(Assert.Single(legacy.Slides).Shapes,
                 item => item.Text.Contains("Bold red", StringComparison.Ordinal));
             LegacyPptTextBody textBody = shape.TextBody;
@@ -56,9 +56,9 @@ namespace OfficeIMO.Tests {
                 Assert.False(run.HasUnprojectedFormatting);
             });
             Assert.DoesNotContain(legacy.Diagnostics,
-                diagnostic => diagnostic.Code == "PPT-TEXT-PARAGRAPH-PARTIAL");
+                diagnostic => diagnostic.Code == "ppt-text-paragraph-partial");
             Assert.DoesNotContain(legacy.Diagnostics,
-                diagnostic => diagnostic.Code == "PPT-TEXT-CHARACTER-PARTIAL");
+                diagnostic => diagnostic.Code == "ppt-text-character-partial");
             LegacyPptMaster master = Assert.Single(legacy.Masters);
             Assert.Equal(8, master.TextMasterStyles.Count);
             Assert.All(master.TextMasterStyles, style => Assert.False(style.IsTruncated));
@@ -69,16 +69,16 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Calibri Light", titleLevel.CharacterProperties.Typeface);
             Assert.DoesNotContain(legacy.Diagnostics,
                 diagnostic => diagnostic.Code == "PPT-TEXT-MASTER-STYLE-PRESERVE-ONLY"
-                    || diagnostic.Code == "PPT-TEXT-MASTER-STYLE-TRUNCATED"
-                    || diagnostic.Code == "PPT-TEXT-MASTER-STYLE-PARTIAL");
+                    || diagnostic.Code == "ppt-text-master-style-truncated"
+                    || diagnostic.Code == "ppt-text-master-style-partial");
             Assert.DoesNotContain(legacy.Diagnostics,
-                diagnostic => diagnostic.Code == "PPT-TEXT-STYLE-TRUNCATED");
+                diagnostic => diagnostic.Code == "ppt-text-style-truncated");
         }
 
         [Fact]
         public void NormalLoad_ProjectsMicrosoftCharacterRunsAndPreservesBinaryExactly() {
             byte[] source = File.ReadAllBytes(RichTextFixturePath);
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(RichTextFixturePath);
+            using PowerPointDocument presentation = PowerPointDocument.Load(RichTextFixturePath);
             P.Shape shape = Assert.IsType<P.Shape>(Assert.Single(
                 Assert.Single(presentation.Slides).TextBoxes).Element);
             A.Paragraph[] paragraphs = shape.TextBody!.Elements<A.Paragraph>().ToArray();
@@ -130,17 +130,17 @@ namespace OfficeIMO.Tests {
                 .GetFirstChild<A.LatinFont>()!.Typeface!.Value);
             Assert.Empty(presentation.ValidateDocument());
             Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
-            Assert.Equal(source, presentation.ToBytes(PowerPointFileFormat.Ppt));
+            Assert.Equal(source, presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
 
         [Fact]
         public void NativeWriter_AuthorsShapeRichTextParagraphsBulletsAndFonts() {
             byte[] bytes;
-            using (PowerPointPresentation presentation = PowerPointPresentation
+            using (PowerPointDocument presentation = PowerPointDocument
                        .Create()) {
                 PowerPointTextBox textBox = presentation.AddSlide(
                         PowerPointSlideLayoutType.Blank)
-                    .AddTextBoxPoints(string.Empty, 30, 30, 360, 180);
+                    .AddTextBox(string.Empty,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(360),global::OfficeIMO.OfficeLength.Points(180));
                 P.Shape shape = Assert.IsType<P.Shape>(textBox.Element);
                 var firstProperties = new A.ParagraphProperties(
                     new A.LineSpacing(
@@ -212,10 +212,10 @@ namespace OfficeIMO.Tests {
                     .AnalyzeLegacyPptWrite();
                 Assert.True(preflight.CanWrite,
                     string.Join(Environment.NewLine, preflight.Findings));
-                bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+                bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument binary = LegacyPptDocument.Load(bytes);
             LegacyPptShape binaryShape = Assert.Single(
                 Assert.Single(binary.Slides).Shapes,
                 candidate => candidate.Text.StartsWith("Bold red",
@@ -271,7 +271,7 @@ namespace OfficeIMO.Tests {
                     font => font.Typeface == typeface));
 
             using var stream = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation reopened = PowerPointPresentation
+            using PowerPointDocument reopened = PowerPointDocument
                 .Load(stream);
             P.Shape projected = Assert.IsType<P.Shape>(Assert.Single(
                 reopened.Slides[0].TextBoxes).Element);
@@ -293,9 +293,9 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_ReportsOutOfRangeRichTextLevelBeforeBuildingRuler() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointTextBox textBox = presentation.AddSlide(PowerPointSlideLayoutType.Blank)
-                .AddTextBoxPoints("Unsafe level", 30, 30, 240, 120);
+                .AddTextBox("Unsafe level",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(120));
             P.Shape shape = Assert.IsType<P.Shape>(textBox.Element);
             A.Paragraph paragraph = Assert.Single(shape.TextBody!.Elements<A.Paragraph>());
             paragraph.ParagraphProperties ??= new A.ParagraphProperties();
@@ -305,18 +305,18 @@ namespace OfficeIMO.Tests {
             LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
 
             Assert.False(preflight.CanWrite);
-            Assert.Contains(preflight.Findings, finding => finding.Code == "PPT-WRITE-RICH-TEXT");
+            Assert.Contains(preflight.Findings, finding => finding.Code == "ppt-write-rich-text");
         }
 
         [Fact]
         public void NativeWriter_AuthorsTextFrameMarginsWrappingAnchorDirectionAndAutoFit() {
             byte[] bytes;
-            using (PowerPointPresentation presentation = PowerPointPresentation
+            using (PowerPointDocument presentation = PowerPointDocument
                        .Create()) {
                 PowerPointTextBox textBox = presentation.AddSlide(
                         PowerPointSlideLayoutType.Blank)
-                    .AddTextBoxPoints("Text frame", 30, 30, 240, 120)
-                    .SetTextMarginsPoints(8, 4, 6, 2);
+                    .AddTextBox("Text frame",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(120))
+                    .SetTextMargins(global::OfficeIMO.OfficeLength.Points(8), global::OfficeIMO.OfficeLength.Points(4), global::OfficeIMO.OfficeLength.Points(6), global::OfficeIMO.OfficeLength.Points(2));
                 textBox.TextVerticalAlignment =
                     PowerPointTextVerticalAlignment.Center;
                 textBox.TextDirection = PowerPointTextDirection.Vertical270;
@@ -330,10 +330,10 @@ namespace OfficeIMO.Tests {
                     .AnalyzeLegacyPptWrite();
                 Assert.True(preflight.CanWrite,
                     string.Join(Environment.NewLine, preflight.Findings));
-                bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+                bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument binary = LegacyPptDocument.Load(bytes);
             LegacyPptShape binaryShape = Assert.Single(
                 Assert.Single(binary.Slides).Shapes,
                 shape => shape.Text == "Text frame");
@@ -349,15 +349,15 @@ namespace OfficeIMO.Tests {
             Assert.Equal(true, frame.FitShapeToText);
 
             using var stream = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation reopened = PowerPointPresentation
+            using PowerPointDocument reopened = PowerPointDocument
                 .Load(stream);
             PowerPointTextBox projected = Assert.Single(
                 reopened.Slides[0].TextBoxes,
                 textBox => textBox.Text == "Text frame");
-            Assert.Equal(8D, projected.TextMarginLeftPoints);
-            Assert.Equal(4D, projected.TextMarginTopPoints);
-            Assert.Equal(6D, projected.TextMarginRightPoints);
-            Assert.Equal(2D, projected.TextMarginBottomPoints);
+            Assert.Equal(8D, projected.TextMarginLeft?.ToPoints());
+            Assert.Equal(4D, projected.TextMarginTop?.ToPoints());
+            Assert.Equal(6D, projected.TextMarginRight?.ToPoints());
+            Assert.Equal(2D, projected.TextMarginBottom?.ToPoints());
             Assert.Equal(PowerPointTextVerticalAlignment.Center,
                 projected.TextVerticalAlignment);
             Assert.Equal(PowerPointTextDirection.Vertical270,
@@ -375,12 +375,12 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ImportedTextFrameEdit_UsesIncrementalOfficeArtRewrite() {
             byte[] sourceBytes;
-            using (PowerPointPresentation source = PowerPointPresentation
+            using (PowerPointDocument source = PowerPointDocument
                        .Create()) {
                 PowerPointTextBox textBox = source.AddSlide(
                         PowerPointSlideLayoutType.Blank)
-                    .AddTextBoxPoints("Editable frame", 30, 30, 240, 120)
-                    .SetTextMarginsPoints(8, 4, 6, 2);
+                    .AddTextBox("Editable frame",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(120))
+                    .SetTextMargins(global::OfficeIMO.OfficeLength.Points(8), global::OfficeIMO.OfficeLength.Points(4), global::OfficeIMO.OfficeLength.Points(6), global::OfficeIMO.OfficeLength.Points(2));
                 textBox.TextVerticalAlignment =
                     PowerPointTextVerticalAlignment.Center;
                 textBox.TextDirection = PowerPointTextDirection.Vertical270;
@@ -389,15 +389,15 @@ namespace OfficeIMO.Tests {
                     textBox.Element).TextBody!.BodyProperties!;
                 body.Wrap = A.TextWrappingValues.None;
                 body.AnchorCenter = true;
-                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation original = LegacyPptPresentation.Load(
+            LegacyPptDocument original = LegacyPptDocument.Load(
                 sourceBytes);
 
             byte[] savedBytes;
             using (var input = new MemoryStream(sourceBytes,
                        writable: false))
-            using (PowerPointPresentation imported = PowerPointPresentation
+            using (PowerPointDocument imported = PowerPointDocument
                        .Load(input)) {
                 PowerPointTextBox textBox = Assert.Single(
                     imported.Slides[0].TextBoxes,
@@ -407,7 +407,7 @@ namespace OfficeIMO.Tests {
                     candidate => candidate.OpenXmlShapeId == textBox.Id);
                 Assert.True(projection.CanEditTextFrame);
                 Assert.True(projection.TextFrameMatches(textBox));
-                textBox.SetTextMarginsPoints(5, 7, 9, 11);
+                textBox.SetTextMargins(global::OfficeIMO.OfficeLength.Points(5), global::OfficeIMO.OfficeLength.Points(7), global::OfficeIMO.OfficeLength.Points(9), global::OfficeIMO.OfficeLength.Points(11));
                 textBox.TextVerticalAlignment =
                     PowerPointTextVerticalAlignment.Bottom;
                 textBox.TextDirection = PowerPointTextDirection.Vertical;
@@ -424,10 +424,10 @@ namespace OfficeIMO.Tests {
                     .AnalyzeLegacyPptWrite();
                 Assert.True(preflight.CanWrite,
                     string.Join(Environment.NewLine, preflight.Findings));
-                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+            LegacyPptDocument saved = LegacyPptDocument.Load(
                 savedBytes);
             LegacyPptShape savedShape = Assert.Single(
                 Assert.Single(saved.Slides).Shapes,
@@ -450,15 +450,15 @@ namespace OfficeIMO.Tests {
 
             using var reopenedInput = new MemoryStream(savedBytes,
                 writable: false);
-            using PowerPointPresentation reopened = PowerPointPresentation
+            using PowerPointDocument reopened = PowerPointDocument
                 .Load(reopenedInput);
             PowerPointTextBox projected = Assert.Single(
                 reopened.Slides[0].TextBoxes,
                 textBox => textBox.Text == "Editable frame");
-            Assert.Equal(5D, projected.TextMarginLeftPoints);
-            Assert.Equal(7D, projected.TextMarginTopPoints);
-            Assert.Equal(9D, projected.TextMarginRightPoints);
-            Assert.Equal(11D, projected.TextMarginBottomPoints);
+            Assert.Equal(5D, projected.TextMarginLeft?.ToPoints());
+            Assert.Equal(7D, projected.TextMarginTop?.ToPoints());
+            Assert.Equal(9D, projected.TextMarginRight?.ToPoints());
+            Assert.Equal(11D, projected.TextMarginBottom?.ToPoints());
             Assert.Equal(PowerPointTextVerticalAlignment.Bottom,
                 projected.TextVerticalAlignment);
             Assert.Equal(PowerPointTextDirection.Vertical,
@@ -476,22 +476,22 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ImportedPresentation_AppendedSlideAuthorsRichTextAndFonts() {
             byte[] sourceBytes;
-            using (PowerPointPresentation source = PowerPointPresentation
+            using (PowerPointDocument source = PowerPointDocument
                        .Create()) {
                 source.AddSlide(PowerPointSlideLayoutType.Blank)
                     .AddTextBox("Existing slide");
-                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation original = LegacyPptPresentation.Load(
+            LegacyPptDocument original = LegacyPptDocument.Load(
                 sourceBytes);
 
             byte[] savedBytes;
             using (var input = new MemoryStream(sourceBytes, writable: false))
-            using (PowerPointPresentation imported = PowerPointPresentation
+            using (PowerPointDocument imported = PowerPointDocument
                        .Load(input)) {
                 PowerPointTextBox textBox = imported.AddSlide(
                         PowerPointSlideLayoutType.Blank)
-                    .AddTextBoxPoints(string.Empty, 40, 40, 320, 120);
+                    .AddTextBox(string.Empty,global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(320),global::OfficeIMO.OfficeLength.Points(120));
                 P.Shape shape = Assert.IsType<P.Shape>(textBox.Element);
                 shape.TextBody = new P.TextBody(
                     new A.BodyProperties(),
@@ -515,16 +515,15 @@ namespace OfficeIMO.Tests {
                     .AnalyzeLegacyPptWrite();
                 Assert.False(preflight.CanWrite);
                 Assert.Contains(preflight.Findings, finding =>
-                    finding.Code == "PPT-WRITE-IMPORT-LOSS");
+                    finding.Code == "ppt-write-import-loss");
                 Assert.Throws<NotSupportedException>(() =>
-                    imported.ToBytes(PowerPointFileFormat.Ppt));
-                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
-                    new PowerPointSaveOptions {
+                    imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
+                savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt,
                         LossPolicy = OfficeConversionLossPolicy.Allow
                     });
             }
 
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+            LegacyPptDocument saved = LegacyPptDocument.Load(
                 savedBytes);
             LegacyPptShape savedShape = Assert.Single(saved.Slides[1].Shapes,
                 shape => shape.Text == "Appended rich text");
@@ -549,7 +548,7 @@ namespace OfficeIMO.Tests {
 
             using var reopenedInput = new MemoryStream(savedBytes,
                 writable: false);
-            using PowerPointPresentation reopened = PowerPointPresentation
+            using PowerPointDocument reopened = PowerPointDocument
                 .Load(reopenedInput);
             P.Shape reopenedShape = Assert.IsType<P.Shape>(Assert.Single(
                 reopened.Slides[1].TextBoxes,
@@ -564,17 +563,17 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ImportedRichTextGeometryEdit_PreservesCharacterRuns() {
-            LegacyPptPresentation original = LegacyPptPresentation.Load(RichTextFixturePath);
+            LegacyPptDocument original = LegacyPptDocument.Load(RichTextFixturePath);
             LegacyPptShape originalShape = Assert.Single(Assert.Single(original.Slides).Shapes,
                 shape => shape.Text.Contains("Bold red", StringComparison.Ordinal));
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(RichTextFixturePath);
+            using PowerPointDocument presentation = PowerPointDocument.Load(RichTextFixturePath);
             PowerPointTextBox textBox = Assert.Single(presentation.Slides[0].TextBoxes);
 
-            textBox.Left += 15875;
+            textBox.Left+= OfficeIMO.OfficeLength.Emus(15875);
 
             Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(
-                presentation.ToBytes(PowerPointFileFormat.Ppt));
+            LegacyPptDocument saved = LegacyPptDocument.Load(
+                presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
             LegacyPptShape savedShape = Assert.Single(Assert.Single(saved.Slides).Shapes,
                 shape => shape.Text.Contains("Bold red", StringComparison.Ordinal));
             Assert.Equal(originalShape.Bounds.Left + 10, savedShape.Bounds.Left);
@@ -585,9 +584,9 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ImportedRichTextFormattingAndLengthEdit_UsesIncrementalStyleRewrite() {
-            LegacyPptPresentation original = LegacyPptPresentation.Load(
+            LegacyPptDocument original = LegacyPptDocument.Load(
                 RichTextFixturePath);
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(RichTextFixturePath);
+            using PowerPointDocument presentation = PowerPointDocument.Load(RichTextFixturePath);
             P.Shape shape = Assert.IsType<P.Shape>(Assert.Single(
                 presentation.Slides[0].TextBoxes).Element);
             A.Run first = shape.TextBody!.Descendants<A.Run>().First();
@@ -606,8 +605,8 @@ namespace OfficeIMO.Tests {
 
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(
-                presentation.ToBytes(PowerPointFileFormat.Ppt));
+            LegacyPptDocument saved = LegacyPptDocument.Load(
+                presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
             LegacyPptShape savedShape = Assert.Single(
                 Assert.Single(saved.Slides).Shapes,
                 candidate => candidate.Text.StartsWith("Bold red!",
@@ -636,10 +635,10 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ImportedMasterTextStyleEdit_UsesIncrementalRewrite() {
-            LegacyPptPresentation original = LegacyPptPresentation.Load(
+            LegacyPptDocument original = LegacyPptDocument.Load(
                 RichTextFixturePath);
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Load(RichTextFixturePath);
+            using PowerPointDocument presentation =
+                PowerPointDocument.Load(RichTextFixturePath);
             P.SlideMaster slideMaster = presentation.Slides[0].SlidePart.SlideLayoutPart!
                 .SlideMasterPart!.SlideMaster!;
             A.Level1ParagraphProperties title = Assert.IsType<A.Level1ParagraphProperties>(
@@ -650,8 +649,8 @@ namespace OfficeIMO.Tests {
 
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(
-                presentation.ToBytes(PowerPointFileFormat.Ppt));
+            LegacyPptDocument saved = LegacyPptDocument.Load(
+                presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
             LegacyPptTextMasterStyle savedTitle = Assert.Single(
                 Assert.Single(saved.Masters).TextMasterStyles,
                 style => style.TextType == LegacyPptTextType.Title);
@@ -666,13 +665,13 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ImportedTextRulerEdit_UsesIncrementalRulerRewrite() {
-            LegacyPptPresentation original = LegacyPptPresentation.Load(
+            LegacyPptDocument original = LegacyPptDocument.Load(
                 FixturePath);
             LegacyPptShape originalTitle = Assert.Single(
                 Assert.Single(original.Slides).Shapes,
                 candidate => candidate.Text
                     == "OfficeIMO PowerPoint Basics");
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(FixturePath);
+            using PowerPointDocument presentation = PowerPointDocument.Load(FixturePath);
             P.Shape title = Assert.IsType<P.Shape>(presentation.Slides[0].TextBoxes.Single(textBox =>
                 textBox.Text == "OfficeIMO PowerPoint Basics").Element);
             A.TabStop tab = title.TextBody!.Descendants<A.TabStop>().First();
@@ -682,8 +681,8 @@ namespace OfficeIMO.Tests {
 
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(
-                presentation.ToBytes(PowerPointFileFormat.Ppt));
+            LegacyPptDocument saved = LegacyPptDocument.Load(
+                presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
             LegacyPptShape savedTitle = Assert.Single(
                 Assert.Single(saved.Slides).Shapes,
                 candidate => candidate.Text

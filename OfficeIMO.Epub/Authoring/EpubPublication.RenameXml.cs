@@ -4,7 +4,7 @@ using System.Threading;
 namespace OfficeIMO.Epub;
 
 public sealed partial class EpubPublication {
-    private static bool RewriteMovedXml(XDocument document, string owner, string destination, string oldPath, string newPath, CancellationToken token, ContentReferenceMap? map = null, bool removeHtmlBase = false) {
+    private bool RewriteMovedXml(XDocument document, string owner, string destination, string oldPath, string newPath, CancellationToken token, ContentReferenceMap? map = null, bool removeHtmlBase = false) {
         if (document.Root == null) throw new InvalidDataException("Resource XML has no root.");
         if (document.Descendants().Attributes(XNamespace.Xml + "base").Any())
             throw new NotSupportedException("Resource renaming does not support XML base declarations.");
@@ -18,7 +18,14 @@ public sealed partial class EpubPublication {
         XAttribute? baseAttribute = document.Root.Name == Html + "html" ? document.Root.Element(Html + "head")?.Elements(Html + "base")
             .Attributes("href").FirstOrDefault() : null;
         string? oldBase = baseAttribute?.Value;
-        bool changed = RewriteMovedXmlStylesheets(document, owner, destination, oldPath, newPath, token, map);
+        long retainedReplacementCharacters = 0;
+        void Retain(string original, string replacement) {
+            if (replacement == original) return;
+            if (replacement.Length > _maximumEntryBytes - retainedReplacementCharacters)
+                throw new InvalidDataException("Rewritten XML references exceed the entry limit.");
+            retainedReplacementCharacters += replacement.Length;
+        }
+        bool changed = RewriteMovedXmlStylesheets(document, owner, destination, oldPath, newPath, token, map, Retain);
         if (removeHtmlBase && document.Root.Name == Html + "html") {
             XElement[] bases = document.Root.Element(Html + "head")!.Elements(Html + "base").ToArray();
             if (bases.Attributes().Any(attribute => attribute.Name != "href" && !attribute.IsNamespaceDeclaration))
@@ -32,7 +39,9 @@ public sealed partial class EpubPublication {
                 string target = reference.ContainerPath == oldPath ? newPath : reference.ContainerPath!;
                 EpubReference current = EpubReference.Resolve(destination, oldBase!, "#");
                 if (current.ContainerPath != target) {
-                    baseAttribute!.Value = RelativeHref(destination, target) + (reference.Query == null ? string.Empty : "?" + reference.Query);
+                    string replacement = RelativeHref(destination, target) + (reference.Query == null ? string.Empty : "?" + reference.Query);
+                    Retain(baseAttribute!.Value, replacement);
+                    baseAttribute.Value = replacement;
                     changed = true;
                 }
             }
@@ -64,13 +73,7 @@ public sealed partial class EpubPublication {
                     replacement = RewriteMovedReference(owner, oldBase, destination, newBase, attribute.Value, oldPath, newPath, map,
                         allowEmptyDocumentLink: documentLink);
                 } else if (html && (attribute.Name == "srcset" || attribute.Name == "imagesrcset")) {
-                    var result = new StringBuilder(attribute.Value);
-                    foreach (var candidate in HtmlSrcSetParser.Enumerate(attribute.Value).Reverse()) {
-                        token.ThrowIfCancellationRequested();
-                        string url = Rewrite(candidate.Url);
-                        if (url != candidate.Url) result.Remove(candidate.UrlStart, candidate.Url.Length).Insert(candidate.UrlStart, url);
-                    }
-                    replacement = result.ToString();
+                    replacement = RewriteSrcSet(attribute.Value);
                 } else if ((html || svg || math) && attribute.Name == "style") {
                     replacement = RewriteMovedCss(attribute.Value, Rewrite, includeFragmentReferences: map != null);
                 } else if (svg && attribute.Name.NamespaceName.Length == 0 && new[] {
@@ -78,15 +81,50 @@ public sealed partial class EpubPublication {
                 }.Contains(attribute.Name.LocalName, StringComparer.Ordinal)) {
                     replacement = RewriteMovedCss(attribute.Value, Rewrite, includeFragmentReferences: map != null);
                 } else if (html && (attribute.Name == "ping" || (element.Name == Html + "object" && attribute.Name == "archive"))) {
-                    replacement = string.Join(" ", Tokens(attribute.Value).Select(Rewrite));
+                    replacement = RewriteTokenList(attribute.Value);
                 }
-                if (replacement != null && replacement != attribute.Value) { attribute.Value = replacement; changed = true; }
+                if (replacement != null && replacement != attribute.Value) {
+                    Retain(attribute.Value, replacement);
+                    attribute.Value = replacement; changed = true;
+                }
             }
             if ((html || svg) && element.Name.LocalName == "style") {
                 string css = RewriteMovedCss(element.Value, Rewrite, includeFragmentReferences: map != null);
-                if (css != element.Value) { element.Value = css; changed = true; }
+                if (css != element.Value) { Retain(element.Value, css); element.Value = css; changed = true; }
             }
         }
         return changed;
+
+        string RewriteSrcSet(string source) {
+            StringBuilder? output = null;
+            int copied = 0;
+            long projected = source.Length;
+            foreach (var candidate in HtmlSrcSetParser.Enumerate(source)) {
+                token.ThrowIfCancellationRequested();
+                string rewritten = Rewrite(candidate.Url);
+                if (rewritten == candidate.Url) continue;
+                projected += rewritten.Length - candidate.Url.Length;
+                if (projected > _maximumEntryBytes) throw new InvalidDataException("Rewritten srcset exceeds the entry limit.");
+                output ??= new StringBuilder();
+                output.Append(source, copied, candidate.UrlStart - copied).Append(rewritten);
+                copied = candidate.UrlStart + candidate.Url.Length;
+            }
+            if (output == null) return source;
+            output.Append(source, copied, source.Length - copied);
+            return output.ToString();
+        }
+
+        string RewriteTokenList(string source) {
+            var output = new StringBuilder();
+            foreach (string value in Tokens(source)) {
+                token.ThrowIfCancellationRequested();
+                string rewritten = Rewrite(value);
+                long length = (long)output.Length + (output.Length == 0 ? 0 : 1) + rewritten.Length;
+                if (length > _maximumEntryBytes) throw new InvalidDataException("Rewritten reference list exceeds the entry limit.");
+                if (output.Length > 0) output.Append(' ');
+                output.Append(rewritten);
+            }
+            return output.ToString();
+        }
     }
 }

@@ -83,12 +83,12 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
             document.UseMastersByDefault = true;
-            VisioPage page = document.AddPage("Expanded Stencils", 11, 8.5);
+            VisioPage page = document.AddPage("Expanded Stencils", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
 
-            VisioShape idp = page.AddStencilShape(VisioStencils.SecurityIdentity, "idp", "idp", 1.8, 6.3, "Entra ID");
-            VisioShape cluster = page.AddStencilShape(VisioStencils.ContainersKubernetes, "kubernetes", "cluster", 4.3, 6.3, "AKS Cluster");
-            VisioShape lake = page.AddStencilShape(VisioStencils.DataPlatform, "data.lake", "lake", 6.9, 6.3, "Lake");
-            VisioShape team = page.AddStencilShape(VisioStencils.CollaborationBusiness, "team", "team", 9.1, 6.3, "Ops Team");
+            VisioShape idp = page.AddStencilShape(VisioStencils.SecurityIdentity, "idp", "idp", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6.3, page.DefaultUnit)), "Entra ID");
+            VisioShape cluster = page.AddStencilShape(VisioStencils.ContainersKubernetes, "kubernetes", "cluster", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4.3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6.3, page.DefaultUnit)), "AKS Cluster");
+            VisioShape lake = page.AddStencilShape(VisioStencils.DataPlatform, "data.lake", "lake", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6.9, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6.3, page.DefaultUnit)), "Lake");
+            VisioShape team = page.AddStencilShape(VisioStencils.CollaborationBusiness, "team", "team", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(9.1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6.3, page.DefaultUnit)), "Ops Team");
             page.AddConnector(idp, cluster, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left).Label = "tokens";
             page.AddConnector(cluster, lake, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left).Label = "events";
             page.AddConnector(team, cluster, ConnectorKind.Dynamic, VisioSide.Left, VisioSide.Right).Label = "runbook";
@@ -114,17 +114,17 @@ namespace OfficeIMO.Tests {
         public void PageCanPlaceStencilShapeWithGeneratedMaster() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Stencil Page", 29.7, 21, VisioMeasurementUnit.Centimeters);
+            VisioPage page = document.AddPage("Stencil Page", OfficeLength.Centimeters(29.7), OfficeLength.Centimeters(21), scaleUnit: VisioMeasurementUnit.Centimeters);
 
-            VisioShape process = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "process-1", 5, 15, "Review request");
-            VisioShape decision = page.AddStencilShape(VisioStencils.Flowchart, "branch", "decision-1", 13, 15, "Approved?");
+            VisioShape process = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "process-1", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(15, page.DefaultUnit)), "Review request");
+            VisioShape decision = page.AddStencilShape(VisioStencils.Flowchart, "branch", "decision-1", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(13, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(15, page.DefaultUnit)), "Approved?");
             page.AddConnector(process, decision, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left);
 
             Assert.Equal("Process", process.NameU);
             Assert.Equal("Process", process.MasterNameU);
             Assert.Equal("Decision", decision.NameU);
             Assert.Equal("Decision", decision.MasterNameU);
-            Assert.Equal(5.0.ToInches(VisioMeasurementUnit.Centimeters), process.PinX, 6);
+            Assert.Equal(5.0.ToInches(VisioMeasurementUnit.Centimeters), process.PinX.ToInches(), 6);
 
             document.Save();
 
@@ -141,10 +141,10 @@ namespace OfficeIMO.Tests {
             document.UseMastersByDefault = true;
             VisioPage page = document.AddPage("Stencil Page");
 
-            VisioShape service = page.AddStencilShape(VisioStencils.Architecture.Get("service"), "service", 2, 5, "Service");
+            VisioShape service = page.AddStencilShape(VisioStencils.Architecture.Get("service"), "service", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), "Service");
             service.FillColor = OfficeColor.FromRgb(31, 119, 180);
             service.LineColor = OfficeColor.FromRgb(10, 70, 120);
-            VisioShape database = page.AddStencilShape(VisioStencils.Architecture.Get("database"), "database", 5, 5, "Database");
+            VisioShape database = page.AddStencilShape(VisioStencils.Architecture.Get("database"), "database", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), "Database");
             database.FillColor = OfficeColor.FromRgb(46, 160, 67);
             database.LineColor = OfficeColor.FromRgb(18, 92, 43);
 
@@ -197,11 +197,11 @@ namespace OfficeIMO.Tests {
 
             VisioDocument document = VisioDocument.Create(filePath);
             document.AsFluent()
-                .Page("Stencil Page", page => page
-                    .Stencil("input", VisioStencils.BlockDiagram.Get("block.storage"), 3, 4, "Storage")
-                    .Stencil("worker", VisioStencils.BlockDiagram, "component", 6, 4, "Worker")
-                    .Stencil("router", "net.router", 9, 4, "Router")
-                    .Connect("input", "worker", VisioSide.Right, VisioSide.Left))
+                .AddPage("Stencil Page", page => page
+                    .AddStencilShape(id: "input", stencil: VisioStencils.BlockDiagram.Get("block.storage"), x: OfficeLength.Inches(3), y: OfficeLength.Inches(4), text: "Storage")
+                    .AddStencilShape(id: "worker", catalog: VisioStencils.BlockDiagram, stencilIdOrName: "component", x: OfficeLength.Inches(6), y: OfficeLength.Inches(4), text: "Worker")
+                    .AddStencilShape(id: "router", stencilIdOrName: "net.router", x: OfficeLength.Inches(9), y: OfficeLength.Inches(4), text: "Router")
+                    .AddConnector("input", "worker", fromSide: VisioSide.Right, toSide: VisioSide.Left))
                 .End();
             document.Save();
 
@@ -218,8 +218,8 @@ namespace OfficeIMO.Tests {
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("All Catalog");
 
-            VisioShape switchShape = page.AddStencilShape("net.switch", "switch", 2, 4, "Switch");
-            VisioShape milestone = page.AddStencilShape("time.milestone", "milestone", 5, 4, 0.4, 0.4, "M1");
+            VisioShape switchShape = page.AddStencilShape("net.switch", "switch", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), "Switch");
+            VisioShape milestone = page.AddStencilShape("time.milestone", "milestone", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.4, page.DefaultUnit)), "M1");
             page.AddConnector(switchShape, milestone, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left);
             document.Save();
 
@@ -238,7 +238,7 @@ namespace OfficeIMO.Tests {
                 .Add("gallery.queue", "Queue", "Data", "Integration", 1.4, 0.8)
                 .Add("gallery.worker", "Worker", "Rectangle", "Compute", 1.6, 0.9));
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Gallery", 5, 4);
+            VisioPage page = document.AddPage("Gallery", OfficeLength.Inches(5), OfficeLength.Inches(4));
 
             IReadOnlyList<VisioShape> placed = page.AddStencilGallery(catalog, new VisioStencilGalleryOptions {
                 IdPrefix = "gallery",
@@ -249,7 +249,7 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.Equal(3, placed.Count);
-            Assert.True(page.Width > 5);
+            Assert.True(page.Width.ToInches() > 5);
             Assert.Contains(page.Shapes, shape => shape.Id == "gallery-title" && shape.Text == "Reusable palette");
             Assert.Contains(page.Shapes, shape => shape.Id == "gallery-0-name" && shape.Text == "API");
             Assert.Contains(page.Shapes, shape => shape.Id == "gallery-1-category" && shape.Text == "Integration");
@@ -268,7 +268,7 @@ namespace OfficeIMO.Tests {
             VisioStencilCatalog catalog = VisioStencilCatalog.Create("Metric Gallery Catalog", builder => builder
                 .Add("gallery.api", "API", "Process", "Integration", 1.8, 0.9));
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Metric Gallery", 29.7, 21, VisioMeasurementUnit.Centimeters);
+            VisioPage page = document.AddPage("Metric Gallery", OfficeLength.Centimeters(29.7), OfficeLength.Centimeters(21), scaleUnit: VisioMeasurementUnit.Centimeters);
             VisioStencilGalleryOptions options = new() {
                 IdPrefix = "gallery",
                 Columns = 1,
@@ -285,8 +285,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains(page.Shapes, shape => shape.Id == "gallery-title");
             Assert.Contains(page.Shapes, shape => shape.Id == "gallery-title-2");
             Assert.Equal(page.Shapes.Count, page.Shapes.Select(shape => shape.Id).Distinct(StringComparer.Ordinal).Count());
-            Assert.Equal(1D, page.Shapes.Single(shape => shape.Id == "gallery-0-shape").Width, 6);
-            Assert.Equal(0.5D, page.Shapes.Single(shape => shape.Id == "gallery-0-shape").Height, 6);
+            Assert.Equal(1D, page.Shapes.Single(shape => shape.Id == "gallery-0-shape").Width.ToInches(), 6);
+            Assert.Equal(0.5D, page.Shapes.Single(shape => shape.Id == "gallery-0-shape").Height.ToInches(), 6);
 
             document.Save();
             Assert.Empty(VisioValidator.Validate(filePath));
@@ -298,9 +298,9 @@ namespace OfficeIMO.Tests {
             VisioStencilCatalog catalog = VisioStencilCatalog.Create("Gallery Catalog", builder => builder
                 .Add("gallery.api", "API", "Process", "Integration", 1.8, 0.9));
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Gallery", 5, 4);
-            VisioShape left = new VisioShape("left", 0.8, 0.8, 0.5, 0.5, "L");
-            VisioShape right = new VisioShape("right", 1.8, 0.8, 0.5, 0.5, "R");
+            VisioPage page = document.AddPage("Gallery", OfficeLength.Inches(5), OfficeLength.Inches(4));
+            VisioShape left = new VisioShape("left", OfficeLength.Inches(0.8), OfficeLength.Inches(0.8), OfficeLength.Inches(0.5), OfficeLength.Inches(0.5), "L");
+            VisioShape right = new VisioShape("right", OfficeLength.Inches(1.8), OfficeLength.Inches(0.8), OfficeLength.Inches(0.5), OfficeLength.Inches(0.5), "R");
             page.Shapes.Add(left);
             page.Shapes.Add(right);
             page.AddConnector("gallery-title", left, right, ConnectorKind.Dynamic);
@@ -340,8 +340,8 @@ namespace OfficeIMO.Tests {
                 IncludeStencilMetadataShapeData = true
             });
 
-            Assert.Equal("Reusable stencil review", document.Title);
-            Assert.Equal("OfficeIMO.Visio", document.Author);
+            Assert.Equal("Reusable stencil review", document.Properties.Title);
+            Assert.Equal("OfficeIMO.Visio", document.Properties.Author);
             Assert.True(document.UseMastersByDefault);
             Assert.Equal(4, document.Pages.Count);
             Assert.Equal("Stencil Gallery Overview", document.Pages[0].Name);
@@ -434,8 +434,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Custom Stencils");
-            VisioShape cache = page.AddStencilShape(catalog, "redis", "cache", 2, 4, "Cache");
-            VisioShape archive = page.AddStencilShape(catalog, "object-store", "archive", 5, 4, "Archive");
+            VisioShape cache = page.AddStencilShape(catalog, "redis", "cache", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), "Cache");
+            VisioShape archive = page.AddStencilShape(catalog, "object-store", "archive", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), "Archive");
             page.AddConnector(cache, archive, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left);
             document.Save();
 
@@ -523,8 +523,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Reusable Catalog");
-            VisioShape api = page.AddStencilShape(loadedCatalog, "http", "api", 2, 4, "API");
-            VisioShape queue = page.AddStencilShape(loadedCatalog, "message-queue", "queue", 5, 4, "Queue");
+            VisioShape api = page.AddStencilShape(loadedCatalog, "http", "api", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), "API");
+            VisioShape queue = page.AddStencilShape(loadedCatalog, "message-queue", "queue", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), "Queue");
             page.AddConnector(api, queue, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left);
             document.Save();
 
@@ -620,7 +620,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Untrusted");
-            VisioShape shape = page.AddStencilShape(stencil, "shape", 2, 4);
+            VisioShape shape = page.AddStencilShape(stencil, "shape", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)));
 
             Assert.Null(stencil.SourcePackagePath);
             Assert.Null(shape.Master);
@@ -688,8 +688,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Package Catalog");
-            VisioShape source = page.AddStencilShape(catalog, "rectangle", "source", 2, 4, "Source");
-            VisioShape decision = page.AddStencilShape(catalog, "decision", "decision", 5, 4, "Decision");
+            VisioShape source = page.AddStencilShape(catalog, "rectangle", "source", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), "Source");
+            VisioShape decision = page.AddStencilShape(catalog, "decision", "decision", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), "Decision");
             page.AddConnector(source, decision, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left);
             document.Save();
 
@@ -741,26 +741,26 @@ namespace OfficeIMO.Tests {
 
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Learned Stencils", 20, 15, VisioMeasurementUnit.Centimeters);
-            VisioShape shape = page.AddStencilShape(catalog, "wide-box", "wide", 5, 8);
-            VisioShape coordinateUnitShape = page.AddStencilShape(wideBox, "wide-cm", 6, 9, "Wide in cm", VisioMeasurementUnit.Centimeters);
-            VisioShape explicitShape = page.AddStencilShape(catalog, "wide-box", "explicit", 10, 8, 4, 2, "Explicit size");
-            VisioShape resized = page.AddRectangle(14, 8, 1, 1, "Resize me", VisioMeasurementUnit.Centimeters);
+            VisioPage page = document.AddPage("Learned Stencils", OfficeLength.Centimeters(20), OfficeLength.Centimeters(15), scaleUnit: VisioMeasurementUnit.Centimeters);
+            VisioShape shape = page.AddStencilShape(catalog, "wide-box", "wide", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(8, page.DefaultUnit)));
+            VisioShape coordinateUnitShape = page.AddStencilShape(wideBox, "wide-cm", OfficeLength.Centimeters(6), OfficeLength.Centimeters(9), "Wide in cm");
+            VisioShape explicitShape = page.AddStencilShape(catalog, "wide-box", "explicit", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(10, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), "Explicit size");
+            VisioShape resized = page.AddRectangle(OfficeLength.Centimeters(14), OfficeLength.Centimeters(8), OfficeLength.Centimeters(1), OfficeLength.Centimeters(1), "Resize me");
             page.ReplaceMaster(resized, wideBox, resizeToMaster: true);
             document.Save();
 
-            Assert.Equal(5.0 / 2.54, shape.PinX, 6);
-            Assert.Equal(8.0 / 2.54, shape.PinY, 6);
-            Assert.Equal(3.2, shape.Width, 6);
-            Assert.Equal(1.1, shape.Height, 6);
-            Assert.Equal(6.0 / 2.54, coordinateUnitShape.PinX, 6);
-            Assert.Equal(9.0 / 2.54, coordinateUnitShape.PinY, 6);
-            Assert.Equal(3.2, coordinateUnitShape.Width, 6);
-            Assert.Equal(1.1, coordinateUnitShape.Height, 6);
-            Assert.Equal(4.0 / 2.54, explicitShape.Width, 6);
-            Assert.Equal(2.0 / 2.54, explicitShape.Height, 6);
-            Assert.Equal(3.2, resized.Width, 6);
-            Assert.Equal(1.1, resized.Height, 6);
+            Assert.Equal(5.0 / 2.54, shape.PinX.ToInches(), 6);
+            Assert.Equal(8.0 / 2.54, shape.PinY.ToInches(), 6);
+            Assert.Equal(3.2, shape.Width.ToInches(), 6);
+            Assert.Equal(1.1, shape.Height.ToInches(), 6);
+            Assert.Equal(6.0 / 2.54, coordinateUnitShape.PinX.ToInches(), 6);
+            Assert.Equal(9.0 / 2.54, coordinateUnitShape.PinY.ToInches(), 6);
+            Assert.Equal(3.2, coordinateUnitShape.Width.ToInches(), 6);
+            Assert.Equal(1.1, coordinateUnitShape.Height.ToInches(), 6);
+            Assert.Equal(4.0 / 2.54, explicitShape.Width.ToInches(), 6);
+            Assert.Equal(2.0 / 2.54, explicitShape.Height.ToInches(), 6);
+            Assert.Equal(3.2, resized.Width.ToInches(), 6);
+            Assert.Equal(1.1, resized.Height.ToInches(), 6);
             Assert.Empty(VisioValidator.Validate(filePath));
         }
 
@@ -807,8 +807,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Connected Stencils");
-            VisioShape shape = page.AddStencilShape(catalog, "connected-box", "node", 3, 4, 6.4, 2.2, "Connected");
-            VisioShape overriddenDefaultShape = page.AddStencilShape(nativeSizedPoints, "native-sized", 8, 4, 6.4, 2.2, "Native sized");
+            VisioShape shape = page.AddStencilShape(catalog, "connected-box", "node", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6.4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.2, page.DefaultUnit)), "Connected");
+            VisioShape overriddenDefaultShape = page.AddStencilShape(nativeSizedPoints, "native-sized", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6.4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.2, page.DefaultUnit)), "Native sized");
             document.Save();
 
             Assert.Equal(3, shape.ConnectionPoints.Count);
@@ -891,7 +891,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Generic Placeholder");
-            VisioShape cloud = page.AddStencilShape(catalog, "fancycloud", "cloud", 2, 4, "Cloud");
+            VisioShape cloud = page.AddStencilShape(catalog, "fancycloud", "cloud", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), "Cloud");
             document.Save();
 
             Assert.Equal("FancyCloud", cloud.MasterNameU);
@@ -960,11 +960,11 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Preview Metadata");
-            page.AddStencilShape(catalog, "fancy-cloud", "cloud", 2, 4);
+            page.AddStencilShape(catalog, "fancy-cloud", "cloud", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)));
             document.Save();
 
             VisioDocument loaded = VisioDocument.Load(filePath);
-            VisioInspectionMasterSnapshot master = Assert.Single(loaded.CreateInspectionSnapshot().Masters, item => item.NameU == "FancyCloud");
+            VisioInspectionMasterSnapshot master = Assert.Single(loaded.Inspect().Masters, item => item.NameU == "FancyCloud");
             Assert.Equal("rIdImage", master.StencilPreviewImageRelationshipId);
             Assert.Equal("../media/image1.emf", master.StencilPreviewImageTarget);
             Assert.Equal("image/x-emf", master.StencilPreviewImageContentType);
@@ -1152,7 +1152,7 @@ namespace OfficeIMO.Tests {
             VisioDocument document = VisioDocument.Create(filePath);
             IReadOnlyList<VisioMaster> imported = document.ImportStencilMastersAndGet(packagePath, new[] { "fancy-cloud" });
             VisioPage page = document.AddPage("External Stencils");
-            VisioShape cloud = page.AddStencilShape(catalog, "fancy-cloud", "cloud", 2, 4, "Cloud");
+            VisioShape cloud = page.AddStencilShape(catalog, "fancy-cloud", "cloud", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), "Cloud");
             document.Save();
 
             Assert.Single(imported);
@@ -1240,14 +1240,14 @@ namespace OfficeIMO.Tests {
                 VisioDocument document = VisioDocument.Create(
                     Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
                 VisioPage page = document.AddPage("Collision");
-                page.AddStencilShape(firstStencil, "first", 2, 4);
+                page.AddStencilShape(firstStencil, "first", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)));
                 Assert.True(document.TryGetMaster("SharedMaster",
                     out VisioMaster? registered));
                 Assert.NotNull(registered);
 
                 InvalidOperationException exception =
                     Assert.Throws<InvalidOperationException>(() =>
-                        page.AddStencilShape(secondStencil, "second", 5, 4));
+                        page.AddStencilShape(secondStencil, "second", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit))));
 
                 Assert.Contains("already bound to source package",
                     exception.Message, StringComparison.OrdinalIgnoreCase);
@@ -1288,14 +1288,14 @@ namespace OfficeIMO.Tests {
                     sourceLicense: null, sourceAttribution: null);
                 VisioDocument document = VisioDocument.Create();
                 VisioPage page = document.AddPage("Collision");
-                page.AddStencilShape(packageStencil, "package", 2D, 4D);
+                page.AddStencilShape(packageStencil, "package", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2D, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4D, page.DefaultUnit)));
                 Assert.True(document.TryGetMaster("SharedMaster",
                     out VisioMaster? registered));
 
                 InvalidOperationException exception =
                     Assert.Throws<InvalidOperationException>(() =>
                         page.AddStencilShape(sourceLessStencil, "built-in",
-                            5D, 4D));
+                            OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5D, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4D, page.DefaultUnit))));
 
                 Assert.Contains("source-less stencil metadata",
                     exception.Message, StringComparison.OrdinalIgnoreCase);
@@ -1369,7 +1369,7 @@ namespace OfficeIMO.Tests {
             try {
                 File.WriteAllText(path, "stencil provenance");
                 var master = new VisioMaster("1", "CaseMaster",
-                    new VisioShape("1", 0, 0, 1, 1, string.Empty)) {
+                    new VisioShape("1", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(1), OfficeLength.Inches(1), string.Empty)) {
                     StencilSourcePackagePath = path
                 };
 
@@ -1431,9 +1431,9 @@ namespace OfficeIMO.Tests {
             });
             VisioStencilShape stencil = catalog.Get("rectangle");
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
-            document.RegisterMaster("Rectangle", new VisioShape("1", 0, 0, 1, 1, string.Empty) { NameU = "Rectangle" }, "builtin-rectangle");
+            document.RegisterMaster("Rectangle", new VisioShape("1", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(1), OfficeLength.Inches(1), string.Empty) { NameU = "Rectangle" }, "builtin-rectangle");
             VisioPage page = document.AddPage("Replace");
-            VisioShape shape = page.AddRectangle(2, 4, 1, 1, "Shape");
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Shape");
 
             page.ReplaceMaster(shape, stencil);
 
@@ -1469,8 +1469,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("External Stencils");
-            VisioShape cloud = page.AddStencilShape(cloudStencil, "cloud", 2, 4);
-            VisioShape vault = page.AddStencilShape(vaultStencil, "vault", 5, 4);
+            VisioShape cloud = page.AddStencilShape(cloudStencil, "cloud", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)));
+            VisioShape vault = page.AddStencilShape(vaultStencil, "vault", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)));
             document.Save();
 
             Assert.Equal(Path.GetFullPath(firstPackage), cloudStencil.SourcePackagePath);

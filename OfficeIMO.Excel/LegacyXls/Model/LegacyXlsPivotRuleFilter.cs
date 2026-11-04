@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes one decoded SxFilt PivotTable rule-filter entry.
     /// </summary>
-    public sealed class LegacyXlsPivotRuleFilter {
+    internal sealed class LegacyXlsPivotRuleFilter {
         /// <summary>
         /// Creates decoded PivotTable rule-filter metadata.
         /// </summary>

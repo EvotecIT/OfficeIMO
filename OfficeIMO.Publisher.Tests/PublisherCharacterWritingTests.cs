@@ -54,10 +54,10 @@ public sealed class PublisherCharacterWritingTests {
                 underlineStyle: underline, baseline: baseline)
         }, template.Alignment, template.LineHeight, template.Margins, template.Indent, template.LineHeightFactor)
             .WithTabStops(template.TabStops)).ToArray());
-        Assert.Throws<OfficeConversionException>(() => document.ToPubBytes());
-        var result = document.ToPubBytesResult(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
-        Assert.False(result.Report.HasErrors); Assert.True(result.Report.HasLoss);
-        PublisherDocument saved = PublisherDocument.Load(result.Value);
+        Assert.Throws<OfficeConversionException>(() => document.ToBytes());
+        byte[] savedBytes = document.ToBytes(new PublisherSaveOptions { AllowLoss = true }, out PublisherSaveReport saveReport);
+        Assert.False(saveReport.HasErrors); Assert.True(saveReport.HasLoss);
+        PublisherDocument saved = PublisherDocument.Load(savedBytes);
         Assert.Equal(document.TextStories.Select(item => item.Text), saved.TextStories.Select(item => item.Text));
         Assert.All(saved.TextStories.Single(item => item.Id == id).Paragraphs, paragraph => {
             OfficeRichTextRun run = Assert.Single(paragraph.Runs);
@@ -65,8 +65,8 @@ public sealed class PublisherCharacterWritingTests {
                 (run.FontSize, run.Color, run.FontFamily, run.Bold, run.Italic, run.Strikethrough, run.UnderlineStyle, run.Baseline));
         });
         Assert.Equal(Frames(document), Frames(saved));
-        PublisherNativeWritingTests.AssertPreservedStorage(source, result.Value, "Quill/QuillSub/CONTENTS");
-        Assert.Equal(source, PublisherDocument.Load(source).ToPubBytes());
+        PublisherNativeWritingTests.AssertPreservedStorage(source, savedBytes, "Quill/QuillSub/CONTENTS");
+        Assert.Equal(source, PublisherDocument.Load(source).ToBytes());
     }
 
     [Theory]
@@ -80,7 +80,7 @@ public sealed class PublisherCharacterWritingTests {
                 fontFamily: variant == "font-length" ? new string('x', 33) : "Arial",
                 strikethroughStyle: variant == "double-strike" ? OfficeTextDecorationStyle.Double : OfficeTextDecorationStyle.None)
         }) });
-        var error = Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        var error = Assert.Throws<OfficeConversionException>(() => document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         Assert.True(Assert.IsType<PublisherSaveReport>(error.Report).HasErrors);
         Assert.Contains("Unsupported request", document.TextStories[0].Text);
     }
@@ -88,16 +88,16 @@ public sealed class PublisherCharacterWritingTests {
     [Fact]
     public void Font_growth_refuses_a_contradictory_index_while_unchanged_copying_retains_the_inert_source() {
         byte[] source = PublisherInputContractTests.Mutate("Quill/QuillSub/CONTENTS", bytes => {
-            var context = new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None);
+            var context = new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None);
             PublisherQuillChunk font = PublisherQuillDirectory.Read(new PublisherBinaryData(bytes, "Quill"), context).Single(chunk => chunk.Tag == "FONT");
             bytes[font.Offset + 20] ^= 1;
         }, "NativeComparison/Text/native-text.pub");
         PublisherDocument document = PublisherDocument.Load(source);
-        Assert.Equal(source, document.ToPubBytes());
+        Assert.Equal(source, document.ToBytes());
         document.ReplaceStoryParagraphs(2, new[] { new OfficeRichTextParagraph(new[] {
             new OfficeRichTextRun("New font", 12, OfficeColor.Black, fontFamily: "Consolas")
         }) });
-        Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        Assert.Throws<OfficeConversionException>(() => document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
     }
 
     [Theory]
@@ -111,15 +111,15 @@ public sealed class PublisherCharacterWritingTests {
             bytes[marker] = unknownHeader ? (byte)0xF9 : (byte)0x5A;
         }, "NativeComparison/TextCharacterAttributes/native-textcharacterattributes.pub");
         PublisherDocument document = PublisherDocument.Load(source);
-        Assert.Equal(source, document.ToPubBytes());
+        Assert.Equal(source, document.ToBytes());
         OfficeRichTextParagraph template = document.TextStories.Single(story => story.Id == 2).Paragraphs[0];
         document.ReplaceStoryParagraphs(2, new[] { new OfficeRichTextParagraph(new[] {
             new OfficeRichTextRun("Keep padding", 12, OfficeColor.Black, italic: true, fontFamily: "Arial")
         }, template.Alignment, template.LineHeight, template.Margins, template.Indent, template.LineHeightFactor).WithTabStops(template.TabStops) });
         if (unknownHeader) {
-            Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+            Assert.Throws<OfficeConversionException>(() => document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         } else {
-            byte[] output = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+            byte[] output = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
             Assert.True(OfficeCompoundFileReader.TryRead(output, out OfficeCompoundFile? compound, out string? error), error);
             Assert.Equal(0x5A, compound!.Streams["Quill/QuillSub/CONTENTS"][marker]);
             Assert.True(PublisherDocument.Load(output).TextStories.Single(story => story.Id == 2).Paragraphs[0].Runs[0].Italic);

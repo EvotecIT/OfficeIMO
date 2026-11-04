@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Project;
 ///   <summary>Returns project assignments.</summary>
 ///   <code>$project | Get-OfficeProjectAssignment</code>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeProjectAssignment")]
+[Cmdlet(VerbsCommon.Get, "OfficeProjectAssignment", DefaultParameterSetName = "Document")]
 [OutputType(typeof(ProjectAssignment))]
 public sealed class GetOfficeProjectAssignmentCommand : PSCmdlet {
     /// <summary>Project document.</summary>

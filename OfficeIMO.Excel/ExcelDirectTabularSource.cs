@@ -4,7 +4,8 @@ namespace OfficeIMO.Excel {
         Text,
         Number,
         Boolean,
-        Unsupported
+        Unsupported,
+        DateTime
     }
 
     internal readonly struct ExcelDirectTabularValue {
@@ -65,6 +66,12 @@ namespace OfficeIMO.Excel {
                     return new ExcelDirectTabularValue(ExcelDirectTabularValueKind.Unsupported, null, 0D, false);
             }
         }
+
+        internal static ExcelDirectTabularValue Normalize(object? value, ExcelDateSystem dateSystem, bool preserveMissingValues) =>
+            value is DateTime date
+                ? new ExcelDirectTabularValue(ExcelDirectTabularValueKind.DateTime, null,
+                    ExcelDateSystemConverter.ToSerial(date, dateSystem), false)
+                : Normalize(value, preserveMissingValues);
 
         private static ExcelDirectTabularValue NumberValue(double value) =>
             new ExcelDirectTabularValue(ExcelDirectTabularValueKind.Number, null, value, false);

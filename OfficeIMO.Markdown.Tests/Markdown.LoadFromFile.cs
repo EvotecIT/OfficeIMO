@@ -8,21 +8,6 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Markdown {
         [Fact]
-        public void NativeLifecycle_ExposesDirectAndStructuredParseResults() {
-            const string source = "# Title\n\nBody\n";
-
-            OfficeIMO.Markdown.MarkdownDoc direct = OfficeIMO.Markdown.MarkdownDoc.Parse(source);
-            OfficeIMO.Markdown.MarkdownParseResult parsed = OfficeIMO.Markdown.MarkdownDoc.ParseResult(source);
-            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(source));
-            OfficeIMO.Markdown.MarkdownDoc loaded = OfficeIMO.Markdown.MarkdownDoc.Load(stream);
-
-            Assert.Equal(direct.ToMarkdown(), loaded.ToMarkdown());
-            Assert.IsAssignableFrom<IOfficeResult<OfficeIMO.Markdown.MarkdownDoc>>(parsed);
-            Assert.Same(parsed.Document, parsed.Value);
-            Assert.Same(parsed.Document, parsed.RequireValue());
-        }
-
-        [Fact]
         public void Test_LoadFromMarkdown_Path_DefaultEncoding() {
             string tempDir = Path.Combine(AppContext.BaseDirectory, "TempMarkdown");
             Directory.CreateDirectory(tempDir);
@@ -30,7 +15,7 @@ namespace OfficeIMO.Tests {
             string content = "# Title\r\n\r\nCaf\u00e9";
             File.WriteAllText(mdPath, content, Encoding.Unicode);
 
-            using var doc = OfficeIMO.Markdown.MarkdownDoc.Load(mdPath).ToWordDocument();
+            using var doc = OfficeIMO.Markdown.MarkdownDocument.Load(mdPath).ToWord();
             string text = string.Join("\n", doc.Paragraphs.Select(p => p.Text));
             Assert.Contains("Caf\u00e9", text);
 
@@ -46,7 +31,7 @@ namespace OfficeIMO.Tests {
             Encoding latin1 = Encoding.GetEncoding("iso-8859-1");
             File.WriteAllText(mdPath, content, latin1);
 
-            using var doc = OfficeIMO.Markdown.MarkdownDoc.Load(mdPath, encoding: latin1).ToWordDocument();
+            using var doc = OfficeIMO.Markdown.MarkdownDocument.Load(mdPath, new OfficeIMO.Markdown.MarkdownLoadOptions { Encoding = latin1 }).ToWord();
             string text = string.Join("\n", doc.Paragraphs.Select(p => p.Text));
             Assert.Contains("ol\u00e9", text);
 
@@ -61,7 +46,7 @@ namespace OfficeIMO.Tests {
             string content = "# Title\r\n\r\nCaf\u00e9";
             File.WriteAllText(mdPath, content, Encoding.Unicode);
 
-            using var doc = (await OfficeIMO.Markdown.MarkdownDoc.LoadAsync(mdPath)).ToWordDocument();
+            using var doc = (await OfficeIMO.Markdown.MarkdownDocument.LoadAsync(mdPath)).ToWord();
             string text = string.Join("\n", doc.Paragraphs.Select(p => p.Text));
             Assert.Contains("Caf\u00e9", text);
 

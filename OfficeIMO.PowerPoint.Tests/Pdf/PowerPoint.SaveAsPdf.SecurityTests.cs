@@ -9,20 +9,20 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PowerPointSaveAsPdfSecurityTests {
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_StopsAtConfiguredGroupDepth() {
+    public void SaveAsPdf_PowerPointDocument_StopsAtConfiguredGroupDepth() {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pptx");
         try {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(path);
+            using PowerPointDocument presentation = PowerPointDocument.Create(path);
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointTextBox textBox = slide.AddTextBoxPoints("Nested text", 72, 72, 144, 36);
-            PowerPointTextBox secondTextBox = slide.AddTextBoxPoints("Nested sibling", 72, 120, 144, 36);
+            PowerPointTextBox textBox = slide.AddTextBox("Nested text",global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(144),global::OfficeIMO.OfficeLength.Points(36));
+            PowerPointTextBox secondTextBox = slide.AddTextBox("Nested sibling",global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(144),global::OfficeIMO.OfficeLength.Points(36));
             slide.GroupShapes(new PowerPointShape[] { textBox, secondTextBox }, "Outer");
 
-            var options = new PowerPointToPdfOptions {
+            var options = new PowerPointPdfExportOptions {
                 MaxGroupShapeDepth = 0
             };
 
-            PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(options);
+            PdfCore.PdfDocumentConversionResult result = presentation.ConvertToPdfWithEvidence(options);
 
             PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "group-depth-limit");
             Assert.Equal("Slide 1", warning.Source);
@@ -38,20 +38,20 @@ public class PowerPointSaveAsPdfSecurityTests {
     public void SaveAsPdf_PowerPointHandouts_HonorZeroGroupDepth() {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pptx");
         try {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(path);
+            using PowerPointDocument presentation = PowerPointDocument.Create(path);
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointTextBox textBox = slide.AddTextBoxPoints("Nested text", 72, 72, 144, 36);
-            PowerPointTextBox secondTextBox = slide.AddTextBoxPoints("Nested sibling", 72, 120, 144, 36);
+            PowerPointTextBox textBox = slide.AddTextBox("Nested text",global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(144),global::OfficeIMO.OfficeLength.Points(36));
+            PowerPointTextBox secondTextBox = slide.AddTextBox("Nested sibling",global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(144),global::OfficeIMO.OfficeLength.Points(36));
             slide.GroupShapes(new PowerPointShape[] { textBox, secondTextBox }, "Outer");
 
-            PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(new PowerPointToPdfOptions {
+            PdfCore.PdfDocumentConversionResult result = presentation.ConvertToPdfWithEvidence(new PowerPointPdfExportOptions {
                 PageLayout = PowerPointPdfPageLayout.Handouts,
                 HandoutSlidesPerPage = 1,
                 MaxGroupShapeDepth = 0
             });
 
             Assert.Contains(result.Warnings, warning =>
-                warning.Message.Contains(nameof(PowerPointToPdfOptions.MaxGroupShapeDepth), StringComparison.Ordinal));
+                warning.Message.Contains(nameof(PowerPointPdfExportOptions.MaxGroupShapeDepth), StringComparison.Ordinal));
         } finally {
             if (File.Exists(path)) {
                 File.Delete(path);

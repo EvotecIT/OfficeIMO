@@ -1,7 +1,7 @@
 $csv = '.\Regional-Sales.csv'
 $workbook = '.\Regional-Sales.xlsx'
 
-ExcelNew -Path $workbook {
+New-OfficeExcel -Path $workbook {
     ExcelSheet 'Readme' {
         ExcelCell -Address A1 -Value 'Imported from Regional-Sales.csv'
     }

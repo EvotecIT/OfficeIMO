@@ -41,7 +41,7 @@ public sealed class ProjectImageQualityTests {
         using var word = ProjectReportWorkflow.CreateWord(view, new ProjectOfficeReportOptions { Images = options });
         Assert.NotEmpty(word.Images); Assert.NotEmpty(word.Tables); Assert.Empty(word.ValidateDocument());
         using var slides = ProjectReportWorkflow.CreatePowerPoint(view, new ProjectOfficeReportOptions { Images = options });
-        Assert.Contains(slides.Slides.SelectMany(slide => slide.Shapes), shape => shape is OfficeIMO.PowerPoint.PowerPointPicture);
+        Assert.Contains(slides.Slides.SelectMany(slide => slide.Shapes), shape => shape is OfficeIMO.PowerPoint.PowerPointImage);
         Assert.Contains(slides.Slides.SelectMany(slide => slide.Shapes), shape => shape is OfficeIMO.PowerPoint.PowerPointTable);
         Assert.Empty(slides.ValidateDocument());
         using var tables = ProjectReportWorkflow.CreateWord(view, new ProjectOfficeReportOptions { IncludeCharts = false });

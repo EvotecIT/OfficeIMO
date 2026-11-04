@@ -30,10 +30,10 @@ Second overlapping box
 """;
         OfficeMarkupParseResult parsed = OfficeMarkupParser.Parse(markup);
 
-        OfficeMarkupPowerPointConversionResult bounded = parsed.Document.ToPowerPointPresentationResult(
-            new MarkupToPowerPointOptions { RenderMermaidDiagrams = false });
-        OfficeMarkupPowerPointConversionResult explicitCollisionScan = parsed.Document.ToPowerPointPresentationResult(
-            new MarkupToPowerPointOptions {
+        OfficeMarkupPowerPointConversionResult bounded = parsed.Document.ToPowerPointDocumentResult(
+            new MarkupPowerPointExportOptions { RenderMermaidDiagrams = false });
+        OfficeMarkupPowerPointConversionResult explicitCollisionScan = parsed.Document.ToPowerPointDocumentResult(
+            new MarkupPowerPointExportOptions {
                 RenderMermaidDiagrams = false,
                 PreflightOptions = new PowerPointDeckPreflightOptions {
                     DetectShapeCollisions = true,
@@ -44,11 +44,11 @@ Second overlapping box
         using (bounded.Value)
         using (explicitCollisionScan.Value) {
             Assert.DoesNotContain(bounded.Report.Preflight.Findings,
-                finding => finding.Code == "Layout.ShapeCollision");
+                finding => finding.Code == "layout-shape-collision");
             Assert.Contains(explicitCollisionScan.Report.Preflight.Findings,
-                finding => finding.Code == "Layout.ShapeCollision");
-            Assert.Contains(explicitCollisionScan.Report.FidelityDiagnostics,
-                diagnostic => diagnostic.Code == "Layout.ShapeCollision" &&
+                finding => finding.Code == "layout-shape-collision");
+            Assert.Contains(explicitCollisionScan.Report.Diagnostics,
+                diagnostic => diagnostic.Code == "layout-shape-collision" &&
                               diagnostic.LossKind == OfficeConversionLossKind.Approximation);
             Assert.True(explicitCollisionScan.Report.HasLoss);
         }
@@ -71,8 +71,8 @@ profile: presentation
 This shape is outside the slide.
 """;
         OfficeMarkupParseResult parsed = OfficeMarkupParser.Parse(markup);
-        OfficeMarkupPowerPointConversionResult result = parsed.Document.ToPowerPointPresentationResult(
-            new MarkupToPowerPointOptions {
+        OfficeMarkupPowerPointConversionResult result = parsed.Document.ToPowerPointDocumentResult(
+            new MarkupPowerPointExportOptions {
                 RenderMermaidDiagrams = false,
                 PreflightOptions = new PowerPointDeckPreflightOptions {
                     DetectShapeCollisions = false,
@@ -83,13 +83,13 @@ This shape is outside the slide.
 
         using (result.Value) {
             Assert.True(result.Report.Preflight.ErrorCount > 0);
-            OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(
-                result.Report.FidelityDiagnostics,
-                item => item.Source == "OfficeIMO.Markup.PowerPoint.Preflight" &&
+            OfficeDiagnostic diagnostic = Assert.Single(
+                result.Report.Diagnostics,
+                item => item.Format == "OfficeIMO.Markup.PowerPoint.Preflight" &&
                         item.LossKind == OfficeConversionLossKind.Failure);
             Assert.StartsWith("slide:1", diagnostic.Location, StringComparison.Ordinal);
             Assert.True(result.Report.HasLoss);
-            Assert.Throws<PowerPointDeckPreflightException>(() => result.Report.RequireNoLoss());
+            Assert.ThrowsAny<PowerPointDeckPreflightException>(() => result.Report.ThrowIfLoss());
         }
     }
 
@@ -116,7 +116,7 @@ title: Report Demo
             OfficeMarkupParseResult parsed = OfficeMarkupParser.Parse(markup);
             OfficeMarkupPowerPointConversionReport conversion = parsed.Document.SaveAsPowerPoint(
                 presentationPath,
-                new MarkupToPowerPointOptions {
+                new MarkupPowerPointExportOptions {
                     RenderMermaidDiagrams = false,
                     PreflightOptions = new PowerPointDeckPreflightOptions {
                         DetectShapeCollisions = false,
@@ -162,7 +162,7 @@ A deliberately long paragraph that cannot fit inside the very short slide used b
 
             Assert.Throws<PowerPointDeckPreflightException>(() =>
                 parsed.Document.SaveAsPowerPoint(presentationPath,
-                    new MarkupToPowerPointOptions {
+                    new MarkupPowerPointExportOptions {
                         RenderMermaidDiagrams = false,
                         SlideHeightInches = 1D,
                         FailOnPreflightFindings = true,
@@ -170,7 +170,7 @@ A deliberately long paragraph that cannot fit inside the very short slide used b
                             DetectShapeCollisions = false,
                             DetectMissingVisualAssets = false,
                             IncludeVisualSnapshotDiagnostics = false,
-                            MinimumReadableFontSizePoints = 100D,
+                            MinimumReadableFontSize = global::OfficeIMO.OfficeLength.Points(100D),
                             FailureSeverity = PowerPointDeckPreflightSeverity.Warning
                         }
                     }));

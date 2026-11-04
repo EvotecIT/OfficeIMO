@@ -7,9 +7,9 @@ internal sealed class DrawingBlock : IPdfBlock {
     public PdfDrawingStyle? Style { get; }
     public string? LinkUri { get; }
     public string? LinkContents { get; }
-    public PdfAlign Align => (Style ?? new PdfDrawingStyle()).Align;
-    public double SpacingBefore => (Style ?? new PdfDrawingStyle()).SpacingBefore;
-    public double SpacingAfter => (Style ?? new PdfDrawingStyle()).SpacingAfter;
+    public OfficeAlignment Align => (Style ?? new PdfDrawingStyle()).Align;
+    public double SpacingBefore => (Style ?? new PdfDrawingStyle()).SpacingBefore.ToPoints();
+    public double SpacingAfter => (Style ?? new PdfDrawingStyle()).SpacingAfter.ToPoints();
     public string? AlternativeText => Style?.AlternativeText;
     public bool Decorative => Style?.Decorative == true;
 
@@ -30,11 +30,11 @@ internal sealed class DrawingBlock : IPdfBlock {
         LinkContents = linkUri == null ? null : linkContents ?? "Drawing";
     }
 
-    public DrawingBlock(OfficeDrawing drawing, PdfAlign align, double spacingBefore, double spacingAfter, string? linkUri = null, string? linkContents = null)
+    public DrawingBlock(OfficeDrawing drawing, OfficeAlignment align, double spacingBefore, double spacingAfter, string? linkUri = null, string? linkContents = null)
         : this(drawing, new PdfDrawingStyle {
             Align = align,
-            SpacingBefore = spacingBefore,
-            SpacingAfter = spacingAfter
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(spacingAfter)
         }, linkUri, linkContents) {
     }
 }

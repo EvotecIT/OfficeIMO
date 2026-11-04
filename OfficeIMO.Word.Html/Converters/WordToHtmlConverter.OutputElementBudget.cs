@@ -12,7 +12,7 @@ namespace OfficeIMO.Word.Html {
 
         private static void RegisterOutputConstructionBudget(
             IDocument owner,
-            WordToHtmlOptions options,
+            WordHtmlExportOptions options,
             long initialOutputCharacters) {
             OutputConstructionBudgets.Add(owner, new OutputConstructionBudget(options, initialOutputCharacters));
         }
@@ -113,10 +113,10 @@ namespace OfficeIMO.Word.Html {
         }
 
         private sealed class OutputConstructionBudget {
-            private readonly WordToHtmlOptions _options;
+            private readonly WordHtmlExportOptions _options;
             private long _minimumOutputCharacters;
 
-            internal OutputConstructionBudget(WordToHtmlOptions options, long initialOutputCharacters) {
+            internal OutputConstructionBudget(WordHtmlExportOptions options, long initialOutputCharacters) {
                 _options = options;
                 _minimumOutputCharacters = initialOutputCharacters;
             }
@@ -139,7 +139,7 @@ namespace OfficeIMO.Word.Html {
                 if (projectedCharacters > _options.MaxOutputCharacters) {
                     ThrowExportLimitExceeded(
                         _options,
-                        "WordHtmlOutputLimitExceeded",
+                        "word-html-output-limit-exceeded",
                         message,
                         source,
                         projectedCharacters,

@@ -1,11 +1,12 @@
 using System;
 using System.Management.Automation;
 using OfficeIMO.Drawing;
+using PSWriteOffice.Foundation;
 
 namespace PSWriteOffice.Cmdlets.Imaging;
 
 /// <summary>Shared PowerShell-native parameters for OfficeIMO image export option builders.</summary>
-public abstract class OfficeImageOptionsCommandBase<TOptions> : PSCmdlet where TOptions : OfficeImageExportOptions {
+public abstract class OfficeImageOptionsCommandBase<TOptions> : OfficeCmdlet where TOptions : OfficeImageExportOptions {
     /// <summary>Output scale multiplier.</summary>
     [Parameter] [ValidateRange(double.Epsilon, double.MaxValue)] public double? Scale { get; set; }
     /// <summary>Maximum output width in pixels.</summary>
@@ -20,13 +21,13 @@ public abstract class OfficeImageOptionsCommandBase<TOptions> : PSCmdlet where T
     /// <summary>Target output density in dots per inch.</summary>
     [Parameter] [ValidateRange(double.Epsilon, 65535d)] public double? TargetDpi { get; set; }
     /// <summary>Maximum pixels allocated for one raster image.</summary>
-    [Parameter] [ValidateRange(1, long.MaxValue)] public long? MaximumRasterPixels { get; set; }
+    [Parameter] [ValidateRange(1, long.MaxValue)] public long? MaximumRasterPixelCount { get; set; }
     /// <summary>Reduce or reject oversized raster output.</summary>
     [Parameter] public OfficeRasterOverflowBehavior? RasterOverflowBehavior { get; set; }
     /// <summary>Maximum images accepted from one batch export.</summary>
     [Parameter] [ValidateRange(1, int.MaxValue)] public int? MaximumOutputCount { get; set; }
     /// <summary>Maximum aggregate raster pixels accepted from one batch.</summary>
-    [Parameter] [ValidateRange(1, long.MaxValue)] public long? MaximumTotalRasterPixels { get; set; }
+    [Parameter] [ValidateRange(1, long.MaxValue)] public long? MaximumTotalRasterPixelCount { get; set; }
     /// <summary>Maximum aggregate encoded bytes accepted from one batch.</summary>
     [Parameter] [ValidateRange(1, long.MaxValue)] public long? MaximumTotalEncodedBytes { get; set; }
     /// <summary>Maximum seconds allowed for one render.</summary>
@@ -43,10 +44,10 @@ public abstract class OfficeImageOptionsCommandBase<TOptions> : PSCmdlet where T
         if (MaximumOutputHeight.HasValue) options.MaximumOutputHeight = MaximumOutputHeight.Value;
         if (!string.IsNullOrWhiteSpace(BackgroundColor)) options.BackgroundColor = OfficeColor.Parse(BackgroundColor!);
         if (TargetDpi.HasValue) options.TargetDpi = TargetDpi.Value;
-        if (MaximumRasterPixels.HasValue) options.MaximumRasterPixels = MaximumRasterPixels.Value;
+        if (MaximumRasterPixelCount.HasValue) options.MaximumRasterPixels = MaximumRasterPixelCount.Value;
         if (RasterOverflowBehavior.HasValue) options.RasterOverflowBehavior = RasterOverflowBehavior.Value;
         if (MaximumOutputCount.HasValue) options.MaximumOutputCount = MaximumOutputCount.Value;
-        if (MaximumTotalRasterPixels.HasValue) options.MaximumTotalRasterPixels = MaximumTotalRasterPixels.Value;
+        if (MaximumTotalRasterPixelCount.HasValue) options.MaximumTotalRasterPixels = MaximumTotalRasterPixelCount.Value;
         if (MaximumTotalEncodedBytes.HasValue) options.MaximumTotalEncodedBytes = MaximumTotalEncodedBytes.Value;
         if (RenderTimeoutSeconds.HasValue) options.RenderTimeout = TimeSpan.FromSeconds(RenderTimeoutSeconds.Value);
         if (MaximumDegreeOfParallelism.HasValue) options.MaximumDegreeOfParallelism = MaximumDegreeOfParallelism.Value;

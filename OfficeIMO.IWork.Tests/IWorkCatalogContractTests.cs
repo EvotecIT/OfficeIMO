@@ -90,7 +90,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(4)] [InlineData(5)] [InlineData(6)] [InlineData(17)] [InlineData(19)] [InlineData(22)]
     public void Invalid_list_kind_still_charges_declared_catalog_entry_work(int field) {
         using var package = CatalogContractPackage(field, VarintField(1, 99), entries: 2);
-        var source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaximumTableCatalogEntries = 1 });
+        var source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxTableCatalogEntries = 1 });
         Assert.Contains("catalog limit", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 
@@ -106,23 +106,23 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream();
         IWorkConversionReport report;
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = source.ToWordDocumentResult(options);
+            using var result = source.ToWordResult(options);
             report = result.Report;
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = WordDocument.Load(saved);
             Assert.Equal("42", reopened.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
         } else if (kind == IWorkDocumentKind.Numbers) {
-            using var result = source.ToExcelDocumentResult(options);
+            using var result = source.ToExcelResult(options);
             report = result.Report;
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = ExcelDocument.Load(saved);
-            Assert.Equal(42d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
-            Assert.Null(reopened.Sheets[0].CellAt(1, 1).GetValue().Formula);
+            Assert.Equal(42d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
+            Assert.Null(reopened.Sheets[0].Cell(1, 1).GetValue().Formula);
         } else {
-            using var result = source.ToPowerPointPresentationResult(options);
+            using var result = source.ToPowerPointResult(options);
             report = result.Report;
             result.Value.Save(saved); saved.Position = 0;
-            using var reopened = PowerPointPresentation.Load(saved);
+            using var reopened = PowerPointDocument.Load(saved);
             Assert.Equal("42", reopened.Slides[0].Tables.First().GetCell(0, 0).Text);
         }
         Assert.True(report.IsPartialEditableReconstruction);

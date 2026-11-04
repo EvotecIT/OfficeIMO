@@ -45,13 +45,13 @@ public sealed partial class StudioIWorkConversionTests {
                 window.Show(); window.UpdateLayout();
                 await queue.RunQueueCommand.ExecuteAsync(null);
                 Assert.Equal(ConversionJobState.Completed, job.State);
-                PdfReadDocument pdf = PdfReadDocument.Open(File.ReadAllBytes(job.OutputPath!));
+                PdfDocument pdf = PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(job.OutputPath!)));
                 Assert.Equal(pages, pdf.Pages.Count);
                 Assert.Contains(text, pdf.ExtractText());
                 Assert.Equal("iwork-editable,pdf", job.ConversionEvidence!.Facts["conversionStages"]);
                 Assert.Equal("False", job.ConversionEvidence.Facts["partialEditableReconstruction"]);
                 Assert.Equal(64, job.SourceFingerprint.Length);
-                Assert.Contains(job.Diagnostics, diagnostic => diagnostic.Code == "OutputReopened");
+                Assert.Contains(job.Diagnostics, diagnostic => diagnostic.Code == "conversion-output-reopened");
                 await queue.PreviewOutputCommand.ExecuteAsync(null);
                 Assert.Equal(pages, queue.OutputPreviewPages.Count);
                 view.FindControl<StackPanel>("ConversionEvidencePanel")!.BringIntoView(); window.UpdateLayout();
@@ -86,7 +86,7 @@ public sealed partial class StudioIWorkConversionTests {
                 // Rejection during editable projection occurs before a conversion result exists.
                 Assert.Contains("padding", job.Summary!, StringComparison.OrdinalIgnoreCase);
             } else {
-                Assert.Contains(job.ConversionEvidence!.FidelityDiagnostics, diagnostic =>
+                Assert.Contains(job.ConversionEvidence!.Diagnostics, diagnostic =>
                     diagnostic.Code == code && diagnostic.LossKind == OfficeConversionLossKind.Omission);
             }
             Assert.False(job.SupportsIWorkOptions);

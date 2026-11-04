@@ -101,12 +101,12 @@ public sealed class EpubChapterMergeContracts {
         var merged = book.Write().Report;
         Assert.Equal("EPUB/merged.xhtml", merged.MergedEntries["EPUB/two.xhtml"]);
         Assert.Equal("EPUB/merged.xhtml", merged.RenamedEntries["EPUB/one.xhtml"]);
-        merged.RequireNoLoss();
+        merged.ThrowIfLoss();
         book.SetNavigation(new[] { new EpubNavigationEntry("Third", "EPUB/three.xhtml") });
         book.RemoveSpineItem(0); book.RemoveResource("one");
         var removed = book.Write().Report;
         Assert.Empty(removed.MergedEntries);
-        Assert.Contains(removed.FidelityDiagnostics, finding => finding.Code == "EPUB_WRITE_ENTRY_REMOVED" && finding.Location == "EPUB/two.xhtml");
+        Assert.Contains(removed.Diagnostics, finding => finding.Code == "EPUB_WRITE_ENTRY_REMOVED" && finding.Location == "EPUB/two.xhtml");
     }
 
     [Fact]
@@ -128,7 +128,7 @@ public sealed class EpubChapterMergeContracts {
         var book = EpubPublication.Load(new MemoryStream(authored.Write().Bytes));
         book.MergeChapters("two", "three", "third-start");
         book.MergeChapters("one", "two", "second-start");
-        var result = book.Write(); result.Report.RequireNoLoss();
+        var result = book.Write(); result.Report.ThrowIfLoss();
         Assert.Equal(new[] { "EPUB/three.xhtml", "EPUB/two.xhtml" }, result.Report.MergedEntries.Keys.OrderBy(value => value, StringComparer.Ordinal));
         Assert.All(result.Report.MergedEntries.Values, path => Assert.Equal("EPUB/one.xhtml", path));
         Assert.Contains("onetwothree", EpubPublication.Load(new MemoryStream(result.Bytes)).GetContentXml("one").Root!.Element(Html + "body")!.Value);

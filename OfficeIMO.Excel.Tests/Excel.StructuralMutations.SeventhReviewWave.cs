@@ -15,28 +15,28 @@ namespace OfficeIMO.Tests {
         [InlineData(true)]
         public void Test_RangeMove_RejectsPartiallyOverlappingFormulaReference(bool crossSheet) {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            ExcelSheet formulaSheet = crossSheet ? document.AddWorksheet("Summary") : sheet;
-            sheet.CellValue(1, 1, 1);
-            sheet.CellValue(1, 2, 2);
-            formulaSheet.CellFormula(3, 1, crossSheet ? "SUM(Data!A1:B1)" : "SUM(A1:B1)");
+            ExcelSheet sheet = document.AddSheet("Data");
+            ExcelSheet formulaSheet = crossSheet ? document.AddSheet("Summary") : sheet;
+            sheet.Cell(1, 1).SetValue(1);
+            sheet.Cell(1, 2).SetValue(2);
+            formulaSheet.Cell(3, 1).SetFormula(crossSheet ? "SUM(Data!A1:B1)" : "SUM(A1:B1)");
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
                 () => sheet.PlanMoveRange("A1", "D1"));
 
             Assert.Contains("partially overlapping", exception.Message);
-            Assert.Equal(1d, sheet.CellAt(1, 1).GetValue<double>());
+            Assert.Equal(1d, sheet.Cell(1, 1).GetValue<double>());
             Assert.Equal(crossSheet ? "SUM(Data!A1:B1)" : "SUM(A1:B1)", Assert.Single(formulaSheet.GetFormulaCells()).Formula);
         }
 
         [Fact]
         public void Test_RangeMove_RemapsCellBackedConnectionParameter() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(5, 1, 1);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(5, 1).SetValue(1);
             Parameter parameter = AttachCellBackedConnection(document, sheet, "A5");
 
-            sheet.MoveRange("A5", "B5");
+            sheet.Range("A5").MoveTo("B5");
 
             Assert.Equal("B5", parameter.Cell!.Value);
         }
@@ -44,8 +44,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_CellInsertion_PreflightsDrawingMarkerCapacity() {
             using (var document = ExcelDocument.Create()) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
-                AppendDrawingMarker(sheet, row: 1, column: A1.MaxColumns);
+                ExcelSheet sheet = document.AddSheet("Data");
+                AppendDrawingMarker(sheet, row: 1, column: ExcelA1.MaxColumns);
 
                 InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
                     () => sheet.PlanInsertCells("A1", ExcelCellShiftDirection.Right));
@@ -54,8 +54,8 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Create()) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
-                AppendDrawingMarker(sheet, row: A1.MaxRows, column: 1);
+                ExcelSheet sheet = document.AddSheet("Data");
+                AppendDrawingMarker(sheet, row: ExcelA1.MaxRows, column: 1);
 
                 InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
                     () => sheet.PlanInsertCells("A1", ExcelCellShiftDirection.Down));
@@ -67,16 +67,16 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_RangeBasedTableWrapper_RemainsStableAfterResizeAndSchemaChange() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "A");
-            sheet.CellValue(1, 2, "B");
-            sheet.CellValue(2, 1, 1);
-            sheet.CellValue(2, 2, 2);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("A");
+            sheet.Cell(1, 2).SetValue("B");
+            sheet.Cell(2, 1).SetValue(1);
+            sheet.Cell(2, 2).SetValue(2);
             sheet.AddTable("A1:B2", true, "Sales", ExcelTableStyle.TableStyleMedium2);
-            sheet.CellValue(1, 5, "X");
-            sheet.CellValue(1, 6, "Y");
-            sheet.CellValue(2, 5, 1);
-            sheet.CellValue(2, 6, 2);
+            sheet.Cell(1, 5).SetValue("X");
+            sheet.Cell(1, 6).SetValue("Y");
+            sheet.Cell(2, 5).SetValue(1);
+            sheet.Cell(2, 6).SetValue(2);
             sheet.AddTable("E1:F2", true, "Costs", ExcelTableStyle.TableStyleMedium2);
 
             ExcelTable table = sheet.Table("A1:B2")
@@ -98,7 +98,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_IgnoredErrorRemoval_PreservesDisjointReferencesInSameRegion() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             ExcelIgnoredErrorKind errors = ExcelIgnoredErrorKind.NumberStoredAsText | ExcelIgnoredErrorKind.FormulaRange;
             sheet.AddIgnoredErrorRegion(new[] { "A1", "Z1" }, errors);
 
@@ -112,14 +112,14 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_TableRename_PreservesLetAndLambdaLexicalBindings() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Amount");
-            sheet.CellValue(2, 1, 1);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Amount");
+            sheet.Cell(2, 1).SetValue(1);
             sheet.AddTable("A1:A2", true, "Input", ExcelTableStyle.TableStyleMedium2);
-            sheet.CellFormula(4, 1, "LET(Input,1,Input)");
-            sheet.CellFormula(5, 1, "Input+LET(Input,1,Input)");
-            sheet.CellFormula(6, 1, "LET(Input,1,SUM(Input[Amount])+Input)");
-            sheet.CellFormula(7, 1, "LAMBDA(Input,Input)(1)");
+            sheet.Cell(4, 1).SetFormula("LET(Input,1,Input)");
+            sheet.Cell(5, 1).SetFormula("Input+LET(Input,1,Input)");
+            sheet.Cell(6, 1).SetFormula("LET(Input,1,SUM(Input[Amount])+Input)");
+            sheet.Cell(7, 1).SetFormula("LAMBDA(Input,Input)(1)");
 
             sheet.RenameTable("Input", "Ledger");
 
@@ -133,7 +133,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaInspection_ToleratesOversizedCellMetadataIndex() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.SetArrayFormula("A1:A2", "ROW(A1:A2)");
             Cell owner = sheet.WorksheetPart.Worksheet.Descendants<Cell>()
                 .Single(cell => cell.CellReference?.Value == "A1");
@@ -148,10 +148,10 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_AutoFilterCriteria_NormalizeEquivalentLocalRanges() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.AutoFilterBlanks("A1:C3", 0);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Range("A1:C3").AutoFilter().Column(0).Blanks();
 
-            sheet.AutoFilterTopBottom("  $A$1:$C$3  ", 2, 5);
+            sheet.Range("  $A$1:$C$3  ").AutoFilter().Column(2).TopBottom(5);
 
             ExcelAutoFilterInfo filter = Assert.Single(sheet.GetAutoFilters());
             Assert.Equal("A1:C3", filter.Range);

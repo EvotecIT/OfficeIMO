@@ -10,22 +10,31 @@ internal sealed partial class XpsSvgConverter {
         double offset, string startCap, string endCap, string dashCap, string join, BrushRegion region, IReadOnlyList<StrokeFigure>? figures) {
         if (!OfficeSvgPathDataParser.TryParse(path, 100000, out var commands, out _, allowEmptyGeometry: true))
             throw new InvalidDataException("Invalid XPS stroke geometry.");
+        int flattenedPoints = 0;
         var options = new OfficeStrokeOutlineOptions {
             StartCap = NativeCap(startCap), EndCap = NativeCap(endCap), DashCap = NativeCap(dashCap),
             ClipMiter = true, DegenerateMiterLimitOne = true, CancellationToken = _token,
             ChargePoints = count => {
-                if (count > 1_000_000 - _points) throw new InvalidDataException("XPS stroke outline point budget exceeded.");
+                if (count > 1_000_000 - _points - flattenedPoints) throw new InvalidDataException("XPS stroke outline point budget exceeded.");
                 _points += count;
             }
         };
         try {
             var contours = new List<OfficeFlattenedPathContour>();
-            if (figures == null) contours.AddRange(OfficePathFlattener.FlattenNativeStroke(commands, _strokeResolution));
+            void AddFlattened(IReadOnlyList<OfficePathCommand> figureCommands, bool useStartCap, bool useEndCap) {
+                int remaining = 1_000_000 - _points - flattenedPoints;
+                if (remaining <= 0) throw new InvalidDataException("XPS stroke outline point budget exceeded.");
+                foreach (var contour in OfficePathFlattener.FlattenNativeStroke(figureCommands, _strokeResolution, remaining)) {
+                    flattenedPoints = checked(flattenedPoints + contour.Points.Count);
+                    if (flattenedPoints > 1_000_000 - _points) throw new InvalidDataException("XPS stroke outline point budget exceeded.");
+                    contours.Add(new OfficeFlattenedPathContour(contour.Points, contour.Closed, useStartCap, useEndCap));
+                }
+            }
+            if (figures == null) AddFlattened(commands, true, true);
             else foreach (var figure in figures) {
                 if (!OfficeSvgPathDataParser.TryParse(figure.Path, 100000, out var figureCommands, out _, allowEmptyGeometry: true))
                     throw new InvalidDataException("Invalid XPS stroke figure.");
-                foreach (var contour in OfficePathFlattener.FlattenNativeStroke(figureCommands, _strokeResolution))
-                    contours.Add(new OfficeFlattenedPathContour(contour.Points, contour.Closed, figure.UseStartCap, figure.UseEndCap));
+                AddFlattened(figureCommands, figure.UseStartCap, figure.UseEndCap);
             }
             var outlines = OfficeStrokeGeometry.CreateNative(contours, thickness,
                 join == "Round" ? OfficeStrokeLineJoin.Round : join == "Bevel" ? OfficeStrokeLineJoin.Bevel : OfficeStrokeLineJoin.Miter,

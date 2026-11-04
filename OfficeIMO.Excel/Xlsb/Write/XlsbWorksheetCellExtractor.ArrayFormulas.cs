@@ -13,18 +13,18 @@ internal static partial class XlsbWorksheetCellExtractor {
         var occupied = new HashSet<(int, int)>();
         var memberIndex = new ExcelCellRangeIndex<Cell>(sheet.WorksheetPart.Worksheet.Descendants<Cell>()
             .Where(cell => cell.CellReference?.Value != null).Select(cell => {
-                var position = A1.ParseCellRef(cell.CellReference!.Value!);
+                var position = ExcelA1.ParseCellRef(cell.CellReference!.Value!);
                 return (position.Row, position.Col, position.Row, position.Col, cell);
             }));
         foreach (var anchor in arrays) {
             string referenceText = anchor.CellFormula!.Reference?.Value ?? string.Empty;
-            if (!A1.TryParseRange(referenceText, out int top, out int left, out int bottom, out int right)) {
+            if (!ExcelA1.TryParseRange(referenceText, out int top, out int left, out int bottom, out int right)) {
                 // Native Excel writes single-cell CSE groups as e.g. H1, not H1:H1.
-                if (!A1.TryParseCellReferenceFast(referenceText, out top, out left))
+                if (!ExcelA1.TryParseCellReferenceFast(referenceText, out top, out left))
                     throw new NotSupportedException("The native XLSB array formula requires a rectangular range.");
                 bottom = top; right = left;
             }
-            var address = A1.ParseCellRef(anchor.CellReference!.Value!);
+            var address = ExcelA1.ParseCellRef(anchor.CellReference!.Value!);
             if (address.Row != top || address.Col != left || bottom > 1_048_576 || right > 16_384)
                 throw new NotSupportedException("The native XLSB array owner must be the top-left cell of a valid worksheet range.");
             string text = anchor.CellFormula.Text; byte[] payload; string? reason;
@@ -41,7 +41,7 @@ internal static partial class XlsbWorksheetCellExtractor {
             long expected = (long)(bottom - top + 1) * (right - left + 1);
             var members = new List<XlsbWriteCell>();
             foreach (var member in memberIndex.Intersect(top, left, bottom, right)) {
-                var position = A1.ParseCellRef(member.CellReference!.Value!);
+                var position = ExcelA1.ParseCellRef(member.CellReference!.Value!);
                 if ((position.Row != top || position.Col != left) && member.CellFormula != null)
                     throw new NotSupportedException("The native XLSB array cannot contain another formula inside its range.");
                 members.Add(result.TryGetValue((position.Row, position.Col), out var existing) ? existing

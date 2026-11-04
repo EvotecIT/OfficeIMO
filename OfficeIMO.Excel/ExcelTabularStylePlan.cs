@@ -25,7 +25,7 @@ namespace OfficeIMO.Excel {
             return style;
         }
 
-        internal static ExcelTabularStylePlan? Create(ExcelTabularWriteOptions options, int columnCount, CancellationToken ct) {
+        internal static ExcelTabularStylePlan? Create(ExcelWriterOptions options, int columnCount, CancellationToken ct) {
             ct.ThrowIfCancellationRequested();
             if ((options.Styles == null || options.Styles.Count == 0)
                 && options.DefaultRowStyle == null && (options.ColumnStyles == null || options.ColumnStyles.Count == 0)) return null;

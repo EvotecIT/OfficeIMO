@@ -11,7 +11,7 @@ internal static class IWorkPreservingArchiveEdit {
         while (offset < raw.Length) {
             token.ThrowIfCancellationRequested();
             ulong length = IWorkProtobuf.ReadVarint(raw, ref offset);
-            if (length > (ulong)limits.MaximumArchiveInfoBytes || length > (ulong)(raw.Length - offset))
+            if (length > (ulong)limits.MaxArchiveInfoBytes || length > (ulong)(raw.Length - offset))
                 throw new InvalidDataException("Invalid preserved ArchiveInfo length.");
             var header = new byte[(int)length]; Buffer.BlockCopy(raw, offset, header, 0, header.Length); offset += header.Length;
             IWorkWireMessage info = IWorkProtobuf.Parse(header, limits);

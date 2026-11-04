@@ -126,7 +126,7 @@
       "minimumLinks": 0,
       "minimumAnnotations": 0,
       "expectedAnnotationActionTypes": [],
-      "expectedRepairCodes": [ "InvalidStartXref" ],
+      "expectedRepairCodes": [ "invalid-start-xref" ],
       "expectedRenderSucceeded": true,
       "expectedRenderDiagnosticCodes": [],
       "expectedMutationMode": "AppendOnly",

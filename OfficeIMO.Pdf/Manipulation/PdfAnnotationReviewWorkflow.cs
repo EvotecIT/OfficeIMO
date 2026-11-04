@@ -3,9 +3,14 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Options for adding a reply to an existing annotation.</summary>
-public sealed class PdfAnnotationReplyOptions {
-    /// <summary>Cancels PDF processing and review-catalog construction.</summary>
-    public CancellationToken CancellationToken { get; set; }
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
+public sealed class PdfAnnotationReplyOptions : IPdfOperationCancellation {
+    // Operation cancellation; public methods take it as a parameter and bind it to a per-call copy.
+    System.Threading.CancellationToken IPdfOperationCancellation.CancellationToken { get => CancellationToken; set => CancellationToken = value; }
+
+    internal System.Threading.CancellationToken CancellationToken { get; set; }
+
+    object IPdfOperationCancellation.CloneForOperation() => MemberwiseClone();
 
     /// <summary>Reply author stored in /T.</summary>
     public string? Author { get; set; }
@@ -36,9 +41,13 @@ public sealed class PdfAnnotationReplyOptions {
 }
 
 /// <summary>Resource limits for building annotation reply-thread trees.</summary>
-public sealed class PdfAnnotationReviewCatalogOptions {
-    /// <summary>Cancels PDF processing and review-catalog construction.</summary>
-    public CancellationToken CancellationToken { get; set; }
+public sealed class PdfAnnotationReviewCatalogOptions : IPdfOperationCancellation {
+    // Operation cancellation; public methods take it as a parameter and bind it to a per-call copy.
+    System.Threading.CancellationToken IPdfOperationCancellation.CancellationToken { get => CancellationToken; set => CancellationToken = value; }
+
+    internal System.Threading.CancellationToken CancellationToken { get; set; }
+
+    object IPdfOperationCancellation.CloneForOperation() => MemberwiseClone();
 
     /// <summary>Maximum nested reply depth. Defaults to 128 and cannot exceed 512.</summary>
     public int MaximumThreadDepth { get; set; } = 128;
@@ -104,18 +113,20 @@ public sealed class PdfAnnotationReviewCatalog {
     public static PdfAnnotationReviewCatalog Read(
         byte[] pdf,
         PdfLoadOptions? readOptions = null,
-        PdfAnnotationReviewCatalogOptions? options = null) {
+        PdfAnnotationReviewCatalogOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNull(pdf, nameof(pdf));
-        return Build(PdfInspector.Inspect(pdf, PdfReadDocument.Open(pdf, readOptions, options?.CancellationToken ?? default), options?.CancellationToken ?? default).Annotations, options);
+        return Build(PdfInspector.Inspect(pdf, PdfReadDocument.Open(pdf, readOptions, options?.CancellationToken ?? default), options?.CancellationToken ?? default).Annotations, options, cancellationToken: cancellationToken);
     }
 
     /// <summary>Builds reply threads from already-read annotations.</summary>
     public static PdfAnnotationReviewCatalog Build(
         IReadOnlyList<PdfAnnotation> annotations,
-        PdfAnnotationReviewCatalogOptions? options = null) {
+        PdfAnnotationReviewCatalogOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNull(annotations, nameof(annotations));
         PdfAnnotationReviewCatalogOptions effectiveOptions = options ?? new PdfAnnotationReviewCatalogOptions();
-        var cancellationToken = effectiveOptions.CancellationToken;
+        cancellationToken = effectiveOptions.CancellationToken;
         cancellationToken.ThrowIfCancellationRequested();
         if (effectiveOptions.MaximumThreadDepth <= 0 || effectiveOptions.MaximumThreadDepth > 512) {
             throw new ArgumentOutOfRangeException(nameof(options), "Maximum annotation thread depth must be between 1 and 512.");
@@ -218,12 +229,13 @@ public static class PdfAnnotationReviewEditor {
         int parentObjectNumber,
         string contents,
         PdfAnnotationReplyOptions? options = null,
-        PdfLoadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNull(pdf, nameof(pdf));
         Guard.PositiveInteger(parentObjectNumber, nameof(parentObjectNumber));
         if (string.IsNullOrWhiteSpace(contents)) throw new ArgumentException("Reply contents cannot be empty.", nameof(contents));
 
-        var cancellationToken = options?.CancellationToken ?? default;
+        cancellationToken = options?.CancellationToken ?? default;
         cancellationToken.ThrowIfCancellationRequested();
         PdfMutationPlan mutationPlan = PdfMutationPlanner.Require(
             pdf,
@@ -260,7 +272,7 @@ public static class PdfAnnotationReviewEditor {
             PopupOpen = effective.PopupOpen,
             GenerateAppearance = false,
             ExecutionPreference = effective.ExecutionPreference
-        }, readOptions);
+        }, readOptions, cancellationToken: cancellationToken);
     }
 
     /// <summary>Sets a standard review state on one indirect annotation and validates readback.</summary>
@@ -282,6 +294,6 @@ public static class PdfAnnotationReviewEditor {
             ReviewState = state,
             ExecutionPreference = executionPreference,
             AllowResidualDataInAppendOnly = allowResidualDataInAppendOnly
-        }, readOptions);
+        }, readOptions, cancellationToken: cancellationToken);
     }
 }

@@ -4,7 +4,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes an OfficeArt FBSE image-store entry discovered in a legacy XLS drawing group.
     /// </summary>
-    public sealed class LegacyXlsDrawingBlipStoreEntry {
+    internal sealed class LegacyXlsDrawingBlipStoreEntry {
         private readonly byte[] _embeddedBlipPayloadBytes;
 
         internal LegacyXlsDrawingBlipStoreEntry(OfficeArtBlipStoreEntry source) {

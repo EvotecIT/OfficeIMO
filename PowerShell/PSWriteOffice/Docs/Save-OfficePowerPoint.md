@@ -6,38 +6,36 @@ schema: 2.0.0
 ---
 # Save-OfficePowerPoint
 ## SYNOPSIS
-Saves a presentation without disposing it.
+Saves a live presentation without closing it.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
-Save-OfficePowerPoint -Presentation <PowerPointPresentation> [-Path <string>] [-Open] [-Password <string>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Save-OfficePowerPoint [-Path <string>] [-Password <securestring>] [-AllowLoss] [-Show] [-PassThru] [-Document <PowerPointDocument>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Use Close-OfficePowerPoint -Save when the presentation should be saved and closed.
+Uses the supplied path or the document's associated destination. Omitted Password preserves loaded encryption. PassThru returns the saved FileInfo.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $ppt = New-OfficePowerPoint -Path .\Examples\Documents\PowerPointSave.pptx -NoSave
-$slide = Add-OfficePowerPointSlide -Presentation $ppt -Layout 1 -PassThru
-Set-OfficePowerPointSlideTitle -Slide $slide -Title 'Saved later'
-Save-OfficePowerPoint -Presentation $ppt
+$deck = New-OfficePowerPoint
+Save-OfficePowerPoint -Document $deck -Path ./Review.pptx -PassThru
+Close-OfficePowerPoint -Document $deck
 ```
 
-Saves the current presentation without closing it.
 
 ## PARAMETERS
 
-### -Open
-Launch the saved file in the default viewer.
+### -AllowLoss
+Explicitly accept reported native-save reductions.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: Show
+Parameter Sets: Document
+Aliases: None
 Possible values:
 
 Required: False
@@ -47,12 +45,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Document
+Gets or sets an explicit live document; omission uses the enclosing content block.
+
+```yaml
+Type: PowerPointDocument
+Parameter Sets: Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
 ### -PassThru
-Emit the still-open presentation for further processing.
+Return the saved FileInfo.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -64,11 +78,11 @@ Accept wildcard characters: False
 ```
 
 ### -Password
-Password used to save the presentation as an encrypted package.
+Override the output password; omission preserves the document's loaded encryption.
 
 ```yaml
-Type: String
-Parameter Sets: __AllParameterSets
+Type: SecureString
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -80,12 +94,12 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Optional save-as path.
+Optional new destination; omission uses the associated path.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
-Aliases: FilePath
+Parameter Sets: Document
+Aliases: None
 Possible values:
 
 Required: False
@@ -95,19 +109,19 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Presentation
-Presentation instance to save.
+### -Show
+Open the saved file in its registered default application.
 
 ```yaml
-Type: PowerPointPresentation
-Parameter Sets: __AllParameterSets
+Type: SwitchParameter
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
-Accept pipeline input: True (ByValue)
+Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
@@ -116,11 +130,11 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 
 ## OUTPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `System.IO.FileInfo`
 
 ## RELATED LINKS
 

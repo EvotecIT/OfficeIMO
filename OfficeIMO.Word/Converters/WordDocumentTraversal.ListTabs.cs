@@ -1,7 +1,7 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    public static partial class WordDocumentTraversal {
+    internal static partial class WordDocumentTraversal {
         private const int MaxResolvedListTabStops = 1024;
 
         private static Tabs? CloneListLevelTabStops(Level level) {

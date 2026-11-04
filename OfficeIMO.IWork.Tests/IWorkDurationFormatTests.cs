@@ -18,11 +18,11 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(IWorkCellUnsupportedFeatures.None, cell.UnsupportedFeatures);
         Assert.Equal(IWorkNumberFormatKind.Duration, cell.NumberFormat!.Kind);
         if (kind != IWorkDocumentKind.Numbers) return;
-        using var converted = source.ToExcelDocumentResult();
+        using var converted = source.ToExcelResult();
         Assert.False(converted.IsVisualFallback);
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
-        Assert.Equal("[h]\"h\" m\"m\"", reopened.Sheets[0].CellAt(1, 1).GetStyle().NumberFormatCode);
+        Assert.Equal("[h]\"h\" m\"m\"", reopened.Sheets[0].Cell(1, 1).GetStyle().NumberFormatCode);
         Assert.Equal("", Assert.Single(reopened.Sheets[0].Range("A1").CreateVisualSnapshot().Cells).Text);
     }
 
@@ -30,7 +30,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Qualified_duration_only_empty_cells_consume_the_materialization_budget() {
         using var package = EmptyDurationFormatPackage(IWorkDocumentKind.Numbers, columns: 2);
         Assert.Contains("source-wide limit", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaximumMaterializedCells = 1 }).ReadNumbers()).Message);
+            new IWorkReadOptions { MaxMaterializedCells = 1 }).ReadNumbers()).Message);
     }
 
     [Theory]
@@ -60,13 +60,13 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(129600d, "36h 0m")]
     public void Qualified_duration_format_survives_saved_xlsx(double seconds, string expected) {
         using var package = DurationFormatPackage(IWorkDocumentKind.Numbers, seconds);
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
         Assert.False(result.IsVisualFallback);
         Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_AUTOMATIC_DECIMALS_APPROXIMATED");
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_DURATION_DISPLAY_APPROXIMATED");
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
-        Assert.Equal(seconds / 86400, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(seconds / 86400, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
         Assert.Equal(expected, Assert.Single(reopened.Sheets[0].Range("A1").CreateVisualSnapshot().Cells).Text);
     }
 
@@ -78,15 +78,15 @@ public sealed partial class IWorkBoundaryTests {
         var source = IWorkSourceDocument.Open(package, kind);
         using var saved = new MemoryStream();
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = source.ToWordDocumentResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }); Assert.False(result.IsVisualFallback);
+            using var result = source.ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }); Assert.False(result.IsVisualFallback);
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.Word.WordDocument.Load(saved);
             Assert.Equal("-2h 24m", reopened.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
             Assert.Empty(reopened.ValidateDocument());
         } else {
-            using var result = source.ToPowerPointPresentationResult(); Assert.False(result.IsVisualFallback);
+            using var result = source.ToPowerPointResult(); Assert.False(result.IsVisualFallback);
             result.Value.Save(saved); saved.Position = 0;
-            using var reopened = OfficeIMO.PowerPoint.PowerPointPresentation.Load(saved);
+            using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
             Assert.Equal("-2h 24m", Assert.Single(reopened.Slides[0].Tables).GetCell(0, 0).Text);
             Assert.Empty(reopened.ValidateDocument());
         }
@@ -132,7 +132,7 @@ public sealed partial class IWorkBoundaryTests {
         }, Array.Empty<IWorkDiagnostic>(), supportsEditableReconstruction: true);
         var result = new OfficeDocumentReadResult();
         var projection = new IWorkReadProjection(result, "limited.numbers", new ReaderOptions { MaxTableRows = 1 },
-            new ReaderIWorkOptions { MaximumTableColumns = 1, MaximumProjectedTableCells = 1 }, System.Threading.CancellationToken.None);
+            new ReaderIWorkOptions { MaxTableColumns = 1, MaxProjectedTableCells = 1 }, System.Threading.CancellationToken.None);
         projection.AddNumbers(numbers); projection.Complete(source);
         Assert.Equal(new[] { "2h 24m" }, Assert.Single(result.Tables).Columns);
         Assert.Empty(result.Tables[0].Rows);

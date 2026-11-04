@@ -126,8 +126,10 @@ internal sealed class EmlxStoreReader {
         if (contentOffset == metadata.Length) return metadataLength;
         try {
             IReadOnlyDictionary<string, object?> values = EmlxPlistReader.Read(
-                metadata, contentOffset, _options, cancellationToken);
+                metadata, contentOffset, _options, cancellationToken,
+                _propertyLimit - previousDecodedBytes - metadataLength, out long decodedBytes);
             ApplyMetadata(document, values);
+            return checked(metadataLength + decodedBytes);
         } catch (NotSupportedException exception) {
             document.Properties["Emlx:MetadataOpaque"] = true;
             _diagnostics.Add(new EmailStoreDiagnostic("EMAIL_STORE_EMLX_METADATA_UNSUPPORTED",

@@ -59,13 +59,11 @@ internal static class PdfEditorCommandExecutor {
         ArgumentNullException.ThrowIfNull(plan);
         PdfDocument source = pdf;
         var applyOptions = new PdfRedactionApplyOptions {
-            CancellationToken = cancellationToken,
             PaintUnmatchedAreas = true,
             UnsupportedImagePolicy = PdfRedactionUnsupportedImagePolicy.RemoveWholePlacement,
             RemoveIntersectingPaths = true
         };
         var verificationOptions = new PdfRedactionVerificationOptions {
-            CancellationToken = cancellationToken,
             CheckManagedRendering = true,
             FailOnUndecodablePdfStreams = true,
             RequireCompleteStreamInspection = true
@@ -74,11 +72,11 @@ internal static class PdfEditorCommandExecutor {
             verificationOptions.RequireRemovedText(removedTextMarker.Trim());
         }
         if (sanitizationOptions is not null) {
-            PdfRedactionSharingResult sharing = source.Redactions.ApplyForSharing(plan, sanitizationOptions, applyOptions, verificationOptions);
+            PdfRedactionSharingResult sharing = source.Redactions.ApplyForSharing(plan, sanitizationOptions, applyOptions, verificationOptions, cancellationToken: cancellationToken);
             return new PdfVerifiedRedactionResult(sharing.ToBytes(), plan, sharing.Redaction, sharing.Summary);
         }
         PdfRedactionApplyResult applied = source.Redactions
-            .ApplyWithEvidence(plan, applyOptions, verificationOptions)
+            .ApplyWithEvidence(plan, applyOptions, verificationOptions, cancellationToken: cancellationToken)
             .ThrowIfUnverified();
         return new PdfVerifiedRedactionResult(applied.Pdf, plan, applied.Evidence, applied.Evidence.CreateShareableSummary());
     }
@@ -217,11 +215,12 @@ internal static class PdfEditorCommandExecutor {
 
     private static byte[] AddText(PdfDocument pdf, PdfEditorCommand command) {
         PdfPageRectangle bounds = command.Bounds;
+        double userUnit = pdf.GetPageLayouts().First(page => page.PageNumber == command.PageNumber).UserUnit;
         return pdf.Stamp.Text(command.Properties.Text, new PdfTextStampOptions {
             PageNumbers = new[] { command.PageNumber },
-            X = bounds.Left,
-            Y = bounds.Bottom,
-            FontSize = command.Properties.FontSize,
+            X = global::OfficeIMO.OfficeLength.Points(bounds.Left * userUnit),
+            Y = global::OfficeIMO.OfficeLength.Points(bounds.Bottom * userUnit),
+            FontSize = global::OfficeIMO.OfficeLength.Points(command.Properties.FontSize * userUnit),
             Color = command.Properties.Color
         }).ToBytes();
     }
@@ -230,12 +229,13 @@ internal static class PdfEditorCommandExecutor {
         byte[] image = command.Properties.ImageBytes
             ?? throw new InvalidOperationException("Choose an image before drawing its placement.");
         PdfPageRectangle bounds = command.Bounds;
+        double userUnit = pdf.GetPageLayouts().First(page => page.PageNumber == command.PageNumber).UserUnit;
         return pdf.Stamp.Image(image, new PdfImageStampOptions {
             PageNumbers = new[] { command.PageNumber },
-            X = bounds.Left,
-            Y = bounds.Bottom,
-            Width = bounds.Width,
-            Height = bounds.Height
+            X = global::OfficeIMO.OfficeLength.Points(bounds.Left * userUnit),
+            Y = global::OfficeIMO.OfficeLength.Points(bounds.Bottom * userUnit),
+            Width = global::OfficeIMO.OfficeLength.Points(bounds.Width * userUnit),
+            Height = global::OfficeIMO.OfficeLength.Points(bounds.Height * userUnit)
         }).ToBytes();
     }
 
@@ -255,5 +255,5 @@ internal static class PdfEditorCommandExecutor {
     private static double[] Rectangle(PdfPageRectangle bounds) =>
         new[] { bounds.Left, bounds.Bottom, bounds.Right, bounds.Top };
 
-    private static double[] Color(PdfColor color) => new[] { color.R, color.G, color.B };
+    private static double[] Color(global::OfficeIMO.OfficeColor color) => new[] { color.ToNormalizedRgb().R, color.ToNormalizedRgb().G, color.ToNormalizedRgb().B };
 }

@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     /// <summary>Returns the actual encoded glyph advance, including authored and line-distribution tracking.</summary>
     private static double GetRichGlyphAdvance(RichSeg segment, string text, PdfTextShowCommand command,
-        int index, PdfOptions? options) {
+        int index, PdfCreateOptions? options) {
         double advance;
         if (command.VisualGlyphs is { } glyphs) advance = glyphs[index].AdvanceWidth1000;
         else if (command.GlyphHex.Length == command.GlyphCount * 2) {
@@ -30,7 +30,7 @@ internal static partial class PdfWriter {
 
     /// <summary>Uses the paint command's word boundaries and advances for words-only underline geometry.</summary>
     private static void VisitRichWordDecorationAdvances(RichSeg segment, PdfTextShowCommand command,
-        PdfOptions options, Action<double, double> visit) {
+        PdfCreateOptions options, Action<double, double> visit) {
         string paintedText = WithoutOptionalBreaks(segment.Text);
         if (command.VisualGlyphs is not { Count: > 0 } && !command.HasJustificationAdvances) {
             VisitWordDecorationAdvances(paintedText,

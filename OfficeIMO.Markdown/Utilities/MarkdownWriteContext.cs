@@ -5,9 +5,9 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 public sealed class MarkdownWriteContext {
     internal MarkdownWriteContext(
-        MarkdownDoc document,
+        MarkdownDocument document,
         IReadOnlyList<IMarkdownBlock> blocks,
-        MarkdownWriteOptions options,
+        MarkdownSaveOptions options,
         MarkdownHeadingCatalog headingCatalog, System.Threading.CancellationToken cancellationToken = default) {
         Document = document ?? throw new ArgumentNullException(nameof(document));
         Blocks = blocks;
@@ -19,7 +19,7 @@ public sealed class MarkdownWriteContext {
     /// <summary>
     /// Document being serialized.
     /// </summary>
-    public MarkdownDoc Document { get; }
+    public MarkdownDocument Document { get; }
 
     /// <summary>
     /// Top-level blocks being rendered for the current markdown document.
@@ -29,7 +29,7 @@ public sealed class MarkdownWriteContext {
     /// <summary>
     /// Active markdown writer options.
     /// </summary>
-    public MarkdownWriteOptions Options { get; }
+    public MarkdownSaveOptions Options { get; }
 
     /// <summary>Cancellation requested by the caller of the active Markdown serialization operation.</summary>
     public System.Threading.CancellationToken CancellationToken { get; }
@@ -65,14 +65,14 @@ public sealed class MarkdownWriteContext {
     /// Returns the anchor id of the nearest preceding heading according to the supplied TOC options,
     /// or <c>null</c> when no heading title should be associated with the specified block index.
     /// </summary>
-    public string? GetPrecedingHeadingAnchor(int blockIndex, TocOptions options) =>
-        HeadingCatalog.GetPrecedingHeadingAnchor(Blocks, blockIndex, options ?? new TocOptions());
+    public string? GetPrecedingHeadingAnchor(int blockIndex, MarkdownTocOptions options) =>
+        HeadingCatalog.GetPrecedingHeadingAnchor(Blocks, blockIndex, options ?? new MarkdownTocOptions());
 
     /// <summary>
     /// Builds TOC-style heading entries relative to a specific top-level block index using the supplied TOC options.
     /// </summary>
-    public IReadOnlyList<TocBlock.Entry> BuildTocEntries(int blockIndex, TocOptions options, string? titleAnchor = null) =>
-        HeadingCatalog.BuildTocEntries(Blocks, blockIndex, options ?? new TocOptions(), titleAnchor);
+    public IReadOnlyList<TocBlock.Entry> BuildTocEntries(int blockIndex, MarkdownTocOptions options, string? titleAnchor = null) =>
+        HeadingCatalog.BuildTocEntries(Blocks, blockIndex, options ?? new MarkdownTocOptions(), titleAnchor);
 
     /// <summary>
     /// Renders a block through the active Markdown writer dispatcher, including syntax-kind and type-targeted overrides.

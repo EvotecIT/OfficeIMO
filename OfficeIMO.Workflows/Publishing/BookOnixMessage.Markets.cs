@@ -8,8 +8,8 @@ public sealed partial class BookOnixMessage {
     }
 
     private static OnixMarketSelection ReadMarkets(BookOnixBlockUpdate update) {
-        ArgumentNullException.ThrowIfNull(update.ReplaceMarketReferences);
-        ArgumentNullException.ThrowIfNull(update.RemoveMarketReferences);
+        if (update.ReplaceMarketReferences == null) throw new ArgumentNullException("update.ReplaceMarketReferences");
+        if (update.RemoveMarketReferences == null) throw new ArgumentNullException("update.RemoveMarketReferences");
         if (update.ReplaceMarketReferences.Count > 32 || update.RemoveMarketReferences.Count > 32 ||
             update.ReplaceMarketReferences.Count + update.RemoveMarketReferences.Count > 32)
             throw new ArgumentException("At most 32 market operations are supported.", nameof(update));

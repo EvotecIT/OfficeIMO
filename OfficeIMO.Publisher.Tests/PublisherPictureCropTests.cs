@@ -26,7 +26,7 @@ public sealed class PublisherPictureCropTests {
         }
         var current = document.Pages[0].Pictures.Single(picture => picture.Id == original.Id);
         Assert.Equal(crop, current.Crop);
-        PublisherDocument reopened = PublisherDocument.Load(document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        PublisherDocument reopened = PublisherDocument.Load(document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         PublisherPicture actual = reopened.Pages[0].Pictures.Single(picture => picture.Id == original.Id);
         Assert.Equal(crop, actual.Crop);
         Assert.Equal((current.Id, current.PageId, current.X, current.Y, current.Width, current.Height),
@@ -44,8 +44,8 @@ public sealed class PublisherPictureCropTests {
     public void Source_free_crop_updates_the_scene_without_mutating_assets_neighbors_or_old_snapshots() {
         PublisherDocument document = PublisherDocument.Create(612, 792);
         byte[] bytes = File.ReadAllBytes(PublisherNativeTests.Fixture("NativeComparison/Image/native-image.png"));
-        PublisherPicture original = document.AddPicture(document.Pages[0].Id, bytes, 72, 144, 96, 96);
-        PublisherPicture neighbor = document.AddPicture(document.Pages[0].Id, bytes, 216, 144, 96, 96);
+        PublisherPicture original = document.AddImage(document.Pages[0].Id, bytes, 72, 144, 96, 96);
+        PublisherPicture neighbor = document.AddImage(document.Pages[0].Id, bytes, 216, 144, 96, 96);
         PublisherPage oldPage = document.Pages[0];
         string oldScene = OfficeDrawingSvgExporter.ToSvg(oldPage.CreateDrawing());
         document.SetPictureCrop(original.Id, Edges);
@@ -77,11 +77,11 @@ public sealed class PublisherPictureCropTests {
         uint id = document.Pages[0].Pictures.Single().Id;
         var requested = new OfficeImageSourceCrop(0.1, 0.2, 0.15, 0.05);
         document.SetPictureCrop(id, requested);
-        Assert.Throws<OfficeConversionException>(() => document.ToPubBytes());
-        var result = document.ToPubBytesResult(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
-        Assert.Contains(result.Report.FidelityDiagnostics, diagnostic => diagnostic.Code == "PUB_NATIVE_PICTURE_CROP_QUANTIZED"
+        Assert.Throws<OfficeConversionException>(() => document.ToBytes());
+        byte[] savedBytes = document.ToBytes(new PublisherSaveOptions { AllowLoss = true }, out PublisherSaveReport saveReport);
+        Assert.Contains(saveReport.Diagnostics, diagnostic => diagnostic.Code == "PUB_NATIVE_PICTURE_CROP_QUANTIZED"
             && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
-        PublisherDocument reopened = PublisherDocument.Load(result.Value);
+        PublisherDocument reopened = PublisherDocument.Load(savedBytes);
         Assert.Equal(new OfficeImageSourceCrop(6554D / 65536, 13107D / 65536, 9830D / 65536, 3277D / 65536), reopened.Pages[0].Pictures.Single().Crop);
         Assert.Equal(requested, document.Pages[0].Pictures.Single().Crop);
     }
@@ -90,8 +90,8 @@ public sealed class PublisherPictureCropTests {
     public void Native_crop_rounding_that_collapses_the_visible_area_refuses_output() {
         PublisherDocument document = PublisherDocument.Load(PublisherNativeTests.Fixture("NativeComparison/Image/native-image.pub"));
         document.SetPictureCrop(document.Pages[0].Pictures.Single().Id, new OfficeImageSourceCrop(0.4999999, 0, 0.4999999, 0));
-        var exception = Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
-        Assert.Contains(exception.Report.FidelityDiagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Failure
+        var exception = Assert.Throws<OfficeConversionException>(() => document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
+        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Failure
             && diagnostic.Message.Contains("16.16"));
     }
 }

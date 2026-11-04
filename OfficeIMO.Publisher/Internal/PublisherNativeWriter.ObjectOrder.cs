@@ -59,7 +59,7 @@ internal sealed partial class PublisherNativeWriter {
     }
 
     private void CompareWrapRelationships() {
-        var context = new PublisherParseContext(new PublisherReadOptions { Limits = _sourceLimits }, _token);
+        var context = new PublisherParseContext(new PublisherLoadOptions { Limits = _sourceLimits }, _token);
         for (int index = 0; index < _baseline.Pages.Count; index++) {
             _token.ThrowIfCancellationRequested();
             PublisherPageState before = _baseline.Pages[index], after = _current.Pages[index];

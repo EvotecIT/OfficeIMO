@@ -3,6 +3,7 @@ using BenchmarkDotNet.Attributes;
 using ExcelReader.Core.Reader;
 using ExcelReader.Core.Reader.Csv;
 using OfficeIMO.CSV;
+using CsvReaderOptions = OfficeIMO.CSV.CsvReaderOptions;
 using OfficeIMO.Data;
 using System.Globalization;
 using System.Text;
@@ -61,11 +62,12 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         [Benchmark]
         public async Task<long> OfficeIMOBorrowedAggregateAsync() {
             await using MemoryStream stream = new MemoryStream(_data, writable: false);
-            AggregateState state = await CsvDocument.AggregateRowsAsParallelAsync(
-                stream, static () => default(AggregateState), static _ => AccumulateOffice,
-                static (left, right) => new AggregateState { Count = left.Count + right.Count, Sum = unchecked(left.Sum + right.Sum) },
-                loadOptions: new CsvLoadOptions { HasHeaderRow = false },
-                parallelOptions: new ParallelRowMappingOptions { MaxDegreeOfParallelism = 1 });
+            AggregateState state = await CsvDocument.AggregateRowsAsParallelAsync(stream,
+            static () => default(AggregateState),
+            static _ => AccumulateOffice,
+            static (left, right) => new AggregateState { Count = left.Count + right.Count, Sum = unchecked(left.Sum + right.Sum) },
+            options: new CsvReaderOptions { HasHeaderRow = false },
+            parallelOptions: new ParallelRowMappingOptions { MaxDegreeOfParallelism = 1 });
             return CsvBenchmarkFixture.Check(state.Sum, state.Count, RowCount, _expected);
         }
 
@@ -95,8 +97,9 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             }
 
             using (MemoryStream stream = new MemoryStream(data, writable: false)) {
-                AggregateState state = await CsvDocument.AggregateRowsAsParallelAsync(
-                    stream, static () => default(AggregateState), header => {
+                AggregateState state = await CsvDocument.AggregateRowsAsParallelAsync(stream,
+            static () => default(AggregateState),
+            header => {
                         if (header.Count != 4) throw new InvalidDataException("OfficeIMO borrowed CSV width differs.");
                         return (ref AggregateState result, CsvRecord row) => {
                             if (result.Count >= rowCount) throw new InvalidDataException("OfficeIMO borrowed CSV has extra rows.");
@@ -107,9 +110,10 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
                                 throw new InvalidDataException($"OfficeIMO borrowed CSV field/order differs at row {result.Count + 1}.");
                             result.Count++;
                         };
-                    }, static (left, right) => new AggregateState { Count = left.Count + right.Count },
-                    loadOptions: new CsvLoadOptions { HasHeaderRow = false },
-                    parallelOptions: new ParallelRowMappingOptions { MaxDegreeOfParallelism = 1 });
+                    },
+            static (left, right) => new AggregateState { Count = left.Count + right.Count },
+            options: new CsvReaderOptions { HasHeaderRow = false },
+            parallelOptions: new ParallelRowMappingOptions { MaxDegreeOfParallelism = 1 });
                 if (state.Count != rowCount) throw new InvalidDataException("OfficeIMO borrowed CSV row count differs.");
             }
             BenchmarkInput.WriteFixtureIdentity($"read/CsvBorrowedAsync/qualifiedRows={rowCount}", data);

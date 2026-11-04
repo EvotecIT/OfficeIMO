@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents the workbook sheet tab identifier array parsed from a BIFF TabId record.
     /// </summary>
-    public sealed class LegacyXlsSheetTabIdCollection {
+    internal sealed class LegacyXlsSheetTabIdCollection {
         /// <summary>
         /// Creates a sheet tab identifier collection.
         /// </summary>

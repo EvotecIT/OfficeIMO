@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ModernChart_UpdateDataAllocatesAwayFromSharedChartPartRange() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Dashboard");
+            ExcelSheet sheet = document.AddSheet("Dashboard");
             ExcelModernChart chart = sheet.AddModernChart(
                 new ExcelChartData(
                     new[] { "A", "B" },
@@ -43,8 +43,8 @@ namespace OfficeIMO.Tests {
 
             Assert.NotEqual(sharedRange.DataRangeA1, chart.DataRange!.DataRangeA1);
             ExcelSheet dataSheet = document[sharedRange.SheetName];
-            Assert.Equal(1d, dataSheet.CellAt(sharedRange.SeriesStartRow, sharedRange.SeriesStartColumn).GetValue<double>());
-            Assert.Equal(2d, dataSheet.CellAt(sharedRange.SeriesStartRow + 1, sharedRange.SeriesStartColumn).GetValue<double>());
+            Assert.Equal(1d, dataSheet.Cell(sharedRange.SeriesStartRow, sharedRange.SeriesStartColumn).GetValue<double>());
+            Assert.Equal(2d, dataSheet.Cell(sharedRange.SeriesStartRow + 1, sharedRange.SeriesStartColumn).GetValue<double>());
             Assert.Contains(sheet.ModernCharts, item =>
                 item.DataRange?.DataRangeA1 == sharedRange.DataRangeA1);
             Assert.Empty(document.ValidateOpenXml());
@@ -53,7 +53,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ModernChart_MalformedDrawingRelationshipFailsBeforeBackingDataMutation() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Dashboard");
+            ExcelSheet sheet = document.AddSheet("Dashboard");
             sheet.WorksheetPart.Worksheet.Append(
                 new DocumentFormat.OpenXml.Spreadsheet.Drawing { Id = "rIdMissing" });
             sheet.WorksheetPart.Worksheet.Save();
@@ -95,20 +95,20 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_RangeMove_ReplacesDestinationRangeMetadataBeforeMovingSourceRules() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, 1);
-            sheet.CellValue(1, 3, 9);
-            sheet.ValidationList("A1", new[] { "source" });
-            sheet.ValidationList("C1", new[] { "destination" });
-            sheet.AddConditionalFormulaRule("A1", "A1=1");
-            sheet.AddConditionalFormulaRule("C1", "C1=9");
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue(1);
+            sheet.Cell(1, 3).SetValue(9);
+            sheet.Range("A1").Validation().List(new[] { "source" });
+            sheet.Range("C1").Validation().List(new[] { "destination" });
+            sheet.Range("A1").ConditionalFormat().Formula("A1=1");
+            sheet.Range("C1").ConditionalFormat().Formula("C1=9");
             sheet.Protect();
             sheet.SetAllowedEditRange("Source", new[] { "A1" });
             sheet.SetAllowedEditRange("Destination", new[] { "C1" });
             sheet.AddIgnoredErrorRegion(new[] { "A1" }, ExcelIgnoredErrorKind.NumberStoredAsText);
             sheet.AddIgnoredErrorRegion(new[] { "C1" }, ExcelIgnoredErrorKind.Formula);
 
-            sheet.MoveRange("A1", "C1");
+            sheet.Range("A1").MoveTo("C1");
 
             ExcelDataValidationInfo validation = Assert.Single(sheet.GetDataValidations());
             Assert.Equal("C1", validation.Range);

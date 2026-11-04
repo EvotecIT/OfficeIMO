@@ -580,7 +580,7 @@ public partial class PdfSanitizerTests {
 
         Assert.Throws<OperationCanceledException>(() => PdfSanitizer.Analyze(
             source,
-            new PdfSanitizationOptions { CancellationToken = cancellation.Token }));
+            new PdfSanitizationOptions(), cancellationToken: cancellation.Token));
     }
 
     [Fact]
@@ -627,14 +627,14 @@ public partial class PdfSanitizerTests {
     [Fact]
     public void Sanitize_QuarantinesAttachmentsAndRemovesAllPayloadReferences() {
         byte[] payload = Encoding.UTF8.GetBytes("quarantined payload");
-        var options = new PdfOptions().AddEmbeddedFile(
+        var options = new PdfCreateOptions().AddEmbeddedFile(
             "payload.txt",
             payload,
             "text/plain",
             PdfAssociatedFileRelationship.Data,
             "Sanitizer test payload");
         byte[] source = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("Attachment quarantine"))
+            .Paragraph(paragraph => paragraph.AddText("Attachment quarantine"))
             .ToBytes();
         var policy = new PdfSanitizationOptions {
             EmbeddedFiles = PdfEmbeddedFileSanitizationMode.Quarantine

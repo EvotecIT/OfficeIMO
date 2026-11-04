@@ -19,7 +19,7 @@ internal static class PowerPointHtmlChartPointStyleCodec {
             Attribute("hatch-color", style.HatchColor!.Value.ToString());
         }
         if (style.OutlineColor.HasValue) Attribute("outline-color", style.OutlineColor.Value.ToString());
-        if (style.OutlineWidth.HasValue) Attribute("outline-width", style.OutlineWidth.Value.ToString("G17", CultureInfo.InvariantCulture));
+        if (style.OutlineWidth.HasValue) Attribute("outline-width", style.OutlineWidth.Value.ToPoints().ToString("G17", CultureInfo.InvariantCulture));
         if (style.ShowOutline.HasValue) Attribute("show-outline", style.ShowOutline.Value ? "true" : "false");
         if (style.OutlineJoin.HasValue) Attribute("outline-join", style.OutlineJoin.Value.ToString());
     }
@@ -54,10 +54,12 @@ internal static class PowerPointHtmlChartPointStyleCodec {
                 !Enum.IsDefined(typeof(OfficeChartHatchPattern), parsed)) return false;
             hatch = parsed;
         }
-        double? width = null;
+        OfficeLength? width = null;
         if (rawWidth != null) {
-            if (!double.TryParse(rawWidth, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)) return false;
-            width = parsed;
+            if (!double.TryParse(rawWidth, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed) ||
+                double.IsNaN(parsed) || double.IsInfinity(parsed) || parsed <= 0 || parsed > 1584) return false;
+            width = OfficeLength.Points(parsed);
+            if (width.Value == OfficeLength.Zero) return false;
         }
         OfficeStrokeLineJoin? join = null;
         if (rawJoin != null) {

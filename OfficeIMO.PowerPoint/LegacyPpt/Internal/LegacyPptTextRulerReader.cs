@@ -23,6 +23,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 IReadOnlyList<LegacyPptTabStop> tabStops = (mask & (1U << 2)) != 0
                     ? LegacyPptTextPropertyReader.ReadTabStops(cursor)
                     : Array.Empty<LegacyPptTabStop>();
+                hasUnprojectedFormatting |= tabStops.Count > PowerPointParagraph.MaximumTabStops;
                 var levels = new List<LegacyPptTextRulerLevel>();
                 for (ushort level = 0; level < 5; level++) {
                     short? leftMargin = (mask & (1U << (3 + level))) != 0

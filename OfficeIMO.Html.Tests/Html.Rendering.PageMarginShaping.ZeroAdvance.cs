@@ -24,7 +24,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(0D, text.TextAdvanceWidth);
         Assert.Equal(14D, box.Width, 6);
         Assert.DoesNotContain(EnumerateRenderVisuals(box.Visuals), visual => visual is HtmlRenderClipGroup);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -42,7 +42,7 @@ public sealed partial class HtmlRenderingTests {
         double advance = text.PreparedShaping!.Measure(text.Font.Size);
         Assert.InRange(advance, double.Epsilon, 0.999D);
         Assert.Equal(14D + advance, box.Width, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -55,19 +55,19 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(0D, clip.ClipHeight);
         Assert.True(clip.ClipVertical);
         Assert.False(clip.ClipHorizontal);
-        Assert.Contains(rendered.Diagnostics, item => item.Source == "@page @top-center"
+        Assert.Contains(rendered.NativeDiagnostics, item => item.Source == "@page @top-center"
             && item.Detail == "margin-height" && item.LossKind == OfficeConversionLossKind.Omission);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
     }
 
     [Fact]
     public void HtmlPageMarginShaping_ZeroAdvanceExportsTheSameSavedPdfAndImageScene() {
         HtmlConversionDocument document = PageMarginZeroAdvanceDocument("max-content");
-        HtmlToPdfOptions options = PageMarginShapingOptions(cff: true);
-        PdfCore.PdfDocumentConversionResult pdf = document.ToPdfDocumentResult(options);
-        pdf.RequireNoLoss();
+        HtmlPdfExportOptions options = PageMarginShapingOptions(cff: true);
+        PdfCore.PdfDocumentConversionResult pdf = document.ConvertToPdfWithEvidence(options);
+        pdf.ThrowIfLoss();
         byte[] bytes = pdf.ToBytes();
-        pdf.RequireNoLoss();
+        pdf.ThrowIfLoss();
         PdfCore.PdfReadDocument saved = PdfCore.PdfReadDocument.Open(bytes,
             new PdfCore.PdfLoadOptions { IncludeArtifactText = true });
         Assert.Equal("\u0301", saved.ExtractText().Trim());

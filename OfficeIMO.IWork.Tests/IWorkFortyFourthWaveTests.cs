@@ -13,14 +13,14 @@ public sealed partial class IWorkBoundaryTests {
                 completeFormula: true, mixedFormulaTypeWire: true)
         }, includePreview: true);
 
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
         IWorkTableCell cell = Assert.Single(Assert.Single(
             Assert.Single(result.Projection.Sheets).Tables).Cells);
 
         Assert.False(cell.FormulaIsComplete);
         Assert.False(result.IsVisualFallback);
         Assert.Null(result.Value.Sheets[0].GetFormulaText(1, 1));
-        Assert.Equal(1d, result.Value.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(1d, result.Value.Sheets[0].Cell(1, 1).GetValue<double>());
     }
 
     [Fact]
@@ -29,10 +29,10 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Height", 1, 1, 1d, defaultRowHeight: 12.345d)
         }, includePreview: true);
 
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
 
         Assert.False(result.IsVisualFallback);
-        Assert.Equal(12.345d, result.Value.Sheets[0].DefaultRowHeight);
+        Assert.Equal(OfficeIMO.Excel.ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(12.345d)), result.Value.Sheets[0].DefaultRowHeight);
     }
 
     [Fact]
@@ -46,7 +46,7 @@ public sealed partial class IWorkBoundaryTests {
             includeBody: true, textBox: null, includePreview: true,
             documentLayoutFields: layout);
 
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.Projection.HasEditableContent);
         Assert.True(result.IsVisualFallback);
@@ -76,13 +76,13 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesDrawableOccurrencePackage(
             duplicateWithinField: false, floating: false, occurrenceCount: 13);
         var options = new IWorkReadOptions {
-            MaximumProjectedImages = 1,
-            MaximumProjectedTables = 1,
-            MaximumProjectedTextItems = 10
+            MaxProjectedImages = 1,
+            MaxProjectedTables = 1,
+            MaxProjectedTextItems = 10
         };
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            WordIWorkConverter.ConvertPagesToWordResult(package, options));
+            IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages, options).ToWordResult());
 
         Assert.Contains("drawable references", exception.Message,
             StringComparison.OrdinalIgnoreCase);
@@ -94,13 +94,13 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Repeated", 1, 1, 1d)
         }, repeatedFirstDrawableCount: 3);
         var options = new IWorkReadOptions {
-            MaximumProjectedImages = 1,
-            MaximumProjectedTables = 1,
-            MaximumProjectedTextItems = 1
+            MaxProjectedImages = 1,
+            MaxProjectedTables = 1,
+            MaxProjectedTextItems = 1
         };
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            ExcelIWorkConverter.ConvertNumbersToExcelResult(package, options));
+            IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers, options).ToExcelResult());
 
         Assert.Contains("drawable references", exception.Message,
             StringComparison.OrdinalIgnoreCase);
@@ -111,13 +111,13 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(
             1, drawableReferenceCount: 13);
         var options = new IWorkReadOptions {
-            MaximumProjectedImages = 1,
-            MaximumProjectedTables = 1,
-            MaximumProjectedTextItems = 10
+            MaxProjectedImages = 1,
+            MaxProjectedTables = 1,
+            MaxProjectedTextItems = 10
         };
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, options));
+            IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote, options).ToPowerPointResult());
 
         Assert.Contains("drawable references", exception.Message,
             StringComparison.OrdinalIgnoreCase);

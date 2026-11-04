@@ -13,16 +13,16 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_IgnoresNonlocalConsolidationSourcesDuringPreflight() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
-            document.AddWorksheet("Other");
+            ExcelSheet data = document.AddSheet("Data");
+            document.AddSheet("Other");
             var otherSheetSource = new DataReference {
                 Sheet = "Other",
-                Reference = $"A{A1.MaxRows}"
+                Reference = $"A{ExcelA1.MaxRows}"
             };
             var externalSource = new DataReference {
                 Id = "rIdExternal",
                 Sheet = "Data",
-                Reference = $"A{A1.MaxRows}"
+                Reference = $"A{ExcelA1.MaxRows}"
             };
             data.WorksheetPart.Worksheet.Append(
                 new DataConsolidate(
@@ -32,15 +32,15 @@ namespace OfficeIMO.Tests {
 
             data.InsertRows(1);
 
-            Assert.Equal($"A{A1.MaxRows}", otherSheetSource.Reference!.Value);
-            Assert.Equal($"A{A1.MaxRows}", externalSource.Reference!.Value);
+            Assert.Equal($"A{ExcelA1.MaxRows}", otherSheetSource.Reference!.Value);
+            Assert.Equal($"A{ExcelA1.MaxRows}", externalSource.Reference!.Value);
         }
 
         [Fact]
         public void Test_StructuralRows_RejectsDialogSheetVmlControls() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellAt(2, 1).SetValue(1);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(2, 1).SetValue(1);
             DialogsheetPart dialogPart = document.WorkbookPartRoot.AddNewPart<DialogsheetPart>();
             dialogPart.DialogSheet = new DialogSheet();
             VmlDrawingPart vmlPart = dialogPart.AddNewPart<VmlDrawingPart>();
@@ -65,13 +65,13 @@ namespace OfficeIMO.Tests {
                 () => sheet.InsertRows(2));
 
             Assert.Contains("form controls", exception.Message);
-            Assert.Equal(1, sheet.CellAt(2, 1).GetValue<int>());
+            Assert.Equal(1, sheet.Cell(2, 1).GetValue<int>());
         }
 
         [Fact]
         public void Test_StructuralRows_MaintainsCellSmartTagCollections() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             const string spreadsheetNamespace =
                 "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
             var tags = new OpenXmlUnknownElement(string.Empty, "cellSmartTags", spreadsheetNamespace);
@@ -101,8 +101,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_PreflightsVmlNoteAnchorOverflow() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellAt(1, 1).SetValue("keep");
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("keep");
             sheet.SetComment(1, 1, "Stationary note", author: "Tester");
             VmlDrawingPart vmlPart = Assert.Single(sheet.WorksheetPart.VmlDrawingParts);
             XDocument vmlDocument;
@@ -111,17 +111,17 @@ namespace OfficeIMO.Tests {
             }
             XNamespace excel = "urn:schemas-microsoft-com:office:excel";
             XElement anchor = vmlDocument.Descendants(excel + "Anchor").Single();
-            string originalAnchor = $"1, 0, {A1.MaxRows - 1}, 0, 3, 0, {A1.MaxRows}, 0";
+            string originalAnchor = $"1, 0, {ExcelA1.MaxRows - 1}, 0, 3, 0, {ExcelA1.MaxRows}, 0";
             anchor.Value = originalAnchor;
             using (Stream stream = vmlPart.GetStream(FileMode.Create, FileAccess.Write)) {
                 vmlDocument.Save(stream);
             }
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
-                () => sheet.InsertRows(A1.MaxRows));
+                () => sheet.InsertRows(ExcelA1.MaxRows));
 
             Assert.Contains("note anchor", exception.Message);
-            Assert.Equal("keep", sheet.CellAt(1, 1).GetValue<string>());
+            Assert.Equal("keep", sheet.Cell(1, 1).GetValue<string>());
             using Stream unchangedStream = vmlPart.GetStream();
             Assert.Equal(
                 originalAnchor,
@@ -131,8 +131,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RejectsDeletionOfCellBackedConnectionParameter() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellAt(5, 1).SetValue(1);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(5, 1).SetValue(1);
             Parameter parameter = AttachCellBackedConnection(document, sheet, "A5");
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
@@ -140,7 +140,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("connection parameter", exception.Message);
             Assert.Equal("A5", parameter.Cell!.Value);
-            Assert.Equal(1, sheet.CellAt(5, 1).GetValue<int>());
+            Assert.Equal(1, sheet.Cell(5, 1).GetValue<int>());
             Assert.Equal(
                 1U,
                 parameter.Ancestors<Parameters>().Single().Count!.Value);
@@ -159,7 +159,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("header row", exception.Message);
             Assert.Equal("A1:B3", source.Reference!.Value);
-            Assert.Equal("Region", sheet.CellAt(1, 1).GetValue<string>());
+            Assert.Equal("Region", sheet.Cell(1, 1).GetValue<string>());
         }
     }
 }

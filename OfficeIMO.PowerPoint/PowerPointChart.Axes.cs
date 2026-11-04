@@ -28,9 +28,9 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets the category axis title text style.
         /// </summary>
-        public PowerPointChart SetCategoryAxisTitleTextStyle(double? fontSizePoints = null, bool? bold = null,
+        public PowerPointChart SetCategoryAxisTitleTextStyle(OfficeLength? fontSize = null, bool? bold = null,
             bool? italic = null, string? color = null, string? fontName = null) {
-            return SetAxisTitleTextStyle<C.CategoryAxis>(fontSizePoints, bold, italic, color, fontName);
+            return SetAxisTitleTextStyle<C.CategoryAxis>(fontSize, bold, italic, color, fontName);
         }
 
         /// <summary>
@@ -43,9 +43,9 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets the value axis title text style.
         /// </summary>
-        public PowerPointChart SetValueAxisTitleTextStyle(double? fontSizePoints = null, bool? bold = null,
+        public PowerPointChart SetValueAxisTitleTextStyle(OfficeLength? fontSize = null, bool? bold = null,
             bool? italic = null, string? color = null, string? fontName = null) {
-            return SetAxisTitleTextStyle<C.ValueAxis>(fontSizePoints, bold, italic, color, fontName);
+            return SetAxisTitleTextStyle<C.ValueAxis>(fontSize, bold, italic, color, fontName);
         }
 
         /// <summary>
@@ -58,9 +58,9 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets the category axis label text style.
         /// </summary>
-        public PowerPointChart SetCategoryAxisLabelTextStyle(double? fontSizePoints = null, bool? bold = null,
+        public PowerPointChart SetCategoryAxisLabelTextStyle(OfficeLength? fontSize = null, bool? bold = null,
             bool? italic = null, string? color = null, string? fontName = null) {
-            return SetAxisLabelTextStyle<C.CategoryAxis>(fontSizePoints, bold, italic, color, fontName);
+            return SetAxisLabelTextStyle<C.CategoryAxis>(fontSize, bold, italic, color, fontName);
         }
 
         /// <summary>
@@ -73,9 +73,9 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets the value axis label text style.
         /// </summary>
-        public PowerPointChart SetValueAxisLabelTextStyle(double? fontSizePoints = null, bool? bold = null,
+        public PowerPointChart SetValueAxisLabelTextStyle(OfficeLength? fontSize = null, bool? bold = null,
             bool? italic = null, string? color = null, string? fontName = null) {
-            return SetAxisLabelTextStyle<C.ValueAxis>(fontSizePoints, bold, italic, color, fontName);
+            return SetAxisLabelTextStyle<C.ValueAxis>(fontSize, bold, italic, color, fontName);
         }
 
         /// <summary>
@@ -117,8 +117,8 @@ namespace OfficeIMO.PowerPoint {
         ///     Sets category axis gridlines visibility and optional styling.
         /// </summary>
         public PowerPointChart SetCategoryAxisGridlines(bool showMajor = true, bool showMinor = false,
-            string? lineColor = null, double? lineWidthPoints = null) {
-            return SetAxisGridlines<C.CategoryAxis>(showMajor, showMinor, lineColor, lineWidthPoints);
+            string? lineColor = null, OfficeLength? lineWidth = null) {
+            return SetAxisGridlines<C.CategoryAxis>(showMajor, showMinor, lineColor, lineWidth);
         }
 
         /// <summary>
@@ -132,8 +132,8 @@ namespace OfficeIMO.PowerPoint {
         ///     Sets value axis gridlines visibility and optional styling.
         /// </summary>
         public PowerPointChart SetValueAxisGridlines(bool showMajor = true, bool showMinor = false,
-            string? lineColor = null, double? lineWidthPoints = null) {
-            return SetAxisGridlines<C.ValueAxis>(showMajor, showMinor, lineColor, lineWidthPoints);
+            string? lineColor = null, OfficeLength? lineWidth = null) {
+            return SetAxisGridlines<C.ValueAxis>(showMajor, showMinor, lineColor, lineWidth);
         }
 
         /// <summary>
@@ -147,12 +147,12 @@ namespace OfficeIMO.PowerPoint {
         ///     Sets scatter chart X-axis gridlines visibility and optional styling.
         /// </summary>
         public PowerPointChart SetScatterXAxisGridlines(bool showMajor = true, bool showMinor = false,
-            string? lineColor = null, double? lineWidthPoints = null) {
+            string? lineColor = null, OfficeLength? lineWidth = null) {
             if (!CanResolveScatterAxis(ResolveScatterXAxis)) {
                 return this;
             }
 
-            return SetAxisGridlines<C.ValueAxis>(showMajor, showMinor, lineColor, lineWidthPoints,
+            return SetAxisGridlines<C.ValueAxis>(showMajor, showMinor, lineColor, lineWidth,
                 axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
         }
 
@@ -171,12 +171,12 @@ namespace OfficeIMO.PowerPoint {
         ///     Sets scatter chart Y-axis gridlines visibility and optional styling.
         /// </summary>
         public PowerPointChart SetScatterYAxisGridlines(bool showMajor = true, bool showMinor = false,
-            string? lineColor = null, double? lineWidthPoints = null) {
+            string? lineColor = null, OfficeLength? lineWidth = null) {
             if (!CanResolveScatterAxis(ResolveScatterYAxis)) {
                 return this;
             }
 
-            return SetAxisGridlines<C.ValueAxis>(showMajor, showMinor, lineColor, lineWidthPoints,
+            return SetAxisGridlines<C.ValueAxis>(showMajor, showMinor, lineColor, lineWidth,
                 axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
         }
 
@@ -216,26 +216,26 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets the scatter chart X-axis title text style.
         /// </summary>
-        public PowerPointChart SetScatterXAxisTitleTextStyle(double? fontSizePoints = null, bool? bold = null,
+        public PowerPointChart SetScatterXAxisTitleTextStyle(OfficeLength? fontSize = null, bool? bold = null,
             bool? italic = null, string? color = null, string? fontName = null) {
             if (!CanResolveScatterAxis(ResolveScatterXAxis)) {
                 return this;
             }
 
-            return SetAxisTitleTextStyle<C.ValueAxis>(fontSizePoints, bold, italic, color, fontName,
+            return SetAxisTitleTextStyle<C.ValueAxis>(fontSize, bold, italic, color, fontName,
                 axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
         }
 
         /// <summary>
         ///     Sets the scatter chart Y-axis title text style.
         /// </summary>
-        public PowerPointChart SetScatterYAxisTitleTextStyle(double? fontSizePoints = null, bool? bold = null,
+        public PowerPointChart SetScatterYAxisTitleTextStyle(OfficeLength? fontSize = null, bool? bold = null,
             bool? italic = null, string? color = null, string? fontName = null) {
             if (!CanResolveScatterAxis(ResolveScatterYAxis)) {
                 return this;
             }
 
-            return SetAxisTitleTextStyle<C.ValueAxis>(fontSizePoints, bold, italic, color, fontName,
+            return SetAxisTitleTextStyle<C.ValueAxis>(fontSize, bold, italic, color, fontName,
                 axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
         }
 
@@ -264,13 +264,13 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets the scatter chart X-axis label text style.
         /// </summary>
-        public PowerPointChart SetScatterXAxisLabelTextStyle(double? fontSizePoints = null, bool? bold = null,
+        public PowerPointChart SetScatterXAxisLabelTextStyle(OfficeLength? fontSize = null, bool? bold = null,
             bool? italic = null, string? color = null, string? fontName = null) {
             if (!CanResolveScatterAxis(ResolveScatterXAxis)) {
                 return this;
             }
 
-            return SetAxisLabelTextStyle<C.ValueAxis>(fontSizePoints, bold, italic, color, fontName,
+            return SetAxisLabelTextStyle<C.ValueAxis>(fontSize, bold, italic, color, fontName,
                 axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
         }
 
@@ -288,13 +288,13 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets the scatter chart Y-axis label text style.
         /// </summary>
-        public PowerPointChart SetScatterYAxisLabelTextStyle(double? fontSizePoints = null, bool? bold = null,
+        public PowerPointChart SetScatterYAxisLabelTextStyle(OfficeLength? fontSize = null, bool? bold = null,
             bool? italic = null, string? color = null, string? fontName = null) {
             if (!CanResolveScatterAxis(ResolveScatterYAxis)) {
                 return this;
             }
 
-            return SetAxisLabelTextStyle<C.ValueAxis>(fontSizePoints, bold, italic, color, fontName,
+            return SetAxisLabelTextStyle<C.ValueAxis>(fontSize, bold, italic, color, fontName,
                 axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
         }
 

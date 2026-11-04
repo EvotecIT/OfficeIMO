@@ -1,0 +1,22 @@
+{
+  "solution": {
+    "path": "OfficeIMO.slnx",
+    "projects": [
+      "Examples\\OfficeIMO.AI.Example\\OfficeIMO.AI.Example.csproj",
+      "OfficeIMO.AI.IntelligenceX\\OfficeIMO.AI.IntelligenceX.csproj",
+      "OfficeIMO.AI.Tests\\OfficeIMO.AI.Tests.csproj",
+      "OfficeIMO.AI\\OfficeIMO.AI.csproj",
+      "OfficeIMO.Core\\OfficeIMO.Core.csproj",
+      "OfficeIMO.CSV\\OfficeIMO.CSV.csproj",
+      "OfficeIMO.DocBook\\OfficeIMO.DocBook.csproj",
+      "OfficeIMO.Excel\\OfficeIMO.Excel.csproj",
+      "OfficeIMO.Ocr\\OfficeIMO.Ocr.csproj",
+      "OfficeIMO.Pdf\\OfficeIMO.Pdf.csproj",
+      "OfficeIMO.Reader.Core\\OfficeIMO.Reader.Core.csproj",
+      "OfficeIMO.Reader.DocBook\\OfficeIMO.Reader.DocBook.csproj",
+      "OfficeIMO.Reader.Image\\OfficeIMO.Reader.Image.csproj",
+      "OfficeIMO.Reader.Ocr\\OfficeIMO.Reader.Ocr.csproj",
+      "OfficeIMO.Reader.Pdf\\OfficeIMO.Reader.Pdf.csproj"
+    ]
+  }
+}

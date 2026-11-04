@@ -41,7 +41,7 @@ public partial class Word {
         styles.Append(new W.Style(new W.StyleRunProperties(new W.Spacing { Val = tracking }, new W.CharacterScale { Val = scale })) {
             StyleId = "VisibleSpacing", Type = W.StyleValues.Character
         });
-        WordHeaderFooter story = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
+        WordHeaderFooter story = footer ? document.PageSetup.Footer : document.PageSetup.Header;
         WordParagraph outer = story.AddParagraph();
         WordParagraph first = outer;
         if (route.Contains("textbox", StringComparison.Ordinal)) {
@@ -71,10 +71,10 @@ public partial class Word {
             second._paragraph.InsertAfter(new W.Run(), second._paragraph.ParagraphProperties);
         }
         Assert.Empty(document.ValidateDocument());
-        string before = footer ? document.Footer.Default!._footer!.OuterXml : document.Header.Default!._header!.OuterXml;
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        string before = footer ? document.PageSetup.Footer._footer!.OuterXml : document.PageSetup.Header._header!.OuterXml;
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Letter[] text = pdf.GetPage(1).Letters.Where(letter => letter.Value is "M" or "X").ToArray();
         Assert.Equal("MMMMX", string.Concat(text.Select(letter => letter.Value)));
         Assert.All(text, letter => Assert.Equal(text[0].StartBaseLine.Y, letter.StartBaseLine.Y, 3));
@@ -85,7 +85,7 @@ public partial class Word {
             Letter b = pdf.GetPage(1).Letters.Single(letter => letter.Value == "B" && Math.Abs(letter.StartBaseLine.Y - a.StartBaseLine.Y) < 0.01D);
             Assert.InRange(Math.Abs(b.StartBaseLine.X - a.StartBaseLine.X - (8.004D * scale / 100D + tracking / 20D)), 0D, 0.03D);
         }
-        Assert.Equal(before, footer ? document.Footer.Default!._footer!.OuterXml : document.Header.Default!._header!.OuterXml);
+        Assert.Equal(before, footer ? document.PageSetup.Footer._footer!.OuterXml : document.PageSetup.Header._header!.OuterXml);
     }
 
     [Theory]
@@ -93,13 +93,13 @@ public partial class Word {
     [InlineData(true)]
     public void HeaderFooterMixedTextBoxesKeepSourceOrderAndRepeatedTextIdentity(bool footer) {
         using WordDocument document = CreateJoinedParagraphDocument(); document.AddParagraph("Body");
-        WordHeaderFooter story = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
+        WordHeaderFooter story = footer ? document.PageSetup.Footer : document.PageSetup.Header;
         WordParagraph outer = story.AddParagraph("MMMMX"); outer.Style = WordParagraphStyles.Normal;
         WordParagraph firstBox = outer.AddTextBox("MMMMX", WordImageTextWrapping.Square).Paragraphs.Single();
-        firstBox.Style = WordParagraphStyles.Normal; firstBox.CharacterScale = 200; firstBox.Spacing = 20;
+        firstBox.Style = WordParagraphStyles.Normal; firstBox.CharacterScale = 200; firstBox.Spacing = OfficeLength.Emus((long)(20) * 635);
         WordParagraph suffix = outer.AddText("MMMMX");
         WordParagraph secondBox = suffix.AddTextBox("MMMMX", WordImageTextWrapping.Square).Paragraphs.Single();
-        secondBox.Style = WordParagraphStyles.Normal; secondBox.CharacterScale = 50; secondBox.Spacing = -10;
+        secondBox.Style = WordParagraphStyles.Normal; secondBox.CharacterScale = 50; secondBox.Spacing = OfficeLength.Emus((long)(-10) * 635);
         // Imported boxes commonly end with the paragraph rather than a hard break.
         // Identical surrounding text must still keep its own run formatting.
         firstBox._paragraph.Descendants<W.Break>().ToList().ForEach(lineBreak => lineBreak.Remove());
@@ -123,7 +123,7 @@ public partial class Word {
         var list = document.AddList(WordListStyle.Numbered);
         list.Numbering.Levels[0].LevelSuffix = WordListLevelSuffix.Nothing;
         WordParagraph template = list.AddItem("Template");
-        WordHeaderFooter story = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
+        WordHeaderFooter story = footer ? document.PageSetup.Footer : document.PageSetup.Header;
         WordParagraph outer = story.AddParagraph("MMMMX");
         WordParagraph first = outer.AddTextBox("MMMMX", WordImageTextWrapping.Square).Paragraphs.Single();
         WordParagraph suffix = outer.AddText("MMMMX");
@@ -153,7 +153,7 @@ public partial class Word {
             run.RunProperties.RunStyle = new W.RunStyle { Val = "VisibleSpacing" };
         } else {
             paragraph.CharacterScale = scale;
-            paragraph.Spacing = tracking;
+            paragraph.Spacing = OfficeLength.Emus((long)(tracking) * 635);
         }
     }
 }

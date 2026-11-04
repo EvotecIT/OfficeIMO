@@ -1,3 +1,4 @@
+using static OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartTextReader;
 using System;
 using System.Linq;
 using DocumentFormat.OpenXml;
@@ -7,7 +8,7 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.OpenXml.Internal {
     internal static partial class OfficeOpenXmlChartSeriesReader {
-        internal static OfficeChartStyle ReadStyle(DocumentFormat.OpenXml.Packaging.ChartPart chartPart, C.Chart chart, OfficeChartKind kind, A.ColorScheme? scheme, OfficeChartStyle? textStyle = null,
+        internal static OfficeChartStyle ReadStyle(DocumentFormat.OpenXml.Packaging.ChartPart chartPart, C.Chart chart, OfficeChartType kind, A.ColorScheme? scheme, OfficeChartStyle? textStyle = null,
             int radialPointCount = 0) {
             OpenXmlElement? colorMap = OfficeOpenXmlThemeColorResolver.ResolveChartColorMap(chartPart);
             if (chart.Parent?.GetFirstChild<C.RoundedCorners>()?.Val?.Value == true)
@@ -25,22 +26,23 @@ namespace OfficeIMO.OpenXml.Internal {
             var legendSurface = ReadSurface(legendShape, scheme, colorMap);
             if (legendSurface.Dash is OfficeStrokeDashStyle legendDash && legendDash != OfficeStrokeDashStyle.Solid)
                 throw new NotSupportedException("The legend border dash cannot be projected.");
-            var titleText = ReadNativeText(chart, chart.GetFirstChild<C.Title>(), scheme);
-            var defaultText = ReadNativeText(chart, chart, scheme);
-            var labelText = ReadLabels(chart, scheme);
-            var legendText = ReadNativeText(chart, chart.GetFirstChild<C.Legend>(), scheme);
-            var axisText = ReadUniformNativeText(chart, TextAxes(chart), scheme);
-            var axisTitleText = ReadUniformNativeText(chart, TextAxes(chart).Select(axis => axis.GetFirstChild<C.Title>()).Where(title => title != null).Cast<OpenXmlElement>(), scheme);
+            bool allowMultiline = kind == OfficeChartType.Bubble;
+            var titleText = ReadNativeText(chart, chart.GetFirstChild<C.Title>(), scheme, allowMultiline);
+            var defaultText = ReadNativeText(chart, chart, scheme, allowMultiline);
+            var labelText = kind == OfficeChartType.Bubble ? new LabelLayout() : ReadLabels(chart, scheme);
+            var legendText = ReadNativeText(chart, chart.GetFirstChild<C.Legend>(), scheme, allowMultiline);
+            var axisText = ReadUniformNativeText(chart, TextAxes(chart), scheme, allowMultiline);
+            var axisTitleText = ReadUniformNativeText(chart, TextAxes(chart).Select(axis => axis.GetFirstChild<C.Title>()).Where(title => title != null).Cast<OpenXmlElement>(), scheme, allowMultiline);
             var area = ReadSurface(chart.Parent?.GetFirstChild<C.ShapeProperties>(), scheme, colorMap);
             var plot = chart.PlotArea;
             var plotStyle = ReadSurface(plot?.GetFirstChild<C.ShapeProperties>(), scheme, colorMap);
             OpenXmlCompositeElement? categoryAxis = null, valueAxis = null;
-            if (plot != null && kind != OfficeChartKind.Pie && kind != OfficeChartKind.Doughnut) {
+            if (plot != null && kind != OfficeChartType.Pie && kind != OfficeChartType.Doughnut) {
                 var groups = OfficeOpenXmlChartAxisGroups.Create(plot);
                 var layer = plot.ChildElements.OfType<OpenXmlCompositeElement>().FirstOrDefault(element =>
                     element.LocalName.EndsWith("Chart", StringComparison.Ordinal) && groups.Read(element) == OfficeChartAxisGroup.Primary);
                 var axes = layer?.Elements<C.AxisId>().Select(reference => groups.Resolve(reference.Val?.Value)).ToArray();
-                bool numeric = kind == OfficeChartKind.Scatter || kind == OfficeChartKind.Bubble;
+                bool numeric = kind == OfficeChartType.Scatter || kind == OfficeChartType.Bubble;
                 categoryAxis = numeric ? axes?.FirstOrDefault() : axes?.FirstOrDefault(axis => axis is C.CategoryAxis || axis is C.DateAxis);
                 valueAxis = numeric ? axes?.Skip(1).FirstOrDefault() : axes?.FirstOrDefault(axis => axis is C.ValueAxis);
             }
@@ -54,7 +56,7 @@ namespace OfficeIMO.OpenXml.Internal {
             var valueGrid = ReadSurface(valueMajor?.GetFirstChild<C.ChartShapeProperties>(), scheme, colorMap);
             var categoryMinorGrid = ReadSurface(categoryMinor?.GetFirstChild<C.ChartShapeProperties>(), scheme, colorMap);
             var valueMinorGrid = ReadSurface(valueMinor?.GetFirstChild<C.ChartShapeProperties>(), scheme, colorMap);
-            C.PieChartSeries? radialSeries = kind is OfficeChartKind.Pie or OfficeChartKind.Doughnut
+            C.PieChartSeries? radialSeries = kind is OfficeChartType.Pie or OfficeChartType.Doughnut
                 ? plot?.Descendants<C.PieChartSeries>().FirstOrDefault() : null;
             OfficeColor[]? radialPalette = radialSeries == null ? null :
                 OfficeOpenXmlThemeColorResolver.ReadRadialPalette(chartPart, radialSeries, radialPointCount, scheme);

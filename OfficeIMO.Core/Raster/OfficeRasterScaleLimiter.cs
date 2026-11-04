@@ -24,7 +24,7 @@ public readonly struct OfficeRasterScaleLimit {
 }
 
 /// <summary>Shared overflow-safe raster scale limiter for Office document engines.</summary>
-public static class OfficeRasterScaleLimiter {
+internal static class OfficeRasterScaleLimiter {
     /// <summary>Resolves the largest scale no greater than <paramref name="requestedScale"/> whose rounded dimensions fit the pixel ceiling.</summary>
     public static OfficeRasterScaleLimit Resolve(double width, double height, double requestedScale, long maximumPixels) =>
         Resolve(width, height, requestedScale, maximumPixels, int.MaxValue);

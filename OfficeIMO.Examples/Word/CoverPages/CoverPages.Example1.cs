@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,19 +13,19 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
 
-                document.Sections[0].PageSettings.PageSize = WordPageSize.A4;
+                document.Sections[0].PageSetup.Size.PageSize = WordPageSize.A4;
 
-                document.PageSettings.PageSize = WordPageSize.A4;
+                document.PageSetup.Size.PageSize = WordPageSize.A4;
 
-                var pageSettings = document.PageSettings ?? throw new InvalidOperationException("Page settings are not initialized.");
+                var pageSettings = document.PageSetup.Size ?? throw new InvalidOperationException("Page settings are not initialized.");
 
-                Console.WriteLine(pageSettings.Height?.ToString() ?? "Height not set");
-                Console.WriteLine(pageSettings.Width?.ToString() ?? "Width not set");
+                Console.WriteLine(checked((uint?)(pageSettings.Height?.ToTwips()))?.ToString() ?? "Height not set");
+                Console.WriteLine(checked((uint?)(pageSettings.Width?.ToTwips()))?.ToString() ?? "Width not set");
                 Console.WriteLine(pageSettings.Code?.ToString() ?? "Code not set");
                 Console.WriteLine(pageSettings.PageSize?.ToString() ?? "Page size not set");
 
-                document.BuiltinDocumentProperties.Title = "Cover Page Templates";
-                document.BuiltinDocumentProperties.Subject = "How to use Cover Pages with TOC";
+                document.Properties.Title = "Cover Page Templates";
+                document.Properties.Subject = "How to use Cover Pages with TOC";
 
                 document.ApplicationProperties.Company = "Evotec Services";
 

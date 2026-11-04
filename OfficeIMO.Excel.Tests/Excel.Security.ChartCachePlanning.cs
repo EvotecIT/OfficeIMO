@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
             const int formulaCount = 8;
 #endif
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
+            ExcelSheet data = document.AddSheet("Data");
             ExcelSheet summary = CreateChartOwner(document, "Summary");
             ChartPart chartPart = Assert.Single(summary.WorksheetPart.DrawingsPart!.ChartParts);
             C.Formula template = chartPart.ChartSpace.Descendants<C.Formula>().First();

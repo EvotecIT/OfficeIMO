@@ -12,7 +12,7 @@ public sealed partial class BookProject {
             throw new ArgumentException("Review ratings require a current, previous-edition or previous-work review text.", nameof(rating));
         if (rating.Value < 0 || rating.Limit <= 0 || rating.Value > rating.Limit)
             throw new ArgumentException("Review scores must be nonnegative; an optional positive integer limit cannot be smaller than the score.", nameof(rating));
-        ArgumentNullException.ThrowIfNull(rating.Units);
+        if (rating.Units == null) throw new ArgumentNullException("rating.Units");
         if (rating.Units.Count > 16) throw new ArgumentException("At most 16 rating-unit translations are supported.", nameof(rating));
         XNamespace ns = OnixNamespace;
         var result = new XElement(ns + "ReviewRating", new XElement(ns + "Rating", rating.Value.ToString(CultureInfo.InvariantCulture)),
@@ -20,7 +20,7 @@ public sealed partial class BookProject {
         var languages = new HashSet<string>(StringComparer.Ordinal);
         foreach (var unit in rating.Units) {
             token.ThrowIfCancellationRequested();
-            ArgumentNullException.ThrowIfNull(unit);
+            if (unit == null) throw new ArgumentNullException(nameof(unit));
             RequireOnixText(unit.Text, nameof(unit.Text));
             if (unit.Text.Length > 50 || unit.Text.Length > textBudget)
                 throw new ArgumentException("Rating units exceed the field or aggregate collateral text limit.", nameof(rating));

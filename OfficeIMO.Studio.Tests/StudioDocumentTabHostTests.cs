@@ -265,7 +265,7 @@ public sealed class StudioDocumentTabHostTests {
     private static void CreateDocument(string path, int pageCount) {
         PdfDocument.Create(compose => {
             for (int index = 0; index < pageCount; index++) {
-                compose.Page(page => page.Size(420D, 620D));
+                compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(420D), global::OfficeIMO.OfficeLength.Points(620D)));
             }
         }).Save(path);
     }

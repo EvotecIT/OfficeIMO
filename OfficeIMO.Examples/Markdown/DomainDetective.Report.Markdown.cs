@@ -119,7 +119,7 @@ namespace OfficeIMO.Examples.Markdown {
             };
 
             // Build Markdown document
-            var md = MarkdownDoc.Create()
+            var md = MarkdownDocument.Create()
                 .FrontMatter(new { title = "Domain Detective — Mail Classification", date = DateTimeOffset.Now.ToString("u") })
                 .H1("Executive Summary")
                 .Toc(opts => { opts.MinLevel = 1; opts.MaxLevel = 3; opts.Ordered = false; opts.IncludeTitle = false; opts.Collapsible = true; opts.Collapsed = false; }, placeAtTop: true)
@@ -227,11 +227,11 @@ namespace OfficeIMO.Examples.Markdown {
             // Emit Markdown and a styled HTML rendition for sharing
             File.WriteAllText(mdPath, md.ToMarkdown(), Encoding.UTF8);
 
-            var htmlOptions = new HtmlOptions {
-                Kind = HtmlKind.Document,
+            var htmlOptions = new MarkdownHtmlExportOptions {
+                Kind = MarkdownHtmlKind.Document,
                 Title = "Domain Detective — Mail Classification",
-                Style = HtmlStyle.Word,
-                CssDelivery = CssDelivery.Inline,
+                Style = MarkdownHtmlStyle.Word,
+                CssDelivery = MarkdownCssDelivery.Inline,
                 IncludeAnchorLinks = false,
                 ShowAnchorIcons = true,
                 AnchorIcon = "🔗",
@@ -245,11 +245,11 @@ namespace OfficeIMO.Examples.Markdown {
 
             // Optional sidebar variant (left, outline chrome) for comparison
             // Variants to showcase options
-            void Variant(string suffix, System.Action<TocOptions> configureToc, System.Action<HtmlOptions>? configureHtml = null) {
-                var v = MarkdownDoc.Create();
+            void Variant(string suffix, System.Action<MarkdownTocOptions> configureToc, System.Action<MarkdownHtmlExportOptions>? configureHtml = null) {
+                var v = MarkdownDocument.Create();
                 v.Toc(configureToc, placeAtTop: true);
                 foreach (var b in md.Blocks) v.Add(b);
-                var h = new HtmlOptions { Kind = HtmlKind.Document, Title = $"Domain Detective — {suffix}", Style = HtmlStyle.Word, ThemeToggle = true, IncludeAnchorLinks = true, BackToTopLinks = true };
+                var h = new MarkdownHtmlExportOptions { Kind = MarkdownHtmlKind.Document, Title = $"Domain Detective — {suffix}", Style = MarkdownHtmlStyle.Word, ThemeToggle = true, IncludeAnchorLinks = true, BackToTopLinks = true };
                 configureHtml?.Invoke(h);
                 var path = Path.Combine(mdFolder, $"DomainDetective.Report.{suffix.Replace(' ', '.').Replace('/', '-')}.html");
                 v.SaveAsHtml(path, h);
@@ -257,25 +257,25 @@ namespace OfficeIMO.Examples.Markdown {
             }
 
             // Left sidebar — Outline chrome (default H1–H3, normalized)
-            Variant("Sidebar.Left.Outline", o => { o.MinLevel = 1; o.MaxLevel = 3; o.Layout = TocLayout.SidebarLeft; o.Sticky = true; o.Chrome = TocChrome.Outline; o.Title = "On this page"; o.WidthPx = 240; o.HideOnNarrow = true; });
+            Variant("Sidebar.Left.Outline", o => { o.MinLevel = 1; o.MaxLevel = 3; o.Layout = MarkdownTocLayout.SidebarLeft; o.Sticky = true; o.Chrome = MarkdownTocChrome.Outline; o.Title = "On this page"; o.WidthPx = 240; o.HideOnNarrow = true; });
             // Left sidebar — Ghost (no chrome)
-            Variant("Sidebar.Left.Ghost", o => { o.MinLevel = 1; o.MaxLevel = 3; o.Layout = TocLayout.SidebarLeft; o.Sticky = true; o.Chrome = TocChrome.None; o.Title = "On this page"; o.WidthPx = 260; o.HideOnNarrow = true; });
+            Variant("Sidebar.Left.Ghost", o => { o.MinLevel = 1; o.MaxLevel = 3; o.Layout = MarkdownTocLayout.SidebarLeft; o.Sticky = true; o.Chrome = MarkdownTocChrome.None; o.Title = "On this page"; o.WidthPx = 260; o.HideOnNarrow = true; });
             // Left sidebar — Panel (card)
-            Variant("Sidebar.Left.Panel", o => { o.MinLevel = 1; o.MaxLevel = 3; o.Layout = TocLayout.SidebarLeft; o.Sticky = true; o.Chrome = TocChrome.Panel; o.Title = "On this page"; o.WidthPx = 260; o.HideOnNarrow = true; });
+            Variant("Sidebar.Left.Panel", o => { o.MinLevel = 1; o.MaxLevel = 3; o.Layout = MarkdownTocLayout.SidebarLeft; o.Sticky = true; o.Chrome = MarkdownTocChrome.Panel; o.Title = "On this page"; o.WidthPx = 260; o.HideOnNarrow = true; });
             // Left sidebar — ScrollSpy (matched to right: width 260, Outline, hide on narrow)
-            Variant("Sidebar.Left.ScrollSpy", o => { o.MinLevel = 1; o.MaxLevel = 3; o.Layout = TocLayout.SidebarLeft; o.Sticky = true; o.ScrollSpy = true; o.Chrome = TocChrome.Outline; o.Title = "On this page"; o.WidthPx = 260; o.HideOnNarrow = true; });
+            Variant("Sidebar.Left.ScrollSpy", o => { o.MinLevel = 1; o.MaxLevel = 3; o.Layout = MarkdownTocLayout.SidebarLeft; o.Sticky = true; o.ScrollSpy = true; o.Chrome = MarkdownTocChrome.Outline; o.Title = "On this page"; o.WidthPx = 260; o.HideOnNarrow = true; });
             // Right sidebar — ScrollSpy
-            Variant("Sidebar.Right.ScrollSpy", o => { o.MinLevel = 1; o.MaxLevel = 3; o.Layout = TocLayout.SidebarRight; o.Sticky = true; o.ScrollSpy = true; o.Chrome = TocChrome.Outline; o.Title = "On this page"; o.WidthPx = 260; o.HideOnNarrow = true; });
+            Variant("Sidebar.Right.ScrollSpy", o => { o.MinLevel = 1; o.MaxLevel = 3; o.Layout = MarkdownTocLayout.SidebarRight; o.Sticky = true; o.ScrollSpy = true; o.Chrome = MarkdownTocChrome.Outline; o.Title = "On this page"; o.WidthPx = 260; o.HideOnNarrow = true; });
             // Removed Panel.Top variant at user request
             // Collapsible at top (ensure only one TOC by skipping existing placeholder)
-            var vMd = MarkdownDoc.Create();
+            var vMd = MarkdownDocument.Create();
             bool firstTocSkipped = false;
             foreach (var b in md.Blocks) {
                 if (!firstTocSkipped && b is TocPlaceholderBlock) { firstTocSkipped = true; continue; }
                 vMd.Add(b);
             }
             var htmlPathCollapsible = Path.Combine(mdFolder, "DomainDetective.Report.Top.Collapsible.html");
-            vMd.SaveAsHtml(htmlPathCollapsible, new HtmlOptions { Kind = HtmlKind.Document, Title = "Domain Detective — Top Collapsible", Style = HtmlStyle.Word, ThemeToggle = true, IncludeAnchorLinks = true, BackToTopLinks = true });
+            vMd.SaveAsHtml(htmlPathCollapsible, new MarkdownHtmlExportOptions { Kind = MarkdownHtmlKind.Document, Title = "Domain Detective — Top Collapsible", Style = MarkdownHtmlStyle.Word, ThemeToggle = true, IncludeAnchorLinks = true, BackToTopLinks = true });
 
             Console.WriteLine($"✓ Markdown saved: {mdPath}");
             Console.WriteLine($"✓ HTML saved:     {htmlPath}");

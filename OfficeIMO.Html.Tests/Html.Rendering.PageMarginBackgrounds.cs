@@ -11,11 +11,11 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("color:color(from blue srgb r g b);background-color:currentcolor", "color")]
     public void HtmlPageMarginBackgrounds_UnsupportedColorsRetainTheirTypedLossContract(string declaration, string property) {
         HtmlRenderDocument rendered = RenderMarginSizing(300D, "@top-center{content:'A';" + declaration + "}");
-        var diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.ColorValueUnsupported);
+        var diagnostic = Assert.Single(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.ColorValueUnsupported);
         Assert.Equal("@page @top-center", diagnostic.Source);
         Assert.Equal(property + "=color(from blue srgb r g b)", diagnostic.Detail);
         Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
-        Assert.ThrowsAny<InvalidOperationException>(() => rendered.RequireNoLoss());
+        Assert.ThrowsAny<InvalidOperationException>(() => rendered.ThrowIfLoss());
     }
 
     [Theory]
@@ -42,7 +42,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Contains(box.Visuals, visual => visual is HtmlRenderText);
         }
         Assert.Equal("BODY", rendered.Text.Trim());
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -58,7 +58,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderSemanticGroup box = PageMarginGeometryBox(page, "top-center");
         Assert.Empty(box.Visuals.OfType<HtmlRenderShape>());
         Assert.Contains(page.Scene.OfType<HtmlRenderShape>(), shape => shape.Shape.FillColor == OfficeColor.Blue);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -70,7 +70,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderSemanticGroup box = PageMarginGeometryBox(Assert.Single(rendered.Pages), "top-center");
         HtmlRenderShape fill = Assert.Single(box.Visuals.OfType<HtmlRenderShape>());
         Assert.Equal(inherits ? OfficeColor.Blue : OfficeColor.Red, fill.Shape.FillColor);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -91,7 +91,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(height, fill.Height, 6);
         Assert.IsType<HtmlRenderShape>(box.Visuals.First());
         Assert.Contains(box.Visuals.OfType<HtmlRenderShape>(), shape => shape.Shape.StrokeColor == OfficeColor.Green);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -101,7 +101,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = RenderMarginSizing(300D,
             "@top-center{content:" + content + ";height:20px;background:red}");
         Assert.DoesNotContain(Assert.Single(rendered.Pages).Scene.OfType<HtmlRenderSemanticGroup>(), group => group.Source == "@page @top-center");
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -111,7 +111,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = RenderMarginSizing(300D,
             "@top-center{content:'';background:red;" + dimensions + "}");
         Assert.Empty(PageMarginGeometryBox(Assert.Single(rendered.Pages), "top-center").Visuals);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -121,6 +121,6 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderSemanticGroup box = PageMarginGeometryBox(Assert.Single(rendered.Pages), "top-center");
         Assert.Equal(2, EnumerateRenderVisuals(box.Visuals).OfType<HtmlRenderShape>().Count());
         Assert.Empty(EnumerateRenderVisuals(box.Visuals).OfType<HtmlRenderText>());
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 }

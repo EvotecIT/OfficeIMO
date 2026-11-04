@@ -14,7 +14,7 @@ public sealed class PublisherRetiredImageSlotTests {
         Assert.True(OfficeCompoundFileReader.TryRead(original, out OfficeCompoundFile? compound, out string? error), error);
         byte[] source = compound!.Streams["Escher/EscherStm"];
         var data = new PublisherBinaryData(source, "Escher/EscherStm");
-        var context = new PublisherParseContext(new PublisherReadOptions(), default);
+        var context = new PublisherParseContext(new PublisherLoadOptions(), default);
         var reader = new PublisherEscherReader(data, null, context);
         PublisherEscherRecord group = reader.Records(0, source.Length).Single(record => record.Kind == 0xF000);
         PublisherEscherRecord store = reader.Records(group.Offset, group.End).Single(record => record.Kind == 0xF001);
@@ -33,7 +33,7 @@ public sealed class PublisherRetiredImageSlotTests {
         byte[] input = OfficeCompoundFileWriter.Rewrite(compound, new Dictionary<string, byte[]> { ["Escher/EscherStm"] = artwork! });
         Assert.True(input.Length < copies * 200, "The encoded input must fit below the repeated stale-payload work.");
         var exception = Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(input,
-            new PublisherReadOptions { Limits = new OfficeLegacyImportLimits { MaxInputBytes = input.Length } }));
+            new PublisherLoadOptions { Limits = new OfficeLegacyImportLimits { MaxInputBytes = input.Length } }));
         Assert.Contains("image processing byte limit", exception.Message);
     }
 
@@ -42,14 +42,14 @@ public sealed class PublisherRetiredImageSlotTests {
         PublisherDocument document = PublisherDocument.Load(PublisherNativeTests.Fixture(Fixture));
         Assert.DoesNotContain(document.Images, image => image.Id == 1);
         Assert.Equal(new[] { 2, 3, 4 }, document.Images.Select(image => image.Id));
-        Assert.Contains(document.SourceReadReport.FidelityDiagnostics, diagnostic => diagnostic.Code == "PUB_IMAGE_RETIRED_SLOT"
+        Assert.Contains(document.SourceReadReport.Diagnostics, diagnostic => diagnostic.Code == "PUB_IMAGE_RETIRED_SLOT"
             && diagnostic.LossKind == OfficeConversionLossKind.None && diagnostic.Location == "Escher/image/1");
         PublisherPicture picture = document.Pages[0].Pictures[0];
         byte[] replacement = PublisherPictureEditingFixture.Image(OfficeColor.Red, 16, 24);
         document.ReplacePictureImage(picture.Id, replacement);
         PublisherPicture current = document.Pages[0].Pictures[0];
         Assert.Equal(5, current.ImageId);
-        PublisherDocument reopened = PublisherDocument.Load(document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        PublisherDocument reopened = PublisherDocument.Load(document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         PublisherPicture saved = reopened.Pages[0].Pictures[0];
         Assert.Equal(picture.Id, saved.Id); Assert.Equal(5, saved.ImageId);
         Assert.Equal(replacement, reopened.Images.Single(image => image.Id == saved.ImageId).GetBytes());
@@ -67,7 +67,7 @@ public sealed class PublisherRetiredImageSlotTests {
             1, fixture: Fixture, objectId: 298);
         else input = PublisherInputContractTests.Mutate("Escher/EscherStm", bytes => {
             var data = new PublisherBinaryData(bytes, "Escher/EscherStm");
-            var reader = new PublisherEscherReader(data, null, new PublisherParseContext(new PublisherReadOptions(), default));
+            var reader = new PublisherEscherReader(data, null, new PublisherParseContext(new PublisherLoadOptions(), default));
             if (reference == "counter") {
                 PublisherEscherRecord group = reader.Records(0, bytes.Length).Single(record => record.Kind == 0xF000);
                 PublisherEscherRecord store = reader.Records(group.Offset, group.End).Single(record => record.Kind == 0xF001);

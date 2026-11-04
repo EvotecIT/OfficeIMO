@@ -139,8 +139,8 @@ internal static partial class IWorkTableReader {
                 "An iWork table declares dimensions or default sizing with an unsupported wire encoding; editable reconstruction is incomplete.",
                 model.EntryPath, model.Identifier));
         }
-        int rows = CheckedDimension(message.GetUnsigned(6), source.Options.MaximumTableRows, "row", model);
-        int columns = CheckedDimension(message.GetUnsigned(7), source.Options.MaximumTableColumns, "column", model);
+        int rows = CheckedDimension(message.GetUnsigned(6), source.Options.MaxTableRows, "row", model);
+        int columns = CheckedDimension(message.GetUnsigned(7), source.Options.MaxTableColumns, "column", model);
         bool ordinaryLayout = AssessGrouping(source, model, message, projectionBudget, references, diagnostics, ref supportsEditableReconstruction);
         AssessVisibilityCounts(source, model, message, rows, columns, references,
             diagnostics, ref supportsEditableReconstruction);
@@ -178,7 +178,7 @@ internal static partial class IWorkTableReader {
         double? defaultRowHeight = ValidDimension(declaredRowHeight);
         double? defaultColumnWidth = ValidDimension(declaredColumnWidth);
         IReadOnlyList<IWorkTableMergeRange> mergedRanges = ReadMergedRanges(source, message, rows, columns,
-            source.Options.MaximumTableMergedRanges, source.Options.MaximumFormulaNodes,
+            source.Options.MaxTableMergedRanges, source.Options.MaxFormulaNodes,
             model, references, diagnostics, ref supportsEditableReconstruction);
         bool? autoResizeRows = ReadTableStyleSettings(index, model, message, projectionBudget, references,
             diagnostics, ref supportsEditableReconstruction, out bool fillDefaultsSupported, out IWorkCellFill? bandedBodyFill);
@@ -256,7 +256,7 @@ internal static partial class IWorkTableReader {
                 || store.HasUnexpectedWireKind(3, IWorkWireKind.Bytes)
                     ? -1
                     : IWorkProtobuf.CountFields(tileStorageBytes, 1,
-                        source.Options.MaximumProtobufFieldCount);
+                        source.Options.MaxProtobufFieldCount);
         } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             declaredTileCount = -1;
         }
@@ -446,8 +446,8 @@ internal static partial class IWorkTableReader {
                         formulaRichStringIdentifiers, nonFormulaRichStringIdentifiers);
                     if (cell.Kind == IWorkCellKind.Empty && !cell.HasCellFormatting && cell.Comment == null
                         && cell.UnsupportedFeatures == IWorkCellUnsupportedFeatures.None) continue;
-                    if (materializedCellCount >= source.Options.MaximumMaterializedCells) {
-                        throw new InvalidDataException($"iWork cell count exceeds the configured source-wide limit of {source.Options.MaximumMaterializedCells}.");
+                    if (materializedCellCount >= source.Options.MaxMaterializedCells) {
+                        throw new InvalidDataException($"iWork cell count exceeds the configured source-wide limit of {source.Options.MaxMaterializedCells}.");
                     }
                     long coordinate = ((long)cell.Row << 32) | (uint)cell.Column;
                     if (!coordinates.Add(coordinate)) {

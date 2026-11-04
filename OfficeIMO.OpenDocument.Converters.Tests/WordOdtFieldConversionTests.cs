@@ -22,7 +22,7 @@ public sealed class WordOdtFieldConversionTests {
         paragraph.AddField(WordFieldType.NumPages);
         paragraph.Field!.Text = "12";
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         OdtDocument reopened = OdtDocument.Load(new MemoryStream(conversion.Value.ToBytes()));
         OdtParagraph result = Assert.Single(reopened.Paragraphs);
         Assert.Equal("Page 3 of 12", result.Text);
@@ -32,7 +32,7 @@ public sealed class WordOdtFieldConversionTests {
             mapping.Status == OdfConversionMappingStatus.Converted && mapping.Count == 2);
         Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "fields" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
-        source.ToOpenDocumentResult(new WordOpenDocumentConversionOptions {
+        source.ConvertToOpenDocumentWithEvidence(new WordOpenDocumentConversionOptions {
             LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss });
     }
 
@@ -46,7 +46,7 @@ public sealed class WordOdtFieldConversionTests {
             new SimpleField(new Run(new Text("09:30"))) { Instruction = " TIME ", FieldLock = true },
             new SimpleField(new Run(new Text("12"))) { Instruction = " NUMPAGES ", FieldLock = true });
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         OdtParagraph result = Assert.Single(conversion.Value.Paragraphs);
         Assert.Equal(new[] { OdtFieldKind.PageNumber, OdtFieldKind.Date, OdtFieldKind.Time },
             result.Fields.Select(field => field.Kind));
@@ -65,7 +65,7 @@ public sealed class WordOdtFieldConversionTests {
             new XElement(text + "meta", new XElement(text + "page-number", "7")));
         source.Package.MarkXmlDirty("content.xml");
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "source-text-fields" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
     }
@@ -80,7 +80,7 @@ public sealed class WordOdtFieldConversionTests {
             new SimpleField(new Run(new Text("7"))) { Instruction = " PAGE " },
             new Run(new Text(" after") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }));
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         OdtNote converted = Assert.Single(conversion.Value.Paragraphs.Single().Notes);
         Assert.Equal("Before 7 after", converted.Paragraphs.Single().Text);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "fields" &&
@@ -99,13 +99,13 @@ public sealed class WordOdtFieldConversionTests {
             new Run(new Text("Accepted")),
             new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         OdtParagraph result = Assert.Single(conversion.Value.Paragraphs);
         Assert.Equal("Accepted", result.Text);
         Assert.Empty(result.Fields);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "fields" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 2);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -124,7 +124,7 @@ public sealed class WordOdtFieldConversionTests {
             new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
         Assert.Same(instruction._paragraph.Ancestors().Last(), resultParagraph._paragraph.Ancestors().Last());
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         OdtParagraph result = conversion.Value.Paragraphs.Last();
         Assert.Equal("Accepted", result.Text);
         Assert.Empty(result.Fields);
@@ -144,7 +144,7 @@ public sealed class WordOdtFieldConversionTests {
             new SimpleField(new Run(new Text("5"))) { Instruction = " PAGE " },
             new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         OdtParagraph result = Assert.Single(conversion.Value.Paragraphs);
         Assert.Equal("Page 5", result.Text);
         Assert.Empty(result.Fields);
@@ -162,7 +162,7 @@ public sealed class WordOdtFieldConversionTests {
         OdtField fixedPage = paragraph.AddField(OdtFieldKind.PageNumber, "4");
         fixedPage.IsFixed = true;
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument target = conversion.Value;
         using var stream = new MemoryStream();
         target.Save(stream);
@@ -174,7 +174,7 @@ public sealed class WordOdtFieldConversionTests {
         Assert.True(fields[2].IsLocked);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "fields" &&
             mapping.Status == OdfConversionMappingStatus.Converted && mapping.Count == 3);
-        using WordDocument strict = source.ToWordDocumentResult(new WordOpenDocumentConversionOptions {
+        using WordDocument strict = source.ConvertToWordWithEvidence(new WordOpenDocumentConversionOptions {
             LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }).Value;
     }
 
@@ -185,7 +185,7 @@ public sealed class WordOdtFieldConversionTests {
         var text = (System.Xml.Linq.XNamespace)"urn:oasis:names:tc:opendocument:xmlns:text:1.0";
         Assert.Empty(source.Package.GetXml("content.xml").Descendants(text + "date").Single().Elements());
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult(
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss });
         using WordDocument word = conversion.Value;
         Assert.Equal("September 25, 2026", Assert.Single(word.InspectFields()).ResultText);
@@ -201,12 +201,12 @@ public sealed class WordOdtFieldConversionTests {
         date.SetAttributeValue(text + "fixed", "1");
         source.Package.MarkXmlDirty("content.xml");
 
-        using WordDocument word = source.ToWordDocumentResult(
+        using WordDocument word = source.ConvertToWordWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }).Value;
         Assert.True(Assert.Single(word.InspectFields()).IsLocked);
 
         date.SetAttributeValue(text + "fixed", "0");
-        using WordDocument dynamicWord = source.ToWordDocumentResult(
+        using WordDocument dynamicWord = source.ConvertToWordWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }).Value;
         Assert.False(Assert.Single(dynamicWord.InspectFields()).IsLocked);
     }
@@ -216,7 +216,7 @@ public sealed class WordOdtFieldConversionTests {
         OdtDocument source = OdtDocument.Create();
         source.AddParagraph().AddField(OdtFieldKind.Date, "  September 25  ");
 
-        using WordDocument word = source.ToWordDocumentResult().Value;
+        using WordDocument word = source.ConvertToWordWithEvidence().Value;
         using var output = new MemoryStream();
         word.Save(output);
         using WordDocument reopened = WordDocument.Load(new MemoryStream(output.ToArray()));
@@ -230,12 +230,12 @@ public sealed class WordOdtFieldConversionTests {
         paragraph.TextTransform = OdfTextTransform.Lowercase;
         paragraph.AddField(OdtFieldKind.Date, "TODAY");
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument word = conversion.Value;
         Assert.Equal("today", Assert.Single(word.InspectFields()).ResultText);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "inline-formatting" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
-        Assert.Throws<OdfConversionLossException>(() => source.ToWordDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToWordWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -248,7 +248,7 @@ public sealed class WordOdtFieldConversionTests {
         paragraph.FontSize = OdfLength.Points(14);
         paragraph.AddField(OdtFieldKind.PageNumber, "3");
 
-        using WordDocument word = source.ToWordDocumentResult(
+        using WordDocument word = source.ConvertToWordWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }).Value;
         Run run = word.OpenXmlDocument.MainDocumentPart!.Document!.Body!
             .Descendants<SimpleField>().Single().Elements<Run>().Single();
@@ -266,7 +266,7 @@ public sealed class WordOdtFieldConversionTests {
         source.Package.MarkXmlDirty("content.xml");
 
         Assert.True(field.IsBasic);
-        using WordDocument word = source.ToWordDocumentResult(
+        using WordDocument word = source.ConvertToWordWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }).Value;
         Assert.Equal("Today", Assert.Single(word.InspectFields()).ResultText);
     }
@@ -283,7 +283,7 @@ public sealed class WordOdtFieldConversionTests {
             .SetAttributeValue(text + "page-adjust", "1");
         source.Package.MarkXmlDirty("content.xml");
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument word = conversion.Value;
         Run run = word.OpenXmlDocument.MainDocumentPart!.Document!.Body!.Descendants<Run>()
             .Single(item => item.InnerText == "7");
@@ -302,7 +302,7 @@ public sealed class WordOdtFieldConversionTests {
             Instruction = " PAGE "
         });
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Equal("A\tB\nC", Assert.Single(conversion.Value.Paragraphs).Text);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "fields" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
@@ -321,7 +321,7 @@ public sealed class WordOdtFieldConversionTests {
             Instruction = " NUMPAGES "
         });
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Equal("Page 7 of 12", Assert.Single(conversion.Value.Paragraphs).Text);
         Assert.Contains(conversion.Report.Mappings, mapping =>
             mapping.Feature == "field-result-formatting" &&
@@ -329,7 +329,7 @@ public sealed class WordOdtFieldConversionTests {
         Assert.Contains(conversion.Report.Mappings, mapping =>
             mapping.Feature == "fields" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -347,12 +347,12 @@ public sealed class WordOdtFieldConversionTests {
         content.Descendants(text + "date").Single().SetAttributeValue(text + "date-value", "2026-09-25");
         source.Package.MarkXmlDirty("content.xml");
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument word = conversion.Value;
         Assert.Equal(2, word.InspectFields().Count);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "fields" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
-        Assert.Throws<OdfConversionLossException>(() => source.ToWordDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToWordWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -370,11 +370,11 @@ public sealed class WordOdtFieldConversionTests {
                         new System.Xml.Linq.XElement(text + "page-number", "2"))))));
         source.Package.MarkXmlDirty("content.xml");
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument word = conversion.Value;
         Assert.Equal("2", Assert.Single(word.InspectFields()).ResultText);
         Assert.False(conversion.Report.HasLoss);
-        using WordDocument strict = source.ToWordDocumentResult(
+        using WordDocument strict = source.ConvertToWordWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }).Value;
     }
 
@@ -391,11 +391,11 @@ public sealed class WordOdtFieldConversionTests {
                     new System.Xml.Linq.XElement(text + "page-number", "2")))));
         source.Package.MarkXmlDirty("content.xml");
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument word = conversion.Value;
         Assert.Equal("2", Assert.Single(word.InspectFields()).ResultText);
         Assert.False(conversion.Report.HasLoss);
-        using WordDocument strict = source.ToWordDocumentResult(
+        using WordDocument strict = source.ConvertToWordWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }).Value;
     }
 
@@ -407,13 +407,13 @@ public sealed class WordOdtFieldConversionTests {
             new Run(new Text("See ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
             new SimpleField(new Run(new Text("5"))) { Instruction = " PAGE " }) { Anchor = "section" });
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Equal("See 5", Assert.Single(conversion.Value.Paragraphs).Text);
         OdtHyperlink fieldLink = Assert.Single(conversion.Value.Paragraphs.Single().Hyperlinks, link => link.Text == "5");
         Assert.Equal("#section", fieldLink.Href);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "fields" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -426,7 +426,7 @@ public sealed class WordOdtFieldConversionTests {
             new SimpleField(new Run(new Text("5"))) { Instruction = " PAGE " },
             new Run(new Text(" after") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve })));
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Equal("Before 5 after", Assert.Single(conversion.Value.Paragraphs).Text);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "fields" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
@@ -441,7 +441,7 @@ public sealed class WordOdtFieldConversionTests {
                 Instruction = " PAGE "
             });
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Equal("Page 5", Assert.Single(conversion.Value.Paragraphs).Text);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "fields" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
@@ -456,11 +456,11 @@ public sealed class WordOdtFieldConversionTests {
             new SimpleField(new Run(new Text("5"))) { Instruction = " PAGE " },
             new Run(new Text(" today") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }))));
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Equal("Page 5 today", Assert.Single(conversion.Value.Paragraphs).Text);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "fields" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -473,7 +473,7 @@ public sealed class WordOdtFieldConversionTests {
                 new Run(new Text("Page ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
                 new SimpleField(new Run(new Text("5"))) { Instruction = " PAGE " }))));
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Equal("Page 5", Assert.Single(conversion.Value.Paragraphs).Text);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "fields" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
@@ -487,7 +487,7 @@ public sealed class WordOdtFieldConversionTests {
             new SdtRun(new SdtContentRun(new Run(new Text("A")))),
             new SimpleField(new Run(new Text("5"))) { Instruction = " PAGE " }) { Anchor = "section" });
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Equal("A5", Assert.Single(conversion.Value.Paragraphs).Text);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "fields" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
@@ -505,7 +505,7 @@ public sealed class WordOdtFieldConversionTests {
             new Run(new Text("Visible")),
             new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
 
         Assert.Equal("Visible", Assert.Single(conversion.Value.Paragraphs).Text);
     }
@@ -521,7 +521,7 @@ public sealed class WordOdtFieldConversionTests {
             new Run(new Text("Visible")),
             new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.DoesNotContain(conversion.Value.Paragraphs, paragraph => paragraph.Text.Contains("Hidden instruction"));
         Assert.Contains(conversion.Value.Paragraphs, paragraph => paragraph.Text.Contains("Visible"));
     }
@@ -543,7 +543,7 @@ public sealed class WordOdtFieldConversionTests {
                 new XElement(text + "date", "Drawing date")))));
         source.Package.MarkXmlDirty("content.xml");
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument target = conversion.Value;
         Hyperlink linkedField = Assert.Single(target._wordprocessingDocument.MainDocumentPart!.Document!.Body!
             .Descendants<Hyperlink>());
@@ -554,7 +554,7 @@ public sealed class WordOdtFieldConversionTests {
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "source-text-fields" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
-        Assert.Throws<OdfConversionLossException>(() => source.ToWordDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToWordWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -564,11 +564,11 @@ public sealed class WordOdtFieldConversionTests {
         WordParagraph paragraph = word.AddParagraph();
         paragraph.AddField(WordFieldType.Ref);
         paragraph.Field!.Text = "Reference text";
-        OdfConversionResult<OdtDocument> toOdt = word.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> toOdt = word.ConvertToOpenDocumentWithEvidence();
         Assert.Equal("Reference text", Assert.Single(toOdt.Value.Paragraphs).Text);
         Assert.Contains(toOdt.Report.Mappings, mapping => mapping.Feature == "fields" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
-        Assert.Throws<OdfConversionLossException>(() => word.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => word.ConvertToOpenDocumentWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
 
         OdtDocument odt = OdtDocument.Create();
@@ -577,13 +577,13 @@ public sealed class WordOdtFieldConversionTests {
         odt.Package.GetXml("content.xml").Descendants(text + "page-number").Single()
             .SetAttributeValue(text + "page-adjust", "1");
         odt.Package.MarkXmlDirty("content.xml");
-        OdfConversionResult<WordDocument> toWord = odt.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> toWord = odt.ConvertToWordWithEvidence();
         using WordDocument target = toWord.Value;
         Assert.Contains(toWord.Report.Mappings, mapping => mapping.Feature == "fields" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
         Assert.DoesNotContain(toWord.Report.Mappings, mapping => mapping.Feature == "source-text-fields");
         Assert.Empty(target.InspectFields());
-        Assert.Throws<OdfConversionLossException>(() => odt.ToWordDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => odt.ConvertToWordWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 }

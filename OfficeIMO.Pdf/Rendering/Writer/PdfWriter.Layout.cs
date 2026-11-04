@@ -15,7 +15,7 @@ internal static partial class PdfWriter {
         public double ColumnWidth;
     }
     private sealed class ColPar : ColItem { public RichParagraphBlock Block = null!; public System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines = null!; public System.Collections.Generic.List<double> Heights = null!; public double Leading; public double Size; public double XOffset; public double TextWidth; public double FirstLineXOffset; public double FirstLineTextWidth; public ColPar() { Kind = "P"; } }
-    private sealed class ColHead : ColItem { public HeadingBlock Block = null!; public System.Collections.Generic.IReadOnlyList<PdfTextRun> Runs = null!; public System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines = null!; public System.Collections.Generic.List<double> Heights = null!; public double Leading; public double Size; public double SpacingBefore; public double SpacingAfter; public bool Bold; public bool ApplySpacingBeforeAtTop; public bool KeepWithNext; public PdfColor? Color; public ColHead() { Kind = "H"; } }
+    private sealed class ColHead : ColItem { public HeadingBlock Block = null!; public System.Collections.Generic.IReadOnlyList<PdfTextRun> Runs = null!; public System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines = null!; public System.Collections.Generic.List<double> Heights = null!; public double Leading; public double Size; public double SpacingBefore; public double SpacingAfter; public bool Bold; public bool ApplySpacingBeforeAtTop; public bool KeepWithNext; public global::OfficeIMO.OfficeColor? Color; public ColHead() { Kind = "H"; } }
     private sealed class ColRule : ColItem { public HorizontalRuleBlock Block = null!; public ColRule() { Kind = "R"; } }
     private sealed class ColImg : ColItem { public ImageBlock Block = null!; public PdfImageStyle Style = null!; public double Width; public double Height; public ColImg() { Kind = "I"; } }
     private sealed class ColShape : ColItem { public ShapeBlock Block = null!; public ColShape() { Kind = "S"; } }
@@ -35,23 +35,25 @@ internal static partial class PdfWriter {
         public PdfNamedFontFace? MarkerNamedFont;
         public OfficeTextFeatureSettings? MarkerFeatureSettings;
         public double MarkerSize;
-        public PdfColor? MarkerColor;
+        public global::OfficeIMO.OfficeColor? MarkerColor;
         public double MarkerXOffset;
         public double MarkerWidth;
-        public PdfAlign MarkerAlign;
+        public OfficeAlignment MarkerAlign;
         public double TextXOffset;
         public double TextWidth;
-        public PdfAlign TextAlign;
-        public PdfColor? Color;
+        public OfficeAlignment TextAlign;
+        public global::OfficeIMO.OfficeColor? Color;
         public double Leading;
         public double Size;
         public double SpacingBefore;
         public double SpacingAfter;
         public string? BookmarkName;
+        public IReadOnlyList<string> BookmarkAliases = Array.Empty<string>();
         public int ListGroupId;
         public bool KeepTogether;
         public bool IsFirstInKeepGroup;
         public double KeepGroupHeight;
+        public int KeepGroupItemCount;
         public bool KeepWithNext;
         public bool IsFirstInKeepWithNextGroup;
         public int KeepWithNextGroupItemCount;
@@ -65,7 +67,7 @@ internal static partial class PdfWriter {
     private sealed class ColTable : ColItem { public PreparedFlowTableRows PreparedRows = null!; public TableSpanFlow SpanFlow = null!; public int PendingSpanTailRow = -1; public TableBlock Block = null!; public PdfTableStyle Style = null!; public int Columns; public double[] ColumnWidths = null!; public TableCellTextLayout[][] RowLines = null!; public int[] RowLineCounts = null!; public double[] RowHeights = null!; public double[] RowLeadings = null!; public double[] RowSizes = null!; public double[] RowRunFontSizeScales = null!; public bool[] RowBold = null!; public double Width; public double Size; public int HeaderRowCount; public int RepeatHeaderRowCount; public int FooterStartRowIndex; public System.Collections.Generic.IReadOnlyList<PdfTextRun>? CaptionRuns; public System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>>? CaptionLines; public System.Collections.Generic.List<double>? CaptionLineHeights; public double CaptionLeading; public double CaptionHeight; public ColTable() { Kind = "T"; } }
     private sealed class TableColumnLayout { public double[] Widths = null!; public double Width; }
     private sealed class TableCellTextLayout {
-        public TableCellTextLayout(System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, System.Collections.Generic.List<PdfAlign?>? lineAlignments = null, System.Collections.Generic.List<double>? lineXOffsets = null, System.Collections.Generic.List<double>? lineWidths = null, double topSpacing = 0D, System.Collections.Generic.List<double>? lineBoxHeights = null, System.Collections.Generic.List<TableCellParagraphRange>? paragraphRanges = null) {
+        public TableCellTextLayout(System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, System.Collections.Generic.List<OfficeAlignment?>? lineAlignments = null, System.Collections.Generic.List<double>? lineXOffsets = null, System.Collections.Generic.List<double>? lineWidths = null, double topSpacing = 0D, System.Collections.Generic.List<double>? lineBoxHeights = null, System.Collections.Generic.List<TableCellParagraphRange>? paragraphRanges = null) {
             Lines = lines;
             LineHeights = lineHeights;
             LineHeightPrefix = new double[lineHeights.Count + 1];
@@ -83,7 +85,7 @@ internal static partial class PdfWriter {
         public System.Collections.Generic.List<double> LineHeights { get; }
         public double[] LineHeightPrefix { get; }
         public System.Collections.Generic.List<double> LineBoxHeights { get; }
-        public System.Collections.Generic.List<PdfAlign?>? LineAlignments { get; }
+        public System.Collections.Generic.List<OfficeAlignment?>? LineAlignments { get; }
         public System.Collections.Generic.List<double>? LineXOffsets { get; }
         public System.Collections.Generic.List<double>? LineWidths { get; }
         public double TopSpacing { get; }
@@ -135,7 +137,7 @@ internal static partial class PdfWriter {
 
     private static LayoutResult LayoutBlocks(
         IEnumerable<IPdfBlock> blocks,
-        PdfOptions opts,
+        PdfCreateOptions opts,
         System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         var blockList = blocks as IReadOnlyList<IPdfBlock> ?? blocks.ToList();

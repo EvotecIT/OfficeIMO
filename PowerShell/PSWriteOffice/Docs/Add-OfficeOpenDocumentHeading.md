@@ -9,7 +9,7 @@ schema: 2.0.0
 Adds a heading to an OpenDocument text document.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Add-OfficeOpenDocumentHeading [-Text] <string> [-Document <OdtDocument>] [-Level <int>] [-PassThru] [<CommonParameters>]
 ```
@@ -32,7 +32,7 @@ OpenDocument text document. Omit inside New-OfficeOpenDocument -Content.
 
 ```yaml
 Type: OdtDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -48,7 +48,7 @@ Heading level from 1 through 10.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -64,7 +64,7 @@ Emit the created heading paragraph.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -80,7 +80,7 @@ Heading text.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

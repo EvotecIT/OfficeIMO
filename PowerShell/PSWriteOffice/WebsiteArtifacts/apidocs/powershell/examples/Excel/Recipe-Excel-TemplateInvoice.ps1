@@ -1,7 +1,7 @@
 $template = '.\Invoice-Template.xlsx'
 $invoice = '.\Invoice-1042.xlsx'
 
-ExcelNew -Path $template {
+New-OfficeExcel -Path $template {
     ExcelSheet 'Invoice' {
         ExcelCell -Address A1 -Value 'Invoice {{Number}}'
         ExcelCell -Address A3 -Value 'Customer: {{Customer}}'

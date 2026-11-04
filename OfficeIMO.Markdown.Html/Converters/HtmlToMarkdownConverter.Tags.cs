@@ -65,13 +65,13 @@ internal sealed partial class HtmlToMarkdownConverter {
 
     private static IEnumerable<IMarkdownBlock> ConvertUnknownElementToBlocks(IElement element, ConversionContext context) {
         switch (context.Options.UnknownBlockHandling) {
-            case HtmlUnknownTagHandling.Drop:
+            case MarkdownHtmlUnknownTagHandling.Drop:
                 return Array.Empty<IMarkdownBlock>();
-            case HtmlUnknownTagHandling.Bypass:
+            case MarkdownHtmlUnknownTagHandling.Bypass:
                 return ConvertUnknownElementChildrenToBlocks(element, context);
-            case HtmlUnknownTagHandling.Raise:
+            case MarkdownHtmlUnknownTagHandling.Raise:
                 throw new NotSupportedException($"Unsupported HTML block element '{element.TagName}' cannot be converted to Markdown.");
-            case HtmlUnknownTagHandling.Preserve:
+            case MarkdownHtmlUnknownTagHandling.Preserve:
             default:
                 if (context.Options.PreserveUnsupportedBlocks) {
                     return new IMarkdownBlock[] { new HtmlRawBlock(NormalizeRawElement(element, context)) };
@@ -100,27 +100,27 @@ internal sealed partial class HtmlToMarkdownConverter {
             return;
         }
 
-        if (!IsInlineElement(element, context) && context.Options.UnknownInlineHandling == HtmlUnknownTagHandling.Preserve) {
+        if (!IsInlineElement(element, context) && context.Options.UnknownInlineHandling == MarkdownHtmlUnknownTagHandling.Preserve) {
             switch (context.Options.UnknownBlockHandling) {
-                case HtmlUnknownTagHandling.Drop:
+                case MarkdownHtmlUnknownTagHandling.Drop:
                     return;
-                case HtmlUnknownTagHandling.Bypass:
+                case MarkdownHtmlUnknownTagHandling.Bypass:
                     AppendInlineElementChildren(sequence, element, context);
                     return;
-                case HtmlUnknownTagHandling.Raise:
+                case MarkdownHtmlUnknownTagHandling.Raise:
                     throw new NotSupportedException($"Unsupported HTML inline element '{element.TagName}' cannot be converted to Markdown.");
             }
         }
 
         switch (context.Options.UnknownInlineHandling) {
-            case HtmlUnknownTagHandling.Drop:
+            case MarkdownHtmlUnknownTagHandling.Drop:
                 return;
-            case HtmlUnknownTagHandling.Bypass:
+            case MarkdownHtmlUnknownTagHandling.Bypass:
                 AppendInlineElementChildren(sequence, element, context);
                 return;
-            case HtmlUnknownTagHandling.Raise:
+            case MarkdownHtmlUnknownTagHandling.Raise:
                 throw new NotSupportedException($"Unsupported HTML inline element '{element.TagName}' cannot be converted to Markdown.");
-            case HtmlUnknownTagHandling.Preserve:
+            case MarkdownHtmlUnknownTagHandling.Preserve:
             default:
                 if (context.Options.PreserveUnsupportedInlineHtml) {
                     sequence.AddRaw(new HtmlRawInline(NormalizeRawElement(element, context)));
@@ -138,13 +138,13 @@ internal sealed partial class HtmlToMarkdownConverter {
         }
 
         switch (context.Options.UnknownInlineHandling) {
-            case HtmlUnknownTagHandling.Drop:
+            case MarkdownHtmlUnknownTagHandling.Drop:
                 return string.Empty;
-            case HtmlUnknownTagHandling.Bypass:
+            case MarkdownHtmlUnknownTagHandling.Bypass:
                 return ConvertInlineNodesToMarkdown(element.ChildNodes, context);
-            case HtmlUnknownTagHandling.Raise:
+            case MarkdownHtmlUnknownTagHandling.Raise:
                 throw new NotSupportedException($"Unsupported HTML inline element '{element.TagName}' cannot be converted to Markdown.");
-            case HtmlUnknownTagHandling.Preserve:
+            case MarkdownHtmlUnknownTagHandling.Preserve:
             default:
                 return context.Options.PreserveUnsupportedInlineHtml
                     ? element.OuterHtml

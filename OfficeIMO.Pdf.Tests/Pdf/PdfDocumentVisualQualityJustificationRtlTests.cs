@@ -10,7 +10,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void CharacterJustificationDistributesDistinctRtlGlyphsWithoutChangingTheirVisualOrder() {
         const string text = "\u05D0\u05D1\u05D2\u05D3";
-        PdfOptions options = JustificationPolicyOptions().UseFontFamily(new PdfEmbeddedFontFamily("Rtl Distribution",
+        PdfCreateOptions options = JustificationPolicyOptions().UseFontFamily(new PdfEmbeddedFontFamily("Rtl Distribution",
             ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 0x05D0, 0x05D1, 0x05D2, 0x05D3)));
         options.TextShapingMode = PdfTextShapingMode.UnicodeScalar;
         var runs = new[] { new PdfTextRun(text).WithTextDirection(OfficeTextDirection.RightToLeft) };

@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BinaryImport_ResolvesNotesIdThroughNotesDirectory() {
-            LegacyPptPresentation legacy = LegacyPptPresentation.Load(FixturePath);
+            LegacyPptDocument legacy = LegacyPptDocument.Load(FixturePath);
             LegacyPptSlide[] slidesWithNotes = legacy.Slides
                 .Where(slide => slide.NotesId != 0)
                 .ToArray();
@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
         public void NativeWriter_AuthorsAndProjectsEditableSpeakerNotes() {
             const string expected = "First note line\nSecond note line";
             byte[] bytes;
-            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide();
                 slide.Notes.Text = expected;
                 slide.SlidePart.NotesSlidePart!.NotesSlide!
@@ -43,10 +43,10 @@ namespace OfficeIMO.Tests {
                 Assert.True(source.AnalyzeLegacyPptWrite().CanWrite);
                 Assert.DoesNotContain(source.AnalyzeLegacyPptWrite().Findings,
                     finding => finding.Code == "PPT-WRITE-NOTES");
-                bytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument legacy = LegacyPptDocument.Load(bytes);
             LegacyPptSlide binarySlide = Assert.Single(legacy.Slides);
             LegacyPptNotesPage page = Assert.IsType<LegacyPptNotesPage>(
                 binarySlide.NotesPage);
@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests {
                 shape => shape.PlaceholderKind == LegacyPptPlaceholderKind.NotesBody);
 
             using var input = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation projected = PowerPointPresentation.Load(input);
+            using PowerPointDocument projected = PowerPointDocument.Load(input);
             Assert.Equal(expected, Normalize(projected.Slides[0].Notes.Text));
             Assert.False(projected.Slides[0].SlidePart.NotesSlidePart!
                 .NotesSlide!.ShowMasterShapes!.Value);
@@ -69,25 +69,25 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ImportedBinaryNotesEdit_AppendsPreservingIncrementalRecord() {
             byte[] sourceBytes;
-            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide();
                 slide.Notes.Text = "Original speaker note";
-                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation original = LegacyPptPresentation.Load(sourceBytes);
+            LegacyPptDocument original = LegacyPptDocument.Load(sourceBytes);
 
             byte[] savedBytes;
             using (var input = new MemoryStream(sourceBytes, writable: false))
-            using (PowerPointPresentation imported = PowerPointPresentation.Load(input)) {
+            using (PowerPointDocument imported = PowerPointDocument.Load(input)) {
                 imported.Slides[0].Notes.Text =
                     "Updated speaker note with a longer body";
                 imported.Slides[0].SlidePart.NotesSlidePart!.NotesSlide!
                     .ShowMasterShapes = false;
                 Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
-                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
+            LegacyPptDocument saved = LegacyPptDocument.Load(savedBytes);
             Assert.Equal("Updated speaker note with a longer body",
                 saved.Slides[0].NotesText);
             Assert.False(saved.Slides[0].NotesPage!.FollowsMasterObjects);
@@ -97,8 +97,8 @@ namespace OfficeIMO.Tests {
 
             using var reopenedInput = new MemoryStream(savedBytes,
                 writable: false);
-            using PowerPointPresentation reopened =
-                PowerPointPresentation.Load(reopenedInput);
+            using PowerPointDocument reopened =
+                PowerPointDocument.Load(reopenedInput);
             Assert.False(reopened.Slides[0].SlidePart.NotesSlidePart!
                 .NotesSlide!.ShowMasterShapes!.Value);
             Assert.Empty(reopened.ValidateDocument());

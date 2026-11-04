@@ -9,26 +9,30 @@ using System.Net;
 namespace OfficeIMO.OneNote.Html;
 
 internal static class OneNoteSemanticHtmlRenderer {
-    internal static MarkdownDoc CreateDocument(OneNoteSection section, OneNoteMarkdownOptions options) {
+    internal static MarkdownDocument CreateDocument(OneNoteSection section, OneNoteMarkdownExportOptions options) {
         var html = new StringBuilder(4096);
         html.Append("<article class=\"officeimo-onenote-semantic\">");
         AppendHeading(html, options.HeadingLevel, Name(section.Name, "OneNote section"));
         foreach (OneNotePage page in section.Pages) AppendPageWithRelated(html, page, Math.Min(6, options.HeadingLevel + 1), null, options, 0);
         html.Append("</article>");
-        return MarkdownDoc.Create().Add(new GeneratedHtmlBlock(html.ToString()));
+        var document = MarkdownDocument.Create();
+        document.Add(new GeneratedHtmlBlock(html.ToString()));
+        return document;
     }
 
-    internal static MarkdownDoc CreateDocument(OneNoteNotebook notebook, OneNoteMarkdownOptions options) {
+    internal static MarkdownDocument CreateDocument(OneNoteNotebook notebook, OneNoteMarkdownExportOptions options) {
         var html = new StringBuilder(4096);
         html.Append("<article class=\"officeimo-onenote-semantic\">");
         AppendHeading(html, options.HeadingLevel, Name(notebook.Name, "OneNote notebook"));
         AppendHierarchy(html, notebook.Sections, notebook.SectionGroups, Math.Min(6, options.HeadingLevel + 1), options, 0);
         html.Append("</article>");
-        return MarkdownDoc.Create().Add(new GeneratedHtmlBlock(html.ToString()));
+        var document = MarkdownDocument.Create();
+        document.Add(new GeneratedHtmlBlock(html.ToString()));
+        return document;
     }
 
     private static void AppendHierarchy(StringBuilder html, IList<OneNoteSection> sections, IList<OneNoteSectionGroup> groups,
-        int headingLevel, OneNoteMarkdownOptions options, int depth) {
+        int headingLevel, OneNoteMarkdownExportOptions options, int depth) {
         foreach (HierarchyItem item in Order(sections, groups)) {
             if (item.Section != null) {
                 AppendHeading(html, headingLevel, Name(item.Section.Name, "OneNote section"));
@@ -51,7 +55,7 @@ internal static class OneNoteSemanticHtmlRenderer {
     }
 
     private static void AppendPageWithRelated(StringBuilder html, OneNotePage page, int headingLevel, string? prefix,
-        OneNoteMarkdownOptions options, int depth) {
+        OneNoteMarkdownExportOptions options, int depth) {
         if (depth >= options.MaxPageRelationshipDepth) return;
         AppendHeading(html, headingLevel, string.IsNullOrEmpty(prefix) ? Name(page.Title, "Untitled page") : prefix + ": " + Name(page.Title, "Untitled page"));
         html.Append("<section class=\"officeimo-onenote-page\">");
@@ -66,7 +70,7 @@ internal static class OneNoteSemanticHtmlRenderer {
         }
     }
 
-    private static void AppendElement(StringBuilder html, OneNoteElement element, OneNoteMarkdownOptions options, int depth) {
+    private static void AppendElement(StringBuilder html, OneNoteElement element, OneNoteMarkdownExportOptions options, int depth) {
         if (depth >= options.MaxContentDepth) return;
         switch (element) {
             case OneNoteOutline outline:
@@ -98,7 +102,7 @@ internal static class OneNoteSemanticHtmlRenderer {
         }
     }
 
-    private static void AppendParagraph(StringBuilder html, OneNoteParagraph paragraph, OneNoteMarkdownOptions options, int depth) {
+    private static void AppendParagraph(StringBuilder html, OneNoteParagraph paragraph, OneNoteMarkdownExportOptions options, int depth) {
         if (paragraph.List != null) {
             AppendList(html, new[] { paragraph }, options, depth);
             return;
@@ -113,7 +117,7 @@ internal static class OneNoteSemanticHtmlRenderer {
     private static void AppendElements(
         StringBuilder html,
         IEnumerable<OneNoteElement> elements,
-        OneNoteMarkdownOptions options,
+        OneNoteMarkdownExportOptions options,
         int depth) {
         if (depth >= options.MaxContentDepth) return;
         OneNoteElement[] items = elements.ToArray();
@@ -137,7 +141,7 @@ internal static class OneNoteSemanticHtmlRenderer {
     private static void AppendList(
         StringBuilder html,
         IReadOnlyList<OneNoteParagraph> paragraphs,
-        OneNoteMarkdownOptions options,
+        OneNoteMarkdownExportOptions options,
         int depth) {
         if (paragraphs.Count == 0) return;
         OneNoteListInfo list = paragraphs[0].List!;
@@ -162,7 +166,7 @@ internal static class OneNoteSemanticHtmlRenderer {
     private static void AppendListHierarchy(
         StringBuilder html,
         IReadOnlyList<OneNoteParagraph> paragraphs,
-        OneNoteMarkdownOptions options,
+        OneNoteMarkdownExportOptions options,
         int depth) {
         int index = 0;
         while (index < paragraphs.Count) {
@@ -175,7 +179,7 @@ internal static class OneNoteSemanticHtmlRenderer {
         IReadOnlyList<OneNoteParagraph> paragraphs,
         ref int index,
         int level,
-        OneNoteMarkdownOptions options,
+        OneNoteMarkdownExportOptions options,
         int depth) {
         if (depth >= options.MaxContentDepth) {
             while (index < paragraphs.Count && paragraphs[index].List!.Level >= level) index++;
@@ -258,7 +262,7 @@ internal static class OneNoteSemanticHtmlRenderer {
         if (hyperlink.Length > 0) html.Append("</a>");
     }
 
-    private static void AppendTable(StringBuilder html, OneNoteTable table, OneNoteMarkdownOptions options, int depth) {
+    private static void AppendTable(StringBuilder html, OneNoteTable table, OneNoteMarkdownExportOptions options, int depth) {
         html.Append("<table").Append(table.BordersVisible ? " style=\"border-collapse:collapse\"" : string.Empty).Append('>');
         foreach (OneNoteTableRow row in table.Rows) {
             html.Append("<tr>");

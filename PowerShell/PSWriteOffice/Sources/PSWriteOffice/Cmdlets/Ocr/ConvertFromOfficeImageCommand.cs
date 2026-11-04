@@ -1,3 +1,5 @@
+using OfficeIMO.Pdf.Word;
+using OfficeIMO.Pdf.Excel;
 using System.IO;
 using System.Management.Automation;
 using System.Threading.Tasks;
@@ -50,15 +52,15 @@ public sealed class ConvertFromOfficeImageCommand : AsyncPSCmdlet
 
     /// <summary>Advanced Excel typing, culture, row limit and table formatting settings.</summary>
     [Parameter]
-    public PdfTablesToExcelOptions? ExcelOptions { get; set; }
+    public PdfExcelExportOptions? ExcelOptions { get; set; }
 
     /// <summary>Advanced Word projection settings.</summary>
     [Parameter]
-    public PdfToWordOptions? WordOptions { get; set; }
+    public PdfWordExportOptions? WordOptions { get; set; }
 
     /// <summary>Advanced HTML projection settings. Word and HTML defaults exclude the original scan from editable content.</summary>
     [Parameter]
-    public PdfToHtmlOptions? HtmlOptions { get; set; }
+    public PdfHtmlExportOptions? HtmlOptions { get; set; }
 
     /// <para>CSV field formatting and formula policy. When omitted, formula-like source text is escaped, including negative numeric text. Supplied options retain their FormulaInjectionPolicy; a new CsvSaveOptions object defaults to Preserve. Set Escape explicitly when customizing options for spreadsheet consumption.</para>
     /// <para>Every recognized table row is written as data without a synthesized header, regardless of IncludeHeader. This command controls UTF-8, uncompressed file output and replacement through Force; CsvOptions controls field formatting and formula handling.</para>
@@ -88,7 +90,7 @@ public sealed class ConvertFromOfficeImageCommand : AsyncPSCmdlet
             throw new PSArgumentException("CSV settings require a .csv output.");
         string outputPath = PdfCommandUtilities.ResolveOutputFilePath(this, OutputPath, extension, Force.IsPresent);
         if (!ShouldProcess(outputPath, "Export recognized image")) return Task.CompletedTask;
-        var excel = ExcelOptions?.Clone() ?? new PdfTablesToExcelOptions();
+        var excel = ExcelOptions?.Clone() ?? new PdfExcelExportOptions();
         if (MyInvocation.BoundParameters.ContainsKey(nameof(FirstRowIsHeader))) excel.UseFirstRowAsHeader = FirstRowIsHeader.IsPresent;
         var result = OfficeImageExporter.Export(InputObject, outputPath, Force.IsPresent, excel, WordOptions, CancelToken, HtmlOptions, CsvOptions);
         foreach (var page in InputObject.Ocr.Pages)
@@ -98,7 +100,7 @@ public sealed class ConvertFromOfficeImageCommand : AsyncPSCmdlet
             foreach (string diagnostic in page.Diagnostics) WriteWarning(diagnostic);
         }
         if (result.ConversionReport != null)
-            foreach (var diagnostic in result.ConversionReport.FidelityDiagnostics) WriteWarning(diagnostic.Message);
+            foreach (var diagnostic in result.ConversionReport.Diagnostics) WriteWarning(diagnostic.Message);
         if (extension == ".csv" && result.TableScope?.HasOmittedPageContent == true)
             WriteWarning("CSV contains the detected table. Content outside that table is recorded in the PassThru TableScope report.");
         WriteObject(PassThru.IsPresent ? result : (object)result.File);

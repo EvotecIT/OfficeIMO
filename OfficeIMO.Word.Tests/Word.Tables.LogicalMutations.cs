@@ -2,7 +2,6 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Word;
-using OfficeIMO.Word.Fluent;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 using Xunit;
 
@@ -158,18 +157,14 @@ public sealed class WordLogicalTableMutationTests {
     }
 
     [Fact]
-    public void FluentInsertRowUsesTheLogicalOneBasedPosition() {
+    public void InsertRowUsesTheLogicalZeroBasedPosition() {
         using WordDocument document = WordDocument.Create();
-        WordTable? table = null;
-        document.AsFluent().Table(builder => {
-            builder.Create(3, 1);
-            table = builder.Table!;
-            for (int index = 0; index < 3; index++) {
-                table.Rows[index].Cells[0].Paragraphs[0].Text = "ROW" + index;
-                WrapRow(table.Rows[index]._tableRow, index == 1 ? "customXml" : "sdt", "row-" + index);
-            }
-            builder.InsertRow(2, "INSERTED");
-        });
+        var table = document.AddTable(3, 1);
+        for (int index = 0; index < 3; index++) {
+            table.Rows[index].Cells[0].Paragraphs[0].Text = "ROW" + index;
+            WrapRow(table.Rows[index]._tableRow, index == 1 ? "customXml" : "sdt", "row-" + index);
+        }
+        table.InsertRow(1, "INSERTED");
 
         Assert.Equal(new[] { "ROW0", "INSERTED", "ROW1", "ROW2" }, table!.Rows.Select(row => CellText(row.Cells[0])));
         Assert.Equal(new[] { "row-0", "row-1", "row-2" }, table.Rows.Where(row => row._tableRow.Parent is not W.Table)
@@ -178,30 +173,26 @@ public sealed class WordLogicalTableMutationTests {
     }
 
     [Fact]
-    public void FluentInteriorRowInsertionPreservesSharedContentControlAndSavedOrder() {
+    public void InteriorRowInsertionPreservesSharedContentControlAndSavedOrder() {
         using WordDocument document = WordDocument.Create();
-        WordTable? table = null;
-        document.AsFluent().Table(builder => {
-            builder.Create(4, 1);
-            table = builder.Table!;
-            for (int index = 0; index < 4; index++) table.Rows[index].Cells[0].Paragraphs[0].Text = "ROW" + index;
-            W.TableRow[] rows = table.Rows.Select(row => row._tableRow).ToArray();
-            WrapRow(rows[0], "sdt", "edge-row");
-            var shared = new W.SdtRow(new W.SdtProperties(new W.Tag { Val = "shared-rows" }, new W.SdtId { Val = 710 }),
-                new W.SdtContentRow());
-            rows[1].Parent!.ReplaceChild(shared, rows[1]);
-            shared.SdtContentRow!.Append(rows[1]);
-            rows[2].Remove();
-            shared.SdtContentRow.Append(rows[2]);
+        var table = document.AddTable(4, 1);
+        for (int index = 0; index < 4; index++) table.Rows[index].Cells[0].Paragraphs[0].Text = "ROW" + index;
+        W.TableRow[] rows = table.Rows.Select(row => row._tableRow).ToArray();
+        WrapRow(rows[0], "sdt", "edge-row");
+        var shared = new W.SdtRow(new W.SdtProperties(new W.Tag { Val = "shared-rows" }, new W.SdtId { Val = 710 }),
+            new W.SdtContentRow());
+        rows[1].Parent!.ReplaceChild(shared, rows[1]);
+        shared.SdtContentRow!.Append(rows[1]);
+        rows[2].Remove();
+        shared.SdtContentRow.Append(rows[2]);
 
-            builder.InsertRow(3, "INTERIOR");
+        table.InsertRow(2, "INTERIOR");
 
-            Assert.Same(shared.SdtContentRow, table.Rows[2]._tableRow.Parent);
-            Assert.Equal(new[] { "ROW1", "INTERIOR", "ROW2" }, shared.SdtContentRow.Elements<W.TableRow>()
-                .Select(row => row.InnerText));
-            Assert.Equal("edge-row", ContainerTag(rows[0].Parent!));
-            Assert.Same(table._table, rows[3].Parent);
-        });
+        Assert.Same(shared.SdtContentRow, table.Rows[2]._tableRow.Parent);
+        Assert.Equal(new[] { "ROW1", "INTERIOR", "ROW2" }, shared.SdtContentRow.Elements<W.TableRow>()
+            .Select(row => row.InnerText));
+        Assert.Equal("edge-row", ContainerTag(rows[0].Parent!));
+        Assert.Same(table._table, rows[3].Parent);
 
         using WordDocument reopened = WordDocument.Load(new MemoryStream(document.ToBytes()));
         WordTable actual = Assert.Single(reopened.Tables);

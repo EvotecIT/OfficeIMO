@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes shallow metadata decoded from a chart Text record.
     /// </summary>
-    public sealed class LegacyXlsChartText {
+    internal sealed class LegacyXlsChartText {
         internal LegacyXlsChartText(
             byte horizontalAlignment,
             string horizontalAlignmentName,

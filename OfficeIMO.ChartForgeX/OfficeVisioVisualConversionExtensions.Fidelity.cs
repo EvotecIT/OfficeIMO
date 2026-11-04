@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using global::ChartForgeX.Topology;
 using global::ChartForgeX.VisualArtifacts;
 using OfficeIMO.Drawing;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.ChartForgeX;
 

@@ -6,7 +6,7 @@ namespace OfficeIMO.Tests.Pdf;
 public sealed class PdfStudioConsolidationRegressionTests {
     [Fact]
     public void AssemblyPermissionAllowsRotationButNotBoundaryEditsOrMixedBatches() {
-        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Assembly permission"))
+        byte[] source = PdfDocument.Create().Paragraph(p => p.AddText("Assembly permission"))
             .Security.Encrypt(new PdfStandardEncryptionOptions("reader") {
                 OwnerPassword = "owner", AllowedPermissions = PdfStandardPermissions.AssembleDocument
             }).Pdf;
@@ -28,7 +28,7 @@ public sealed class PdfStudioConsolidationRegressionTests {
     [InlineData(false)]
     [InlineData(true)]
     public void PageAttributeRewritePreservesOpaqueCatalogEntriesAndMetadata(bool crop) {
-        byte[] original = PdfDocument.Create().Paragraph(p => p.Text("Keep document state")).ToBytes();
+        byte[] original = PdfDocument.Create().Paragraph(p => p.AddText("Keep document state")).ToBytes();
         byte[] source = PdfDocumentObjectGraphRewriter.Rewrite(original, null, null, (objects, security) => {
             var catalog = (PdfDictionary)objects[security.RootObjectNumber!.Value].Value;
             var custom = new PdfDictionary(); custom.Items["Payload"] = new PdfStringObj("preserve me");
@@ -58,9 +58,9 @@ public sealed class PdfStudioConsolidationRegressionTests {
     [InlineData(4)]
     [InlineData(5)]
     public void UntaggedPageImportUsesTheAdvertisedCatalogPreservingRoute(int position) {
-        var target = PdfDocument.Create().Paragraph(p => p.Text("Existing page"))
+        var target = PdfDocument.Create().Paragraph(p => p.AddText("Existing page"))
             .JavaScript.AddOrReplace("Initialize", "this.zoom = 125;").ToDocument();
-        var incoming = PdfDocument.Create().Paragraph(p => p.Text("Imported page"));
+        var incoming = PdfDocument.Create().Paragraph(p => p.AddText("Imported page"));
         Assert.True(target.PlanMutation(PdfMutationOperation.ImportPages).CanExecute);
         var output = position switch {
             3 => PdfDocument.Load(PdfPageImporter.AppendPageRanges(target.ToBytes(), incoming.ToBytes(), PdfPageRange.From(1, 1))),

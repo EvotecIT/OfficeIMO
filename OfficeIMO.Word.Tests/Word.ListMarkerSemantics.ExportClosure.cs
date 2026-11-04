@@ -21,7 +21,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         list.AddItem("Visible child", 1);
         list.AddItem("Visible grandchild", 2);
 
-        string markdown = document.ToMarkdown();
+        string markdown = document.ToMarkdown().ToMarkdown();
         Assert.Contains("Top level markerless", markdown, StringComparison.Ordinal);
         Assert.Contains("- Visible child", markdown, StringComparison.Ordinal);
         Assert.DoesNotContain(markdown.Split('\n'), line => line.Trim() == "-");
@@ -54,10 +54,10 @@ public sealed partial class WordListMarkerSemanticsTests {
     [Fact]
     public void OmittedNumberingSuffixUsesTabSemantics() {
         using WordDocument document = WordDocument.Create();
-        WordList list = document.AddCustomBulletList('*', "Arial", "000000");
+        WordList list = document.AddCustomBulletList('*', "Arial", OfficeColor.Parse("000000"));
         WordListLevel level = list.Numbering.Levels[0];
-        level.IndentationLeft = 1800;
-        level.IndentationHanging = 360;
+        level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(90D);
+        level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(18D);
         level.OpenXmlElement.GetFirstChild<LevelSuffix>()?.Remove();
         WordParagraph item = document.AddParagraph("DefaultTabSuffix");
         AttachToList(item, list.NumberId);
@@ -73,8 +73,8 @@ public sealed partial class WordListMarkerSemanticsTests {
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot).SetStartNumberingValue(9));
         WordListLevel level = list.Numbering.Levels[0];
-        level.IndentationLeft = 1800;
-        level.IndentationHanging = 720;
+        level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(90D);
+        level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(36D);
         level.LevelJustification = WordListLevelAlignment.Right;
         level.LevelSuffix = WordListLevelSuffix.Nothing;
         WordTable table = document.AddTable(2, 1);
@@ -85,7 +85,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         tenItem.Text = "TableTen";
         AttachToList(tenItem, list.NumberId);
 
-        byte[] pdf = document.ToPdfBytes();
+        byte[] pdf = document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         (double Start, double End) nine = PdfLetterRun(pdf, "9.");
         (double Start, double End) ten = PdfLetterRun(pdf, "10.");
         (double Start, double End) nineText = PdfLetterRun(pdf, "TableNine");
@@ -97,12 +97,11 @@ public sealed partial class WordListMarkerSemanticsTests {
     [Fact]
     public void PdfHeaderNestedTextBoxMarkerStylesFollowFlattenedTextOrder() {
         using WordDocument document = WordDocument.Create();
-        document.AddHeadersAndFooters();
-        WordList nestedList = document.AddCustomBulletList('*', "Arial", "FF0000", 18);
+        WordList nestedList = document.AddCustomBulletList('*', "Arial", OfficeColor.Parse("FF0000"), global::OfficeIMO.OfficeLength.Points(18));
         nestedList.Numbering.Levels[0].OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>()?.Append(new Bold());
-        WordList laterList = document.AddCustomBulletList('◆', "Arial", "0000FF", 10);
-        WordList outerList = document.AddCustomBulletList('•', "Arial", "000000", 9);
-        WordParagraph host = document.Header!.Default!.AddParagraph("Before ");
+        WordList laterList = document.AddCustomBulletList('◆', "Arial", OfficeColor.Parse("0000FF"), global::OfficeIMO.OfficeLength.Points(10));
+        WordList outerList = document.AddCustomBulletList('•', "Arial", OfficeColor.Parse("000000"), global::OfficeIMO.OfficeLength.Points(9));
+        WordParagraph host = document.PageSetup.Header.AddParagraph("Before ");
         WordTextBox outer = host.AddTextBox("Outer styled", WordImageTextWrapping.Square);
         host.AddText(" After");
         AttachToList(outer.Paragraphs[0], outerList.NumberId);
@@ -121,7 +120,7 @@ public sealed partial class WordListMarkerSemanticsTests {
             string.Join(" | ", markers.Select(item => item.Key.Text + ":" + item.Value.Marker)));
         Assert.Equal("◆", laterResolved.Marker);
 
-        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdfBytes()).Pages[0].GetTextSpans().ToArray();
+        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })).Pages[0].GetTextSpans().ToArray();
         string renderedSpans = string.Join(" | ", spans.Select(span => $"'{span.Text}'/{span.FontSize}/{span.Color}"));
         PdfTextSpan[] nestedMarkers = spans.Where(span => span.Text.Contains("*", StringComparison.Ordinal)).ToArray();
         PdfTextSpan[] laterMarkers = spans.Where(span => span.Text.Contains("◆", StringComparison.Ordinal)).ToArray();
@@ -147,38 +146,37 @@ public sealed partial class WordListMarkerSemanticsTests {
         bool expectWarning) {
         using WordDocument document = WordDocument.Create();
         WordSection section = document.Sections[0];
-        WordHeader firstHeader = section.GetOrCreateHeader(WordHeaderFooterType.First);
-        WordHeader evenHeader = section.GetOrCreateHeader(WordHeaderFooterType.Even);
-        section.DifferentFirstPage = differentFirstPage;
-        section.DifferentOddAndEvenPages = differentOddAndEvenPages;
+        WordHeader firstHeader = section.PageSetup.FirstPageHeader;
+        WordHeader evenHeader = section.PageSetup.EvenPageHeader;
+        section.PageSetup.DifferentFirstPage = differentFirstPage;
+        section.PageSetup.DifferentOddAndEvenPages = differentOddAndEvenPages;
         using var image = File.OpenRead(Path.Combine(AppContext.BaseDirectory, "Images", "Kulek.jpg"));
         WordList list = document.AddPictureBulletList(image, "Kulek.jpg");
         AttachToList(firstHeader.AddParagraph("First picture marker"), list.NumberId);
         AttachToList(evenHeader.AddParagraph("Even picture marker"), list.NumberId);
         document.AddParagraph("Body");
 
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false });
-        Assert.Equal(expectWarning, result.Warnings.Any(warning => warning.Code == "NativePictureBulletTextFallback"));
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false });
+        Assert.Equal(expectWarning, result.Warnings.Any(warning => warning.Code == "native-picture-bullet-text-fallback"));
     }
 
     [Fact]
     public void HtmlHeaderListUsesListMarkupAndInactiveHeaderDiagnosticsAreSuppressed() {
         using WordDocument document = WordDocument.Create();
-        document.AddHeadersAndFooters();
-        WordList list = document.AddCustomBulletList('*', "Arial", "000000");
-        AttachToList(document.Header!.Default!.AddParagraph("Header list item"), list.NumberId);
+        WordList list = document.AddCustomBulletList('*', "Arial", OfficeColor.Parse("000000"));
+        AttachToList(document.PageSetup.Header.AddParagraph("Header list item"), list.NumberId);
         document.AddParagraph("Body");
 
-        string html = document.ToHtml(new WordToHtmlOptions { ExportHeadersAndFooters = true });
+        string html = document.ToHtml(new WordHtmlExportOptions { ExportHeadersAndFooters = true });
         Assert.Contains("<header", html, StringComparison.Ordinal);
         Assert.Contains("<ul", html, StringComparison.Ordinal);
         Assert.Contains("<li>Header list item</li>", html, StringComparison.Ordinal);
 
         using var image = File.OpenRead(Path.Combine(AppContext.BaseDirectory, "Images", "Kulek.jpg"));
         WordList pictureList = document.AddPictureBulletList(image, "Kulek.jpg");
-        AttachToList(document.Header.Default.AddParagraph("Header picture marker"), pictureList.NumberId);
-        var bodyOnly = document.ToHtmlResult(new WordToHtmlOptions { ExportHeadersAndFooters = false });
-        Assert.DoesNotContain(bodyOnly.Report.Diagnostics, diagnostic => diagnostic.Code == "PictureBulletTextFallback");
+        AttachToList(document.PageSetup.Header.AddParagraph("Header picture marker"), pictureList.NumberId);
+        var bodyOnly = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions { ExportHeadersAndFooters = false });
+        Assert.DoesNotContain(bodyOnly.Report.Diagnostics, diagnostic => diagnostic.Code == "picture-bullet-text-fallback");
     }
 
     [Theory]
@@ -186,31 +184,30 @@ public sealed partial class WordListMarkerSemanticsTests {
     [InlineData(WordListLevelSuffix.Space, "* HeaderSuffix")]
     public void PdfHeaderListMarkerHonorsNumberingSuffix(WordListLevelSuffix suffix, string expected) {
         using WordDocument document = WordDocument.Create();
-        document.AddHeadersAndFooters();
-        WordList list = document.AddCustomBulletList('*', "Arial", "000000");
+        _ = document.PageSetup.Header;
+        WordList list = document.AddCustomBulletList('*', "Arial", OfficeColor.Parse("000000"));
         Level level = list.Numbering.Levels[0].OpenXmlElement;
         level.GetFirstChild<LevelSuffix>()?.Remove();
         level.Append(new LevelSuffix { Val = suffix.ToOpenXml() });
-        WordParagraph header = document.Header!.Default!.AddParagraph("HeaderSuffix");
+        WordParagraph header = document.PageSetup.Header.AddParagraph("HeaderSuffix");
         AttachToList(header, list.NumberId);
         document.AddParagraph("Body");
 
-        string text = PdfReadDocument.Open(document.ToPdfBytes(), new PdfLoadOptions { IncludeArtifactText = true }).ExtractText();
+        string text = PdfReadDocument.Open(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }), new PdfLoadOptions { IncludeArtifactText = true }).ExtractText();
         Assert.Contains(expected, text, StringComparison.Ordinal);
     }
 
     [Fact]
     public void PdfHeaderListMarkerPreservesMarkerSpecificFormatting() {
         using WordDocument document = WordDocument.Create();
-        document.AddHeadersAndFooters();
-        WordList list = document.AddCustomBulletList('*', "Arial", "FF0000", 18);
+        WordList list = document.AddCustomBulletList('*', "Arial", OfficeColor.Parse("FF0000"), global::OfficeIMO.OfficeLength.Points(18));
         list.Numbering.Levels[0].OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>()?.Append(new Bold());
-        WordParagraph header = document.Header!.Default!.AddParagraph("HeaderStyledMarker");
-        header.FontSize = 9;
+        WordParagraph header = document.PageSetup.Header.AddParagraph("HeaderStyledMarker");
+        header.FontSize = global::OfficeIMO.OfficeLength.Points(9);
         AttachToList(header, list.NumberId);
         document.AddParagraph("Body");
 
-        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdfBytes(), new PdfLoadOptions { IncludeArtifactText = true }).Pages[0].GetTextSpans().ToArray();
+        PdfTextSpan[] spans = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })), new PdfLoadOptions { IncludeArtifactText = true }).Pages[0].GetTextSpans().ToArray();
         PdfTextSpan marker = Assert.Single(spans, span => span.Text == "*");
         PdfTextSpan content = Assert.Single(spans, span => span.Text.Contains("HeaderStyledMarker", StringComparison.Ordinal));
         Assert.InRange(marker.FontSize, 17.5D, 18.5D);
@@ -222,18 +219,17 @@ public sealed partial class WordListMarkerSemanticsTests {
     [Fact]
     public void PdfHeaderTabSuffixUsesSupportedSpacingAndListIndentation() {
         using WordDocument document = WordDocument.Create();
-        document.AddHeadersAndFooters();
-        document.Header!.Default!.AddParagraph("PlainHeaderReference");
-        WordList list = document.AddCustomBulletList('*', "Arial", "000000");
+        document.PageSetup.Header.AddParagraph("PlainHeaderReference");
+        WordList list = document.AddCustomBulletList('*', "Arial", OfficeColor.Parse("000000"));
         WordListLevel level = list.Numbering.Levels[0];
-        level.IndentationLeft = 2160;
-        level.IndentationHanging = 360;
+        level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(108D);
+        level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(18D);
         level.LevelSuffix = WordListLevelSuffix.Tab;
-        WordParagraph header = document.Header.Default.AddParagraph("IndentedHeaderItem");
+        WordParagraph header = document.PageSetup.Header.AddParagraph("IndentedHeaderItem");
         AttachToList(header, list.NumberId);
         document.AddParagraph("Body");
 
-        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdfBytes(), new PdfLoadOptions { IncludeArtifactText = true }).Pages[0].GetTextSpans().ToArray();
+        PdfTextSpan[] spans = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })), new PdfLoadOptions { IncludeArtifactText = true }).Pages[0].GetTextSpans().ToArray();
         PdfTextSpan reference = Assert.Single(spans, span => span.Text.Contains("PlainHeaderReference", StringComparison.Ordinal));
         PdfTextSpan marker = Assert.Single(spans, span => span.Text == "*");
         PdfTextSpan content = Assert.Single(spans, span => span.Text.Contains("IndentedHeaderItem", StringComparison.Ordinal));
@@ -249,26 +245,26 @@ public sealed partial class WordListMarkerSemanticsTests {
     [InlineData(WordListLevelAlignment.Center)]
     public void PdfHeaderNumberingHonorsLevelJustification(WordListLevelAlignment alignment) {
         using WordDocument document = WordDocument.Create();
-        document.AddHeadersAndFooters();
+        _ = document.PageSetup.Header;
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot).SetStartNumberingValue(9));
         WordListLevel level = list.Numbering.Levels[0];
-        level.IndentationLeft = 1800;
-        level.IndentationHanging = 720;
+        level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(90D);
+        level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(36D);
         level.LevelJustification = alignment;
         level.LevelSuffix = WordListLevelSuffix.Nothing;
         NumberingSymbolRunProperties markerProperties = level.OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>() ??
             level.OpenXmlElement.AppendChild(new NumberingSymbolRunProperties());
         markerProperties.Append(new Bold(), new FontSize { Val = "36" });
-        WordParagraph nineItem = document.Header!.Default!.AddParagraph("HeaderNine");
-        nineItem.FontSize = 9;
+        WordParagraph nineItem = document.PageSetup.Header.AddParagraph("HeaderNine");
+        nineItem.FontSize = global::OfficeIMO.OfficeLength.Points(9);
         AttachToList(nineItem, list.NumberId);
-        WordParagraph tenItem = document.Header.Default.AddParagraph("HeaderTen");
-        tenItem.FontSize = 9;
+        WordParagraph tenItem = document.PageSetup.Header.AddParagraph("HeaderTen");
+        tenItem.FontSize = global::OfficeIMO.OfficeLength.Points(9);
         AttachToList(tenItem, list.NumberId);
         document.AddParagraph("Body");
 
-        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdfBytes(), new PdfLoadOptions { IncludeArtifactText = true }).Pages[0].GetTextSpans().ToArray();
+        PdfTextSpan[] spans = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })), new PdfLoadOptions { IncludeArtifactText = true }).Pages[0].GetTextSpans().ToArray();
         PdfTextSpan nine = Assert.Single(spans, span => span.Text == "9.");
         PdfTextSpan ten = Assert.Single(spans, span => span.Text == "10.");
         PdfTextSpan nineText = Assert.Single(spans, span => span.Text.Contains("HeaderNine", StringComparison.Ordinal));
@@ -282,17 +278,16 @@ public sealed partial class WordListMarkerSemanticsTests {
     [Fact]
     public void PdfHeaderExtremeListIndentUsesBoundedMarkerSpacing() {
         using WordDocument document = WordDocument.Create();
-        document.AddHeadersAndFooters();
-        WordList list = document.AddCustomBulletList('*', "Arial", "000000");
+        WordList list = document.AddCustomBulletList('*', "Arial", OfficeColor.Parse("000000"));
         WordListLevel level = list.Numbering.Levels[0];
-        level.IndentationLeft = int.MaxValue;
-        level.IndentationHanging = 0;
+        level.IndentationLeft= global::OfficeIMO.OfficeLength.Points((int.MaxValue) / 20D);
+        level.IndentationHanging= global::OfficeIMO.OfficeLength.Zero;
         level.LevelSuffix = WordListLevelSuffix.Tab;
-        WordParagraph header = document.Header!.Default!.AddParagraph("ExtremeIndentHeader");
+        WordParagraph header = document.PageSetup.Header.AddParagraph("ExtremeIndentHeader");
         AttachToList(header, list.NumberId);
         document.AddParagraph("Body");
 
-        byte[] pdf = document.ToPdfBytes();
+        byte[] pdf = document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         Assert.InRange(pdf.Length, 1, 1_000_000);
         Assert.Contains("ExtremeIndentHeader", PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
@@ -301,21 +296,20 @@ public sealed partial class WordListMarkerSemanticsTests {
     [Fact]
     public void PdfHeaderTextBoxPreservesInnerMarkerStyle() {
         using WordDocument document = WordDocument.Create();
-        document.AddHeadersAndFooters();
-        WordList list = document.AddCustomBulletList('*', "Arial", "FF0000", 18);
+        WordList list = document.AddCustomBulletList('*', "Arial", OfficeColor.Parse("FF0000"), global::OfficeIMO.OfficeLength.Points(18));
         list.Numbering.Levels[0].OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>()?.Append(new Bold());
-        WordParagraph host = document.Header!.Default!.AddParagraph("Before ");
+        WordParagraph host = document.PageSetup.Header.AddParagraph("Before ");
         WordTextBox box = host.AddTextBox("StyledHeaderBox", WordImageTextWrapping.Square);
         host.AddText(" After");
         AttachToList(box.Paragraphs[0], list.NumberId);
         document.AddParagraph("Body");
 
-        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdfBytes()).Pages[0].GetTextSpans().ToArray();
+        PdfTextSpan[] spans = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).Pages[0].GetTextSpans().ToArray();
         PdfTextSpan marker = Assert.Single(spans, span => span.Text == "*");
         Assert.InRange(marker.FontSize, 17.5D, 18.5D);
         Assert.True(marker.IsBold);
         Assert.Equal(OfficeColor.FromRgb(255, 0, 0), marker.Color);
-        string text = PdfReadDocument.Open(document.ToPdfBytes()).ExtractText();
+        string text = PdfReadDocument.Open(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })).ExtractText();
         Assert.Contains("Before * StyledHeaderBox", text, StringComparison.Ordinal);
         Assert.True(text.IndexOf("StyledHeaderBox", StringComparison.Ordinal) < text.IndexOf("After", StringComparison.Ordinal));
     }
@@ -323,14 +317,13 @@ public sealed partial class WordListMarkerSemanticsTests {
     [Fact]
     public void PdfHeaderRendersVisibleMarkerForEmptyListItem() {
         using WordDocument document = WordDocument.Create();
-        document.AddHeadersAndFooters();
-        WordList list = document.AddCustomBulletList('*', "Arial", "000000");
-        WordParagraph emptyItem = document.Header!.Default!.AddParagraph();
+        WordList list = document.AddCustomBulletList('*', "Arial", OfficeColor.Parse("000000"));
+        WordParagraph emptyItem = document.PageSetup.Header.AddParagraph();
         AttachToList(emptyItem, list.NumberId);
         document.AddParagraph("Body");
 
         PdfTextSpan marker = Assert.Single(
-            PdfReadDocument.Open(document.ToPdfBytes(), new PdfLoadOptions { IncludeArtifactText = true }).Pages[0].GetTextSpans(),
+            PdfReadDocument.Open(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }), new PdfLoadOptions { IncludeArtifactText = true }).Pages[0].GetTextSpans(),
             span => span.Text == "*");
         Assert.True(marker.Advance > 0D);
     }
@@ -343,20 +336,21 @@ public sealed partial class WordListMarkerSemanticsTests {
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot).SetStartNumberingValue(9));
         WordListLevel level = list.Numbering.Levels[0];
-        level.IndentationLeft = 1800;
-        level.IndentationHanging = 720;
+        level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(90D);
+        level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(36D);
         level.LevelJustification = alignment;
         level.LevelSuffix = WordListLevelSuffix.Nothing;
         NumberingSymbolRunProperties markerProperties = level.OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>() ??
             level.OpenXmlElement.AppendChild(new NumberingSymbolRunProperties());
         markerProperties.Append(new Bold(), new FontSize { Val = "36" });
         WordTextBox box = document.AddTextBox("TextBoxNine");
-        box.WidthCentimeters = 12D;
+        box.Width = OfficeLength.Centimeters(12D);
+        box.RelativeWidthPercentage = 0;
         box.Content!.Append(new Paragraph(new Run(new Text("TextBoxTen"))));
         AttachToList(box.Paragraphs[0], list.NumberId);
         AttachToList(box.Paragraphs[1], list.NumberId);
 
-        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdfBytes()).Pages[0].GetTextSpans().ToArray();
+        PdfTextSpan[] spans = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).Pages[0].GetTextSpans().ToArray();
         PdfTextSpan pdfNine = Assert.Single(spans, span => span.Text == "9.");
         PdfTextSpan pdfTen = Assert.Single(spans, span => span.Text == "10.");
         PdfTextSpan pdfNineText = Assert.Single(spans, span => span.Text.Contains("TextBoxNine", StringComparison.Ordinal));
@@ -376,10 +370,10 @@ public sealed partial class WordListMarkerSemanticsTests {
     [InlineData(WordListLevelSuffix.Tab)]
     public void ImageListMarkersMatchTheSharedPdfPage(WordListLevelSuffix suffix) {
         using WordDocument document = WordDocument.Create();
-        WordList list = document.AddCustomBulletList('*', "Arial", "000000");
+        WordList list = document.AddCustomBulletList('*', "Arial", OfficeColor.Parse("000000"));
         WordListLevel level = list.Numbering.Levels[0];
-        level.IndentationLeft = 1800;
-        level.IndentationHanging = 360;
+        level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(90D);
+        level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(18D);
         level.LevelSuffix = suffix;
         list.AddItem("ImageSuffixBody");
         WordTextBox box = document.AddTextBox("ImageSuffixBox");
@@ -388,10 +382,10 @@ public sealed partial class WordListMarkerSemanticsTests {
         cell.Text = "ImageSuffixCell";
         AttachToList(cell, list.NumberId);
 
-        var layout = new WordToPdfOptions { IncludePageNumbers = false };
+        var layout = new WordPdfExportOptions { IncludePageNumbers = false };
         var options = new WordImageExportOptions { LayoutOptions = layout };
-        PdfReadPage pdfPage = Assert.Single(PdfReadDocument.Open(document.ToPdfBytes(layout)).Pages);
-        WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+        PdfReadPage pdfPage = Assert.Single(PdfReadDocument.Open(document.ToPdf(layout).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })).Pages);
+        WordDocumentVisualInfo snapshot = document.CreateVisualSnapshot(options);
         string text = string.Concat(snapshot.TextSpans.Select(span => span.Text));
         Assert.Contains("ImageSuffixBody", text, StringComparison.Ordinal);
         Assert.Contains("ImageSuffixBox", text, StringComparison.Ordinal);
@@ -409,8 +403,8 @@ public sealed partial class WordListMarkerSemanticsTests {
         document.AddParagraph("PlainZeroReference");
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.None));
-        list.Numbering.Levels[0].IndentationLeft = 0;
-        list.Numbering.Levels[0].IndentationHanging = 0;
+        list.Numbering.Levels[0].IndentationLeft= global::OfficeIMO.OfficeLength.Zero;
+        list.Numbering.Levels[0].IndentationHanging= global::OfficeIMO.OfficeLength.Zero;
         WordParagraph item = document.AddParagraph("MarkerlessZero");
         AttachToList(item, list.NumberId);
 
@@ -423,7 +417,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     [Fact]
     public void ListMarkerTraversalHandlesDeeplyNestedTextBoxesIteratively() {
         using WordDocument document = WordDocument.Create();
-        WordList list = document.AddCustomBulletList('*', "Arial", "000000");
+        WordList list = document.AddCustomBulletList('*', "Arial", OfficeColor.Parse("000000"));
         WordTextBox current = document.AddTextBox("Level 0");
         for (int depth = 1; depth <= 128; depth++) {
             current = current.Paragraphs[0].AddTextBox("Level " + depth, WordImageTextWrapping.Square);
@@ -439,9 +433,8 @@ public sealed partial class WordListMarkerSemanticsTests {
     [Fact]
     public void PdfHeaderFooterRejectsExcessiveNestedTextBoxDepthWithoutStackOverflow() {
         using WordDocument document = WordDocument.Create();
-        document.AddHeadersAndFooters();
-        WordList list = document.AddCustomBulletList('*', "Arial", "000000");
-        WordTextBox current = document.Header!.Default!.AddParagraph().AddTextBox("Level 0", WordImageTextWrapping.Square);
+        WordList list = document.AddCustomBulletList('*', "Arial", OfficeColor.Parse("000000"));
+        WordTextBox current = document.PageSetup.Header.AddParagraph().AddTextBox("Level 0", WordImageTextWrapping.Square);
         AttachToList(current.Paragraphs[0], list.NumberId);
         for (int depth = 1; depth <= 20; depth++) {
             current = current.Paragraphs[0].AddTextBox("Level " + depth, WordImageTextWrapping.Square);
@@ -449,7 +442,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         }
         document.AddParagraph("Body");
 
-        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => document.ToPdfBytes());
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Contains("text-box nesting exceeds", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -460,35 +453,36 @@ public sealed partial class WordListMarkerSemanticsTests {
         WordList list = document.AddPictureBulletList(image, "Kulek.jpg");
         list.AddItem("Picture item");
 
-        var html = document.ToHtmlResult();
+        var html = document.ConvertToHtmlWithEvidence();
         Assert.Contains(html.Report.Diagnostics, diagnostic =>
-            diagnostic.Code == "PictureBulletTextFallback" &&
+            diagnostic.Code == "picture-bullet-text-fallback" &&
             diagnostic.LossKind == OfficeConversionLossKind.Approximation);
-        WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+        WordDocumentVisualInfo snapshot = document.CreateVisualSnapshot();
         Assert.Contains(snapshot.Diagnostics, diagnostic =>
-            diagnostic.Code == "NativePictureBulletTextFallback" &&
+            diagnostic.Code == "native-picture-bullet-text-fallback" &&
             diagnostic.LossKind == OfficeConversionLossKind.Approximation);
         Assert.Contains(document.ExportImage(OfficeImageExportFormat.Svg).Diagnostics, diagnostic =>
-            diagnostic.Code == "NativePictureBulletTextFallback");
+            diagnostic.Code == "native-picture-bullet-text-fallback");
     }
 
     [Fact]
     public void TextBoxListIndentationIsKeptPerParagraphInPdfLayout() {
         using WordDocument document = WordDocument.Create();
-        WordList bulletList = document.AddCustomBulletList('◆', "Arial", "000000");
-        bulletList.Numbering.Levels[0].IndentationLeft = 1800;
-        bulletList.Numbering.Levels[0].IndentationHanging = 360;
+        WordList bulletList = document.AddCustomBulletList('◆', "Arial", OfficeColor.Parse("000000"));
+        bulletList.Numbering.Levels[0].IndentationLeft= global::OfficeIMO.OfficeLength.Points(90D);
+        bulletList.Numbering.Levels[0].IndentationHanging= global::OfficeIMO.OfficeLength.Points(18D);
         WordList markerlessList = document.AddCustomList();
         markerlessList.Numbering.AddLevel(new WordListLevel(WordListLevelKind.None));
-        markerlessList.Numbering.Levels[0].IndentationLeft = 2160;
+        markerlessList.Numbering.Levels[0].IndentationLeft= global::OfficeIMO.OfficeLength.Points(108D);
         WordTextBox box = document.AddTextBox("PlainBox");
-        box.WidthCentimeters = 12D;
+        box.Width = OfficeLength.Centimeters(12D);
+        box.RelativeWidthPercentage = 0;
         box.Content!.Append(new Paragraph(new Run(new Text("BulletBox"))));
         box.Content.Append(new Paragraph(new Run(new Text("UnmarkedBox"))));
         AttachToList(box.Paragraphs[1], bulletList.NumberId);
         AttachToList(box.Paragraphs[2], markerlessList.NumberId);
 
-        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdfBytes()).Pages[0].GetTextSpans().ToArray();
+        PdfTextSpan[] spans = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).Pages[0].GetTextSpans().ToArray();
         var lines = spans.GroupBy(span => Math.Round(span.Y, 2)).Select(group => new {
             Text = string.Concat(group.OrderBy(span => span.X).Select(span => span.Text)),
             Spans = group.OrderBy(span => span.X).ToArray()
@@ -516,11 +510,11 @@ public sealed partial class WordListMarkerSemanticsTests {
         WordTextBox box = host.AddTextBox("UnnumberedInner", WordImageTextWrapping.Square);
         AttachToList(host, list.NumberId);
 
-        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdfBytes()).Pages[0].GetTextSpans().ToArray();
+        PdfTextSpan[] spans = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).Pages[0].GetTextSpans().ToArray();
         PdfTextSpan marker = Assert.Single(spans, span => span.Text.Contains("1.", StringComparison.Ordinal));
         PdfTextSpan inner = Assert.Single(spans, span => span.Text.Contains("UnnumberedInner", StringComparison.Ordinal));
         Assert.NotEqual(marker.Y, inner.Y);
-        Assert.Equal(1, PdfReadDocument.Open(document.ToPdfBytes()).ExtractText()
+        Assert.Equal(1, PdfReadDocument.Open(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })).ExtractText()
             .Split(new[] { "1." }, StringSplitOptions.None).Length - 1);
         Assert.NotNull(box);
     }
@@ -531,7 +525,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     [InlineData(WordListLevelSuffix.Tab, 10D, 15D)]
     public void PdfTableCellListMarkerHonorsNumberingSuffix(WordListLevelSuffix suffix, double minimumGap, double maximumGap) {
         using WordDocument document = WordDocument.Create();
-        WordList list = document.AddCustomBulletList('*', "Arial", "000000");
+        WordList list = document.AddCustomBulletList('*', "Arial", OfficeColor.Parse("000000"));
         Level level = list.Numbering.Levels[0].OpenXmlElement;
         level.GetFirstChild<LevelSuffix>()?.Remove();
         level.Append(new LevelSuffix { Val = suffix.ToOpenXml() });
@@ -540,7 +534,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         cell.Text = "SuffixCell";
         AttachToList(cell, list.NumberId);
 
-        byte[] pdf = document.ToPdfBytes();
+        byte[] pdf = document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         (double Start, double End) marker = PdfLetterRun(pdf, "*");
         (double Start, double End) content = PdfLetterRun(pdf, "SuffixCell");
         Assert.InRange(content.Start - marker.End, minimumGap, maximumGap);

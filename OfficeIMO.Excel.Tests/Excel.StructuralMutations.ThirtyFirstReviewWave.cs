@@ -13,8 +13,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Test_DiscardedCells_ReclaimExclusiveInCellImagesWhileMovesPreserveThem() {
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                ExcelSheet sheet = document.AddWorksheet("Ranges");
-                sheet.CellValue(1, 1, "Replacement");
+                ExcelSheet sheet = document.AddSheet("Ranges");
+                sheet.Cell(1, 1).SetValue("Replacement");
                 sheet.SetInCellImage(1, 2, TinyPng, altText: "Discarded destination");
 
                 sheet.Range("A1").CopyTo("B1");
@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(document.WorkbookPartRoot.RdRichValueParts);
 
                 sheet.SetInCellImage(1, 3, TinyPng, altText: "Moved source");
-                sheet.MoveRange("C1", "D1");
+                sheet.Range("C1").MoveTo("D1");
 
                 ExcelInCellImage moved = Assert.Single(sheet.GetInCellImages());
                 Assert.Equal("D1", moved.CellReference);
@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
                 sheet.SetInCellImage(5, 5, TinyPng, altText: "Deleted row");
                 sheet.DeleteRows(5);
                 sheet.SetInCellImage(6, 6, TinyPng, altText: "Deleted column");
-                sheet.DeleteColumns(6);
+                sheet.DeleteColumnsTransactional(6);
                 sheet.SetInCellImage(7, 7, TinyPng, altText: "Deleted cell");
                 sheet.DeleteCells("G7", ExcelCellShiftDirection.Left);
 
@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                ExcelSheet sheet = document.AddWorksheet("Query");
+                ExcelSheet sheet = document.AddSheet("Query");
                 ExcelQueryBackedTableInfo source = document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
                     ConnectionName = "RefreshImages",
                     WorksheetName = sheet.Name,
@@ -62,15 +62,15 @@ namespace OfficeIMO.Tests {
 
                 Assert.Empty(sheet.GetInCellImages());
                 Assert.Empty(document.WorkbookPartRoot.RdRichValueParts);
-                Assert.Equal("Value", sheet.CellAt(1, 1).GetValue<string>());
-                Assert.Equal("Updated", sheet.CellAt(2, 1).GetValue<string>());
+                Assert.Equal("Value", sheet.Cell(1, 1).GetValue<string>());
+                Assert.Equal("Updated", sheet.Cell(2, 1).GetValue<string>());
             }
         }
 
         [Fact]
         public void Test_OwnedChartDataWorksheet_CannotBeRemovedWhileChartsReferenceIt() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet dashboard = document.AddWorksheet("Dashboard");
+            ExcelSheet dashboard = document.AddSheet("Dashboard");
             ExcelModernChart chart = dashboard.AddModernChart(
                 new ExcelChartData(
                     new[] { "A", "B" },
@@ -107,9 +107,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_TableSchema_RejectsOversizedHeadersBeforeMutation() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Original");
-            sheet.CellValue(2, 1, "Keep");
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Original");
+            sheet.Cell(2, 1).SetValue("Keep");
             sheet.AddTable("A1:A2", true, "DataTable", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
             Table table = Assert.Single(sheet.WorksheetPart.TableDefinitionParts).Table!;
             string originalXml = table.OuterXml;
@@ -119,14 +119,14 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal("columnNames", exception.ParamName);
             Assert.Equal(originalXml, table.OuterXml);
-            Assert.Equal("Original", sheet.CellAt(1, 1).GetValue<string>());
-            Assert.Equal("Keep", sheet.CellAt(2, 1).GetValue<string>());
+            Assert.Equal("Original", sheet.Cell(1, 1).GetValue<string>());
+            Assert.Equal("Keep", sheet.Cell(2, 1).GetValue<string>());
         }
 
         [Fact]
         public void Test_FeatureReport_PreservesUnresolvableQueryTableParts() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
                 ConnectionName = "BrokenBinding",
                 WorksheetName = sheet.Name,

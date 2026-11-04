@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Decoded metadata from a legacy XLS chart AreaFormat record.
     /// </summary>
-    public sealed class LegacyXlsChartAreaFormat {
+    internal sealed class LegacyXlsChartAreaFormat {
         /// <summary>
         /// Creates decoded chart area-format metadata.
         /// </summary>

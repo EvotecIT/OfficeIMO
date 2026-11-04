@@ -44,7 +44,7 @@ internal sealed partial class WordPerfectReader {
 
     private void Font5(int index, double? size) {
         if (!_packets.TryGetValue(15, out Packet? fonts) && !_packets.TryGetValue(2, out fonts)) {
-            Loss("WORDPERFECT_FONT_DIRECTORY", "Formatting", "A font change has no qualified font directory.");
+            Loss("wordperfect-font-directory", "Formatting", "A font change has no qualified font directory.");
             return;
         }
         if (fonts.Length % 86 != 0 || index >= fonts.Length / 86) throw new InvalidDataException("The WordPerfect 5 font index is outside its directory.");
@@ -121,7 +121,7 @@ internal sealed partial class WordPerfectReader {
         } else if (code == 0xd6 && sub <= 1) {
             Need(4); int start = sub == 0 ? 15 + _data[data + 3] * 2 : 7;
             Need(start); AddNote(sub == 0 ? LegacyWordNoteKind.Footnote : LegacyWordNoteKind.Endnote, ReadStory(data + start, data + length));
-            if ((_data[data] & 0x80) != 0) Loss("WORDPERFECT_NOTE_SYMBOL", "Notes", "A custom source note symbol was replaced by DOCX note numbering.");
+            if ((_data[data] & 0x80) != 0) Loss("wordperfect-note-symbol", "Notes", "A custom source note symbol was replaced by DOCX note numbering.");
         } else if (code == 0xd2 && sub == 0x0b) {
             Need(4); int newValues = 24 + U16(_data, data + 2) * 5;
             Need(newValues + 24); int columns = U16(_data, data + newValues + 2);
@@ -141,7 +141,7 @@ internal sealed partial class WordPerfectReader {
             BeginCell(); Justification(_data[data + 10]);
         } else if (code == 0xdc && sub == 1 || code == 0xdd && (sub == 1 || sub == 3)) BeginRow(false);
         else if ((code == 0xdc || code == 0xdd) && sub == 2) EndTable();
-        else if (code == 0xd9) Inert("WORDPERFECT_MERGE_INERT", OfficeLegacyInertContentKind.EmbeddedCode, "WordPerfect 5 merge functions were not executed.");
+        else if (code == 0xd9) Inert("wordperfect-merge-inert", OfficeLegacyInertContentKind.EmbeddedCode, "WordPerfect 5 merge functions were not executed.");
         else Loss("WORDPERFECT_FUNCTION_" + code.ToString("X2") + sub.ToString("X2"), "Structure", "A WordPerfect 5 function is outside the recovered profile.");
     }
 }

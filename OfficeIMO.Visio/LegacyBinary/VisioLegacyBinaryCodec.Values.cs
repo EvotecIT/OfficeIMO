@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using System.Threading;
 using System.Xml.Linq;
 
 namespace OfficeIMO.Visio {
@@ -83,14 +84,10 @@ namespace OfficeIMO.Visio {
                 }
             }
             if (sheet.Element(Ns + "Text") is XElement text && text.Value.IndexOf('\ufffc') >= 0) {
-                var output = new StringBuilder();
-                uint index = 0;
-                foreach (char character in text.Value) {
-                    if (character != '\ufffc') output.Append(character);
-                    else { output.Append(fields.TryGetValue(index++, out string? cached) ? cached : ""); }
-                }
-                Text(output.ToString()); // Charge expanded cached fields as well as source text.
-                text.Value = output.ToString();
+                string expanded = ExpandCachedTextFields(text.Value, fields,
+                    _options.Limits.MaxTextCharacters - _characters, _token);
+                Text(expanded); // Charge expanded cached fields as well as source text.
+                text.Value = expanded;
                 _findings.Add(new OfficeCompatibilityFinding("VSD_CACHED_TEXT_FIELDS", "Text",
                     "Cached string fields are substituted in text; unresolved or numeric fields are omitted and native field recalculation is not retained.",
                     OfficeCompatibilityState.Approximated, OfficeCompatibilitySeverity.Warning,
@@ -98,6 +95,28 @@ namespace OfficeIMO.Visio {
                     sourceLocation: kind + ":" + id));
             }
             return sheet;
+        }
+
+        internal static string ExpandCachedTextFields(string source, IReadOnlyDictionary<uint, string> fields,
+            int remainingCharacters, CancellationToken token) {
+            var output = new StringBuilder();
+            uint index = 0;
+            for (int position = 0; position < source.Length; position++) {
+                if ((position & 0x3ff) == 0) token.ThrowIfCancellationRequested();
+                char character = source[position];
+                if (character == '\ufffc') {
+                    fields.TryGetValue(index++, out string? cached);
+                    string addition = cached ?? string.Empty;
+                    if (addition.Length > remainingCharacters - output.Length)
+                        throw new InvalidDataException("Binary Visio text budget exceeded.");
+                    output.Append(addition);
+                } else {
+                    if (output.Length >= remainingCharacters)
+                        throw new InvalidDataException("Binary Visio text budget exceeded.");
+                    output.Append(character);
+                }
+            }
+            return output.ToString();
         }
 
         private static XElement NewGeometry(XElement sheet) {

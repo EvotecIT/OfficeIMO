@@ -15,7 +15,7 @@ public sealed partial class AgentIWorkConversionTests {
         var service = new OfficeImoAgentService(new AgentPathPolicy([files.Root]));
         string nativeId = (await service.InspectAsync(files.Input)).SourceId;
         string pdf = files.Output("pdf");
-        PdfDocument.Create(document => document.Page(page => page.Size(150, 180))).Save(pdf);
+        PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(150), global::OfficeIMO.OfficeLength.Points(180)))).Save(pdf);
         string pdfId = (await service.InspectAsync(pdf)).SourceId;
         File.Delete(files.Input);
         Assert.Equal(0, CreateIdentityFifo(files.Input, 0x180));
@@ -40,7 +40,7 @@ public sealed partial class AgentIWorkConversionTests {
         var service = new OfficeImoAgentService(new AgentPathPolicy([files.Root]));
         string nativeId = (await service.InspectAsync(files.Input)).SourceId;
         string pdf = files.Output("pdf");
-        PdfDocument.Create(document => document.Page(page => page.Size(150, 180))).Save(pdf);
+        PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(150), global::OfficeIMO.OfficeLength.Points(180)))).Save(pdf);
         string pdfId = (await service.InspectAsync(pdf)).SourceId;
         if (directoryPackage) {
             Directory.Delete(files.Input, true);

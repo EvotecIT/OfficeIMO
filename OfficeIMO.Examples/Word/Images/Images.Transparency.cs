@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph();
                 // AddImage returns the paragraph (fluent API). Set transparency on the last added image.
-                paragraph.AddImage(Path.Combine(imagePaths, "Kulek.jpg"), 100, 100);
+                paragraph.AddImage(Path.Combine(imagePaths, "Kulek.jpg"), OfficeIMO.OfficeLength.Pixels(100), OfficeIMO.OfficeLength.Pixels(100));
                 var images = document.Images;
                 var insertedImage = Guard.GetRequiredItem(images, images.Count - 1, "Document should contain the inserted image before setting transparency.");
                 insertedImage.Transparency = 30;

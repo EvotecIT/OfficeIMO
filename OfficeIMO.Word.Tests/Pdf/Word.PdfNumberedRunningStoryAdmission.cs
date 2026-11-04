@@ -15,12 +15,12 @@ public partial class Word {
         WordList list = document.AddList(WordListStyle.Numbered);
         WordParagraph template = list.AddItem("TEMPLATE");
         WordSection section = document.Sections[0];
-        section.DifferentFirstPage = !even;
-        section.DifferentOddAndEvenPages = even;
-        WordHeaderFooter normal = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
+        section.PageSetup.DifferentFirstPage = !even;
+        section.PageSetup.DifferentOddAndEvenPages = even;
+        WordHeaderFooter normal = footer ? document.PageSetup.Footer : document.PageSetup.Header;
         WordHeaderFooter mixed = footer
-            ? even ? document.FooterEvenOrCreate : document.FooterFirstOrCreate
-            : even ? document.HeaderEvenOrCreate : document.HeaderFirstOrCreate;
+            ? even ? document.PageSetup.EvenPageFooter : document.PageSetup.FirstPageFooter
+            : even ? document.PageSetup.EvenPageHeader : document.PageSetup.FirstPageHeader;
         normal.AddParagraph("PLAIN-LIST")._paragraph.ParagraphProperties =
             (W.ParagraphProperties)template._paragraph.ParagraphProperties!.CloneNode(true);
         WordParagraph outer = mixed.AddParagraph("PREFIX");

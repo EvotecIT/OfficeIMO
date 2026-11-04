@@ -72,13 +72,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
             events.Add((top, true));
             events.Add((top + layer.Block.Height, false));
         }
+        events.Sort((left, right) => left.Offset.CompareTo(right.Offset));
         var offsets = new List<double>();
         int active = 0;
-        foreach (IGrouping<double, (double Offset, bool Starts)> boundary in events.GroupBy(item => item.Offset).OrderBy(item => item.Key)) {
+        for (int index = 0; index < events.Count;) {
             CheckCancellation();
-            int ends = boundary.Count(item => !item.Starts);
-            if (active - ends == 0 && boundary.Key > 0D && boundary.Key < outerHeight) offsets.Add(boundary.Key);
-            active += boundary.Count(item => item.Starts) - ends;
+            double boundary = events[index].Offset;
+            int starts = 0, ends = 0;
+            do {
+                if ((index & 255) == 0) CheckCancellation();
+                if (events[index++].Starts) starts++;
+                else ends++;
+            } while (index < events.Count && events[index].Offset.CompareTo(boundary) == 0);
+            if (active - ends == 0 && boundary > 0D && boundary < outerHeight) offsets.Add(boundary);
+            active += starts - ends;
         }
         return offsets;
     }

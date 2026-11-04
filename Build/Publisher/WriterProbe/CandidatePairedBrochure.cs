@@ -15,8 +15,8 @@ internal static class CandidatePairedBrochure {
             PublisherPage master = document.MasterPages[index];
             Rectangle(master.Id, 36, 66, 540, 6, colors[index]);
             double logoX = index == 1 ? 72 : 504;
-            if (logo == null) logo = document.AddPicture(master.Id, image, logoX, 708, 72, 48);
-            else document.AddPicture(master.Id, logo.ImageId!.Value, logoX, 708, 72, 48);
+            if (logo == null) logo = document.AddImage(master.Id, image, logoX, 708, 72, 48);
+            else document.AddImage(master.Id, logo.ImageId!.Value, logoX, 708, 72, 48);
         }
 
         PublisherTextFrame lead = document.AddTextFrame(document.Pages[0].Id, 36, 180, 330, 180,
@@ -38,7 +38,7 @@ internal static class CandidatePairedBrochure {
             string.Concat(Enumerable.Repeat("Small projects help neighbors share skills and improve shared spaces. ", 10)).TrimEnd(),
             36, 420, 540, 240);
         document.SetTextFrameLayout(columns.Id, 2, 18, new OfficeTextPadding(6, 9, 12, 3), OfficeTextVerticalAlignment.Top);
-        document.AddPicture(document.Pages[1].Id, logo!.ImageId!.Value, 390, 180, 144, 96);
+        document.AddImage(document.Pages[1].Id, logo!.ImageId!.Value, 390, 180, 144, 96);
         Text(document.Pages[2].Id, "Thank you for taking part. Send your ideas for the next issue.", 36, 420, 540, 72);
         return document;
 

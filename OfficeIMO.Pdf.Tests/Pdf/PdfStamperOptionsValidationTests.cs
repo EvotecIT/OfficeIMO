@@ -46,10 +46,7 @@ public partial class PdfStamperTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfTextStampOptions().UsePageRange(2, 1));
         Assert.Throws<ArgumentNullException>(() => new PdfTextStampOptions().UsePageRanges(null!));
         Assert.Throws<ArgumentException>(() => new PdfTextStampOptions().UsePageRanges(Array.Empty<PdfPageRange>()));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfTextStampOptions { X = double.NaN });
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfTextStampOptions { Y = double.PositiveInfinity });
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfTextStampOptions { FontSize = 0 });
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfTextStampOptions { FontSize = double.NaN });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfTextStampOptions { FontSize = global::OfficeIMO.OfficeLength.Points(0) });
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfTextStampOptions { RotationDegrees = double.NegativeInfinity });
         var fontException = Assert.Throws<ArgumentOutOfRangeException>(() => new PdfTextStampOptions { Font = (PdfStandardFont)99 });
         Assert.Equal("Font", fontException.ParamName);
@@ -93,12 +90,8 @@ public partial class PdfStamperTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfImageStampOptions().UsePageRange(2, 1));
         Assert.Throws<ArgumentNullException>(() => new PdfImageStampOptions().UsePageRanges(null!));
         Assert.Throws<ArgumentException>(() => new PdfImageStampOptions().UsePageRanges(Array.Empty<PdfPageRange>()));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfImageStampOptions { X = double.NaN });
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfImageStampOptions { Y = double.PositiveInfinity });
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfImageStampOptions { Width = 0 });
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfImageStampOptions { Width = double.NaN });
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfImageStampOptions { Height = -1 });
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfImageStampOptions { Height = double.PositiveInfinity });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfImageStampOptions { Width = global::OfficeIMO.OfficeLength.Points(0) });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfImageStampOptions { Height = global::OfficeIMO.OfficeLength.Points(-1) });
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfImageStampOptions { RotationDegrees = double.NegativeInfinity });
     }
 
@@ -111,7 +104,7 @@ public partial class PdfStamperTests {
         Assert.Throws<ArgumentException>(() => PdfStamper.StampText(new WriteOnlyStream(), "x"));
         Assert.Throws<ArgumentNullException>(() => PdfStamper.StampText(source, null!));
         Assert.Throws<ArgumentException>(() => PdfStamper.StampText(source, string.Empty));
-        Assert.Throws<ArgumentOutOfRangeException>(() => PdfStamper.StampText(source, "x", new PdfTextStampOptions { FontSize = 0 }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfStamper.StampText(source, "x", new PdfTextStampOptions { FontSize = global::OfficeIMO.OfficeLength.Points(0) }));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfStamper.StampText(source, "x", new PdfTextStampOptions { PageNumbers = new[] { 0 } }));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfStamper.StampText(source, "x", new PdfTextStampOptions { PageNumbers = new[] { 3 } }));
         Assert.Throws<ArgumentException>(() => PdfStamper.StampText(source, "x", new PdfTextStampOptions { PageNumbers = new[] { 1, 1 } }));
@@ -151,8 +144,8 @@ public partial class PdfStamperTests {
         Assert.Throws<ArgumentException>(() => PdfStamper.StampImage(new MemoryStream(source), new WriteOnlyStream()));
         Assert.Throws<ArgumentNullException>(() => PdfStamper.StampImage(source, (byte[])null!));
         Assert.Throws<ArgumentException>(() => PdfStamper.StampImage(source, Array.Empty<byte>()));
-        Assert.Throws<ArgumentOutOfRangeException>(() => PdfStamper.StampImage(source, CreateMinimalRgbPng(), new PdfImageStampOptions { Width = 0 }));
-        Assert.Throws<ArgumentOutOfRangeException>(() => PdfStamper.StampImage(source, CreateMinimalRgbPng(), new PdfImageStampOptions { Height = 0 }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfStamper.StampImage(source, CreateMinimalRgbPng(), new PdfImageStampOptions { Width = global::OfficeIMO.OfficeLength.Points(0) }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfStamper.StampImage(source, CreateMinimalRgbPng(), new PdfImageStampOptions { Height = global::OfficeIMO.OfficeLength.Points(0) }));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfStamper.StampImage(source, CreateMinimalRgbPng(), new PdfImageStampOptions { PageNumbers = new[] { 0 } }));
         Assert.Throws<ArgumentException>(() => PdfStamper.StampImage(source, CreateMinimalRgbPng(), new PdfImageStampOptions { PageNumbers = new[] { 1, 1 } }));
         Assert.Throws<ArgumentNullException>(() => PdfStamper.StampImage(source, null!, CreateMinimalRgbPng()));

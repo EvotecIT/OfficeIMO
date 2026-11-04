@@ -48,7 +48,7 @@ public sealed class MarkdownTranscriptPreparationTests {
     [Fact]
     public void CreateIntelligenceXTranscriptReaderOptions_Can_Compose_On_Portable_Profile_Without_Losing_Transcript_Normalization() {
         var options = MarkdownTranscriptPreparation.CreateIntelligenceXTranscriptReaderOptions(
-            readerProfile: MarkdownReaderOptions.MarkdownDialectProfile.Portable,
+            readerProfile: MarkdownLoadOptions.MarkdownDialectProfile.Portable,
             preservesGroupedDefinitionLikeParagraphs: true);
         var expectedNormalization = MarkdownInputNormalizationPresets.CreateIntelligenceXTranscript();
 
@@ -66,7 +66,7 @@ public sealed class MarkdownTranscriptPreparationTests {
 
     [Fact]
     public void ApplyIntelligenceXTranscriptReaderContract_Upgrades_Existing_ReaderOptions_InPlace() {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             HtmlBlocks = false,
             InlineHtml = true,
             DisallowFileUrls = true,

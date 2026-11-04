@@ -5,7 +5,7 @@ using OfficeIMO.Excel.Xlsb.Package;
 
 namespace OfficeIMO.Excel.Xlsb.Projection;
 
-/// <summary>Projects chart/VBA carriers using their original bounded part graph, without executing linked content.</summary>
+/// <summary>Projects charts, themes and VBA carriers using their original bounded part graph, without executing linked content.</summary>
 internal sealed class XlsbRelatedPartProjector {
     private const string OfficeRelationships = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/";
     private readonly ExcelDocument _document;
@@ -34,6 +34,18 @@ internal sealed class XlsbRelatedPartProjector {
             Id = workbook.GetIdOfPart(part), SheetId = nextId, Name = source.Name,
             State = source.State == 1 ? SheetStateValues.Hidden : source.State == 2 ? SheetStateValues.VeryHidden : (SheetStateValues?)null
         });
+    }
+
+    internal void ProjectTheme() {
+        if (_workbook.ThemePartName == null) return;
+        string sourceName = _workbook.ThemePartName;
+        WorkbookPart workbook = _document.WorkbookPartRoot;
+        if (workbook.ThemePart != null) workbook.DeletePart(workbook.ThemePart);
+        ThemePart part = workbook.AddNewPart<ThemePart>();
+        using (var input = new MemoryStream(_workbook.RelatedParts[sourceName].Bytes, writable: false)) part.FeedData(input);
+        _copied.Add(sourceName, part);
+        _workbook.ProjectionPartUris[sourceName] = part.Uri.OriginalString;
+        CopyRelationships(part, sourceName);
     }
 
     internal void ProjectVba() {

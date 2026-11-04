@@ -22,6 +22,10 @@ namespace OfficeIMO.Excel {
             internal readonly HashSet<OpenXmlPart> PartSaves = new();
             internal readonly Dictionary<VmlDrawingPart, XDocument> CommentVmlDocuments = new();
             internal bool RequiresSavePreparation;
+            /// <summary>Print settings on this sheet were chosen by the table defaults, not by the caller.</summary>
+            internal bool OwnsTablePrintDefaults;
+            /// <summary>The grid was loaded into stored rows, so rows this sheet adds keep their plain cells stored too.</summary>
+            internal bool UsesCellStore;
         }
 
         /// <summary>
@@ -32,6 +36,8 @@ namespace OfficeIMO.Excel {
             _worksheetPart.Worksheet?.Save();
             _requiresSavePreparation = false;
         }
+
+        internal void CommitPendingParts() => CommitPendingPartChanges();
 
         private void CommitPendingPartChanges() {
             foreach (OpenXmlPart part in PendingPartSaves) {

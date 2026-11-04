@@ -100,32 +100,34 @@ public partial class PdfDocumentVisualQualityTests {
         PdfCellBorderLineStyle lineStyle = PdfCellBorderLineStyle.TwoLine) {
         var style = new PdfTableStyle {
             HeaderRowCount = 0, BorderColor = null, HeaderFill = null, RowStripeFill = null,
-            CellPaddingX = padding, CellPaddingY = padding, FontSize = 12, LineHeight = 1,
-            PreferredWidth = 200, CellSpacing = spacing,
-            ColumnWidthPoints = new List<double?> { 100, 100 },
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(padding), CellPaddingY = global::OfficeIMO.OfficeLength.Points(padding), FontSize = global::OfficeIMO.OfficeLength.Points(12), LineHeight = 1,
+            PreferredWidth = global::OfficeIMO.OfficeLength.Points(200), CellSpacing = global::OfficeIMO.OfficeLength.Points(spacing),
+            ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(100) },
             CellBorders = new Dictionary<(int Row, int Column), PdfCellBorder>()
         };
         for (int row = 0; row < 2; row++)
             for (int column = 0; column < 2; column++)
                 style.CellBorders[(row, column)] = new PdfCellBorder {
-                    Color = PdfColor.FromRgb(255, 0, 0), Width = 2, LineStyle = lineStyle
+                    Color = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0), Width = global::OfficeIMO.OfficeLength.Points(2), LineStyle = lineStyle
                 };
         string[][] rows = { new[] { "gypA", "gypB" }, new[] { "gypC", "gypD" } };
         if (surface == "fragment") {
             style.AllowRowBreakAcrossPages = true;
             rows[0][0] = string.Join("\n", Enumerable.Range(0, 12).Select(index => $"gyp{index:D2}"));
         }
-        var document = PdfDocument.Create(new PdfOptions {
-            PageWidth = surface == "columns" ? 520 : 320, PageHeight = surface == "fragment" ? 110 : 220, MarginLeft = 30, MarginRight = 30,
-            MarginTop = 30, MarginBottom = 30, CompressContentStreams = false
+        var document = PdfDocument.Create(new PdfCreateOptions {
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(surface == "columns" ? 520 : 320), global::OfficeIMO.OfficeLength.Points(surface == "fragment" ? 110 : 220)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            }, CompressContentStreams = false
         });
         document.Compose(root => root.Page(page => page.Content(content => {
         switch (surface) {
-            case "flow": content.Table(rows, style: style); break;
-            case "fragment": content.Table(rows, style: style); break;
-            case "row": content.Row(row => row.PercentColumn(100, column => column.Table(rows, style: style))); break;
-            case "columns": content.Columns(inner => inner.Table(rows, style: style), new PdfMultiColumnOptions { ColumnCount = 2, BalanceLastPage = false }); break;
-            case "canvas": content.Canvas(canvas => canvas.Table(rows, 30, 30, 200, 40, style)); break;
+            case "flow": content.AddTable(rows, style: style); break;
+            case "fragment": content.AddTable(rows, style: style); break;
+            case "row": content.Row(row => row.PercentColumn(100, column => column.AddTable(rows, style: style))); break;
+            case "columns": content.Columns(inner => inner.AddTable(rows, style: style), new PdfMultiColumnOptions { ColumnCount = 2, BalanceLastPage = false }); break;
+            case "canvas": content.Canvas(canvas => canvas.Table(rows, global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(40), style)); break;
             default: throw new ArgumentException("Unknown surface", nameof(surface));
         }
         })));

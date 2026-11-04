@@ -19,17 +19,17 @@ public sealed class ProjectFormatRegressionTests {
         using var authored = ProjectDocument.Create(); authored.Calendar = authored.Calendars.AddStandardWorkingWeek();
         authored.Settings.StartDate = new DateTime(2026, 10, 5, 8, 0, 0); authored.Tasks.Add("Retained document");
         using var source = new MemoryStream();
-        authored.Save(source, new ProjectSaveOptions { Format = format, LossPolicy = OfficeConversionLossPolicy.Allow });
+        authored.Save(source, new ProjectSaveOptions { Format = format, AllowLoss = true });
         byte[] bytes = source.ToArray();
         using var document = ProjectDocument.Load(new MemoryStream(bytes));
-        var exact = new ProjectSaveOptions { Format = format, MaxOutputBytes = bytes.Length, LossPolicy = OfficeConversionLossPolicy.Allow };
+        var exact = new ProjectSaveOptions { Format = format, MaxOutputBytes = bytes.Length, AllowLoss = true };
         document.AssessSave(exact).ThrowIfErrors();
         using var copy = new MemoryStream(); document.Save(copy, exact); Assert.Equal(bytes, copy.ToArray());
-        var tooSmall = new ProjectSaveOptions { Format = format, MaxOutputBytes = bytes.Length - 1, LossPolicy = OfficeConversionLossPolicy.Allow };
+        var tooSmall = new ProjectSaveOptions { Format = format, MaxOutputBytes = bytes.Length - 1, AllowLoss = true };
         ProjectReport assessment = document.AssessSave(tooSmall);
         Assert.True(assessment.HasErrors);
         Assert.True(assessment.HasLoss);
-        Assert.Contains(assessment.FidelityDiagnostics,
+        Assert.Contains(assessment.Diagnostics,
             diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Failure);
         using var destination = new MemoryStream(new byte[] { 1, 2, 3 }, true);
         Assert.Throws<InvalidDataException>(() => document.Save(destination, tooSmall));
@@ -52,13 +52,13 @@ public sealed class ProjectFormatRegressionTests {
             document = authored;
         }
         using (document == authored ? null : document) {
-            var generatedOptions = new ProjectSaveOptions { Format = ProjectFileFormat.Xml, PreserveUnchangedBytes = false, LossPolicy = OfficeConversionLossPolicy.Allow };
+            var generatedOptions = new ProjectSaveOptions { Format = ProjectFileFormat.Xml, PreserveUnchangedBytes = false, AllowLoss = true };
             byte[] generated = ProjectXmlCodec.Write(document, generatedOptions, default);
-            var exact = new ProjectSaveOptions { Format = ProjectFileFormat.Xml, PreserveUnchangedBytes = false, MaxOutputBytes = generated.Length, LossPolicy = OfficeConversionLossPolicy.Allow };
+            var exact = new ProjectSaveOptions { Format = ProjectFileFormat.Xml, PreserveUnchangedBytes = false, MaxOutputBytes = generated.Length, AllowLoss = true };
             document.AssessSave(exact).ThrowIfErrors();
-            var tooSmall = new ProjectSaveOptions { Format = ProjectFileFormat.Xml, PreserveUnchangedBytes = false, MaxOutputBytes = generated.Length - 1, LossPolicy = OfficeConversionLossPolicy.Allow };
+            var tooSmall = new ProjectSaveOptions { Format = ProjectFileFormat.Xml, PreserveUnchangedBytes = false, MaxOutputBytes = generated.Length - 1, AllowLoss = true };
             var assessment = document.AssessSave(tooSmall);
-            Assert.Contains(assessment.Diagnostics, d => d.Code == "PROJECT_OUTPUT_LIMIT" && d.Severity == ProjectDiagnosticSeverity.Error);
+            Assert.Contains(assessment.NativeDiagnostics, d => d.Code == "PROJECT_OUTPUT_LIMIT" && d.Severity == ProjectDiagnosticSeverity.Error);
             using var destination = new MemoryStream(new byte[] { 1, 2, 3 }, true);
             Assert.Throws<InvalidDataException>(() => document.Save(destination, tooSmall));
             Assert.Equal(new byte[] { 1, 2, 3 }, destination.ToArray());
@@ -87,18 +87,18 @@ public sealed class ProjectFormatRegressionTests {
         ProjectDocument document;
         if (editLoadedDocument) {
             using var source = new MemoryStream();
-            authored.Save(source, new ProjectSaveOptions { Format = format, LossPolicy = OfficeConversionLossPolicy.Allow });
+            authored.Save(source, new ProjectSaveOptions { Format = format, AllowLoss = true });
             document = ProjectDocument.Load(new MemoryStream(source.ToArray()));
             document.Tasks.GetByUid(2).Name = "Edited generated native document";
         } else document = authored;
         using (document == authored ? null : document) {
-            var generatedOptions = new ProjectSaveOptions { Format = format, LossPolicy = OfficeConversionLossPolicy.Allow };
+            var generatedOptions = new ProjectSaveOptions { Format = format, AllowLoss = true };
             byte[] generated = ProjectNativeWriter.Plan(document, generatedOptions, true, default).Bytes!;
-            var exact = new ProjectSaveOptions { Format = format, MaxOutputBytes = generated.Length, LossPolicy = OfficeConversionLossPolicy.Allow };
+            var exact = new ProjectSaveOptions { Format = format, MaxOutputBytes = generated.Length, AllowLoss = true };
             document.AssessSave(exact).ThrowIfErrors();
-            var tooSmall = new ProjectSaveOptions { Format = format, MaxOutputBytes = generated.Length - 1, LossPolicy = OfficeConversionLossPolicy.Allow };
+            var tooSmall = new ProjectSaveOptions { Format = format, MaxOutputBytes = generated.Length - 1, AllowLoss = true };
             var assessment = document.AssessSave(tooSmall);
-            Assert.Contains(assessment.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_OUTPUT_LIMIT" && diagnostic.Severity == ProjectDiagnosticSeverity.Error);
+            Assert.Contains(assessment.NativeDiagnostics, diagnostic => diagnostic.Code == "PROJECT_OUTPUT_LIMIT" && diagnostic.Severity == ProjectDiagnosticSeverity.Error);
             using var destination = new MemoryStream(new byte[] { 1, 2, 3 }, true);
             Assert.Throws<InvalidDataException>(() => document.Save(destination, tooSmall));
             Assert.Equal(new byte[] { 1, 2, 3 }, destination.ToArray());
@@ -116,9 +116,9 @@ public sealed class ProjectFormatRegressionTests {
     [InlineData(ProjectFileFormat.Mpt14)]
     public void GeneratedNativeAssessmentReportsIntermediateOutputLimits(ProjectFileFormat format) {
         using var document = ProjectNativeAuthoringTests.Create();
-        var options = new ProjectSaveOptions { Format = format, MaxOutputBytes = 1, LossPolicy = OfficeConversionLossPolicy.Allow };
+        var options = new ProjectSaveOptions { Format = format, MaxOutputBytes = 1, AllowLoss = true };
         var assessment = document.AssessSave(options);
-        Assert.Contains(assessment.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_OUTPUT_LIMIT" && diagnostic.Severity == ProjectDiagnosticSeverity.Error);
+        Assert.Contains(assessment.NativeDiagnostics, diagnostic => diagnostic.Code == "PROJECT_OUTPUT_LIMIT" && diagnostic.Severity == ProjectDiagnosticSeverity.Error);
         using var destination = new MemoryStream(new byte[] { 1, 2, 3 }, true);
         Assert.Throws<InvalidDataException>(() => document.Save(destination, options));
         Assert.Equal(new byte[] { 1, 2, 3 }, destination.ToArray());
@@ -129,14 +129,14 @@ public sealed class ProjectFormatRegressionTests {
         using var authored = ProjectNativeAuthoringTests.Create();
         authored.Tasks.GetByUid(2).Name = new string('X', 240);
         using var source = new MemoryStream();
-        var options = new ProjectSaveOptions { Format = ProjectFileFormat.Mpp14, LossPolicy = OfficeConversionLossPolicy.Allow };
+        var options = new ProjectSaveOptions { Format = ProjectFileFormat.Mpp14, AllowLoss = true };
         authored.Save(source, options);
         byte[] original = source.ToArray();
         using var document = ProjectDocument.Load(new MemoryStream(original));
         document.Tasks.GetByUid(2).Name = "Short name";
         byte[] generated = ProjectNativeWriter.Plan(document, options, true, default).Bytes!;
         Assert.True(generated.Length < original.Length);
-        var bounded = new ProjectSaveOptions { Format = ProjectFileFormat.Mpp14, MaxOutputBytes = generated.Length, LossPolicy = OfficeConversionLossPolicy.Allow };
+        var bounded = new ProjectSaveOptions { Format = ProjectFileFormat.Mpp14, MaxOutputBytes = generated.Length, AllowLoss = true };
         document.AssessSave(bounded).ThrowIfErrors();
         using var output = new MemoryStream();
         document.Save(output, bounded);
@@ -160,7 +160,7 @@ public sealed class ProjectFormatRegressionTests {
         document.Calendar = document.Calendars.AddStandardWorkingWeek();
         foreach (DayOfWeek day in Enum.GetValues(typeof(DayOfWeek))) document.Calendar.SetWorkingDay(day, ProjectWorkingTime.Hours(0, 0));
         var task = document.Tasks.Add("Continuous operation"); task.Duration = ProjectDuration.WorkingHours(24);
-        var options = new ProjectSaveOptions { Format = format, LossPolicy = OfficeConversionLossPolicy.Allow };
+        var options = new ProjectSaveOptions { Format = format, AllowLoss = true };
         using var output = new MemoryStream(); document.Save(output, options);
         using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
         Assert.DoesNotContain(reopened.Validate().Diagnostics, d => d.Code == "PROJECT_WORKING_INTERVAL");
@@ -177,7 +177,7 @@ public sealed class ProjectFormatRegressionTests {
     [Fact]
     public void LegacyDuplicateTrailingMetadataDoesNotCreateEntitiesAndRemainsEditable() {
         using var document = ProjectNativeAuthoringTests.Create();
-        var options = new ProjectSaveOptions { Format = ProjectFileFormat.Mpp9, LossPolicy = OfficeConversionLossPolicy.Allow };
+        var options = new ProjectSaveOptions { Format = ProjectFileFormat.Mpp9, AllowLoss = true };
         using var output = new MemoryStream(); document.Save(output, options);
         Assert.True(OfficeCompoundFileReader.TryRead(output.ToArray(), out OfficeCompoundFile? compound, out var error), error);
         var replacements = new Dictionary<string, byte[]>();

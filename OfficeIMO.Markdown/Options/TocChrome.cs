@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Visual chrome level for the TOC container.
 /// </summary>
-public enum TocChrome {
+public enum MarkdownTocChrome {
     /// <summary>Use style defaults (panel for Panel layout; plain for sidebars).</summary>
     Default = 0,
     /// <summary>No background or border; text-only ("ghost").</summary>

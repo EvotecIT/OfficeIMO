@@ -145,7 +145,7 @@ public sealed class ReaderPdfModularTests {
             stream,
             sourceName: "ranges.pdf",
             pdfOptions: new ReaderPdfOptions {
-                ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(2) }
+                ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(2) }
             }).ToList();
 
         var chunk = Assert.Single(chunks);
@@ -162,7 +162,7 @@ public sealed class ReaderPdfModularTests {
             logical,
             sourceName: "logical-ranges.pdf",
             pdfOptions: new ReaderPdfOptions {
-                ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(2) }
+                ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(2) }
             }).ToList();
 
         var chunk = Assert.Single(chunks);
@@ -176,10 +176,10 @@ public sealed class ReaderPdfModularTests {
         byte[] pdf = PdfDocument.Create()
             .OpenAction(pageNumber: 1, destinationMode: PdfOpenActionDestinationMode.Fit)
             .H1("Reader PDF page one")
-            .Paragraph(p => p.Text("First page body."))
+            .Paragraph(p => p.AddText("First page body."))
             .PageBreak()
             .H1("Reader PDF page two")
-            .Paragraph(p => p.Text("Second page body."))
+            .Paragraph(p => p.AddText("Second page body."))
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf);
 
@@ -187,7 +187,7 @@ public sealed class ReaderPdfModularTests {
             logical,
             sourceName: "logical-open-action-ranges.pdf",
             pdfOptions: new ReaderPdfOptions {
-                ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(2) }
+                ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(2) }
             }).ToList());
 
         Assert.Equal(2, chunk.Location.Page);
@@ -449,7 +449,7 @@ public sealed class ReaderPdfModularTests {
             logical,
             sourceName: "logical-readback.pdf",
             pdfOptions: new ReaderPdfOptions {
-                ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(2, 1) }
+                ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(2, 1) }
             });
 
         Assert.Equal(new int?[] { 2, 1 }, result.Pages.Select(page => page.Number).ToArray());
@@ -460,7 +460,7 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfDocument_ExposesCatalogNavigationAndMetadataEntries() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CreateOutlineFromHeadings = true,
                 CatalogPageMode = PdfCatalogPageMode.UseOutlines,
                 CatalogPageLayout = PdfCatalogPageLayout.TwoColumnLeft,
@@ -473,7 +473,7 @@ public sealed class ReaderPdfModularTests {
             .OpenAction(pageNumber: 1, destinationMode: PdfOpenActionDestinationMode.Fit)
             .H1("Catalog Root")
             .Bookmark("Details")
-            .Paragraph(p => p.Text("Detail body"))
+            .Paragraph(p => p.AddText("Detail body"))
             .H2("Catalog Child")
             .ToBytes();
         using var stream = new MemoryStream(pdf, writable: false);
@@ -528,8 +528,8 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfDocument_ExposesOutputIntentMetadata() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions().SetSrgbOutputIntent())
-            .Paragraph(p => p.Text("Output intent metadata proof."))
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions().SetSrgbOutputIntent())
+            .Paragraph(p => p.AddText("Output intent metadata proof."))
             .ToBytes();
 
         OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
@@ -578,7 +578,7 @@ public sealed class ReaderPdfModularTests {
             .TaggedPdfCatalogMarkers()
             .Language("en-US")
             .H1("Reader tagged heading")
-            .Paragraph(p => p.Text("Reader tagged paragraph."))
+            .Paragraph(p => p.AddText("Reader tagged paragraph."))
             .ToBytes();
 
         OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
@@ -696,12 +696,12 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfDocument_ExposesXmpMetadata() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions()
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions()
                 .SetPdfAIdentification(3, "B")
                 .SetPdfUaIdentification()
                 .SetElectronicInvoiceMetadata("EN 16931"))
             .Meta(title: "Reader XMP readback", author: "OfficeIMO", subject: "Reader metadata", keywords: "delta, epsilon")
-            .Paragraph(p => p.Text("Reader generated XMP readback."))
+            .Paragraph(p => p.AddText("Reader generated XMP readback."))
             .ToBytes();
 
         OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
@@ -831,16 +831,16 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfDocument_FiltersLogicalMetadataToSelectedPages() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CreateOutlineFromHeadings = true
             })
             .H1("First")
             .Bookmark("FirstDest")
-            .Paragraph(p => p.Text("First page body."))
+            .Paragraph(p => p.AddText("First page body."))
             .PageBreak()
             .H1("Second")
             .Bookmark("SecondDest")
-            .Paragraph(p => p.Text("Second page body."))
+            .Paragraph(p => p.AddText("Second page body."))
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf);
 
@@ -848,7 +848,7 @@ public sealed class ReaderPdfModularTests {
             logical,
             sourceName: "selected-metadata.pdf",
             pdfOptions: new ReaderPdfOptions {
-                ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(1) }
+                ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(1) }
             });
 
         Assert.Single(result.Pages);
@@ -868,7 +868,7 @@ public sealed class ReaderPdfModularTests {
     public void DocumentReaderPdf_ReadPdfDocument_FiltersSelectedPageFormMetadata() {
         byte[] pdf = PdfDocument.Create()
             .H1("First")
-            .Paragraph(p => p.Text("First page body."))
+            .Paragraph(p => p.AddText("First page body."))
             .PageBreak()
             .H1("Second")
             .TextField("Second.Only", value: "hidden")
@@ -879,7 +879,7 @@ public sealed class ReaderPdfModularTests {
             logical,
             sourceName: "selected-form.pdf",
             pdfOptions: new ReaderPdfOptions {
-                ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(1) }
+                ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(1) }
             });
 
         Assert.Empty(result.Forms);
@@ -892,17 +892,15 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfDocument_ExposesFormWidgetMetadata() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
-                PageWidth = 420,
-                PageHeight = 240,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(240)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Paragraph(p => p.Text("Reader PDF form metadata."))
-            .TextField("Contact.Email", value: "info@example.com", width: 180, height: 24)
+            .Paragraph(p => p.AddText("Reader PDF form metadata."))
+            .TextField("Contact.Email", value: "info@example.com", width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(24))
             .ChoiceField("Contact.Country", new[] { "PL", "DE" }, value: "PL", width: 180, height: 24)
             .ToBytes();
 
@@ -994,7 +992,7 @@ public sealed class ReaderPdfModularTests {
         byte[] pdf = PdfDocument.Create()
             .AttachFile("invoice.xml", invoiceXml, "application/xml", PdfAssociatedFileRelationship.Data, "Structured invoice XML")
             .AttachFile("source.txt", sourceBytes, "text/plain", PdfAssociatedFileRelationship.Source)
-            .Paragraph(p => p.Text("Attachment metadata proof."))
+            .Paragraph(p => p.AddText("Attachment metadata proof."))
             .ToBytes();
 
         OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
@@ -1092,7 +1090,7 @@ public sealed class ReaderPdfModularTests {
             stream,
             sourceName: "duplicate-ranges.pdf",
             pdfOptions: new ReaderPdfOptions {
-                ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(1, 1) }
+                ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(1, 1) }
             }).ToList();
 
         Assert.Equal(2, chunks.Count);
@@ -1163,7 +1161,7 @@ public sealed class ReaderPdfModularTests {
             logical,
             sourceName: "partial-catalog-actions.pdf",
             pdfOptions: new ReaderPdfOptions {
-                ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(2) }
+                ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(2) }
             },
             readerOptions: new ReaderOptions { MaxChars = 8_000 }).ToList());
 
@@ -1186,7 +1184,7 @@ public sealed class ReaderPdfModularTests {
             logical,
             sourceName: "catalog-actions-duplicate-ranges.pdf",
             pdfOptions: new ReaderPdfOptions {
-                ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(2, 2) }
+                ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(2, 2) }
             }).ToList();
 
         Assert.Equal(2, chunks.Count);
@@ -1202,25 +1200,23 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfStream_ExposesDetectedTables() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(360)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Paragraph(p => p.Text("Reader PDF table marker."))
+            .Paragraph(p => p.AddText("Reader PDF table marker."))
             .Table(new[] {
                 new[] { "Code", "Name", "Qty" },
                 new[] { "A-100", "Alpha", "2" },
                 new[] { "B-200", "Beta", "14" }
             }, style: new PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 70, 170, 60 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(170), global::OfficeIMO.OfficeLength.Points(60) },
                 HeaderRowCount = 1,
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .ToBytes();
         using var stream = new MemoryStream(pdf, writable: false);
@@ -1273,25 +1269,23 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfDocument_ExposesTablesOnResultAndPage() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(360)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Paragraph(p => p.Text("Reader PDF table marker."))
+            .Paragraph(p => p.AddText("Reader PDF table marker."))
             .Table(new[] {
                 new[] { "Code", "Name", "Qty" },
                 new[] { "A-100", "Alpha", "2" },
                 new[] { "B-200", "Beta", "14" }
             }, style: new PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 70, 170, 60 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(170), global::OfficeIMO.OfficeLength.Points(60) },
                 HeaderRowCount = 1,
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .ToBytes();
         using var stream = new MemoryStream(pdf, writable: false);
@@ -1314,24 +1308,22 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfTables_ReturnsLogicalTablesOnly() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(360)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Table(new[] {
                 new[] { "Code", "Name", "Qty" },
                 new[] { "A-100", "Alpha", "2" },
                 new[] { "B-200", "Beta", "14" }
             }, style: new PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 70, 170, 60 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(170), global::OfficeIMO.OfficeLength.Points(60) },
                 HeaderRowCount = 1,
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .ToBytes();
         using var stream = new MemoryStream(pdf, writable: false);
@@ -1377,17 +1369,15 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfStream_ExposesFormAndSourceDiagnostics() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
-                PageWidth = 420,
-                PageHeight = 240,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(240)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Paragraph(p => p.Text("Reader PDF form marker."))
-            .TextField("Contact.Email", value: "info@example.com", width: 180, height: 24)
+            .Paragraph(p => p.AddText("Reader PDF form marker."))
+            .TextField("Contact.Email", value: "info@example.com", width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(24))
             .ChoiceField("Contact.Country", new[] { "PL", "DE" }, value: "PL", width: 180, height: 24)
             .ToBytes();
         using var stream = new MemoryStream(pdf, writable: false);
@@ -1542,17 +1532,15 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfStream_ExposesImageVisualGeometry() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
-                PageWidth = 420,
-                PageHeight = 300,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(300)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Paragraph(p => p.Text("Reader PDF visual marker."))
-            .Image(PdfPngTestImages.CreateRgbPng(3, 2), 48, 32, alternativeText: "Reader visual badge")
+            .Paragraph(p => p.AddText("Reader PDF visual marker."))
+            .Image(PdfPngTestImages.CreateRgbPng(3, 2), 48, 32, altText: "Reader visual badge")
             .ToBytes();
         using var stream = new MemoryStream(pdf, writable: false);
 
@@ -1591,7 +1579,7 @@ public sealed class ReaderPdfModularTests {
         Assert.False(string.IsNullOrWhiteSpace(visual.PayloadHash));
         Assert.Contains("Reader PDF visual marker", chunk.Markdown ?? chunk.Text, StringComparison.Ordinal);
 
-        ReaderVisual extracted = Assert.Single(OfficeIMO.Reader.Tests.ReaderTestReaders.All.ExtractVisuals(new[] { chunk }));
+        ReaderVisual extracted = Assert.Single((new[] { chunk }).ExtractVisuals());
         Assert.Equal("image-visual.pdf", extracted.Location?.Path);
         Assert.Equal("image/png", extracted.MimeType);
         Assert.Equal(48D, extracted.PlacedWidth!.Value, 3);
@@ -1797,13 +1785,11 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfDocument_FlagsImageOnlyPagesAsOcrCandidates() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
-                PageWidth = 300,
-                PageHeight = 220,
-                MarginLeft = 24,
-                MarginRight = 24,
-                MarginTop = 24,
-                MarginBottom = 24
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(220)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(24), Right = global::OfficeIMO.OfficeLength.Points(24), Top = global::OfficeIMO.OfficeLength.Points(24), Bottom = global::OfficeIMO.OfficeLength.Points(24) }
+                }
             })
             .Image(CreateMinimalRgbPng(), 180, 120)
             .ToBytes();
@@ -1856,13 +1842,11 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ApplyOcrResults_EnrichesImageOnlyPagesWithoutRunningOcrInCore() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
-                PageWidth = 300,
-                PageHeight = 220,
-                MarginLeft = 24,
-                MarginRight = 24,
-                MarginTop = 24,
-                MarginBottom = 24
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(220)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(24), Right = global::OfficeIMO.OfficeLength.Points(24), Top = global::OfficeIMO.OfficeLength.Points(24), Bottom = global::OfficeIMO.OfficeLength.Points(24) }
+                }
             })
             .Image(CreateMinimalRgbPng(), 180, 120)
             .ToBytes();
@@ -1952,25 +1936,23 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfStream_DuplicatePageRangeTableSelectionsEmitUniqueAnchors() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(360)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Paragraph(p => p.Text("Reader PDF table marker."))
+            .Paragraph(p => p.AddText("Reader PDF table marker."))
             .Table(new[] {
                 new[] { "Code", "Name", "Qty" },
                 new[] { "A-100", "Alpha", "2" },
                 new[] { "B-200", "Beta", "14" }
             }, style: new PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 70, 170, 60 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(170), global::OfficeIMO.OfficeLength.Points(60) },
                 HeaderRowCount = 1,
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .ToBytes();
         using var stream = new MemoryStream(pdf, writable: false);
@@ -1995,25 +1977,23 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfTableExports_DuplicatePageRangeTableSelectionsEmitUniqueIds() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(360)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Paragraph(p => p.Text("Reader PDF table marker."))
+            .Paragraph(p => p.AddText("Reader PDF table marker."))
             .Table(new[] {
                 new[] { "Code", "Name", "Qty" },
                 new[] { "A-100", "Alpha", "2" },
                 new[] { "B-200", "Beta", "14" }
             }, style: new PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 70, 170, 60 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(170), global::OfficeIMO.OfficeLength.Points(60) },
                 HeaderRowCount = 1,
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .ToBytes();
         using var stream = new MemoryStream(pdf, writable: false);
@@ -2034,24 +2014,22 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfStream_TableRowCapsApplyAfterDetectedHeader() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(360)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Table(new[] {
                 new[] { "Code", "Name", "Qty" },
                 new[] { "A-100", "Alpha", "2" },
                 new[] { "B-200", "Beta", "14" }
             }, style: new PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 70, 170, 60 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(170), global::OfficeIMO.OfficeLength.Points(60) },
                 HeaderRowCount = 1,
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .ToBytes();
         using var stream = new MemoryStream(pdf, writable: false);
@@ -2076,23 +2054,21 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfStream_ExposesHeaderlessKeyValueTables() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(360)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .KeyValueTable(new[] {
                 PdfKeyValueRow.Text("InvoiceId", "INV-001"),
                 PdfKeyValueRow.Text("Customer", "Evotec"),
                 PdfKeyValueRow.Text("Due", "2026-06-30")
             }, style: new PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 120, 170 },
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(170) },
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .ToBytes();
         using var stream = new MemoryStream(pdf, writable: false);
@@ -2119,16 +2095,14 @@ public sealed class ReaderPdfModularTests {
     [Fact]
     public void DocumentReaderPdf_ReadPdfStream_SplitsByMaxChars() {
         string longText = string.Join(" ", Enumerable.Repeat("Reader PDF split marker", 40));
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
-                PageWidth = 420,
-                PageHeight = 620,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(620)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Paragraph(p => p.Text(longText))
+            .Paragraph(p => p.AddText(longText))
             .ToBytes();
         using var stream = new MemoryStream(pdf, writable: false);
 
@@ -2150,7 +2124,7 @@ public sealed class ReaderPdfModularTests {
 
         byte[] pdf = BuildTwoPagePdf();
         using var stream = new MemoryStream(pdf, writable: false);
-        var chunks = reader.Read(stream, "registry.pdf").ToList();
+        var chunks = reader.Enumerate(stream, "registry.pdf").ToList();
 
         Assert.NotEmpty(chunks);
         Assert.Contains(chunks, c =>
@@ -2209,12 +2183,12 @@ public sealed class ReaderPdfModularTests {
     [Fact]
     public void ReaderPdfOptions_CloneCopiesNestedOptionsIndependently() {
         var options = ReaderPdfOptions.CreateOfficeIMOProfile();
-        options.ReadOptions = new PdfReadOptions {
+        options.ReadOptions = new PdfLoadOptions {
             Profile = PdfReadProfile.Fast,
             PageSelection = PdfPageSelection.From(1),
             LayoutOptions = new PdfTextLayoutOptions {
                 ForceSingleColumn = true,
-                MarginLeft = 12
+                MarginLeft = OfficeIMO.OfficeLength.Points(12)
             },
             Pipeline = new PdfUnderstandingPipelineOptions {
                 MaxPages = 2_048,
@@ -2235,7 +2209,7 @@ public sealed class ReaderPdfModularTests {
         Assert.NotSame(options.ReadOptions.Pipeline, clone.ReadOptions.Pipeline);
         Assert.NotSame(options.MarkdownOptions, clone.MarkdownOptions);
         Assert.NotSame(options.ParagraphContinuationOptions, clone.ParagraphContinuationOptions);
-        Assert.Equal(options.ReadOptions.LayoutOptions.MarginLeft, clone.ReadOptions.LayoutOptions.MarginLeft);
+        Assert.Equal(options.ReadOptions.LayoutOptions.MarginLeft.ToPoints(), clone.ReadOptions.LayoutOptions.MarginLeft.ToPoints());
         Assert.Equal(options.MarkdownOptions!.IncludeLinkAnnotations, clone.MarkdownOptions!.IncludeLinkAnnotations);
         Assert.Equal(PdfReadProfile.Fast, clone.ReadOptions.Profile);
         Assert.Equal(2_048, clone.ReadOptions.Pipeline!.MaxPages);
@@ -2245,12 +2219,12 @@ public sealed class ReaderPdfModularTests {
         Assert.Equal(0.85, clone.ParagraphContinuationOptions!.MinimumConfidence);
         Assert.False(clone.ParagraphContinuationOptions.RejoinSoftHyphens);
 
-        clone.ReadOptions.LayoutOptions.MarginLeft = 48;
+        clone.ReadOptions.LayoutOptions.MarginLeft= OfficeIMO.OfficeLength.Points(48);
         clone.ReadOptions.Pipeline.MaxPages = 32;
         clone.MarkdownOptions.IncludeLinkAnnotations = false;
         clone.MarkdownOptions.AlignNumericTableColumns = true;
 
-        Assert.Equal(12, options.ReadOptions.LayoutOptions.MarginLeft);
+        Assert.Equal(12, options.ReadOptions.LayoutOptions.MarginLeft.ToPoints());
         Assert.Equal(2_048, options.ReadOptions.Pipeline.MaxPages);
         Assert.True(options.MarkdownOptions.IncludeLinkAnnotations);
         Assert.False(options.MarkdownOptions.AlignNumericTableColumns);
@@ -2290,7 +2264,7 @@ public sealed class ReaderPdfModularTests {
             logical,
             sourceName: "reversed-continuation.pdf",
             pdfOptions: new ReaderPdfOptions {
-                ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(2, 1) }
+                ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(2, 1) }
             });
 
         Assert.Equal(new int?[] { 2, 1 }, result.Pages.Select(page => page.Number).ToArray());
@@ -2305,7 +2279,7 @@ public sealed class ReaderPdfModularTests {
             logical,
             sourceName: "repeated-continuation.pdf",
             pdfOptions: new ReaderPdfOptions {
-                ReadOptions = new PdfReadOptions {
+                ReadOptions = new PdfLoadOptions {
                     PageSelection = PdfPageSelection.FromRanges(
                         PdfPageRange.From(1, 2),
                         PdfPageRange.From(1, 2))
@@ -2344,20 +2318,18 @@ public sealed class ReaderPdfModularTests {
     }
 
     private static byte[] BuildTwoPagePdf() {
-        return PdfDocument.Create(new PdfOptions {
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+        return PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(360)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .H1("Reader PDF page one")
-            .Paragraph(p => p.Text("First page body."))
+            .Paragraph(p => p.AddText("First page body."))
             .PageBreak()
             .H1("Reader PDF page two")
-            .Paragraph(p => p.Text("Second page body."))
+            .Paragraph(p => p.AddText("Second page body."))
             .ToBytes();
     }
 
@@ -2980,7 +2952,7 @@ public sealed class ReaderPdfModularTests {
     }
 
     private static ReaderPdfOptions CreateSingleColumnPdfOptions(PdfPageSelection? selection = null) => new ReaderPdfOptions {
-        ReadOptions = new PdfReadOptions {
+        ReadOptions = new PdfLoadOptions {
             PageSelection = selection,
             LayoutOptions = new PdfTextLayoutOptions { ForceSingleColumn = true }
         }

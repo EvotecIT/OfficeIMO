@@ -7,8 +7,8 @@ internal static partial class PdfPageImporter {
     /// Appends selected one-based pages from <paramref name="sourcePdf"/> to the end of <paramref name="targetPdf"/>, applying optional source preparation first.
     /// When no page numbers are supplied, all source pages are appended.
     /// </summary>
-    public static byte[] AppendPages(PdfPageImportOptions options, byte[] targetPdf, byte[] sourcePdf, params int[] sourcePageNumbers) {
-        return AppendPages(options, targetPdf, sourcePdf, targetReadOptions: null, sourcePageNumbers);
+    public static byte[] AppendPages(PdfPageImportOptions options, byte[] targetPdf, byte[] sourcePdf, PdfPageSelection? sourceSelection = null, CancellationToken cancellationToken = default) {
+        return AppendPages(PdfOperationCancellation.Bind(options, cancellationToken)!, targetPdf, sourcePdf, targetReadOptions: null, PdfPageSelection.ToPageNumbers(sourceSelection));
     }
 
     internal static byte[] AppendPages(PdfPageImportOptions options, byte[] targetPdf, byte[] sourcePdf, PdfLoadOptions? targetReadOptions, params int[] sourcePageNumbers) {
@@ -19,8 +19,8 @@ internal static partial class PdfPageImporter {
     /// Prepends selected one-based pages from <paramref name="sourcePdf"/> before <paramref name="targetPdf"/>, applying optional source preparation first.
     /// When no page numbers are supplied, all source pages are prepended.
     /// </summary>
-    public static byte[] PrependPages(PdfPageImportOptions options, byte[] targetPdf, byte[] sourcePdf, params int[] sourcePageNumbers) {
-        return PrependPages(options, targetPdf, sourcePdf, targetReadOptions: null, sourcePageNumbers);
+    public static byte[] PrependPages(PdfPageImportOptions options, byte[] targetPdf, byte[] sourcePdf, PdfPageSelection? sourceSelection = null, CancellationToken cancellationToken = default) {
+        return PrependPages(PdfOperationCancellation.Bind(options, cancellationToken)!, targetPdf, sourcePdf, targetReadOptions: null, PdfPageSelection.ToPageNumbers(sourceSelection));
     }
 
     internal static byte[] PrependPages(PdfPageImportOptions options, byte[] targetPdf, byte[] sourcePdf, PdfLoadOptions? targetReadOptions, params int[] sourcePageNumbers) {
@@ -31,8 +31,8 @@ internal static partial class PdfPageImporter {
     /// Inserts selected one-based pages from <paramref name="sourcePdf"/> before <paramref name="insertBeforePageNumber"/> in <paramref name="targetPdf"/>, applying optional source preparation first.
     /// Use target page count + 1 to insert at the end. When no page numbers are supplied, all source pages are inserted.
     /// </summary>
-    public static byte[] InsertPages(PdfPageImportOptions options, byte[] targetPdf, byte[] sourcePdf, int insertBeforePageNumber, params int[] sourcePageNumbers) {
-        return InsertPages(options, targetPdf, sourcePdf, insertBeforePageNumber, targetReadOptions: null, sourcePageNumbers);
+    public static byte[] InsertPages(PdfPageImportOptions options, byte[] targetPdf, byte[] sourcePdf, int insertBeforePageNumber, PdfPageSelection? sourceSelection = null, CancellationToken cancellationToken = default) {
+        return InsertPages(PdfOperationCancellation.Bind(options, cancellationToken)!, targetPdf, sourcePdf, insertBeforePageNumber, targetReadOptions: null, PdfPageSelection.ToPageNumbers(sourceSelection));
     }
 
     internal static byte[] InsertPages(PdfPageImportOptions options, byte[] targetPdf, byte[] sourcePdf, int insertBeforePageNumber, PdfLoadOptions? targetReadOptions, params int[] sourcePageNumbers) {
@@ -88,9 +88,9 @@ internal static partial class PdfPageImporter {
         var source = PdfReadDocument.Open(sourcePdf, sourceOptions, cancellationToken);
         if (!PdfTaggedPageOrganizer.IsTagged(target) && !PdfTaggedPageOrganizer.IsTagged(source)) {
             var sourceCatalog = (PdfDictionary)source.Objects[source.Security.RootObjectNumber!.Value].Value;
-            // Incoming forms and layers still need the merger's explicit collision policies. Ordinary page graphs
+            // Layers and non-destination name trees still need document merge policies. Page and form graphs
             // use the same catalog-preserving ImportPages route whether either document is tagged or not.
-            bool needsMergePolicy = source.AcroFormXfa != null || source.FormFields.Count > 0 || sourceCatalog.Items.ContainsKey("OCProperties") ||
+            bool needsMergePolicy = sourceCatalog.Items.ContainsKey("OCProperties") ||
                 sourceCatalog.Items.TryGetValue("Names", out var value) && PdfObjectLookup.Resolve(source.Objects, value) is PdfDictionary names &&
                 names.Items.Keys.Any(key => key != "Dests");
             if (needsMergePolicy) { output = Array.Empty<byte>(); return false; }

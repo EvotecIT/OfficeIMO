@@ -9,6 +9,13 @@ namespace OfficeIMO.PowerPoint {
             ?? SlidePart.SlideLayoutPart?.ThemeOverridePart?.ThemeOverride?.ColorScheme
             ?? SlidePart.SlideLayoutPart?.SlideMasterPart?.ThemePart?.Theme?.ThemeElements?.ColorScheme;
 
+        internal OfficeTheme AuthoringTheme => OwnerDocument?.ReadLayoutTheme(
+            Math.Max(0, GetLayoutInfo()?.MasterIndex ?? 0), ResolvedColorScheme,
+            SlidePart.ThemeOverridePart?.ThemeOverride?.FontScheme
+            ?? SlidePart.SlideLayoutPart?.ThemeOverridePart?.ThemeOverride?.FontScheme
+            ?? SlidePart.SlideLayoutPart?.SlideMasterPart?.ThemePart?.Theme?.ThemeElements?.FontScheme).Theme
+            ?? OfficeTheme.Default;
+
         internal A.FormatScheme? ResolvedFormatScheme =>
             SlidePart.ThemeOverridePart?.ThemeOverride?.FormatScheme
             ?? SlidePart.SlideLayoutPart?.ThemeOverridePart?.ThemeOverride?.FormatScheme

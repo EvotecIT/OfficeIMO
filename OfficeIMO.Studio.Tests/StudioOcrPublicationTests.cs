@@ -22,7 +22,7 @@ public sealed class StudioOcrPublicationTests {
             services.Preferences.Update(current => current with { Theme = dark ? StudioThemePreference.Dark : StudioThemePreference.Light });
             string source = Path.Combine(services.Paths.Root, "Scanned document.pdf");
             string output = Path.Combine(services.Paths.Root, "Searchable document.pdf");
-            PdfDocument.Create(document => document.Page(page => page.Size(300, 300))).Save(source);
+            PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)))).Save(source);
             bool allowed = true;
             bool denyAfterRecognition = false;
             var engine = new DelegateOcrEngine("fixture", (_, _) => {
@@ -45,7 +45,7 @@ public sealed class StudioOcrPublicationTests {
                 model.OutputPath = output;
                 await RunThroughReviewAsync(model);
                 Assert.True(model.HasOutput, model.ErrorMessage);
-                Assert.Equal("Recognized", PdfReadDocument.Open(File.ReadAllBytes(output)).Pages.Single().ExtractText().Trim());
+                Assert.Equal("Recognized", PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(output))).Pages.Single().ExtractText().Trim());
                 Assert.True(services.Jobs.Entries[0].HasOutput);
                 Capture(window, $"ocr-publication-{width}-{(dark ? "dark" : "light")}-completed.png");
                 byte[] saved = File.ReadAllBytes(output);
@@ -71,7 +71,7 @@ public sealed class StudioOcrPublicationTests {
         await session.Dispatch(async () => {
             var services = ((App)Application.Current!).Services;
             services.Preferences.Update(current => current with { Theme = dark ? StudioThemePreference.Dark : StudioThemePreference.Light });
-            byte[] sourceBytes = PdfDocument.Create(document => document.Page(page => page.Size(300, 300))).ToBytes();
+            byte[] sourceBytes = PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)))).ToBytes();
             var input = new TestStorageFile("content://documents/ocr-source", sourceBytes, "Selected scanned document.pdf");
             var output = new TestStorageFile("content://documents/ocr-output", sourceBytes, "Selected searchable document.pdf");
             string source = await services.Storage.RegisterAsync(input.Item, default);
@@ -111,7 +111,7 @@ public sealed class StudioOcrPublicationTests {
                 await RunThroughReviewAsync(model);
                 Assert.True(model.HasOutput, model.ErrorMessage);
                 Assert.Equal(destination, model.PublishedPath);
-                Assert.Equal("Recognized", PdfReadDocument.Open(output.Bytes).Pages.Single().ExtractText().Trim());
+                Assert.Equal("Recognized", PdfDocument.Load(new System.IO.MemoryStream(output.Bytes)).Pages.Single().ExtractText().Trim());
                 Assert.Equal(0, input.Writes);
                 Assert.Equal(input.Reads, input.ClosedReads);
                 Capture(window, $"ocr-provider-{width}-{(dark ? "dark" : "light")}-completed.png");
@@ -132,7 +132,7 @@ public sealed class StudioOcrPublicationTests {
                 Assert.NotNull(services.Jobs.Entries[0].Recovery);
                 var retained = Assert.Single(services.WorkflowRecovery.GetRecoveries());
                 await services.WorkflowRecovery.VerifyAsync(retained);
-                Assert.Equal("Recognized", PdfReadDocument.Open(File.ReadAllBytes(retained.FilePath)).Pages.Single().ExtractText().Trim());
+                Assert.Equal("Recognized", PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(retained.FilePath))).Pages.Single().ExtractText().Trim());
                 Assert.Equal(2, output.Writes);
                 Assert.Equal(sourceBytes, input.Bytes);
                 Capture(window, $"ocr-provider-{width}-{(dark ? "dark" : "light")}-recovery.png");
@@ -149,7 +149,7 @@ public sealed class StudioOcrPublicationTests {
                 InputStream = options.InputStream, OutputStream = options.OutputStream,
                 PublicationGuard = options.PublicationGuard, ReviewCorrectionsAsync = options.ReviewCorrectionsAsync,
                 ConflictPolicy = options.OutputConflictPolicy == OfficeConversionFileConflictPolicy.Replace
-                    ? OfficeWorkflowConflictPolicy.Replace : OfficeWorkflowConflictPolicy.Fail
+                    ? OfficePublicationPolicy.Replace : OfficePublicationPolicy.Fail
             }, engine, cancellationToken);
             return new(result.AddedWordCount, result.ModifiedPages, result.Provider, result);
         }

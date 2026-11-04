@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel {
         /// Enumerates non-empty cells within the given A1 range as typed values.
         /// </summary>
         public IEnumerable<ExcelCellValueInfo> EnumerateRange(string a1Range, CancellationToken ct = default) {
-            var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
+            var (r1, c1, r2, c2) = ExcelA1.ParseRange(a1Range);
 
             return CanUseEnumerateRangeXmlReader()
                 ? EnumerateRangeXmlFast(r1, c1, r2, c2, ct)
@@ -46,11 +46,13 @@ namespace OfficeIMO.Excel {
         private IEnumerable<ExcelCellValueInfo> EnumerateRangeXmlFast(int r1, int c1, int r2, int c2, CancellationToken ct) {
             using var stream = _wsPart.GetStream(System.IO.FileMode.Open, System.IO.FileAccess.Read);
             RewindWorksheetStream(stream);
-            using var reader = OpenWorksheetXmlReader(stream);
+            using var reader = OpenCellEnumerationXmlReader(stream);
             var worksheetRows = new WorksheetXmlRowSelector();
             bool canCancel = ct.CanBeCanceled;
             bool fillBlanks = _opt.FillBlanksInRanges;
-            bool hasCustomConverter = _opt.CellValueConverter != null;
+            // A culture also changes how text parses as a number, which only the raw conversion honours.
+            bool hasCustomConverter = _opt.CellValueConverter != null
+                || !ReferenceEquals(_opt.Culture, System.Globalization.CultureInfo.InvariantCulture);
             int nextRowIndex = 1;
 
             while (reader.Read()) {
@@ -134,11 +136,14 @@ namespace OfficeIMO.Excel {
                             yield return new ExcelCellValueInfo(rowIndex, columnIndex, customValue);
                         }
                     } else if (fillBlanks) {
-                        yield return new ExcelCellValueInfo(rowIndex, columnIndex, ReadXmlCellValue(reader));
-                    } else if (!reader.IsEmptyElement) {
-                        object? cellValue = ReadXmlCellValue(reader);
-                        if (cellValue != null) {
-                            yield return new ExcelCellValueInfo(rowIndex, columnIndex, cellValue);
+                        yield return new ExcelCellValueInfo(rowIndex, columnIndex, ReadXmlCellValue(reader, ReadValidatedXmlCellType(reader)));
+                    } else {
+                        string? cellType = ReadValidatedXmlCellType(reader);
+                        if (!reader.IsEmptyElement || cellType == "e") {
+                            object? cellValue = ReadXmlCellValue(reader, cellType);
+                            if (cellValue != null) {
+                                yield return new ExcelCellValueInfo(rowIndex, columnIndex, cellValue);
+                            }
                         }
                     }
 
@@ -161,13 +166,14 @@ namespace OfficeIMO.Excel {
         }
 
         private bool TryReadXmlCellValueForEnumeration(XmlReader cellReader, int rowIndex, int columnIndex, out object? value) {
-            XmlCellKind cellKind = ParseXmlCellKind(ReadXmlCellTypeAttribute(cellReader));
+            XmlCellKind cellKind = ParseXmlCellKind(ReadValidatedXmlCellType(cellReader));
             bool readStyleIndex = true;
 
             CellRaw raw = ReadXmlCellRaw(cellReader, rowIndex, columnIndex, cellKind, readStyleIndex);
             if (raw.RawText == null
                 && raw.InlineText == null
                 && raw.FormulaText == null
+                && _opt.CellValueConverter == null
                 && !_opt.FillBlanksInRanges) {
                 value = null;
                 return false;
@@ -178,8 +184,7 @@ namespace OfficeIMO.Excel {
         }
 
         private bool CanUseEnumerateRangeXmlReader() {
-            return (_opt.CellValueConverter != null || _opt.Culture == System.Globalization.CultureInfo.InvariantCulture)
-                && CanStreamWorksheetPart();
+            return CanStreamWorksheetPart();
         }
     }
 }

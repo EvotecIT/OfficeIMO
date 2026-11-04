@@ -17,10 +17,10 @@ namespace OfficeIMO.Word.Html {
                 htmlDoc,
                 element,
                 "data-page-orientation",
-                FormatOrientation(section.PageOrientation.ToOpenXml()),
+                FormatOrientation(section.PageSetup.Orientation.ToOpenXml()),
                 "SectionMetadata:orientation");
 
-            var pageSize = section.PageSettings.PageSize;
+            var pageSize = section.PageSetup.Size.PageSize;
             if (pageSize != null) {
                 SetOutputAttribute(
                     htmlDoc,
@@ -30,8 +30,8 @@ namespace OfficeIMO.Word.Html {
                     "SectionMetadata:page-size");
             }
 
-            var widthTwips = section.PageSettings.Width;
-            var heightTwips = section.PageSettings.Height;
+            var widthTwips = checked((uint?)(section.PageSetup.Size.Width?.ToTwips()));
+            var heightTwips = checked((uint?)(section.PageSetup.Size.Height?.ToTwips()));
             if (widthTwips != null) {
                 SetOutputAttribute(
                     htmlDoc,
@@ -49,10 +49,10 @@ namespace OfficeIMO.Word.Html {
                     "SectionMetadata:page-height");
             }
 
-            var top = section.Margins.Top;
-            var right = section.Margins.Right;
-            var bottom = section.Margins.Bottom;
-            var left = section.Margins.Left;
+            var top = checked((int?)(section.PageSetup.Margins.Top?.ToTwips()));
+            var right = checked((uint)(section.PageSetup.Margins.Right.GetValueOrDefault().ToTwips()));
+            var bottom = checked((int?)(section.PageSetup.Margins.Bottom?.ToTwips()));
+            var left = checked((uint)(section.PageSetup.Margins.Left.GetValueOrDefault().ToTwips()));
             SetTwipsAttribute(htmlDoc, element, "data-margin-top-twips", top, "SectionMetadata:margin-top");
             SetTwipsAttribute(htmlDoc, element, "data-margin-right-twips", right, "SectionMetadata:margin-right");
             SetTwipsAttribute(htmlDoc, element, "data-margin-bottom-twips", bottom, "SectionMetadata:margin-bottom");

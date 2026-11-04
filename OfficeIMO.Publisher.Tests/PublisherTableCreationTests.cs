@@ -29,15 +29,15 @@ public sealed class PublisherTableCreationTests {
                             template.Margins, template.Indent, template.LineHeightFactor).WithTabStops(template.TabStops)).ToArray();
                 document.ReplaceTableCellParagraphs(table.Id, cell.RowIndex, cell.ColumnIndex, paragraphs);
             }
-            var saved = document.ToPubBytesResult(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
-            Assert.False(saved.Report.HasErrors);
-            PublisherNativeWritingTests.AssertPreservedStorage(source, saved.Value, "Quill/QuillSub/CONTENTS");
-            Assert.Equal(Layout(source), Layout(saved.Value));
-            document = PublisherDocument.Load(saved.Value);
+            byte[] savedBytes = document.ToBytes(new PublisherSaveOptions { AllowLoss = true }, out PublisherSaveReport saveReport);
+            Assert.False(saveReport.HasErrors);
+            PublisherNativeWritingTests.AssertPreservedStorage(source, savedBytes, "Quill/QuillSub/CONTENTS");
+            Assert.Equal(Layout(source), Layout(savedBytes));
+            document = PublisherDocument.Load(savedBytes);
             PublisherTable reopened = document.Pages.Single().Tables.Single();
             Assert.Equal((original.Id, original.StoryId, original.PageId), (reopened.Id, reopened.StoryId, reopened.PageId));
             Check(document, clear ? new[] { "", "Count", "Alpha", "" } : new[] { "Updated\nItem", "Count", "Alpha", "7" });
-            source = saved.Value;
+            source = savedBytes;
         }
     }
 
@@ -67,7 +67,7 @@ public sealed class PublisherTableCreationTests {
         byte[] stream = compound!.Streams["Quill/QuillSub/CONTENTS"];
         var data = new PublisherBinaryData(stream, "Quill/QuillSub/CONTENTS");
         PublisherQuillChunk chunk = PublisherQuillDirectory.Read(data,
-            new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None)).Single(value => value.Tag == "MCLD");
+            new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None)).Single(value => value.Tag == "MCLD");
         return stream.Skip(chunk.Offset).Take(chunk.Length).ToArray();
     }
 }

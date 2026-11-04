@@ -23,7 +23,7 @@ public sealed class WordOdtNotesConversionTests {
         note.AddParagraph().Element.Add(new XElement(OdfNamespaces.Text + "s",
             new XAttribute(OdfNamespaces.Text + "c", halfLimit)));
 
-        OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(() => source.ToWordDocumentResult());
+        OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(() => source.ConvertToWordWithEvidence());
         Assert.Equal("opendocument", error.Owner);
         Assert.Equal("MaximumDecodedCharacters", error.LimitName);
         Assert.True(error.Maximum > 0 && error.Maximum <= 16L * 1024 * 1024);
@@ -38,11 +38,11 @@ public sealed class WordOdtNotesConversionTests {
             .SetAttributeValue(text + "label", "1");
         source.Package.MarkXmlDirty("content.xml");
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument word = conversion.Value;
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-citations" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
-        Assert.Throws<OdfConversionLossException>(() => source.ToWordDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToWordWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -59,10 +59,10 @@ public sealed class WordOdtNotesConversionTests {
         anchor.ParagraphProperties ??= new W.ParagraphProperties();
         anchor.ParagraphProperties.ParagraphStyleId = new W.ParagraphStyleId { Val = "StyledNoteAnchor" };
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-reference-formatting" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -82,11 +82,11 @@ public sealed class WordOdtNotesConversionTests {
                 new W.Footnote(new W.Paragraph(new W.Run(new W.Text("Unreferenced")))) { Id = 99 });
         }
 
-        OdfConversionResult<OdtDocument> result = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> result = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(result.Report.Mappings, mapping =>
             mapping.Feature == (endnote ? "source-endnotes" : "source-footnotes") &&
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -101,7 +101,7 @@ public sealed class WordOdtNotesConversionTests {
         source.OpenXmlDocument.MainDocumentPart!.FootnotesPart!.Footnotes!.Append(
             new W.Footnote(new W.Paragraph(new W.Run(new W.Text("Unreferenced")))) { Id = 99 });
 
-        OdfConversionResult<OdtDocument> result = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> result = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(result.Report.Mappings, mapping =>
             mapping.Feature == "source-footnotes" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
@@ -117,11 +117,11 @@ public sealed class WordOdtNotesConversionTests {
         paragraph.Append(new W.Run((W.FootnoteReference)reference.CloneNode(true)));
         paragraph.Append(new W.Run(new W.FootnoteReference { Id = 99 }));
 
-        OdfConversionResult<OdtDocument> result = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> result = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(result.Report.Mappings, mapping =>
             mapping.Feature == "source-footnotes" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -134,7 +134,7 @@ public sealed class WordOdtNotesConversionTests {
         source.OpenXmlDocument.MainDocumentPart.FootnotesPart.Footnotes.Append(
             new W.Footnote(new W.Paragraph(new W.Run(new W.Text("Second")))) { Id = original.Id!.Value });
 
-        OdfConversionResult<OdtDocument> result = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> result = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(result.Report.Mappings, mapping =>
             mapping.Feature == "source-footnotes" && mapping.Status == OdfConversionMappingStatus.Unsupported &&
             mapping.Count == 1);
@@ -170,10 +170,10 @@ public sealed class WordOdtNotesConversionTests {
             Font = "Wingdings", Char = "F0A7"
         }));
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-content" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -186,10 +186,10 @@ public sealed class WordOdtNotesConversionTests {
         note.Elements<W.Paragraph>().Single().Append(new W.SimpleField(
             new W.Run(new W.Text("Field result"))) { Instruction = "DATE" });
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-content" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -200,12 +200,12 @@ public sealed class WordOdtNotesConversionTests {
         source.OpenXmlDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.DocDefaults!
             .RunPropertiesDefault!.RunPropertiesBaseStyle!.Append(new W.Bold());
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-formatting" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-reference-formatting" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -219,10 +219,10 @@ public sealed class WordOdtNotesConversionTests {
         body.RunProperties ??= new W.RunProperties();
         body.RunProperties.RunStyle = new W.RunStyle { Val = "Emphasis" };
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-formatting" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -238,10 +238,10 @@ public sealed class WordOdtNotesConversionTests {
         if (repeated) mark.Parent!.Append((W.FootnoteReferenceMark)mark.CloneNode(true));
         else mark.Remove();
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-formatting" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -255,10 +255,10 @@ public sealed class WordOdtNotesConversionTests {
         markRun.Remove();
         note.Elements<W.Paragraph>().Single().Append(markRun);
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-formatting" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -271,7 +271,7 @@ public sealed class WordOdtNotesConversionTests {
         W.Run markRun = note.Descendants<W.Run>().Single(run => run.Descendants<W.FootnoteReferenceMark>().Any());
         markRun.Append(new W.Text("Styled text"));
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-formatting" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
     }
@@ -283,10 +283,10 @@ public sealed class WordOdtNotesConversionTests {
         source.OpenXmlDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.DocDefaults!
             .RunPropertiesDefault!.RunPropertiesBaseStyle!.GetFirstChild<W.FontSize>()!.Val = "30";
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-formatting" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -299,7 +299,7 @@ public sealed class WordOdtNotesConversionTests {
         note.Elements<W.Paragraph>().Single().Append(new W.Run(new W.TabChar(),
             new W.Text("Middle"), new W.Break(), new W.Text("After")));
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-content" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
         Assert.Contains("\tMiddle\nAfter", Assert.Single(Assert.Single(conversion.Value.Paragraphs).Notes).Paragraphs[0].Text);
@@ -331,10 +331,10 @@ public sealed class WordOdtNotesConversionTests {
         second.Remove();
         Assert.Equal(2, source.InspectFeatures().Features.Single(feature => feature.Name == "Footnotes").Count);
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "footnotes" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -363,11 +363,11 @@ public sealed class WordOdtNotesConversionTests {
                 new XElement(style + "paragraph-properties", new XAttribute(fo + "text-align", "center"))));
         source.Package.MarkXmlDirty("styles.xml");
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument word = conversion.Value;
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-formatting" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
-        Assert.Throws<OdfConversionLossException>(() => source.ToWordDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToWordWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -383,11 +383,11 @@ public sealed class WordOdtNotesConversionTests {
                 new XElement(style + "text-properties", new XAttribute(fo + "font-weight", "bold"))));
         source.Package.MarkXmlDirty("styles.xml");
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument word = conversion.Value;
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-reference-formatting" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
-        Assert.Throws<OdfConversionLossException>(() => source.ToWordDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToWordWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -405,10 +405,10 @@ public sealed class WordOdtNotesConversionTests {
         run.RunProperties.Append(new W.Shading { Val = W.ShadingPatternValues.DiagonalCross });
         run.Append(new W.Break { Type = W.BreakValues.Page });
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-formatting" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -422,10 +422,10 @@ public sealed class WordOdtNotesConversionTests {
         mark.RunProperties!.Append(new W.Color { Val = "AA0000" });
         Assert.Empty(source.ValidateDocument());
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-formatting" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -439,10 +439,10 @@ public sealed class WordOdtNotesConversionTests {
         anchor.RunProperties.Append(new W.Color { Val = "AA0000" });
         Assert.Empty(source.ValidateDocument());
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-reference-formatting" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -453,11 +453,11 @@ public sealed class WordOdtNotesConversionTests {
         paragraph.Bold = true;
         paragraph.AddFootnote("Body");
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument word = conversion.Value;
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-reference-formatting" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
-        Assert.Throws<OdfConversionLossException>(() => source.ToWordDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToWordWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -471,11 +471,11 @@ public sealed class WordOdtNotesConversionTests {
             new XElement(text + "span", note)));
         source.Package.MarkXmlDirty("content.xml");
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument word = conversion.Value;
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-reference-formatting" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
-        Assert.Throws<OdfConversionLossException>(() => source.ToWordDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToWordWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -490,12 +490,12 @@ public sealed class WordOdtNotesConversionTests {
             .Elements<W.Footnote>().Single(note => note.Type?.Value == W.FootnoteEndnoteValues.Separator);
         separator.Descendants<W.Run>().Single().Append(new W.Text("custom rule"));
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-citations" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-separators" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -508,7 +508,7 @@ public sealed class WordOdtNotesConversionTests {
                 Type = W.FootnoteEndnoteValues.ContinuationNotice, Id = -3
             });
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-separators" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
         Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "source-footnotes" &&
@@ -529,12 +529,12 @@ public sealed class WordOdtNotesConversionTests {
             new W.FootnoteSpecialReference { Id = -2 }), true);
         Assert.Empty(source.ValidateDocument());
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-separators" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-numbering-placement" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -555,13 +555,13 @@ public sealed class WordOdtNotesConversionTests {
         OdtDocument reopened = OdtDocument.Load(new MemoryStream(modified));
         Assert.Equal("*", Assert.Single(Assert.Single(reopened.Paragraphs).Notes).Citation);
 
-        OdfConversionResult<WordDocument> conversion = reopened.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = reopened.ConvertToWordWithEvidence();
         using WordDocument word = conversion.Value;
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-citations" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-reference-formatting" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
-        Assert.Throws<OdfConversionLossException>(() => reopened.ToWordDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => reopened.ConvertToWordWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -580,12 +580,12 @@ public sealed class WordOdtNotesConversionTests {
         OdtDocument source = OdtDocument.Create();
         source.PageLayout.Header.AddParagraph("Header anchor").AddFootnote("Header note");
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument word = conversion.Value;
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-headers-footers" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
         Assert.Empty(word.ValidateDocument());
-        Assert.Throws<OdfConversionLossException>(() => source.ToWordDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToWordWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -603,11 +603,11 @@ public sealed class WordOdtNotesConversionTests {
                 new XElement(OdfNamespaces.Table + "table-cell", paragraph))));
         source.Package.MarkXmlDirty("styles.xml");
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument target = conversion.Value;
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "source-text-notes" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
-        Assert.Throws<OdfConversionLossException>(() => source.ToWordDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToWordWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -622,11 +622,11 @@ public sealed class WordOdtNotesConversionTests {
             new XAttribute(OdfNamespaces.Style + "width", "0.02in")));
         source.Package.MarkXmlDirty("styles.xml");
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument target = conversion.Value;
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-configuration" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
-        Assert.Throws<OdfConversionLossException>(() => source.ToWordDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToWordWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -642,10 +642,10 @@ public sealed class WordOdtNotesConversionTests {
         note.Append(table);
         Assert.Empty(source.ValidateDocument());
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-content" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -655,9 +655,9 @@ public sealed class WordOdtNotesConversionTests {
         source.AddParagraph("Anchor").AddFootNote("Note paragraph");
         var noteParagraphs = source.FootNotes[0].Paragraphs;
         Assert.NotNull(noteParagraphs);
-        noteParagraphs![0].LineSpacingAfterPoints = 8;
+        noteParagraphs![0].LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(8D);
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-formatting" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
     }
@@ -673,11 +673,11 @@ public sealed class WordOdtNotesConversionTests {
                 new XAttribute(text + "start-value", "5")));
         source.Package.MarkXmlDirty("styles.xml");
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument word = conversion.Value;
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-configuration" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
-        Assert.Throws<OdfConversionLossException>(() => source.ToWordDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToWordWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -688,10 +688,10 @@ public sealed class WordOdtNotesConversionTests {
         source.AddSection().AddFootnoteProperties(numberingFormat: WordNumberFormat.UpperRoman);
         source.Sections[1].AddParagraph("Second section");
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-numbering-placement" &&
             mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -701,10 +701,10 @@ public sealed class WordOdtNotesConversionTests {
         source.AddParagraph("No note references");
         source.AddFootnoteProperties(WordNumberFormat.UpperRoman);
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-numbering-placement" &&
             mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -715,10 +715,10 @@ public sealed class WordOdtNotesConversionTests {
         source.OpenXmlDocument.MainDocumentPart!.DocumentSettingsPart!.Settings!.AddChild(
             new W.FootnoteDocumentWideProperties(new W.FootnoteSpecialReference { Id = -2 }), true);
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-separators" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -731,11 +731,11 @@ public sealed class WordOdtNotesConversionTests {
             .Add(new XElement(style + "footnote-sep"));
         source.Package.MarkXmlDirty("styles.xml");
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument target = conversion.Value;
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-configuration" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
-        Assert.Throws<OdfConversionLossException>(() => source.ToWordDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToWordWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -747,10 +747,10 @@ public sealed class WordOdtNotesConversionTests {
             .Elements<W.Style>().Single(candidate => candidate.StyleId?.Value == "DefaultParagraphFont");
         baseStyle.Append(new W.StyleRunProperties(new W.Color { Val = "AA0000" }));
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-reference-formatting" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -764,10 +764,10 @@ public sealed class WordOdtNotesConversionTests {
             Anchor = "Destination"
         }, anchor);
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-reference-position" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -779,10 +779,11 @@ public sealed class WordOdtNotesConversionTests {
             .Elements<W.Style>().Single(candidate => candidate.StyleId?.Value == "FootnoteReference");
         style.StyleRunProperties!.Append(new W.Color { Val = "AA0000" });
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-reference-formatting" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
-        Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-formatting");
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-formatting" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated);
     }
 
     [Fact]
@@ -793,7 +794,7 @@ public sealed class WordOdtNotesConversionTests {
             .Descendants<W.Run>().Single(run => run.GetFirstChild<W.FootnoteReference>() != null);
         noteRun.Append(new W.Break());
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-reference-position" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
     }
@@ -808,10 +809,10 @@ public sealed class WordOdtNotesConversionTests {
         source.AddParagraph("Footnote anchor").AddFootNote("Footnote body");
         source.AddParagraph("Endnote anchor").AddEndNote("Endnote body");
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-numbering-placement" &&
             mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 2);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -823,10 +824,10 @@ public sealed class WordOdtNotesConversionTests {
         Assert.NotNull(noteParagraphs);
         noteParagraphs![0].Style = WordParagraphStyles.Heading1;
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-formatting" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -838,10 +839,10 @@ public sealed class WordOdtNotesConversionTests {
             .Elements<W.Style>().Single(candidate => candidate.StyleId?.Value == "FootnoteText");
         style.StyleRunProperties!.GetFirstChild<W.FontSize>()!.Val = "28";
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-formatting" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -853,10 +854,10 @@ public sealed class WordOdtNotesConversionTests {
             .Elements<W.Style>().Single(candidate => candidate.StyleId?.Value == "Normal");
         normal.Append(new W.StyleRunProperties(new W.Bold()));
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-formatting" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -876,10 +877,10 @@ public sealed class WordOdtNotesConversionTests {
             StyleId = "InheritedNoteBase"
         });
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-formatting" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -903,7 +904,7 @@ public sealed class WordOdtNotesConversionTests {
     public void ExistingWordNoteFixtureKeepsBothNoteKindsThroughOdt() {
         string path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "DocumentWithFootNotes.docx");
         using WordDocument source = WordDocument.Load(path);
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.True(conversion.Value.Validate().IsValid);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "footnotes" &&
             mapping.Status == OdfConversionMappingStatus.Converted && mapping.Count == 3);
@@ -927,14 +928,15 @@ public sealed class WordOdtNotesConversionTests {
         paragraph.AddEndNote("Endnote text");
         paragraph.AddText(" after");
 
-        OdfConversionResult<OdtDocument> toOdt = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> toOdt = source.ConvertToOpenDocumentWithEvidence();
         Assert.True(toOdt.Value.Validate().IsValid);
         Assert.Contains(toOdt.Report.Mappings, mapping => mapping.Feature == "footnotes" &&
             mapping.Status == OdfConversionMappingStatus.Converted && mapping.Count == 1);
         Assert.Contains(toOdt.Report.Mappings, mapping => mapping.Feature == "endnotes" &&
             mapping.Status == OdfConversionMappingStatus.Converted && mapping.Count == 1);
-        Assert.DoesNotContain(toOdt.Report.Mappings, mapping => mapping.Feature == "note-body-formatting" ||
-            mapping.Feature == "note-separators");
+        Assert.Contains(toOdt.Report.Mappings, mapping => mapping.Feature == "note-body-formatting" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 2);
+        Assert.DoesNotContain(toOdt.Report.Mappings, mapping => mapping.Feature == "note-separators");
         Assert.DoesNotContain(toOdt.Report.Mappings, mapping => mapping.Feature == "source-footnotes" ||
             mapping.Feature == "source-endnotes");
 
@@ -950,13 +952,13 @@ public sealed class WordOdtNotesConversionTests {
             OdtInlineNodeKind.Note, OdtInlineNodeKind.Span }, odtParagraph.InlineNodes.Select(node => node.Kind));
         Assert.Single(reopened.Paragraphs);
 
-        OdfConversionResult<WordDocument> toWord = reopened.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> toWord = reopened.ConvertToWordWithEvidence();
         Assert.DoesNotContain(toWord.Report.Mappings, mapping => mapping.Feature == "source-text-notes");
         using WordDocument word = toWord.Value;
         Assert.Empty(word.ValidateDocument());
         using WordDocument saved = WordDocument.Load(new MemoryStream(word.ToBytes()));
-        WordParagraphSnapshot snapshot = Assert.Single(saved.CreateInspectionSnapshot().Sections
-            .SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>());
+        WordParagraphInfo snapshot = Assert.Single(saved.Inspect().Sections
+            .SelectMany(section => section.Elements).OfType<WordParagraphInfo>());
         Assert.Equal("Footnote text", Assert.Single(snapshot.Runs, run => run.Footnote != null)
             .Footnote!.Paragraphs[0].Text);
         Assert.Equal("Endnote text", Assert.Single(snapshot.Runs, run => run.Endnote != null)
@@ -976,11 +978,11 @@ public sealed class WordOdtNotesConversionTests {
         using var package = new MemoryStream(source.ToBytes());
         OdtDocument reopened = OdtDocument.Load(package);
         Assert.Equal(2, Assert.Single(reopened.Paragraphs).Notes.Count);
-        OdfConversionResult<WordDocument> conversion = reopened.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = reopened.ConvertToWordWithEvidence();
         using WordDocument word = conversion.Value;
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-formatting" &&
             mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
-        Assert.Throws<OdfConversionLossException>(() => reopened.ToWordDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => reopened.ConvertToWordWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -999,13 +1001,13 @@ public sealed class WordOdtNotesConversionTests {
             return Encoding.UTF8.GetBytes(xml.ToString());
         });
         OdtDocument reopened = OdtDocument.Load(new MemoryStream(modified));
-        OdfConversionResult<WordDocument> conversion = reopened.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = reopened.ConvertToWordWithEvidence();
         using WordDocument word = conversion.Value;
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-citations" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-content" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
-        Assert.Throws<OdfConversionLossException>(() => reopened.ToWordDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => reopened.ConvertToWordWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -1031,7 +1033,7 @@ public sealed class WordOdtNotesConversionTests {
         });
         OdtDocument loaded = OdtDocument.Load(new MemoryStream(embedded));
 
-        OdfConversionResult<WordDocument> conversion = loaded.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = loaded.ConvertToWordWithEvidence();
         using WordDocument word = conversion.Value;
         W.Footnote note = word.OpenXmlDocument.MainDocumentPart!.FootnotesPart!.Footnotes!
             .Elements<W.Footnote>().Single(item => item.Type == null ||
@@ -1063,11 +1065,11 @@ public sealed class WordOdtNotesConversionTests {
         });
         OdtDocument loaded = OdtDocument.Load(new MemoryStream(nested));
 
-        OdfConversionResult<WordDocument> conversion = loaded.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = loaded.ConvertToWordWithEvidence();
         using WordDocument word = conversion.Value;
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-content" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
-        Assert.Throws<OdfConversionLossException>(() => loaded.ToWordDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => loaded.ConvertToWordWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported }));
     }
 
@@ -1082,10 +1084,10 @@ public sealed class WordOdtNotesConversionTests {
         source.OpenXmlDocument.MainDocumentPart.Document.Body.Elements<W.Paragraph>().Last()
             .Append(new W.Run(new W.FootnoteReference { Id = id.Value }));
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "footnotes" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported }));
     }
 }

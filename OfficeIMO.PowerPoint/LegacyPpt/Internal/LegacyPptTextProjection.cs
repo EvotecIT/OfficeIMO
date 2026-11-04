@@ -302,7 +302,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             IReadOnlyList<LegacyPptTabStop> tabStops) {
             if (tabStops.Count == 0) return;
             var list = new A.TabStopList();
-            foreach (LegacyPptTabStop tabStop in tabStops) {
+            foreach (LegacyPptTabStop tabStop in tabStops.Take(PowerPointParagraph.MaximumTabStops)) {
                 list.Append(new A.TabStop {
                     Position = ToEmus(tabStop.Position),
                     Alignment = MapTabAlignment(tabStop.Alignment)

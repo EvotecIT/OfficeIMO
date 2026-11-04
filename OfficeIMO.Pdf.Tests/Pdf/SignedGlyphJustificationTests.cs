@@ -104,9 +104,9 @@ public sealed class PdfSignedGlyphJustificationTests {
 
     private static (byte[] Pdf, string Content) SaveCommandPdf(PdfTextShowCommand command,
         PdfTextShowCommand probe, double scale, byte[]? fontData) {
-        var options = new PdfOptions { DefaultFontSize = 10D };
+        var options = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10D) };
         if (fontData != null) options.UseFontFamily(new PdfEmbeddedFontFamily("SignedGlyph", fontData));
-        byte[] template = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text("ABCX")).ToBytes();
+        byte[] template = PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddText("ABCX")).ToBytes();
         string content = string.Empty;
         byte[] pdf = PdfDocumentObjectGraphRewriter.Rewrite(template, null, null, (objects, security) => {
             PdfDictionary page = Assert.Single(objects.Values.Select(value => value.Value).OfType<PdfDictionary>(),

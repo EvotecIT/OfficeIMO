@@ -22,7 +22,7 @@ public sealed class PrintDeliveryTests {
             using var model = Create(printer, new StudioJobHistory(StudioLocalization.Current));
             await model.RefreshPrintersCommand.ExecuteAsync(null);
             model.Pages = "1";
-            model.SelectedPaper = new("Small fixture", new PageSize(100, 120));
+            model.SelectedPaper = new("Small fixture", new PdfPageSize(OfficeIMO.OfficeLength.Points(100),OfficeIMO.OfficeLength.Points(120)));
             model.PrintDpi = 72;
             await model.BuildPreviewCommand.ExecuteAsync(null);
             Assert.True(model.CanPrint, model.Status);
@@ -242,8 +242,8 @@ public sealed class PrintDeliveryTests {
             return Task.FromResult(PdfDocument.Create(document => {
                 for (int index = 1; index <= 3; index++) {
                     int number = index;
-                    document.Page(page => page.Size(200, 300).Content(content =>
-                        content.Item(item => item.Paragraph(paragraph => paragraph.Text("Reviewed page " + number)))));
+                    document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300)).Content(content =>
+                        content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Reviewed page " + number)))));
                 }
             }));
         }, printers: printer, jobHistory: history) { InputPath = Path.Combine(Path.GetTempPath(), "reviewed-snapshot.pdf") };

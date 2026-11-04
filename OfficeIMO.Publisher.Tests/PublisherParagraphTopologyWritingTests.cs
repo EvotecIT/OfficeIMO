@@ -25,8 +25,8 @@ public sealed class PublisherParagraphTopologyWritingTests {
             : variant == "neighbor" ? new[] { "Middle one", "Middle two", "", "Middle four", "Middle five" }
             : new[] { "First new paragraph", "", "Third paragraph", "Fourth paragraph" };
         document.ReplaceStoryParagraphs(story.Id, Paragraphs(story, text, 18, true));
-        var result = document.ToPubBytesResult(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
-        PublisherDocument reopened = PublisherDocument.Load(result.Value);
+        byte[] savedBytes = document.ToBytes(new PublisherSaveOptions { AllowLoss = true }, out PublisherSaveReport saveReport);
+        PublisherDocument reopened = PublisherDocument.Load(savedBytes);
         Assert.Equal(originals.Select(item => item.Id), reopened.TextStories.Select(item => item.Id));
         foreach (PublisherTextStory original in originals) {
             PublisherTextStory saved = reopened.TextStories.Single(item => item.Id == original.Id);
@@ -39,8 +39,8 @@ public sealed class PublisherParagraphTopologyWritingTests {
                 });
             }
         }
-        Assert.True(result.Report.HasLoss); Assert.False(result.Report.HasErrors);
-        PublisherNativeWritingTests.AssertPreservedStorage(source, result.Value, "Quill/QuillSub/CONTENTS");
+        Assert.True(saveReport.HasLoss); Assert.False(saveReport.HasErrors);
+        PublisherNativeWritingTests.AssertPreservedStorage(source, savedBytes, "Quill/QuillSub/CONTENTS");
     }
 
     [Theory]
@@ -74,11 +74,11 @@ public sealed class PublisherParagraphTopologyWritingTests {
             }
         }, "NativeComparison/TextParagraphs/native-textparagraphs.pub");
         PublisherDocument document = PublisherDocument.Load(source);
-        Assert.Equal(source, document.ToPubBytes());
+        Assert.Equal(source, document.ToBytes());
         PublisherTextStory story = Assert.Single(document.TextStories);
         Assert.All(story.Paragraphs, paragraph => { Assert.Equal(12, paragraph.Runs[0].FontSize); Assert.Equal("Arial", paragraph.Runs[0].FontFamily); });
         document.ReplaceStoryParagraphs(story.Id, Paragraphs(story, new[] { "New one", "New two", "New three", "New four" }, 12, false));
-        var error = Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        var error = Assert.Throws<OfficeConversionException>(() => document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         Assert.True(Assert.IsType<PublisherSaveReport>(error.Report).HasErrors);
         Assert.Equal(4, document.TextStories[0].Paragraphs.Count);
     }
@@ -88,10 +88,10 @@ public sealed class PublisherParagraphTopologyWritingTests {
         byte[] source = PublisherInputContractTests.Mutate("Quill/QuillSub/CONTENTS", bytes => bytes[400] = 1,
             "NativeComparison/Text/native-text.pub");
         PublisherDocument document = PublisherDocument.Load(source);
-        Assert.Equal(source, document.ToPubBytes());
+        Assert.Equal(source, document.ToBytes());
         PublisherTextStory story = Assert.Single(document.TextStories);
         document.ReplaceStoryParagraphs(story.Id, Paragraphs(story, Enumerable.Range(1, 240).Select(index => "Paragraph " + index).ToArray(), 12, false));
-        var error = Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        var error = Assert.Throws<OfficeConversionException>(() => document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         Assert.True(Assert.IsType<PublisherSaveReport>(error.Report).HasErrors);
         Assert.Equal(240, document.TextStories[0].Paragraphs.Count);
     }
@@ -102,7 +102,7 @@ public sealed class PublisherParagraphTopologyWritingTests {
         PublisherTextStory story = Assert.Single(document.TextStories);
         var paragraphs = Enumerable.Range(0, 84).Select(index => Paragraph(story, "Paragraph " + index, 12 + Math.Min(index, 3) * 2, true)).ToArray();
         document.ReplaceStoryParagraphs(story.Id, paragraphs);
-        PublisherDocument saved = PublisherDocument.Load(document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        PublisherDocument saved = PublisherDocument.Load(document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         PublisherTextStory current = Assert.Single(saved.TextStories);
         Assert.Equal(string.Join("\n", Enumerable.Range(0, 84).Select(index => "Paragraph " + index)) + "\n", current.Text);
         Assert.Equal(Enumerable.Range(0, 84).Select(index => (double)(12 + Math.Min(index, 3) * 2)), current.Paragraphs.Select(paragraph => paragraph.Runs[0].FontSize));

@@ -1,4 +1,4 @@
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Visio {
     /// <summary>
@@ -6,7 +6,7 @@ namespace OfficeIMO.Visio {
     /// </summary>
     internal static class VisioHelpers {
         /// <summary>
-        /// Converts a OfficeIMO.Drawing.OfficeColor to Visio RGB string format.
+        /// Converts a OfficeIMO.OfficeColor to Visio RGB string format.
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>A string in the format "RGB(r,g,b)" where r, g, b are 0-255.</returns>
@@ -15,7 +15,7 @@ namespace OfficeIMO.Visio {
         }
         
         /// <summary>
-        /// Converts a OfficeIMO.Drawing.OfficeColor to hex format for Visio.
+        /// Converts a OfficeIMO.OfficeColor to hex format for Visio.
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>A string in the format "#RRGGBB".</returns>

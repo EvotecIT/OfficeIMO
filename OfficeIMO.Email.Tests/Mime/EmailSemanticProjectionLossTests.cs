@@ -117,7 +117,7 @@ public sealed class EmailSemanticProjectionLossTests {
     public void BlocksSemanticCharsetFallbackBeforeStoreConversion(string contentType, string content) {
         byte[] eml = Encoding.ASCII.GetBytes(
             "Content-Type: " + contentType + "; charset=x-officeimo-unsupported\r\n\r\n" + content);
-        EmailReadResult result = new EmailDocumentReader().Read(eml);
+        EmailReadResult result = new EmailDocumentReader().ReadDocument(eml);
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             result.Document, EmailFileFormat.OutlookMsg);
@@ -157,7 +157,7 @@ public sealed class EmailSemanticProjectionLossTests {
             "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
             "BEGIN:VEVENT\r\nUID:methodless-rewrite@example.com\r\nDTSTART:20260801T100000Z\r\n" +
             "ATTENDEE:mailto:reader@example.com\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         string rewritten = Encoding.ASCII.GetString(
             new EmailDocumentWriter().ToBytes(document, EmailFileFormat.Eml));
@@ -312,7 +312,7 @@ public sealed class EmailSemanticProjectionLossTests {
             document, EmailFileFormat.Eml);
         byte[] warned = new EmailDocumentWriter(new EmailWriterOptions(EmailConversionLossPolicy.Warn))
             .ToBytes(document, EmailFileFormat.Eml);
-        EmailAttachment calendar = Assert.Single(new EmailDocumentReader().Read(warned).Document.Attachments,
+        EmailAttachment calendar = Assert.Single(new EmailDocumentReader().ReadDocument(warned).Document.Attachments,
             attachment => string.Equals(attachment.ContentType, "text/calendar", StringComparison.OrdinalIgnoreCase));
         string calendarText = Encoding.UTF8.GetString(Assert.IsType<byte[]>(calendar.Content));
 
@@ -342,7 +342,7 @@ public sealed class EmailSemanticProjectionLossTests {
             document, EmailFileFormat.Eml);
         byte[] warned = new EmailDocumentWriter(new EmailWriterOptions(EmailConversionLossPolicy.Warn))
             .ToBytes(document, EmailFileFormat.Eml);
-        EmailAttachment calendar = Assert.Single(new EmailDocumentReader().Read(warned).Document.Attachments,
+        EmailAttachment calendar = Assert.Single(new EmailDocumentReader().ReadDocument(warned).Document.Attachments,
             attachment => string.Equals(attachment.ContentType, "text/calendar", StringComparison.OrdinalIgnoreCase));
         string calendarText = Encoding.UTF8.GetString(Assert.IsType<byte[]>(calendar.Content));
 
@@ -360,7 +360,7 @@ public sealed class EmailSemanticProjectionLossTests {
             "--x\r\nContent-Type: text/calendar; charset=utf-8\r\n\r\n" +
             "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:no-description@example.com\r\n" +
             "DTSTART:20260801T100000Z\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n--x--\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -376,7 +376,7 @@ public sealed class EmailSemanticProjectionLossTests {
             "--x\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nWrapper text\r\n" +
             "--x\r\nContent-Type: text/vcard; charset=utf-8\r\n\r\n" +
             "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Ada Lovelace\r\nEND:VCARD\r\n--x--\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -403,7 +403,7 @@ public sealed class EmailSemanticProjectionLossTests {
     }
 
     private static void AssertStoreProjectionBlocked(byte[] eml) {
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
         AssertProjectionBlocked(report);

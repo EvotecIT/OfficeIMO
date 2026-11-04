@@ -17,7 +17,7 @@ internal sealed class PublisherTableStory {
     }
 
     internal PublisherTableStory Replace(int index, IReadOnlyList<OfficeRichTextParagraph> paragraphs,
-        PublisherReadOptions options, CancellationToken token) {
+        PublisherLoadOptions options, CancellationToken token) {
         PublisherTextStory original = Segments[index];
         // Clearing retains the final paragraph's formatting and cell boundary.
         // Otherwise the following cell would become part of this cell's paragraph.
@@ -34,7 +34,7 @@ internal sealed class PublisherTableStory {
         return new PublisherTableStory(segments);
     }
 
-    internal PublisherTextStory Complete(PublisherTextStory original, PublisherReadOptions options, CancellationToken token) {
+    internal PublisherTextStory Complete(PublisherTextStory original, PublisherLoadOptions options, CancellationToken token) {
         var paragraphs = Segments.SelectMany(segment => segment.Paragraphs).ToArray();
         PublisherTextStory validated = PublisherStoryEditor.Replace(original, paragraphs, options, token);
         string exact = string.Concat(Segments.Select(segment => segment.Text));

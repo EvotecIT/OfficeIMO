@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Identifies legacy XLS font escapement.
     /// </summary>
-    public enum LegacyXlsFontEscapement {
+    internal enum LegacyXlsFontEscapement {
         /// <summary>
         /// Text uses the baseline position.
         /// </summary>

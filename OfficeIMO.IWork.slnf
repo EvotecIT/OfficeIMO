@@ -1,0 +1,21 @@
+{
+  "solution": {
+    "path": "OfficeIMO.slnx",
+    "projects": [
+      "OfficeIMO.Core\\OfficeIMO.Core.csproj",
+      "OfficeIMO.Excel.IWork\\OfficeIMO.Excel.IWork.csproj",
+      "OfficeIMO.Excel\\OfficeIMO.Excel.csproj",
+      "OfficeIMO.IWork.Tests\\OfficeIMO.IWork.Tests.csproj",
+      "OfficeIMO.IWork\\OfficeIMO.IWork.csproj",
+      "OfficeIMO.Markdown\\OfficeIMO.Markdown.csproj",
+      "OfficeIMO.Pdf\\OfficeIMO.Pdf.csproj",
+      "OfficeIMO.PowerPoint.IWork\\OfficeIMO.PowerPoint.IWork.csproj",
+      "OfficeIMO.PowerPoint.Pdf\\OfficeIMO.PowerPoint.Pdf.csproj",
+      "OfficeIMO.PowerPoint\\OfficeIMO.PowerPoint.csproj",
+      "OfficeIMO.Reader.Core\\OfficeIMO.Reader.Core.csproj",
+      "OfficeIMO.Reader.IWork\\OfficeIMO.Reader.IWork.csproj",
+      "OfficeIMO.Word.IWork\\OfficeIMO.Word.IWork.csproj",
+      "OfficeIMO.Word\\OfficeIMO.Word.csproj"
+    ]
+  }
+}

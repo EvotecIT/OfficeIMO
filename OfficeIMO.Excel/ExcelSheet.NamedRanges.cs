@@ -1,5 +1,15 @@
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+        /// <summary>Creates or replaces a formula definition scoped to this worksheet.</summary>
+        /// <param name="name">The defined name used by worksheet formulas.</param>
+        /// <param name="formula">An Excel expression, with or without a leading equals sign.</param>
+        /// <param name="save">Whether to persist the workbook change immediately.</param>
+        /// <param name="hidden">Whether to hide the name in Excel's normal name list.</param>
+        /// <param name="validationMode">How the defined name is validated or sanitized.</param>
+        public void SetNamedFormula(string name, string formula, bool save = true, bool hidden = false,
+            ExcelDefinedNameValidationMode validationMode = ExcelDefinedNameValidationMode.Sanitize) =>
+            _excelDocument.SetNamedFormula(name, formula, this, save, hidden, validationMode);
+
         /// <summary>
         /// Creates or updates a named range in the workbook, scoped to this sheet.
         /// </summary>
@@ -24,13 +34,15 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Gets the A1 range for the given defined name, scoped to this sheet when applicable.
+        /// Gets the range a defined name refers to, preferring a name local to this sheet over a workbook name.
         /// </summary>
         /// <param name="name">Defined name to resolve.</param>
-        /// <returns>A1 range (e.g. "A1:B5") or null if not found.</returns>
-        public string? GetNamedRange(string name) {
+        /// <returns>The range, or null when the name is missing or is not one cell range on an existing worksheet.</returns>
+        public ExcelRange? GetNamedRange(string name) {
             return _excelDocument.GetNamedRange(name, this);
         }
+
+        internal string? GetNamedRangeText(string name) => _excelDocument.GetNamedRangeText(name, this);
 
         /// <summary>
         /// Returns all defined names visible to this sheet with their A1 ranges.

@@ -4,6 +4,18 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class ReaderContentTraversalTests {
+    [Fact]
+    public void VisualEnumerationKeepsChunkOnlyContentAndAvoidsAggregateCopies() {
+        var first = new ReaderVisual { Kind = "mermaid", Content = "graph LR; A-->B" };
+        var second = new ReaderVisual { Kind = "chart", Content = "retained chart" };
+        var document = new OfficeDocumentReadResult { Visuals = new[] { first }, Chunks = new[] {
+            new ReaderChunk { Visuals = new[] { first, second } }
+        } };
+        Assert.Equal(new[] { first, second }, document.ExtractVisuals());
+        document.Visuals = Array.Empty<ReaderVisual>();
+        Assert.Equal(new[] { first, second }, document.ExtractVisuals());
+    }
+
     [Theory]
     [InlineData(false, false)]
     [InlineData(false, true)]
@@ -49,6 +61,9 @@ public sealed class ReaderContentTraversalTests {
             Assert.Equal(kind == "slide" ? 7 : (int?)null, location.Slide);
             Assert.Equal(kind == "sheet" ? "Inventory" : null, location.Sheet);
         });
+        var table = Assert.Single(document.ExportTables());
+        Assert.Equal("cell", table.Table.Rows[0][0]);
+        Assert.Equal(kind == "slide" ? 7 : (int?)null, table.Table.Location!.Slide);
         Assert.Null(page.Location.Slide);
         Assert.Null(page.Location.Sheet);
     }

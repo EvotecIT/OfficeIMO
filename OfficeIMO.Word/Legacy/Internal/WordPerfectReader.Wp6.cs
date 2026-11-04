@@ -42,7 +42,7 @@ internal sealed partial class WordPerfectReader {
             }
             _packets.Add(id, packet);
             if (packet.Type == 0x70 || packet.Type == 0x71)
-                Inert("WORDPERFECT_OLE_INERT", OfficeLegacyInertContentKind.EmbeddedObjects, "WordPerfect OLE packets were kept inert and were not activated.");
+                Inert("wordperfect-ole-inert", OfficeLegacyInertContentKind.EmbeddedObjects, "WordPerfect OLE packets were kept inert and were not activated.");
         }
         ranges.Sort((left, right) => left.Start.CompareTo(right.Start));
         for (int i = 1; i < ranges.Count; i++)
@@ -140,7 +140,7 @@ internal sealed partial class WordPerfectReader {
                 // different levels on the two gates; visibility is determined by the range type.
                 if (type == 0 || type == 2) {
                     _budget.Item(); _invalidUndo.Push(type == 0);
-                    if (type == 0) Loss("WORDPERFECT_DELETED_TEXT", "Text", "Deleted undo text was excluded from recovery.");
+                    if (type == 0) Loss("wordperfect-deleted-text", "Text", "Deleted undo text was excluded from recovery.");
                 } else if (type == 1 || type == 3) {
                     if (_invalidUndo.Count == 0 || _invalidUndo.Pop() != (type == 1)) throw new InvalidDataException("WordPerfect undo ranges are unbalanced.");
                 } else throw new InvalidDataException("The WordPerfect undo function is invalid.");
@@ -212,7 +212,7 @@ internal sealed partial class WordPerfectReader {
             if (length >= 6) {
                 _spacingAfter = Points(U16(_data, data + 4));
                 if (_paragraph != null) _paragraph.SpacingAfterPoints = _spacingAfter;
-            } else Loss("WORDPERFECT_RELATIVE_SPACING", "Formatting", "Relative paragraph spacing without an absolute WPU value was not projected as points.");
+            } else Loss("wordperfect-relative-spacing", "Formatting", "Relative paragraph spacing without an absolute WPU value was not projected as points.");
         } else if (code == 0xd4 && sub == 0x18) {
             Need(3); _color = _data[data].ToString("X2") + _data[data + 1].ToString("X2") + _data[data + 2].ToString("X2");
         } else if (code == 0xd4 && (sub == 0x1a || sub == 0x1b)) {
@@ -235,12 +235,12 @@ internal sealed partial class WordPerfectReader {
         } else if (code == 0xd7 && (sub == 1 || sub == 3)) throw new InvalidDataException("WordPerfect note references are unbalanced.");
         else if (code == 0xe0) Append("\t");
         else if (code == 0xd0) Eol6(sub, data, length);
-        else if (code == 0xde) Inert("WORDPERFECT_MERGE_INERT", OfficeLegacyInertContentKind.EmbeddedCode, "Merge commands were retained as inert source evidence and were not executed.");
+        else if (code == 0xde) Inert("wordperfect-merge-inert", OfficeLegacyInertContentKind.EmbeddedCode, "Merge commands were retained as inert source evidence and were not executed.");
         else if (code == 0xd4 && sub == 0x34) {
-            Need(1); Inert("WORDPERFECT_HYPERTEXT_INERT", (_data[data] == 2 ? OfficeLegacyInertContentKind.Macros : OfficeLegacyInertContentKind.ExternalLinks), "Hypertext actions were kept inert and were not followed or executed.");
+            Need(1); Inert("wordperfect-hypertext-inert", (_data[data] == 2 ? OfficeLegacyInertContentKind.Macros : OfficeLegacyInertContentKind.ExternalLinks), "Hypertext actions were kept inert and were not followed or executed.");
         } else if (code == 0xdf && sub <= 2) Graphic6(ids);
         else if (code == 0xdd) {
-            Loss("WORDPERFECT_STYLE_BEHAVIOR", "Style", "Style packets, inheritance and automatic next-style behavior are not reconstructed; only separately decoded inline formatting is applied.");
+            Loss("wordperfect-style-behavior", "Style", "Style packets, inheritance and automatic next-style behavior are not reconstructed; only separately decoded inline formatting is applied.");
         } else {
             Loss("WORDPERFECT_FUNCTION_" + code.ToString("X2") + sub.ToString("X2"), "Structure",
                 "Function 0x" + code.ToString("X2") + sub.ToString("X2") + " is outside the recovered profile.");
@@ -271,7 +271,7 @@ internal sealed partial class WordPerfectReader {
                         throw new InvalidDataException("WordPerfect merged cells require a separately qualified profile.");
                     break;
                 default:
-                    Loss("WORDPERFECT_CELL_ATTRIBUTES", "Table", "Advanced cell attributes were not projected.");
+                    Loss("wordperfect-cell-attributes", "Table", "Advanced cell attributes were not projected.");
                     return;
             }
             cursor += size;

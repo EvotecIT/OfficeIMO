@@ -1,70 +1,40 @@
+using System;
 using System.Management.Automation;
 using OfficeIMO.Excel;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Excel;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 
-/// <summary>Moves a worksheet to a new workbook position.</summary>
-/// <example>
-///   <summary>Move the summary sheet to the front and verify order.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$proof = @(
-///     Move-OfficeExcelSheet -Path .\Report.xlsx -Sheet Summary -Index 0
-///     Get-OfficeExcelSummary -Path .\Report.xlsx -IncludeSheets |
-///         Select-Object -ExpandProperty Sheets |
-///         Select-Object -First 3 -Property Index, Name
-/// )
-/// $proof</code>
-///   <para>Moves Summary to the first worksheet tab and reads back the first sheets from workbook summary.</para>
-/// </example>
-[Cmdlet(VerbsCommon.Move, "OfficeExcelSheet", DefaultParameterSetName = ParameterSetContext, SupportsShouldProcess = true)]
-[Alias("Set-OfficeExcelSheetOrder", "ExcelSheetOrder")]
-public sealed class MoveOfficeExcelSheetCommand : PSCmdlet {
-    private const string ParameterSetContext = "Context";
-    private const string ParameterSetDocument = "Document";
-    private const string ParameterSetPath = "Path";
-
-    /// <summary>Workbook path to update.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
-    [Alias("InputPath", "FilePath")]
-    public string Path { get; set; } = string.Empty;
-
-    /// <summary>Workbook to update outside the DSL context.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public ExcelDocument Document { get; set; } = null!;
-
-    /// <summary>Worksheet name to move. Defaults to the current sheet inside an ExcelSheet block.</summary>
-    [Parameter]
-    [Alias("WorksheetName")]
-    public string? Sheet { get; set; }
-
-    /// <summary>Worksheet index to move when using a workbook object or path.</summary>
-    [Parameter]
-    public int? SheetIndex { get; set; }
-
-    /// <summary>Zero-based destination tab index.</summary>
-    [Parameter(Mandatory = true)]
-    [Alias("TargetIndex")]
-    public int Index { get; set; }
-
-    /// <summary>Emit the moved worksheet.</summary>
+/// <summary>Moves a worksheet to a one-based workbook position.</summary>
+/// <para>Uses the explicit or enclosing live workbook. Save it explicitly to persist the new order.</para>
+/// <example><summary>Move the summary worksheet to the front.</summary>
+/// <code>$book | Move-OfficeExcelSheet -Sheet Summary -Position 1
+/// Save-OfficeExcel -Document $book</code></example>
+[Cmdlet(VerbsCommon.Move, "OfficeExcelSheet", DefaultParameterSetName = "Default", SupportsShouldProcess = true)]
+[OutputType(typeof(ExcelSheet))]
+public sealed class MoveOfficeExcelSheetCommand : OfficeDocumentCmdlet<ExcelDocument> {
+    /// <summary>Gets or sets a worksheet name, one-based position or native worksheet.</summary>
+    [Parameter, OfficeSheetTransformation, ValidateNotNull]
+    public OfficeSheetSelector? Sheet { get; set; }
+    /// <summary>Gets or sets the one-based destination position.</summary>
+    [Parameter(Mandatory = true), ValidateRange(1, int.MaxValue)]
+    public int Position { get; set; }
+    /// <summary>Gets or sets whether to return the moved native worksheet.</summary>
     [Parameter]
     public SwitchParameter PassThru { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        using var workbook = ExcelWorkbookCommandService.ResolveWorkbook(this, ParameterSetName, Path, Document, readOnly: false);
-        if (!ExcelShouldProcessService.ShouldProcessWorkbook(this, workbook.Document, Path, "Update Excel workbook")) {
-            return;
-        }
-
-        var document = workbook.Document;
-        var sheet = ExcelWorkbookCommandService.ResolveSheet(this, document, ParameterSetName, Sheet, SheetIndex);
-        document.ReorderWorksheet(sheet, Index);
-        workbook.SaveIfOwned();
-
-        if (PassThru.IsPresent) {
-            WriteObject(sheet);
+        try {
+            ExcelSheet sheet = ExcelSheetResolver.ResolveTarget(this, Document, Sheet);
+            if (Position > sheet.Document.Sheets.Count) throw new ArgumentOutOfRangeException(nameof(Position), "Position is outside the workbook.");
+            if (!ExcelShouldProcessService.ShouldProcessWorkbook(this, sheet.Document, null, "Move worksheet " + sheet.Name)) return;
+            sheet.Document.ReorderWorksheet(sheet, Position - 1);
+            if (PassThru) WriteObject(sheet);
+        } catch (ArgumentException error) { InvalidArgument(error, Document); }
+        catch (Exception error) when (error is not (PipelineStoppedException or ActionPreferenceStopException)) {
+            ItemError(error, "excel-sheet-move-failed", Document);
         }
     }
 }

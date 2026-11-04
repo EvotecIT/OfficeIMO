@@ -9,7 +9,7 @@ internal static partial class PdfWriter {
         }
 
         private readonly record struct RunningFrameAdmissionProfile(
-            PdfOptions Source, PdfRunningContent? Header, PdfRunningContent? Footer,
+            PdfCreateOptions Source, PdfRunningContent? Header, PdfRunningContent? Footer,
             PdfRunningContentVariant Variant, bool Mirrored, int Column,
             bool PartialPhysicalFrame, double X, double Width, double Capacity,
             double FrameHeight, double ContinuationHeight, double ContainerReservation,
@@ -29,7 +29,7 @@ internal static partial class PdfWriter {
             double capacity = frameCapacity ?? GetMaximumBlockContinuationHeight();
             if (requiredHeight <= capacity + .001D) return false;
 
-            PdfOptions source = currentPageBaseOptions;
+            PdfCreateOptions source = currentPageBaseOptions;
             PdfRunningContentContext context = currentPage.RunningContentContext ?? GetRunningPageContext();
             bool hasRunningDefinitions = false;
             bool usesPageContext = contextualBody;
@@ -73,7 +73,7 @@ internal static partial class PdfWriter {
                     source.GetRunningContentForPage(variantPage, isHeader: false), variant,
                     source.MirrorMargins && currentVisiblePageNumber % 2 == 0,
                     activeColumnFlow?.ColumnIndex ?? -1, IsPartialPhysicalColumnFrame(),
-                    currentOpts.MarginLeft, width, capacity, GetFullPageContentHeight(),
+                    currentOpts.MarginLeft.ToPoints(), width, capacity, GetFullPageContentHeight(),
                     GetMeasuredContinuationFrameHeight(), GetRunningBodyContinuationReservation(),
                     containerMeasurementTopPadding, containerMeasurementBottomInset, requiredHeight);
                 // First/even/default and mirror/column geometry are separate

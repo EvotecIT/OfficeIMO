@@ -41,13 +41,13 @@ public sealed class PdfOptimizerExternalProofTests {
                         refusals.Add(AssertRefused(directory, input, before, setting, options, "pdfa1-streams"));
                         continue;
                     }
-                    PdfOptimizationActionResult result = PdfDocument.Load(before).Optimization.Apply(options);
+                    PdfOptimizationActionResult result = PdfDocument.Load(new System.IO.MemoryStream(before)).Optimization.Apply(options);
                     byte[] after = result.Bytes;
                     // Persist returned bytes directly: another save must not repair or alter the candidate.
                     File.WriteAllBytes(Path.Combine(directory, output), after);
                     if (xml is not null) {
                         File.WriteAllBytes(Path.Combine(directory, Path.ChangeExtension(output, ".xml")), xml);
-                        Assert.Equal(xml, Assert.Single(PdfDocument.Load(after).Attachments.Extract()).Bytes);
+                        Assert.Equal(xml, Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(after)).Attachments.Extract()).Bytes);
                     }
                     Assert.Equal(before.LongLength, result.OriginalLengthBytes);
                     Assert.Equal(after.LongLength, result.OptimizedLengthBytes);
@@ -99,8 +99,8 @@ public sealed class PdfOptimizerExternalProofTests {
         Assert.False(File.Exists(absent), "Refusal output must be absent before invoking the optimizer.");
         byte[] sentinel = "Existing destination must survive optimizer refusal"u8.ToArray();
         File.WriteAllBytes(existing, sentinel);
-        Exception? missingError = Record.Exception(() => PdfDocument.Load(before).Optimization.Apply(options).ToDocument().Save(absent));
-        Exception? existingError = Record.Exception(() => PdfDocument.Load(before).Optimization.Apply(options).ToDocument().Save(existing));
+        Exception? missingError = Record.Exception(() => PdfDocument.Load(new System.IO.MemoryStream(before)).Optimization.Apply(options).ToDocument().Save(absent));
+        Exception? existingError = Record.Exception(() => PdfDocument.Load(new System.IO.MemoryStream(before)).Optimization.Apply(options).ToDocument().Save(existing));
         Assert.IsAssignableFrom<NotSupportedException>(missingError);
         Assert.IsAssignableFrom<NotSupportedException>(existingError);
         Assert.False(File.Exists(absent));
@@ -115,7 +115,6 @@ public sealed class PdfOptimizerExternalProofTests {
 
     private static Dictionary<string, object?> Snapshot(PdfOptimizationOptions options) =>
         typeof(PdfOptimizationOptions).GetProperties()
-            .Where(property => property.Name != nameof(PdfOptimizationOptions.CancellationToken))
             .ToDictionary(property => JsonNamingPolicy.CamelCase.ConvertName(property.Name), property => property.GetValue(options));
 
     private static byte[] CreateSource(string source, out byte[]? xml) {
@@ -123,7 +122,7 @@ public sealed class PdfOptimizerExternalProofTests {
         if (source == "pdfa1b") return File.ReadAllBytes(Path.Combine(RepositoryTestPaths.Find(),
             "OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/openpreserve-pdfa1b-text.pdf"));
         byte[] font = File.ReadAllBytes(PdfComplianceTestFonts.FindBundledOpenTypeCffFont()!);
-        var options = new PdfOptions { IncludeStandardFontToUnicodeMaps = true };
+        var options = new PdfCreateOptions { IncludeStandardFontToUnicodeMaps = true };
         options.EmbedStandardFont(PdfStandardFont.Helvetica, font, "OfficeIMO Source Serif")
             .EmbedStandardFont(PdfStandardFont.HelveticaBold, font, "OfficeIMO Source Serif");
         switch (source) {
@@ -141,8 +140,8 @@ public sealed class PdfOptimizerExternalProofTests {
         }
         PdfDocument document = PdfDocument.Create(options).Meta(title: "Optimizer compliance proof", author: "OfficeIMO");
         document.Content.H1("Optimizer compliance proof")
-            .Paragraph(p => p.Text("Embedded Unicode text must survive every optimizer setting."))
-            .Table(new[] { new[] { "Item", "Amount" }, new[] { "Service", "119.00 EUR" } });
+            .AddParagraph(p => p.AddText("Embedded Unicode text must survive every optimizer setting."))
+            .AddTable(new[] { new[] { "Item", "Amount" }, new[] { "Service", "119.00 EUR" } });
         return document.ToBytes();
     }
 
@@ -154,7 +153,7 @@ public sealed class PdfOptimizerExternalProofTests {
             DateTimeOffset.UtcNow.AddDays(1));
         using var signer = new PdfCmsExternalSigner(OfficeSecurityProvider.Default, certificate);
         PdfDocument document = PdfDocument.Create();
-        document.Content.Paragraph(p => p.Text("Signed optimizer input must be refused"));
+        document.Content.AddParagraph(p => p.AddText("Signed optimizer input must be refused"));
         return document.Security.SignExternal(signer, new PdfExternalSignatureOptions {
                 FieldName = "OptimizerProof", ReservedSignatureContentsBytes = 8192
             }).ToDocument().ToBytes();

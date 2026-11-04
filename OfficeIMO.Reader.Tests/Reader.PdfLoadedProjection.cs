@@ -26,7 +26,7 @@ public sealed class ReaderPdfLoadedProjectionTests {
         PdfDocument pdf = PdfDocument.Load(PdfInspectionProjectionFixture.Build(32),
             new PdfLoadOptions { Limits = new PdfReadLimits { MaxContentOperands = 20 } });
         Assert.Throws<PdfReadLimitException>(() => pdf.Read());
-        PdfDocumentReadResult logical = pdf.Read(new PdfReadOptions { IncludeImages = false, IncludeFormWidgets = false });
+        PdfDocumentReadResult logical = pdf.Read(new PdfLoadOptions { IncludeImages = false, IncludeFormWidgets = false });
         OfficeDocumentReadResult result = logical.ReadDocument("loaded-lean.pdf", new ReaderOptions {
             Projection = ReaderProjection.TextAndMetadata, Inspection = new ReaderInspectionOptions(),
             ResourceLimits = new ReaderResourceLimits { MaxAssets = 0 }
@@ -54,7 +54,7 @@ public sealed class ReaderPdfLoadedProjectionTests {
         Assert.Single(logical.ReadDocument().Assets);
         Assert.Throws<ReaderResourceLimitException>(() => logical.ReadDocument(readerOptions: new ReaderOptions {
             Projection = ReaderProjection.TextAndMetadata, ResourceLimits = new ReaderResourceLimits { MaxChunks = 1 }
-        }, pdfOptions: new ReaderPdfOptions { ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(1, 1) } }));
+        }, pdfOptions: new ReaderPdfOptions { ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(1, 1) } }));
         Assert.Throws<ReaderResourceLimitException>(() => logical.ReadDocument(readerOptions: new ReaderOptions {
             Projection = ReaderProjection.TextAndMetadata, Inspection = new ReaderInspectionOptions { MaxRecords = 1 }
         }));

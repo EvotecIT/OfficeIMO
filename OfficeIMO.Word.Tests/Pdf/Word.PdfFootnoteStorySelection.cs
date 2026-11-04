@@ -135,9 +135,9 @@ public partial class WordPdfPageFootnoteTests {
         var main = document._wordprocessingDocument.MainDocumentPart!;
         string[] before = { main.Document.OuterXml, main.FootnotesPart!.Footnotes!.OuterXml,
             main.DocumentSettingsPart!.Settings!.OuterXml, main.StyleDefinitionsPart!.Styles!.OuterXml };
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false });
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false });
         byte[] actual = result.ToBytes();
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeFootnotePlacementApproximated");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "native-footnote-placement-approximated");
         if (unusedFamily != null) Assert.DoesNotContain(result.Warnings,
             warning => warning.Details.Values.Any(value => value.IndexOf(unusedFamily, StringComparison.Ordinal) >= 0));
         Assert.Equal(before, new[] { main.Document.OuterXml, main.FootnotesPart.Footnotes.OuterXml,

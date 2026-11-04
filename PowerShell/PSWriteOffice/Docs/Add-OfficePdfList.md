@@ -11,12 +11,12 @@ Adds a bullet or numbered list to a PDF document.
 ## SYNTAX
 ### Context (Default)
 ```powershell
-Add-OfficePdfList [-Items] <string[]> [-Numbered] [-StartNumber <int>] [-Align <PdfAlign>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfList [-Items] <string[]> [-Numbered] [-StartNumber <int>] [-Align <OfficeAlignment>] [-PassThru] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Add-OfficePdfList [-Items] <string[]> -Document <PdfDocument> [-Numbered] [-StartNumber <int>] [-Align <PdfAlign>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfList [-Items] <string[]> -Document <PdfDocument> [-Numbered] [-StartNumber <int>] [-Align <OfficeAlignment>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -40,10 +40,10 @@ Adds a numbered list in the generated PDF flow.
 List alignment.
 
 ```yaml
-Type: PdfAlign
+Type: OfficeAlignment
 Parameter Sets: Context, Document
 Aliases: None
-Possible values: Left, Center, Right, Justify
+Possible values: Left, Center, Right, Justify, Start, End
 
 Required: False
 Position: named

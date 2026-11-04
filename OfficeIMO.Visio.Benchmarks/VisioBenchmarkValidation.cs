@@ -16,7 +16,7 @@ internal static class VisioBenchmarkValidation {
     internal static VisioInspectionSnapshot LoadAndInspect(VisioBenchmarkFixture fixture) {
         using var stream = new MemoryStream(fixture.PackageBytes, writable: false);
         VisioDocument document = VisioDocument.Load(stream);
-        return document.CreateInspectionSnapshot();
+        return document.Inspect();
     }
 
     internal static void ValidateBytes(VisioBenchmarkScale scale, byte[] packageBytes) =>

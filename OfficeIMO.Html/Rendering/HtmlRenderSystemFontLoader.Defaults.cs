@@ -52,11 +52,28 @@ internal static partial class HtmlRenderSystemFontLoader {
             || string.Equals(element.GetAttribute("type"), "reset", StringComparison.OrdinalIgnoreCase));
     }
 
+    /// <summary>Finds the first supplied prefix that covers the element's actual text requirements.</summary>
+    private static int FindCoveredSuppliedPrefix(IElement element, string families,
+        OfficeFontFaceDescriptor descriptor, OfficeFontFaceCollection fonts, ISet<string> suppliedFamilies,
+        HtmlDisclosureState disclosures, HtmlComputedStyle computed, Lazy<HtmlCounterStyleRegistry> counterStyles,
+        CancellationToken cancellationToken) {
+        IReadOnlyList<string> parsed = OfficeFontFamilyParser.Parse(families);
+        for (int index = 0; index < parsed.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!suppliedFamilies.Contains(parsed[index])) continue;
+            string prefix = string.Join(",", parsed.Take(index + 1).Select(OfficeFontFamilyParser.Quote));
+            if (ScopedFacesCoverDirectText(element, prefix, descriptor, fonts, suppliedFamilies,
+                    disclosures, computed, counterStyles, cancellationToken)) return index;
+        }
+        return int.MaxValue;
+    }
+
     /// <summary>Keeps a covered caller-owned CSS prefix from causing unused default host discovery.</summary>
     private static bool ScopedFacesCoverDirectText(IElement element, string families,
         OfficeFontFaceDescriptor descriptor, OfficeFontFaceCollection fonts, ISet<string> suppliedFamilies,
         HtmlDisclosureState disclosures, HtmlComputedStyle computed, Lazy<HtmlCounterStyleRegistry> counterStyles,
         CancellationToken cancellationToken) {
+        IReadOnlyList<string> requestedFamilies = OfficeFontFamilyParser.Parse(families);
         bool found = false;
         foreach (IText text in element.ChildNodes.OfType<IText>()) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -93,6 +110,8 @@ internal static partial class HtmlRenderSystemFontLoader {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!fonts.TryResolveFaceForText(run.Text, run.FamilyRequest, descriptor, out OfficeFontFace? face)
                     || face == null || !suppliedFamilies.Contains(face.FamilyName)) return false;
+                // Global fallback planning must not prove coverage of an earlier CSS prefix.
+                if (!requestedFamilies.Any(family => OfficeFontFaceCollection.MatchesFamily(face, family))) return false;
             }
             return true;
         }

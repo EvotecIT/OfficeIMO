@@ -3,7 +3,7 @@ using System.IO;
 using OfficeIMO.Drawing;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Stencils;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Examples.Visio {
     public static class LayoutEditing {
@@ -12,12 +12,12 @@ namespace OfficeIMO.Examples.Visio {
             string filePath = Path.Combine(folderPath, "Layout Editing.vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Cleanup", 11, 8.5);
+            VisioPage page = document.AddPage("Cleanup", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
 
-            VisioShape intake = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "intake", 2, 6, "Receive request from customer");
-            VisioShape review = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "review", 6, 5.2, "Review documentation and assign owner");
-            VisioShape approve = page.AddStencilShape(VisioStencils.Flowchart.Get("decision"), "approve", 9, 4.1, "Approved?");
-            VisioShape archive = page.AddStencilShape(VisioStencils.Flowchart.Get("data"), "archive", 5, 1.8, "Archive case data");
+            VisioShape intake = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "intake", OfficeLength.Inches(2), OfficeLength.Inches(6), "Receive request from customer");
+            VisioShape review = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "review", OfficeLength.Inches(6), OfficeLength.Inches(5.2), "Review documentation and assign owner");
+            VisioShape approve = page.AddStencilShape(VisioStencils.Flowchart.Get("decision"), "approve", OfficeLength.Inches(9), OfficeLength.Inches(4.1), "Approved?");
+            VisioShape archive = page.AddStencilShape(VisioStencils.Flowchart.Get("data"), "archive", OfficeLength.Inches(5), OfficeLength.Inches(1.8), "Archive case data");
 
             foreach (VisioShape shape in new[] { intake, review, approve, archive }) {
                 shape.Data["CleanUp"] = "Yes";

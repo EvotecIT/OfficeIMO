@@ -11,7 +11,7 @@ namespace OfficeIMO.Drawing;
 /// numeric-expression and East Asian punctuation constraints. Breaks never split a surrogate pair
 /// or grapheme cluster.
 /// </remarks>
-public static class OfficeTextLineBreaks {
+internal static class OfficeTextLineBreaks {
     /// <summary>
     /// Returns safe UTF-16 indexes where text can wrap without inserting characters.
     /// </summary>

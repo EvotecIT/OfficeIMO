@@ -46,14 +46,14 @@ public sealed class XpsTiffLosslessAlphaPrecisionTests {
                     "{ColorConvertedBitmap " + resource + " " + profile + "}");
                 document.Pages[0].ReplaceMarkup(markup);
             }
-            var loaded = XpsDocument.Load(document.Save());
+            var loaded = XpsDocument.Load(document.ToBytes());
             var page = loaded.Pages[0];
             var nativeDrawing = page.ToDrawing();
             var transparent = OfficeDrawingRasterRenderer.Render(nativeDrawing);
             var svg = page.ToSvg();
             Assert.Empty(svg.Diagnostics);
             Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg.Svg), out var svgDrawing));
-            var pdfDrawing = PdfReadDocument.Open(loaded.ToPdf()).Pages[0].ToDrawing();
+            var pdfDrawing = PdfDocument.Load(new System.IO.MemoryStream(loaded.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).Pages[0].ToDrawing();
             foreach (var background in new[] { OfficeColor.White, OfficeColor.Black }) {
                 var images = new[] {
                     OfficeDrawingRasterRenderer.Render(nativeDrawing, background: background),

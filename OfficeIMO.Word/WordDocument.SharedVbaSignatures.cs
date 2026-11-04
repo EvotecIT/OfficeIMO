@@ -6,7 +6,7 @@ namespace OfficeIMO.Word;
 
 public partial class WordDocument {
     /// <summary>Inspects VBA signatures through the package-neutral core shared with Excel and PowerPoint.</summary>
-    public static OfficeVbaSignatureInfo InspectVbaSignatures(
+    internal static OfficeVbaSignatureInfo InspectVbaSignatures(
         string filePath,
         OfficeVbaSignatureInspectionOptions? options = null) =>
         OfficeVbaSignatureService.Inspect(filePath, options);

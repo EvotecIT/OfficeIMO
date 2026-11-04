@@ -16,12 +16,12 @@ public sealed partial class IWorkBoundaryTests {
             Message(VarintField(1, 16), VarintField(2, (ulong)index), VarintField(3, 1)));
         using var package = CreateNumbersPackage(new[] { new TableSpec("Shape", 1, 1, 42d,
             hasFormula: true, formulaPayload: formula) });
-        using var converted = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var converted = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         Assert.Equal(name + "({1,2,3})", reopened.Sheets[0].GetFormulaText(1, 1));
         Assert.Equal(0, reopened.Calculate());
-        Assert.Equal(42d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(42d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
         Assert.False(Assert.Single(reopened.InspectFormulas().Formulas).IsSupportedByOfficeIMO);
     }
 
@@ -42,8 +42,7 @@ public sealed partial class IWorkBoundaryTests {
         }
         nodes.Add(Message(VarintField(1, 16), VarintField(2, (ulong)index), VarintField(3, 1)));
         using var package = CrossBindingPackage(formulaPayload: SingleCellFormula(nodes.ToArray()));
-        using var converted = ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
-            conversionOptions: new IWorkConversionOptions { NormalizeWorksheetNames = true });
+        using var converted = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { NormalizeWorksheetNames = true });
         Assert.False(converted.IsVisualFallback);
         Assert.True(converted.Projection.Sheets[0].Tables[0].GetCell(1, 1)!.FormulaIsComplete);
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
@@ -51,12 +50,12 @@ public sealed partial class IWorkBoundaryTests {
         string target = converted.WorksheetMappings[1].DestinationName.Replace("'", "''");
         Assert.Equal(name + "('" + target + "'!$A$1" + (range ? ":$B$3" : "") + ")",
             reopened.Sheets[0].GetFormulaText(1, 1));
-        Assert.Equal(13d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(13d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
         Assert.True(reopened.Calculate() > 0);
-        Assert.Equal(expected, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
-        reopened.Sheets[1].CellValue(1, 1, 999d);
+        Assert.Equal(expected, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
+        reopened.Sheets[1].Cell(1, 1).SetValue(999d);
         reopened.Calculate();
-        Assert.Equal(expected, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(expected, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
         Assert.Empty(reopened.ValidateOpenXml());
     }
 
@@ -69,13 +68,13 @@ public sealed partial class IWorkBoundaryTests {
         int index, string name, int arguments, double expected) {
         using var package = CreateNumbersPackage(new[] { new TableSpec("Shape", 1, 1, 42d,
             hasFormula: true, formulaPayload: FunctionPayload(index, arguments)) });
-        using var converted = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var converted = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         Assert.Equal(name + "(" + (arguments == 0 ? "" : "1") + ")", reopened.Sheets[0].GetFormulaText(1, 1));
-        Assert.Equal(42d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(42d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
         Assert.Equal(1, reopened.Calculate());
-        Assert.Equal(expected, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(expected, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
         Assert.False(RenderFunction(index, 2).IsComplete);
         if (arguments == 1) Assert.False(RenderFunction(index, 0).IsComplete);
     }

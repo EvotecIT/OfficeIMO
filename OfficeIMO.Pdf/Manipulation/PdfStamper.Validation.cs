@@ -24,31 +24,27 @@ internal static partial class PdfStamper {
     }
 
     private static void ValidateOptions(PdfTextStampOptions options) {
-        if (options.FontSize <= 0 || double.IsNaN(options.FontSize) || double.IsInfinity(options.FontSize)) {
+        if (options.FontSize.ToEmus() <= 0) {
             throw new ArgumentOutOfRangeException(nameof(options), "Font size must be a positive finite value.");
         }
 
-        if ((options.X.HasValue && (double.IsNaN(options.X.Value) || double.IsInfinity(options.X.Value))) ||
-            (options.Y.HasValue && (double.IsNaN(options.Y.Value) || double.IsInfinity(options.Y.Value))) ||
-            double.IsNaN(options.RotationDegrees) ||
+        if (double.IsNaN(options.RotationDegrees) ||
             double.IsInfinity(options.RotationDegrees)) {
-            throw new ArgumentOutOfRangeException(nameof(options), "Text stamp coordinates and rotation must be finite.");
+            throw new ArgumentOutOfRangeException(nameof(options), "Text stamp rotation must be finite.");
         }
     }
     private static void ValidateImageOptions(PdfImageStampOptions options) {
-        if (options.Width.HasValue && (options.Width.Value <= 0 || double.IsNaN(options.Width.Value) || double.IsInfinity(options.Width.Value))) {
+        if (options.Width.HasValue && options.Width.Value.ToEmus() <= 0) {
             throw new ArgumentOutOfRangeException(nameof(options), "Image stamp width must be a positive finite value.");
         }
 
-        if (options.Height.HasValue && (options.Height.Value <= 0 || double.IsNaN(options.Height.Value) || double.IsInfinity(options.Height.Value))) {
+        if (options.Height.HasValue && options.Height.Value.ToEmus() <= 0) {
             throw new ArgumentOutOfRangeException(nameof(options), "Image stamp height must be a positive finite value.");
         }
 
-        if ((options.X.HasValue && (double.IsNaN(options.X.Value) || double.IsInfinity(options.X.Value))) ||
-            (options.Y.HasValue && (double.IsNaN(options.Y.Value) || double.IsInfinity(options.Y.Value))) ||
-            double.IsNaN(options.RotationDegrees) ||
+        if (double.IsNaN(options.RotationDegrees) ||
             double.IsInfinity(options.RotationDegrees)) {
-            throw new ArgumentOutOfRangeException(nameof(options), "Image stamp coordinates and rotation must be finite.");
+            throw new ArgumentOutOfRangeException(nameof(options), "Image stamp rotation must be finite.");
         }
     }
 }

@@ -4,10 +4,10 @@ namespace OfficeIMO.AsciiDoc.Markdown;
 internal static class MarkdownToAsciiDocConverter {
     /// <summary>Converts the OfficeIMO Markdown semantic model to dependency-free AsciiDoc.</summary>
     internal static MarkdownToAsciiDocResult Convert(
-        MarkdownDoc document,
-        MarkdownToAsciiDocOptions? options = null) {
+        MarkdownDocument document,
+        MarkdownAsciiDocExportOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        options ??= new MarkdownToAsciiDocOptions();
+        options ??= new MarkdownAsciiDocExportOptions();
         ValidateOptions(options);
 
         var diagnostics = new List<MarkdownAsciiDocConversionDiagnostic>();
@@ -32,7 +32,7 @@ internal static class MarkdownToAsciiDocConverter {
 
     private static string ConvertBlock(
         IMarkdownBlock block,
-        MarkdownToAsciiDocOptions options,
+        MarkdownAsciiDocExportOptions options,
         List<MarkdownAsciiDocConversionDiagnostic> diagnostics,
         ref bool documentTitleWritten) {
         switch (block) {
@@ -77,7 +77,7 @@ internal static class MarkdownToAsciiDocConverter {
         IReadOnlyList<ListItem> items,
         bool ordered,
         MarkdownObject owner,
-        MarkdownToAsciiDocOptions options,
+        MarkdownAsciiDocExportOptions options,
         List<MarkdownAsciiDocConversionDiagnostic> diagnostics,
         ref bool documentTitleWritten) {
         var output = new System.Text.StringBuilder();
@@ -99,7 +99,7 @@ internal static class MarkdownToAsciiDocConverter {
 
     private static string ConvertDefinitionList(
         DefinitionListBlock source,
-        MarkdownToAsciiDocOptions options,
+        MarkdownAsciiDocExportOptions options,
         List<MarkdownAsciiDocConversionDiagnostic> diagnostics,
         ref bool documentTitleWritten) {
         var output = new System.Text.StringBuilder();
@@ -122,7 +122,7 @@ internal static class MarkdownToAsciiDocConverter {
 
     private static string ConvertCode(
         CodeBlock source,
-        MarkdownToAsciiDocOptions options,
+        MarkdownAsciiDocExportOptions options,
         List<MarkdownAsciiDocConversionDiagnostic> diagnostics) {
         string metadata = ConvertMetadata(source, source.Caption, options.LineEnding);
         var attributes = new List<string> { "source" };
@@ -135,7 +135,7 @@ internal static class MarkdownToAsciiDocConverter {
 
     private static string ConvertTable(
         TableBlock source,
-        MarkdownToAsciiDocOptions options,
+        MarkdownAsciiDocExportOptions options,
         List<MarkdownAsciiDocConversionDiagnostic> diagnostics,
         ref bool documentTitleWritten) {
         TableRow[] rows = source.EnumerateRows().ToArray();
@@ -165,7 +165,7 @@ internal static class MarkdownToAsciiDocConverter {
 
     private static string ConvertTableCell(
         TableCell cell,
-        MarkdownToAsciiDocOptions options,
+        MarkdownAsciiDocExportOptions options,
         List<MarkdownAsciiDocConversionDiagnostic> diagnostics,
         ref bool documentTitleWritten) {
         if (cell.ChildBlocks.Count == 1 && cell.ChildBlocks[0] is ParagraphBlock paragraph) {
@@ -193,7 +193,7 @@ internal static class MarkdownToAsciiDocConverter {
 
     private static string ConvertCallout(
         CalloutBlock source,
-        MarkdownToAsciiDocOptions options,
+        MarkdownAsciiDocExportOptions options,
         List<MarkdownAsciiDocConversionDiagnostic> diagnostics,
         ref bool documentTitleWritten) {
         string kind = NormalizeAdmonitionKind(source.Kind);
@@ -214,7 +214,7 @@ internal static class MarkdownToAsciiDocConverter {
 
     private static string ConvertQuote(
         QuoteBlock source,
-        MarkdownToAsciiDocOptions options,
+        MarkdownAsciiDocExportOptions options,
         List<MarkdownAsciiDocConversionDiagnostic> diagnostics,
         ref bool documentTitleWritten) {
         string body;
@@ -231,7 +231,7 @@ internal static class MarkdownToAsciiDocConverter {
         return ConvertMetadata(source, null, options.LineEnding) + delimiter + options.LineEnding + body + options.LineEnding + delimiter;
     }
 
-    private static string ConvertImage(ImageBlock source, MarkdownToAsciiDocOptions options) {
+    private static string ConvertImage(ImageBlock source, MarkdownAsciiDocExportOptions options) {
         string metadata = ConvertMetadata(source, source.Caption, options.LineEnding);
         return metadata + "image::" + source.Path.Replace("[", "\\[").Replace("]", "\\]") +
             "[" + EscapeAttribute(source.Alt ?? string.Empty) +
@@ -240,7 +240,7 @@ internal static class MarkdownToAsciiDocConverter {
 
     private static string ConvertUnsupported(
         IMarkdownBlock source,
-        MarkdownToAsciiDocOptions options,
+        MarkdownAsciiDocExportOptions options,
         List<MarkdownAsciiDocConversionDiagnostic> diagnostics) {
         MarkdownObject? markdownObject = source as MarkdownObject;
         if (!options.PreserveUnsupportedAsSource) {
@@ -260,7 +260,7 @@ internal static class MarkdownToAsciiDocConverter {
 
     private static string ConvertFrontMatter(
         FrontMatterBlock source,
-        MarkdownToAsciiDocOptions options,
+        MarkdownAsciiDocExportOptions options,
         List<MarkdownAsciiDocConversionDiagnostic> diagnostics) {
         var output = new System.Text.StringBuilder();
         for (int index = 0; index < source.Entries.Count; index++) {
@@ -339,7 +339,7 @@ internal static class MarkdownToAsciiDocConverter {
             owner.SourceSpan));
     }
 
-    private static void ValidateOptions(MarkdownToAsciiDocOptions options) {
+    private static void ValidateOptions(MarkdownAsciiDocExportOptions options) {
         if (options.LineEnding != "\n" && options.LineEnding != "\r" && options.LineEnding != "\r\n") {
             throw new ArgumentException("LineEnding must be LF, CR, or CRLF.", nameof(options));
         }

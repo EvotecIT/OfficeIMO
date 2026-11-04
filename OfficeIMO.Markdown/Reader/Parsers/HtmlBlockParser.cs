@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     internal sealed partial class HtmlBlockParser : IMarkdownBlockParser {
         private enum HtmlBlockKind {
             None,
@@ -63,7 +63,7 @@ public static partial class MarkdownReader {
             "td", "tfoot", "th", "thead", "title", "tr", "track", "ul",
         };
 
-        public bool TryParse(string[] lines, ref int i, MarkdownReaderOptions options, MarkdownDoc doc, MarkdownReaderState state) {
+        public bool TryParse(string[] lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
             if (!options.HtmlBlocks) return false;
             if (lines == null || lines.Length == 0) return false;
 
@@ -133,7 +133,7 @@ public static partial class MarkdownReader {
             return true;
         }
 
-        internal static bool IsParagraphInterruptingHtmlBlockStart(string line, MarkdownReaderOptions options) {
+        internal static bool IsParagraphInterruptingHtmlBlockStart(string line, MarkdownLoadOptions options) {
             if (options?.HtmlBlocks != true) return false;
             if (string.IsNullOrEmpty(line)) return false;
 
@@ -151,7 +151,7 @@ public static partial class MarkdownReader {
         internal static bool TryGetHtmlBlockLineCount(
             string[] lines,
             int startIndex,
-            MarkdownReaderOptions options,
+            MarkdownLoadOptions options,
             out int lineCount) {
             lineCount = 0;
             if (options?.HtmlBlocks != true || lines == null || startIndex < 0 || startIndex >= lines.Length) {
@@ -225,7 +225,7 @@ public static partial class MarkdownReader {
             return string.Equals(trimmed.Trim(), TableBlock.HeaderlessSingleRowTableMarker, StringComparison.Ordinal);
         }
 
-        private static bool TryParseHeaderlessSingleRowTable(string[] lines, ref int i, MarkdownReaderOptions options, MarkdownDoc doc, MarkdownReaderState state) {
+        private static bool TryParseHeaderlessSingleRowTable(string[] lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
             if (!options.Tables) {
                 return false;
             }
@@ -249,7 +249,7 @@ public static partial class MarkdownReader {
             return true;
         }
 
-        private static bool TryGetHtmlBlockState(string trimmedLine, MarkdownReaderOptions options, out HtmlBlockState state) {
+        private static bool TryGetHtmlBlockState(string trimmedLine, MarkdownLoadOptions options, out HtmlBlockState state) {
             if (IsType1Start(trimmedLine, out var token)) {
                 state = new HtmlBlockState(HtmlBlockKind.Type1, token, null, allowsBlankLineContinuation: false);
                 return true;
@@ -318,7 +318,7 @@ public static partial class MarkdownReader {
             return next is >= 'A' and <= 'Z';
         }
 
-        private static bool IsType6Start(string trimmedLine, MarkdownReaderOptions options, out string? tagName, out bool allowsBlankLines) {
+        private static bool IsType6Start(string trimmedLine, MarkdownLoadOptions options, out string? tagName, out bool allowsBlankLines) {
             allowsBlankLines = false;
             tagName = null;
 
@@ -338,7 +338,7 @@ public static partial class MarkdownReader {
             return true;
         }
 
-        private static bool IsType7Start(string trimmedLine, MarkdownReaderOptions options, out string? tagName, out bool allowsBlankLines) {
+        private static bool IsType7Start(string trimmedLine, MarkdownLoadOptions options, out string? tagName, out bool allowsBlankLines) {
             allowsBlankLines = false;
             if (!TryParseTag(trimmedLine, out tagName, out var isClosing, out var endIndex)) return false;
             if (endIndex < 0) return false;
@@ -362,7 +362,7 @@ public static partial class MarkdownReader {
             return true;
         }
 
-        private static bool AllowsBlankLineContinuation(string tagName, MarkdownReaderOptions options) {
+        private static bool AllowsBlankLineContinuation(string tagName, MarkdownLoadOptions options) {
             return options.PreserveHtmlBlockBlankLineContent && s_BlankLineFriendlyTags.Contains(tagName);
         }
 

@@ -34,7 +34,7 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
     private readonly Func<CancellationToken, Task<string?>> _pickOutputPdf;
     private readonly IOfficeOutputWorkflowRunner _runner;
     private readonly IStudioLocalizer _localizer;
-    private readonly IOfficeWorkflowPublicationGuard? _publicationGuard;
+    private readonly IOfficePublicationGuard? _publicationGuard;
     private readonly StudioJobHistory? _jobHistory;
     private readonly StudioStorageAccess? _storage;
     private readonly OfficeWorkflowOutputRecoveryStore? _recoveryStore;
@@ -53,7 +53,7 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
         Func<CancellationToken, Task<string?>> pickOutputPdf,
         IOfficeOutputWorkflowRunner? runner,
         IStudioLocalizer? localizer = null,
-        IOfficeWorkflowPublicationGuard? publicationGuard = null,
+        IOfficePublicationGuard? publicationGuard = null,
         StudioJobHistory? jobHistory = null,
         StudioStorageAccess? storage = null,
         OfficeWorkflowOutputRecoveryStore? recoveryStore = null,
@@ -198,7 +198,7 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
                 OutputPath = destination,
                 OutputStream = outputStream,
                 PublicationGuard = _publicationGuard,
-                ConflictPolicy = outputStream is null ? OfficeWorkflowConflictPolicy.Rename : OfficeWorkflowConflictPolicy.Replace,
+                ConflictPolicy = outputStream is null ? OfficePublicationPolicy.Rename : OfficePublicationPolicy.Replace,
                 Options = new PdfAssemblyOptions { IncludeSubdirectories = IncludeSubdirectories }
             };
             job = _jobHistory?.Start(T("Job.Title", "PDF assembly"), string.Join(Environment.NewLine, request.Sources), request.OutputPath, operation.Cancel);

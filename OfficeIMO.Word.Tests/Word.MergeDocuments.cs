@@ -181,7 +181,7 @@ namespace OfficeIMO.Tests {
         }
 
         using (var doc = WordDocument.Create(sourcePath)) {
-            doc.AddParagraph("Image paragraph").AddImage(imagePath, width: 64, height: 64);
+            doc.AddParagraph("Image paragraph").AddImage(imagePath, width: OfficeIMO.OfficeLength.Pixels(64), height: OfficeIMO.OfficeLength.Pixels(64));
             doc.AddHyperLink("OpenAI", hyperlinkUri);
             doc.AddParagraph("Embedded object");
             doc.AddEmbeddedObject(excelFilePath, iconPath);

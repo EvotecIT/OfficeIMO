@@ -16,7 +16,7 @@ namespace OfficeIMO.Excel;
 
 public partial class ExcelDocument {
     /// <summary>Inspects XLSX, XLSM, XLSB, and legacy XLS content using the normal first-party workbook loader.</summary>
-    public static OfficeContentSafetyReport InspectContentSafety(
+    internal static OfficeContentSafetyReport InspectContentSafety(
         string filePath,
         OfficeContentSafetyOptions? options = null) {
         if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
@@ -25,7 +25,7 @@ public partial class ExcelDocument {
     }
 
     /// <summary>Inspects encoded Excel workbook bytes. The file name helps preserve exact template and binary routing.</summary>
-    public static OfficeContentSafetyReport InspectContentSafety(
+    internal static OfficeContentSafetyReport InspectContentSafety(
         byte[] workbookBytes,
         string fileName = "workbook.xlsx",
         OfficeContentSafetyOptions? options = null) {
@@ -186,7 +186,7 @@ public partial class ExcelDocument {
                 } else if (hiddenColumn) {
                     kind = OfficeContentConcealmentKind.HiddenContainer;
                     evidence = "The owning column is hidden or has zero effective width.";
-                } else if (style.FontSizePoints.HasValue && style.FontSizePoints.Value <= builder.Options.MaximumTinyFontSizePoints) {
+                } else if (style.FontSizePoints.HasValue && style.FontSizePoints.Value <= builder.Options.MaximumTinyFontSize.ToPoints()) {
                     kind = OfficeContentConcealmentKind.TinyText;
                     evidence = "The effective cell font size is " + style.FontSizePoints.Value.ToString("0.###", CultureInfo.InvariantCulture) + "pt.";
                 } else if (style.TransparentText) {
@@ -348,7 +348,7 @@ public partial class ExcelDocument {
             double? fontSize = properties?.GetFirstChild<FontSize>()?.Val?.Value;
             OfficeContentConcealmentKind? kind = null;
             string? evidence = null;
-            if (fontSize.HasValue && fontSize.Value <= builder.Options.MaximumTinyFontSizePoints) {
+            if (fontSize.HasValue && fontSize.Value <= builder.Options.MaximumTinyFontSize.ToPoints()) {
                 kind = OfficeContentConcealmentKind.TinyText;
                 evidence = "The SpreadsheetML rich-text run font size is " + fontSize.Value.ToString("0.###", CultureInfo.InvariantCulture) + "pt.";
             } else if (transparent) {
@@ -416,7 +416,7 @@ public partial class ExcelDocument {
         if (TryGetExcelDrawingOwnerConcealment(owner, out OfficeContentConcealmentKind ownerKind, out string ownerEvidence)) {
             kind = ownerKind;
             evidence = ownerEvidence;
-        } else if (fontSize.HasValue && fontSize.Value / 100D <= builder.Options.MaximumTinyFontSizePoints) {
+        } else if (fontSize.HasValue && fontSize.Value / 100D <= builder.Options.MaximumTinyFontSize.ToPoints()) {
             kind = OfficeContentConcealmentKind.TinyText;
             evidence = "The worksheet drawing text font size is " + (fontSize.Value / 100D).ToString("0.###", CultureInfo.InvariantCulture) + "pt.";
         } else if (alpha.HasValue && alpha.Value <= 1000) {
@@ -581,6 +581,7 @@ public partial class ExcelDocument {
         private readonly CellFormat[] _formats;
         private readonly Font[] _fonts;
         private readonly Fill[] _fills;
+        private readonly RgbColor[] _indexedColors;
         private readonly Dictionary<uint, string> _numberFormats;
         internal ExcelContentStyleResolver(WorkbookPart workbookPart) {
             _workbookPart = workbookPart;
@@ -588,6 +589,7 @@ public partial class ExcelDocument {
             _formats = stylesheet?.CellFormats?.Elements<CellFormat>().ToArray() ?? Array.Empty<CellFormat>();
             _fonts = stylesheet?.Fonts?.Elements<Font>().ToArray() ?? Array.Empty<Font>();
             _fills = stylesheet?.Fills?.Elements<Fill>().ToArray() ?? Array.Empty<Fill>();
+            _indexedColors = stylesheet?.Colors?.IndexedColors?.Elements<RgbColor>().ToArray() ?? Array.Empty<RgbColor>();
             _numberFormats = stylesheet?.NumberingFormats?.Elements<NumberingFormat>()
                 .Where(item => item.NumberFormatId?.Value != null && item.FormatCode?.Value != null)
                 .ToDictionary(item => item.NumberFormatId!.Value, item => item.FormatCode!.Value!, EqualityComparer<uint>.Default)
@@ -602,10 +604,12 @@ public partial class ExcelDocument {
             CellFormat? format = styleIndex < _formats.Length ? _formats[styleIndex] : null;
             Font? font = format?.FontId?.Value is uint fontId && fontId < _fonts.Length ? _fonts[fontId] : null;
             Fill? fill = format?.FillId?.Value is uint fillId && fillId < _fills.Length ? _fills[fillId] : null;
-            string? foregroundArgb = ExcelThemeColorResolver.Resolve(font?.Color, _workbookPart);
+            string? foregroundArgb = ExcelThemeColorResolver.Resolve(font?.Color, _workbookPart,
+                workbookIndexedPalette: _indexedColors);
             PatternFill? pattern = fill?.PatternFill;
             string? backgroundArgb = pattern?.PatternType?.Value == PatternValues.Solid
-                ? ExcelThemeColorResolver.Resolve(pattern.ForegroundColor, _workbookPart)
+                ? ExcelThemeColorResolver.Resolve(pattern.ForegroundColor, _workbookPart,
+                    workbookIndexedPalette: _indexedColors)
                 : null;
             bool transparent = foregroundArgb?.StartsWith("00", StringComparison.OrdinalIgnoreCase) == true;
             OfficeColor background = OfficeColor.White;

@@ -71,13 +71,13 @@ public sealed partial class IWorkRuntimeWorkload {
             ? new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true }
             : new IWorkConversionOptions();
         if (_kind == IWorkDocumentKind.Pages) {
-            using var result = source.ToWordDocumentResult(policy);
+            using var result = source.ToWordResult(policy);
             ValidateConversionPolicy(result.Report); result.Value.Save(saved);
         } else if (_kind == IWorkDocumentKind.Numbers) {
-            using var result = source.ToExcelDocumentResult(policy);
+            using var result = source.ToExcelResult(policy);
             ValidateConversionPolicy(result.Report); result.Value.Save(saved);
         } else {
-            using var result = source.ToPowerPointPresentationResult(policy);
+            using var result = source.ToPowerPointResult(policy);
             ValidateConversionPolicy(result.Report); result.Value.Save(saved);
         }
         _output = saved.ToArray();
@@ -161,7 +161,7 @@ public sealed partial class IWorkRuntimeWorkload {
                 }
                 VerifiedUnits = rows.Length;
             } else {
-                using PowerPointPresentation document = PowerPointPresentation.Load(saved);
+                using PowerPointDocument document = PowerPointDocument.Load(saved);
                 ValidateText(document.Slides.Select(slide => slide.TextBoxes.Single().Text),
                     paragraphTerminator: _createdNativeDocument is not null ? Environment.NewLine : string.Empty);
             }

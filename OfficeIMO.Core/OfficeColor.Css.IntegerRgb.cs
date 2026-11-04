@@ -1,6 +1,6 @@
 using System;
 
-namespace OfficeIMO.Drawing;
+namespace OfficeIMO;
 
 public readonly partial struct OfficeColor {
     // Computed CSS commonly serializes opaque colors as rgba(r, g, b, 1).

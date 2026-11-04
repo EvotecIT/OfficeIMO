@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes preserve-only SeriesList chart metadata.
     /// </summary>
-    public sealed class LegacyXlsChartSeriesList {
+    internal sealed class LegacyXlsChartSeriesList {
         internal LegacyXlsChartSeriesList(ushort declaredSeriesCount, IReadOnlyList<ushort> seriesIndexes) {
             DeclaredSeriesCount = declaredSeriesCount;
             SeriesIndexes = seriesIndexes ?? throw new ArgumentNullException(nameof(seriesIndexes));

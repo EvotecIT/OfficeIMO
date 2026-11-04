@@ -6,7 +6,7 @@ using System.Xml.Linq;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Stencils;
 using Xunit;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Tests {
     public class VisioMasterEditingTests {
@@ -14,11 +14,11 @@ namespace OfficeIMO.Tests {
         public void ReplaceMasterUpdatesSelectionWithoutLosingMetadataOrConnectors() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Replace Master", 11, 8.5);
+            VisioPage page = document.AddPage("Replace Master", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
 
-            VisioShape source = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "source", 2, 6, "Source");
-            VisioShape task = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "task", 5, 6, "Review");
-            VisioShape target = page.AddStencilShape(VisioStencils.Flowchart.Get("data"), "target", 8, 6, "Archive");
+            VisioShape source = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "source", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, page.DefaultUnit)), "Source");
+            VisioShape task = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "task", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, page.DefaultUnit)), "Review");
+            VisioShape target = page.AddStencilShape(VisioStencils.Flowchart.Get("data"), "target", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, page.DefaultUnit)), "Archive");
             task.FillColor = Color.LightYellow;
             task.LineColor = Color.Orange;
             task.LayerNames.Add("Review");
@@ -35,10 +35,10 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal("Decision", source.MasterNameU);
             Assert.Equal("Decision", task.MasterNameU);
-            Assert.Equal(2.0, task.Width, 6);
-            Assert.Equal(1.4, task.Height, 6);
-            Assert.Equal(1.0, task.LocPinX, 6);
-            Assert.Equal(0.7, task.LocPinY, 6);
+            Assert.Equal(2.0, task.Width.ToInches(), 6);
+            Assert.Equal(1.4, task.Height.ToInches(), 6);
+            Assert.Equal(1.0, task.LocPinX.ToInches(), 6);
+            Assert.Equal(0.7, task.LocPinY.ToInches(), 6);
             Assert.Equal(Color.LightYellow, task.FillColor);
             Assert.Equal(Color.Orange, task.LineColor);
             Assert.Contains("Review", task.LayerNames);
@@ -61,8 +61,8 @@ namespace OfficeIMO.Tests {
             VisioDocument loaded = VisioDocument.Load(filePath);
             VisioShape loadedTask = loaded.Pages[0].Shapes.Single(shape => shape.Text == "Review");
             Assert.Equal("Decision", loadedTask.MasterNameU);
-            Assert.Equal(2.0, loadedTask.Width, 6);
-            Assert.Equal(1.4, loadedTask.Height, 6);
+            Assert.Equal(2.0, loadedTask.Width.ToInches(), 6);
+            Assert.Equal(1.4, loadedTask.Height.ToInches(), 6);
             Assert.Equal("Operations", loadedTask.GetShapeDataValue("Owner"));
             Assert.Equal("Review", loadedTask.GetUserCellValue("Stage"));
             Assert.Equal("flow.decision", loadedTask.GetUserCellValue(VisioSemanticUserCells.StencilId));
@@ -74,7 +74,7 @@ namespace OfficeIMO.Tests {
         public void ReplaceMasterCanKeepCurrentShapeSize() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("Keep Size");
-            VisioShape shape = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "shape", 2, 4, 3.2, 0.8, "Large step");
+            VisioShape shape = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "shape", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), "Large step");
             shape.SetUserCell(VisioSemanticUserCells.StencilPreviewImageTarget, "../media/stale.emf", "STR");
 
             page.ReplaceMaster(shape, "Decision");
@@ -82,10 +82,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Decision", shape.MasterNameU);
             Assert.Null(shape.GetUserCellValue(VisioSemanticUserCells.StencilId));
             Assert.Null(shape.GetUserCellValue(VisioSemanticUserCells.StencilPreviewImageTarget));
-            Assert.Equal(3.2, shape.Width, 6);
-            Assert.Equal(0.8, shape.Height, 6);
-            Assert.Equal(1.6, shape.LocPinX, 6);
-            Assert.Equal(0.4, shape.LocPinY, 6);
+            Assert.Equal(3.2, shape.Width.ToInches(), 6);
+            Assert.Equal(0.8, shape.Height.ToInches(), 6);
+            Assert.Equal(1.6, shape.LocPinX.ToInches(), 6);
+            Assert.Equal(0.4, shape.LocPinY.ToInches(), 6);
         }
 
         private static void AssertGeneratedStencilGeometry(string filePath, string shapeText, string expectedNameU, string expectedStencilId) {

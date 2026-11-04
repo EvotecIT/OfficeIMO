@@ -20,7 +20,7 @@ namespace OfficeIMO.Excel {
         /// <param name="destinationPath">Path to the destination XLS or XLSX file.</param>
         /// <param name="options">Optional conversion policy settings.</param>
         /// <returns>The completed conversion result.</returns>
-        public static ExcelDocumentConversionResult Convert(
+        internal static ExcelDocumentConversionResult Convert(
             string sourcePath,
             string destinationPath,
             ExcelDocumentConversionOptions? options = null) {
@@ -33,7 +33,7 @@ namespace OfficeIMO.Excel {
         /// <param name="options">Optional conversion policy settings.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>The completed conversion result.</returns>
-        public static async Task<ExcelDocumentConversionResult> ConvertAsync(
+        internal static async Task<ExcelDocumentConversionResult> ConvertAsync(
             string sourcePath,
             string destinationPath,
             ExcelDocumentConversionOptions? options = null,
@@ -150,7 +150,7 @@ namespace OfficeIMO.Excel {
                     }
                 } catch (NotSupportedException exception) {
                     diagnostics.Add(new OfficeConversionDiagnostic(
-                        "Excel.DestinationFeatureUnsupported",
+                        "excel-destination-feature-unsupported",
                         OfficeConversionDiagnosticCategory.DestinationFormat,
                         OfficeConversionDiagnosticSeverity.Error,
                         exception.Message,
@@ -192,6 +192,14 @@ namespace OfficeIMO.Excel {
             string sourcePath,
             ExcelDocumentConversionOptions options,
             CancellationToken cancellationToken) {
+            if (options.LoadOptions != null) {
+                var captured = options.LoadOptions.Snapshot();
+                captured.AccessMode = DocumentAccessMode.ReadWrite;
+                captured.PersistenceMode = DocumentPersistenceMode.Explicit;
+                captured.ReportUnsupportedContent = true;
+                return await LoadAsync(sourcePath, captured, cancellationToken).ConfigureAwait(false);
+            }
+
             if (options.LegacyXlsImportOptions != null) {
                 byte[] sourceBytes = await OfficeFileConversion.ReadAllBytesAsync(sourcePath, cancellationToken).ConfigureAwait(false);
                 if (ExcelDocumentLoadRouting.IsLegacyXls(sourceBytes, sourcePath)) {
@@ -240,7 +248,7 @@ namespace OfficeIMO.Excel {
             OfficeFormatDescriptor declaredFormat = ExcelFormatCatalog.GetByExtension(sourcePath);
             if (!declaredFormat.Equals(detectedFormat)) {
                 diagnostics.Add(new OfficeConversionDiagnostic(
-                    "Excel.SourceExtensionMismatch",
+                    "excel-source-extension-mismatch",
                     OfficeConversionDiagnosticCategory.SourceFormat,
                     OfficeConversionDiagnosticSeverity.Warning,
                     $"The source extension declares {declaredFormat.Id}, but its package declares {detectedFormat.Id}. Package content was used.",
@@ -307,7 +315,7 @@ namespace OfficeIMO.Excel {
             }
             foreach (XlsbPreservedRecordInfo record in document.XlsbPreservedRecords) {
                 diagnostics.Add(new OfficeConversionDiagnostic(
-                    $"Excel.Xlsb.UnprojectedRecord.0x{record.RecordType:X}",
+                    OfficeDiagnosticCodes.XlsbUnprojectedRecord,
                     OfficeConversionDiagnosticCategory.DataLoss,
                     OfficeConversionDiagnosticSeverity.Warning,
                     $"BIFF12 record 0x{record.RecordType:X} in '{record.PartName}' at offset {record.Offset} is retained in the XLSB source but is not projected into the editable workbook model or the converted target.",
@@ -322,7 +330,7 @@ namespace OfficeIMO.Excel {
                     compatibilityMode,
                     preserveLossySource);
                 diagnostics.Add(new OfficeConversionDiagnostic(
-                    "Excel.VbaProject.Removed",
+                    "excel-vba-project-removed",
                     OfficeConversionDiagnosticCategory.DataLoss,
                     macroState == OfficeCompatibilityState.Blocked
                         ? OfficeConversionDiagnosticSeverity.Error
@@ -344,7 +352,7 @@ namespace OfficeIMO.Excel {
                         ? GetExcelGenericLossState(compatibilityMode, preserveLossySource)
                         : OfficeCompatibilityState.Blocked;
                     diagnostics.Add(new OfficeConversionDiagnostic(
-                        "Excel.DigitalSignature.Invalidated",
+                        "excel-digital-signature-invalidated",
                         OfficeConversionDiagnosticCategory.DataLoss,
                         signatureState == OfficeCompatibilityState.Blocked
                             ? OfficeConversionDiagnosticSeverity.Error
@@ -365,7 +373,7 @@ namespace OfficeIMO.Excel {
                     compatibilityMode,
                     preserveLossySource);
                 diagnostics.Add(new OfficeConversionDiagnostic(
-                    "Excel.PasswordEncryption.Removed",
+                    "excel-password-encryption-removed",
                     OfficeConversionDiagnosticCategory.DataLoss,
                     encryptionState == OfficeCompatibilityState.Blocked
                         ? OfficeConversionDiagnosticSeverity.Error
@@ -380,7 +388,7 @@ namespace OfficeIMO.Excel {
             if (destinationFormat.Generation == OfficeFormatGeneration.Legacy
                 && !string.Equals(destinationFormat.Extension, ".xls", StringComparison.Ordinal)) {
                 diagnostics.Add(new OfficeConversionDiagnostic(
-                    "Excel.LegacyDestination.NotWritable",
+                    "excel-legacy-destination-not-writable",
                     OfficeConversionDiagnosticCategory.DestinationFormat,
                     OfficeConversionDiagnosticSeverity.Error,
                     $"{destinationFormat.Extension} is classified for import and reporting, but native output is currently limited to .xls among legacy Excel formats.",

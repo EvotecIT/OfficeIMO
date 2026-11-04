@@ -20,7 +20,7 @@ public class VisioLegacyForeignDataTests {
         var family = stencil ? VisioPackageType.Stencil : VisioPackageType.Drawing;
         using var input = Fixture(stencil, false);
         var imported = VisioDocument.LoadLegacyXml(input, family);
-        Assert.DoesNotContain(imported.Report.FidelityDiagnostics, d => d.Code == "VDX_FOREIGN_DATA");
+        Assert.DoesNotContain(imported.Report.Diagnostics, d => d.Code == "VDX_FOREIGN_DATA");
         if (stencil) imported.Value.Masters.Single().Shape.Text = "Edited master";
         else imported.Value.Pages[0].Shapes[0].Text = "Edited diagram";
         byte[] package = imported.Value.ToBytes();
@@ -31,7 +31,7 @@ public class VisioLegacyForeignDataTests {
         }
         var reopened = VisioDocument.Load(new MemoryStream(package));
         var legacy = reopened.ToLegacyXmlResult();
-        Assert.DoesNotContain(legacy.Report.FidelityDiagnostics, d => d.Code == "VDX_PACKAGE_PART" && d.Location!.Contains("media"));
+        Assert.DoesNotContain(legacy.Report.Diagnostics, d => d.Code == "VDX_PACKAGE_PART" && d.Location!.Contains("media"));
         var xml = XDocument.Load(new MemoryStream(legacy.Value));
         var foreign = Assert.Single(xml.Descendants(Ns + "ForeignData"));
         Assert.Equal("Foreign", (string?)foreign.Parent!.Attribute("Type"));
@@ -58,7 +58,7 @@ public class VisioLegacyForeignDataTests {
         var document = VisioDocument.LoadLegacyXml(stream, family).Value;
         var root = document.Masters.Single().Shape;
         root.Text = "Edited image master";
-        root.Width = 4;
+        root.Width = OfficeLength.Inches(4);
         foreach (var candidate in new[] { document, VisioDocument.Load(new MemoryStream(document.ToBytes())) }) {
             var xml = XDocument.Load(new MemoryStream(candidate.ToLegacyXmlResult().Value));
             XElement savedRoot = xml.Descendants(Ns + "Master").Single().Element(Ns + "Shapes")!.Element(Ns + "Shape")!;
@@ -90,11 +90,11 @@ public class VisioLegacyForeignDataTests {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(input.ToString()));
         var document = VisioDocument.LoadLegacyXml(stream, VisioPackageType.Stencil).Value;
         var shape = document.Masters.Single().Shape;
-        double localX = shape.LocPinX, localY = shape.LocPinY;
-        shape.Width = 4; shape.Height = 5;
+        double localX = shape.LocPinX.ToInches(), localY = shape.LocPinY.ToInches();
+        shape.Width = OfficeLength.Inches(4); shape.Height = OfficeLength.Inches(5);
         var reopened = VisioDocument.Load(new MemoryStream(document.ToBytes())).Masters.Single().Shape;
-        Assert.Equal(localX, reopened.LocPinX);
-        Assert.Equal(localY, reopened.LocPinY);
+        Assert.Equal(localX, reopened.LocPinX.ToInches());
+        Assert.Equal(localY, reopened.LocPinY.ToInches());
     }
 
     [Fact]
@@ -158,7 +158,7 @@ public class VisioLegacyForeignDataTests {
         using var deletedPackage = new ZipArchive(new MemoryStream(destination.ToBytes()));
         Assert.DoesNotContain(deletedPackage.Entries, entry => entry.FullName.StartsWith("visio/media/foreign") || entry.FullName.StartsWith("visio/embeddings/foreign"));
         var deletionResult = destination.ToLegacyXmlResult();
-        Assert.False(deletionResult.Report.HasOmissions, string.Join("; ", deletionResult.Report.FidelityDiagnostics.Select(diagnostic => diagnostic.Code + " " + diagnostic.Location + " " + diagnostic.Message)));
+        Assert.False(deletionResult.Report.HasOmissions, string.Join("; ", deletionResult.Report.Diagnostics.Select(diagnostic => diagnostic.Code + " " + diagnostic.Location + " " + diagnostic.Message)));
         using var output = new MemoryStream(); destination.SaveLegacyXml(output);
         Assert.Empty(XDocument.Load(new MemoryStream(output.ToArray())).Descendants(Ns + "ForeignData"));
     }

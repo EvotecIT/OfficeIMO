@@ -16,5 +16,5 @@ public sealed class ExcelHtmlCapabilityGalleryOptions {
     public OfficeVisualThemeKind Theme { get; set; } = OfficeVisualThemeKind.Report;
 
     /// <summary>Options used by the visual SVG export lane.</summary>
-    public ExcelWorkbookImageExportOptions? VisualOptions { get; set; }
+    public ExcelImageExportOptions? VisualOptions { get; set; }
 }

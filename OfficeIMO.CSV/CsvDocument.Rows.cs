@@ -1,5 +1,3 @@
-#nullable enable
-
 namespace OfficeIMO.CSV;
 
 public sealed partial class CsvDocument
@@ -50,7 +48,7 @@ public sealed partial class CsvDocument
         return result;
     }
 
-    private static IReadOnlyList<string> NormalizeParsedHeader(IReadOnlyList<string> header, CsvLoadOptions options)
+    private static IReadOnlyList<string> NormalizeParsedHeader(IReadOnlyList<string> header, CsvParsingSettings options)
     {
         if (!options.GenerateMissingHeaderNames && options.DuplicateHeaderBehavior == CsvDuplicateHeaderBehavior.Preserve)
         {
@@ -119,7 +117,7 @@ public sealed partial class CsvDocument
         return candidate;
     }
 
-    internal static IReadOnlyList<string> AppendStaticColumnsToHeader(IReadOnlyList<string> header, CsvLoadOptions options)
+    internal static IReadOnlyList<string> AppendStaticColumnsToHeader(IReadOnlyList<string> header, CsvParsingSettings options)
     {
         if (options.StaticColumns is null || options.StaticColumns.Count == 0)
         {
@@ -141,7 +139,7 @@ public sealed partial class CsvDocument
         return NormalizeParsedHeader(combined, options);
     }
 
-    internal static IReadOnlyList<string> BuildParsedStringValues(IReadOnlyList<string> values, int headerCount, CsvLoadOptions options)
+    internal static IReadOnlyList<string> BuildParsedStringValues(IReadOnlyList<string> values, int headerCount, CsvParsingSettings options)
     {
         var staticCount = options.StaticColumns?.Count ?? 0;
         var sourceHeaderCount = headerCount - staticCount;
@@ -166,12 +164,12 @@ public sealed partial class CsvDocument
         return result;
     }
 
-    internal static object?[] BuildParsedObjectValues(IReadOnlyList<string> values, int headerCount, CsvLoadOptions options)
+    internal static object?[] BuildParsedObjectValues(IReadOnlyList<string> values, int headerCount, CsvParsingSettings options)
     {
         return FillParsedObjectValues(values, headerCount, options, target: null);
     }
 
-    internal static object?[] FillParsedObjectValues(IReadOnlyList<string> values, int headerCount, CsvLoadOptions options, object?[]? target)
+    internal static object?[] FillParsedObjectValues(IReadOnlyList<string> values, int headerCount, CsvParsingSettings options, object?[]? target)
     {
         var staticCount = options.StaticColumns?.Count ?? 0;
         var sourceHeaderCount = headerCount - staticCount;
@@ -207,7 +205,7 @@ public sealed partial class CsvDocument
         return aligned;
     }
 
-    private static object? NormalizeLoadedValue(string value, CsvLoadOptions options)
+    private static object? NormalizeLoadedValue(string value, CsvParsingSettings options)
     {
         return options.NullValue is not null && string.Equals(value, options.NullValue, StringComparison.Ordinal)
             ? null

@@ -16,7 +16,7 @@ public sealed class PublisherStyleProvenanceTests {
         Assert.Equal(new[] { 36, 72, 72 }, catalog.Libraries.Select(library => library.Entries.Count));
         Assert.Equal(new[] { new PublisherQuillSourceSpan(512, 380), new PublisherQuillSourceSpan(892, 16442),
             new PublisherQuillSourceSpan(17334, 1460) }, catalog.Libraries.Select(library => library.Source));
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, finding => finding.Code == "PUB_NAMED_STYLE_METADATA_UNASSESSED");
+        Assert.Contains(document.ReadReport.Diagnostics, finding => finding.Code == "PUB_NAMED_STYLE_METADATA_UNASSESSED");
     }
 
     [Fact]
@@ -63,7 +63,7 @@ public sealed class PublisherStyleProvenanceTests {
         PublisherNativePreparation prepared = document.PrepareNativeBytes(64L * 1024 * 1024);
         Assert.False(prepared.IsPrepared); Assert.Equal(0, prepared.ByteLength);
         Assert.Throws<NotSupportedException>(() => prepared.CopyBytes());
-        Assert.Contains(prepared.FidelityDiagnostics, finding => finding.Code == "PUB_NATIVE_EDIT_UNSUPPORTED"
+        Assert.Contains(prepared.Diagnostics, finding => finding.Code == "PUB_NATIVE_EDIT_UNSUPPORTED"
             && finding.Location == "Quill" && finding.LossKind == OfficeConversionLossKind.Failure);
         PublisherQuillStoryStyles dependency = Assert.Single(prepared.StyleDependencies);
         Assert.Same(source, dependency);

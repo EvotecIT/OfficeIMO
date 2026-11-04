@@ -43,7 +43,7 @@ public partial class Excel {
             """;
         try {
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", (utf16 ? Encoding.Unicode : Encoding.UTF8).GetBytes(xml));
-            using var owner = ExcelDocumentReader.Open(path, new ExcelReadOptions {
+            using var owner = ExcelDocumentReader.Open(path, new ExcelReaderOptions {
                 NumericAsDecimal = false, InferDataTableColumnTypes = inferTypes
             });
             using var table = owner.GetSheet("Data").ReadRangeAsDataTable($"B2:{lastColumn}8", headersInFirstRow: true);

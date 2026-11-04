@@ -127,7 +127,7 @@ namespace OfficeIMO.OpenXml.Internal {
 
                 var rows = new S.Row[maxPoints];
                 for (int seriesIndex = 0; seriesIndex < seriesCount; seriesIndex++) {
-                    OfficeChartSeries series = data.Series[seriesIndex];
+                    OfficeSeries series = data.Series[seriesIndex];
                     string xColumn = ColumnLetter(seriesIndex * 2 + 1);
                     string yColumn = ColumnLetter(seriesIndex * 2 + 2);
                     for (int pointIndex = 0; pointIndex < series.Values.Count; pointIndex++) {

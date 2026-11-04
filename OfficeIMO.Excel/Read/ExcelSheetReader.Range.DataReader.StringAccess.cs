@@ -1,6 +1,5 @@
-#nullable enable
-
 using System.Globalization;
+using System.Runtime.CompilerServices;
 
 namespace OfficeIMO.Excel {
     internal sealed partial class ExcelSheetReader {
@@ -8,7 +7,9 @@ namespace OfficeIMO.Excel {
             /// <summary>
             /// Loads qualified indexed text into the ordinary current-value cache
             /// without dispatching through numeric, date, or formula conversions.
+            /// Unloaded text has no primitive marker; row advancement already clears it.
             /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             private bool TryGetUnloadedString(int ordinal, out string value) {
                 EnsureOpenRow();
                 if ((uint)ordinal >= (uint)_fieldCount) {
@@ -16,15 +17,15 @@ namespace OfficeIMO.Excel {
                 }
 
                 value = string.Empty;
-                if (_utf8Source == null || _currentRowIsBlank || _currentRow == null
-                    || _currentValueLoaded[ordinal] || _owner._opt.CellValueConverter != null
+                if (_utf8Source == null || _currentRowIsBlank || _currentRow == null) return false;
+                ref bool loaded = ref _currentValueLoaded[ordinal];
+                if (loaded || _owner._opt.CellValueConverter != null
                     || !_utf8Source.TryGetString(ordinal + _utf8SourceOrdinalOffset, out value)) {
                     return false;
                 }
 
-                _currentPrimitiveKinds[ordinal] = XmlDataReaderPrimitiveKind.None;
-                _currentValues[ordinal] = value;
-                _currentValueLoaded[ordinal] = true;
+                GetValidatedOrdinalSlot(_currentValues, ordinal) = value;
+                loaded = true;
                 return true;
             }
         }
@@ -34,6 +35,7 @@ namespace OfficeIMO.Excel {
             /// Reads only qualified text cells using the existing XML normalization
             /// and shared-string decoding. Other cell kinds retain value dispatch.
             /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             internal bool TryGetString(int ordinal, out string value) {
                 EnsureNotDisposed();
                 value = string.Empty;

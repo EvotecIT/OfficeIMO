@@ -54,7 +54,7 @@ public sealed class AddOfficePdfHorizontalRuleCommand : PSCmdlet
     protected override void ProcessRecord()
     {
         var document = PdfCommandUtilities.ComposeContent(this, Document, ParameterSetName, ParameterSetDocument,
-            content => content.HR(Thickness, PdfCommandUtilities.ParseColor(Color), SpacingBefore, SpacingAfter));
+            content => content.HR(((double?)(Thickness) is double physicalLength1 ? global::OfficeIMO.OfficeLength.Points(physicalLength1) : (global::OfficeIMO.OfficeLength?)null), PdfCommandUtilities.ParseColor(Color), ((double?)(SpacingBefore) is double physicalLength2 ? global::OfficeIMO.OfficeLength.Points(physicalLength2) : (global::OfficeIMO.OfficeLength?)null), ((double?)(SpacingAfter) is double physicalLength3 ? global::OfficeIMO.OfficeLength.Points(physicalLength3) : (global::OfficeIMO.OfficeLength?)null)));
         if (PassThru.IsPresent && document != null)
         {
             WriteObject(document);

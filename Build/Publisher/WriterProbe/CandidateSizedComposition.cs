@@ -32,7 +32,7 @@ internal static class CandidateSizedComposition {
 
         Text(master.Id, "Community update", 18, 12, w - 36, 14, 8, 12);
         Rectangle(master.Id, 18, 30, w - 36, 3, OfficeColor.Blue);
-        PublisherPicture logo = document.AddPicture(master.Id, image, w - 54, h - 42, 36, 24);
+        PublisherPicture logo = document.AddImage(master.Id, image, w - 54, h - 42, 36, 24);
         Text(first.Id, "Events and projects", 18, 48, w - 36, 30, 16, 20, true);
         PublisherTextFrame lead = Text(first.Id,
             "Neighbors share practical ideas, local news and plans for our shared spaces. Join the next meeting to help choose activities for the coming season.",
@@ -51,7 +51,7 @@ internal static class CandidateSizedComposition {
             string.Concat(Enumerable.Repeat("Share your ideas. Meet your neighbors. Plan the next community project. ", 2)).TrimEnd(),
             18, 120, w - 36, 48, 9, 12);
         document.SetTextFrameLayout(columns.Id, 2, 12, new OfficeTextPadding(3, 3, 3, 3), OfficeTextVerticalAlignment.Top);
-        document.AddPicture(first.Id, logo.ImageId!.Value, w - 72, 132, 54, 36);
+        document.AddImage(first.Id, logo.ImageId!.Value, w - 72, 132, 54, 36);
         Rectangle(second.Id, w - 54, h - 54, 36, 12, OfficeColor.Red);
         return document;
 

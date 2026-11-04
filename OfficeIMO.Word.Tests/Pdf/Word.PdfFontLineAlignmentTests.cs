@@ -23,14 +23,14 @@ public partial class Word {
             new RunFonts { Ascii = family, HighAnsi = family }, new FontSize { Val = "16" });
         list.Numbering.AddLevel(level);
         var paragraph = list.AddItem("B");
-        paragraph.FontFamily = family; paragraph.FontSize = 8;
-        paragraph.LineSpacingPoints = 30; paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
+        paragraph.FontFamily = family; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(8);
+        paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(30));
         paragraph._paragraph.ParagraphProperties!.TextAlignment = new TextAlignment { Val = new VerticalTextAlignmentValues(alignment) };
-        var options = new PdfOptions();
+        var options = new PdfCreateOptions();
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family, ManagedTextShapingTestAssets.CreateFontWithDeviceMetrics()));
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = options
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters;
         Assert.Equal(Assert.Single(letters, x => x.Value == "A").StartBaseLine.Y,
             Assert.Single(letters, x => x.Value == "B").StartBaseLine.Y, 3);
@@ -94,7 +94,7 @@ public partial class Word {
             new ParagraphPropertiesDefault(new ParagraphPropertiesBaseStyle(new SpacingBetweenLines {
                 Line = "800", LineRule = LineSpacingRuleValues.Exact, Before = "0", After = "0"
             }, route == "document" ? new TextAlignment { Val = value } : null)));
-        var cellTable = table ? source.AddTable(1, 1) : null;
+        var cellTable = table ? source.AddTable(1, 1, WordTableStyle.TableGrid) : null;
         WordParagraph paragraph = cellTable == null ? source.AddParagraph() : cellTable.Rows[0].Cells[0].Paragraphs[0];
         paragraph._paragraph.RemoveAllChildren<Run>();
         paragraph._paragraph.Append(new Run(new RunProperties(new RunFonts { Ascii = family, HighAnsi = family },
@@ -126,13 +126,12 @@ public partial class Word {
         if (route == "direct") properties.TextAlignment = new TextAlignment { Val = value };
         else if (route == "override") properties.TextAlignment = new TextAlignment { Val = VerticalTextAlignmentValues.Baseline };
         // A direct spacing declaration must not erase alignment inherited from elsewhere.
-        paragraph.LineSpacingPoints = 40;
-        paragraph.LineSpacingRule = lineSpacingRule;
-        using WordDocument document = WordDocument.Load(new MemoryStream(nativeDoc ? source.ToBytes(WordFileFormat.Doc) : source.ToBytes()));
-        var options = new PdfOptions();
+        paragraph.LineSpacing = (lineSpacingRule) switch { global::OfficeIMO.Word.WordLineSpacingRule.Exact => global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(40)), global::OfficeIMO.Word.WordLineSpacingRule.AtLeast => global::OfficeIMO.Word.WordLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Points(40)), _ => global::OfficeIMO.Word.WordLineSpacing.Multiple((40) / 12D) };
+        using WordDocument document = WordDocument.Load(new MemoryStream(nativeDoc ? source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }) : source.ToBytes()));
+        var options = new PdfCreateOptions();
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family, ManagedTextShapingTestAssets.CreateFontWithDeviceMetrics()));
-        return document.ToPdfBytes(new WordToPdfOptions {
+        return document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = options
-        });
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
     }
 }

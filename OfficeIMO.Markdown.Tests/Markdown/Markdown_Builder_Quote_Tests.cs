@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void QuoteBuilder_Renders_Simple_Lines() {
-            var doc = MarkdownDoc.Create().Quote(q => q.Line("Line 1").Line("Line 2"));
+            var doc = MarkdownDocument.Create().Quote(q => q.Line("Line 1").Line("Line 2"));
 
             string markdown = Normalize(doc.ToMarkdown());
             Assert.Equal("> Line 1\n> Line 2\n", markdown);
@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             string html = doc.Blocks[0].RenderHtml();
             Assert.Equal("<blockquote><p>Line 1<br/>Line 2</p></blockquote>", html);
 
-            var singleLine = MarkdownDoc.Create().Quote("Single line");
+            var singleLine = MarkdownDocument.Create().Quote("Single line");
             string singleMarkdown = Normalize(singleLine.ToMarkdown());
             Assert.Equal("> Single line\n", singleMarkdown);
             Assert.Equal("<blockquote><p>Single line</p></blockquote>", singleLine.Blocks[0].RenderHtml());
@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void QuoteBuilder_Renders_Nested_Blocks() {
-            var doc = MarkdownDoc.Create().Quote(q => q
+            var doc = MarkdownDocument.Create().Quote(q => q
                 .Line("Intro")
                 .Quote(inner => inner.Line("Inner line 1").Line("Inner line 2"))
                 .P(p => p.Text("Conclusion section"))

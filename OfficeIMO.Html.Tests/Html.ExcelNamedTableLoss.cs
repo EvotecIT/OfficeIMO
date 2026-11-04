@@ -17,10 +17,10 @@ public sealed class HtmlExcelNamedTableLossTests {
             using var workbook = ExcelDocument.Create();
             var original = AddTableSheet(workbook, "Orders", "OrderItems");
             workbook.Save(path);
-            var options = new ExcelHtmlSaveOptions { ExportProfile = profile };
-            foreach (var result in new[] { original.ToHtmlResult(options), workbook.ToHtmlResult(options), workbook.Sheets[0].ToHtmlResult(options) }) {
+            var options = new ExcelHtmlExportOptions { ExportProfile = profile };
+            foreach (var result in new[] { original.ConvertToHtmlWithEvidence(options), workbook.ConvertToHtmlWithEvidence(options), workbook.Sheets[0].ConvertToHtmlWithEvidence(options) }) {
                 Assert.True(result.Report.HasLoss);
-                var omission = Assert.Single(result.Report.Diagnostics, d => d.Source?.StartsWith("excel:table:", StringComparison.Ordinal) == true);
+                var omission = Assert.Single(result.Report.NativeDiagnostics, d => d.Source?.StartsWith("excel:table:", StringComparison.Ordinal) == true);
                 Assert.Equal("excel:table:Orders/OrderItems", omission.Source);
                 Assert.Equal(HtmlConversionDiagnosticCodes.ContentOmitted, omission.Code);
                 Assert.Equal(OfficeConversionLossKind.Omission, omission.LossKind);
@@ -37,10 +37,10 @@ public sealed class HtmlExcelNamedTableLossTests {
     public void RemovedWorksheetExportCannotInspectReplacementTable(ExcelHtmlExportProfile profile) {
         using var workbook = ExcelDocument.Create();
         var original = AddTableSheet(workbook, "Orders", "OrderItems");
-        workbook.AddWorksheet("Plain");
+        workbook.AddSheet("Plain");
         workbook.RemoveWorksheet("Orders");
         AddTableSheet(workbook, "Orders", "ReplacementItems");
-        Assert.Throws<InvalidOperationException>(() => original.ToHtmlResult(new ExcelHtmlSaveOptions { ExportProfile = profile }));
+        Assert.Throws<InvalidOperationException>(() => original.ConvertToHtmlWithEvidence(new ExcelHtmlExportOptions { ExportProfile = profile }));
     }
 
     [Theory]
@@ -57,17 +57,17 @@ public sealed class HtmlExcelNamedTableLossTests {
         table.Rows.Add("Alpha", 2);
         data.Tables.Add(table);
         HtmlTextConversionResult result;
-        var options = new ExcelHtmlSaveOptions { ExportProfile = profile };
+        var options = new ExcelHtmlExportOptions { ExportProfile = profile };
         if (worksheetOnly) {
-            var sheet = workbook.AddWorksheet("Orders");
-            sheet.InsertDataTableAsTable(table, tableName: "OrderItems");
-            result = sheet.ToHtmlResult(options);
+            var sheet = workbook.AddSheet("Orders");
+            sheet.AddTable(table, new OfficeIMO.Excel.ExcelTableOptions { Name = "OrderItems" }, row: 1, column: 1);
+            result = sheet.ConvertToHtmlWithEvidence(options);
         } else {
             workbook.InsertDataSet(data, createTables: true);
-            result = workbook.ToHtmlResult(options);
+            result = workbook.ConvertToHtmlWithEvidence(options);
         }
         Assert.True(result.Report.HasLoss);
-        var omission = Assert.Single(result.Report.Diagnostics.Where(d => d.Source?.StartsWith("excel:table:", StringComparison.Ordinal) == true));
+        var omission = Assert.Single(result.Report.NativeDiagnostics.Where(d => d.Source?.StartsWith("excel:table:", StringComparison.Ordinal) == true));
         Assert.Contains("range=A1:B2", omission.Detail);
     }
 
@@ -80,16 +80,16 @@ public sealed class HtmlExcelNamedTableLossTests {
         using var workbook = ExcelDocument.Create();
         var orders = AddTableSheet(workbook, "Orders", "OrderItems");
         orders.SetHidden(true);
-        var plain = workbook.AddWorksheet("Plain");
-        plain.CellValue(1, 1, "Selected plain value");
-        var result = workbook.ToHtmlResult(new ExcelHtmlSaveOptions {
+        var plain = workbook.AddSheet("Plain");
+        plain.Cell(1, 1).SetValue("Selected plain value");
+        var result = workbook.ConvertToHtmlWithEvidence(new ExcelHtmlExportOptions {
             ExportProfile = ExcelHtmlExportProfile.VisualReview,
-            VisualOptions = new ExcelWorkbookImageExportOptions {
+            VisualOptions = new ExcelImageExportOptions {
                 SheetNames = selectedSheet == null ? null : new[] { selectedSheet },
                 IncludeHiddenSheets = includeHidden
             }
         });
-        var omitted = result.Report.Diagnostics.Where(d => d.Source?.StartsWith("excel:table:", StringComparison.Ordinal) == true).ToArray();
+        var omitted = result.Report.NativeDiagnostics.Where(d => d.Source?.StartsWith("excel:table:", StringComparison.Ordinal) == true).ToArray();
         Assert.Equal(omissionCount, omitted.Length);
         if (omissionCount != 0) Assert.True(result.Report.HasLoss);
     }
@@ -103,9 +103,9 @@ public sealed class HtmlExcelNamedTableLossTests {
         using var workbook = ExcelDocument.Create();
         var orders = AddTableSheet(workbook, "Orders", "OrderItems");
         AddTableSheet(workbook, "Inventory", "StockItems");
-        var options = new ExcelHtmlSaveOptions { ExportProfile = profile };
-        var result = worksheetOnly ? orders.ToHtmlResult(options) : workbook.ToHtmlResult(options);
-        var omitted = result.Report.Diagnostics.Where(d => d.Source?.StartsWith("excel:table:", StringComparison.Ordinal) == true).ToArray();
+        var options = new ExcelHtmlExportOptions { ExportProfile = profile };
+        var result = worksheetOnly ? orders.ConvertToHtmlWithEvidence(options) : workbook.ConvertToHtmlWithEvidence(options);
+        var omitted = result.Report.NativeDiagnostics.Where(d => d.Source?.StartsWith("excel:table:", StringComparison.Ordinal) == true).ToArray();
 
         Assert.True(result.Report.HasLoss);
         Assert.Equal(worksheetOnly ? 1 : 2, omitted.Length);
@@ -122,11 +122,11 @@ public sealed class HtmlExcelNamedTableLossTests {
     public void UnrelatedPlainWorksheetHasNoNamedTableOmission() {
         using var workbook = ExcelDocument.Create();
         AddTableSheet(workbook, "Orders", "OrderItems");
-        var plain = workbook.AddWorksheet("Plain");
-        plain.CellValue(1, 1, "Preserved plain value");
-        var result = plain.ToHtmlResult();
+        var plain = workbook.AddSheet("Plain");
+        plain.Cell(1, 1).SetValue("Preserved plain value");
+        var result = plain.ConvertToHtmlWithEvidence();
         Assert.False(result.Report.HasLoss);
-        Assert.DoesNotContain(result.Report.Diagnostics, d => d.Source?.StartsWith("excel:table:", StringComparison.Ordinal) == true);
+        Assert.DoesNotContain(result.Report.NativeDiagnostics, d => d.Source?.StartsWith("excel:table:", StringComparison.Ordinal) == true);
         Assert.Contains("Preserved plain value", result.Value);
     }
 
@@ -134,25 +134,25 @@ public sealed class HtmlExcelNamedTableLossTests {
     public void SemanticNamedTableExportReportsLossWhileCellsSurviveNativeReopen() {
         using var source = ExcelDocument.Create();
         AddTableSheet(source, "Orders", "OrderItems");
-        var exported = source.ToHtmlResult();
+        var exported = source.ConvertToHtmlWithEvidence();
         Assert.True(exported.Report.HasLoss);
-        var imported = HtmlConversionDocument.Parse(exported.Value, new HtmlConversionDocumentOptions { Trust = HtmlInputTrust.Trusted }).ToExcelDocumentResult();
+        var imported = HtmlConversionDocument.Parse(exported.Value, new HtmlConversionDocumentOptions { Trust = HtmlInputTrust.Trusted }).ConvertToExcelWithEvidence();
         using var restored = imported.RequireValue();
         using var bytes = new MemoryStream();
         restored.Save(bytes);
         using var reopened = ExcelDocument.Load(new MemoryStream(bytes.ToArray()));
         Assert.Empty(reopened.GetTables());
-        Assert.Equal("Item", reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
-        Assert.Equal("Alpha", reopened.Sheets[0].CellAt(2, 1).GetValue<string>());
-        Assert.Equal(2, reopened.Sheets[0].CellAt(2, 2).GetValue<int>());
+        Assert.Equal("Item", reopened.Sheets[0].Cell(1, 1).GetValue<string>());
+        Assert.Equal("Alpha", reopened.Sheets[0].Cell(2, 1).GetValue<string>());
+        Assert.Equal(2, reopened.Sheets[0].Cell(2, 2).GetValue<int>());
     }
 
     private static ExcelSheet AddTableSheet(ExcelDocument workbook, string sheetName, string tableName) {
-        var sheet = workbook.AddWorksheet(sheetName);
-        sheet.CellValue(1, 1, "Item");
-        sheet.CellValue(1, 2, "Count");
-        sheet.CellValue(2, 1, "Alpha");
-        sheet.CellValue(2, 2, 2);
+        var sheet = workbook.AddSheet(sheetName);
+        sheet.Cell(1, 1).SetValue("Item");
+        sheet.Cell(1, 2).SetValue("Count");
+        sheet.Cell(2, 1).SetValue("Alpha");
+        sheet.Cell(2, 2).SetValue(2);
         sheet.AddTable("A1:B2", true, tableName, ExcelTableStyle.TableStyleMedium9);
         return sheet;
     }

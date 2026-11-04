@@ -132,7 +132,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal((60D, 120D), (TableGeometryShape(rendered, "td#wide").X, TableGeometryShape(rendered, "td#wide").Width));
         Assert.Equal(0D, TableGeometryShape(rendered, "td#last").X, 3);
         Assert.Equal(new[] { "First", "Wide", "Last", "SecondRow" }, rendered.Pages[0].Visuals.OfType<HtmlRenderText>().Select(item => item.Text));
-        PdfCore.PdfReadDocument pdf = PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions()));
+        PdfCore.PdfReadDocument pdf = PdfCore.PdfReadDocument.Open((HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions())).ToBytes());
         // Content spans follow the authored stream; plain-text extraction may
         // choose geometric left-to-right order for these English labels.
         string pdfText = string.Concat(pdf.Pages.SelectMany(page => page.GetTextSpans()).Select(span => span.Text));
@@ -184,7 +184,7 @@ public sealed partial class HtmlRenderingTests {
             + "<thead><tr style='height:20px'><th style='padding:0'>Header</th></tr></thead><tbody>" + rows + "</tbody></table>");
         var options = TableGeometryOptions();
         options.Mode = HtmlRenderMode.Paged;
-        options.PageSize = new OfficePageSize(200D / 96D, 100D / 96D);
+        options.PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(200D / 96D), global::OfficeIMO.OfficeLength.Inches(100D / 96D));
         options.HonorCssPageRules = false;
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
 
@@ -221,13 +221,13 @@ public sealed partial class HtmlRenderingTests {
         string html = TableGeometrySource("<style>.sized{--sizing:" + value + ";" + property + ":var(--sizing)}</style>"
             + "<div class='sized'>Intrinsic text</div>");
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, TableGeometryOptions());
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported);
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported);
 
         Assert.Contains(property + "=" + value, diagnostic.Detail);
         Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
         var strict = TableGeometryOptions();
-        strict.FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss;
+        strict.FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss;
         Assert.Throws<HtmlConversionException>(() => HtmlRenderTestDriver.Render(html, strict));
     }
 
@@ -235,7 +235,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlTableGeometry_DirectIntrinsicDeclarationsReportOneLossPerElement() {
         string html = TableGeometrySource("<div id='intrinsic' style='width:MAX-content;min-height:min-content;max-width:fit-content(100px)'>Text</div>");
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, TableGeometryOptions());
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported);
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported);
 
         Assert.Equal("div#intrinsic", diagnostic.Source);
         Assert.DoesNotContain("width=max-content", diagnostic.Detail);

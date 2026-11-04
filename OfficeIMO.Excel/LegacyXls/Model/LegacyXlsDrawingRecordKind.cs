@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Identifies a shallow preserve-only drawing or object BIFF record category.
     /// </summary>
-    public enum LegacyXlsDrawingRecordKind {
+    internal enum LegacyXlsDrawingRecordKind {
         /// <summary>Drawing record that is currently preserved without record-specific field decoding.</summary>
         PreserveOnly,
 

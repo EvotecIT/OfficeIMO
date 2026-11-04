@@ -237,8 +237,8 @@ public sealed class HtmlCommandTests {
         Assert.True(exitCode == 0, error.ToString());
         byte[] pdf = output.ToArray();
         Assert.Equal("%PDF", Encoding.ASCII.GetString(pdf, 0, 4));
-        Assert.Contains("MHTML command line", OfficeIMO.Pdf.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
-        Assert.Contains("Embedded resource", OfficeIMO.Pdf.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("MHTML command line", OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Embedded resource", OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText(), StringComparison.Ordinal);
         Assert.DoesNotContain("StylesheetResourceUnavailable", error.ToString(), StringComparison.Ordinal);
     }
 
@@ -342,7 +342,7 @@ public sealed class HtmlCommandTests {
         byte[] bold = OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFont([65, 66, 32]);
         byte[] italic = OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFont([65, 66, 32]);
         byte[] boldItalic = OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFont([65, 66, 32]);
-        var options = new HtmlToPdfOptions();
+        var options = new HtmlPdfExportOptions();
 
         HtmlCommand.ConfigureFontFamily(
             options,

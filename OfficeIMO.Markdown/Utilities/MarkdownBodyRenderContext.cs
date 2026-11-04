@@ -5,9 +5,9 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 public sealed class MarkdownBodyRenderContext {
     internal MarkdownBodyRenderContext(
-        MarkdownDoc document,
+        MarkdownDocument document,
         IReadOnlyList<IMarkdownBlock> blocks,
-        HtmlOptions options,
+        MarkdownHtmlExportOptions options,
         MarkdownHeadingCatalog headingCatalog) {
         Document = document ?? throw new ArgumentNullException(nameof(document));
         Blocks = blocks;
@@ -18,7 +18,7 @@ public sealed class MarkdownBodyRenderContext {
     /// <summary>
     /// Document being rendered.
     /// </summary>
-    public MarkdownDoc Document { get; }
+    public MarkdownDocument Document { get; }
 
     /// <summary>
     /// Top-level blocks being rendered for the current body.
@@ -28,7 +28,7 @@ public sealed class MarkdownBodyRenderContext {
     /// <summary>
     /// Active HTML rendering options.
     /// </summary>
-    public HtmlOptions Options { get; }
+    public MarkdownHtmlExportOptions Options { get; }
 
     internal MarkdownHeadingCatalog HeadingCatalog { get; }
 
@@ -61,14 +61,14 @@ public sealed class MarkdownBodyRenderContext {
     /// Returns the anchor id of the nearest preceding heading according to the supplied TOC options,
     /// or <c>null</c> when no heading title should be associated with the specified block index.
     /// </summary>
-    public string? GetPrecedingHeadingAnchor(int blockIndex, TocOptions options) =>
-        HeadingCatalog.GetPrecedingHeadingAnchor(Blocks, blockIndex, options ?? new TocOptions());
+    public string? GetPrecedingHeadingAnchor(int blockIndex, MarkdownTocOptions options) =>
+        HeadingCatalog.GetPrecedingHeadingAnchor(Blocks, blockIndex, options ?? new MarkdownTocOptions());
 
     /// <summary>
     /// Builds TOC-style heading entries relative to a specific top-level block index using the supplied TOC options.
     /// </summary>
-    public IReadOnlyList<TocBlock.Entry> BuildTocEntries(int blockIndex, TocOptions options, string? titleAnchor = null) =>
-        HeadingCatalog.BuildTocEntries(Blocks, blockIndex, options ?? new TocOptions(), titleAnchor);
+    public IReadOnlyList<TocBlock.Entry> BuildTocEntries(int blockIndex, MarkdownTocOptions options, string? titleAnchor = null) =>
+        HeadingCatalog.BuildTocEntries(Blocks, blockIndex, options ?? new MarkdownTocOptions(), titleAnchor);
 
     /// <summary>
     /// Renders a block through the active HTML render dispatcher, including syntax-kind and type-targeted overrides.

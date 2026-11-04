@@ -18,7 +18,7 @@ public sealed class XpsRadialExteriorSpreadTests {
     [InlineData(XpsFormat.Xps, "Reflect", "1,0.3,0.4,1,-30,-20", false, true)]
     [InlineData(XpsFormat.OpenXps, "Reflect", "-1,0.3,0.4,1,150,-20", false, false)]
     public void NativeExteriorSpreadUsesFirstEllipseAndCorrectOutsideColor(XpsFormat format, string spread, string matrix, bool alpha, bool stroke) {
-        var doc = Create(format, spread, matrix, alpha, stroke); var page = XpsDocument.Load(doc.Save()).Pages[0];
+        var doc = Create(format, spread, matrix, alpha, stroke); var page = XpsDocument.Load(doc.ToBytes()).Pages[0];
         Assert.True(OfficeRasterImageDecoder.TryDecode(page.ExportImage(OfficeImageExportFormat.Png).Bytes, out var image));
         var values = matrix.Split(',').Select(value => double.Parse(value, CultureInfo.InvariantCulture)).ToArray();
         var inverse = new OfficeTransform(values[0], values[1], values[2], values[3], values[4], values[5]).Invert();
@@ -32,7 +32,7 @@ public sealed class XpsRadialExteriorSpreadTests {
             Assert.InRange(Math.Abs(pixel.G - 255 * (1 - opacity)), 0, 4);
             Assert.InRange(Math.Abs(pixel.B - (255 * ratio * opacity + 255 * (1 - opacity))), 0, 4);
         }
-        var pdfPage = Assert.Single(PdfReadDocument.Open(doc.ToPdf()).Pages);
+        var pdfPage = Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).Pages);
         if (!alpha && !stroke) {
             var readback = OfficeDrawingRasterRenderer.Render(pdfPage.ToDrawing(), scale: 4D / 3D, background: OfficeColor.White);
             foreach (var xy in points) {

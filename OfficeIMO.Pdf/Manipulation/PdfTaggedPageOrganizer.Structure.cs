@@ -8,14 +8,31 @@ internal static partial class PdfTaggedPageOrganizer {
         if (depth > 256) throw new InvalidOperationException("Tagged page organization exceeded the structure nesting limit.");
     }
 
-    private static string UniqueStructureIdPrefix(Dictionary<int, PdfIndirectObject> objects, string preferred) {
-        var existing = objects.Values.Select(item => item.Value).OfType<PdfDictionary>()
-            .Where(dictionary => dictionary.Items.ContainsKey("ID"))
-            .Select(dictionary => PdfObjectLookup.Resolve(objects, dictionary.Items["ID"]))
-            .OfType<PdfStringObj>().Select(id => id.RawBytes).ToArray();
-        string prefix = preferred;
-        while (existing.Any(id => id.Take(prefix.Length).SequenceEqual(System.Text.Encoding.ASCII.GetBytes(prefix)))) prefix = "_" + prefix;
-        return prefix;
+    private static string UniqueStructureIdPrefix(Dictionary<int, PdfIndirectObject> objects, string preferred,
+        CancellationToken token) {
+        // The copy/import prefixes start with a non-underscore ASCII character.
+        // Record occupied underscore counts in one pass instead of rescanning every
+        // ID and re-encoding each longer candidate prefix.
+        byte[] preferredBytes = System.Text.Encoding.ASCII.GetBytes(preferred);
+        var occupied = new HashSet<int>();
+        foreach (PdfIndirectObject item in objects.Values) {
+            token.ThrowIfCancellationRequested();
+            if (item.Value is not PdfDictionary dictionary || !dictionary.Items.TryGetValue("ID", out PdfObject? value) ||
+                PdfObjectLookup.Resolve(objects, value) is not PdfStringObj id) continue;
+            byte[] bytes = id.RawBytes;
+            int underscores = 0;
+            while (underscores < bytes.Length && bytes[underscores] == (byte)'_') {
+                if ((underscores & 1023) == 0) token.ThrowIfCancellationRequested();
+                underscores++;
+            }
+            if (bytes.Length - underscores < preferredBytes.Length) continue;
+            int index = 0;
+            while (index < preferredBytes.Length && bytes[underscores + index] == preferredBytes[index]) index++;
+            if (index == preferredBytes.Length) occupied.Add(underscores);
+        }
+        int count = 0;
+        while (occupied.Contains(count)) count++;
+        return new string('_', count) + preferred;
     }
 
     private static PdfStringObj PrefixStructureId(string prefix, PdfStringObj id) =>

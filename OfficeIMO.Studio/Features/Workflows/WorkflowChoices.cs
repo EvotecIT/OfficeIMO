@@ -3,9 +3,9 @@ using OfficeIMO.Studio.Infrastructure.Localization;
 
 namespace OfficeIMO.Studio.Features.Workflows;
 
-public sealed record WorkflowProfileChoice(OfficeWorkflowOutputProfile Value, string Label, string Description);
+public sealed record WorkflowProfileChoice(OfficeConversionProfile Value, string Label, string Description);
 
-public sealed record WorkflowConflictChoice(OfficeWorkflowConflictPolicy Value, string Label, string Description);
+public sealed record WorkflowConflictChoice(OfficePublicationPolicy Value, string Label, string Description);
 
 public sealed record HealthOperationChoice(OfficeWorkflowOperation Value, string Label, string Description, bool ProducesArtifact);
 

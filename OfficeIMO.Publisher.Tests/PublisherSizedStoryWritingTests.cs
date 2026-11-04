@@ -13,7 +13,7 @@ public sealed class PublisherSizedStoryWritingTests {
         byte[] source = File.ReadAllBytes(PublisherNativeTests.Fixture("NativeComparison/GeneratedSizedComposition/" + fixture));
         PublisherDocument original = PublisherDocument.Load(source), document = PublisherDocument.Load(source);
         PublisherTextStory before = QualifiedBody(original, 'M');
-        Assert.Equal(source, document.ToPubBytes());
+        Assert.Equal(source, document.ToBytes());
 
         PublisherTextStory selected = document.TextStories.Single(story => story.Id == before.Id);
         OfficeRichTextParagraph paragraph = Assert.Single(selected.Paragraphs);
@@ -33,7 +33,7 @@ public sealed class PublisherSizedStoryWritingTests {
         replacement = replacement.WithAutomaticHyphenationSuppressed(paragraph.SuppressAutomaticHyphenation!.Value);
         document.ReplaceStoryParagraphs(selected.Id, new[] { replacement });
 
-        byte[] saved = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        byte[] saved = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         PublisherDocument restored = PublisherDocument.Load(saved);
         Assert.Equal(before.Id, QualifiedBody(restored, 'N').Id);
         CompareStories(original, restored, before.Id);
@@ -42,7 +42,7 @@ public sealed class PublisherSizedStoryWritingTests {
         foreach (PublisherImage image in original.Images)
             Assert.Equal(image.GetBytes(), restored.Images.Single(item => item.Id == image.Id).GetBytes());
         PublisherNativeWritingTests.AssertPreservedStorage(source, saved, "Quill/QuillSub/CONTENTS");
-        Assert.Equal(saved, restored.ToPubBytes());
+        Assert.Equal(saved, restored.ToBytes());
     }
 
     private static PublisherTextStory QualifiedBody(PublisherDocument document, char firstCharacter) {

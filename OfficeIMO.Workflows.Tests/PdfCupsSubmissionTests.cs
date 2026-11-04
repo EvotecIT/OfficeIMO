@@ -88,20 +88,20 @@ public sealed class PdfCupsSubmissionTests {
     public void CancellationDuringSpoolSerializationStopsComposition() {
         using var cancellation = new CancellationTokenSource();
         int callbacks = 0;
-        PdfDocument document = PdfDocument.Create(new PdfOptions {
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
             TextLineBreakCallback = text => {
                 callbacks++;
                 cancellation.Cancel();
                 return [text.Length / 2];
             }
         });
-        for (int index = 0; index < 30; index++) document.Paragraph(p => p.Text(new string('W', 600)));
+        for (int index = 0; index < 30; index++) document.Paragraph(p => p.AddText(new string('W', 600)));
         Assert.ThrowsAny<OperationCanceledException>(() => CupsPdfPrinter.SerializeSpool([document], cancellation.Token));
         Assert.InRange(callbacks, 1, 2);
     }
 
     private static PdfPreparedPrintDocument Prepare() => PdfPrintRenderer.Prepare(
-        PdfDocument.Create(document => document.Page(page => page.Size(100, 100).Margin(0))),
-        new PdfPrintPlanRequest { InputPath = "snapshot.pdf", PaperSize = new PageSize(100, 100) },
+        PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(100)).Margin(global::OfficeIMO.OfficeLength.Points(0)))),
+        new PdfPrintPlanRequest { InputPath = "snapshot.pdf", PaperSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(100),OfficeIMO.OfficeLength.Points(100)) },
         new PdfPrintRenderOptions { Dpi = 72 });
 }

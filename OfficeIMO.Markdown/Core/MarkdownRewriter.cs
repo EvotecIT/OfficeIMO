@@ -6,7 +6,7 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 public abstract class MarkdownRewriter {
     /// <summary>Rewrites the document in place and returns it.</summary>
-    public virtual MarkdownDoc Rewrite(MarkdownDoc document) {
+    public virtual MarkdownDocument Rewrite(MarkdownDocument document) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }

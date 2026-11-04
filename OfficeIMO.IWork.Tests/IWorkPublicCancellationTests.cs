@@ -72,18 +72,18 @@ public sealed partial class IWorkBoundaryTests {
 
     private static void ConvertForCancellation(IWorkSourceDocument source) {
         using IDisposable result = source.Kind switch {
-            IWorkDocumentKind.Pages => WordIWorkConverter.ToWordDocumentResult(source),
-            IWorkDocumentKind.Numbers => ExcelIWorkConverter.ToExcelDocumentResult(source),
-            IWorkDocumentKind.Keynote => PowerPointIWorkConverter.ToPowerPointPresentationResult(source),
+            IWorkDocumentKind.Pages => WordIWorkConverter.ToWordResult(source),
+            IWorkDocumentKind.Numbers => ExcelIWorkConverter.ToExcelResult(source),
+            IWorkDocumentKind.Keynote => PowerPointIWorkConverter.ToPowerPointResult(source),
             _ => throw new ArgumentOutOfRangeException()
         };
     }
 
     private static void ConvertForCancellation(Stream input, IWorkDocumentKind kind, CancellationToken token) {
         using IDisposable result = kind switch {
-            IWorkDocumentKind.Pages => WordIWorkConverter.ConvertPagesToWordResult(input, null, null, token),
-            IWorkDocumentKind.Numbers => ExcelIWorkConverter.ConvertNumbersToExcelResult(input, null, null, token),
-            IWorkDocumentKind.Keynote => PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(input, null, null, token),
+            IWorkDocumentKind.Pages => IWorkSourceDocument.Open(input, IWorkDocumentKind.Pages, null, token).ToWordResult(cancellationToken: token),
+            IWorkDocumentKind.Numbers => IWorkSourceDocument.Open(input, IWorkDocumentKind.Numbers, null, token).ToExcelResult(cancellationToken: token),
+            IWorkDocumentKind.Keynote => IWorkSourceDocument.Open(input, IWorkDocumentKind.Keynote, null, token).ToPowerPointResult(cancellationToken: token),
             _ => throw new ArgumentOutOfRangeException()
         };
     }

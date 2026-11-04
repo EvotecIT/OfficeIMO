@@ -80,7 +80,7 @@ public sealed class PublisherShapeAdmissionTests {
     public void Current_object_and_identifier_limits_reject_creation_without_changing_existing_artwork() {
         const int limit = 128;
         PublisherDocument full = PublisherShapeEditingFixture.Create(hiddenObjects: limit - 3,
-            options: new PublisherReadOptions { Limits = new OfficeLegacyImportLimits { MaxItems = limit } });
+            options: new PublisherLoadOptions { Limits = new OfficeLegacyImportLimits { MaxItems = limit } });
         Assert.Equal(limit, full.ReadReport.CurrentObjectCount);
         var fullPages = full.Pages;
         var rectangle = OfficeShape.Rectangle(10, 10); rectangle.FillColor = OfficeColor.Black;
@@ -101,12 +101,12 @@ public sealed class PublisherShapeAdmissionTests {
         Assert.Throws<NotSupportedException>(() => document.SetShapeBounds(master.Id, 10, 10, 30, 30));
         Assert.Same(pages, document.Pages); Assert.Same(masters, document.MasterPages);
         Assert.True(document.Pages[0].Shapes[0].CanEdit);
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, diagnostic => diagnostic.Code == "PUB_MASTER_COORDINATE_ORIGIN_UNASSESSED");
+        Assert.Contains(document.ReadReport.Diagnostics, diagnostic => diagnostic.Code == "PUB_MASTER_COORDINATE_ORIGIN_UNASSESSED");
     }
 
     [Fact]
     public void Projection_failure_is_atomic_and_does_not_consume_the_next_shape_identity() {
-        PublisherDocument document = PublisherShapeEditingFixture.Create(options: new PublisherReadOptions {
+        PublisherDocument document = PublisherShapeEditingFixture.Create(options: new PublisherLoadOptions {
             Limits = new OfficeLegacyImportLimits { MaxItems = 32 }
         });
         var primitive = OfficeShape.Rectangle(10, 10); primitive.FillColor = OfficeColor.Black;

@@ -39,9 +39,9 @@ public sealed class PublisherEmptyParagraphRetentionWritingTests {
         if (cells) document.ReplaceTableCellParagraphs(table!.Id, 0, 0, requested);
         else document.ReplaceStoryParagraphs(story.Id, requested);
         if (copied) {
-            Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+            Assert.Throws<OfficeConversionException>(() => document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         } else {
-            byte[] output = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+            byte[] output = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
             PublisherDocument saved = PublisherDocument.Load(output);
             Assert.Equal(Cr(document, source, story.Id, selected), Cr(saved, output, story.Id, authored == 1 ? 2 : 0));
             PublisherNativeWritingTests.AssertPreservedStorage(source, output, "Quill/QuillSub/CONTENTS");
@@ -95,7 +95,7 @@ public sealed class PublisherEmptyParagraphRetentionWritingTests {
                 document.ReplaceTableCellParagraphs(table.Id, cell.RowIndex, cell.ColumnIndex, Select(cell.Paragraphs));
             }
         } else document.ReplaceStoryParagraphs(story.Id, Select(paragraphs));
-        byte[] output = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        byte[] output = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         PublisherDocument saved = PublisherDocument.Load(output);
         if (cells) {
             PublisherTable actual = saved.Pages[page].Tables.Single();
@@ -125,7 +125,7 @@ public sealed class PublisherEmptyParagraphRetentionWritingTests {
         var requested = finalOnly ? new[] { copy } : new[] { copy, paragraphs[2] };
         if (cells) document.ReplaceTableCellParagraphs(table!.Id, 0, 0, requested);
         else document.ReplaceStoryParagraphs(document.TextStories[10].Id, requested);
-        var error = Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        var error = Assert.Throws<OfficeConversionException>(() => document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         Assert.True(Assert.IsType<PublisherSaveReport>(error.Report).HasErrors);
     }
 

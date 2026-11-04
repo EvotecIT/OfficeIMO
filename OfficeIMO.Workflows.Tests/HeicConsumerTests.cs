@@ -1,0 +1,216 @@
+using System.IO.Compression;
+using System.Xml.Linq;
+using OfficeIMO.Drawing;
+using OfficeIMO.Excel;
+using OfficeIMO.Pdf;
+using OfficeIMO.PowerPoint;
+using OfficeIMO.Word;
+
+namespace OfficeIMO.Workflows.Tests;
+
+// These tests replace the process-wide platform codec and must run without other collections.
+[CollectionDefinition("HEIC consumers", DisableParallelization = true)]
+public sealed class HeicConsumerCollection { }
+
+[Collection("HEIC consumers")]
+public sealed class HeicConsumerTests {
+    private static string Fixture => Path.Combine(AppContext.BaseDirectory, "Fixtures", "Heic", "basic-8bit-srgb.heic");
+
+    [Theory]
+    [InlineData(".docx")]
+    [InlineData(".pptx")]
+    [InlineData(".xlsx")]
+    public void InsertsStorePngPartsInsteadOfHeic(string extension) {
+        var codec = new SolidTileCodec();
+        using var scope = new CodecScope(codec);
+        string output = Path.Combine(scope.Directory, "inserted" + extension);
+        byte[] heic = File.ReadAllBytes(Fixture);
+        switch (extension) {
+            case ".docx":
+                using (WordDocument document = WordDocument.Create(output)) {
+                    document.AddParagraph().AddImage(Fixture);
+                    document.Save();
+                }
+                break;
+            case ".pptx":
+                using (PowerPointDocument presentation = PowerPointDocument.Create(output)) {
+                    using var input = new MemoryStream(heic, writable: false);
+                    input.Position = 7;
+                    presentation.AddSlide().AddImage(input, OfficeImageFormat.Heic);
+                    presentation.Save();
+                }
+                break;
+            case ".xlsx":
+                using (ExcelDocument document = ExcelDocument.Create(output)) {
+                    document.AddSheet("Images").AddImage(1, 1, heic, new ExcelImageOptions { ContentType = "image/heic" });
+                    document.Save();
+                }
+                break;
+        }
+
+        Assert.True(codec.DecodeCalls > 0);
+        using ZipArchive package = ZipFile.OpenRead(output);
+        using Stream contentTypes = package.GetEntry("[Content_Types].xml")!.Open();
+        XElement[] pngTypes = XDocument.Load(contentTypes).Descendants()
+            .Where(element => (string?)element.Attribute("ContentType") == "image/png").ToArray();
+        ZipArchiveEntry media = Assert.Single(package.Entries, entry => pngTypes.Any(type =>
+            (string?)type.Attribute("PartName") == "/" + entry.FullName ||
+            (string?)type.Attribute("Extension") == Path.GetExtension(entry.FullName).TrimStart('.')));
+        using var stream = media.Open();
+        using var buffer = new MemoryStream();
+        stream.CopyTo(buffer);
+        byte[] embedded = buffer.ToArray();
+        Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, embedded.Take(8).ToArray());
+        Assert.True(OfficeRasterImageDecoder.TryDecode(embedded, out OfficeRasterImage? decoded));
+        OfficeImageInfo original = OfficeImageReader.Identify(heic);
+        Assert.Equal(original.Width, decoded!.Width);
+        Assert.Equal(original.Height, decoded.Height);
+    }
+
+    [Theory]
+    [InlineData(".heic")]
+    [InlineData(".heif")]
+    [InlineData(".hif")]
+    public async Task FrontDoorRoutesAllHeicAliasesToAReopenedPdf(string extension) {
+        using var scope = new CodecScope(new SolidTileCodec());
+        string source = Path.Combine(scope.Directory, "source" + extension);
+        File.Copy(Fixture, source);
+        string output = Path.Combine(scope.Directory, "converted.pdf");
+        OfficeWorkflowRoute? route = OfficeWorkflowCatalog.Find(extension, ".pdf", executableOnly: true);
+        Assert.NotNull(route);
+        OfficeConversionCapability capability = Assert.Single(OfficeConversionCapabilityCatalog.All, item => item.Id == route.Id);
+        Assert.True(capability.RequiresImageCodec);
+        Assert.True(route.RequiresImageCodec);
+        Assert.False(capability.AgentDiscoverable);
+        using var catalog = System.Text.Json.JsonDocument.Parse(OfficeConversionCapabilityCatalog.ToJson());
+        var jsonRoute = catalog.RootElement.GetProperty("routes").EnumerateArray().Single(item => item.GetProperty("id").GetString() == route.Id);
+        Assert.True(jsonRoute.GetProperty("requiresImageCodec").GetBoolean());
+        Assert.Equal("OfficeIMO.Pdf", capability.PackageId);
+        Assert.False(capability.BrowserAvailable);
+        OfficeConversionReport result = await OfficeConverter.ConvertAsync(source, output,
+            new OfficeConversionOptions { RouteId = route.Id, FileConflictPolicy = OfficePublicationPolicy.Fail });
+
+        Assert.Equal(1, result.ItemsWritten);
+        Assert.Equal(1, PdfDocument.Load(output).Inspect().PageCount);
+        Assert.Contains(result.Diagnostics, item => item.Code == OfficeDiagnosticCodes.ConversionOutputReopened);
+    }
+
+    [Fact]
+    public void FrontDoorRetainsCodecUnavailableDiagnosticAndPublishesNothing() {
+        using var scope = new CodecScope(null);
+        string output = Path.Combine(scope.Directory, "unavailable.pdf");
+        OfficeConversionException failure = Assert.Throws<OfficeConversionException>(() =>
+            OfficeConverter.Convert(Fixture, output));
+        OfficeDiagnostic diagnostic = Assert.Single(failure.Report.Diagnostics,
+            item => item.Code == OfficeDiagnosticCodes.ImageCodecUnavailable);
+        Assert.Equal(OfficeDiagnosticSeverity.Error, diagnostic.Severity);
+        Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
+        Assert.Equal("Heic", diagnostic.Format);
+        Assert.False(File.Exists(output));
+        Assert.Empty(System.IO.Directory.GetFiles(scope.Directory, ".*.tmp"));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ConversionAndAssemblyKeepCodecUnavailableReasonsAndPublishNothing(bool registerUnavailableCodec) {
+        const OfficeRasterCodecUnavailableReason reason = OfficeRasterCodecUnavailableReason.NoPlatformCodec;
+        using var scope = new CodecScope(registerUnavailableCodec ? new UnavailableCodec(reason) : null);
+        string source = Path.Combine(scope.Directory, "source.hif");
+        File.Copy(Fixture, source);
+        var runner = new OfficeWorkflowRunner();
+        string converted = Path.Combine(scope.Directory, "converted.pdf");
+        OfficeWorkflowResult conversion = await runner.RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert, InputPath = source, OutputPath = converted,
+            ConversionRouteId = "heic-pdf",
+            ConflictPolicy = OfficePublicationPolicy.Fail
+        });
+        string assembled = Path.Combine(scope.Directory, "assembled.pdf");
+        PdfAssemblyResult assembly = await runner.AssemblePdfAsync(new PdfAssemblyRequest {
+            Sources = new[] { source }, OutputPath = assembled, ConflictPolicy = OfficePublicationPolicy.Fail
+        });
+
+        Assert.False(conversion.Succeeded);
+        Assert.False(assembly.Succeeded);
+        Assert.Equal(OfficeWorkflowFailureKind.UnsupportedInput, conversion.FailureKind);
+        Assert.Equal(OfficeWorkflowFailureKind.UnsupportedInput, assembly.FailureKind);
+        foreach (IReadOnlyList<OfficeWorkflowDiagnostic> diagnostics in new[] { conversion.Diagnostics, assembly.Diagnostics }) {
+            OfficeWorkflowDiagnostic diagnostic = Assert.Single(diagnostics, item => item.Code == "image-codec-unavailable");
+            Assert.Equal(reason.ToString(), diagnostic.Details["reason"]);
+        }
+        Assert.False(File.Exists(converted));
+        Assert.False(File.Exists(assembled));
+        Assert.Empty(System.IO.Directory.GetFiles(scope.Directory, ".*.tmp"));
+    }
+
+    [Fact]
+    public void TypedCodecUnavailableFailuresKeepTheirClassificationAtEveryWorkflowStage() {
+        using var scope = new CodecScope(null);
+        OfficeRasterDecodeException failure = Assert.Throws<OfficeRasterDecodeException>(() =>
+            OfficeImageReader.NormalizeForEmbedding(File.ReadAllBytes(Fixture), null, out _));
+        foreach (OfficeWorkflowRunner.WorkflowFailureStage stage in Enum.GetValues<OfficeWorkflowRunner.WorkflowFailureStage>())
+            Assert.Equal(OfficeWorkflowFailureKind.UnsupportedInput, OfficeWorkflowRunner.ClassifyFailure(failure, stage));
+    }
+
+    [Fact]
+    public void PreparedPdfImagesDoNotBypassTheCurrentHeicCodecAvailability() {
+        using var scope = new CodecScope(new SolidTileCodec());
+        byte[] heic = File.ReadAllBytes(Fixture);
+        byte[] pdf = new[] { new PdfImageDocumentSource(heic, "photo.heic") }.ToPdf().ToBytes();
+        Assert.Equal(1, PdfDocument.Load(pdf).Inspect().PageCount);
+
+        OfficeRasterImageCodecs.Platform = null;
+        OfficeRasterDecodeException failure = Assert.Throws<OfficeRasterDecodeException>(() => {
+            new[] { new PdfImageDocumentSource(heic, "photo.heic") }.ToPdf().ToBytes();
+        });
+        Assert.Equal(OfficeRasterCodecUnavailableReason.NoPlatformCodec, failure.DecodeInfo.CodecUnavailableReason);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PreparedSvgImagesDoNotBypassEmbeddedHeicCodecAvailability(bool copySource) {
+        using var scope = new CodecScope(new SolidTileCodec());
+        string dataUri = "data:image/heic;base64," + Convert.ToBase64String(File.ReadAllBytes(Fixture));
+        byte[] svg = System.Text.Encoding.UTF8.GetBytes(
+            $"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"160\" height=\"120\"><image width=\"160\" height=\"120\" href=\"{dataUri}\"/></svg>");
+        byte[] pdf = new[] { new PdfImageDocumentSource(svg, "photo.svg") }.ToPdf().ToBytes();
+        Assert.Equal(1, PdfDocument.Load(pdf).Inspect().PageCount);
+        OfficeRasterImageCodecs.Platform = null;
+        OfficeRasterDecodeException failure = Assert.Throws<OfficeRasterDecodeException>(() => {
+            new[] { new PdfImageDocumentSource(copySource ? (byte[])svg.Clone() : svg, "photo.svg") }.ToPdf().ToBytes();
+        });
+        Assert.Equal(OfficeRasterCodecUnavailableReason.NoPlatformCodec, failure.DecodeInfo.CodecUnavailableReason);
+    }
+
+    private sealed class SolidTileCodec : IOfficeRasterImageCodec {
+        internal int DecodeCalls { get; private set; }
+        public bool TryDecode(byte[] encodedBytes, string? contentType, out OfficeRasterImage? image) {
+            DecodeCalls++;
+            OfficeImageInfo info = OfficeImageReader.Identify(encodedBytes);
+            image = new OfficeRasterImage(info.Width, info.Height, OfficeColor.FromRgb(24, 100, 176));
+            return true;
+        }
+    }
+
+    private sealed class UnavailableCodec(OfficeRasterCodecUnavailableReason reason) : IOfficeRasterImageCodec, IOfficeRasterImageCodecAvailability {
+        public OfficeRasterCodecAvailability GetAvailability() => new(reason, "The requested system component is unavailable.");
+        public bool TryDecode(byte[] encodedBytes, string? contentType, out OfficeRasterImage? image) =>
+            throw new InvalidOperationException("Unavailable codecs must not be invoked.");
+    }
+
+    private sealed class CodecScope : IDisposable {
+        private readonly IOfficeRasterImageCodec? _previous;
+        internal CodecScope(IOfficeRasterImageCodec? codec) {
+            _previous = OfficeRasterImageCodecs.Platform;
+            OfficeRasterImageCodecs.Platform = codec;
+            Directory = Path.Combine(Path.GetTempPath(), "officeimo-heic-consumers-" + Guid.NewGuid().ToString("N"));
+            System.IO.Directory.CreateDirectory(Directory);
+        }
+        internal string Directory { get; }
+        public void Dispose() {
+            OfficeRasterImageCodecs.Platform = _previous;
+            System.IO.Directory.Delete(Directory, recursive: true);
+        }
+    }
+}

@@ -12,42 +12,42 @@ public partial class WordRtfConverterTests {
     [Fact]
     public void Word_To_Rtf_Bridge_Carries_PageSetup_Headers_And_Footers() {
         using WordDocument word = WordDocument.Create();
-        word.PageOrientation = OfficePageOrientation.Landscape;
-        word.PageSettings.Width = 16838U;
-        word.PageSettings.Height = 11906U;
-        word.Margins.Left = 1440U;
-        word.Margins.Right = 720U;
-        word.Margins.Top = 1080;
-        word.Margins.Bottom = 1080;
-        word.Margins.Gutter = 180U;
-        word.Margins.HeaderDistance = 360U;
-        word.Margins.FooterDistance = 540U;
+        word.PageSetup.Orientation = OfficePageOrientation.Landscape;
+        word.PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points(841.9D);
+        word.PageSetup.Size.Height = global::OfficeIMO.OfficeLength.Points(595.3D);
+        word.PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points(72D);
+        word.PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(36D);
+        word.PageSetup.Margins.Top = global::OfficeIMO.OfficeLength.Points(54D);
+        word.PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(54D);
+        word.PageSetup.Margins.Gutter = global::OfficeIMO.OfficeLength.Points(9D);
+        word.PageSetup.Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points(18D);
+        word.PageSetup.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(27D);
         word.RtlGutter = true;
         word.Settings.MirrorMargins = true;
         word.AddPageNumbering(5, WordNumberFormat.LowerRoman);
         word.Borders.TopStyle = WordBorderStyle.Single;
-        word.Borders.TopSize = 12U;
-        word.Borders.TopSpace = 24U;
-        word.Borders.TopColorHex = "FF0000";
+        word.Borders.TopSize = OfficeLength.Points(1.5);
+        word.Borders.TopSpace = OfficeLength.Points(24);
+        word.Borders.TopColor = OfficeColor.Parse("FF0000");
         word.Borders.BottomStyle = WordBorderStyle.Double;
-        word.Borders.BottomSize = 18U;
-        word.Borders.BottomSpace = 30U;
-        word.Borders.BottomColorHex = "0000FF";
+        word.Borders.BottomSize = OfficeLength.Points(2.25);
+        word.Borders.BottomSpace = OfficeLength.Points(30);
+        word.Borders.BottomColor = OfficeColor.Parse("0000FF");
         PageBorders pageBorders = word.Sections[0]._sectionProperties.GetFirstChild<PageBorders>()!;
         pageBorders.Display = PageBorderDisplayValues.NotFirstPage;
         pageBorders.ZOrder = PageBorderZOrderValues.Front;
         pageBorders.OffsetFrom = PageBorderOffsetValues.Page;
-        word.DifferentFirstPage = true;
-        word.DifferentOddAndEvenPages = true;
-        word.HeaderDefaultOrCreate.AddParagraph().AddText("Header ").AddText("bold").SetBold();
-        word.HeaderFirstOrCreate.AddParagraph("First header");
-        word.HeaderEvenOrCreate.AddParagraph("Even header");
-        word.FooterDefaultOrCreate.AddParagraph("Footer text");
-        word.FooterEvenOrCreate.AddParagraph("Even footer");
+        word.PageSetup.DifferentFirstPage = true;
+        word.PageSetup.DifferentOddAndEvenPages = true;
+        word.PageSetup.Header.AddParagraph().AddText("Header ").AddText("bold").SetBold();
+        word.PageSetup.FirstPageHeader.AddParagraph("First header");
+        word.PageSetup.EvenPageHeader.AddParagraph("Even header");
+        word.PageSetup.Footer.AddParagraph("Footer text");
+        word.PageSetup.EvenPageFooter.AddParagraph("Even footer");
         word.AddParagraph("Body");
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
 
         Assert.Equal(16838, rtfDocument.PageSetup.PaperWidthTwips);
         Assert.Equal(11906, rtfDocument.PageSetup.PaperHeightTwips);
@@ -66,11 +66,11 @@ public partial class WordRtfConverterTests {
         Assert.False(rtfDocument.PageSetup.PageBorders.DisplayBehindText);
         Assert.Equal(RtfPageBorderOffset.PageEdge, rtfDocument.PageSetup.PageBorders.OffsetFrom);
         Assert.Equal(RtfPageBorderStyle.Single, rtfDocument.PageSetup.PageBorders.Top.Style);
-        Assert.Equal(12, rtfDocument.PageSetup.PageBorders.Top.Width);
+        Assert.Equal(30, rtfDocument.PageSetup.PageBorders.Top.Width);
         Assert.Equal(24, rtfDocument.PageSetup.PageBorders.Top.Space);
         Assert.Equal("#FF0000", rtfDocument.GetColor(rtfDocument.PageSetup.PageBorders.Top.ColorIndex!.Value)!.ToString());
         Assert.Equal(RtfPageBorderStyle.Double, rtfDocument.PageSetup.PageBorders.Bottom.Style);
-        Assert.Equal(18, rtfDocument.PageSetup.PageBorders.Bottom.Width);
+        Assert.Equal(45, rtfDocument.PageSetup.PageBorders.Bottom.Width);
         Assert.Equal(30, rtfDocument.PageSetup.PageBorders.Bottom.Space);
         Assert.Equal("#0000FF", rtfDocument.GetColor(rtfDocument.PageSetup.PageBorders.Bottom.ColorIndex!.Value)!.ToString());
         Assert.True(rtfDocument.PageSetup.Landscape);
@@ -95,8 +95,8 @@ public partial class WordRtfConverterTests {
         Assert.Contains(@"\pgnrestart", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\pgnlcrm", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\pgbrdropt34", rtf, StringComparison.Ordinal);
-        Assert.Contains($@"\pgbrdrt\brdrs\brdrw12\brsp24\brdrcf{rtfDocument.PageSetup.PageBorders.Top.ColorIndex}", rtf, StringComparison.Ordinal);
-        Assert.Contains($@"\pgbrdrb\brdrdb\brdrw18\brsp30\brdrcf{rtfDocument.PageSetup.PageBorders.Bottom.ColorIndex}", rtf, StringComparison.Ordinal);
+        Assert.Contains($@"\pgbrdrt\brdrs\brdrw30\brsp24\brdrcf{rtfDocument.PageSetup.PageBorders.Top.ColorIndex}", rtf, StringComparison.Ordinal);
+        Assert.Contains($@"\pgbrdrb\brdrdb\brdrw45\brsp30\brdrcf{rtfDocument.PageSetup.PageBorders.Bottom.ColorIndex}", rtf, StringComparison.Ordinal);
         Assert.Contains(@"{\header", rtf, StringComparison.Ordinal);
         Assert.Contains(@"{\headerf", rtf, StringComparison.Ordinal);
         Assert.Contains(@"{\headerl", rtf, StringComparison.Ordinal);
@@ -107,11 +107,11 @@ public partial class WordRtfConverterTests {
     [Fact]
     public void Word_To_Rtf_Bridge_Treats_Mirrored_Margin_Preset_As_Mirror_Margins() {
         using WordDocument word = WordDocument.Create();
-        word.Margins.Type = WordMargin.Mirrored;
+        word.PageSetup.Margins.Type = WordMargin.Mirrored;
         word.AddParagraph("Body");
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
 
         Assert.True(rtfDocument.Settings.MirrorMargins);
         Assert.Contains(@"\margmirror", rtf, StringComparison.Ordinal);
@@ -127,8 +127,8 @@ public partial class WordRtfConverterTests {
         settings.Append(new DocumentProtection { Edit = DocumentProtectionValues.ReadOnly });
         word.AddParagraph("Body");
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
 
         Assert.Equal(1440, rtfDocument.Settings.DefaultTabWidthTwips);
         Assert.Equal(125, rtfDocument.Settings.ViewScale);
@@ -149,16 +149,16 @@ public partial class WordRtfConverterTests {
         rtfDocument.Settings.MirrorMargins = true;
         rtfDocument.AddParagraph("Body");
 
-        using WordDocument word = rtfDocument.ToWordDocument();
-        RtfDocument roundTrip = word.ToRtfDocument();
+        using WordDocument word = rtfDocument.ToWord();
+        RtfDocument roundTrip = word.ToRtf();
 
         Assert.Equal(1440, word.Settings.DefaultTabStop);
         Assert.Equal(125, word.Settings.ZoomPercentage);
         Assert.Equal(WordDocumentProtectionType.ReadOnly, word.Settings.ProtectionType);
         // The selection flag survives without inventing an empty even-page story.
-        Assert.False(word.DifferentOddAndEvenPages);
-        Assert.Null(word.Sections[0].Header.Even);
-        Assert.Null(word.Sections[0].Footer.Even);
+        Assert.False(word.PageSetup.DifferentOddAndEvenPages);
+        Assert.Null(word.Sections[0].PageSetup.GetHeader(WordHeaderFooterType.Even));
+        Assert.Null(word.Sections[0].PageSetup.GetFooter(WordHeaderFooterType.Even));
         Assert.True(word.Settings.MirrorMargins);
         Assert.Equal(1440, roundTrip.Settings.DefaultTabWidthTwips);
         Assert.Equal(125, roundTrip.Settings.ViewScale);

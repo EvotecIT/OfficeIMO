@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Markdown_OrderPreserved_WithinSection() {
             using var doc = BuildSingleSectionDoc();
-            string md = doc.ToMarkdown();
+            string md = doc.ToMarkdown().ToMarkdown();
             int p1 = md.IndexOf("Intro P1", StringComparison.Ordinal);
             int t1 = IndexOfMarkdownTable(md, "| H1 | H2 |");
             int after1 = md.IndexOf("After T1", StringComparison.Ordinal);
@@ -99,7 +99,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Markdown_Html_OrderPreserved_AcrossSections() {
             using var doc = BuildSampleDoc();
-            string md = doc.ToMarkdown();
+            string md = doc.ToMarkdown().ToMarkdown();
             int intro = md.IndexOf("Intro P1", StringComparison.Ordinal);
             int after1 = md.IndexOf("After T1", StringComparison.Ordinal);
             int s2p1 = md.IndexOf("Section2 P1", StringComparison.Ordinal);

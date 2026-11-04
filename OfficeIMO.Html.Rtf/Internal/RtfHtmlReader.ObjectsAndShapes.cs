@@ -49,8 +49,8 @@ internal static partial class RtfHtmlReader {
                 return;
             }
 
-            HtmlToRtfOptions nestedOptions = CreateNestedOptions();
-            HtmlToRtfResult nestedResult = HtmlConversionDocument.Parse(html!).ToRtfDocumentResult(nestedOptions);
+            HtmlRtfExportOptions nestedOptions = CreateNestedOptions();
+            HtmlToRtfResult nestedResult = HtmlConversionDocument.Parse(html!).ConvertToRtfWithEvidence(nestedOptions);
             RtfDocument resultDocument = nestedResult.RequireValue();
             PropagateNestedDiagnostics(nestedResult.RtfDiagnostics);
             RtfParagraph? paragraph = resultDocument.Paragraphs.FirstOrDefault();
@@ -65,8 +65,8 @@ internal static partial class RtfHtmlReader {
                 return;
             }
 
-            HtmlToRtfOptions nestedOptions = CreateNestedOptions();
-            HtmlToRtfResult nestedResult = HtmlConversionDocument.Parse(html!).ToRtfDocumentResult(nestedOptions);
+            HtmlRtfExportOptions nestedOptions = CreateNestedOptions();
+            HtmlToRtfResult nestedResult = HtmlConversionDocument.Parse(html!).ConvertToRtfWithEvidence(nestedOptions);
             RtfDocument textDocument = nestedResult.RequireValue();
             PropagateNestedDiagnostics(nestedResult.RtfDiagnostics);
             foreach (RtfParagraph paragraph in textDocument.Paragraphs) {
@@ -75,8 +75,8 @@ internal static partial class RtfHtmlReader {
             }
         }
 
-        private HtmlToRtfOptions CreateNestedOptions() {
-            HtmlToRtfOptions nestedOptions = _options.Clone();
+        private HtmlRtfExportOptions CreateNestedOptions() {
+            HtmlRtfExportOptions nestedOptions = _options.Clone();
             return nestedOptions;
         }
 

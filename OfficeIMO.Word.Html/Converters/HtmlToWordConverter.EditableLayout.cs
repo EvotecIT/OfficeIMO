@@ -11,7 +11,7 @@ internal partial class HtmlToWordConverter {
     internal async Task AddEditableLayoutRegionsAsync(
         WordDocument document,
         HtmlEditableLayoutProjection projection,
-        HtmlToWordOptions options,
+        HtmlWordExportOptions options,
         CancellationToken cancellationToken) {
         IReadOnlyList<IHtmlImageElement> allImages = projection.Regions
             .SelectMany(projection.GetSourceImages)
@@ -34,17 +34,17 @@ internal partial class HtmlToWordConverter {
             long nativeWidth = ToBoundedAnchorSize(region.Width, emusPerCssPixel, out bool widthSimplified);
             long nativeHeight = ToBoundedAnchorSize(region.Height, emusPerCssPixel, out bool heightSimplified);
             int containerWidthTwips = ToBoundedContainerWidth(region.Width, out bool containerWidthSimplified);
-            textBox.HorizontalPositionOffset = horizontalOffset;
-            textBox.VerticalPositionOffset = verticalOffset;
-            textBox.Width = nativeWidth;
-            textBox.Height = nativeHeight;
+            textBox.HorizontalPositionOffset = OfficeLength.Emus(horizontalOffset);
+            textBox.VerticalPositionOffset = OfficeLength.Emus(verticalOffset);
+            textBox.Width = OfficeLength.Emus(nativeWidth);
+            textBox.Height = OfficeLength.Emus(nativeHeight);
             textBox.AutoFit = WordTextBoxAutoFitType.NoAutoFit;
             textBox.RelativeWidthPercentage = 0;
             textBox.RelativeHeightPercentage = 0;
             long zOrder = 251659264L + region.ZIndex * 1024L + order++;
             zOrder = zOrder < 1L ? 1L : zOrder > uint.MaxValue ? uint.MaxValue : zOrder;
             textBox.ZOrder = checked((uint)zOrder);
-            if (region.BackgroundColor.HasValue) textBox.FillColorHex = region.BackgroundColor.Value.ToRgbHex();
+            if (region.BackgroundColor.HasValue) textBox.FillColor = region.BackgroundColor.Value;
             if (horizontalSimplified || verticalSimplified || widthSimplified
                 || heightSimplified || containerWidthSimplified) {
                 options.ConversionReport.Add("OfficeIMO.Word.Html",
@@ -106,7 +106,7 @@ internal partial class HtmlToWordConverter {
         IHtmlImageElement sourceImage,
         HtmlEditableLayoutPicture? visual,
         WordDocument document,
-        HtmlToWordOptions options,
+        HtmlWordExportOptions options,
         WordParagraph paragraph,
         HtmlRenderLayoutRegion region,
         int containerWidthTwips) {
@@ -125,22 +125,22 @@ internal partial class HtmlToWordConverter {
         nativeImage._Image.Remove();
         nativeImage = editableImage;
         nativeImage.Transparency = null;
-        nativeImage.CropLeft = null;
-        nativeImage.CropTop = null;
-        nativeImage.CropRight = null;
-        nativeImage.CropBottom = null;
+        nativeImage.CropLeftRatio = null;
+        nativeImage.CropTopRatio = null;
+        nativeImage.CropRightRatio = null;
+        nativeImage.CropBottomRatio = null;
         if (!visual.HasValue) return;
         HtmlEditableLayoutPicture renderedPicture = visual.Value;
-        nativeImage.Width = renderedPicture.Width;
-        nativeImage.Height = renderedPicture.Height;
+        nativeImage.Width = OfficeIMO.OfficeLength.Pixels(renderedPicture.Width);
+        nativeImage.Height = OfficeIMO.OfficeLength.Pixels(renderedPicture.Height);
         if (renderedPicture.Opacity < 0.999D) {
             nativeImage.Transparency = (int)Math.Round((1D - renderedPicture.Opacity) * 100D);
         }
         if (renderedPicture.SourceCrop.HasCrop) {
-            nativeImage.CropLeft = ToCropPercentage(renderedPicture.SourceCrop.Left);
-            nativeImage.CropTop = ToCropPercentage(renderedPicture.SourceCrop.Top);
-            nativeImage.CropRight = ToCropPercentage(renderedPicture.SourceCrop.Right);
-            nativeImage.CropBottom = ToCropPercentage(renderedPicture.SourceCrop.Bottom);
+            nativeImage.CropLeftRatio = ((double?)(ToCropPercentage(renderedPicture.SourceCrop.Left))) / 100000D;
+            nativeImage.CropTopRatio = ((double?)(ToCropPercentage(renderedPicture.SourceCrop.Top))) / 100000D;
+            nativeImage.CropRightRatio = ((double?)(ToCropPercentage(renderedPicture.SourceCrop.Right))) / 100000D;
+            nativeImage.CropBottomRatio = ((double?)(ToCropPercentage(renderedPicture.SourceCrop.Bottom))) / 100000D;
         }
     }
 
@@ -191,7 +191,7 @@ internal partial class HtmlToWordConverter {
     }
 
     private static void AddRegionImageOmitted(
-        HtmlToWordOptions options,
+        HtmlWordExportOptions options,
         HtmlRenderLayoutRegion region,
         string? source,
         string detail) {

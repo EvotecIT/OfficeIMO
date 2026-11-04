@@ -21,8 +21,11 @@ public sealed partial class OdgPage {
         OfficeRichTextRun mapped = CreateDrawingRun(stop.LeaderText!, source, losses);
         var size = OdfTextStyleResolver.ResolveFontSizeBasis(chain, losses);
         double? points = size.Points.HasValue ? size.Points.Value * size.Factor : null;
+        OfficeLength? physicalSize = points.HasValue ? OfficeLength.Points(points.Value) : null;
+        if (points > 0D && physicalSize == OfficeLength.Zero) physicalSize = OfficeLength.Emus(1);
         bool hasBackground = chain.Any(s => s.TryGetTextBackgroundColor(out _));
-        var formatting = new OfficeTextTabLeaderStyle(points, size.Points.HasValue ? 1 : size.Factor,
+        var formatting = new OfficeTextTabLeaderStyle(physicalSize,
+            size.Points.HasValue ? 1 : size.Factor,
             ToColor(source.Color), source.FontFamily, source.Bold, source.Italic,
             source.Underline.HasValue || source.UnderlineStyle.HasValue || source.UnderlineType.HasValue ? mapped.UnderlineStyle : null,
             source.StrikeThrough.HasValue ? mapped.StrikethroughStyle : null,

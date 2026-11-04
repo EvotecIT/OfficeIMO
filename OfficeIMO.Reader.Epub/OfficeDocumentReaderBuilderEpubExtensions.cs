@@ -16,15 +16,15 @@ public static class OfficeDocumentReaderBuilderEpubExtensions {
     /// </summary>
     public static OfficeDocumentReaderBuilder AddEpubHandler(
         this OfficeDocumentReaderBuilder builder,
-        EpubReadOptions? epubOptions = null,
+        EpubLoadOptions? epubOptions = null,
         bool replaceExisting = false) {
         if (builder == null) throw new ArgumentNullException(nameof(builder));
         ReaderHandlerRegistration registration = CreateRegistration(epubOptions);
         return builder.AddHandler(registration, replaceExisting);
     }
 
-    private static ReaderHandlerRegistration CreateRegistration(EpubReadOptions? epubOptions) {
-        EpubReadOptions? registeredOptions = Clone(epubOptions);
+    private static ReaderHandlerRegistration CreateRegistration(EpubLoadOptions? epubOptions) {
+        EpubLoadOptions? registeredOptions = Clone(epubOptions);
         return new ReaderHandlerRegistration {
             Origin = ReaderHandlerOrigin.OfficeIMO,
             Id = HandlerId,
@@ -57,9 +57,9 @@ public static class OfficeDocumentReaderBuilderEpubExtensions {
         };
     }
 
-    private static EpubReadOptions? Clone(EpubReadOptions? options) {
+    internal static EpubLoadOptions? Clone(EpubLoadOptions? options) {
         if (options == null) return null;
-        return new EpubReadOptions {
+        return new EpubLoadOptions {
             MaxPackageBytes = options.MaxPackageBytes,
             MaxArchiveEntries = options.MaxArchiveEntries,
             MaxTotalUncompressedBytes = options.MaxTotalUncompressedBytes,

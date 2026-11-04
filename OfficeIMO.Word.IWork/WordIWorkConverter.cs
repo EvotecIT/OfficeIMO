@@ -210,9 +210,7 @@ public static partial class WordIWorkConverter {
                 WordSection section = document.Sections[0];
                 (double contentWidth, double contentHeight) = ContentBox(section);
                 (double width, double height) = PreviewSize(preview, contentWidth, contentHeight);
-                document.AddParagraph().AddImage(image, PreviewFileName(preview),
-                    Helpers.ConvertPointsToPixels(width), Helpers.ConvertPointsToPixels(height),
-                    description: "Visual fallback from the source Pages package");
+                document.AddParagraph().AddImage(image, PreviewFileName(preview), OfficeIMO.OfficeLength.Pixels(Helpers.ConvertPointsToPixels(width)), OfficeIMO.OfficeLength.Pixels(Helpers.ConvertPointsToPixels(height)), options: new OfficeIMO.Word.WordImageOptions { AltText = "Visual fallback from the source Pages package" });
             }
 
             IWorkProjectionKind kind = editable
@@ -245,11 +243,11 @@ public static partial class WordIWorkConverter {
     }
 
     private static (double Width, double Height) ContentBox(WordSection section) {
-        uint pageWidth = section.PageSettings.Width ?? WordPageSizes.Letter.WidthTwips;
-        uint pageHeight = section.PageSettings.Height ?? WordPageSizes.Letter.HeightTwips;
-        long horizontalMargins = (long)section.Margins.Left + section.Margins.Right;
-        long verticalMargins = (long)section.Margins.Top.GetValueOrDefault()
-            + section.Margins.Bottom.GetValueOrDefault();
+        uint pageWidth = checked((uint?)(section.PageSetup.Size.Width?.ToTwips())) ?? checked((uint)(WordPageSizes.Letter.Width.ToTwips()));
+        uint pageHeight = checked((uint?)(section.PageSetup.Size.Height?.ToTwips())) ?? checked((uint)(WordPageSizes.Letter.Height.ToTwips()));
+        long horizontalMargins = (long)checked((uint)(section.PageSetup.Margins.Left.GetValueOrDefault().ToTwips())) + checked((uint)(section.PageSetup.Margins.Right.GetValueOrDefault().ToTwips()));
+        long verticalMargins = (long)checked((int?)(section.PageSetup.Margins.Top?.ToTwips())).GetValueOrDefault()
+            + checked((int?)(section.PageSetup.Margins.Bottom?.ToTwips())).GetValueOrDefault();
         return (Math.Max(1L, (long)pageWidth - Math.Max(0L, horizontalMargins)) / 20d,
             Math.Max(1L, (long)pageHeight - Math.Max(0L, verticalMargins)) / 20d);
     }
@@ -267,9 +265,7 @@ public static partial class WordIWorkConverter {
         if (source.Geometry == null) {
             (width, height) = FitInside(width, height, contentWidth, contentHeight);
         }
-        WordImage target = (pageHost ?? document.AddParagraph()).InsertImage(image, source.FileName,
-            Helpers.ConvertPointsToPixels(width), Helpers.ConvertPointsToPixels(height), WordImageTextWrapping.Square,
-            source.AccessibilityDescription ?? "Image imported from Pages");
+        WordImage target = (pageHost ?? document.AddParagraph()).AddImage(image, source.FileName, OfficeIMO.OfficeLength.Pixels(Helpers.ConvertPointsToPixels(width)), OfficeIMO.OfficeLength.Pixels(Helpers.ConvertPointsToPixels(height)), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.Square, AltText = source.AccessibilityDescription ?? "Image imported from Pages" });
         if (source.Geometry is { } geometry) {
             target.horizontalPosition.RelativeFrom =
                 DrawingWordprocessing.HorizontalRelativePositionValues.Page;
@@ -289,8 +285,8 @@ public static partial class WordIWorkConverter {
         IWorkPagesSection source, IWorkNativeListCatalog nativeLists,
         bool hasAnyEvenPageTemplate, CancellationToken cancellationToken) {
         if (source.HasDefaultPageTemplate) {
-            WordHeader header = target.GetOrCreateHeader(WordHeaderFooterType.Default);
-            WordFooter footer = target.GetOrCreateFooter(WordHeaderFooterType.Default);
+            WordHeader header = target.PageSetup.Header;
+            WordFooter footer = target.PageSetup.Footer;
             foreach (IWorkTextContent content in source.DefaultPageHeaderContents) {
                 AddRichText(content, header.AddParagraph, nativeLists, cancellationToken: cancellationToken);
             }
@@ -299,8 +295,8 @@ public static partial class WordIWorkConverter {
             }
         }
         if (source.DifferentFirstPage || source.HideFirstPageHeadersAndFooters) {
-            WordHeader header = target.GetOrCreateHeader(WordHeaderFooterType.First);
-            WordFooter footer = target.GetOrCreateFooter(WordHeaderFooterType.First);
+            WordHeader header = target.PageSetup.FirstPageHeader;
+            WordFooter footer = target.PageSetup.FirstPageFooter;
             foreach (IWorkTextContent content in source.HideFirstPageHeadersAndFooters
                          ? Array.Empty<IWorkTextContent>() : source.FirstPageHeaderContents) {
                 AddRichText(content, header.AddParagraph, nativeLists, cancellationToken: cancellationToken);
@@ -311,8 +307,8 @@ public static partial class WordIWorkConverter {
             }
         }
         if (hasAnyEvenPageTemplate) {
-            WordHeader header = target.GetOrCreateHeader(WordHeaderFooterType.Even);
-            WordFooter footer = target.GetOrCreateFooter(WordHeaderFooterType.Even);
+            WordHeader header = target.PageSetup.EvenPageHeader;
+            WordFooter footer = target.PageSetup.EvenPageFooter;
             IReadOnlyList<IWorkTextContent> headerContents = source.DifferentOddAndEvenPages
                 ? source.EvenPageHeaderContents
                 : source.DefaultPageHeaderContents;
@@ -336,10 +332,10 @@ public static partial class WordIWorkConverter {
         if (source.Geometry is { } geometry) {
             textBox.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
             textBox.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
-            textBox.HorizontalPositionOffset = ToEmusInt32(geometry.LeftPoints);
-            textBox.VerticalPositionOffset = ToEmusInt32(geometry.TopPoints);
-            textBox.Width = ToEmusInt64(geometry.WidthPoints);
-            textBox.Height = ToEmusInt64(geometry.HeightPoints);
+            textBox.HorizontalPositionOffset = OfficeLength.Emus(ToEmusInt32(geometry.LeftPoints));
+            textBox.VerticalPositionOffset = OfficeLength.Emus(ToEmusInt32(geometry.TopPoints));
+            textBox.Width = OfficeLength.Emus(ToEmusInt64(geometry.WidthPoints));
+            textBox.Height = OfficeLength.Emus(ToEmusInt64(geometry.HeightPoints));
         }
         textBox.Description = source.AccessibilityDescription;
 
@@ -392,7 +388,7 @@ public static partial class WordIWorkConverter {
                     if (firstRunSize != sourceParagraph.Style.TextStyle.FontSizePoints) {
                         // Pages interprets relative marker sizes using the leading run and paragraph mark.
                         // Keep both at the first body run's size; the numbering level owns the marker size.
-                        paragraph.FontSizePoints = firstRunSize;
+                        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(firstRunSize);
                         paragraph.CopyRunFormattingToParagraphMark();
                     }
                 }
@@ -400,8 +396,8 @@ public static partial class WordIWorkConverter {
                     sourceParagraph.ListLabel, qualifiedLayout
                         ? IWorkDecimalListLayout.MarkerFontName(sourceParagraph) : sourceParagraph.ListFontName,
                     sourceParagraph.ListMarkerKind, startsNewList, sourceParagraph.ListNumber,
-                    qualifiedLayout ? paragraph.IndentationBefore : null,
-                    qualifiedLayout ? paragraph.IndentationHanging : null,
+                    qualifiedLayout ? checked((int?)(paragraph.IndentationBefore?.ToTwips())) : null,
+                    qualifiedLayout ? checked((int?)(paragraph.IndentationHanging?.ToTwips())) : null,
                     qualifiedLayout ? checked((int)markerSize) : null);
                 previousListIdentifier = sourceParagraph.ListIdentifier;
                 hasPreviousListParagraph = true;
@@ -449,19 +445,19 @@ public static partial class WordIWorkConverter {
             double offset = Math.Round(source.ListLayout!.TextIndentEm
                 * source.Style.TextStyle.FontSizePoints!.Value * 20d,
                 MidpointRounding.AwayFromZero) / 20d;
-            paragraph.IndentationBeforePoints = Math.Round((source.ListLayout.MarkerIndentPoints
+            paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(Math.Round((source.ListLayout.MarkerIndentPoints
                 + source.ListLayout.TextIndentEm * source.Style.TextStyle.FontSizePoints!.Value) * 20d,
-                MidpointRounding.AwayFromZero) / 20d;
-            paragraph.IndentationFirstLine = null;
-            paragraph.IndentationHangingPoints = offset;
+                MidpointRounding.AwayFromZero) / 20d);
+            paragraph.IndentationFirstLine= null;
+            paragraph.IndentationHanging = global::OfficeIMO.OfficeLength.Points(offset);
         }
     }
 
     private static void InitializeParagraphSpacing(WordParagraph paragraph) {
         // Start with native defaults before layering table and rich-text styles.
         // Blank header/footer stories must not inherit destination template spacing.
-        paragraph.LineSpacingBeforePoints = 0d;
-        paragraph.LineSpacingAfterPoints = 0d;
+        paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
+        paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
     }
 
     private static void ApplyParagraphStyle(WordParagraph paragraph, IWorkParagraphStyle style, string text) {
@@ -477,19 +473,18 @@ public static partial class WordIWorkConverter {
                 _ => throw new InvalidOperationException("Unsupported iWork paragraph alignment.")
             };
         }
-        if (style.FirstLineIndentPoints.HasValue) paragraph.IndentationFirstLinePoints = style.FirstLineIndentPoints;
-        if (style.LeftIndentPoints.HasValue) paragraph.IndentationBeforePoints = style.LeftIndentPoints;
-        if (style.RightIndentPoints.HasValue) paragraph.IndentationAfterPoints = style.RightIndentPoints;
-        if (style.SpaceBeforePoints.HasValue) paragraph.LineSpacingBeforePoints = style.SpaceBeforePoints;
-        if (style.SpaceAfterPoints.HasValue) paragraph.LineSpacingAfterPoints = style.SpaceAfterPoints;
+        if (style.FirstLineIndentPoints.HasValue) if ((style.FirstLineIndentPoints) is { } wordLength30336) { paragraph.IndentationFirstLine = global::OfficeIMO.OfficeLength.Points(wordLength30336); }
+        if (style.LeftIndentPoints.HasValue) if ((style.LeftIndentPoints) is { } wordLength30446) { paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(wordLength30446); }
+        if (style.RightIndentPoints.HasValue) if ((style.RightIndentPoints) is { } wordLength30551) { paragraph.IndentationAfter = global::OfficeIMO.OfficeLength.Points(wordLength30551); }
+        if (style.SpaceBeforePoints.HasValue) if ((style.SpaceBeforePoints) is { } wordLength30658) { paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(wordLength30658); }
+        if (style.SpaceAfterPoints.HasValue) if ((style.SpaceAfterPoints) is { } wordLength30763) { paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(wordLength30763); }
         if (style.LineSpacingMultiplier is double multiplier) {
-            paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
-            paragraph.LineSpacing = checked((int)Math.Round(multiplier * 240d, MidpointRounding.AwayFromZero));
+            paragraph.LineSpacing = WordLineSpacing.Multiple(multiplier);
         }
         if (style.TabStops != null) {
             paragraph.ClearTabStops();
             foreach (var tab in style.TabStops) paragraph.AddTabStop(
-                checked((int)Math.Round(tab.PositionPoints * 20d, MidpointRounding.AwayFromZero)), tab.Alignment switch {
+                OfficeLength.Points(tab.PositionPoints), tab.Alignment switch {
                     IWorkTabAlignment.Center => WordTabAlignment.Center,
                     IWorkTabAlignment.Right => WordTabAlignment.Right,
                     IWorkTabAlignment.Decimal => WordTabAlignment.Decimal,
@@ -511,25 +506,25 @@ public static partial class WordIWorkConverter {
         if (style.Italic.HasValue) run.Italic = style.Italic.Value;
         if (style.Underline.HasValue) run.Underline = style.Underline.Value ? WordUnderlineStyle.Single : null;
         if (style.Strikethrough.HasValue) run.Strike = style.Strikethrough.Value;
-        if (style.FontSizePoints.HasValue) run.FontSizePoints = style.FontSizePoints.Value;
-        if (style.CharacterSpacingPoints is double spacing) run.Spacing = ToCharacterSpacingTwips(spacing);
+        if (style.FontSizePoints.HasValue) run.FontSize = global::OfficeIMO.OfficeLength.Points(style.FontSizePoints.Value);
+        if (style.CharacterSpacingPoints is double spacing) run.Spacing = OfficeLength.Emus((long)ToCharacterSpacingTwips(spacing) * 635);
         if (!string.IsNullOrWhiteSpace(style.FontName)) run.FontFamily = style.FontName;
-        if (style.Color != null) run.ColorHex = style.Color.RgbHex;
-        if (style.BackgroundColor != null) run.RunShadingFillColorHex = style.BackgroundColor.RgbHex;
+        if (style.Color != null) run.RunColorValue = style.Color.RgbHex;
+        if (style.BackgroundColor != null) run.RunShadingFillValue = style.BackgroundColor.RgbHex;
     }
 
     private static void ApplyPageLayout(WordSection section, IWorkPageLayout layout) {
-        section.PageSettings.Orientation = layout.IsLandscape
+        section.PageSetup.Size.Orientation = layout.IsLandscape
             ? OfficePageOrientation.Landscape
             : OfficePageOrientation.Portrait;
-        section.PageSettings.Width = ToTwips(layout.WidthPoints);
-        section.PageSettings.Height = ToTwips(layout.HeightPoints);
-        section.Margins.Left = ToTwips(layout.LeftMarginPoints);
-        section.Margins.Right = ToTwips(layout.RightMarginPoints);
-        section.Margins.Top = checked((int)ToTwips(layout.TopMarginPoints));
-        section.Margins.Bottom = checked((int)ToTwips(layout.BottomMarginPoints));
-        section.Margins.HeaderDistance = ToTwips(layout.HeaderMarginPoints);
-        section.Margins.FooterDistance = ToTwips(layout.FooterMarginPoints);
+        section.PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points((ToTwips(layout.WidthPoints)) / 20D);
+        section.PageSetup.Size.Height = global::OfficeIMO.OfficeLength.Points((ToTwips(layout.HeightPoints)) / 20D);
+        section.PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points((ToTwips(layout.LeftMarginPoints)) / 20D);
+        section.PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points((ToTwips(layout.RightMarginPoints)) / 20D);
+        section.PageSetup.Margins.Top = global::OfficeIMO.OfficeLength.Points((checked((int)ToTwips(layout.TopMarginPoints))) / 20D);
+        section.PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points((checked((int)ToTwips(layout.BottomMarginPoints))) / 20D);
+        section.PageSetup.Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points((ToTwips(layout.HeaderMarginPoints)) / 20D);
+        section.PageSetup.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points((ToTwips(layout.FooterMarginPoints)) / 20D);
     }
 
     private static uint ToTwips(double points) {

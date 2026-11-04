@@ -21,7 +21,7 @@ public sealed class TextSpreadsheetImportTests {
         imported.Value.Save(output);
         output.Position = 0;
         using ExcelDocument reopened = ExcelDocument.Load(output);
-        var cells = Assert.Single(reopened.CreateInspectionSnapshot().Worksheets).Cells;
+        var cells = Assert.Single(reopened.Inspect().Worksheets).Cells;
         var literal = Assert.Single(cells, cell => cell.Row == 1 && cell.Column == 1);
         Assert.Equal("  =SUM(A1)  ", literal.Value);
         Assert.Null(literal.Formula);
@@ -40,7 +40,7 @@ public sealed class TextSpreadsheetImportTests {
         Assert.Contains(imported.Report.Findings, finding => finding.Code == "SYLK_FORMATTING_OMITTED");
         Assert.Contains(imported.Report.Findings, finding => finding.Code == "SYLK_RECORDS_OMITTED");
         Assert.True(imported.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => imported.Report.ThrowIfLoss());
     }
 
     [Fact]

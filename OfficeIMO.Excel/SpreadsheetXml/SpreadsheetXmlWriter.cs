@@ -9,10 +9,13 @@ using static OfficeIMO.Excel.SpreadsheetXml.SpreadsheetXmlContext;
 namespace OfficeIMO.Excel.SpreadsheetXml;
 
 internal static class SpreadsheetXmlWriter {
-    internal static OfficeConversionResult<byte[], ExcelSpreadsheetXmlReport> Write(byte[] input, ExcelSpreadsheetXmlOptions options) {
+    internal static OfficeConversionResult<byte[], ExcelSpreadsheetXmlReport> Write(byte[] input, ExcelSpreadsheetXmlOptions options, long sourceMaxCharactersInPart) {
         if (input.Length > options.MaxInputBytes) throw new InvalidDataException("Workbook snapshot exceeds MaxInputBytes.");
+        SpreadsheetXmlSnapshotPreflight.Validate(input, options, sourceMaxCharactersInPart);
         using var source = new MemoryStream(input, writable: false);
-        using var package = SpreadsheetDocument.Open(source, false);
+        using var package = SpreadsheetDocument.Open(source, false, new OpenSettings {
+            MaxCharactersInPart = sourceMaxCharactersInPart
+        });
         WorkbookPart workbook = package.WorkbookPart!;
         var context = new SpreadsheetXmlContext(options);
         var styles = SpreadsheetXmlStyles.Export(workbook, context);
@@ -141,11 +144,11 @@ internal static class SpreadsheetXmlWriter {
                         else Attribute(writer, "Formula", "=" + syntax.ConvertReferences(ExcelReferenceStyle.R1C1, rowIndex, column));
                     }
                 }
-                if (merges.TryGetValue(cell.CellReference?.Value ?? A1.CellReference(rowIndex, column), out var merge)) {
+                if (merges.TryGetValue(cell.CellReference?.Value ?? ExcelA1.CellReference(rowIndex, column), out var merge)) {
                     if (merge.across > 0) Attribute(writer, "MergeAcross", merge.across.ToString(CultureInfo.InvariantCulture));
                     if (merge.down > 0) Attribute(writer, "MergeDown", merge.down.ToString(CultureInfo.InvariantCulture));
                 }
-                if (metadata.TryGetValue(cell.CellReference?.Value ?? A1.CellReference(rowIndex, column), out var extra))
+                if (metadata.TryGetValue(cell.CellReference?.Value ?? ExcelA1.CellReference(rowIndex, column), out var extra))
                     foreach (var attribute in extra.Attributes()) writer.WriteAttributeString(attribute.Name.Namespace == X ? "x" : "ss", attribute.Name.LocalName, attribute.Name.NamespaceName, attribute.Value);
                 WriteValue(writer, cell, strings, part.GetParentParts().OfType<WorkbookPart>().Single(), context);
                 if (extra != null) foreach (var child in extra.Elements()) child.WriteTo(writer);

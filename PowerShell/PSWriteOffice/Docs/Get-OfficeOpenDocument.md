@@ -11,7 +11,7 @@ Loads a native ODT, ODS, ODP, or ODG document.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Get-OfficeOpenDocument [-Path] <string> [-Options <OdfLoadOptions>] [-Password <string>] [-MaxPackageBytes <Int64>] [-MaxEntries <Int32>] [-MaxEntryUncompressedBytes <Int64>] [-MaxTotalUncompressedBytes <Int64>] [-MaxTotalKdfIterations <Int64>] [-MaxCompressionRatio <Double>] [-MaxDepth <Int32>] [-MaxXmlCharacters <Int64>] [-MaxXmlDepth <Int32>] [<CommonParameters>]
+Get-OfficeOpenDocument [-Path] <string> [-Options <OdfLoadOptions>] [-Password <securestring>] [-MaxPackageBytes <Int64>] [-MaxEntries <Int32>] [-MaxEntryUncompressedBytes <Int64>] [-MaxTotalUncompressedBytes <Int64>] [-MaxTotalKdfIterations <Int64>] [-MaxCompressionRatio <Double>] [-MaxDepth <Int32>] [-MaxXmlCharacters <Int64>] [-MaxXmlDepth <Int32>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -191,7 +191,7 @@ Accept wildcard characters: False
 Password used to decrypt an encrypted OpenDocument package.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-Creates a project, a native Access database, an EPUB handbook, and an electronic invoice.
+Creates a project, a native Access database, and an EPUB handbook.
 .DESCRIPTION
 Install PSWriteOffice from PowerShell Gallery once, then run this example with a
 destination directory. Project XML preserves the calculated scheduling fields.
@@ -48,11 +48,3 @@ $handbook = New-OfficeEpub -Title 'Operations handbook' -Language en -Author 'Ex
 $handbook | Add-OfficeEpubChapter -Title Welcome -Text 'Safety & care come first.'
 $handbook | Add-OfficeEpubChapter -Title Procedures -Markdown '# Procedure A'
 $handbook | Save-OfficeEpub -Path (Join-Path $OutputDirectory 'handbook.epub')
-
-$seller = New-OfficeInvoiceParty -Name 'Example supplier' -CountryCode DE -VatId DE123456789
-$buyer = New-OfficeInvoiceParty -Name 'Example buyer' -CountryCode DE
-$invoice = New-OfficeInvoice -Number INV-001 -IssueDate 2026-10-20 -Seller $seller -Buyer $buyer
-$invoice | Add-OfficeInvoiceLine -Name 'Handbook preparation' -Quantity 2 -UnitPrice 100 -TaxRate 19
-$invoice | Test-OfficeInvoice
-$invoice | Save-OfficeInvoice -Path (Join-Path $OutputDirectory 'invoice.xml')
-$invoice | Export-OfficeInvoicePdf -Path (Join-Path $OutputDirectory 'invoice.pdf')

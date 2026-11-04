@@ -17,7 +17,7 @@ public sealed class BookKdpDeliveryTests {
         var project = BookProject.Create("Published title");
         project.CreateRevision("Private history");
         byte[] before = project.ToProjectBytes();
-        var options = new EpubWriteOptions { ModifiedAt = new DateTimeOffset(2026, 10, 5, 0, 0, 0, TimeSpan.Zero) };
+        var options = new EpubSaveOptions { ModifiedAt = new DateTimeOffset(2026, 10, 5, 0, 0, 0, TimeSpan.Zero) };
         var ordinary = Entries(project.ToDeliveryBytes(options));
         byte[] packet = project.ToKdpDeliveryBytes(cover, options);
         var entries = Entries(packet);
@@ -173,10 +173,10 @@ public sealed class BookKdpDeliveryTests {
         Assert.Throws<InvalidOperationException>(() => project.ToKdpDeliveryBytes(cover));
         project.AcknowledgeImportLoss();
         byte[] before = project.ToProjectBytes();
-        var options = new EpubWriteOptions { MaxOutputBytes = 256L * 1024 * 1024 };
+        var options = new EpubSaveOptions { MaxOutputBytes = 256L * 1024 * 1024 };
         byte[] packet = project.ToKdpDeliveryBytes(cover, options);
         Assert.Throws<InvalidDataException>(() => project.ToKdpDeliveryBytes(cover, options, packet.Length - 1));
-        Assert.Throws<InvalidDataException>(() => project.ToKdpDeliveryBytes(cover, new EpubWriteOptions { MaxOutputBytes = 16 }));
+        Assert.Throws<InvalidDataException>(() => project.ToKdpDeliveryBytes(cover, new EpubSaveOptions { MaxOutputBytes = 16 }));
         Assert.Equal(256L * 1024 * 1024, options.MaxOutputBytes);
         Assert.Throws<ArgumentOutOfRangeException>(() => project.ToKdpDeliveryBytes(cover, maximumOutputBytes: 0));
         Assert.Throws<ArgumentOutOfRangeException>(() => project.ToKdpDeliveryBytes(cover, maximumOutputBytes: BookProject.MaximumKdpDeliveryBytes + 1));

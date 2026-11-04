@@ -26,7 +26,15 @@ namespace OfficeIMO.Excel {
             }
         }
         private UInt32Value _id;
-        private WorksheetPart _worksheetPart;
+        private WorksheetPart _worksheetPart {
+            get {
+                _excelDocument.FlushPendingRowDeletesIfAny();
+                return _worksheetPartValue;
+            }
+            set => _worksheetPartValue = value;
+        }
+
+        private WorksheetPart _worksheetPartValue = null!;
         internal WorksheetPart WorksheetPart {
             get {
                 CaptureOriginalDynamicSpillFingerprintIfSafe();
@@ -37,7 +45,15 @@ namespace OfficeIMO.Excel {
             }
         }
         internal WorksheetPart DeferredMetadataWorksheetPart => _worksheetPart;
-        private SpreadsheetDocument _spreadSheetDocument;
+        private SpreadsheetDocument _spreadSheetDocument {
+            get {
+                _excelDocument.FlushPendingRowDeletesIfAny();
+                return _spreadSheetDocumentValue;
+            }
+            set => _spreadSheetDocumentValue = value;
+        }
+
+        private SpreadsheetDocument _spreadSheetDocumentValue = null!;
         private readonly ExcelDocument _excelDocument;
         private bool _hasWorksheetMutations;
         private Row? _lastAccessedRow;
@@ -74,12 +90,12 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Returns the used range of this worksheet as an A1 string by leveraging the read bridge.
         /// </summary>
-        private string GetUsedRangeA1() {
+        internal string GetUsedRangeA1() {
             if (_excelDocument.TryGetDirectTabularSaveCandidateRange(this, out string pendingRange)) {
                 return pendingRange;
             }
 
-            using var reader = _excelDocument.CreateReader();
+            using var reader = _excelDocument.CreateUsedRangeReader(this);
             var sh = reader.GetSheet(this.Name);
             return sh.GetUsedRangeA1();
         }
@@ -172,78 +188,34 @@ namespace OfficeIMO.Excel {
             }
 
             SheetData sheetData = GetOrCreateSheetData();
-
-            Row? rowElement = null;
-            Row? insertAfterRow = null;
-            bool createdRowElement = false;
-            if (_lastAccessedRow != null && ReferenceEquals(_lastAccessedRow.Parent, sheetData)) {
-                if (_lastAccessedRowIndex == row) {
-                    rowElement = _lastAccessedRow;
-                } else if (_lastAccessedRowIndex < row) {
-                    insertAfterRow = _lastAccessedRow;
-                    for (Row? next = _lastAccessedRow.NextSibling<Row>(); next != null; next = next.NextSibling<Row>()) {
-                        if (next.RowIndex == null) {
-                            continue;
-                        }
-
-                        int nextRowIndex = (int)next.RowIndex.Value;
-                        if (nextRowIndex == row) {
-                            rowElement = next;
-                            break;
-                        }
-
-                        if (nextRowIndex > row) {
-                            break;
-                        }
-
-                        insertAfterRow = next;
-                    }
-                }
-            }
-
-            if (rowElement == null && insertAfterRow == null) {
-                foreach (Row r in sheetData.Elements<Row>()) {
-                    if (r.RowIndex != null) {
-                        if (r.RowIndex.Value == (uint)row) {
-                            rowElement = r;
-                            break;
-                        }
-                        if (r.RowIndex.Value < (uint)row) {
-                            insertAfterRow = r;
-                        } else {
-                            break;
-                        }
-                    }
-                }
-            }
-
-            if (rowElement == null) {
-                rowElement = new Row { RowIndex = (uint)row };
-                createdRowElement = true;
-                if (insertAfterRow != null) {
-                    if (insertAfterRow.NextSibling<Row>() == null) {
-                        sheetData.Append(rowElement);
-                    } else {
-                        sheetData.InsertAfter(rowElement, insertAfterRow);
-                    }
-                } else {
-                    // Insert at beginning
-                    var firstRow = sheetData.Elements<Row>().FirstOrDefault();
-                    if (firstRow != null) {
-                        sheetData.InsertBefore(rowElement, firstRow);
-                    } else {
-                        sheetData.Append(rowElement);
-                    }
-                }
-            }
+            Row rowElement = GetOrCreateRowForCell(sheetData, row, out bool createdRowElement);
 
             if (createdRowElement) {
                 Cell createdCell = new Cell { CellReference = BuildCellReference(row, column) };
+                ApplyInheritedCellStyle(createdCell, sheetData, null, column);
                 rowElement.Append(createdCell);
                 CacheLastAccessedCell(rowElement, row, column, createdCell);
                 return createdCell;
             }
 
+            if (rowElement is ExcelStoredRow storedRow && storedRow.IsStoreAvailable) {
+                int storedIndex = storedRow.Find(column);
+                if (storedIndex >= 0) {
+                    Cell promoted = storedRow.Promote(storedIndex);
+                    CacheLastAccessedCell(rowElement, row, column, promoted);
+                    return promoted;
+                }
+
+                // The new cell joins the row's DOM cells in column order; stored cells merge with them when written.
+                using (ExcelStoredRow.BeginRawAccess()) {
+                    return GetOrCreateCellInRow(sheetData, rowElement, row, column);
+                }
+            }
+
+            return GetOrCreateCellInRow(sheetData, rowElement, row, column);
+        }
+
+        private Cell GetOrCreateCellInRow(SheetData sheetData, Row rowElement, int row, int column) {
             // Find or create cell with proper ordering (by numeric column index)
             Cell? cell = null;
             Cell? insertAfterCell = null;
@@ -298,6 +270,7 @@ namespace OfficeIMO.Excel {
 
             if (cell == null) {
                 cell = new Cell { CellReference = BuildCellReference(row, column) };
+                ApplyInheritedCellStyle(cell, sheetData, rowElement, column);
                 if (insertAfterCell != null) {
                     if (insertAfterCell.NextSibling<Cell>() == null) {
                         rowElement.Append(cell);
@@ -327,7 +300,159 @@ namespace OfficeIMO.Excel {
             return cell;
         }
 
+        /// <summary>Finds the row element for a cell, or inserts one in row order; a worksheet using the cell store gets a stored row.</summary>
+        private Row GetOrCreateRowForCell(SheetData sheetData, int row, out bool createdRowElement) {
+            createdRowElement = false;
+            Row? rowElement = null;
+            Row? insertAfterRow = null;
+            if (_lastAccessedRow != null && ReferenceEquals(_lastAccessedRow.Parent, sheetData)) {
+                if (_lastAccessedRowIndex == row) {
+                    rowElement = _lastAccessedRow;
+                } else if (_lastAccessedRowIndex < row) {
+                    insertAfterRow = _lastAccessedRow;
+                    for (Row? next = _lastAccessedRow.NextSibling<Row>(); next != null; next = next.NextSibling<Row>()) {
+                        if (next.RowIndex == null) {
+                            continue;
+                        }
+
+                        int nextRowIndex = (int)next.RowIndex.Value;
+                        if (nextRowIndex == row) {
+                            rowElement = next;
+                            break;
+                        }
+
+                        if (nextRowIndex > row) {
+                            break;
+                        }
+
+                        insertAfterRow = next;
+                    }
+                }
+            }
+
+            if (rowElement == null && insertAfterRow == null) {
+                foreach (Row r in sheetData.Elements<Row>()) {
+                    if (r.RowIndex != null) {
+                        if (r.RowIndex.Value == (uint)row) {
+                            rowElement = r;
+                            break;
+                        }
+                        if (r.RowIndex.Value < (uint)row) {
+                            insertAfterRow = r;
+                        } else {
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (rowElement == null) {
+                rowElement = UsesCellStore ? new ExcelStoredRow(Environment.CurrentManagedThreadId) { RowIndex = (uint)row } : new Row { RowIndex = (uint)row };
+                createdRowElement = true;
+                if (insertAfterRow != null) {
+                    if (insertAfterRow.NextSibling<Row>() == null) {
+                        sheetData.Append(rowElement);
+                    } else {
+                        sheetData.InsertAfter(rowElement, insertAfterRow);
+                    }
+                } else {
+                    // Insert at beginning
+                    var firstRow = sheetData.Elements<Row>().FirstOrDefault();
+                    if (firstRow != null) {
+                        sheetData.InsertBefore(rowElement, firstRow);
+                    } else {
+                        sheetData.Append(rowElement);
+                    }
+                }
+            }
+
+            return rowElement;
+        }
+
+        /// <summary>
+        /// A cell Excel creates in a formatted row or column starts with that row's style, else the column's, so
+        /// values written into a template keep its number formats and fonts.
+        /// </summary>
+        private static void ApplyInheritedCellStyle(Cell cell, SheetData sheetData, Row? row, int column) {
+            if (row != null && row.CustomFormat?.Value == true && row.StyleIndex?.Value is uint rowStyle) {
+                if (rowStyle != 0U) cell.StyleIndex = rowStyle;
+                return;
+            }
+
+            // <cols> precedes <sheetData>; walking siblings avoids an enumerator per created cell.
+            for (OpenXmlElement? sibling = sheetData.PreviousSibling(); sibling != null; sibling = sibling.PreviousSibling()) {
+                if (sibling is not Columns columns) continue;
+                for (OpenXmlElement? child = columns.FirstChild; child != null; child = child.NextSibling()) {
+                    if (child is Column definition
+                        && definition.Min?.Value is uint min && min <= (uint)column
+                        && definition.Max?.Value is uint max && (uint)column <= max) {
+                        if (definition.Style?.Value is uint columnStyle && columnStyle != 0U) cell.StyleIndex = columnStyle;
+                        return;
+                    }
+                }
+                return;
+            }
+        }
+
+        /// <summary>
+        /// Finds an existing cell. A stored cell is moved into the DOM first, since the caller holds on to the
+        /// element; reads that need only the value use <see cref="TryGetStoredCell"/> or <see cref="TryGetDomCell"/>.
+        /// </summary>
         private Cell? TryGetCell(int row, int column) {
+            Row? rowElement = TryGetRowElement(row, column);
+            if (rowElement == null) {
+                return null;
+            }
+
+            if (rowElement is ExcelStoredRow stored && stored.IsStoreAvailable) {
+                int index = stored.Find(column);
+                if (index >= 0) {
+                    Cell promoted = stored.Promote(index);
+                    CacheLastAccessedCell(rowElement, row, column, promoted);
+                    return promoted;
+                }
+
+                using (ExcelStoredRow.BeginRawAccess()) {
+                    return TryGetCellInRow(rowElement, row, column);
+                }
+            }
+
+            return TryGetCellInRow(rowElement, row, column);
+        }
+
+        /// <summary>Finds an existing DOM cell without moving a stored cell, which never holds a formula, into the DOM.</summary>
+        private Cell? TryGetDomCell(int row, int column) {
+            Row? rowElement = TryGetRowElement(row, column);
+            if (rowElement == null) {
+                return null;
+            }
+
+            if (rowElement is ExcelStoredRow stored && stored.IsStoreAvailable) {
+                using (ExcelStoredRow.BeginRawAccess()) {
+                    return TryGetCellInRow(rowElement, row, column);
+                }
+            }
+
+            return TryGetCellInRow(rowElement, row, column);
+        }
+
+        /// <summary>Finds a stored cell of the worksheet's grid.</summary>
+        private bool TryGetStoredCell(int row, int column, out ExcelStoredRow storedRow, out int index) {
+            if (TryGetRowElement(row, column) is ExcelStoredRow stored && stored.IsStoreAvailable) {
+                int found = stored.Find(column);
+                if (found >= 0) {
+                    storedRow = stored;
+                    index = found;
+                    return true;
+                }
+            }
+
+            storedRow = null!;
+            index = -1;
+            return false;
+        }
+
+        private Row? TryGetRowElement(int row, int column) {
             if (row <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(row));
             }
@@ -345,12 +470,9 @@ namespace OfficeIMO.Excel {
                 if (_lastAccessedRowIndex == row) {
                     rowElement = _lastAccessedRow;
                 } else if (_lastAccessedRowIndex < row) {
+                    int previousRowIndex = _lastAccessedRowIndex;
                     for (Row? next = _lastAccessedRow.NextSibling<Row>(); next != null; next = next.NextSibling<Row>()) {
-                        if (next.RowIndex == null) {
-                            continue;
-                        }
-
-                        int nextRowIndex = (int)next.RowIndex.Value;
+                        int nextRowIndex = ExcelWorksheetCoordinates.GetRowIndex(next, ref previousRowIndex);
                         if (nextRowIndex == row) {
                             rowElement = next;
                             break;
@@ -361,17 +483,13 @@ namespace OfficeIMO.Excel {
             }
 
             if (rowElement == null) {
-                foreach (Row r in sheetData.Elements<Row>()) {
-                    if (r.RowIndex == null) {
-                        continue;
-                    }
-
-                    uint rowIndex = r.RowIndex.Value;
-                    if (rowIndex == (uint)row) {
+                // Sibling links, unlike a typed element enumeration, allocate nothing; lookups land here on every backward step.
+                int previousRowIndex = 0;
+                for (OpenXmlElement? child = sheetData.FirstChild; child != null; child = child.NextSibling()) {
+                    if (child is Row r && ExcelWorksheetCoordinates.GetRowIndex(r, ref previousRowIndex) == row) {
                         rowElement = r;
                         break;
                     }
-
                 }
             }
 
@@ -380,7 +498,10 @@ namespace OfficeIMO.Excel {
             }
 
             CacheLastAccessedRow(rowElement, row);
+            return rowElement;
+        }
 
+        private Cell? TryGetCellInRow(Row rowElement, int row, int column) {
             int targetColumnIndex = column;
             if (_lastAccessedCell != null
                 && _lastAccessedCellRowIndex == row
@@ -390,12 +511,9 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (_lastAccessedCellColumnIndex < targetColumnIndex) {
+                    int nextImplicitColumn = _lastAccessedCellColumnIndex + 1;
                     for (Cell? next = _lastAccessedCell.NextSibling<Cell>(); next != null; next = next.NextSibling<Cell>()) {
-                        if (next.CellReference?.Value is not string nextRefValue || nextRefValue.Length == 0) {
-                            continue;
-                        }
-
-                        int nextColumnIndex = GetColumnIndex(nextRefValue);
+                        int nextColumnIndex = ExcelWorksheetCoordinates.GetColumnIndex(next, ref nextImplicitColumn);
                         if (nextColumnIndex == targetColumnIndex) {
                             CacheLastAccessedCell(rowElement, row, column, next);
                             return next;
@@ -405,12 +523,13 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            foreach (Cell cell in rowElement.Elements<Cell>()) {
-                if (cell.CellReference?.Value is not string existingRefValue || existingRefValue.Length == 0) {
+            int nextImplicitColumnIndex = 1;
+            for (OpenXmlElement? child = rowElement.FirstChild; child != null; child = child.NextSibling()) {
+                if (child is not Cell cell) {
                     continue;
                 }
 
-                int existingColumnIndex = GetColumnIndex(existingRefValue);
+                int existingColumnIndex = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextImplicitColumnIndex);
                 if (existingColumnIndex == targetColumnIndex) {
                     CacheLastAccessedCell(rowElement, row, column, cell);
                     return cell;
@@ -477,7 +596,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static string GetColumnName(int columnIndex) {
-            return A1.ColumnIndexToLetters(columnIndex);
+            return ExcelA1.ColumnIndexToLetters(columnIndex);
         }
 
         private string BuildCellReference(int row, int column) {
@@ -499,7 +618,7 @@ namespace OfficeIMO.Excel {
         private string GetCachedColumnName(int columnIndex) {
             const int MaxCachedColumn = 256;
             if ((uint)(columnIndex - 1) >= MaxCachedColumn) {
-                return A1.ColumnIndexToLetters(columnIndex);
+                return ExcelA1.ColumnIndexToLetters(columnIndex);
             }
 
             var cache = _cellReferenceColumnNameCache;
@@ -510,7 +629,7 @@ namespace OfficeIMO.Excel {
 
             string? columnName = cache[columnIndex - 1];
             if (columnName == null) {
-                columnName = A1.ColumnIndexToLetters(columnIndex);
+                columnName = ExcelA1.ColumnIndexToLetters(columnIndex);
                 cache[columnIndex - 1] = columnName;
             }
 
@@ -550,13 +669,13 @@ namespace OfficeIMO.Excel {
             return rowIndex;
         }
 
-        // Exposed as internal so other components in the same assembly (e.g., SheetComposer)
+        // Exposed as internal so other components in the same assembly (e.g., ExcelReportBuilder)
         // can reuse the shared-string/inline-string resolution logic when they already have
         // a Cell reference. Prefer using public TryGetCellText(row,col, out text) when possible.
         internal string GetCellText(Cell cell) {
             // Shared string lookup
             if (cell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString) {
-                var raw = cell.CellValue?.InnerText;
+                var raw = ExcelWorksheetScan.FindValue(cell)?.InnerText;
                 if (!string.IsNullOrEmpty(raw) && TryParseCellTextSharedStringIndex(raw, out int id)) {
                     return BuildCellTextSharedStringSnapshot().Get(id) ?? string.Empty;
                 }
@@ -566,7 +685,7 @@ namespace OfficeIMO.Excel {
 
             // Inline string
             if (cell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString) {
-                var inline = cell.InlineString;
+                var inline = ExcelWorksheetScan.FindInlineString(cell);
                 if (inline != null) {
                     if (inline.Text != null) {
                         return inline.Text.Text ?? string.Empty;
@@ -581,10 +700,13 @@ namespace OfficeIMO.Excel {
             }
 
             // Default: take cell value as-is (numbers, booleans, etc.)
-            return ResolveRichValueError(cell, cell.CellValue?.InnerText) ?? string.Empty;
+            return ResolveRichValueError(cell, ExcelWorksheetScan.FindValue(cell)?.InnerText) ?? string.Empty;
         }
 
         internal SharedStringCache BuildCellTextSharedStringSnapshot() {
+            if (_formulaCalculationContext is { IsDisposed: false } context) {
+                return context.GetSharedStrings(_spreadSheetDocument, _excelDocument.CaptureFormulaInputMutationVersion());
+            }
             if (_spreadSheetDocument.FileOpenAccess != FileAccess.Read) {
                 return SharedStringCache.Build(_spreadSheetDocument);
             }

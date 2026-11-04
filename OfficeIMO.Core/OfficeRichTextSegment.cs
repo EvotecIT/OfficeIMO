@@ -5,11 +5,11 @@ namespace OfficeIMO.Drawing;
 /// </summary>
 public sealed class OfficeRichTextSegment {
     /// <summary>Automatic pair-kerning threshold copied from the source run. Null retains normal font-feature defaults; zero disables pair kerning.</summary>
-    public double? AutomaticPairKerningThreshold { get; internal set; }
+    internal double? AutomaticPairKerningThreshold { get; set; }
     internal OfficeTextFeatureSettings? KerningFeatures => OfficeTextKerning.Features(AutomaticPairKerningThreshold, FontSize);
     internal OfficePreparedTextShaping? PreparedShaping { get; set; }
     /// <summary>Optional language identifier retained from the source run, including a generated hyphen painted with that run's style.</summary>
-    public uint? LanguageId { get; internal set; }
+    internal uint? LanguageId { get; set; }
     // Native document adapters keep annotations attached through wrapping and shrinking.
     internal string? LinkUri { get; set; }
     internal string? LinkDestinationName { get; set; }

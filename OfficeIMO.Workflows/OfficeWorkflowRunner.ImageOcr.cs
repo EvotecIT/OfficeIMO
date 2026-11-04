@@ -13,15 +13,15 @@ public sealed partial class OfficeWorkflowRunner {
     /// provider outputs use the same explicit direct-write and recovery contract as document workflows.</remarks>
     public async Task<ImageOcrWorkflowResult> RecognizeImageAsync(ImageOcrWorkflowRequest request,
         IOcrEngine engine, CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(request);
-        ArgumentNullException.ThrowIfNull(engine);
+        if (request == null) throw new ArgumentNullException(nameof(request));
+        if (engine == null) throw new ArgumentNullException(nameof(engine));
         var diagnostics = new List<OfficeWorkflowDiagnostic>();
         var inputs = new WorkflowInputSnapshots();
         string? staging = null;
         string? temporaryDirectory = null;
         int characters = 0;
         try {
-            if (!Enum.IsDefined(request.ConflictPolicy)) throw new ArgumentException("Choose a supported output conflict policy.");
+            if (!OfficeRuntimeCompatibility.IsDefined(request.ConflictPolicy)) throw new ArgumentException("Choose a supported output conflict policy.");
             var policy = request.ConflictPolicy;
             var limits = request.Limits.CloneAndValidate();
             var options = request.Ocr.Clone();
@@ -29,13 +29,13 @@ public sealed partial class OfficeWorkflowRunner {
             var inputStream = request.InputStream;
             var outputStream = request.OutputStream;
             var hostGuard = request.PublicationGuard;
-            var stagingGuard = hostGuard as IOfficeWorkflowStagingGuard;
+            var stagingGuard = hostGuard as IOfficeStagingGuard;
             string input = ValidateInputLocation(request.InputPath, inputStream);
             string output = outputStream is null ? ValidateLocalOutput(request.OutputPath) : OfficeStorageIdentity.Normalize(request.OutputPath);
             string sourceName = inputStream?.Name ?? Path.GetFileName(input);
             if (!string.Equals(Path.GetExtension(outputStream?.Name ?? output), ".txt", StringComparison.OrdinalIgnoreCase))
                 throw new ArgumentException("Choose a .txt output filename.");
-            if (outputStream is not null && policy != OfficeWorkflowConflictPolicy.Replace)
+            if (outputStream is not null && policy != OfficePublicationPolicy.Replace)
                 throw new ArgumentException("A provider output requires the Replace policy after direct-write confirmation.");
             if (string.Equals(input, output, StringComparison.Ordinal)) throw new IOException("Choose an output different from the source image.");
             inputStream ??= new OfficeWorkflowStreamInput(sourceName, token => {
@@ -47,7 +47,7 @@ public sealed partial class OfficeWorkflowRunner {
             var guard = inputs.Guard(hostGuard, limits.MaximumInputBytes, [input], outputStream);
             var reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
             OfficeDocumentReadResult document;
-            await using (var file = File.OpenRead(snapshot)) {
+            using (var file = File.OpenRead(snapshot)) {
                 document = await reader.ReadDocumentAsync(file, sourceName,
                     new ReaderOptions { MaxInputBytes = limits.MaximumInputBytes }, cancellationToken).ConfigureAwait(false);
             }
@@ -63,7 +63,7 @@ public sealed partial class OfficeWorkflowRunner {
             if (recognition.Report.FailedCandidateCount > 0 || recognition.Report.SkippedCandidateCount > 0 || recognition.Report.AttemptedCandidateCount == 0)
                 throw new InvalidDataException("Image recognition did not complete. Inspect the OCR diagnostics before retrying.");
             string text = string.Join(Environment.NewLine, recognition.Recognitions.Select(item => item.Result.Text ?? string.Empty));
-            if (string.IsNullOrWhiteSpace(text))
+            if ((text == null || string.IsNullOrWhiteSpace(text)))
                 throw new InvalidDataException("Image recognition returned no usable text. Inspect the OCR diagnostics before retrying.");
             if (callback is not null) {
                 var review = new ImageOcrWorkflowReview(sourceName, document.Assets.Single().PayloadBytes!, recognition, text);
@@ -83,10 +83,10 @@ public sealed partial class OfficeWorkflowRunner {
             if (outputStream is null && stagingGuard is not null)
                 await stagingGuard.EnsureStagingDirectoryAllowedAsync(directory, cancellationToken).ConfigureAwait(false);
             staging = Path.Combine(directory, ".image-ocr-" + Guid.NewGuid().ToString("N") + ".tmp");
-            await using (var file = OfficeTemporaryFile.CreateAtPath(staging, 81920, FileOptions.Asynchronous)) {
+            using (var file = OfficeTemporaryFile.CreateAtPath(staging, 81920, FileOptions.Asynchronous)) {
                 await file.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
             }
-            byte[] reopened = await File.ReadAllBytesAsync(staging, cancellationToken).ConfigureAwait(false);
+            byte[] reopened = await OfficeRuntimeCompatibility.ReadAllBytesAsync(staging, cancellationToken).ConfigureAwait(false);
             if (!bytes.AsSpan().SequenceEqual(reopened)) throw new InvalidDataException("The staged text could not be verified.");
             inputs.Dispose();
             if (outputStream is not null) {

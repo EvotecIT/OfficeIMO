@@ -1,3 +1,4 @@
+using System.Linq;
 using OfficeIMO.Word.Pdf;
 using OfficeIMO.Word;
 using W = DocumentFormat.OpenXml.Wordprocessing;
@@ -12,12 +13,12 @@ namespace OfficeIMO.Tests.Pdf {
         public void ColumnWidthsAreRecomputedAfterTableChanges() {
             using WordDocument document = WordDocument.Create();
             WordTable table = document.AddTable(2, 2);
-            table.Rows[0].Cells[0].Width = 1440;
-            table.Rows[1].Cells[0].Width = 1440;
+            table.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
+            table.Rows[1].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
 
             TableLayout first = TableLayoutCache.GetLayout(table);
-            table.Rows[0].Cells[0].Width = 2880;
-            table.Rows[1].Cells[0].Width = 2880;
+            table.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2880) * 635)));
+            table.Rows[1].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2880) * 635)));
             TableLayout second = TableLayoutCache.GetLayout(table);
 
             Assert.NotSame(first, second);
@@ -30,9 +31,9 @@ namespace OfficeIMO.Tests.Pdf {
         public void WiderCellPreferredWidthsExpandGridColumns() {
             using WordDocument document = WordDocument.Create();
             WordTable table = document.AddTable(1, 2);
-            table.GridColumnWidth = new List<int> { 720, 720 };
-            table.Rows[0].Cells[0].Width = 1440;
-            table.Rows[0].Cells[1].Width = 720;
+            table.GridColumnWidth = new List<int> { 720, 720 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
+            table.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
+            table.Rows[0].Cells[1].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(720) * 635)));
 
             TableLayout layout = TableLayoutCache.GetLayout(table);
 
@@ -44,10 +45,8 @@ namespace OfficeIMO.Tests.Pdf {
         public void DxaWidthOfTwentyFourHundredTwipsIsPreservedWhenAuthored() {
             using WordDocument document = WordDocument.Create();
             WordTable table = document.AddTable(1, 2);
-            table.Rows[0].Cells[0].Width = 2400;
-            table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
-            table.Rows[0].Cells[1].Width = 720;
-            table.Rows[0].Cells[1].WidthType = WordTableWidthUnit.Dxa;
+            table.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2400) * 635)));
+            table.Rows[0].Cells[1].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(720) * 635)));
 
             TableLayout layout = TableLayoutCache.GetLayout(table);
 
@@ -59,13 +58,17 @@ namespace OfficeIMO.Tests.Pdf {
         public void RowGridBeforeOffsetsCellsAndExpandsColumnCount() {
             using WordDocument document = WordDocument.Create();
             WordTable table = document.AddTable(2, 3);
-            table.GridColumnWidth = new List<int>();
+            foreach (WordTableRow row in table.Rows)
+                foreach (WordTableCell cell in row.Cells) cell.Width = WordTableWidth.Length(OfficeLength.Points(36));
+            table.GridColumnWidth = new List<int>().Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
+            // Only the offset cell supplies a width constraint in this layout probe.
+            foreach (WordTableRow row in table.Rows)
+                foreach (WordTableCell cell in row.Cells) cell.Width = null;
             table.Rows[1].Cells[2].Remove();
             W.TableRowProperties rowProperties = table.Rows[1]._tableRow.TableRowProperties ??= new W.TableRowProperties();
             rowProperties.Append(new W.GridBefore { Val = 1 });
             rowProperties.Append(new W.GridAfter { Val = 1 });
-            table.Rows[1].Cells[0].Width = 2880;
-            table.Rows[1].Cells[0].WidthType = WordTableWidthUnit.Dxa;
+            table.Rows[1].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2880) * 635)));
 
             TableLayout layout = TableLayoutCache.GetLayout(table);
 
@@ -81,7 +84,7 @@ namespace OfficeIMO.Tests.Pdf {
         public void OversizedRowGridOffsetsAreRejectedBeforeColumnArraysAreAllocated(bool before) {
             using WordDocument document = WordDocument.Create();
             WordTable table = document.AddTable(1, 1);
-            table.GridColumnWidth = new List<int>();
+            table.GridColumnWidth = new List<int>().Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
             W.TableRowProperties rowProperties = table.Rows[0]._tableRow.TableRowProperties ??= new W.TableRowProperties();
             if (before) {
                 rowProperties.Append(new W.GridBefore { Val = 16_385 });
@@ -96,7 +99,7 @@ namespace OfficeIMO.Tests.Pdf {
         public void CombinedRowGridOffsetsAreRejectedBeforeColumnArraysAreAllocated() {
             using WordDocument document = WordDocument.Create();
             WordTable table = document.AddTable(1, 1);
-            table.GridColumnWidth = new List<int>();
+            table.GridColumnWidth = new List<int>().Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
             W.TableRowProperties rowProperties = table.Rows[0]._tableRow.TableRowProperties ??= new W.TableRowProperties();
             rowProperties.Append(new W.GridBefore { Val = 16_384 });
             rowProperties.Append(new W.GridAfter { Val = 16_384 });
@@ -109,11 +112,11 @@ namespace OfficeIMO.Tests.Pdf {
         public void NestedTableWidthsPropagateToParent() {
             using WordDocument document = WordDocument.Create();
             WordTable outer = document.AddTable(1, 2);
-            outer.Rows[0].Cells[0].Width = 1440;
-            outer.Rows[0].Cells[1].Width = 720;
+            outer.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
+            outer.Rows[0].Cells[1].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(720) * 635)));
 
             WordTable inner = outer.Rows[0].Cells[1].AddTable(1, 1);
-            inner.Rows[0].Cells[0].Width = 2880;
+            inner.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2880) * 635)));
 
             TableLayout outerLayout = TableLayoutCache.GetLayout(outer);
             Assert.Equal(144f, outerLayout.ColumnWidths[1]);
@@ -129,11 +132,11 @@ namespace OfficeIMO.Tests.Pdf {
         public void RecursiveNestedTablesAreMeasured() {
             using WordDocument document = WordDocument.Create();
             WordTable outer = document.AddTable(1, 1);
-            outer.Rows[0].Cells[0].Width = 720;
+            outer.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(720) * 635)));
             WordTable middle = outer.Rows[0].Cells[0].AddTable(1, 1);
-            middle.Rows[0].Cells[0].Width = 720;
+            middle.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(720) * 635)));
             WordTable inner = middle.Rows[0].Cells[0].AddTable(1, 1);
-            inner.Rows[0].Cells[0].Width = 2880;
+            inner.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2880) * 635)));
 
             TableLayout outerLayout = TableLayoutCache.GetLayout(outer);
             Assert.Equal(144f, outerLayout.ColumnWidths[0]);
@@ -170,7 +173,7 @@ namespace OfficeIMO.Tests.Pdf {
                 document.Settings.FontFamily = "Helvetica";
                 WordParagraph paragraph = document.AddParagraph("A");
                 paragraph.FontFamily = "Helvetica";
-                paragraph.FontSize = 12;
+                paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
                 paragraph.AddTab().AddText("B");
                 const string styleId = "HostileTabStops";
                 var tabs = new W.Tabs();
@@ -189,11 +192,11 @@ namespace OfficeIMO.Tests.Pdf {
                 paragraph._paragraph.ParagraphProperties ??= new W.ParagraphProperties();
                 paragraph._paragraph.ParagraphProperties.ParagraphStyleId = new W.ParagraphStyleId { Val = styleId };
 
-                using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+                using var pdf = PdfPigDocument.Open((document.ToPdf(new WordPdfExportOptions {
                     IncludePageNumbers = false,
                     FontFamily = "Helvetica",
                     ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
-                }));
+                })).ToBytes());
                 var page = Assert.Single(pdf.GetPages());
                 Assert.Equal("AB", string.Concat(page.Letters.Select(letter => letter.Value)));
                 var first = Assert.Single(page.Letters, letter => letter.Value == "A");

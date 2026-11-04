@@ -7,14 +7,14 @@ using OfficeIMO.Publisher.Pdf;
 namespace OfficeIMO.Publisher.Tests;
 
 public sealed class PublisherMasterAssignmentTests {
-    private static PublisherSaveOptions Allow => new() { LossPolicy = OfficeConversionLossPolicy.Allow };
+    private static PublisherSaveOptions Allow => new() { AllowLoss = true };
 
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void Clearing_a_zero_or_absent_reference_is_a_byte_exact_noop(bool absent) {
         byte[] source = PublisherInputContractTests.Mutate("Contents", bytes => {
-            var context = new PublisherParseContext(new PublisherReadOptions(), default);
+            var context = new PublisherParseContext(new PublisherLoadOptions(), default);
             var data = new PublisherBinaryData(bytes, "Contents");
             PublisherContents model = new PublisherContentsReader(data, context).Read();
             PublisherContentChunk chunk = model.Chunks[model.Pages.First(page => !page.IsMaster).Id];
@@ -25,8 +25,8 @@ public sealed class PublisherMasterAssignmentTests {
         PublisherDocument document = PublisherDocument.Load(source);
         Assert.Null(document.Pages[0].MasterPageId);
         document.SetPageMaster(document.Pages[0].Id, null);
-        var result = document.ToPubBytesResult(Allow);
-        Assert.True(result.Report.IsExactSourceCopy); Assert.Equal(source, result.Value);
+        byte[] savedBytes = document.ToBytes(Allow, out PublisherSaveReport saveReport);
+        Assert.True(saveReport.IsExactSourceCopy); Assert.Equal(source, savedBytes);
     }
 
     [Theory]
@@ -41,13 +41,13 @@ public sealed class PublisherMasterAssignmentTests {
         Assert.All(document.MasterPages, page => Assert.Single(page.TextFrames));
         Assert.DoesNotContain(hidden, document.ToSvg(0));
         Assert.Contains(body + " page 1", document.ToSvg(0));
-        PdfReadDocument pdf = PdfReadDocument.Open(document.ToPdfBytes());
+        using PdfDocument pdf = PublisherNativeTests.ExportAndReloadPdf(document);
         Assert.DoesNotContain(hidden, pdf.Pages[0].ExtractText());
         Assert.Contains(body + " page 1", pdf.Pages[0].ExtractText());
         Assert.Contains(document.TextStories, story => story.Text.StartsWith(hidden, StringComparison.Ordinal));
         foreach (PublisherPage page in document.Pages) document.SetPageMaster(page.Id, page.MasterPageId);
-        var saved = document.ToPubBytesResult(Allow);
-        Assert.True(saved.Report.IsExactSourceCopy); Assert.Equal(source, saved.Value);
+        byte[] savedBytes = document.ToBytes(Allow, out PublisherSaveReport saveReport);
+        Assert.True(saveReport.IsExactSourceCopy); Assert.Equal(source, savedBytes);
         var parsed = Contents(source);
         Assert.NotNull(parsed.Model.Pages.First(page => !page.IsMaster).Master);
         Assert.False(parsed.Model.Pages.First(page => !page.IsMaster).DisplayMaster);
@@ -76,15 +76,15 @@ public sealed class PublisherMasterAssignmentTests {
             uint?[] before = detached.Select(page => page.MasterPageId).ToArray();
             for (int index = 0; index < requested.Length; index++) document.SetPageMaster(document.Pages[index].Id, requested[index]);
             Assert.Equal(before, detached.Select(page => page.MasterPageId));
-            var saved = document.ToPubBytesResult(Allow);
-            Assert.False(saved.Report.HasErrors);
+            byte[] savedBytes = document.ToBytes(Allow, out PublisherSaveReport saveReport);
+            Assert.False(saveReport.HasErrors);
             if (!before.SequenceEqual(requested)) {
-                Assert.False(saved.Report.IsExactSourceCopy);
-                Assert.Contains(saved.Report.FidelityDiagnostics, value => value.Code == "PUB_NATIVE_MASTER_ASSIGNMENT_UNQUALIFIED");
+                Assert.False(saveReport.IsExactSourceCopy);
+                Assert.Contains(saveReport.Diagnostics, value => value.Code == "PUB_NATIVE_MASTER_ASSIGNMENT_UNQUALIFIED");
             }
-            PublisherNativeWritingTests.AssertPreservedStorage(source, saved.Value, "Contents");
-            AssertUnrelatedContents(source, saved.Value);
-            PublisherDocument reopened = PublisherDocument.Load(saved.Value);
+            PublisherNativeWritingTests.AssertPreservedStorage(source, savedBytes, "Contents");
+            AssertUnrelatedContents(source, savedBytes);
+            PublisherDocument reopened = PublisherDocument.Load(savedBytes);
             Assert.Equal(requested, reopened.Pages.Select(page => page.MasterPageId));
             Assert.Equal(masters, reopened.MasterPages.Select(page => page.Id));
             Assert.Equal(sides, reopened.MasterPages.Select(page => page.MasterSide));
@@ -97,7 +97,7 @@ public sealed class PublisherMasterAssignmentTests {
                     if (page.MasterPageId == master.Id) Assert.Contains(marker, paint); else Assert.DoesNotContain(marker, paint);
                 }
             }
-            source = saved.Value; document = reopened;
+            source = savedBytes; document = reopened;
         }
     }
 
@@ -108,11 +108,11 @@ public sealed class PublisherMasterAssignmentTests {
     public void Unqualified_native_master_tokens_report_the_gap_and_reject_assignment_without_losing_source(string variant) {
         byte[] source = Variant(variant);
         PublisherDocument document = PublisherDocument.Load(source);
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, value => value.Code == "PUB_MASTER_ASSIGNMENT_UNASSESSED");
+        Assert.Contains(document.ReadReport.Diagnostics, value => value.Code == "PUB_MASTER_ASSIGNMENT_UNASSESSED");
         var pages = document.Pages; var report = document.ReadReport;
         Assert.Throws<NotSupportedException>(() => document.SetPageMaster(pages[0].Id, document.MasterPages[0].Id));
         Assert.Same(pages, document.Pages); Assert.Same(report, document.ReadReport);
-        Assert.Equal(source, document.ToPubBytes(Allow));
+        Assert.Equal(source, document.ToBytes(Allow));
     }
 
     [Theory]
@@ -125,7 +125,7 @@ public sealed class PublisherMasterAssignmentTests {
         PublisherDocument document = PublisherDocument.Load(source);
         if (alignment) {
             foreach (PublisherPage page in document.Pages) document.SetPageMaster(page.Id, null);
-            source = document.ToPubBytes(Allow);
+            source = document.ToBytes(Allow);
             document = PublisherDocument.Load(source);
         }
         uint? alignedFrame = null;
@@ -138,7 +138,7 @@ public sealed class PublisherMasterAssignmentTests {
             document.SetPageMaster(document.Pages[0].Id, document.MasterPages[0].Id);
             document.SetPageMaster(document.Pages[1].Id, null);
         }
-        byte[] output = document.ToPubBytes(Allow);
+        byte[] output = document.ToBytes(Allow);
         Assert.Equal(Contents(source).Bytes.Length, Contents(output).Bytes.Length);
         PublisherDocument reopened = PublisherDocument.Load(output);
         Assert.Equal(document.Pages.Select(page => page.MasterPageId), reopened.Pages.Select(page => page.MasterPageId));
@@ -167,16 +167,16 @@ public sealed class PublisherMasterAssignmentTests {
         document.SetPageMaster(document.Pages[0].Id, null);
         document.SetTextFrameLayout(frame.Id, frame.ColumnCount, frame.ColumnSpacing, frame.Padding, OfficeTextVerticalAlignment.Bottom);
         document.ReplacePictureImage(picture.Id, PublisherPictureEditingFixture.Image(OfficeColor.Blue));
-        var saved = document.ToPubBytesResult(Allow);
-        Assert.False(saved.Report.HasErrors);
-        PublisherDocument reopened = PublisherDocument.Load(saved.Value);
+        byte[] savedBytes = document.ToBytes(Allow, out PublisherSaveReport saveReport);
+        Assert.False(saveReport.HasErrors);
+        PublisherDocument reopened = PublisherDocument.Load(savedBytes);
         Assert.Null(reopened.Pages[0].MasterPageId);
         Assert.Equal(master.Id, reopened.Pages[1].MasterPageId);
         Assert.Equal(OfficeTextVerticalAlignment.Bottom, reopened.MasterPages[0].TextFrames.Single(item => item.Id == frame.Id).VerticalAlignment);
         Assert.NotEqual(reopened.MasterPages[0].Pictures[0].ImageId, reopened.Pages[2].Pictures[0].ImageId);
         Assert.Equal(independent.ImageId, reopened.Pages[2].Pictures[0].ImageId);
         Assert.Equal(2, reopened.Images.Count);
-        PublisherNativeWritingTests.AssertPreservedStorage(source, saved.Value, "Contents", "Escher/EscherStm", "Escher/EscherDelayStm");
+        PublisherNativeWritingTests.AssertPreservedStorage(source, savedBytes, "Contents", "Escher/EscherStm", "Escher/EscherDelayStm");
         Assert.DoesNotContain("Master: shared content", reopened.ToSvg(0));
         Assert.Contains("Master: shared content", reopened.ToSvg(1));
     }
@@ -186,15 +186,15 @@ public sealed class PublisherMasterAssignmentTests {
         byte[] source = File.ReadAllBytes(PathFor("MultipleMasters"));
         PublisherDocument document = PublisherDocument.Load(source);
         document.SetPageMaster(document.Pages[0].Id, document.MasterPages[1].Id);
-        OfficeConversionException blocked = Assert.Throws<OfficeConversionException>(() => document.ToPubBytes());
+        OfficeConversionException blocked = Assert.Throws<OfficeConversionException>(() => document.ToBytes());
         Assert.False(Assert.IsType<PublisherSaveReport>(blocked.Report).HasErrors);
-        Assert.Throws<InvalidDataException>(() => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow, MaxOutputBytes = 1 }));
+        Assert.Throws<InvalidDataException>(() => document.ToBytes(new PublisherSaveOptions { AllowLoss = true, MaxOutputBytes = 1 }));
         using var cancellation = new CancellationTokenSource(); cancellation.Cancel();
-        Assert.Throws<OperationCanceledException>(() => document.ToPubBytes(Allow, cancellation.Token));
-        Assert.Equal(document.MasterPages[1].Id, PublisherDocument.Load(document.ToPubBytes(Allow)).Pages[0].MasterPageId);
+        Assert.Throws<OperationCanceledException>(() => document.ToBytes(Allow, cancellation.Token));
+        Assert.Equal(document.MasterPages[1].Id, PublisherDocument.Load(document.ToBytes(Allow)).Pages[0].MasterPageId);
         PublisherPage created = document.AddMasterPage("No native record");
         document.SetPageMaster(document.Pages[0].Id, created.Id);
-        Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(Allow));
+        Assert.Throws<OfficeConversionException>(() => document.ToBytes(Allow));
     }
 
     private static string PathFor(string name) => PublisherNativeTests.Fixture("NativeComparison/" + name + "/native-" + name.ToLowerInvariant() + ".pub");
@@ -203,7 +203,7 @@ public sealed class PublisherMasterAssignmentTests {
         Assert.True(OfficeCompoundFileReader.TryRead(source, out OfficeCompoundFile? compound, out string? error), error);
         byte[] bytes = compound!.Streams["Contents"];
         var data = new PublisherBinaryData(bytes, "Contents");
-        var context = new PublisherParseContext(new PublisherReadOptions(), default);
+        var context = new PublisherParseContext(new PublisherLoadOptions(), default);
         return (bytes, new PublisherContentsReader(data, context).Read(), new PublisherBlockReader(data, context));
     }
 
@@ -224,7 +224,7 @@ public sealed class PublisherMasterAssignmentTests {
     }
 
     private static byte[] Variant(string variant) => PublisherInputContractTests.Mutate("Contents", bytes => {
-        var context = new PublisherParseContext(new PublisherReadOptions(), default);
+        var context = new PublisherParseContext(new PublisherLoadOptions(), default);
         var data = new PublisherBinaryData(bytes, "Contents");
         PublisherContents model = new PublisherContentsReader(data, context).Read();
         PublisherContentChunk chunk = model.Chunks[model.Pages.First(page => !page.IsMaster).Id];

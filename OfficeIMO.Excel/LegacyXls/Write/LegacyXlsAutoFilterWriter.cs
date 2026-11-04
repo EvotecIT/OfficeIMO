@@ -138,7 +138,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
 
             try {
-                (int firstRow, int firstColumn, int lastRow, int lastColumn) = A1.ParseRange(reference!.Replace("$", string.Empty));
+                (int firstRow, int firstColumn, int lastRow, int lastColumn) = ExcelA1.ParseRange(reference!.Replace("$", string.Empty));
                 if (firstRow < 1 || firstColumn < 1 || lastRow < firstRow || lastColumn < firstColumn) {
                     reason = "AutoFilter range";
                     return false;

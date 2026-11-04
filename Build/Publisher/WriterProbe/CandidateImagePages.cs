@@ -13,12 +13,12 @@ internal static class CandidateImagePages {
         PublisherDocument document = PublisherDocument.Create(612, 792);
         PublisherPage master = document.AddMasterPage("Master Page A");
         document.SetPageMaster(document.Pages[0].Id, master.Id);
-        PublisherPicture first = document.AddPicture(document.Pages[0].Id, firstImage, 72, 144, 96, 96);
+        PublisherPicture first = document.AddImage(document.Pages[0].Id, firstImage, 72, 144, 96, 96);
         if (crop.HasCrop) document.SetPictureCrop(first.Id, crop);
         document.AddPage(master.Id);
         PublisherPage lastPage = document.AddPage(master.Id);
-        if (shareFirstImage) document.AddPicture(lastPage.Id, first.ImageId!.Value, 72, 144, 96, 96);
-        document.AddPicture(lastPage.Id, lastImage, 216, 144, 192, 96);
+        if (shareFirstImage) document.AddImage(lastPage.Id, first.ImageId!.Value, 72, 144, 96, 96);
+        document.AddImage(lastPage.Id, lastImage, 216, 144, 192, 96);
         return document;
     }
 }

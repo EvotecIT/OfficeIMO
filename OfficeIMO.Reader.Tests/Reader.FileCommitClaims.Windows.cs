@@ -15,6 +15,34 @@ public sealed class ReaderWindowsFileCommitClaimTests {
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
+    public void SharedClaimAcquisitionPreservesExistingMarkedWindowsFile(bool coreClaim) {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+        string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-stale-claim-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        string destination = Path.Combine(folder, "publication.bin");
+        string claimPath = CoreCommitClaim.CreatePath(destination);
+        try {
+            byte[] prefix = System.Text.Encoding.ASCII.GetBytes("OfficeIMO-commit-claim-v1:");
+            byte[] marker = new byte[prefix.Length + 16];
+            Buffer.BlockCopy(prefix, 0, marker, 0, prefix.Length);
+            Guid.NewGuid().ToByteArray().CopyTo(marker, prefix.Length);
+            File.WriteAllBytes(claimPath, marker);
+
+            Exception? error = Record.Exception(() => { using (Acquire(coreClaim, destination)) { } });
+            Assert.True(error is IOException or UnauthorizedAccessException, error?.ToString());
+            Assert.True(coreClaim
+                ? CoreCommitClaim.IsContention(error!, destination)
+                : ReaderCommitClaim.IsContention(error!, destination));
+            Assert.Equal(marker, File.ReadAllBytes(claimPath));
+            Assert.False(File.Exists(destination));
+        } finally {
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     public void SharedClaimAcquisitionRecoversWhenWindowsCompletesPendingDeletion(bool coreClaim) {
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
         string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-pending-claim-" + Guid.NewGuid().ToString("N"));

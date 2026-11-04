@@ -11,10 +11,9 @@ public sealed class ReaderDocumentReadResultVisualExportTests {
         byte[] bytes = Encoding.UTF8.GetBytes("# Diagram\n\n```mermaid\ngraph TD\nA-->B\n```\n");
         using var stream = new MemoryStream(bytes, writable: false);
 
-        IReadOnlyList<ReaderVisualExportBundle> exports = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadVisualExports(
+        IReadOnlyList<ReaderVisualExportBundle> exports = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(
             stream,
-            "diagram.md",
-            indentedJson: true);
+            "diagram.md").ExportVisuals(indentedJson: true);
 
         ReaderVisualExportBundle export = Assert.Single(exports);
         Assert.Equal("diagram-visual-0000", export.Id);
@@ -35,7 +34,7 @@ public sealed class ReaderDocumentReadResultVisualExportTests {
     public void ReaderVisualExportMaterializer_WriteVisualExportsToDirectory_WritesPayloadAndJsonSidecars() {
         byte[] bytes = Encoding.UTF8.GetBytes("# Diagram\n\n```mermaid\ngraph TD\nA-->B\n```\n");
         using var stream = new MemoryStream(bytes, writable: false);
-        IReadOnlyList<ReaderVisualExportBundle> exports = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadVisualExports(stream, "diagram.md");
+        IReadOnlyList<ReaderVisualExportBundle> exports = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(stream, "diagram.md").ExportVisuals();
         var directory = Path.Combine(Path.GetTempPath(), "officeimo-reader-visuals-" + Guid.NewGuid().ToString("N"));
 
         try {

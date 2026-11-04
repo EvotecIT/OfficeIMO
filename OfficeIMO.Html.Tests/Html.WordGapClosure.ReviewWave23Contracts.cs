@@ -15,26 +15,26 @@ public partial class HtmlWordGapClosure {
             </div>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph paragraph = Assert.Single(
             document.Paragraphs,
             candidate => candidate.Text == "Text");
 
-        Assert.Equal("FF0000", paragraph.Borders.LeftColorHex);
-        Assert.Equal("FF0000", paragraph.Borders.RightColorHex);
+        Assert.Equal(OfficeColor.Parse("FF0000"), paragraph.Borders.LeftColor);
+        Assert.Equal(OfficeColor.Parse("FF0000"), paragraph.Borders.RightColor);
     }
 
     [Fact]
     public void HtmlToWord_TransparentMarkClearsItsDefaultHighlightAndRoundTrips() {
         using WordDocument document = HtmlConversionDocument
             .Parse("""<mark style="background-color:transparent">Text</mark>""")
-            .ToWordDocument();
+            .ToWord();
         WordParagraph run = Assert.Single(
             document.Paragraphs,
             candidate => candidate.Text == "Text");
 
         Assert.Equal(WordHighlightColor.None, run.Highlight);
-        Assert.Equal(string.Empty, run.RunShadingFillColorHex);
+        Assert.Null(run.BackgroundColor);
         Assert.Contains(
             """<mark style="background-color:transparent">Text</mark>""",
             document.ToHtml());
@@ -43,20 +43,20 @@ public partial class HtmlWordGapClosure {
     [Fact]
     public void AddHtmlToBody_TableContainerWidthUsesTheOwningSection() {
         using WordDocument document = WordDocument.Create();
-        document.Sections[0].PageSettings.Width = 12000;
+        document.Sections[0].PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points(600D);
         WordSection target = document.AddSection();
-        target.PageSettings.Width = 9000;
-        target.Margins.Left = 1000;
-        target.Margins.Right = 1000;
+        target.PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points(450D);
+        target.PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points(50D);
+        target.PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(50D);
 
-        document.AddHtmlToBody(HtmlConversionDocument.Parse("""
+        document.AddHtml(HtmlConversionDocument.Parse("""
             <div style="padding-inline-end:20px">
               <table style="width:100%"><tr><td>Value</td></tr></table>
             </div>
             """));
 
         WordTable table = Assert.Single(document.Tables);
-        Assert.Equal(WordTableWidthUnit.Dxa, table.WidthType);
-        Assert.Equal(6700, table.Width);
+        Assert.Equal(WordTableWidthKind.Length, table.Width?.Kind);
+        Assert.Equal(6700, table.Width?.ToNativeValue());
     }
 }

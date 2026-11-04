@@ -4,7 +4,7 @@ internal static partial class PdfComplianceAnalyzer {
     /// <summary>
     /// Combines readiness diagnostics for the profile requested by the supplied options with external validator evidence.
     /// </summary>
-    public static PdfComplianceProofReport AssessProof(PdfOptions options, IEnumerable<PdfExternalValidationResult>? externalValidations = null) {
+    public static PdfComplianceProofReport AssessProof(PdfCreateOptions options, IEnumerable<PdfExternalValidationResult>? externalValidations = null) {
         Guard.NotNull(options, nameof(options));
         return AssessProof(options.ComplianceProfile, options, externalValidations);
     }
@@ -12,14 +12,14 @@ internal static partial class PdfComplianceAnalyzer {
     /// <summary>
     /// Combines readiness diagnostics for a requested profile with external validator evidence.
     /// </summary>
-    public static PdfComplianceProofReport AssessProof(PdfComplianceProfile profile, PdfOptions options, IEnumerable<PdfExternalValidationResult>? externalValidations = null) {
+    public static PdfComplianceProofReport AssessProof(PdfComplianceProfile profile, PdfCreateOptions options, IEnumerable<PdfExternalValidationResult>? externalValidations = null) {
         return AssessProof(profile, options, externalValidations, generatedStandardFonts: null);
     }
 
     /// <summary>
     /// Combines readiness diagnostics for a requested profile with generated-font evidence and external validator evidence.
     /// </summary>
-    public static PdfComplianceProofReport AssessProof(PdfComplianceProfile profile, PdfOptions options, IEnumerable<PdfExternalValidationResult>? externalValidations, IEnumerable<PdfStandardFont>? generatedStandardFonts) {
+    public static PdfComplianceProofReport AssessProof(PdfComplianceProfile profile, PdfCreateOptions options, IEnumerable<PdfExternalValidationResult>? externalValidations, IEnumerable<PdfStandardFont>? generatedStandardFonts) {
         PdfComplianceReadinessReport readiness = Assess(profile, options, generatedStandardFonts);
         return AssessProof(readiness, externalValidations);
     }
@@ -27,7 +27,7 @@ internal static partial class PdfComplianceAnalyzer {
     /// <summary>
     /// Combines readiness diagnostics, exact PDF artifact identity, generated-font evidence, and external validator evidence.
     /// </summary>
-    public static PdfComplianceProofReport AssessProof(PdfComplianceProfile profile, PdfOptions options, byte[] artifact, IEnumerable<PdfExternalValidationResult>? externalValidations, IEnumerable<PdfStandardFont>? generatedStandardFonts) {
+    public static PdfComplianceProofReport AssessProof(PdfComplianceProfile profile, PdfCreateOptions options, byte[] artifact, IEnumerable<PdfExternalValidationResult>? externalValidations, IEnumerable<PdfStandardFont>? generatedStandardFonts) {
         PdfComplianceReadinessReport readiness = Assess(profile, options, generatedStandardFonts);
         return AssessProof(readiness, artifact, externalValidations);
     }

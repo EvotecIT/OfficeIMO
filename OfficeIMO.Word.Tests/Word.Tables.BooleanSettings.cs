@@ -12,7 +12,7 @@ public partial class Word {
     [InlineData("off", false)]
     public void TableCellBooleanGettersHonorExplicitValuesAcrossFormats(string? value, bool enabled) {
         using WordDocument document = WordDocument.Create();
-        WordTable table = document.AddTable(1, 1);
+        WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
         WordTableCell cell = table.Rows[0].Cells[0];
         W.TableCellProperties properties = cell._tableCell.GetFirstChild<W.TableCellProperties>()!;
         properties.AddChild(WithValue(new W.NoWrap(), value), true);
@@ -37,7 +37,7 @@ public partial class Word {
     [InlineData("header")]
     public void TableBooleanSettersOverrideAnExistingExplicitOffValue(string setting) {
         using WordDocument document = WordDocument.Create();
-        WordTable table = document.AddTable(1, 1);
+        WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
         WordTableRow row = table.Rows[0];
         WordTableCell cell = row.Cells[0];
         if (setting == "wrap") {

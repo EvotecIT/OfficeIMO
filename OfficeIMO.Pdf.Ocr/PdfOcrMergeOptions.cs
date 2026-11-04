@@ -10,7 +10,7 @@ public sealed class PdfOcrMergeOptions {
     /// Canonical semantic-read settings, including page selection, layout, stage customization,
     /// and understanding budgets. OCR evidence is processed by this same read pipeline.
     /// </summary>
-    public PdfReadOptions ReadOptions { get; set; } = PdfReadOptions.Default;
+    public PdfLoadOptions ReadOptions { get; set; } = PdfLoadOptions.Default;
     /// <summary>
     /// Rebuilds OCR lines, columns, tables, and reading order from accepted word geometry using the
     /// canonical understanding stages. False preserves provider line hierarchy and order.
@@ -151,7 +151,7 @@ public sealed class PdfOcrMergeOptions {
         if (Regions.Count > MaxPages || Regions.Any(region => region == null) || Regions.Select(region => region.PageNumber).Distinct().Count() != Regions.Count)
             throw new ArgumentException("OCR regions require unique pages within MaxPages.", nameof(Regions));
         Guard.NotNull(ReadOptions, nameof(ReadOptions));
-        PdfReadOptions.Resolve(ReadOptions);
+        PdfLoadOptions.Resolve(ReadOptions);
         Guard.Positive(Dpi, nameof(Dpi));
         ValidateRatio(MinimumConfidence, nameof(MinimumConfidence));
         ValidateRatio(MinimumOrientationConfidence, nameof(MinimumOrientationConfidence));

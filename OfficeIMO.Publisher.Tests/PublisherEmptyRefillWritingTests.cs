@@ -31,7 +31,7 @@ public sealed class PublisherEmptyRefillWritingTests {
             PublisherTableCell cell = table!.Cells[index];
             document.ReplaceTableCellParagraphs(table.Id, cell.RowIndex, cell.ColumnIndex, Fill(cell.Paragraphs));
         } else document.ReplaceStoryParagraphs(story.Id, Fill(selected));
-        byte[] output = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        byte[] output = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         PublisherDocument saved = PublisherDocument.Load(output);
         var actual = cells ? saved.Pages[sourcePage].Tables.Single().Cells[0].Paragraphs : saved.TextStories[sourcePage].Paragraphs;
         Assert.Equal(expected.Count, actual.Count);
@@ -64,7 +64,7 @@ public sealed class PublisherEmptyRefillWritingTests {
             : new[] { WithText(paragraphs[0], "Filled conflicting template"), paragraphs[2] };
         if (cells) document.ReplaceTableCellParagraphs(table!.Id, 0, 0, requested);
         else document.ReplaceStoryParagraphs(story.Id, requested);
-        Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        Assert.Throws<OfficeConversionException>(() => document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
     }
 
     private static OfficeRichTextParagraph WithText(OfficeRichTextParagraph paragraph, string text) {

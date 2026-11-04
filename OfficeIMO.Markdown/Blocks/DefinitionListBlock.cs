@@ -19,14 +19,14 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
     /// <summary>Structured definition body blocks flattened across all groups and definitions.</summary>
     public IReadOnlyList<IMarkdownBlock> ChildBlocks => BuildChildBlocks();
     internal List<MarkdownSyntaxNode> SyntaxItems { get; } = new List<MarkdownSyntaxNode>();
-    internal MarkdownReaderOptions? ReaderOptions { get; private set; }
+    internal MarkdownLoadOptions? ReaderOptions { get; private set; }
     internal MarkdownReaderState? ReaderState { get; private set; }
 
     /// <summary>Creates a definition list block.</summary>
     public DefinitionListBlock() {
     }
 
-    internal void SetParsingContext(MarkdownReaderOptions options, MarkdownReaderState state) {
+    internal void SetParsingContext(MarkdownLoadOptions options, MarkdownReaderState state) {
         ReaderOptions = options;
         ReaderState = state;
     }
@@ -92,23 +92,24 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
         SyntaxItems.Add(syntaxItem);
     }
 
-    /// <summary>Adds a typed definition list entry.</summary>
-    public void AddEntry(DefinitionListEntry entry) {
+    /// <summary>Adds a definition and returns the entry bound to this list.</summary>
+    public DefinitionListEntry AddEntry(DefinitionListEntry entry) {
         var safeEntry = entry ?? new DefinitionListEntry();
         AddGroup(new DefinitionListGroup(
             new[] { safeEntry.Term },
             new[] { safeEntry.Definition }));
+        return _entries[_entries.Count - 1];
     }
 
-    /// <summary>Adds a definition-list entry parsed from Markdown term and definition text.</summary>
-    public void AddEntry(string? term, string? definition) {
-        AddEntry(CreateEntry(term, definition));
-    }
+    /// <summary>Adds parsed term and definition text and returns the entry bound to this list.</summary>
+    public DefinitionListEntry AddEntry(string? term, string? definition) => AddEntry(CreateEntry(term, definition));
 
-    /// <summary>Adds a semantic definition-list group.</summary>
-    public void AddGroup(DefinitionListGroup group) {
+    /// <summary>Adds a semantic group and returns the group stored in this list.</summary>
+    public DefinitionListGroup AddGroup(DefinitionListGroup group) {
         SyntaxItems.Clear();
-        AddGroupCore(group ?? new DefinitionListGroup());
+        var added = group ?? new DefinitionListGroup();
+        AddGroupCore(added);
+        return added;
     }
 
     /// <inheritdoc />
@@ -182,7 +183,7 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
             return Array.Empty<DefinitionListInlineItem>();
         }
 
-        var options = ReaderOptions ?? new MarkdownReaderOptions();
+        var options = ReaderOptions ?? new MarkdownLoadOptions();
         var state = ReaderState ?? new MarkdownReaderState();
         var inlineItems = new DefinitionListInlineItem[_entries.Count];
 
@@ -198,7 +199,7 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
 
     private InlineSequence BuildDefinitionInline(
         DefinitionListEntry entry,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state) {
         if (entry == null || entry.DefinitionBlocks.Count == 0) {
             return new InlineSequence();
@@ -216,7 +217,7 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
 
     private InlineSequence BuildDefinitionInline(
         DefinitionListDefinition definition,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state) {
         if (definition == null || definition.ChildBlocks.Count == 0) {
             return new InlineSequence();
@@ -250,7 +251,7 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
     }
 
     private DefinitionListEntry CreateEntry(string? term, string? definition) {
-        var options = ReaderOptions ?? new MarkdownReaderOptions();
+        var options = ReaderOptions ?? new MarkdownLoadOptions();
         var state = ReaderState ?? new MarkdownReaderState();
         var termInlines = string.IsNullOrEmpty(term)
             ? new InlineSequence()
@@ -526,7 +527,7 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
                     definition.ChildBlocks);
 
                 if (definitionChildren.Count == 0 && !string.IsNullOrEmpty(definitionLiteral)) {
-                    var fallbackInlines = BuildDefinitionInline(definition, ReaderOptions ?? new MarkdownReaderOptions(), ReaderState ?? new MarkdownReaderState());
+                    var fallbackInlines = BuildDefinitionInline(definition, ReaderOptions ?? new MarkdownLoadOptions(), ReaderState ?? new MarkdownReaderState());
                     definitionChildren = new[] { MarkdownBlockSyntaxBuilder.BuildInlineContainerNode(
                         MarkdownSyntaxKind.Paragraph,
                         fallbackInlines,

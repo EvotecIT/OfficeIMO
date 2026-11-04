@@ -1,10 +1,25 @@
 using System.Collections.Generic;
+using System.Linq;
 
 namespace OfficeIMO.Excel {
     /// <summary>
     /// Options for importing worksheets from one workbook into another.
     /// </summary>
     public sealed class ExcelWorkbookMergeOptions {
+        /// <summary>Creates an independent copy of the workbook import settings and selected sheet names.</summary>
+        public ExcelWorkbookMergeOptions Clone() => new ExcelWorkbookMergeOptions {
+            SheetNames = SheetNames?.ToArray(),
+            SheetNamePrefix = SheetNamePrefix,
+            SheetNameValidationMode = SheetNameValidationMode,
+            CopyMode = CopyMode,
+            CopyExternalWorkbookReferences = CopyExternalWorkbookReferences,
+            MaxDefinedNames = MaxDefinedNames,
+            MaxDefinedNameCharacters = MaxDefinedNameCharacters,
+            MaxInCellImages = MaxInCellImages,
+            MaxInCellImageBytes = MaxInCellImageBytes,
+            MaxTotalInCellImageBytes = MaxTotalInCellImageBytes
+        };
+
         /// <summary>
         /// Gets or sets source worksheet names to import. When empty, all source worksheets are imported.
         /// </summary>

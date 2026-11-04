@@ -9,7 +9,7 @@ namespace PSWriteOffice.Cmdlets.Project;
 ///   <summary>Change task progress and its working duration.</summary>
 ///   <code>$project | Get-OfficeProjectTask -Uid 7 | Set-OfficeProjectTask -DurationDays 4 -PercentComplete 25</code>
 /// </example>
-[Cmdlet(VerbsCommon.Set, "OfficeProjectTask")]
+[Cmdlet(VerbsCommon.Set, "OfficeProjectTask", DefaultParameterSetName = "Task")]
 [OutputType(typeof(ProjectTask))]
 public sealed class SetOfficeProjectTaskCommand : PSCmdlet {
     /// <summary>Editable task returned by Get-OfficeProjectTask.</summary>

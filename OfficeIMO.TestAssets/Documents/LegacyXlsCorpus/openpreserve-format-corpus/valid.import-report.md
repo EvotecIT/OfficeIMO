@@ -64,8 +64,8 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 4 |
-| XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 2 |
-| XLS-BIFF-SORT-RESERVED-BYTES | 1 |
+| xls-biff-feature-external-reference-unsupported | 2 |
+| xls-biff-sort-reserved-bytes | 1 |
 
 ## Formula Tokens By Name
 
@@ -898,7 +898,7 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 4 |
-| XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 2 |
+| xls-biff-feature-external-reference-unsupported | 2 |
 
 ## Unsupported Features By Kind
 
@@ -912,14 +912,14 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x01B6 | 4 |
-| ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|0x01AE | 2 |
+| ExternalReference\|xls-biff-feature-external-reference-unsupported\|0x01AE | 2 |
 
 ## Unsupported Feature Details
 
 | Key | Count |
 | --- | --- |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:TxO | 4 |
-| ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|ExternalReference:ExternalWorkbook | 2 |
+| ExternalReference\|xls-biff-feature-external-reference-unsupported\|ExternalReference:ExternalWorkbook | 2 |
 
 ## Unsupported Feature Locations
 
@@ -927,7 +927,7 @@ Warnings: 0
 | --- | --- |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|graphs1 | 2 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|graphs2 | 2 |
-| XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|(workbook) | 2 |
+| xls-biff-feature-external-reference-unsupported\|(workbook) | 2 |
 
 ## File Format States
 
@@ -3220,4 +3220,4 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:TxO | 4 |
-| ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|ExternalReference:ExternalWorkbook | 2 |
+| ExternalReference\|xls-biff-feature-external-reference-unsupported\|ExternalReference:ExternalWorkbook | 2 |

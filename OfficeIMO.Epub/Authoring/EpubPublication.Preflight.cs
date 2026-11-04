@@ -9,20 +9,22 @@ public sealed partial class EpubPublication {
     /// identifiers, root and descendant language declarations, image alternatives and EPUB 3 metadata-link relationships.
     /// Schema conformance, comprehensive accessibility and reader presentation remain explicitly unchecked. No file is written and no external process is invoked.
     /// </summary>
-    public EpubPreflightReport Preflight(EpubWriteOptions? options = null, CancellationToken cancellationToken = default) {
+    public EpubPreflightReport Preflight(EpubSaveOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         var checks = new List<EpubPreflightCheck>();
         var package = new List<EpubDiagnostic>();
         try {
             EpubWriteReport report = Write(options, cancellationToken).Report;
-            foreach (var diagnostic in report.FidelityDiagnostics) Add(package, diagnostic.Code,
+            foreach (var diagnostic in report.Diagnostics) Add(package, diagnostic.Code,
                 EpubDiagnosticSeverity.Warning, diagnostic.Message, PackagePath);
         } catch (Exception error) when (IsPreflightFailure(error)) {
             Add(package, "EPUB_PREFLIGHT_WRITE_FAILED", EpubDiagnosticSeverity.Error, error.Message, PackagePath);
         }
         checks.Add(Result("native-save", package));
-        checks.Add(CheckAccessibilityDiscovery());
-        if (PackageVersion == "3.0") checks.Add(CheckMetadataLinks(cancellationToken));
+        IReadOnlyDictionary<string, string> prefixes = EpubVocabulary.ReadPrefixes(
+            (string?)Root.Attribute("prefix") ?? string.Empty, cancellationToken: cancellationToken);
+        checks.Add(CheckAccessibilityDiscovery(prefixes, cancellationToken));
+        if (PackageVersion == "3.0") checks.Add(CheckMetadataLinks(prefixes, cancellationToken));
 
         var contentFindings = new List<EpubDiagnostic>();
         var imageFindings = new List<EpubDiagnostic>();

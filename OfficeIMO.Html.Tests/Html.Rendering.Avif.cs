@@ -54,7 +54,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(OfficeRasterImageDecoder.TryDecode(visual.Bytes, out var raster));
         AssertAvifPixels(reference, raster!,name.StartsWith("avif-main10-",StringComparison.Ordinal)?1:3);
         var result = document.RenderToPdfResult(HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged,
-            HtmlRenderEncoder.Pdf, new HtmlToPdfOptions(options)));
+            HtmlRenderEncoder.Pdf, new HtmlPdfExportOptions(options)));
         Assert.Empty(result.Output.Warnings);
         var embedded = Assert.Single(OfficeIMO.Pdf.PdfImageExtractor.ExtractImages(result.ToBytes()));
         Assert.True(OfficeRasterImageDecoder.TryDecode(embedded.Bytes, out var extracted));
@@ -118,7 +118,7 @@ public sealed partial class HtmlRenderingTests {
         var document = HtmlConversionDocument.Parse("<picture><source type='image/avif' srcset='" + source
             + "'><img width='49' height='33' alt='photo' src='data:image/png;base64,"
             + Convert.ToBase64String(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(4, 2)) + "'></picture>");
-        var result = document.ToWordDocumentResult();
+        var result = document.ConvertToWordWithEvidence();
         using var word = result.Value;
         using var stream = new MemoryStream(word.ToBytes());
         using var package = WordprocessingDocument.Open(stream, false);

@@ -5,6 +5,8 @@ namespace OfficeIMO.IWork.Internal;
 
 /// <summary>Builds disjoint sparse edge intervals, choosing the latest native edit on each shared segment.</summary>
 internal sealed class IWorkTableBorderOverrides {
+    private static readonly IComparer<(bool Supported, OfficeBorderSide? Side)> StrokeComparer =
+        Comparer<(bool Supported, OfficeBorderSide? Side)>.Create(CompareStrokes);
     private readonly Dictionary<(bool Horizontal, int Line), List<Run>> _runs = new();
     private readonly Dictionary<(bool Horizontal, int Line), List<Segment>> _segments = new();
     private bool _hasDeclarations;
@@ -63,7 +65,7 @@ internal sealed class IWorkTableBorderOverrides {
             foreach (var run in pair.Value) {
                 AddEvent(run.Start, run, true); AddEvent(run.End, run, false);
             }
-            var active = new Dictionary<uint, Dictionary<(bool Supported, OfficeBorderSide? Side), int>>();
+            var active = new Dictionary<uint, SortedDictionary<(bool Supported, OfficeBorderSide? Side), int>>();
             var orders = new SortedSet<uint>();
             var segments = new List<Segment>();
             int? previous = null;
@@ -82,11 +84,12 @@ internal sealed class IWorkTableBorderOverrides {
                     else segments.Add(new Segment(previous.Value, point.Key, stroke));
                 }
                 foreach (var change in point.Value) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     var run = change.Run;
                     var key = (run.Stroke.IsSupported, run.Stroke.Side);
                     if (change.Start) {
                         if (!active.TryGetValue(run.Order, out var styles)) {
-                            active.Add(run.Order, styles = new()); orders.Add(run.Order);
+                            active.Add(run.Order, styles = new(StrokeComparer)); orders.Add(run.Order);
                         }
                         styles.TryGetValue(key, out int count); styles[key] = count + 1;
                     } else {
@@ -105,6 +108,23 @@ internal sealed class IWorkTableBorderOverrides {
             }
         }
         _runs.Clear();
+    }
+
+    private static int CompareStrokes((bool Supported, OfficeBorderSide? Side) left,
+        (bool Supported, OfficeBorderSide? Side) right) {
+        int result = left.Supported.CompareTo(right.Supported);
+        if (result != 0) return result;
+        result = left.Side.HasValue.CompareTo(right.Side.HasValue);
+        if (result != 0 || !left.Side.HasValue) return result;
+        OfficeBorderSide a = left.Side.Value, b = right.Side!.Value;
+        result = a.Color.A.CompareTo(b.Color.A); if (result != 0) return result;
+        result = a.Color.R.CompareTo(b.Color.R); if (result != 0) return result;
+        result = a.Color.G.CompareTo(b.Color.G); if (result != 0) return result;
+        result = a.Color.B.CompareTo(b.Color.B); if (result != 0) return result;
+        result = a.Width.CompareTo(b.Width); if (result != 0) return result;
+        result = a.DashStyle.CompareTo(b.DashStyle); if (result != 0) return result;
+        result = a.LineKind.CompareTo(b.LineKind); if (result != 0) return result;
+        return a.DoubleLineSeparation.CompareTo(b.DoubleLineSeparation);
     }
 
     private sealed class Run(int start, int end, uint order, IWorkBorderDeclaration stroke) {

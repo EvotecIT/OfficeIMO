@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Data;
 using System.Diagnostics.CodeAnalysis;
 
@@ -15,7 +13,7 @@ public sealed partial class CsvDocument
     public DataTable ToDataTable(CsvDataTableOptions? options = null)
     {
         options ??= new CsvDataTableOptions();
-        if (options.SchemaSampleSize <= 0)
+        if (options.SchemaSampleRows <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(options), "Schema sample size must be greater than zero.");
         }
@@ -30,7 +28,7 @@ public sealed partial class CsvDocument
             return ToStreamingStringDataTable(options.TableName);
         }
 
-        var schema = options.Schema ?? _schema ?? (options.InferSchema ? InferSchema(options.SchemaSampleSize) : null);
+        var schema = options.Schema ?? _schema ?? (options.InferSchema ? InferSchema(options.SchemaSampleRows) : null);
         var schemaColumns = schema?.Columns.ToDictionary(column => column.Name, StringComparer.OrdinalIgnoreCase);
         var table = CreateDataTable(options.TableName, schemaColumns);
         var columns = CsvDataProjectionBuilder.Create(_header, schemaColumns);
@@ -89,11 +87,11 @@ public sealed partial class CsvDocument
     [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "CSV schema projection creates scalar DataColumns only and never uses DataColumn expressions; DataTable.Load therefore has no expression-member preservation requirement here.")]
     private DataTable ToStreamingDataTable(CsvDataTableOptions options)
     {
-        using var reader = CreateDataReader(new CsvDataReaderOptions
+        using var reader = CreateDataReader(new CsvReaderOptions
         {
             Schema = options.Schema,
             InferSchema = options.InferSchema,
-            SchemaSampleSize = options.SchemaSampleSize
+            SchemaSampleRows = options.SchemaSampleRows
         });
         var table = new DataTable(ResolveDataTableName(options.TableName));
         table.Load(reader);

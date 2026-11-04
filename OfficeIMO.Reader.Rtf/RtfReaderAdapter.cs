@@ -211,7 +211,7 @@ internal static partial class RtfReaderAdapter {
     }
 
     private static RtfConversionResult<IReadOnlyList<ReaderChunk>> CompleteChunkResult(IReadOnlyList<ReaderChunk> chunks, RtfConversionReport report) {
-        string[] adapterWarnings = report.Diagnostics
+        string[] adapterWarnings = report.NativeDiagnostics
             .Where(IsReaderConversionDiagnostic)
             .Select(static diagnostic => diagnostic.Code + ": " + diagnostic.Message)
             .ToArray();

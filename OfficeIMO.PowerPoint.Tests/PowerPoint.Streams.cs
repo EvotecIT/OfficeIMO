@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Create_ToStream_WithSaveOnDispose_WritesPackage() {
             using var stream = new MemoryStream();
-            using (var presentation = PowerPointPresentation.Create(stream,
+            using (var presentation = PowerPointDocument.Create(stream,
                        new PowerPointCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
                 presentation.AddSlide();
             }
@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
         public void Create_ToStream_WithExplicitPersistence_DoesNotWriteOnDispose() {
             using var stream = new MemoryStream();
 
-            using (var presentation = PowerPointPresentation.Create(stream, new PowerPointCreateOptions())) {
+            using (var presentation = PowerPointDocument.Create(stream, new PowerPointCreateOptions())) {
                 presentation.AddSlide();
             }
 
@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
         public void Create_ToStream_WithExplicitPersistence_CanSaveToAssociatedStream() {
             using var stream = new MemoryStream();
 
-            using (var presentation = PowerPointPresentation.Create(stream, new PowerPointCreateOptions())) {
+            using (var presentation = PowerPointDocument.Create(stream, new PowerPointCreateOptions())) {
                 presentation.AddSlide();
                 presentation.Save();
             }
@@ -45,12 +45,12 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Load_FromStream_WithSaveOnDispose_PersistsChanges() {
             using var stream = new MemoryStream();
-            using (var presentation = PowerPointPresentation.Create(stream)) {
+            using (var presentation = PowerPointDocument.Create(stream)) {
                 presentation.AddSlide();
                 presentation.Save();
             }
 
-            using (var presentation = PowerPointPresentation.Load(stream, new PowerPointLoadOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
+            using (var presentation = PowerPointDocument.Load(stream, new PowerPointLoadOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
                 presentation.AddSlide();
             }
 
@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests {
         public void Load_FromNonSeekableReadStream_WorksWithExplicitPersistence() {
             byte[] bytes;
             using (var source = new MemoryStream()) {
-                using (var presentation = PowerPointPresentation.Create(source)) {
+                using (var presentation = PowerPointDocument.Create(source)) {
                     presentation.AddSlide();
                     presentation.Save();
                 }
@@ -72,7 +72,7 @@ namespace OfficeIMO.Tests {
             using var input = new NonSeekableReadStream(bytes);
             using var output = new MemoryStream();
 
-            using (var presentation = PowerPointPresentation.Load(input)) {
+            using (var presentation = PowerPointDocument.Load(input)) {
                 presentation.AddSlide();
                 presentation.Save(output);
             }
@@ -85,26 +85,26 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(Path.GetTempPath(), "OfficeIMO.PowerPoint.Source." + Guid.NewGuid().ToString("N") + ".pptx");
             string copyPath = Path.Combine(Path.GetTempPath(), "OfficeIMO.PowerPoint.Copy." + Guid.NewGuid().ToString("N") + ".pptx");
             try {
-                using (var source = PowerPointPresentation.Create(sourcePath)) {
+                using (var source = PowerPointDocument.Create(sourcePath)) {
                     source.AddSlide();
                     source.Save();
                 }
 
-                await using PowerPointPresentation presentation = await PowerPointPresentation.LoadAsync(sourcePath);
+                await using PowerPointDocument presentation = await PowerPointDocument.LoadAsync(sourcePath);
                 Assert.Equal(Path.GetFullPath(sourcePath), presentation.FilePath);
                 presentation.AddSlide();
                 await presentation.SaveCopyAsync(copyPath);
 
                 Assert.Equal(Path.GetFullPath(sourcePath), presentation.FilePath);
-                using var original = PowerPointPresentation.Load(sourcePath);
-                using var copy = PowerPointPresentation.Load(copyPath);
+                using var original = PowerPointDocument.Load(sourcePath);
+                using var copy = PowerPointDocument.Load(copyPath);
                 Assert.Single(original.Slides);
                 Assert.Equal(2, copy.Slides.Count);
 
                 using var stream = new MemoryStream(presentation.ToBytes());
                 stream.Position = stream.Length;
                 long originalPosition = stream.Position;
-                using PowerPointPresentation fromStream = await PowerPointPresentation.LoadAsync(stream);
+                using PowerPointDocument fromStream = await PowerPointDocument.LoadAsync(stream);
                 Assert.Equal(originalPosition, stream.Position);
                 stream.ReadByte();
             } finally {
@@ -115,15 +115,15 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public async Task LoadAsync_HonorsPreCanceledTokenAndRestoresCallerPosition() {
-            using var source = PowerPointPresentation.Create();
+            using var source = PowerPointDocument.Create();
             source.AddSlide();
-            using var stream = source.ToStream();
+            using var stream = new System.IO.MemoryStream(source.ToBytes());
             stream.Position = 7;
             using var cancellation = new CancellationTokenSource();
             cancellation.Cancel();
 
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-                PowerPointPresentation.LoadAsync(stream, cancellationToken: cancellation.Token));
+                PowerPointDocument.LoadAsync(stream, cancellationToken: cancellation.Token));
 
             Assert.Equal(7, stream.Position);
         }
@@ -132,7 +132,7 @@ namespace OfficeIMO.Tests {
         public void Create_ToNonSeekableWritableStream_WithSaveOnDispose_Throws() {
             using var stream = new NonSeekableWriteStream();
 
-            var exception = Assert.Throws<ArgumentException>(() => PowerPointPresentation.Create(stream,
+            var exception = Assert.Throws<ArgumentException>(() => PowerPointDocument.Create(stream,
                 new PowerPointCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose }));
             Assert.Contains("support seeking", exception.Message, StringComparison.OrdinalIgnoreCase);
         }
@@ -141,7 +141,7 @@ namespace OfficeIMO.Tests {
         public void Load_FromNonSeekableReadWriteStream_WithSaveOnDispose_Throws() {
             byte[] bytes;
             using (var source = new MemoryStream()) {
-                using (var presentation = PowerPointPresentation.Create(source)) {
+                using (var presentation = PowerPointDocument.Create(source)) {
                     presentation.AddSlide();
                     presentation.Save();
                 }
@@ -151,7 +151,7 @@ namespace OfficeIMO.Tests {
 
             using var stream = new NonSeekableReadWriteStream(bytes);
 
-            var exception = Assert.Throws<ArgumentException>(() => PowerPointPresentation.Load(stream, new PowerPointLoadOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose }));
+            var exception = Assert.Throws<ArgumentException>(() => PowerPointDocument.Load(stream, new PowerPointLoadOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose }));
             Assert.Contains("support seeking", exception.Message, StringComparison.OrdinalIgnoreCase);
         }
 
@@ -159,14 +159,14 @@ namespace OfficeIMO.Tests {
         public async Task Load_FromNonSeekableReadWriteStream_DoesNotBecomePathlessSaveTarget() {
             byte[] bytes;
             using (var source = new MemoryStream()) {
-                using var presentation = PowerPointPresentation.Create(source);
+                using var presentation = PowerPointDocument.Create(source);
                 presentation.AddSlide();
                 presentation.Save();
                 bytes = source.ToArray();
             }
 
             using var stream = new NonSeekableReadWriteStream(bytes);
-            using PowerPointPresentation loaded = PowerPointPresentation.Load(stream);
+            using PowerPointDocument loaded = PowerPointDocument.Load(stream);
             loaded.AddSlide();
 
             Assert.Throws<InvalidOperationException>(() => loaded.Save());
@@ -179,7 +179,7 @@ namespace OfficeIMO.Tests {
             using var stream = new NonSeekableWriteStream();
 
             ArgumentException exception = Assert.Throws<ArgumentException>(() =>
-                PowerPointPresentation.Create(stream));
+                PowerPointDocument.Create(stream));
 
             Assert.Equal("stream", exception.ParamName);
             Assert.Contains("support seeking", exception.Message, StringComparison.OrdinalIgnoreCase);
@@ -187,7 +187,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ExportSlide_ToNonSeekableWritableStream_WritesStandalonePresentation() {
-            using var source = PowerPointPresentation.Create();
+            using var source = PowerPointDocument.Create();
             source.AddSlide().AddTitle("First");
             source.AddSlide().AddTitle("Exported");
             using var destination = new NonSeekableWriteStream();
@@ -204,7 +204,7 @@ namespace OfficeIMO.Tests {
             using var stream = new FailingCopyBackStream();
 
             IOException exception = Assert.Throws<IOException>(() => {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(stream,
+                using PowerPointDocument presentation = PowerPointDocument.Create(stream,
                     new PowerPointCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose });
                 presentation.AddSlide();
             });
@@ -216,7 +216,7 @@ namespace OfficeIMO.Tests {
         public async Task AssociatedReadOnlyPath_RejectsSyncAndAsyncSave() {
             string path = Path.Combine(Path.GetTempPath(), "OfficeIMO.PowerPoint.ReadOnly." + Guid.NewGuid().ToString("N") + ".pptx");
             try {
-                using var presentation = PowerPointPresentation.Create(path);
+                using var presentation = PowerPointDocument.Create(path);
                 presentation.AddSlide();
                 presentation.Save();
                 File.SetAttributes(path, File.GetAttributes(path) | FileAttributes.ReadOnly);

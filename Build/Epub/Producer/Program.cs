@@ -25,7 +25,7 @@ if (source.Manifest.Count(item => item.MediaType == "application/smil+xml") != 2
     throw new InvalidDataException("Expected the pinned two-overlay sample profile.");
 Directory.CreateDirectory(output);
 var stages = new List<object>();
-var writeOptions = new EpubWriteOptions { ModifiedAt = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero) };
+var writeOptions = new EpubSaveOptions { ModifiedAt = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero) };
 WriteStage("unchanged", original, new Dictionary<string, string>());
 book.RenameResource("xchapter_001", relocation["OPS/chapter_001.xhtml"]);
 book.RenameResource("chapter_001_overlay", relocation["OPS/chapter_001_overlay.smil"]);

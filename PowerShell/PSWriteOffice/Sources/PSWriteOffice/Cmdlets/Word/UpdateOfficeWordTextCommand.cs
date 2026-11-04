@@ -108,7 +108,7 @@ public sealed class UpdateOfficeWordTextCommand : PSWriteOffice.Cmdlets.OfficeMu
 
             var comparison = CaseSensitive.IsPresent ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
             var replacement = NewValue ?? string.Empty;
-            var replacements = document.FindAndReplace(OldValue, replacement, comparison);
+            var replacements = document.ReplaceAll(OldValue, replacement, new OfficeIMO.OfficeTextSearchOptions { MatchCase = CaseSensitive.IsPresent });
 
             if (IncludeHyperlinkText.IsPresent || IncludeHyperlinkUri.IsPresent || IncludeHyperlinkAnchor.IsPresent || IncludeHyperlinkTooltip.IsPresent) {
                 replacements += ReplaceHyperlinks(document, OldValue, replacement, comparison);
@@ -219,15 +219,6 @@ public sealed class UpdateOfficeWordTextCommand : PSWriteOffice.Cmdlets.OfficeMu
         if (string.IsNullOrEmpty(source) || string.IsNullOrEmpty(oldValue)) {
             return source;
         }
-
-        var startIndex = 0;
-        var result = source;
-        while ((startIndex = result.IndexOf(oldValue, startIndex, comparison)) >= 0) {
-            result = result.Remove(startIndex, oldValue.Length).Insert(startIndex, newValue);
-            startIndex += newValue.Length;
-            replacements++;
-        }
-
-        return result;
+        return source.FindAndReplace(oldValue, newValue, comparison, ref replacements);
     }
 }

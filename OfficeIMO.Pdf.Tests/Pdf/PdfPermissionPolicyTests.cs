@@ -123,8 +123,8 @@ public class PdfPermissionPolicyTests {
             OwnerPassword = "visual-owner",
             AllowedPermissions = PdfStandardPermissions.None
         };
-        byte[] pdf = PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
-            .Canvas(canvas => canvas.Image(PdfPngTestImages.CreateRgbPng(30, 90, 180), 20D, 20D, 40D, 40D))
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions().SetEncryption(encryption))
+            .Canvas(canvas => canvas.Image(PdfPngTestImages.CreateRgbPng(30, 90, 180), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(40D)))
             .ToBytes();
         var enforced = new PdfLoadOptions { Password = "visual-open" };
         PdfReadDocument document = PdfReadDocument.Open(pdf, enforced);
@@ -190,8 +190,8 @@ public class PdfPermissionPolicyTests {
             OwnerPassword = "accessible-image-owner",
             AllowedPermissions = PdfStandardPermissions.Accessibility
         };
-        byte[] pdf = PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
-            .Paragraph(paragraph => paragraph.Text("Accessible text"))
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions().SetEncryption(encryption))
+            .Paragraph(paragraph => paragraph.AddText("Accessible text"))
             .Image(PdfPngTestImages.CreateRgbPng(30, 90, 180), 40D, 40D)
             .ToBytes();
         var enforced = new PdfLoadOptions { Password = "accessible-image-open" };
@@ -215,14 +215,14 @@ public class PdfPermissionPolicyTests {
             OwnerPassword = "direct-owner",
             AllowedPermissions = PdfStandardPermissions.None
         };
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CreateOutlineFromHeadings = true,
                 IncludeXmpMetadata = true
             }.SetSrgbOutputIntent().SetEncryption(encryption))
             .Meta(title: "Direct title", author: "OfficeIMO")
             .Bookmark("DirectAnchor")
             .H1("Direct logical heading")
-            .Paragraph(paragraph => paragraph.LinkToBookmark("Jump", "DirectAnchor"))
+            .Paragraph(paragraph => paragraph.AddBookmarkLink("Jump", "DirectAnchor"))
             .TextField("Direct.Name", value: "Ada")
             .ToBytes();
         var enforced = new PdfLoadOptions { Password = "direct-open" };
@@ -313,9 +313,9 @@ public class PdfPermissionPolicyTests {
             Password = "resize-open",
             PermissionPolicy = PdfPermissionPolicy.IgnoreRestrictions
         };
-        PdfDocument plain = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Plain page"));
+        PdfDocument plain = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Plain page"));
         var mergeOptions = new PdfMergeOptions {
-            ResizePages = new PdfPageResizeOptions(PageSizes.A4)
+            ResizePages = new PdfPageResizeOptions(PdfPageSizes.A4)
         };
 
         PdfMergeResult result = PdfDocument.MergeResult(
@@ -337,7 +337,7 @@ public class PdfPermissionPolicyTests {
     public void RestrictedUserMergeIsBlockedUnlessCopyAndAssemblyAreAllowed() {
         byte[] restricted = CreateRestrictedPdf("open-blocked", "owner-blocked", "Blocked merge");
         var restrictedOptions = new PdfLoadOptions { Password = "open-blocked" };
-        PdfDocument plain = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Plain page"));
+        PdfDocument plain = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Plain page"));
 
         PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() =>
             PdfDocument.Merge(plain, PdfDocument.Load(restricted, restrictedOptions)));
@@ -369,7 +369,7 @@ public class PdfPermissionPolicyTests {
     public void TryMergeWithUsesExplicitReadOptionsForEncryptedTargetAcrossOverloads() {
         byte[] target = CreateRestrictedPdf("merge-open", "merge-owner", "Encrypted target");
         byte[] incoming = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Incoming page"))
+            .Paragraph(paragraph => paragraph.AddText("Incoming page"))
             .ToBytes();
         var options = new PdfLoadOptions {
             Password = "merge-open",
@@ -402,7 +402,7 @@ public class PdfPermissionPolicyTests {
     [Fact]
     public void PageImportsUseIndependentSourceReadOptionsAcrossPlacements() {
         byte[] target = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Target page"))
+            .Paragraph(paragraph => paragraph.AddText("Target page"))
             .ToBytes();
         byte[] source = CreateRestrictedThreePagePdf("import-open", "import-owner");
         var sourceReadOptions = new PdfLoadOptions {
@@ -440,9 +440,9 @@ public class PdfPermissionPolicyTests {
     [InlineData(3)]
     public void InsertAllPagesFromEncryptedSourceUsesSourceReadOptionsAtEveryPlacement(int insertBeforePageNumber) {
         byte[] target = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Target first"))
+            .Paragraph(paragraph => paragraph.AddText("Target first"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Target second"))
+            .Paragraph(paragraph => paragraph.AddText("Target second"))
             .ToBytes();
         byte[] source = CreateRestrictedThreePagePdf("import-open", "import-owner");
         var importOptions = new PdfPageImportOptions {
@@ -549,7 +549,7 @@ public class PdfPermissionPolicyTests {
         };
 
         PdfSanitizationResult sanitized = PdfDocument.Load(source, options).Sanitize();
-        PdfDocument updated = PdfDocument.Load(source, options).UpdateMetadata(title: "Authenticated title");
+        PdfDocument updated = PdfDocument.Load(source, options).UpdateProperties(title: "Authenticated title");
         Assert.True(sanitized.IsSanitized);
         Assert.Equal("Authenticated title", updated.Reader.Metadata().Title);
 
@@ -602,12 +602,12 @@ public class PdfPermissionPolicyTests {
             OwnerPassword = ownerPassword,
             AllowedPermissions = PdfStandardPermissions.None
         };
-        return PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
-            .Paragraph(paragraph => paragraph.Text("Page one"))
+        return PdfDocument.Create(new PdfCreateOptions().SetEncryption(encryption))
+            .Paragraph(paragraph => paragraph.AddText("Page one"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Page two"))
+            .Paragraph(paragraph => paragraph.AddText("Page two"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Page three"))
+            .Paragraph(paragraph => paragraph.AddText("Page three"))
             .ToBytes();
     }
 
@@ -616,8 +616,8 @@ public class PdfPermissionPolicyTests {
             OwnerPassword = ownerPassword,
             AllowedPermissions = PdfStandardPermissions.None
         };
-        return PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
-            .TextField("Name", width: 180, height: 24, value: value)
+        return PdfDocument.Create(new PdfCreateOptions().SetEncryption(encryption))
+            .TextField("Name", width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(24), value: value)
             .ToBytes();
     }
 
@@ -630,8 +630,8 @@ public class PdfPermissionPolicyTests {
             OwnerPassword = ownerPassword,
             AllowedPermissions = permissions
         };
-        return PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
-            .Paragraph(paragraph => paragraph.Text(text))
+        return PdfDocument.Create(new PdfCreateOptions().SetEncryption(encryption))
+            .Paragraph(paragraph => paragraph.AddText(text))
             .ToBytes();
     }
 }

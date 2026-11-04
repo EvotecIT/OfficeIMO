@@ -6,11 +6,11 @@ using System.Linq;
 namespace OfficeIMO.PowerPoint {
     /// <summary>Configures deterministic table continuation slides.</summary>
     public sealed class PowerPointTablePaginationOptions {
-        private double _minimumRowHeightPoints = 24D;
+        private OfficeLength _minimumRowHeight = OfficeLength.Points(24);
         private int? _maximumDataRowsPerSlide;
 
         /// <summary>Table placement available on every generated slide.</summary>
-        public PowerPointLayoutBox TableBounds { get; set; } = PowerPointLayoutBox.FromInches(0.75, 1.35, 8.5, 3.7);
+        public PowerPointLayoutBox TableBounds { get; set; } = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Inches(0.75),OfficeIMO.OfficeLength.Inches(1.35),OfficeIMO.OfficeLength.Inches(8.5),OfficeIMO.OfficeLength.Inches(3.7));
 
         /// <summary>Slide master index used for generated pages.</summary>
         public int MasterIndex { get; set; }
@@ -25,14 +25,14 @@ namespace OfficeIMO.PowerPoint {
         public bool RepeatHeaders { get; set; } = true;
 
         /// <summary>Minimum row height used to derive page capacity from <see cref="TableBounds"/>.</summary>
-        public double MinimumRowHeightPoints {
-            get => _minimumRowHeightPoints;
+        public OfficeLength MinimumRowHeight {
+            get => _minimumRowHeight;
             set {
-                if (double.IsNaN(value) || double.IsInfinity(value) || value <= 0D) {
-                    throw new ArgumentOutOfRangeException(nameof(MinimumRowHeightPoints),
-                        "Minimum row height must be a finite positive number.");
+                if (value <= OfficeLength.Zero) {
+                    throw new ArgumentOutOfRangeException(nameof(MinimumRowHeight),
+                        "Minimum row height must be positive.");
                 }
-                _minimumRowHeightPoints = value;
+                _minimumRowHeight = value;
             }
         }
 
@@ -107,7 +107,7 @@ namespace OfficeIMO.PowerPoint {
         public int PageCount => Slides.Count;
     }
 
-    public sealed partial class PowerPointPresentation {
+    public sealed partial class PowerPointDocument {
         /// <summary>
         ///     Adds as many slides as required to represent every data row in native PowerPoint tables.
         ///     Capacity is measured from the table box and minimum row height, and headers repeat by default.
@@ -141,14 +141,13 @@ namespace OfficeIMO.PowerPoint {
                 resolved.ConfigureSlide?.Invoke(slide, context);
 
                 int physicalRows = page.Count + (includeHeaders ? 1 : 0);
-                double tableHeightPoints = Math.Min(resolved.TableBounds.HeightPoints,
-                    physicalRows * resolved.MinimumRowHeightPoints);
+                OfficeLength tableHeight = OfficeLength.Emus(Math.Min(resolved.TableBounds.Height.ToEmus(),
+                    checked((long)physicalRows * resolved.MinimumRowHeight.ToEmus())));
                 PowerPointLayoutBox tableBounds = new PowerPointLayoutBox(resolved.TableBounds.Left,
-                    resolved.TableBounds.Top, resolved.TableBounds.Width,
-                    PowerPointUnits.FromPoints(tableHeightPoints));
+                    resolved.TableBounds.Top, resolved.TableBounds.Width, tableHeight);
                 PowerPointTable table = slide.AddTable(rows.GetRange(page.Offset, page.Count), bindings,
                     tableBounds, includeHeaders);
-                ApplyRowHeights(table, resolved.MinimumRowHeightPoints);
+                ApplyRowHeights(table, resolved.MinimumRowHeight);
                 resolved.ConfigureTable?.Invoke(table, context);
                 slides.Add(slide);
                 tables.Add(table);
@@ -158,8 +157,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static List<PageSlice> CreatePageSlices(int rowCount, PowerPointTablePaginationOptions options) {
-            int physicalCapacity = Math.Max(1,
-                (int)Math.Floor(options.TableBounds.HeightPoints / options.MinimumRowHeightPoints));
+            int physicalCapacity = (int)Math.Min(int.MaxValue, Math.Max(1L,
+                options.TableBounds.Height.ToEmus() / options.MinimumRowHeight.ToEmus()));
             int offset = 0;
             int pageIndex = 0;
             var pages = new List<PageSlice>();
@@ -182,15 +181,15 @@ namespace OfficeIMO.PowerPoint {
             return pages;
         }
 
-        private static void ApplyRowHeights(PowerPointTable table, double rowHeightPoints) {
+        private static void ApplyRowHeights(PowerPointTable table, OfficeLength rowHeight) {
             IReadOnlyList<PowerPointTableRow> rows = table.RowItems;
             for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
-                rows[rowIndex].HeightPoints = rowHeightPoints;
+                rows[rowIndex].Height = rowHeight;
             }
         }
 
         private static void ValidateTableBounds(PowerPointLayoutBox bounds) {
-            if (bounds.Left < 0L || bounds.Top < 0L || bounds.Width <= 0L || bounds.Height <= 0L) {
+            if (bounds.Left.ToEmus() < 0L || bounds.Top.ToEmus() < 0L || bounds.Width.ToEmus() <= 0L || bounds.Height.ToEmus() <= 0L) {
                 throw new ArgumentOutOfRangeException(nameof(bounds),
                     "Table bounds must use non-negative coordinates and positive dimensions.");
             }

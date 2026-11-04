@@ -6,12 +6,12 @@ namespace OfficeIMO.Pdf;
 internal abstract class PdfListBlock : IPdfBlock {
     protected PdfListBlock(
         System.Collections.Generic.IEnumerable<string> items,
-        PdfAlign align,
-        PdfColor? color,
+        OfficeAlignment align,
+        global::OfficeIMO.OfficeColor? color,
         PdfListStyle? style,
         string validationName) {
         Guard.NotNull(items, nameof(items));
-        Guard.LeftCenterRightAlign(align, nameof(align), validationName);
+        align = Guard.LeftCenterRightAlign(align, nameof(align), validationName);
 
         var richItems = new System.Collections.Generic.List<PdfListItem>();
         foreach (string? item in items) {
@@ -25,21 +25,26 @@ internal abstract class PdfListBlock : IPdfBlock {
         Style = style?.Clone();
         RichItems = richItems.AsReadOnly();
         Items = CreateTextSnapshot(richItems);
+        HasCustomMarkers = false;
     }
 
     protected PdfListBlock(
         System.Collections.Generic.IEnumerable<PdfListItem> items,
-        PdfAlign align,
-        PdfColor? color,
+        OfficeAlignment align,
+        global::OfficeIMO.OfficeColor? color,
         PdfListStyle? style,
         string validationName) {
         Guard.NotNull(items, nameof(items));
-        Guard.LeftCenterRightAlign(align, nameof(align), validationName);
+        align = Guard.LeftCenterRightAlign(align, nameof(align), validationName);
 
         var richItems = new System.Collections.Generic.List<PdfListItem>();
+        bool hasCustomMarkers = false;
         foreach (PdfListItem? item in items) {
             if (item != null) {
-                richItems.Add(new PdfListItem(item.Runs, item.BookmarkName, item.Marker));
+                richItems.Add(new PdfListItem(item.Runs, item.BookmarkName, item.Marker) {
+                    BookmarkAliases = item.BookmarkAliases.ToArray()
+                });
+                hasCustomMarkers |= item.Marker != null;
             }
         }
 
@@ -48,15 +53,18 @@ internal abstract class PdfListBlock : IPdfBlock {
         Style = style?.Clone();
         RichItems = richItems.AsReadOnly();
         Items = CreateTextSnapshot(richItems);
+        HasCustomMarkers = hasCustomMarkers;
     }
 
     public System.Collections.Generic.IReadOnlyList<string> Items { get; }
 
     public System.Collections.Generic.IReadOnlyList<PdfListItem> RichItems { get; }
 
-    public PdfAlign Align { get; }
+    internal bool HasCustomMarkers { get; }
 
-    public PdfColor? Color { get; }
+    public OfficeAlignment Align { get; }
+
+    public global::OfficeIMO.OfficeColor? Color { get; }
 
     public PdfListStyle? Style { get; }
 
@@ -71,8 +79,8 @@ internal abstract class PdfListBlock : IPdfBlock {
     internal string GetMarker(int itemIndex) =>
         RichItems[itemIndex].Marker ?? GetDefaultMarker(itemIndex);
 
-    internal PdfAlign GetMarkerAlign(PdfListStyle? style) =>
-        style?.MarkerAlign ?? (IsNumbered ? PdfAlign.Right : PdfAlign.Left);
+    internal OfficeAlignment GetMarkerAlign(PdfListStyle? style) =>
+        style?.MarkerAlign ?? (IsNumbered ? OfficeAlignment.Right : OfficeAlignment.Left);
 
     private static System.Collections.ObjectModel.ReadOnlyCollection<string> CreateTextSnapshot(
         System.Collections.Generic.List<PdfListItem> items) {

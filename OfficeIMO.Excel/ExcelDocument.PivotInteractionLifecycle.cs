@@ -81,8 +81,8 @@ namespace OfficeIMO.Excel {
             string name,
             int row,
             int column,
-            int widthPixels,
-            int heightPixels,
+            OfficeLength width,
+            OfficeLength height,
             bool timeline) {
             WorksheetPart worksheetPart = sheet.WorksheetPart;
             DrawingsPart drawingsPart;
@@ -98,8 +98,8 @@ namespace OfficeIMO.Excel {
                 drawingsPart.WorksheetDrawing ??= new Xdr.WorksheetDrawing();
             }
 
-            long width = (long)Math.Round(widthPixels * 9525D);
-            long height = (long)Math.Round(heightPixels * 9525D);
+            long nativeWidth = width.ToEmus();
+            long nativeHeight = height.ToEmus();
             UInt32Value id = NextPivotInteractionDrawingId(drawingsPart);
             OpenXmlElement graphicReference = timeline
                 ? new X15TimelineDrawing.TimeSlicer { Name = name }
@@ -109,7 +109,7 @@ namespace OfficeIMO.Excel {
                 new Xdr.NonVisualGraphicFrameProperties(
                     new Xdr.NonVisualDrawingProperties { Id = id, Name = name },
                     new Xdr.NonVisualGraphicFrameDrawingProperties(new GraphicFrameLocks { NoChangeAspect = true })),
-                new Xdr.Transform(new Offset { X = 0, Y = 0 }, new Extents { Cx = width, Cy = height }),
+                new Xdr.Transform(new Offset { X = 0, Y = 0 }, new Extents { Cx = nativeWidth, Cy = nativeHeight }),
                 new Graphic(new GraphicData(graphicReference) { Uri = graphicUri }));
             drawingsPart.WorksheetDrawing!.Append(new Xdr.OneCellAnchor(
                 new Xdr.FromMarker(
@@ -117,7 +117,7 @@ namespace OfficeIMO.Excel {
                     new Xdr.ColumnOffset("0"),
                     new Xdr.RowId((row - 1).ToString(CultureInfo.InvariantCulture)),
                     new Xdr.RowOffset("0")),
-                new Xdr.Extent { Cx = width, Cy = height },
+                new Xdr.Extent { Cx = nativeWidth, Cy = nativeHeight },
                 frame,
                 new Xdr.ClientData()));
             drawingsPart.WorksheetDrawing!.Save();

@@ -101,7 +101,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (_packagePropertiesDirty) {
+            if (_packagePropertiesDirty && _materializedDirectDataSetFastSaveModel?.WorkbookStyles == null) {
                 skipReason = "Package properties changed.";
                 return false;
             }
@@ -263,7 +263,7 @@ namespace OfficeIMO.Excel {
                 var worksheet = worksheetPart.Worksheet;
                 if (worksheet == null
                     || !CanWriteSimpleWorksheet(worksheetPart, worksheet, out _, allowDrawings: true, allowPivotTables: true)
-                    || WorksheetDependsOnWorkbookGlobalParts(worksheetPart, worksheet)) {
+                    || (model.DirectDataSetModel.WorkbookStyles == null && WorksheetDependsOnWorkbookGlobalParts(worksheetPart, worksheet))) {
                     return false;
                 }
 

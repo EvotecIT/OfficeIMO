@@ -14,7 +14,7 @@ public sealed class PublisherNativeFrameLayoutTests {
         Assert.Equal(7.2, last.ColumnSpacing, 6);
 
         document.SetTextFrameLayout(first.Id, 2, 0, first.Padding, first.VerticalAlignment);
-        PublisherDocument reopened = PublisherDocument.Load(document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        PublisherDocument reopened = PublisherDocument.Load(document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         PublisherTextFrame actual = Assert.Single(reopened.Pages[0].TextFrames);
         Assert.Equal(2, actual.ColumnCount);
         Assert.Equal(0, actual.ColumnSpacing);
@@ -46,8 +46,8 @@ public sealed class PublisherNativeFrameLayoutTests {
         }).ToArray();
         foreach (var value in expected)
             document.SetTextFrameLayout(value.Id, value.Columns, value.Spacing, value.Padding, value.Alignment);
-        Assert.Throws<OfficeConversionException>(() => document.ToPubBytes());
-        byte[] candidate = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        Assert.Throws<OfficeConversionException>(() => document.ToBytes());
+        byte[] candidate = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         PublisherDocument reopened = PublisherDocument.Load(candidate);
         Assert.Equal(document.TextStories.Select(story => (story.Id, story.Text)), reopened.TextStories.Select(story => (story.Id, story.Text)));
         Assert.Equal(document.Pages.Select(page => (page.Id, page.MasterPageId)), reopened.Pages.Select(page => (page.Id, page.MasterPageId)));
@@ -66,7 +66,7 @@ public sealed class PublisherNativeFrameLayoutTests {
         Assert.Equal(source, File.ReadAllBytes(PublisherNativeTests.Fixture($"NativeComparison/{fixture}")));
         foreach (PublisherTextFrame original in frames)
             reopened.SetTextFrameLayout(original.Id, original.ColumnCount, original.ColumnSpacing, original.Padding, original.VerticalAlignment);
-        PublisherDocument reset = PublisherDocument.Load(reopened.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        PublisherDocument reset = PublisherDocument.Load(reopened.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         foreach (PublisherTextFrame original in frames) {
             PublisherTextFrame frame = reset.Pages.Concat(reset.MasterPages).SelectMany(page => page.TextFrames).Single(item => item.Id == original.Id);
             Assert.Equal(original.ColumnCount, frame.ColumnCount); Assert.Equal(original.ColumnSpacing, frame.ColumnSpacing);
@@ -81,7 +81,7 @@ public sealed class PublisherNativeFrameLayoutTests {
         document.SetTextFrameLayout(frame.Id, 2, 12, new OfficeTextPadding(0.5 / 12700, 0, 0, 0), OfficeTextVerticalAlignment.Top);
         var preparation = document.PrepareNativeBytes(64 * 1024 * 1024);
         Assert.False(preparation.IsPrepared);
-        Assert.Contains(preparation.FidelityDiagnostics, diagnostic => diagnostic.Message.Contains("EMU"));
+        Assert.Contains(preparation.Diagnostics, diagnostic => diagnostic.Message.Contains("EMU"));
     }
 
     private static OfficeCompoundFile Compound(byte[] bytes) {
@@ -96,18 +96,18 @@ public sealed class PublisherNativeFrameLayoutTests {
         byte[] source = PublisherInputContractTests.Mutate("Contents", bytes => {
             if (invalid == "length") { bytes[8] ^= 1; return; }
             var data = new PublisherBinaryData(bytes, "Contents");
-            var blocks = new PublisherBlockReader(data, new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None));
+            var blocks = new PublisherBlockReader(data, new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None));
             PublisherBlock directory = blocks.Chunk(data.Offset(data.U32(0x1A))).Single(field => field.Type == 0x90);
             PublisherBlock slot = blocks.Children(directory).First(field => field.Type == 0x88);
             PublisherBlock offset = blocks.Children(slot).Single(field => field.Id == 4);
             bytes[offset.Offset - 1] = 0x20;
         }, "NativeComparison/Text/native-text.pub");
         PublisherDocument document = PublisherDocument.Load(source);
-        Assert.Equal(source, document.ToPubBytes());
+        Assert.Equal(source, document.ToBytes());
         PublisherTextFrame frame = Assert.Single(document.Pages[0].TextFrames);
         document.SetTextFrameLayout(frame.Id, frame.ColumnCount, frame.ColumnSpacing, frame.Padding, OfficeTextVerticalAlignment.Center);
         PublisherNativePreparation result = document.PrepareNativeBytes(64 * 1024 * 1024);
         Assert.False(result.IsPrepared);
-        Assert.Contains(result.FidelityDiagnostics, diagnostic => diagnostic.Message.Contains("relocation"));
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("relocation"));
     }
 }

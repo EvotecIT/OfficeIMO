@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         public void CodeBlock_Expands_Fence_For_Inner_Backticks() {
             var snippet = "echo ```value````";
             var expectedFence = MarkdownFence.BuildSafeFence(snippet);
-            var md = MarkdownDoc.Create().Code("bash", snippet);
+            var md = MarkdownDocument.Create().Code("bash", snippet);
 
             var lines = md.ToMarkdown().Replace("\r", string.Empty)
                 .Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         public void CodeBlock_Handles_Backticks_With_Trailing_Spaces() {
             var snippet = "```   ";
             var expectedFence = MarkdownFence.BuildSafeFence(snippet);
-            var md = MarkdownDoc.Create().Code("text", snippet);
+            var md = MarkdownDocument.Create().Code("text", snippet);
 
             var lines = md.ToMarkdown().Replace("\r", string.Empty)
                 .Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
@@ -35,10 +35,10 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         [Fact]
         public void CodeBlock_RoundTrips_With_Adaptive_Fence_Lengths() {
             var snippet = "echo ```value````"; // contains a run of 4 backticks
-            var original = MarkdownDoc.Create().Code("bash", snippet);
+            var original = MarkdownDocument.Create().Code("bash", snippet);
 
             var markdown = original.ToMarkdown();
-            var parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
+            var parsed = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown);
 
             var block = Assert.Single(parsed.Blocks);
             var code = Assert.IsType<CodeBlock>(block);

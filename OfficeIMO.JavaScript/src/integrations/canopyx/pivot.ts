@@ -62,7 +62,10 @@ export function canopyPivot(request: CanopyCapture["request"]): CanopyPivotMappi
 }
 
 /** Per-cell formats preserve already-computed fractional percentages, ranks and differences. */
-export function pivotNumberFormat(cell: { readonly mode?: string; readonly numberFormat?: string }): string {
+export function pivotNumberFormat(cell: { readonly mode?: string; readonly numberFormat?: string }): string | undefined {
+  // Raw-value aggregates need no decimal declaration. Transformed values still
+  // require the producer's frozen format (especially percent scaling).
+  if (cell.mode === "value" && cell.numberFormat === undefined) return undefined;
   if (!["value", "percentGrandTotal", "percentParent", "percentColumn", "percentRow", "runningTotal", "rank", "difference", "percentChange"].includes(cell.mode ?? "") ||
     typeof cell.numberFormat !== "string" || !cell.numberFormat.length) throw new TypeError("Numeric pivot cells require a frozen mode and native numberFormat.");
   return cell.numberFormat;

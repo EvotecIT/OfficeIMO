@@ -26,7 +26,7 @@ public partial class Excel {
                 + Row(5000, "<c r=\"A5000\"><v>9</v></c>") + suffix
                 + "</sheetData></worksheet>";
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.Unicode.GetBytes(xml));
-            using var reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions { InferSchema = false });
+            using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { InferSchema = false });
             Assert.Equal(2, reader.FieldCount);
             Assert.Equal("Id", reader.GetName(0));
             Assert.Equal("Note", reader.GetName(1));

@@ -1,6 +1,6 @@
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     private enum SimpleInlineTokenKind {
         Strong,
         Emphasis,
@@ -20,7 +20,7 @@ public static partial class MarkdownReader {
 
     private static bool TryParseSimpleCommonMarkInlines(
         string text,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState? state,
         MarkdownInlineSourceMap? sourceMap,
         out InlineSequence sequence) {
@@ -106,7 +106,7 @@ public static partial class MarkdownReader {
 
     private static bool ValidateSimpleCommonMarkInlineTokens(
         string text,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         bool allowLiteralBrackets) {
         bool foundToken = false;
         bool foundLiteralBracket = false;
@@ -173,7 +173,7 @@ public static partial class MarkdownReader {
 
     private static bool TryParsePlainDoubleAsteriskInlines(
         string text,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState? state,
         MarkdownInlineSourceMap? sourceMap,
         out InlineSequence sequence) {
@@ -303,7 +303,7 @@ public static partial class MarkdownReader {
     private static bool TryReadSimpleCommonMarkInlineToken(
         string text,
         int start,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         out SimpleInlineToken token) {
         token = default;
         if (start < 0 || start >= text.Length) {
@@ -424,7 +424,7 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static bool IsSimpleEmphasisContent(string text, int start, int length, MarkdownReaderOptions options) {
+    private static bool IsSimpleEmphasisContent(string text, int start, int length, MarkdownLoadOptions options) {
         if (length <= 0 || start < 0 || start + length > text.Length) {
             return false;
         }
@@ -456,7 +456,7 @@ public static partial class MarkdownReader {
         string text,
         int start,
         int length,
-        MarkdownReaderOptions options) {
+        MarkdownLoadOptions options) {
         int end = start + length;
         int textStart = start;
         for (int position = start; position < end; position++) {

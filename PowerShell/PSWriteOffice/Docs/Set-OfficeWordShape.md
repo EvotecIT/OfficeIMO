@@ -9,7 +9,7 @@ schema: 2.0.0
 Updates OfficeIMO Word shape metadata, sizing, and colors.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Set-OfficeWordShape [-Shape] <WordShape> [-Width <Double>] [-Height <Double>] [-Left <Double>] [-Top <Double>] [-Rotation <Double>] [-FillColor <string>] [-StrokeColor <string>] [-StrokeWidth <Double>] [-Stroked <Boolean>] [-ZIndex <Int32>] [-Title <string>] [-Description <string>] [-Hidden <Boolean>] [-PassThru] [<CommonParameters>]
 ```
@@ -21,7 +21,7 @@ Updates OfficeIMO Word shape metadata, sizing, and colors.
 
 ### EXAMPLE 1
 ```powershell
-PS> $doc = Get-OfficeWord -Path .\Report.docx
+PS> $doc = Open-OfficeWord -Path .\Report.docx
 $doc |
     Get-OfficeWordShape |
     Set-OfficeWordShape -FillColor '#fff7e6' -StrokeColor '#fa8c16' -StrokeWidth 1.25 -Description 'Highlighted callout'
@@ -37,7 +37,7 @@ Shape alternate text metadata.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -53,7 +53,7 @@ Fill color. Named colors and hexadecimal values are accepted.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -69,7 +69,7 @@ Shape height in points.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -85,7 +85,7 @@ Whether the shape is hidden.
 
 ```yaml
 Type: Boolean
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -101,7 +101,7 @@ Anchored left position in points.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -117,7 +117,7 @@ Emit the updated shape.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -133,7 +133,7 @@ Shape rotation in degrees.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -149,7 +149,7 @@ Shape to update.
 
 ```yaml
 Type: WordShape
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -165,7 +165,7 @@ Stroke color. Named colors and hexadecimal values are accepted.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -181,7 +181,7 @@ Whether the shape stroke is enabled.
 
 ```yaml
 Type: Boolean
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -197,7 +197,7 @@ Stroke width in points.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -213,7 +213,7 @@ Shape title metadata.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -229,7 +229,7 @@ Anchored top position in points.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -245,7 +245,7 @@ Shape width in points.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -261,7 +261,7 @@ Shape z-index.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

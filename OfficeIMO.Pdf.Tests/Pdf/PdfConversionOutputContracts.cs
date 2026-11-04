@@ -1,3 +1,4 @@
+using OfficeIMO.Pdf.PowerPoint;
 using System.Threading;
 using System.Threading.Tasks;
 using OfficeIMO.Html.Pdf;
@@ -14,18 +15,12 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfConversionOutputContracts {
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void HtmlStreamSavesObserveCancellationWhenOutputBegins(bool resultPath) {
+    [Fact]
+    public void HtmlStreamSavesObserveCancellationWhenOutputBegins() {
         using var cancellation = new CancellationTokenSource();
         using var destination = new CancelWhenOutputBeginsStream(cancellation);
         HtmlConversionDocument html = HtmlConversionDocument.Parse("<p>Cancel after HTML conversion</p>");
-        if (resultPath) {
-            Assert.Throws<OperationCanceledException>(() => html.SaveAsPdfResult(destination, cancellationToken: cancellation.Token));
-        } else {
-            Assert.Throws<OperationCanceledException>(() => html.SaveAsPdf(destination, cancellationToken: cancellation.Token));
-        }
+        Assert.Throws<OperationCanceledException>(() => html.SaveAsPdf(destination, cancellationToken: cancellation.Token));
         Assert.True(destination.OutputBegan);
         Assert.Equal(0, destination.Length);
     }
@@ -34,58 +29,49 @@ public sealed class PdfConversionOutputContracts {
     public void MhtmlSynchronousConversionObservesCancellationDuringHtmlPolicyEvaluation() {
         using var cancellation = new CancellationTokenSource();
         bool evaluatedPolicy = false;
-        var options = new HtmlToPdfOptions();
+        var options = new HtmlPdfExportOptions();
         options.UrlPolicy.ResolvedUrlTransform = value => {
             evaluatedPolicy = true;
             cancellation.Cancel();
             return value;
         };
         var mhtml = new MhtmlDocument("<a href='https://example.test/next'>Linked text</a>");
-        Assert.Throws<OperationCanceledException>(() => mhtml.ToPdfDocumentResult(options, cancellation.Token));
+        Assert.Throws<OperationCanceledException>(() => mhtml.ToPdf(options, out _, cancellation.Token));
         Assert.True(evaluatedPolicy);
     }
 
     [Theory]
-    [InlineData(false, false)]
-    [InlineData(false, true)]
-    [InlineData(true, false)]
-    [InlineData(true, true)]
-    public async Task PowerPointFileOutputsRetainTheirDestination(bool logicalSource, bool asyncOutput) {
-        PdfDocument generated = PdfDocument.Create();
-        generated.Content.Paragraph(p => p.Text("Presentation output"));
-        PdfDocument opened = PdfDocument.Load(generated.ToBytes());
-        var options = PdfToPowerPointOptions.CreateEditableTables();
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PowerPointFileOutputsRetainTheirDestination(bool asyncOutput) {
+        using PdfDocument generated = PdfDocument.Create();
+        generated.Content.AddParagraph(p => p.AddText("Presentation output"));
+        using PdfDocument opened = PdfDocument.Load(new MemoryStream(generated.ToBytes()));
+        var options = PdfPowerPointExportOptions.CreateEditableTables();
         string path = Path.Combine(Path.GetTempPath(), "officeimo-output-contract-" + Guid.NewGuid().ToString("N") + ".pptx");
         try {
-            OfficeOutputResult<PdfPowerPointConversionReport> result = logicalSource
-                ? asyncOutput ? await opened.Read().SaveAsPowerPointAsync(path, options) : opened.Read().SaveAsPowerPoint(path, options)
-                : asyncOutput ? await opened.SaveAsPowerPointAsync(path, options) : opened.SaveAsPowerPoint(path, options);
-            Assert.True(result.RequireSuccess().Succeeded);
-            Assert.Equal(path, result.OutputPath);
+            OfficeConversionReport report = asyncOutput
+                ? await opened.SaveAsPowerPointAsync(path, options)
+                : opened.SaveAsPowerPoint(path, options);
+            Assert.Equal(path, report.OutputPath);
             Assert.True(new FileInfo(path).Length > 0);
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void PdfOutputPathsShareOverwriteRewindAndOwnership(bool resultPath) {
-        PdfDocument pdf = PdfDocument.Create();
-        pdf.Content.Paragraph(p => p.Text("Output contract"));
+    [Fact]
+    public void PdfOutputPreservesOverwriteRewindAndOwnership() {
+        using PdfDocument pdf = PdfDocument.Create();
+        pdf.Content.AddParagraph(p => p.AddText("Output contract"));
         using var destination = new MemoryStream();
         destination.Write(new byte[50000], 0, 50000);
         destination.Position = 37;
-
-        PdfSaveResult result = resultPath
-            ? new PdfDocumentConversionResult(pdf, new PdfConversionReport()).Save(destination)
-            : pdf.Save(destination);
-
-        Assert.True(result.RequireSuccess().Succeeded);
+        pdf.Save(destination);
         Assert.Equal(0, destination.Position);
         Assert.True(destination.Length < 50000);
-        Assert.Contains("Output contract", PdfDocument.Load(destination.ToArray()).Read().Text);
+        using PdfDocument reopened = PdfDocument.Load(new MemoryStream(destination.ToArray()));
+        Assert.Contains("Output contract", reopened.ExtractText());
         Assert.True(destination.CanWrite);
     }
 
@@ -96,26 +82,25 @@ public sealed class PdfConversionOutputContracts {
         using var destination = new MemoryStream();
         destination.Write(new byte[50000], 0, 50000);
         destination.Position = 37;
-        word.SaveAsPdf(destination).RequireSuccess();
+        word.SaveAsPdf(destination);
         Assert.Equal(0, destination.Position);
         Assert.True(destination.Length < 50000);
         Assert.True(destination.CanWrite);
-        Assert.Contains("Word output contract", PdfDocument.Load(destination.ToArray()).Read().Text);
+        Assert.Contains("Word output contract", PdfDocument.Load(new System.IO.MemoryStream(destination.ToArray())).Read().Text);
     }
 
     [Fact]
     public void SharedOutputGuardRejectsFailureAndReverseSaveRetainsTypedEvidence() {
         var failure = OfficeOutputResult<PdfConversionReport>.FromFailure(null, new IOException("Write failed"));
         Assert.False(((IOfficeResult)failure).Succeeded);
-        Assert.Throws<InvalidOperationException>(() => failure.RequireNoLoss());
+        Assert.ThrowsAny<InvalidOperationException>(() => failure.ThrowIfLoss());
 
         PdfDocument pdf = PdfDocument.Create();
-        pdf.Content.Paragraph(p => p.Text("HTML output"));
+        pdf.Content.AddParagraph(p => p.AddText("HTML output"));
         using var destination = new MemoryStream();
-        OfficeOutputResult<PdfConversionReport> result = PdfDocument.Load(pdf.ToBytes()).SaveAsHtml(destination);
-        Assert.True(((IOfficeOutputResult)result).Succeeded);
+        OfficeConversionReport result = PdfDocument.Load(new System.IO.MemoryStream(pdf.ToBytes())).SaveAsHtml(destination);
         Assert.Null(result.OutputPath);
-        Assert.NotNull(result.Report);
+        Assert.True(result.ItemsWritten > 0);
         Assert.Contains("HTML output", System.Text.Encoding.UTF8.GetString(destination.ToArray()));
         Assert.True(destination.CanWrite);
     }
@@ -130,12 +115,12 @@ public sealed class PdfConversionOutputContracts {
         pdf.Content.Deferred(_ => {
             enteredLayout = true;
             cancellation.Cancel();
-            return content => content.Paragraph(p => p.Text("Canceled during layout"));
+            return content => content.AddParagraph(p => p.AddText("Canceled during layout"));
         });
         var conversion = new PdfDocumentConversionResult(pdf, new PdfConversionReport());
         using var destination = new MemoryStream();
         if (saveResult) {
-            Assert.Throws<OperationCanceledException>(() => conversion.SaveResult(destination, cancellation.Token));
+            Assert.Throws<OperationCanceledException>(() => conversion.TrySaveWithEvidence(destination, cancellation.Token));
         } else {
             Assert.Throws<OperationCanceledException>(() => conversion.ToBytes(cancellation.Token));
         }
@@ -147,8 +132,8 @@ public sealed class PdfConversionOutputContracts {
     public void MarkdownCancellationReachesPdfRenderingAndDoesNotChangeReusableOptions() {
         using var cancellation = new CancellationTokenSource();
         bool enteredLayout = false;
-        var options = new MarkdownToPdfOptions {
-            PdfOptions = new PdfOptions {
+        var options = new MarkdownPdfExportOptions {
+            PdfOptions = new PdfCreateOptions {
                 TextLineBreakCallback = text => {
                     enteredLayout = true;
                     cancellation.Cancel();
@@ -156,10 +141,10 @@ public sealed class PdfConversionOutputContracts {
                 }
             }
         };
-        MarkdownDoc markdown = MarkdownDoc.Create().P(new string('x', 1000));
-        Assert.Throws<OperationCanceledException>(() => markdown.ToPdfBytes(options, cancellation.Token));
+        MarkdownDocument markdown = MarkdownDocument.Create().P(new string('x', 1000));
+        Assert.Throws<OperationCanceledException>(() => (markdown.ToPdf(options, cancellation.Token)).ToBytes());
         Assert.True(enteredLayout);
-        Assert.NotEmpty(markdown.ToPdfBytes(options));
+        Assert.NotEmpty((markdown.ToPdf(options)).ToBytes());
     }
 
     private sealed class CancelWhenOutputBeginsStream(CancellationTokenSource cancellation) : MemoryStream {

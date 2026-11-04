@@ -5,10 +5,10 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 public sealed class TocMarkerBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownBlock, IContextualHtmlMarkdownBlock {
     /// <summary>Minimum heading level included by the table of contents.</summary>
-    public int MinLevel { get; set; } = TocOptions.DefaultMinLevel;
+    public int MinLevel { get; set; } = MarkdownTocOptions.DefaultMinLevel;
 
     /// <summary>Maximum heading level included by the table of contents.</summary>
-    public int MaxLevel { get; set; } = TocOptions.DefaultMaxLevel;
+    public int MaxLevel { get; set; } = MarkdownTocOptions.DefaultMaxLevel;
 
     /// <summary>When true, output formats may render a title above the generated table of contents.</summary>
     public bool IncludeTitle { get; set; } = true;
@@ -17,7 +17,7 @@ public sealed class TocMarkerBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkd
     public string Title { get; set; } = "Table of Contents";
 
     /// <summary>Heading level for the title when an output format renders it as a heading.</summary>
-    public int TitleLevel { get; set; } = TocOptions.DefaultTitleLevel;
+    public int TitleLevel { get; set; } = MarkdownTocOptions.DefaultTitleLevel;
 
     /// <inheritdoc />
     string IMarkdownBlock.RenderMarkdown() {
@@ -38,7 +38,7 @@ public sealed class TocMarkerBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkd
 
     /// <inheritdoc />
     string IContextualHtmlMarkdownBlock.RenderHtml(MarkdownBodyRenderContext context) {
-        var options = new TocOptions {
+        var options = new MarkdownTocOptions {
             IncludeTitle = IncludeTitle,
             Title = Title,
             TitleLevel = TitleLevel,

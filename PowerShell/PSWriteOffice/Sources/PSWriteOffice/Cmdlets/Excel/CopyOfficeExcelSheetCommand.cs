@@ -1,97 +1,128 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Management.Automation;
 using OfficeIMO.Excel;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Excel;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 
-/// <summary>Copies a worksheet within a workbook or from another workbook.</summary>
-/// <example>
-///   <summary>Copy a worksheet and confirm it exists.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$proof = @(
-///     Copy-OfficeExcelSheet -Path .\Report.xlsx -SourceSheet Data -NewName DataCopy
-///     Get-OfficeExcelSummary -Path .\Report.xlsx -IncludeSheets |
-///         Select-Object -ExpandProperty Sheets |
-///         Where-Object Name -eq 'DataCopy'
-/// )
-/// $proof</code>
-///   <para>Creates a copy of the Data worksheet and reads the workbook summary to verify the new tab.</para>
-/// </example>
-/// <example>
-///   <summary>Copy a worksheet from another workbook using the package fast path.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>Copy-OfficeExcelSheet -Path .\Combined.xlsx -SourcePath .\Incoming.xlsx -SourceSheet RawData -NewName IncomingRaw -CopyMode Package
-/// Get-OfficeExcelUsedRange -Path .\Combined.xlsx -Sheet IncomingRaw</code>
-///   <para>Copies the source worksheet package directly so large workbook merges avoid converting rows into PowerShell objects. Use CopyMode Values only when you explicitly want the reader/writer fallback.</para>
-/// </example>
-[Cmdlet(VerbsCommon.Copy, "OfficeExcelSheet", DefaultParameterSetName = ParameterSetContext, SupportsShouldProcess = true)]
-[Alias("ExcelSheetCopy")]
+/// <summary>Copies selected worksheets within a workbook or from another workbook.</summary>
+/// <para>Source accepts a native ExcelDocument, a workbook path or literal FileInfo. Sheet accepts names,
+/// wildcard patterns, one-based positions and native worksheets. Omit Sheet to copy all source sheets,
+/// or the current worksheet inside a worksheet content block. Native package copy preserves references
+/// between selected sheets. File targets are saved in place; live documents require an explicit save.</para>
+/// <para>PassThru emits native worksheets. For file input, their workbook remains open: close
+/// the returned worksheet's Document with Close-OfficeExcel when finished.</para>
+/// <example><summary>Copy a template sheet inside a live workbook.</summary>
+/// <code>Copy-OfficeExcelSheet -Document $book -Sheet Template -Name October</code></example>
+/// <example><summary>Import regional sheets into an existing workbook.</summary>
+/// <code>Copy-OfficeExcelSheet -LiteralPath ./Combined.xlsx -Source ./Region.xlsx -Sheet 'Sales*' -NamePrefix 'Region '</code></example>
+[Cmdlet(VerbsCommon.Copy, "OfficeExcelSheet", DefaultParameterSetName = "Document", SupportsShouldProcess = true)]
 [OutputType(typeof(ExcelSheet))]
-public sealed class CopyOfficeExcelSheetCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
-    private const string ParameterSetContext = "Context";
-    private const string ParameterSetDocument = "Document";
-    private const string ParameterSetPath = "Path";
-
-    /// <summary>Target workbook path to update.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
-    [Alias("InputPath", "FilePath")]
-    public string Path { get; set; } = string.Empty;
-
-    /// <summary>Target workbook to update outside the DSL context.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public ExcelDocument Document { get; set; } = null!;
-
-    /// <summary>Optional source workbook object for cross-workbook copies.</summary>
-    [Parameter(ParameterSetName = ParameterSetContext)]
-    [Parameter(ParameterSetName = ParameterSetDocument)]
-    [Parameter(ParameterSetName = ParameterSetPath)]
-    public ExcelDocument? SourceDocument { get; set; }
-
-    /// <summary>Optional source workbook path for cross-workbook copies.</summary>
-    [Parameter(ParameterSetName = ParameterSetContext)]
-    [Parameter(ParameterSetName = ParameterSetDocument)]
-    [Parameter(ParameterSetName = ParameterSetPath)]
-    public string? SourcePath { get; set; }
-
-    /// <summary>Worksheet to copy. Defaults to the current sheet inside an ExcelSheet block.</summary>
-    [Parameter(Position = 1)]
-    [Alias("Sheet", "WorksheetName")]
-    public string? SourceSheet { get; set; }
-
-    /// <summary>Name for the copied worksheet.</summary>
-    [Parameter(Mandatory = true, Position = 2)]
-    [Alias("Name", "DestinationSheet")]
-    public string NewName { get; set; } = string.Empty;
-
-    /// <summary>Controls how invalid destination sheet names are handled.</summary>
+public sealed class CopyOfficeExcelSheetCommand : OfficeCmdlet {
+    /// <summary>Gets or sets target workbook paths with filesystem wildcard expansion.</summary>
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = "Path")]
+    [SupportsWildcards, ValidateNotNullOrEmpty]
+    public string[] Path { get; set; } = Array.Empty<string>();
+    /// <summary>Gets or sets literal target paths, including FileInfo.FullName and provider PSPath.</summary>
+    [Parameter(Mandatory = true, ValueFromPipelineByPropertyName = true, ParameterSetName = "LiteralPath")]
+    [Alias("PSPath", "FullName"), ValidateNotNullOrEmpty]
+    public string[] LiteralPath { get; set; } = Array.Empty<string>();
+    /// <summary>Gets or sets a live target workbook; omission uses the enclosing workbook scope.</summary>
+    [Parameter(ValueFromPipeline = true, ParameterSetName = "Document"), ValidateNotNull]
+    public ExcelDocument? Document { get; set; }
+    /// <summary>Gets or sets source worksheet names or patterns, one-based positions or native worksheets.</summary>
+    [Parameter, OfficeSheetTransformation, SupportsWildcards, ValidateNotNullOrEmpty]
+    public OfficeSheetSelector[]? Sheet { get; set; }
+    /// <summary>Gets or sets a new name when copying exactly one worksheet.</summary>
+    [Parameter, ValidateNotNullOrEmpty]
+    public string? Name { get; set; }
+    /// <summary>Gets or sets a prefix for each copied worksheet name.</summary>
+    [Parameter, ValidateNotNullOrEmpty]
+    public string? NamePrefix { get; set; }
+    /// <summary>Gets or sets another workbook as a native ExcelDocument, path or literal FileInfo.</summary>
+    [Parameter, ValidateNotNull]
+    public object? Source { get; set; }
+    /// <summary>Gets or sets how invalid or duplicate destination names are handled.</summary>
     [Parameter]
     public ExcelSheetNameValidationMode ValidationMode { get; set; } = ExcelSheetNameValidationMode.Sanitize;
-
-    /// <summary>Controls whether cross-workbook copies use package-level copy or value materialization.</summary>
+    /// <summary>Gets or sets native package copying or explicit value-only materialization.</summary>
     [Parameter]
     public ExcelWorksheetCopyMode CopyMode { get; set; } = ExcelWorksheetCopyMode.Package;
+    /// <summary>Gets or sets whether to return live copied worksheets; their workbook is caller-owned.</summary>
+    [Parameter]
+    public SwitchParameter PassThru { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        using var targetWorkbook = ExcelWorkbookCommandService.ResolveWorkbook(this, ParameterSetName, Path, Document, readOnly: false);
-        if (!ExcelShouldProcessService.ShouldProcessWorkbook(this, targetWorkbook.Document, Path, "Update Excel workbook")) {
+        if (!Enum.IsDefined(typeof(ExcelSheetNameValidationMode), ValidationMode) ||
+            !Enum.IsDefined(typeof(ExcelWorksheetCopyMode), CopyMode)) {
+            InvalidArgument(new ArgumentException("Choose a defined ValidationMode and CopyMode."), CopyMode);
+            return;
+        }
+        if (ParameterSetName == "Document") {
+            try {
+                ExcelDocument target = Document ?? OfficeDocumentContext.Find<ExcelDocument>()
+                    ?? ExcelDslContext.Current?.Document ?? ResolveDocument(Document);
+                if (ExcelShouldProcessService.ShouldProcessWorkbook(this, target, null, "Copy worksheets"))
+                    WriteCopies(CopySheets(target, useCurrentSheet: Document == null));
+            } catch (ArgumentException error) { InvalidArgument(error, Document); }
+            catch (Exception error) when (error is not (PipelineStoppedException or ActionPreferenceStopException)) {
+                ItemError(error, "excel-sheet-copy-failed", Document);
+            }
             return;
         }
 
-        var target = targetWorkbook.Document;
-        var sourceSheet = ExcelWorkbookCommandService.ResolveSheetNameOrCurrent(this, target, ParameterSetName, SourceSheet);
-        using var sourceWorkbook = ExcelWorkbookCommandService.ResolveSourceWorkbook(this, target, SourceDocument, SourcePath, readOnly: true);
+        bool literal = ParameterSetName == "LiteralPath";
+        foreach (string input in literal ? LiteralPath : Path) {
+            IReadOnlyList<string> paths;
+            try {
+                paths = OfficePath.ResolveInput(SessionState, input, literal,
+                    reportItemError: (error, item) => ItemError(error, "input-unreadable", item));
+            } catch (ArgumentException error) { InvalidArgument(error, input); return; }
+            catch (Exception error) when (error is not (PipelineStoppedException or ActionPreferenceStopException)) {
+                ItemError(error, "input-unreadable", input);
+                continue;
+            }
+            foreach (string path in paths) {
+                if (!ExcelShouldProcessService.ShouldProcessTarget(this, path, "Copy worksheets")) continue;
+                try {
+                    using var target = new ExcelWorkbookCommandScope(
+                        ExcelDocumentService.LoadDocument(path, readOnly: false, autoSave: false), ownsDocument: true);
+                    IReadOnlyList<ExcelSheet> copies = CopySheets(target.Document, useCurrentSheet: false);
+                    target.SaveIfOwned();
+                    WriteCopies(copies);
+                    if (PassThru) target.TransferOwnership();
+                } catch (Exception error) when (error is not (PipelineStoppedException or ActionPreferenceStopException)) {
+                    ItemError(error, "excel-sheet-copy-failed", path);
+                }
+            }
+        }
+    }
 
-        var copied = sourceWorkbook.Document == target
-            ? target.CopyWorksheet(sourceSheet, NewName, ValidationMode)
-            : target.CopyWorksheetFrom(
-                sourceWorkbook.Document,
-                sourceSheet,
-                NewName,
-                ValidationMode,
-                new ExcelWorksheetCopyOptions { CopyMode = CopyMode });
+    private IReadOnlyList<ExcelSheet> CopySheets(ExcelDocument target, bool useCurrentSheet) {
+        using var source = ExcelWorkbookCommandService.ResolveSourceWorkbook(this, target, Source);
+        ExcelSheet? current = Source == null && useCurrentSheet && ExcelDslContext.Current?.CurrentSheet is ExcelSheet selected
+            && ReferenceEquals(selected.Document, target) ? selected : null;
+        IReadOnlyList<ExcelSheet> sheets = ExcelSheetResolver.ResolveMany(source.Document, Sheet, current);
+        if (sheets.Count == 0) throw new ArgumentException("No source worksheets matched Sheet.", nameof(Sheet));
+        if (Name != null) {
+            if (sheets.Count != 1) throw new ArgumentException("Name requires exactly one source worksheet. Use NamePrefix for several sheets.", nameof(Name));
+            return new[] { target.CopyWorksheetFrom(source.Document, sheets[0].Name, (NamePrefix ?? string.Empty) + Name,
+                ValidationMode, new ExcelWorksheetCopyOptions { CopyMode = CopyMode }) };
+        }
+        ExcelWorkbookMergeResult result = target.MergeWorkbookFrom(source.Document, new ExcelWorkbookMergeOptions {
+            SheetNames = sheets.Select(sheet => sheet.Name).ToArray(),
+            SheetNamePrefix = NamePrefix,
+            SheetNameValidationMode = ValidationMode,
+            CopyMode = CopyMode
+        });
+        return result.TargetSheets.Select(name => target[name]).ToArray();
+    }
 
-        targetWorkbook.SaveIfOwned();
-        WritePassThru(copied);
+    private void WriteCopies(IReadOnlyList<ExcelSheet> copies) {
+        if (PassThru) foreach (ExcelSheet copy in copies) WriteObject(copy);
     }
 }

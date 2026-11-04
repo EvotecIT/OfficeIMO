@@ -133,7 +133,7 @@ internal sealed partial class HtmlToMarkdownConverter {
             return false;
         }
 
-        var conversionContext = new HtmlInlineElementConversionContext(element, context.Options, context);
+        var conversionContext = new MarkdownHtmlInlineConversionContext(element, context.Options, context);
         for (int i = 0; i < context.Options.InlineElementConverters.Count; i++) {
             context.CancellationToken.ThrowIfCancellationRequested();
             var converter = context.Options.InlineElementConverters[i];
@@ -398,7 +398,7 @@ internal sealed partial class HtmlToMarkdownConverter {
         }
 
         if (context != null
-            && context.Options.Base64Images != HtmlBase64ImageHandling.Include
+            && context.Options.Base64Images != MarkdownHtmlBase64ImageHandling.Include
             && ResolveImageSourceCandidates(element, context).Any(IsBase64ImageDataUri)) {
             string? accessibleName = GetAccessibleImageName(element);
             return (string.Empty, accessibleName, element.GetAttribute("title"), accessibleName);

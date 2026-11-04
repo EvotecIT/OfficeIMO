@@ -13,7 +13,7 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class StudioAccessibilityContractTests {
     [Fact]
-    public async Task RedactionMarksAnnounceMatchedContentAndTheirPage() {
+    public async Task RedactionMarksAnnounceTheirSearchPageAndOccurrence() {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-redaction-accessibility-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         try {
@@ -21,8 +21,8 @@ public sealed class StudioAccessibilityContractTests {
             PdfDocument.Create(compose => {
                 for (int page = 0; page < 2; page++) {
                     compose.Page(body => body.Content(content => {
-                        content.Item(item => item.Paragraph(text => text.Text("Private account one")));
-                        content.Item(item => item.Paragraph(text => text.Text("Private account two")));
+                        content.Item(item => item.AddParagraph(text => text.AddText("Private account one")));
+                        content.Item(item => item.AddParagraph(text => text.AddText("Private account two")));
                     }));
                 }
             }).Save(source);
@@ -51,10 +51,14 @@ public sealed class StudioAccessibilityContractTests {
                     Assert.Equal(4, window.ViewModel.RedactionMarks.Count);
                     var includeNames = new List<string>();
                     for (int index = 0; index < 4; index++) {
+                        marks.ScrollIntoView(window.ViewModel.RedactionMarks[index]);
+                        await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(
+                            () => window.UpdateLayout(), Avalonia.Threading.DispatcherPriority.Background);
                         ListBoxItem row = Assert.IsType<ListBoxItem>(marks.ContainerFromIndex(index));
                         string name = ControlAutomationPeer.CreatePeerForElement(row)!.GetName();
                         Assert.StartsWith($"Page {index / 2 + 1}:", name, StringComparison.Ordinal);
-                        Assert.Contains("Private account", name, StringComparison.Ordinal);
+                        Assert.Contains("Private account (one|two)", name, StringComparison.Ordinal);
+                        Assert.Contains($"Match {index + 1} of 4", name, StringComparison.Ordinal);
                         CheckBox include = Assert.Single(row.GetVisualDescendants().OfType<CheckBox>());
                         string includeName = ControlAutomationPeer.CreatePeerForElement(include)!.GetName();
                         Assert.Equal($"Include page {index / 2 + 1}: {window.ViewModel.RedactionMarks[index].Description}", includeName);

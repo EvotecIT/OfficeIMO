@@ -11,7 +11,7 @@ public sealed class PublisherFontMetricsTests {
     public void Scoped_fonts_survive_options_cloning_projection_and_pdf_export(bool imported) {
         byte[] font = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestAssets", "Carlito-Regular.ttf"));
         var fonts = new OfficeFontFaceCollection().Add("Arial", font);
-        var options = new PublisherReadOptions { Fonts = fonts };
+        var options = new PublisherLoadOptions { Fonts = fonts };
         byte[]? source = imported ? File.ReadAllBytes(PublisherNativeTests.Fixture(
             "NativeComparison/TextVerticalPlacement/native-textverticalplacement.pub")) : null;
         PublisherDocument document = imported ? PublisherDocument.Load(source!, options) : PublisherDocument.Create(200, 100, options);
@@ -23,11 +23,10 @@ public sealed class PublisherFontMetricsTests {
         OfficeDrawing drawing = document.Pages[0].CreateDrawing();
         Assert.Equal("Arial", Assert.Single(drawing.Fonts.Faces).FamilyName);
         string[] stories = document.TextStories.Select(story => story.Text).ToArray();
-        byte[] pdfBytes = document.ToPdfBytes();
-        PdfReadDocument pdf = PdfReadDocument.Open(pdfBytes);
+        using PdfDocument pdf = PublisherNativeTests.ExportAndReloadPdf(document);
         var spans = pdf.Pages.SelectMany(page => page.GetTextSpans()).Where(span => !string.IsNullOrWhiteSpace(span.Text)).ToArray();
         Assert.NotEmpty(spans);
-        PdfFontInventory inventory = PdfDocument.Load(pdfBytes).Resources.Fonts(new PdfFontInspectionOptions { IncludeEmbeddedProgramBytes = true });
+        PdfFontInventory inventory = pdf.Resources.Fonts(new PdfFontInspectionOptions { IncludeEmbeddedProgramBytes = true });
         Assert.NotEmpty(inventory.Fonts);
         Assert.All(inventory.Fonts, item => {
             Assert.True(item.IsEmbedded);
@@ -36,7 +35,7 @@ public sealed class PublisherFontMetricsTests {
         });
         Assert.Contains(imported ? "V0-" : "Scoped font gyjp", pdf.Pages[0].ExtractText());
         Assert.Equal(stories, document.TextStories.Select(story => story.Text));
-        if (source != null) Assert.Equal(source, document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        if (source != null) Assert.Equal(source, document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         // Returned drawing snapshots are independently mutable too.
         drawing.Fonts.AddAlias("Snapshot alias", "Arial");
         Assert.Single(document.Pages[0].CreateDrawing().Fonts.Faces);

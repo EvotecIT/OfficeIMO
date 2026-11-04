@@ -5,8 +5,8 @@ namespace OfficeIMO.Epub;
 
 public sealed partial class EpubPublication {
     private static List<(EpubMediaOverlayCue Cue, XElement Parallel)> PrepareOverlayNodes(EpubMediaOverlay overlay,
-        XElement body, Dictionary<string, XElement> targets, XElement rootSequence, string overlayPath,
-        string contentPath, CancellationToken token) {
+        XElement body, Dictionary<string, XElement> targets, XElement rootSequence, string contentHref,
+        Action<long> reserveReference, CancellationToken token) {
         if (overlay.Cues == null || overlay.Nodes == null || overlay.Cues.Count > 10000 || overlay.Nodes.Count > 10000 ||
             (overlay.Cues.Count == 0) == (overlay.Nodes.Count == 0))
             throw new ArgumentException("Supply either Cues or Nodes, with one to 10,000 entries.", nameof(overlay));
@@ -29,8 +29,10 @@ public sealed partial class EpubPublication {
                     cues.Add((cue, element));
                 } else if (node is EpubMediaOverlaySequence sequence) {
                     if (depth >= 32) throw new ArgumentException("An overlay supports at most 32 nested sequences.", nameof(overlay));
+                    string escapedId = Uri.EscapeDataString(node.ElementId);
+                    reserveReference((long)contentHref.Length + 1 + escapedId.Length);
                     element = new XElement(Smil + "seq", new XAttribute("id", "seq" + (sequenceId++).ToString(CultureInfo.InvariantCulture)),
-                        new XAttribute(Ops + "textref", RelativeHref(overlayPath, contentPath) + "#" + Uri.EscapeDataString(node.ElementId)));
+                        new XAttribute(Ops + "textref", contentHref + "#" + escapedId));
                     Append(sequence.Children, target, element, depth + 1);
                 } else throw new NotSupportedException("Unsupported narration node.");
                 if (semantic != null) element.SetAttributeValue(Ops + "type", semantic);

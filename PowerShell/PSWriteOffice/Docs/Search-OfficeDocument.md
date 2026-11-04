@@ -6,62 +6,49 @@ schema: 2.0.0
 ---
 # Search-OfficeDocument
 ## SYNOPSIS
-Searches one Reader result or every supported document below file and folder paths.
+Finds regular-expression or literal matches across supported files and folders.
 
 ## SYNTAX
-### Document (Default)
+### Path (Default)
 ```powershell
-Search-OfficeDocument [-InputObject] <OfficeDocumentReadResult> [-Query] <string> [-MatchCase] [-WholeWord] [-MaximumResults <int>] [-AllResults] [<CommonParameters>]
+Search-OfficeDocument [-Path] <string[]> [-Pattern] <string[]> [-SimpleMatch] [-CaseSensitive] [-WholeWord] [-MaximumResults <int>] [-Recurse] [-Extension <string[]>] [-MaximumFiles <int>] [-MaximumStoreItems <int>] [-IncludePageLocations] [-Reader <OfficeDocumentReader>] [-Password <securestring>] [-ThrottleLimit <int>] [<CommonParameters>]
 ```
 
-### Path
+### InputObject
 ```powershell
-Search-OfficeDocument [-Path] <string[]> [-Query] <string> [-MatchCase] [-WholeWord] [-MaximumResults <int>] [-AllResults] [-Recurse] [-Extension <string[]>] [-MaxDocuments <Int32>] [-NoDocumentLimit] [-MaxStoreItems <Int32>] [-AllStoreItems] [-MaxDegreeOfParallelism <Int32>] [-IncludePageLocations] [-StopOnError] [<CommonParameters>]
+Search-OfficeDocument [-InputObject] <OfficeDocumentReadResult> [-Pattern] <string[]> [-SimpleMatch] [-CaseSensitive] [-WholeWord] [-MaximumResults <int>] [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Search-OfficeDocument [-Pattern] <string[]> -LiteralPath <string[]> [-SimpleMatch] [-CaseSensitive] [-WholeWord] [-MaximumResults <int>] [-Recurse] [-Extension <string[]>] [-MaximumFiles <int>] [-MaximumStoreItems <int>] [-IncludePageLocations] [-Reader <OfficeDocumentReader>] [-Password <securestring>] [-ThrottleLimit <int>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Searches one Reader result or every supported document below file and folder paths.
+Finds regular-expression or literal matches across supported files and folders.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> Search-OfficeDocument -Path .\Evidence -Recurse -Query 'retention period'
+Search-OfficeDocument ./Reports -Recurse -Pattern 'INV-\d+'
 ```
 
-Automatically reads supported Word, Excel, PowerPoint, PDF, email, PST, OST, and other registered formats.
 
 ### EXAMPLE 2
 ```powershell
-PS> Search-OfficeDocument -Path .\Evidence -Recurse -Query 'invoice' -NoDocumentLimit -AllStoreItems -AllResults
+Read-OfficeDocument ./Report.docx | Search-OfficeDocument -Pattern 'retention period' -SimpleMatch
 ```
 
-Unlimited modes are explicit because very large stores and document collections can consume substantial resources.
 
 ## PARAMETERS
 
-### -AllResults
-Return every occurrence from each document instead of applying the default result ceiling.
+### -CaseSensitive
+Use case-sensitive matching.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Document, Path
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -AllStoreItems
-Project every matching item from each email store.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Path
+Parameter Sets: Path, InputObject, LiteralPath
 Aliases: None
 Possible values:
 
@@ -73,12 +60,12 @@ Accept wildcard characters: False
 ```
 
 ### -Extension
-Optional extensions to include. Registered Reader formats are used automatically when omitted.
+Selected source extensions, with or without leading dots.
 
 ```yaml
 Type: String[]
-Parameter Sets: Path
-Aliases: Extensions
+Parameter Sets: Path, LiteralPath
+Aliases: None
 Possible values:
 
 Required: False
@@ -93,7 +80,7 @@ Compute Word and RTF page locations when supported.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Path
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -105,11 +92,11 @@ Accept wildcard characters: False
 ```
 
 ### -InputObject
-Normalized document returned by Get-OfficeDocument.
+Normalized document to search without rereading a file.
 
 ```yaml
 Type: OfficeDocumentReadResult
-Parameter Sets: Document
+Parameter Sets: InputObject
 Aliases: None
 Possible values:
 
@@ -120,44 +107,28 @@ Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
-### -MatchCase
-Use case-sensitive ordinal matching.
+### -LiteralPath
+Gets or sets input paths without wildcard expansion, binding FileInfo.FullName and provider PSPath.
 
 ```yaml
-Type: SwitchParameter
-Parameter Sets: Document, Path
-Aliases: None
+Type: String[]
+Parameter Sets: LiteralPath
+Aliases: PSPath, FullName
 Possible values:
 
-Required: False
+Required: True
 Position: named
 Default value: None
-Accept pipeline input: False
+Accept pipeline input: True (ByPropertyName)
 Accept wildcard characters: False
 ```
 
-### -MaxDegreeOfParallelism
-Maximum document reads in flight.
+### -MaximumFiles
+Maximum selected files; zero means no limit.
 
 ```yaml
 Type: Int32
-Parameter Sets: Path
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -MaxDocuments
-Maximum documents accepted in one search. The default is 500.
-
-```yaml
-Type: Int32
-Parameter Sets: Path
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -169,27 +140,11 @@ Accept wildcard characters: False
 ```
 
 ### -MaximumResults
-Maximum occurrences returned per document. The default is 1,000.
+Maximum total matches per document across all patterns; zero means no limit.
 
 ```yaml
 Type: Int32
-Parameter Sets: Document, Path
-Aliases: MaxResultsPerDocument
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -MaxStoreItems
-Maximum PST, OST, OLM, or EMLX items projected from each store. The default is 1,000.
-
-```yaml
-Type: Int32
-Parameter Sets: Path
+Parameter Sets: Path, InputObject, LiteralPath
 Aliases: None
 Possible values:
 
@@ -200,12 +155,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -NoDocumentLimit
-Remove the document-count ceiling.
+### -MaximumStoreItems
+Maximum items projected from each mail store; zero means all.
 
 ```yaml
-Type: SwitchParameter
-Parameter Sets: Path
+Type: Int32
+Parameter Sets: Path, LiteralPath
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Password
+Open password for encrypted sources.
+
+```yaml
+Type: SecureString
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -217,27 +188,27 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-File, directory, or wildcard path to search.
+Gets or sets input paths with provider wildcard expansion.
 
 ```yaml
 Type: String[]
 Parameter Sets: Path
-Aliases: FullName, FilePath
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue, ByPropertyName)
-Accept wildcard characters: False
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: True
 ```
 
-### -Query
-Text to find in normalized document blocks.
+### -Pattern
+One or more regular expressions, or literal strings with SimpleMatch.
 
 ```yaml
-Type: String
-Parameter Sets: Document, Path
+Type: String[]
+Parameter Sets: Path, InputObject, LiteralPath
 Aliases: None
 Possible values:
 
@@ -248,12 +219,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Recurse
-Search subdirectories.
+### -Reader
+Use an immutable, caller-configured Reader.
 
 ```yaml
-Type: SwitchParameter
-Parameter Sets: Path
+Type: OfficeDocumentReader
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -264,12 +235,44 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -StopOnError
-Terminate the search when one document cannot be read. The default reports the error and continues.
+### -Recurse
+Include subfolders.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Path
+Parameter Sets: Path, LiteralPath
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -SimpleMatch
+Treat patterns as literal text.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Path, InputObject, LiteralPath
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -ThrottleLimit
+Gets or sets the maximum number of concurrent background operations.
+
+```yaml
+Type: Int32
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -281,11 +284,11 @@ Accept wildcard characters: False
 ```
 
 ### -WholeWord
-Return only occurrences surrounded by non-word characters.
+Accept matches only at word boundaries.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Document, Path
+Parameter Sets: Path, InputObject, LiteralPath
 Aliases: None
 Possible values:
 
@@ -306,7 +309,6 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `OfficeIMO.Reader.OfficeDocumentSearchResult`
 - `PSWriteOffice.Models.Reader.OfficeDocumentSearchMatch`: PowerShell-friendly occurrence returned by a path-based document search.
 
 ## RELATED LINKS

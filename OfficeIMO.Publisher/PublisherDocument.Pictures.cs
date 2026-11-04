@@ -14,7 +14,7 @@ public sealed partial class PublisherDocument {
 
     /// <summary>Appends an owned static PNG or JPEG picture to a qualified document or master page and returns its committed immutable snapshot. Bounds use page-local points and positive finite dimensions.</summary>
     /// <remarks>The detected content must have one static frame and normal encoded orientation. Bytes are copied; each call creates a separate embedded asset. The picture is uncropped, has no fill or outline, effects, transform, story or wrap references, and is appended in drawing order. Negative offsets allow clipped bleed. Existing picture edits remain available. Validation, limits, cancellation or projection failure consumes neither the object nor image identifier and leaves the publication unchanged. This is in-memory authoring, without native PUB saving.</remarks>
-    public PublisherPicture AddPicture(uint pageId, byte[] bytes, double x, double y, double width, double height,
+    public PublisherPicture AddImage(uint pageId, byte[] bytes, double x, double y, double width, double height,
         CancellationToken cancellationToken = default) {
         if (bytes == null) throw new ArgumentNullException(nameof(bytes));
         cancellationToken.ThrowIfCancellationRequested();
@@ -33,7 +33,7 @@ public sealed partial class PublisherDocument {
 
     /// <summary>Appends an uncropped picture that shares an existing document image asset. Bounds use page-local points.</summary>
     /// <remarks>The image identifier comes from this document's Images collection. Only single static PNG or JPEG images with normal encoded orientation are admitted. No asset is copied or reserved. The new picture has independent bounds, crop and paint; replacing its image leaves other placements unchanged. Failed validation, cancellation or projection leaves the publication and identifiers unchanged. This is in-memory authoring, without native PUB saving.</remarks>
-    public PublisherPicture AddPicture(uint pageId, int imageId, double x, double y, double width, double height,
+    public PublisherPicture AddImage(uint pageId, int imageId, double x, double y, double width, double height,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (!Finite(x)) throw new ArgumentOutOfRangeException(nameof(x));

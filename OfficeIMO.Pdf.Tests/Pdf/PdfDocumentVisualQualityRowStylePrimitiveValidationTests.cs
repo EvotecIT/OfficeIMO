@@ -22,33 +22,31 @@ public partial class PdfDocumentVisualQualityTests {
         double contentWidth = pageWidth - margin - margin;
         double expectedRightColumnX = margin + ((contentWidth - gutter) / 2) + gutter;
         var tightParagraph = new PdfParagraphStyle {
-            SpacingAfter = 0
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = pageWidth,
-                PageHeight = 220,
-                MarginLeft = margin,
-                MarginRight = margin,
-                MarginTop = 30,
-                MarginBottom = 30,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(pageWidth), global::OfficeIMO.OfficeLength.Points(220)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(margin), Right = global::OfficeIMO.OfficeLength.Points(margin), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                },
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = fontSize,
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(fontSize),
                 DefaultRowStyle = new PdfRowStyle {
-                    Gap = gutter,
-                    SpacingBefore = 14,
-                    SpacingAfter = 16
+                    Gap = global::OfficeIMO.OfficeLength.Points(gutter),
+                    SpacingBefore = global::OfficeIMO.OfficeLength.Points(14),
+                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(16)
                 }
             })
             .Compose(document =>
                 document.Page(page =>
                     page.Content(content =>
                         content
-                            .Column(column => column.Item().Paragraph(p => p.Text("BeforeRow"), style: tightParagraph))
+                            .Column(column => column.Item().AddParagraph(p => p.AddText("BeforeRow"), style: tightParagraph))
                             .Row(row => row
-                                .PercentColumn(50, column => column.Paragraph(p => p.Text("LeftDefaultGap"), style: tightParagraph))
-                                .PercentColumn(50, column => column.Paragraph(p => p.Text("RightDefaultGap"), style: tightParagraph)))
-                            .Column(column => column.Item().Paragraph(p => p.Text("AfterRow"), style: tightParagraph)))))
+                                .PercentColumn(50, column => column.AddParagraph(p => p.AddText("LeftDefaultGap"), style: tightParagraph))
+                                .PercentColumn(50, column => column.AddParagraph(p => p.AddText("RightDefaultGap"), style: tightParagraph)))
+                            .Column(column => column.Item().AddParagraph(p => p.AddText("AfterRow"), style: tightParagraph)))))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -71,20 +69,18 @@ public partial class PdfDocumentVisualQualityTests {
     public void RowStyle_KeepTogetherMovesRowToNextPage() {
         var tightParagraph = new PdfParagraphStyle {
             LineHeight = 1,
-            SpacingAfter = 0
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 260,
-                PageHeight = 170,
-                MarginLeft = 24,
-                MarginRight = 24,
-                MarginTop = 20,
-                MarginBottom = 20,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(170)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(24), Right = global::OfficeIMO.OfficeLength.Points(24), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+                },
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10,
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 DefaultRowStyle = new PdfRowStyle {
-                    Gap = 18,
+                    Gap = global::OfficeIMO.OfficeLength.Points(18),
                     KeepTogether = true
                 }
             })
@@ -94,12 +90,12 @@ public partial class PdfDocumentVisualQualityTests {
                         content
                             .Column(column => {
                                 for (int i = 0; i < 10; i++) {
-                                    column.Item().Paragraph(p => p.Text("IntroLine" + i.ToString(CultureInfo.InvariantCulture)), style: tightParagraph);
+                                    column.Item().AddParagraph(p => p.AddText("IntroLine" + i.ToString(CultureInfo.InvariantCulture)), style: tightParagraph);
                                 }
                             })
                             .Row(row => row
-                                .PercentColumn(50, column => column.Paragraph(p => p.Text("KeptRowLeft has enough text to wrap across several lines inside the first column."), style: tightParagraph))
-                                .PercentColumn(50, column => column.Paragraph(p => p.Text("KeptRowRight should travel with the left column instead of starting on the first page."), style: tightParagraph))))))
+                                .PercentColumn(50, column => column.AddParagraph(p => p.AddText("KeptRowLeft has enough text to wrap across several lines inside the first column."), style: tightParagraph))
+                                .PercentColumn(50, column => column.AddParagraph(p => p.AddText("KeptRowRight should travel with the left column instead of starting on the first page."), style: tightParagraph))))))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -115,15 +111,13 @@ public partial class PdfDocumentVisualQualityTests {
         string longText = string.Join(" ", Enumerable.Repeat("TooTallRowContent", 80));
 
         var exception = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create(new PdfOptions {
-                    PageWidth = 220,
-                    PageHeight = 120,
-                    MarginLeft = 20,
-                    MarginRight = 20,
-                    MarginTop = 20,
-                    MarginBottom = 20,
+            PdfDocument.Create(new PdfCreateOptions {
+                    PageSetup = {
+                        Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(120)),
+                        Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+                    },
                     DefaultFont = PdfStandardFont.Helvetica,
-                    DefaultFontSize = 10,
+                    DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                     DefaultRowStyle = new PdfRowStyle {
                         KeepTogether = true
                     }
@@ -133,7 +127,7 @@ public partial class PdfDocumentVisualQualityTests {
                         page.Content(content =>
                             content.Row(row =>
                                 row.PercentColumn(100, column =>
-                                    column.Paragraph(p => p.Text(longText)))))))
+                                    column.AddParagraph(p => p.AddText(longText)))))))
                 .ToBytes());
 
         Assert.Contains("Row height exceeds the available page content height.", exception.Message, StringComparison.Ordinal);
@@ -155,7 +149,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         var spacingAfterException = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create()
-                .HR(spacingAfter: double.PositiveInfinity));
+                .HR(spacingAfter: -1));
 
         Assert.Contains("Horizontal rule spacing after must be a non-negative finite value.", spacingAfterException.Message, StringComparison.Ordinal);
 
@@ -166,7 +160,7 @@ public partial class PdfDocumentVisualQualityTests {
                         page.Content(content =>
                             content.Row(row =>
                                 row.PercentColumn(100, column =>
-                                    column.HR(thickness: double.NaN)))))));
+                                    column.HR(thickness: OfficeLength.Zero)))))));
 
         Assert.Contains("Horizontal rule thickness must be a positive finite value.", columnException.Message, StringComparison.Ordinal);
     }
@@ -174,13 +168,11 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void HorizontalRule_RejectsHeightExceedingContentArea() {
         var exception = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create(new PdfOptions {
-                    PageWidth = 220,
-                    PageHeight = 140,
-                    MarginLeft = 20,
-                    MarginRight = 20,
-                    MarginTop = 20,
-                    MarginBottom = 20
+            PdfDocument.Create(new PdfCreateOptions {
+                    PageSetup = {
+                        Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(140)),
+                        Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+                    }
                 })
                 .HR(thickness: 110, spacingBefore: 0, spacingAfter: 0)
                 .ToBytes());
@@ -192,14 +184,14 @@ public partial class PdfDocumentVisualQualityTests {
     public void Paragraph_RejectsInvalidSpacing() {
         var spacingBeforeException = Assert.Throws<ArgumentException>(() =>
             new PdfParagraphStyle {
-                SpacingBefore = -1
+                SpacingBefore = global::OfficeIMO.OfficeLength.Points(-1)
             });
 
         Assert.Contains("Paragraph spacing before must be a non-negative finite value.", spacingBeforeException.Message, StringComparison.Ordinal);
 
         var spacingAfterException = Assert.Throws<ArgumentException>(() =>
             new PdfParagraphStyle {
-                SpacingAfter = double.PositiveInfinity
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(-1)
             });
 
         Assert.Contains("Paragraph spacing after must be a non-negative finite value.", spacingAfterException.Message, StringComparison.Ordinal);
@@ -211,56 +203,37 @@ public partial class PdfDocumentVisualQualityTests {
 
         Assert.Contains("Paragraph line height must be a positive finite value.", lineHeightException.Message, StringComparison.Ordinal);
 
-        var leftIndentException = Assert.Throws<ArgumentException>(() =>
-            new PdfParagraphStyle {
-                LeftIndent = double.NegativeInfinity
-            });
-
-        Assert.Contains("Paragraph left indent must be a finite value.", leftIndentException.Message, StringComparison.Ordinal);
-
-        var rightIndentException = Assert.Throws<ArgumentException>(() =>
-            new PdfParagraphStyle {
-                RightIndent = double.NaN
-            });
-
-        Assert.Contains("Paragraph right indent must be a finite value.", rightIndentException.Message, StringComparison.Ordinal);
-
-        var firstLineIndentException = Assert.Throws<ArgumentException>(() =>
-            new PdfParagraphStyle {
-                FirstLineIndent = double.PositiveInfinity
-            });
-
-        Assert.Contains("Paragraph first line indent must be a finite value.", firstLineIndentException.Message, StringComparison.Ordinal);
-
         var tabStopException = Assert.Throws<ArgumentException>(() =>
             new PdfParagraphStyle {
-                DefaultTabStopWidth = double.NaN
+                DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Zero
             });
 
         Assert.Contains("Paragraph default tab stop width must be a positive finite value.", tabStopException.Message, StringComparison.Ordinal);
 
         var firstLineWidthException = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create(new PdfOptions {
-                    PageWidth = 160,
-                    MarginLeft = 20,
-                    MarginRight = 20
+            PdfDocument.Create(new PdfCreateOptions {
+                    PageSetup = {
+                        Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(160), global::OfficeIMO.OfficeLength.Points(792)),
+                        Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20) }
+                    }
                 })
-                .Paragraph(p => p.Text("Invalid first line width"), style: new PdfParagraphStyle {
-                    FirstLineIndent = 120
+                .Paragraph(p => p.AddText("Invalid first line width"), style: new PdfParagraphStyle {
+                    FirstLineIndent = global::OfficeIMO.OfficeLength.Points(120)
                 })
                 .ToBytes());
 
         Assert.Contains("Paragraph first line indent must leave a positive text width.", firstLineWidthException.Message, StringComparison.Ordinal);
 
         Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create(new PdfOptions {
-                    PageWidth = 120,
-                    MarginLeft = 20,
-                    MarginRight = 20
+            PdfDocument.Create(new PdfCreateOptions {
+                    PageSetup = {
+                        Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(792)),
+                        Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20) }
+                    }
                 })
-                .Paragraph(p => p.Text("Invalid text width"), style: new PdfParagraphStyle {
-                    LeftIndent = 50,
-                    RightIndent = 40
+                .Paragraph(p => p.AddText("Invalid text width"), style: new PdfParagraphStyle {
+                    LeftIndent = global::OfficeIMO.OfficeLength.Points(50),
+                    RightIndent = global::OfficeIMO.OfficeLength.Points(40)
                 })
                 .ToBytes());
     }

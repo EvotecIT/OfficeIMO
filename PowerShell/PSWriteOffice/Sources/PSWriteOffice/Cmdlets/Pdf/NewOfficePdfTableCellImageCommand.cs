@@ -44,6 +44,6 @@ public sealed class NewOfficePdfTableCellImageCommand : PSCmdlet
     protected override void ProcessRecord()
     {
         var bytes = PdfImageDocumentSource.FromFile(PdfCommandUtilities.ResolvePath(this, Path)).GetBytes();
-        WriteObject(new PdfTableCellImage(bytes, Width, Height, linkUri: LinkUri, linkContents: LinkContents));
+        WriteObject(new PdfTableCellImage(bytes, global::OfficeIMO.OfficeLength.Points(Width), global::OfficeIMO.OfficeLength.Points(Height), linkUri: LinkUri, linkContents: LinkContents));
     }
 }

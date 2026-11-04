@@ -5,7 +5,7 @@ using System.IO;
 using System.Text;
 using System.Xml;
 using OfficeIMO.Drawing;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 
 namespace OfficeIMO.Visio {
@@ -42,13 +42,13 @@ namespace OfficeIMO.Visio {
             }
 
             if (kind == "ellipse" || kind == "circle") {
-                (double centerX, double centerY) = GetPagePoint(shape, shape.Width / 2D, shape.Height / 2D);
+                (double centerX, double centerY) = GetPagePoint(shape, shape.WidthInches / 2D, shape.HeightInches / 2D);
                 (double cx, double cy) = ToSvg(page, centerX, centerY, projection);
                 writer.WriteStartElement("ellipse", SvgNamespace);
                 writer.WriteNumberAttribute("cx", cx);
                 writer.WriteNumberAttribute("cy", cy);
-                writer.WriteNumberAttribute("rx", Math.Abs(shape.Width * scale / 2D));
-                writer.WriteNumberAttribute("ry", Math.Abs(shape.Height * scale / 2D));
+                writer.WriteNumberAttribute("rx", Math.Abs(shape.WidthInches * scale / 2D));
+                writer.WriteNumberAttribute("ry", Math.Abs(shape.HeightInches * scale / 2D));
                 OfficeTransform matrix = VisioNativeShapeTransform.Create(shape).Matrix;
                 double angle = Math.Atan2(matrix.M12, matrix.M11);
                 if (Math.Abs(angle) > 1e-9) {
@@ -75,10 +75,10 @@ namespace OfficeIMO.Visio {
 
         private static void WriteDatabaseGeometry(XmlWriter writer, VisioPage page, VisioShape shape, VisioRenderProjection projection) {
             double scale = projection.GeometryDensity;
-            (double centerXPage, double centerYPage) = GetPagePoint(shape, shape.LocPinX, shape.LocPinY);
+            (double centerXPage, double centerYPage) = GetPagePoint(shape, shape.LocPinXInches, shape.LocPinYInches);
             (double centerX, double centerY) = ToSvg(page, centerXPage, centerYPage, projection);
-            double width = Math.Max(0.01D, shape.Width * scale);
-            double height = Math.Max(0.01D, shape.Height * scale);
+            double width = Math.Max(0.01D, shape.WidthInches * scale);
+            double height = Math.Max(0.01D, shape.HeightInches * scale);
             double capHeight = Math.Min(height * 0.18D, width * 0.16D);
             double left = centerX - (width / 2D);
             double right = centerX + (width / 2D);
@@ -130,11 +130,11 @@ namespace OfficeIMO.Visio {
             }
 
             double placementScale = string.IsNullOrWhiteSpace(shape.Text) ? 0.58D : 0.34D;
-            double iconSize = Math.Max(0.08D, Math.Min(shape.Width, shape.Height) * placementScale);
-            double localCx = shape.Width / 2D;
+            double iconSize = Math.Max(0.08D, Math.Min(shape.WidthInches, shape.HeightInches) * placementScale);
+            double localCx = shape.WidthInches / 2D;
             double localCy = string.IsNullOrWhiteSpace(shape.Text)
-                ? shape.Height / 2D
-                : shape.Height - Math.Min(shape.Height * 0.28D, iconSize * 0.72D);
+                ? shape.HeightInches / 2D
+                : shape.HeightInches - Math.Min(shape.HeightInches * 0.28D, iconSize * 0.72D);
             (double cx, double cy) = GetPagePoint(shape, localCx, localCy);
             (double x, double y) = ToSvg(page, cx, cy, projection);
             double size = iconSize * scale;
@@ -205,12 +205,12 @@ namespace OfficeIMO.Visio {
             }
 
             double placementScale = string.IsNullOrWhiteSpace(shape.Text) ? 0.64D : 0.42D;
-            double imageWidth = Math.Max(0.01D, shape.Width * placementScale);
-            double imageHeight = Math.Max(0.01D, shape.Height * placementScale);
-            double localCx = shape.Width / 2D;
+            double imageWidth = Math.Max(0.01D, shape.WidthInches * placementScale);
+            double imageHeight = Math.Max(0.01D, shape.HeightInches * placementScale);
+            double localCx = shape.WidthInches / 2D;
             double localCy = string.IsNullOrWhiteSpace(shape.Text)
-                ? shape.Height / 2D
-                : shape.Height - Math.Min(shape.Height * 0.3D, imageHeight * 0.72D);
+                ? shape.HeightInches / 2D
+                : shape.HeightInches - Math.Min(shape.HeightInches * 0.3D, imageHeight * 0.72D);
             (double cx, double cy) = GetPagePoint(shape, localCx, localCy);
             (double centerX, double centerY) = ToSvg(page, cx, cy, projection);
             double width = imageWidth * scale;

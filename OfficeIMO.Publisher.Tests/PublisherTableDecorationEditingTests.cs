@@ -13,7 +13,7 @@ public sealed class PublisherTableDecorationEditingTests {
         PublisherDocument document = PublisherDocument.Load(source);
         PublisherTable snapshot = document.Pages[0].Tables.Single();
         Apply(document, !reverse);
-        byte[] saved = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        byte[] saved = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         PublisherNativeWritingTests.AssertPreservedStorage(source, saved);
         Assert.Equal(Art(expected), Art(saved));
         PublisherTable reopened = PublisherDocument.Load(saved).Pages[0].Tables.Single();
@@ -24,7 +24,7 @@ public sealed class PublisherTableDecorationEditingTests {
         Assert.Equal(reverse ? OfficeColor.FromRgb(192, 224, 192) : OfficeColor.FromRgb(255, 224, 160), snapshot.Cells[0].FillColor);
         Assert.Equal(reverse ? 1D : 2D, snapshot.BorderSegments[0].Side.Width);
         Apply(document, reverse);
-        Assert.Equal(source, document.ToPubBytes());
+        Assert.Equal(source, document.ToBytes());
     }
 
     [Theory]
@@ -39,12 +39,12 @@ public sealed class PublisherTableDecorationEditingTests {
         OfficeColor? requested = insert ? OfficeColor.FromRgb(20, 40, 60) : null;
         document.SetTableCellFillColor(original.Id, row, 0, requested);
         Assert.Equal(requested, document.Pages[0].Tables[0].Cells.Single(cell => cell.RowIndex == row && cell.ColumnIndex == 0).FillColor);
-        var result = document.ToPubBytesResult(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
-        PublisherNativeWritingTests.AssertPreservedStorage(source, result.Value);
-        Assert.Equal(requested, PublisherDocument.Load(result.Value).Pages[0].Tables[0].Cells.Single(cell => cell.RowIndex == row && cell.ColumnIndex == 0).FillColor);
-        Assert.Contains(result.Report.FidelityDiagnostics, item => item.Code == "PUB_NATIVE_TABLE_FILL_UNQUALIFIED" && item.LossKind == OfficeConversionLossKind.Unassessed);
+        byte[] savedBytes = document.ToBytes(new PublisherSaveOptions { AllowLoss = true }, out PublisherSaveReport saveReport);
+        PublisherNativeWritingTests.AssertPreservedStorage(source, savedBytes);
+        Assert.Equal(requested, PublisherDocument.Load(savedBytes).Pages[0].Tables[0].Cells.Single(cell => cell.RowIndex == row && cell.ColumnIndex == 0).FillColor);
+        Assert.Contains(saveReport.Diagnostics, item => item.Code == "PUB_NATIVE_TABLE_FILL_UNQUALIFIED" && item.LossKind == OfficeConversionLossKind.Unassessed);
         document.SetTableCellFillColor(original.Id, row, 0, prior);
-        Assert.Equal(source, document.ToPubBytes());
+        Assert.Equal(source, document.ToBytes());
     }
 
     [Fact]
@@ -54,9 +54,9 @@ public sealed class PublisherTableDecorationEditingTests {
         uint id = document.Pages[0].Tables[0].Id;
         document.SetTableBorderStyle(id, 0, 0, 1, 0, new OfficeBorderSide(OfficeColor.Black, 1D / 3));
         Assert.Equal(1D / 3, document.Pages[0].Tables[0].BorderSegments[0].Side.Width);
-        Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        Assert.Throws<OfficeConversionException>(() => document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         document.SetTableBorderStyle(id, 0, 0, 1, 0, new OfficeBorderSide(OfficeColor.FromRgb(255, 0, 0), 2));
-        Assert.Equal(source, document.ToPubBytes());
+        Assert.Equal(source, document.ToBytes());
     }
 
     [Fact]
@@ -90,7 +90,7 @@ public sealed class PublisherTableDecorationEditingTests {
         Assert.Throws<ArgumentException>(() => document.SetTableBorderStyle(id, 0, 0, 1, 1, new OfficeBorderSide(OfficeColor.Black, 1)));
         Assert.Throws<ArgumentException>(() => document.SetTableBorderStyle(id, 0, 0, 3, 0, new OfficeBorderSide(OfficeColor.Black, 1)));
         Assert.Throws<OperationCanceledException>(() => document.SetTableBorderStyle(id, 0, 0, 1, 0, new OfficeBorderSide(OfficeColor.Black, 1), new CancellationToken(true)));
-        Assert.Equal(source, document.ToPubBytes());
+        Assert.Equal(source, document.ToBytes());
     }
 
     private static void Apply(PublisherDocument document, bool edited) {

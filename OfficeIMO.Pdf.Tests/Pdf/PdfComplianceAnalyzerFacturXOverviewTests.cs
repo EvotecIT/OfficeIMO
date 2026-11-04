@@ -8,7 +8,7 @@ public partial class PdfComplianceAnalyzerTests {
     [Fact]
     public void FacturXReadinessRecognizesXmlDataAttachmentAndReportsEinvoiceGaps() {
         byte[] invoiceXml = CreateCiiXml();
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
                 FileVersion = PdfFileVersion.Pdf17,
                 IncludeStandardFontToUnicodeMaps = true
             }
@@ -63,7 +63,7 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void FacturXGroundworkHelperSatisfiesConfiguredEinvoiceReadinessWithoutEnablingProfile() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigureFacturXGroundwork(CreateCiiXml())
             .SetEmbeddedFileModificationDate("factur-x.xml", new System.DateTimeOffset(2026, 8, 24, 8, 30, 0, System.TimeSpan.Zero));
 
@@ -118,11 +118,11 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void FacturXReadinessReportsMissingOrMismatchedEinvoiceXmpMetadata() {
-        var missingOptions = new PdfOptions()
+        var missingOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(), "application/xml", PdfAssociatedFileRelationship.Data);
-        var mismatchedOptions = new PdfOptions()
+        var mismatchedOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(new PdfElectronicInvoiceMetadata("ORDER", "invoice.xml", "1.0", "EN 16931"))
@@ -144,12 +144,12 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void FacturXReadinessRequiresKnownEinvoiceXmpConformanceLevel() {
-        var invalidOptions = new PdfOptions()
+        var invalidOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("CUSTOM"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(), "application/xml", PdfAssociatedFileRelationship.Data);
-        var basicWlOptions = new PdfOptions()
+        var basicWlOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("BASIC WL"))
@@ -171,22 +171,22 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void FacturXReadinessRequiresKnownCiiProfileContext() {
-        var missingContextOptions = new PdfOptions()
+        var missingContextOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(null), "application/xml", PdfAssociatedFileRelationship.Data);
-        var unknownContextOptions = new PdfOptions()
+        var unknownContextOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml("urn:example:custom-profile"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var substringContextOptions = new PdfOptions()
+        var substringContextOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml("not-en16931-test"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var xRechnungOptions = new PdfOptions()
+        var xRechnungOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("XRECHNUNG"))

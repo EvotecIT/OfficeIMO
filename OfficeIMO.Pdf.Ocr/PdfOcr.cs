@@ -19,7 +19,7 @@ internal static partial class PdfOcr {
         EnsurePngSupport(engineExecution.Capabilities);
         PdfOcrMergeOptions effectiveOptions = options?.Clone() ?? new PdfOcrMergeOptions();
         effectiveOptions.Validate();
-        PdfReadOptions semanticOptions = effectiveOptions.ReadOptions;
+        PdfLoadOptions semanticOptions = effectiveOptions.ReadOptions;
         PdfReadDocument readDocument = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
         PdfReadDocument overlapReadDocument = readOptions?.IncludeArtifactText == true
             ? readDocument

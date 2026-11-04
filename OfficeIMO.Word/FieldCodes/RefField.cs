@@ -2,7 +2,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Represents the REF field code.
     /// </summary>
-    public class RefField : WordFieldCode {
+    public class WordRefField : WordFieldCode {
         /// <summary>
         /// Bookmark to reference.
         /// </summary>

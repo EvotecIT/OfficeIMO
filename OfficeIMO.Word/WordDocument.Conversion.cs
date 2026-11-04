@@ -19,7 +19,7 @@ namespace OfficeIMO.Word {
         /// <param name="destinationPath">Path to the destination DOC or DOCX file.</param>
         /// <param name="options">Optional conversion policy settings.</param>
         /// <returns>The completed conversion result.</returns>
-        public static WordDocumentConversionResult Convert(
+        internal static WordDocumentConversionResult Convert(
             string sourcePath,
             string destinationPath,
             WordDocumentConversionOptions? options = null) {
@@ -32,7 +32,7 @@ namespace OfficeIMO.Word {
         /// <param name="options">Optional conversion policy settings.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>The completed conversion result.</returns>
-        public static async Task<WordDocumentConversionResult> ConvertAsync(
+        internal static async Task<WordDocumentConversionResult> ConvertAsync(
             string sourcePath,
             string destinationPath,
             WordDocumentConversionOptions? options = null,
@@ -150,7 +150,7 @@ namespace OfficeIMO.Word {
                     }
                 } catch (NotSupportedException exception) {
                     diagnostics.Add(new OfficeConversionDiagnostic(
-                        "Word.DestinationFeatureUnsupported",
+                        "word-destination-feature-unsupported",
                         OfficeConversionDiagnosticCategory.DestinationFormat,
                         OfficeConversionDiagnosticSeverity.Error,
                         exception.Message,
@@ -192,6 +192,14 @@ namespace OfficeIMO.Word {
             string sourcePath,
             WordDocumentConversionOptions options,
             CancellationToken cancellationToken) {
+            if (options.LoadOptions != null) {
+                var captured = options.LoadOptions.Snapshot();
+                captured.AccessMode = DocumentAccessMode.ReadWrite;
+                captured.PersistenceMode = DocumentPersistenceMode.Explicit;
+                captured.ReportUnsupportedContent = true;
+                return await LoadAsync(sourcePath, captured, cancellationToken).ConfigureAwait(false);
+            }
+
             if (options.LegacyDocImportOptions != null) {
                 LegacyDocImportOptions importOptions = CreateConversionImportOptions(options.LegacyDocImportOptions);
                 importOptions.Validate();
@@ -270,7 +278,7 @@ namespace OfficeIMO.Word {
             OfficeFormatDescriptor declaredFormat = WordFormatCatalog.GetByExtension(sourcePath);
             if (!declaredFormat.Equals(detectedFormat)) {
                 diagnostics.Add(new OfficeConversionDiagnostic(
-                    "Word.SourceExtensionMismatch",
+                    "word-source-extension-mismatch",
                     OfficeConversionDiagnosticCategory.SourceFormat,
                     OfficeConversionDiagnosticSeverity.Warning,
                     $"The source extension declares {declaredFormat.Id}, but its package declares {detectedFormat.Id}. Package content was used.",
@@ -310,7 +318,7 @@ namespace OfficeIMO.Word {
                     compatibilityMode,
                     preserveLossySource);
                 diagnostics.Add(new OfficeConversionDiagnostic(
-                    "Word.VbaProject.Removed",
+                    "word-vba-project-removed",
                     OfficeConversionDiagnosticCategory.DataLoss,
                     macroState == OfficeCompatibilityState.Blocked
                         ? OfficeConversionDiagnosticSeverity.Error
@@ -331,7 +339,7 @@ namespace OfficeIMO.Word {
                         ? GetWordGenericLossState(compatibilityMode, preserveLossySource)
                         : OfficeCompatibilityState.Blocked;
                     diagnostics.Add(new OfficeConversionDiagnostic(
-                        "Word.DigitalSignature.Invalidated",
+                        "word-digital-signature-invalidated",
                         OfficeConversionDiagnosticCategory.DataLoss,
                         signatureState == OfficeCompatibilityState.Blocked
                             ? OfficeConversionDiagnosticSeverity.Error

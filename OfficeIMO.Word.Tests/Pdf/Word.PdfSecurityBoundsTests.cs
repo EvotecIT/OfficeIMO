@@ -24,7 +24,7 @@ public partial class Word {
         }
         paragraph._paragraph!.Append(nested);
 
-        Assert.Throws<InvalidDataException>(() => word.ToPdfDocumentResult());
+        Assert.Throws<InvalidDataException>(() => word.ConvertToPdfWithEvidence());
     }
 
     [Fact]
@@ -43,7 +43,7 @@ public partial class Word {
         }
         table.Rows[0].Cells[0].Paragraphs[0]._paragraph!.Append((W.Run)nested.FirstChild!.CloneNode(true));
 
-        var result = word.ToPdfDocumentResult();
+        var result = word.ConvertToPdfWithEvidence();
         Assert.True(result.Succeeded);
     }
 
@@ -53,7 +53,7 @@ public partial class Word {
         WordParagraph cell = word.AddTable(1, 1, WordTableStyle.TableNormal).Rows[0].Cells[0].Paragraphs[0];
         byte[] bytes = OfficeRasterImageEncoder.Encode(
             new OfficeRasterImage(2, 2, OfficeColor.Red), OfficeImageExportFormat.Png);
-        using (var imageStream = new MemoryStream(bytes)) cell.InsertImage(imageStream, "nested.png", 10, 10);
+        using (var imageStream = new MemoryStream(bytes)) cell.AddImage(imageStream, "nested.png", OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10));
         W.Run imageRun = (W.Run)cell._run!.CloneNode(true);
         cell._run.Remove();
         W.Paragraph nested = new(imageRun);
@@ -68,7 +68,7 @@ public partial class Word {
         }
         cell._paragraph!.Append((W.Run)nested.FirstChild!.CloneNode(true));
 
-        var result = word.ToPdfDocumentResult(new WordToPdfOptions { MaxImagesPerParagraph = 1 });
+        var result = word.ConvertToPdfWithEvidence(new WordPdfExportOptions { MaxImagesPerParagraph = 1 });
         Assert.True(result.Succeeded);
         var pdf = PdfCore.PdfDocument.Load(result.Value.ToBytes());
         Assert.Single(pdf.Images.Placements());

@@ -18,7 +18,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     })
     .Build();
 
-foreach (ReaderChunk chunk in reader.Read("contacts.dbf")) {
+foreach (ReaderChunk chunk in reader.Enumerate("contacts.dbf")) {
     Console.WriteLine(chunk.Markdown ?? chunk.Text);
 }
 ```
@@ -73,8 +73,8 @@ using (var output = File.CreateText("contacts.csv")) {
 
 using (var rows = DbfDataReader.Open("contacts.dbf"))
 using (var output = File.Create("contacts.xlsx")) {
-    ExcelDocument.WriteDataReader(output, rows,
-        new ExcelTabularWriteOptions { RequireStreaming = true });
+    using var writer = ExcelDocument.CreateWriter(output, leaveOpen: true);
+    writer.WriteTable("Contacts", rows);
 }
 ```
 

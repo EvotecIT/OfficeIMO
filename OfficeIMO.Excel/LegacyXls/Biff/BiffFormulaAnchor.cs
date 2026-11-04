@@ -8,8 +8,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             string firstRange = ranges[0];
-            if (A1.TryParseRange(firstRange, out int startRow, out int startColumn, out _, out _)
-                || A1.TryParseCellReferenceFast(firstRange, out startRow, out startColumn)) {
+            if (ExcelA1.TryParseRange(firstRange, out int startRow, out int startColumn, out _, out _)
+                || ExcelA1.TryParseCellReferenceFast(firstRange, out startRow, out startColumn)) {
                 zeroBasedRow = startRow - 1;
                 zeroBasedColumn = startColumn - 1;
                 return true;

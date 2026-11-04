@@ -11,7 +11,7 @@ internal static partial class PdfWriter {
     private static readonly char[] SoftLineSplitChars = new[] { ' ', '\t' };
     private static readonly char[] DecimalTabAnchorChars = new[] { '.', ',' };
     private static readonly char[] LongTokenDelimiterBreakChars = new[] { '-', '.', '_', '/', '\\', ':', '|' };
-    private static int[] GetValidHyphenationBreakpoints(string token, PdfOptions? options) {
+    private static int[] GetValidHyphenationBreakpoints(string token, PdfCreateOptions? options) {
         PdfTextHyphenationCallback? callback = options?.TextHyphenationCallbackSnapshot;
         if (callback == null || string.IsNullOrEmpty(token)) {
             return Array.Empty<int>();
@@ -77,7 +77,7 @@ internal static partial class PdfWriter {
             .WithTextDirection(styleTemplate.TextDirection);
     }
 
-    private static bool CanWriteRunWithSelectedFont(PdfTextRun run, PdfStandardFont baseFont, PdfOptions? options) {
+    private static bool CanWriteRunWithSelectedFont(PdfTextRun run, PdfStandardFont baseFont, PdfCreateOptions? options) {
         string text = WithoutOptionalBreaks(run.Text ?? string.Empty);
         if (text.Length == 0 || IsLayoutControlRun(run)) {
             return true;
@@ -104,7 +104,7 @@ internal static partial class PdfWriter {
         return CanWriteTextWithSelectedFont(text, fontForRun, options, run);
     }
 
-    private static bool CanWriteTextWithSelectedFont(string text, PdfStandardFont fontForRun, PdfOptions? options, PdfTextRun run) {
+    private static bool CanWriteTextWithSelectedFont(string text, PdfStandardFont fontForRun, PdfCreateOptions? options, PdfTextRun run) {
         if (options != null &&
             options.TryGetEmbeddedStandardFontProgram(fontForRun, out PdfTrueTypeFontProgram? fontProgram) &&
             fontProgram != null) {
@@ -125,7 +125,7 @@ internal static partial class PdfWriter {
     }
 
     private static PdfStandardFont ResolveFontForRun(PdfTextRun run, PdfStandardFont baseFont) {
-        PdfStandardFont runBaseFont = run.Font.HasValue ? ChooseNormal(run.Font.Value) : baseFont;
+        PdfStandardFont runBaseFont = run.StandardFont.HasValue ? ChooseNormal(run.StandardFont.Value) : baseFont;
         return (run.Bold && run.Italic)
             ? ChooseBoldItalic(runBaseFont)
             : run.Bold
@@ -231,7 +231,7 @@ internal static partial class PdfWriter {
         string.Equals(run.Text, "\n", StringComparison.Ordinal) ||
         string.Equals(run.Text, "\t", StringComparison.Ordinal);
 
-    private static PdfAlign ResolveRichLineAlignment(PdfAlign fallback, System.Collections.Generic.IReadOnlyList<PdfAlign?>? lineAlignments, int lineIndex) =>
+    private static OfficeAlignment ResolveRichLineAlignment(OfficeAlignment fallback, System.Collections.Generic.IReadOnlyList<OfficeAlignment?>? lineAlignments, int lineIndex) =>
         lineAlignments != null && lineIndex >= 0 && lineIndex < lineAlignments.Count && lineAlignments[lineIndex].HasValue
             ? lineAlignments[lineIndex]!.Value
             : fallback;

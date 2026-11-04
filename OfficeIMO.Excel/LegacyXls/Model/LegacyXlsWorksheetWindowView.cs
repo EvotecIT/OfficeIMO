@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents BIFF Window2 worksheet-view metadata for one worksheet window.
     /// </summary>
-    public sealed class LegacyXlsWorksheetWindowView {
+    internal sealed class LegacyXlsWorksheetWindowView {
         internal LegacyXlsWorksheetWindowView(
             bool showFormulas,
             bool showGridLines,

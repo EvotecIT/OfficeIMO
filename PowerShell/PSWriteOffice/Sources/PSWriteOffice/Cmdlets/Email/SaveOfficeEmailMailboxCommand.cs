@@ -11,7 +11,7 @@ namespace PSWriteOffice.Cmdlets.Email;
 ///   <code>$options = New-OfficeEmailMailboxWriterOptions -Variant Mboxrd
 /// $mailbox | Save-OfficeEmailMailbox -Path .\Archive.mbox -Options $options -PassThru</code>
 /// </example>
-[Cmdlet(VerbsData.Save, "OfficeEmailMailbox", SupportsShouldProcess = true)]
+[Cmdlet(VerbsData.Save, "OfficeEmailMailbox", SupportsShouldProcess = true, DefaultParameterSetName = "Document")]
 [OutputType(typeof(EmailWriteResult))]
 public sealed class SaveOfficeEmailMailboxCommand : OfficeMutationCmdlet {
     /// <summary>Mailbox to save.</summary>

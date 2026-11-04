@@ -3,8 +3,6 @@ using System.Linq;
 using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 using Wpg = DocumentFormat.OpenXml.Office2010.Word.DrawingGroup;
 
-#nullable enable annotations
-
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
         /// <summary>Gets the native DrawingML shape group hosted by this paragraph, when present.</summary>
@@ -25,8 +23,8 @@ namespace OfficeIMO.Word {
         public WordShapeGroup AddShapeGroup(IEnumerable<WordShapeGroupItem> items) =>
             WordShapeGroup.Add(this, items, null, null);
 
-        /// <summary>Adds a native DrawingML shape group anchored at page-relative point offsets.</summary>
-        public WordShapeGroup AddShapeGroup(IEnumerable<WordShapeGroupItem> items, double leftPt, double topPt) =>
-            WordShapeGroup.Add(this, items, leftPt, topPt);
+        /// <summary>Adds a native DrawingML shape group anchored at page-relative physical offsets.</summary>
+        public WordShapeGroup AddShapeGroup(IEnumerable<WordShapeGroupItem> items, OfficeLength left, OfficeLength top) =>
+            WordShapeGroup.Add(this, items, left, top);
     }
 }

@@ -18,6 +18,7 @@ struct StructureSheetView: View {
         case .flatten: FlattenSheet(session: session)
         case .signatures: SignaturesSheet(session: session)
         case .standard: StandardSheet(session: session)
+        case .compress: CompressSheet(session: session)
         case .health: HealthSheet(session: session)
         case .redact: RedactSheet(session: session)
         case .link: LinkSheet(session: session)
@@ -432,8 +433,10 @@ private struct ExportSheet: View {
                   cancel: cancel, confirmAction: export) {
             if let converted, let notes = converted.notes {
                 Section {
-                    ForEach(notes.split(separator: "\n").map(String.init), id: \.self) { note in
-                        Label(note, systemImage: "exclamationmark.triangle")
+                    DisclosureGroup("Details") {
+                        ForEach(notes.split(separator: "\n").map(String.init), id: \.self) { note in
+                            Text(note).font(.footnote).foregroundStyle(.secondary)
+                        }
                     }
                 } header: {
                     Text("Converted with Notes")

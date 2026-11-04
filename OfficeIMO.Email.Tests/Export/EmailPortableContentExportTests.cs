@@ -39,7 +39,7 @@ public sealed class EmailPortableContentExportTests {
     [InlineData("text/vcard", "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Ada\r\nX-PRIVATE-EXT:keep\r\nEND:VCARD\r\n", false)]
     public void RetainsImportedExtensionsAndBlocksRegenerationAfterMutation(string type, string body, bool isCalendar) {
         byte[] eml = Encoding.UTF8.GetBytes("MIME-Version: 1.0\r\nContent-Type: " + type + "; charset=utf-8\r\n\r\n" + body);
-        using var read = new EmailDocumentReader().Read(eml);
+        using var read = new EmailDocumentReader().ReadDocument(eml);
         EmailDocument document = read.Document;
         byte[] semanticBytes = (byte[])Assert.Single(document.Attachments).Content!.Clone();
         if (isCalendar) {
@@ -95,7 +95,7 @@ public sealed class EmailPortableContentExportTests {
             ? "Content-Type: text/calendar\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:test\r\nBEGIN:VEVENT\r\nUID:" + id + "\r\nDTSTART:20261001T090000Z\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
             : "Content-Type: text/vcard\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\nFN:" + id + "\r\nEND:VCARD\r\n";
         string eml = "MIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=parts\r\n\r\n--parts\r\n" + Part("a") + "--parts\r\n" + Part("b") + "--parts--\r\n";
-        using var read = new EmailDocumentReader().Read(Encoding.UTF8.GetBytes(eml));
+        using var read = new EmailDocumentReader().ReadDocument(Encoding.UTF8.GetBytes(eml));
         if (calendar) Assert.Equal(2, EmailPortableContentExport.ToCalendar(read.Document).Document.Calendars.Count);
         else Assert.Equal(2, EmailPortableContentExport.ToVCard(read.Document).Document.Cards.Count);
         long firstBytes = read.Document.Attachments[0].Content!.LongLength;
@@ -108,7 +108,7 @@ public sealed class EmailPortableContentExportTests {
     public void Utf8ExportNormalizesUnencodedLegacyCharsetWithoutChangingQuotedPrintableBytes() {
         string card = "BEGIN:VCARD\r\nVERSION:2.1\r\nFN;CHARSET=iso-8859-1:José\r\nNOTE;CHARSET=iso-8859-1;ENCODING=QUOTED-PRINTABLE:Jos=E9\r\nEND:VCARD\r\n";
         byte[] source = Encoding.GetEncoding(28591).GetBytes("MIME-Version: 1.0\r\nContent-Type: text/vcard; charset=iso-8859-1\r\n\r\n" + card);
-        using var read = new EmailDocumentReader().Read(source);
+        using var read = new EmailDocumentReader().ReadDocument(source);
         var exported = EmailPortableContentExport.ToVCard(read.Document);
         ContentLineComponent result = VCardDocument.Load(exported.ToBytes()).Cards[0];
         Assert.Equal("utf-8", Assert.Single(result.GetFirstProperty("FN")!.GetParameter("CHARSET")!.Values));
@@ -128,7 +128,7 @@ public sealed class EmailPortableContentExportTests {
     public void RetainedCalendarKeepsEffectiveMimeMethodPerPart() {
         string Part(string uid, string method) => "Content-Type: text/calendar; method=" + method + "\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:test\r\nBEGIN:VEVENT\r\nUID:" + uid + "\r\nDTSTART:20261001T090000Z\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
         string eml = "MIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=parts\r\n\r\n--parts\r\n" + Part("a", "CANCEL") + "--parts\r\n" + Part("b", "REQUEST") + "--parts--\r\n";
-        using var read = new EmailDocumentReader().Read(Encoding.UTF8.GetBytes(eml));
+        using var read = new EmailDocumentReader().ReadDocument(Encoding.UTF8.GetBytes(eml));
         var export = EmailPortableContentExport.ToCalendar(read.Document);
         Assert.Equal(new[] { "CANCEL", "REQUEST" }, export.Document.Calendars.Select(calendar => calendar.GetFirstProperty("METHOD")?.Value));
     }
@@ -138,7 +138,7 @@ public sealed class EmailPortableContentExportTests {
         string card = "BEGIN:VCARD\r\nVERSION:2.1\r\nFN:José\r\nEND:VCARD\r\n";
         byte[] payload = Encoding.GetEncoding(28591).GetBytes(card);
         byte[] eml = Encoding.GetEncoding(28591).GetBytes("MIME-Version: 1.0\r\nContent-Type: text/vcard; charset=iso-8859-1\r\n\r\n" + card);
-        using var read = new EmailDocumentReader().Read(eml);
+        using var read = new EmailDocumentReader().ReadDocument(eml);
         var export = EmailPortableContentExport.ToVCard(read.Document,
             new EmailPortableContentExportOptions(maxSourceBytes: payload.Length, maxOutputBytes: payload.Length * 2));
         Assert.Equal("José", export.Document.Cards[0].GetVCardText("FN"));

@@ -16,11 +16,11 @@ Console.WriteLine(workbook.SourceFormat); // ExcelFileFormat.Xls
 
 workbook.Save("output.xlsx");
 workbook.Save("copy.xls", new ExcelSaveOptions {
-    LossPolicy = OfficeConversionLossPolicy.Allow
+    AllowLoss = true
 });
 
 byte[] xlsx = workbook.ToBytes();
-byte[] xls = workbook.ToXls();
+byte[] xls = workbook.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
 ```
 
 For an independent copy, use `SaveCopy`. For streams, select `ExcelFileFormat.Xlsx` or `ExcelFileFormat.Xls` explicitly.
@@ -50,7 +50,7 @@ The defaults are conservative:
 - output is staged and atomically committed;
 - cross-family OLE input, such as DOC passed to Excel, is rejected clearly.
 
-Set `LossPolicy = OfficeConversionLossPolicy.Allow` only for reviewed, intentional loss. The same policy exists on conversion and save options.
+Set `AllowLoss = true` only for reviewed, intentional loss. The same policy exists on conversion and save options.
 
 ## XLS import capability
 
@@ -143,7 +143,7 @@ session with independent stream-position accounting and the format's plaintext
 record exceptions. VBA and some compound metadata remain unencrypted according
 to the format. Supported CryptoAPI input also restores encrypted summary metadata
 and nested storage for subsequent native preservation saves. See the
-[password-to-open contract](../OfficeIMO.Excel/README.md#password-to-open-output)
+[password-to-open contract](officeimo.excel-guide.md#password-to-open-output)
 for security limits and the native XLSB profile. Workbook/sheet protection is a
 separate contract.
 
@@ -173,19 +173,17 @@ corpus guide records the remaining Windows producer checks.
 ## Detailed import assessment
 
 ```csharp
-using OfficeIMO.Excel.LegacyXls;
+using OfficeIMO;
+using OfficeIMO.Excel;
 
-using LegacyXlsLoadResult load = ExcelDocument.LoadLegacyXlsWithReport("input.xls");
-LegacyXlsImportSummary summary = load.Summary;
-
-Console.WriteLine($"Worksheets: {summary.WorksheetCount}");
-Console.WriteLine($"Chart sheets: {summary.ChartSheetCount}");
-Console.WriteLine($"Preserve-only records: {summary.PreservedFeatureCount}");
-
-load.EnsureNoConversionLoss();
+using ExcelDocument document = ExcelDocument.Load("input.xls", null,
+    out OfficeConversionReport report);
+foreach (OfficeDiagnostic diagnostic in report.Diagnostics)
+    Console.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
+report.ThrowIfLoss();
 ```
 
-Use `load.CreateImportReport()` for compact totals or a Markdown diagnostic report, and `load.AdvancedWorkbook` when an application genuinely needs the neutral BIFF model. Corpus-only aggregation details remain internal so they do not become hundreds of compatibility commitments. Import options consistently use `MaxInputBytes` and `ReportUnsupportedContent`; `Password` is additionally available for supported password-to-open XLS inputs. File conversion always enables unsupported-content discovery—even when a supplied import option disables reporting—because `LossPolicy.Block` must never be bypassed silently. Import options are selected from detected physical content, so limits and passwords still apply when a legacy workbook has a misleading extension.
+Load options use `MaxInputBytes` and `ReportUnsupportedContent`. Conversion diagnostics describe recognized source features and any loss during projection into the editable document. File conversion always enables unsupported-content discovery, so a loss policy cannot be bypassed by disabling diagnostic reporting. Import limits are selected from the detected physical content, even when a source has a misleading extension.
 
 ## Validation
 

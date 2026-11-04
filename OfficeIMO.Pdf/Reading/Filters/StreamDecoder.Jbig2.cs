@@ -29,28 +29,35 @@ internal static partial class StreamDecoder {
     }
 
     /// <summary>
-    /// Names the first rejected JBIG2 feature, decoding preceding filters through the bounded
-    /// stream pipeline before scanning segment headers and JBIG2Globals without decoding regions.
+    /// Names the first rejected JBIG2 feature, inspecting each JBIG2 input while decoding
+    /// the filter chain once through the bounded stream pipeline.
     /// </summary>
     internal static string? FindUnsupportedJbig2Feature(PdfStream stream, Dictionary<int, PdfIndirectObject>? objects, int maximumBytes,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (!stream.Dictionary.Items.TryGetValue("Filter", out PdfObject? declared) ||
             !TryGetFilterNames(declared, objects, out List<string> filters, cancellationToken)) return null;
+        int lastJbig2Index = -1;
         for (int index = 0; index < filters.Count; index++) {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (GetFilterKind(filters[index]) != DecodeFilterKind.Jbig2) continue;
-            byte[] data;
-            if (index == 0) data = stream.GetData(cancellationToken);
-            else if (!TryDecodeCore(stream, maximumBytes, out data, out PdfReadLimitException? limit, objects,
-                         cancellationToken, stopBeforeFilter: index)) {
-                if (limit != null) throw limit;
-                return "malformed";
-            }
-            string? feature = InspectJbig2Headers(stream.Dictionary, index, data, objects, maximumBytes, cancellationToken);
-            if (feature != null) return feature;
+            if ((index & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (GetFilterKind(filters[index]) == DecodeFilterKind.Jbig2) lastJbig2Index = index;
         }
-        return null;
+        if (lastJbig2Index < 0) return null;
+        const int maximumDiagnosticFilterStages = 256;
+        if (filters.Count > maximumDiagnosticFilterStages) return "filter-chain-too-long";
+        string? feature = null;
+        if (!TryDecodeCore(stream, maximumBytes, out _, out PdfReadLimitException? limit, objects,
+                cancellationToken, beforeFilter: (index, current, original, offset, length) => {
+                    if (GetFilterKind(filters[index]) == DecodeFilterKind.Jbig2)
+                        feature = InspectJbig2Headers(stream.Dictionary, index,
+                            current ?? GetExactData(original, offset, length, cancellationToken),
+                            objects, maximumBytes, cancellationToken);
+                    return feature == null && index < lastJbig2Index;
+                })) {
+            if (limit != null) throw limit;
+            return "malformed";
+        }
+        return feature;
     }
 
     private static string? InspectJbig2Headers(PdfDictionary dictionary, int filterIndex, byte[] data,

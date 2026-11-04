@@ -1,57 +1,68 @@
 using System;
+using System.Linq;
 using System.Management.Automation;
 using OfficeIMO.PowerPoint;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.PowerPoint;
 
 namespace PSWriteOffice.Cmdlets.PowerPoint;
 
-/// <summary>Enumerates slides or retrieves a specific slide.</summary>
-/// <para>Supports pipeline-friendly iteration over <see cref="PowerPointPresentation.Slides"/> or direct index selection.</para>
-/// <example>
-///   <summary>List slide titles.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>Get-OfficePowerPointSlide -Presentation $ppt | Get-OfficePowerPointPlaceholder -PlaceholderType Title | Select-Object -ExpandProperty Text</code>
-///   <para>Streams each slide so you can read the title placeholder text.</para>
-/// </example>
-/// <example>
-///   <summary>Enumerate slides inside the DSL.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>New-OfficePowerPoint -Path .\deck.pptx { Get-OfficePowerPointSlide | Select-Object -First 1 }</code>
-///   <para>Uses the current DSL presentation context.</para>
-/// </example>
-[Cmdlet(VerbsCommon.Get, "OfficePowerPointSlide")]
-public class GetOfficePowerPointSlideCommand : PSCmdlet
-{
-    /// <summary>Presentation to inspect (optional inside DSL).</summary>
-    [Parameter(ValueFromPipeline = true)]
-    public PowerPointPresentation? Presentation { get; set; }
-
-    /// <summary>Optional zero-based index; omit to enumerate all slides.</summary>
-    [Parameter]
-    public int? Index { get; set; }
+/// <summary>Gets editable slides from a live document, or detached slide summaries from files.</summary>
+/// <example><summary>Read slide titles without leaving files open.</summary>
+/// <code>Get-ChildItem .\Decks -Filter *.pptx | Get-OfficePowerPointSlide -Summary | Select-Object Path, SlideIndex, Title</code></example>
+/// <example><summary>Select an editable slide.</summary>
+/// <code>Get-OfficePowerPointSlide -Document $deck -Slide 3</code></example>
+[Cmdlet(VerbsCommon.Get, "OfficePowerPointSlide", DefaultParameterSetName = "Document")]
+[OutputType(typeof(PowerPointSlide), typeof(PowerPointSlideSummaryInfo))]
+public sealed class GetOfficePowerPointSlideCommand : OfficeCmdlet {
+    /// <summary>Gets or sets a live document; omission uses the enclosing document block.</summary>
+    [Parameter(Position = 0, ValueFromPipeline = true, ParameterSetName = "Document")]
+    public PowerPointDocument? Document { get; set; }
+    /// <summary>Gets or sets file paths with provider wildcard expansion.</summary>
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = "Path"), SupportsWildcards, ValidateNotNullOrEmpty]
+    public string[] Path { get; set; } = Array.Empty<string>();
+    /// <summary>Gets or sets literal file paths, including FileInfo pipeline input.</summary>
+    [Parameter(Mandatory = true, ValueFromPipelineByPropertyName = true, ParameterSetName = "LiteralPath"), Alias("PSPath", "FullName"), ValidateNotNullOrEmpty]
+    public string[] LiteralPath { get; set; } = Array.Empty<string>();
+    /// <summary>Gets or sets one-based slide positions; omission selects every slide.</summary>
+    [Parameter, ValidateRange(1, int.MaxValue)]
+    public int[]? Slide { get; set; }
+    /// <summary>Gets or sets whether to return summaries; required when inspecting files.</summary>
+    [Parameter(ParameterSetName = "Document")]
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    public SwitchParameter Summary { get; set; }
 
     /// <inheritdoc />
-    protected override void ProcessRecord()
-    {
-        var presentation = Presentation ?? PowerPointDslContext.Current?.Presentation
-            ?? throw new InvalidOperationException("Presentation was not provided. Use -Presentation or run inside New-OfficePowerPoint.");
-
-        if (Index.HasValue)
-        {
-            if (Index.Value < 0 || Index.Value >= presentation.Slides.Count)
-            {
-                WriteError(new ErrorRecord(new ArgumentOutOfRangeException(nameof(Index)), "PowerPointSlideIndexOutOfRange", ErrorCategory.InvalidArgument, Index));
-                return;
-            }
-
-            WriteObject(presentation.Slides[Index.Value]);
+    protected override void ProcessRecord() {
+        if (ParameterSetName == "Document") {
+            var document = ResolveDocument(Document);
+            try { WriteSlides(document, null); }
+            catch (ArgumentException error) { InvalidArgument(error, Slide); }
+            return;
         }
-        else
-        {
-            foreach (var slide in presentation.Slides)
-            {
-                WriteObject(slide);
+        if (!Summary) { InvalidArgument(new ArgumentException("Use -Summary when inspecting files; editable slides require a live -Document."), Summary); return; }
+        bool literal = ParameterSetName == "LiteralPath";
+        foreach (string input in literal ? LiteralPath : Path) {
+            try {
+                foreach (string path in OfficePath.ResolveInput(SessionState, input, literal,
+                    reportItemError: (error, item) => ItemError(error, "input-unreadable", item))) {
+                    try {
+                        using var document = PowerPointDocumentService.LoadDocument(path, readOnly: true);
+                        WriteSlides(document, path);
+                    } catch (Exception error) when (error is not (PipelineStoppedException or ActionPreferenceStopException)) {
+                        ItemError(error, "powerpoint-inspection-failed", path);
+                    }
+                }
+            } catch (Exception error) when (error is not (PipelineStoppedException or ActionPreferenceStopException)) {
+                ItemError(error, "input-unreadable", input);
             }
         }
+    }
+
+    private void WriteSlides(PowerPointDocument document, string? path) {
+        int[] indices = Slide?.Select(position => position - 1).ToArray() ?? Enumerable.Range(0, document.Slides.Count).ToArray();
+        if (indices.Any(index => index < 0 || index >= document.Slides.Count)) throw new ArgumentOutOfRangeException(nameof(Slide), "A selected slide does not exist in this document.");
+        foreach (int index in indices) WriteObject(Summary ? (object)PowerPointSlideSummaryReader.Read(document.Slides[index], index, path) : document.Slides[index]);
     }
 }

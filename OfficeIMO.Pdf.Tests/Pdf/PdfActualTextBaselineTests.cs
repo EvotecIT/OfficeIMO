@@ -14,12 +14,14 @@ public sealed class PdfActualTextBaselineTests {
         byte[] font = File.ReadAllBytes(Path.Combine(RepositoryTestPaths.Find(),
             "Website", "Apps", "OfficeIMO.Web.Converter", "Assets", "Fonts", "NotoSansArabic-Regular.ttf"));
         var report = new PdfConversionReport();
-        var options = new PdfOptions {
-            PageWidth = 360D, PageHeight = 160D, MarginLeft = 24D, MarginRight = 24D,
-            MarginTop = 24D, MarginBottom = 24D, DefaultFontSize = 20D, Language = "ar"
+        var options = new PdfCreateOptions {
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360D), global::OfficeIMO.OfficeLength.Points(160D)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(24D), Right = global::OfficeIMO.OfficeLength.Points(24D), Top = global::OfficeIMO.OfficeLength.Points(24D), Bottom = global::OfficeIMO.OfficeLength.Points(24D) }
+            }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(20D), Language = "ar"
         };
         options.EmbedStandardFont(PdfStandardFont.Helvetica, font, "Arabic baseline").ReportDiagnosticsTo(report);
-        byte[] bytes = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text(source)).ToBytes();
+        byte[] bytes = PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddText(source)).ToBytes();
         PdfReadDocument document = PdfReadDocument.Open(bytes);
         PdfReadPage page = Assert.Single(document.Pages);
         PdfTextSpan[] words = page.GetTextSpans().Where(span => span.HasActualText).ToArray();
@@ -35,7 +37,7 @@ public sealed class PdfActualTextBaselineTests {
         TextLayoutEngine.TextLine line = Assert.Single(TextLayoutEngine.BuildLines(page.GetTextSpans()));
         Assert.Equal(space.Y, line.Y, 6);
         Assert.False(words[0].TryGetGlyphs(out _));
-        report.RequireNoLoss();
+        report.ThrowIfLoss();
     }
 
     [Theory]

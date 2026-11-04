@@ -38,7 +38,7 @@ public sealed class WordPdfIdentifierSeparatorTests {
 
         Assert.Equal(expected, stored);
         Assert.Equal(source, WordPaperText.RemoveOptionalBreaks(stored));
-        byte[] pdf = reopened.ToPdfDocument(new WordToPdfOptions { IncludePageNumbers = false }).ToBytes();
+        byte[] pdf = reopened.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes();
         string extracted = PdfReadDocument.Open(pdf).ExtractText().Trim();
         Assert.Equal(source, extracted);
         Assert.DoesNotContain('\u200B', extracted);

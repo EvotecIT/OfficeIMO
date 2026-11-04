@@ -13,7 +13,7 @@ public sealed class OfficeChartData {
     /// </summary>
     /// <param name="categories">Category labels, or numeric X values encoded as invariant strings for scatter charts.</param>
     /// <param name="series">Series values to render.</param>
-    public OfficeChartData(IEnumerable<string> categories, IEnumerable<OfficeChartSeries> series) {
+    public OfficeChartData(IEnumerable<string> categories, IEnumerable<OfficeSeries> series) {
         if (categories == null) {
             throw new ArgumentNullException(nameof(categories));
         }
@@ -23,7 +23,7 @@ public sealed class OfficeChartData {
         }
 
         Categories = new ReadOnlyCollection<string>(new List<string>(categories));
-        Series = new ReadOnlyCollection<OfficeChartSeries>(new List<OfficeChartSeries>(series));
+        Series = new ReadOnlyCollection<OfficeSeries>(new List<OfficeSeries>(series));
         if (Categories.Count == 0) {
             throw new ArgumentException("Chart data requires at least one category.", nameof(categories));
         }
@@ -37,5 +37,5 @@ public sealed class OfficeChartData {
     public IReadOnlyList<string> Categories { get; }
 
     /// <summary>Series values aligned with chart categories.</summary>
-    public IReadOnlyList<OfficeChartSeries> Series { get; }
+    public IReadOnlyList<OfficeSeries> Series { get; }
 }

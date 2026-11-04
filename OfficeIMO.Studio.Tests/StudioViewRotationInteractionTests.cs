@@ -23,8 +23,8 @@ public sealed class StudioViewRotationInteractionTests {
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "view-rotation-annotations.pdf");
             string saved = Path.Combine(services.Paths.Root, "view-rotation-edited.pdf");
-            PdfDocument.Create(compose => compose.Page(page => page.Size(400, 600)
-                .Content(content => content.Text("Rotate the view and select this annotation."))))
+            PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(600))
+                .Content(content => content.AddParagraph("Rotate the view and select this annotation."))))
                 .Annotations.Add(new PdfAnnotationCreateOptions { PageNumber = 1, Subtype = "Square", Name = "target",
                     Rectangle = new[] { 170D, 270D, 230D, 330D }, GenerateAppearance = true }).ToDocument().Save(source);
             byte[] original = File.ReadAllBytes(source);

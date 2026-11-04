@@ -57,6 +57,6 @@ public partial class Html {
 
         Assert.Contains(manifest.Resources, resource => resource.IsAllowed && resource.ResolvedSource == "https://example.test/document/root.png");
         Assert.Contains(manifest.Resources, resource => !resource.IsAllowed && resource.Source == "file:///private/blocked.png"
-            && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+            && resource.DiagnosticCode == "image-resource-rejected-by-policy");
     }
 }

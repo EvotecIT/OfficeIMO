@@ -5,7 +5,7 @@ using OfficeIMO.Visio;
 using OfficeIMO.Visio.Diagrams;
 using OfficeIMO.Visio.Stencils;
 using Xunit;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Tests {
     public class VisioArchitectureDiagramBuilderTests {
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
             Assert.True(vnet.IsBackgroundSurface);
             Assert.Equal(string.Empty, vnet.Text);
             Assert.Equal("Text Box", vnetLabel.NameU);
-            Assert.True(vnetLabel.PinY > vnet.PinY + vnet.Height / 2D);
+            Assert.True(vnetLabel.PinY.ToInches() > vnet.PinY.ToInches() + vnet.Height.ToInches() / 2D);
             Assert.Contains(page.Shapes, shape => shape.Id == "jenkins" && shape.NameU == "Process");
             Assert.Contains(page.Shapes, shape => shape.Id == "data" && shape.NameU == "Data");
             Assert.Contains(page.Shapes, shape => shape.Id == "vault" && shape.NameU == "Decision");
@@ -94,7 +94,7 @@ namespace OfficeIMO.Tests {
             VisioShape gateway = Assert.Single(page.Shapes, shape => shape.Id == "public-ip");
             Assert.Equal("Text Box", title.NameU);
             Assert.Equal("Jenkins on Azure", title.Text);
-            Assert.True(title.PinY > gateway.PinY);
+            Assert.True(title.PinY.ToInches() > gateway.PinY.ToInches());
             Assert.Empty(page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
                 CheckConnectorShapeIntersections = false,
                 CheckConnectorLabels = false
@@ -127,8 +127,8 @@ namespace OfficeIMO.Tests {
             VisioShape gateway = Assert.Single(page.Shapes, shape => shape.Id == "public-ip");
             Assert.Equal("Text Box", dataLegend.NameU);
             Assert.Equal("Text Box", controlLegend.NameU);
-            Assert.True(dataLegend.PinY > gateway.PinY);
-            Assert.True(controlLegend.PinY > gateway.PinY);
+            Assert.True(dataLegend.PinY.ToInches() > gateway.PinY.ToInches());
+            Assert.True(controlLegend.PinY.ToInches() > gateway.PinY.ToInches());
             Assert.Contains(page.Shapes, shape => shape.NameU == "Rectangle" && shape.LinePattern == 1 && string.IsNullOrEmpty(shape.Text));
             Assert.Contains(page.Shapes, shape => shape.NameU == "Rectangle" && shape.LinePattern == 2 && string.IsNullOrEmpty(shape.Text));
             Assert.Empty(page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
@@ -164,8 +164,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Scale agents on demand", callout.Text);
             Assert.Equal(target.Id, callout.CalloutTargetId);
             Assert.Contains("Annotations", callout.LayerNames);
-            Assert.Equal(2.45, callout.Width);
-            Assert.Equal(0.72, callout.Height);
+            Assert.Equal(2.45, callout.Width.ToInches());
+            Assert.Equal(0.72, callout.Height.ToInches());
 
             VisioConnector leader = Assert.Single(page.Connectors, connector => ReferenceEquals(connector.From, callout));
             Assert.Same(target, leader.To);
@@ -206,11 +206,11 @@ namespace OfficeIMO.Tests {
             VisioShape explicitCallout = Assert.Single(page.Callouts(), shape => shape.Id == "scale-note");
             VisioShape generatedCallout = Assert.Single(page.Callouts(), shape => shape.Id == "vault-callout");
 
-            Assert.True(explicitCallout.PinX > jenkins.PinX);
-            Assert.Equal(jenkins.PinY, explicitCallout.PinY, 6);
+            Assert.True(explicitCallout.PinX.ToInches() > jenkins.PinX.ToInches());
+            Assert.Equal(jenkins.PinY.ToInches(), explicitCallout.PinY.ToInches(), 6);
             Assert.Equal(jenkins.Id, explicitCallout.CalloutTargetId);
-            Assert.Equal(2.5, explicitCallout.Width);
-            Assert.True(generatedCallout.PinY < vault.PinY);
+            Assert.Equal(2.5, explicitCallout.Width.ToInches());
+            Assert.True(generatedCallout.PinY.ToInches() < vault.PinY.ToInches());
             Assert.Equal(vault.Id, generatedCallout.CalloutTargetId);
 
             VisioConnector leader = Assert.Single(page.Connectors, connector => ReferenceEquals(connector.From, explicitCallout));
@@ -242,8 +242,8 @@ namespace OfficeIMO.Tests {
 
             Assert.True(Contains(region, api));
             Assert.True(Contains(region, worker));
-            Assert.Equal(8D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinX, 6);
-            Assert.Equal(7D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinY, 6);
+            Assert.Equal(8D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinX.ToInches(), 6);
+            Assert.Equal(7D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinY.ToInches(), 6);
         }
 
         [Fact]
@@ -312,9 +312,9 @@ namespace OfficeIMO.Tests {
         }
 
         private static bool Contains(VisioShape outer, VisioShape inner) =>
-            inner.PinX - inner.Width / 2D >= outer.PinX - outer.Width / 2D &&
-            inner.PinX + inner.Width / 2D <= outer.PinX + outer.Width / 2D &&
-            inner.PinY - inner.Height / 2D >= outer.PinY - outer.Height / 2D &&
-            inner.PinY + inner.Height / 2D <= outer.PinY + outer.Height / 2D;
+            inner.PinX.ToInches() - inner.Width.ToInches() / 2D >= outer.PinX.ToInches() - outer.Width.ToInches() / 2D &&
+            inner.PinX.ToInches() + inner.Width.ToInches() / 2D <= outer.PinX.ToInches() + outer.Width.ToInches() / 2D &&
+            inner.PinY.ToInches() - inner.Height.ToInches() / 2D >= outer.PinY.ToInches() - outer.Height.ToInches() / 2D &&
+            inner.PinY.ToInches() + inner.Height.ToInches() / 2D <= outer.PinY.ToInches() + outer.Height.ToInches() / 2D;
     }
 }

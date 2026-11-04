@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes preserve-only Units chart metadata.
     /// </summary>
-    public sealed class LegacyXlsChartUnits {
+    internal sealed class LegacyXlsChartUnits {
         internal LegacyXlsChartUnits(ushort reserved) {
             Reserved = reserved;
         }

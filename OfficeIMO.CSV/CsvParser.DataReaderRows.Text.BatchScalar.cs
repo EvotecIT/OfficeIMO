@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -12,7 +10,7 @@ internal static partial class CsvParser
 #if NET8_0_OR_GREATER
     private static bool TryFillTextDataReaderBatchScalar(
         string text,
-        CsvLoadOptions options,
+        CsvParsingSettings options,
         ref CsvTextFieldSpanReadState state,
         CsvTextDataReaderBatch batch,
         CancellationToken cancellationToken)

@@ -24,8 +24,8 @@ namespace OfficeIMO.Examples.Word {
                 section1.AddParagraph("Test Middle Section - 2").AddComment("Adam Kłys", "AK", "Another test");
                 var test = document.AddParagraph("Test 1 - to delete");
                 test.Remove();
-                section1.PageSettings.PageSize = WordPageSize.A5;
-                section2.PageOrientation = OfficePageOrientation.Landscape;
+                section1.PageSetup.Size.PageSize = WordPageSize.A5;
+                section2.PageSetup.Orientation = OfficePageOrientation.Landscape;
 
                 document.Sections[2].AddParagraph("Test 0 - Section Last");
                 document.Sections[1].AddParagraph("Test 1").AddComment("Przemysław Kłys", "PK", " This is just a test");
@@ -63,9 +63,9 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("[*] Creating standard document without using");
             string filePath = System.IO.Path.Combine(folderPath, "EmptyDocumentWithSingleParagraph.docx");
             WordDocument document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "This is my title";
-            document.BuiltinDocumentProperties.Creator = "Przemysław Kłys";
-            document.BuiltinDocumentProperties.Keywords = "word, docx, test";
+            document.Properties.Title = "This is my title";
+            document.Properties.Creator = "Przemysław Kłys";
+            document.Properties.Keywords = "word, docx, test";
 
             document.AddParagraph("This is my test");
 

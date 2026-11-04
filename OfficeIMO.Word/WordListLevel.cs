@@ -193,11 +193,45 @@ namespace OfficeIMO.Word {
             if (justification == null) {
                 justification = new LevelJustification { Val = LevelJustificationValues.Left };
                 _level.AddChild(justification, true);
-            } else if (justification.Val == null || !justification.Val.HasValue) {
+            } else if (justification.Val == null || ReadLevelJustification(justification) == null) {
                 justification.Val = LevelJustificationValues.Left;
             }
 
             return justification;
+        }
+
+        /// <summary>
+        /// Reads a list level justification, accepting every ST_Jc token Word and other
+        /// producers write. The logical <c>start</c>/<c>end</c> values (written by
+        /// other office suites and strict producers) map to left/right for left-to-right lists;
+        /// paragraph-only values such as <c>both</c> fall back to left, as Word does.
+        /// </summary>
+        internal static LevelJustificationValues? ReadLevelJustification(LevelJustification? element) {
+            string? token = element?.Val?.InnerText;
+            if (string.IsNullOrWhiteSpace(token)) {
+                return null;
+            }
+
+            switch (token!.Trim()) {
+                case "left":
+                case "start":
+                    return LevelJustificationValues.Left;
+                case "right":
+                case "end":
+                    return LevelJustificationValues.Right;
+                case "center":
+                    return LevelJustificationValues.Center;
+                case "both":
+                case "distribute":
+                case "mediumKashida":
+                case "highKashida":
+                case "lowKashida":
+                case "thaiDistribute":
+                case "numTab":
+                    return LevelJustificationValues.Left;
+                default:
+                    return null;
+            }
         }
 
         private LevelSuffix GetLevelSuffixElement() {
@@ -226,6 +260,12 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>Gets or sets the numbering format of this list level.</summary>
+        public WordNumberFormat NumberFormat {
+            get => _level.NumberingFormat?.Val?.Value.ToOfficeEnum() ?? WordNumberFormat.Decimal;
+            set => _level.NumberingFormat = new NumberingFormat { Val = value.ToOpenXml() };
+        }
+
         /// <summary>
         /// Sets the starting number for this level.
         /// </summary>
@@ -246,48 +286,32 @@ namespace OfficeIMO.Word {
             return this;
         }
 
-        /// <summary>
-        /// Gets or sets the text indentation (left indentation) in twentieths of a point.
-        /// </summary>
-        public int IndentationLeft {
+        /// <summary>Gets or sets the physical text indentation for this level.</summary>
+        public OfficeLength IndentationLeft {
             get {
                 var indentation = GetIndentationElement();
-                return int.TryParse(indentation.Left, out int value) ? value : 0;
+                int.TryParse(indentation.Left, out int nativeValue);
+                return OfficeLength.Points(nativeValue / 20D);
             }
             set {
+                int nativeValue = checked((int)value.ToTwips());
                 var indentation = GetIndentationElement();
-                indentation.Left = value.ToString();
+                indentation.Left = nativeValue.ToString(System.Globalization.CultureInfo.InvariantCulture);
             }
         }
 
-        /// <summary>
-        /// Gets or sets the text indentation (left indentation) in centimeters.
-        /// </summary>
-        public double IndentationLeftCentimeters {
-            get => Helpers.ConvertTwentiethsOfPointToCentimeters(IndentationLeft);
-            set => IndentationLeft = (int)Math.Round(Helpers.ConvertCentimetersToTwentiethsOfPoint(value));
-        }
-
-        /// <summary>
-        /// Gets or sets the number position (hanging indentation) in twentieths of a point.
-        /// </summary>
-        public int IndentationHanging {
+        /// <summary>Gets or sets the physical number position for this level.</summary>
+        public OfficeLength IndentationHanging {
             get {
                 var indentation = GetIndentationElement();
-                return int.TryParse(indentation.Hanging, out int value) ? value : 0;
+                int.TryParse(indentation.Hanging, out int nativeValue);
+                return OfficeLength.Points(nativeValue / 20D);
             }
             set {
+                int nativeValue = checked((int)value.ToTwips());
                 var indentation = GetIndentationElement();
-                indentation.Hanging = value.ToString();
+                indentation.Hanging = nativeValue.ToString(System.Globalization.CultureInfo.InvariantCulture);
             }
-        }
-
-        /// <summary>
-        /// Gets or sets the number position (hanging indentation) in centimeters.
-        /// </summary>
-        public double IndentationHangingCentimeters {
-            get => Helpers.ConvertTwentiethsOfPointToCentimeters(IndentationHanging);
-            set => IndentationHanging = (int)Math.Round(Helpers.ConvertCentimetersToTwentiethsOfPoint(value));
         }
 
         /// <summary>
@@ -310,7 +334,7 @@ namespace OfficeIMO.Word {
         public WordListLevelAlignment LevelJustification {
             get {
                 var element = GetLevelJustificationElement();
-                return (element.Val?.Value ?? LevelJustificationValues.Left).ToOfficeEnum();
+                return (ReadLevelJustification(element) ?? LevelJustificationValues.Left).ToOfficeEnum();
             }
             set {
                 var element = GetLevelJustificationElement();

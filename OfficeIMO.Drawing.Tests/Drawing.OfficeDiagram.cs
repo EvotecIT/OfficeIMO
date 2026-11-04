@@ -8,7 +8,7 @@ public partial class DrawingTests {
     public void OfficeDiagramDrawingRenderer_ProcessDoesNotInventEdges() {
         var snapshot = new OfficeDiagramSnapshot("Delivery",
             OfficeDiagramKind.Process, new[] { "Discover", "Deliver" },
-            320D, 180D);
+            global::OfficeIMO.OfficeLength.Points(320D), global::OfficeIMO.OfficeLength.Points(180D));
 
         OfficeDrawing drawing = OfficeDiagramDrawingRenderer.Render(snapshot);
 
@@ -28,12 +28,14 @@ public partial class DrawingTests {
         OfficeDiagramKind kind) {
         var snapshot = new OfficeDiagramSnapshot("Delivery", kind,
             new[] { "Discover", "Build", "Validate", "Ship" },
-            320D, 180D);
+            global::OfficeIMO.OfficeLength.Pixels(1280D / 3D), global::OfficeIMO.OfficeLength.Inches(2.5D));
 
         OfficeDrawing drawing = OfficeDiagramDrawingRenderer.Render(snapshot);
         byte[] png = OfficeDrawingRasterRenderer.ToPng(drawing,
             background: OfficeColor.White);
 
+        Assert.Equal(4064000L, snapshot.Width.ToEmus());
+        Assert.Equal(2286000L, snapshot.Height.ToEmus());
         Assert.Equal(320D, drawing.Width);
         Assert.Equal(180D, drawing.Height);
         Assert.True(drawing.Shapes.Count >= snapshot.Nodes.Count + 1);
@@ -48,15 +50,15 @@ public partial class DrawingTests {
     [Fact]
     public void OfficeDiagramDrawingRenderer_CanOmitStandaloneCanvasBackground() {
         var snapshot = new OfficeDiagramSnapshot("Embedded process",
-            OfficeDiagramKind.Process, new[] { "Start", "Finish" }, 320D, 180D);
+            OfficeDiagramKind.Process, new[] { "Start", "Finish" }, global::OfficeIMO.OfficeLength.Points(320D), global::OfficeIMO.OfficeLength.Points(180D));
 
         OfficeDrawing drawing = OfficeDiagramDrawingRenderer.Render(snapshot,
             includeBackground: false);
 
         Assert.DoesNotContain(drawing.Shapes, shape =>
             shape.X == 0D && shape.Y == 0D
-            && shape.Shape.Width == snapshot.WidthPoints
-            && shape.Shape.Height == snapshot.HeightPoints
+            && shape.Shape.Width == snapshot.Width.ToPoints()
+            && shape.Shape.Height == snapshot.Height.ToPoints()
             && shape.Shape.FillColor == OfficeColor.White);
     }
 
@@ -65,7 +67,7 @@ public partial class DrawingTests {
         var snapshot = new OfficeDiagramSnapshot("Organization",
             OfficeDiagramKind.Hierarchy,
             new[] { "Executive", "A", "B", "C", "D", "E", "F" },
-            320D, 180D);
+            global::OfficeIMO.OfficeLength.Points(320D), global::OfficeIMO.OfficeLength.Points(180D));
 
         OfficeDrawing drawing = OfficeDiagramDrawingRenderer.Render(snapshot,
             includeBackground: false);
@@ -81,7 +83,7 @@ public partial class DrawingTests {
     public void OfficeDiagramDrawingRenderer_RelationshipDoesNotInventEdges() {
         var snapshot = new OfficeDiagramSnapshot("Relationships",
             OfficeDiagramKind.Relationship,
-            new[] { "Center", "A", "B", "C" }, 320D, 180D);
+            new[] { "Center", "A", "B", "C" }, global::OfficeIMO.OfficeLength.Points(320D), global::OfficeIMO.OfficeLength.Points(180D));
 
         OfficeDrawing drawing = OfficeDiagramDrawingRenderer.Render(snapshot,
             includeBackground: false);
@@ -96,7 +98,7 @@ public partial class DrawingTests {
     public void OfficeDiagramDrawingRenderer_PyramidUsesAuthoredNormalizedGeometry() {
         var snapshot = new OfficeDiagramSnapshot("Priorities",
             OfficeDiagramKind.Pyramid,
-            new[] { "A", "B", "C", "D" }, 320D, 180D);
+            new[] { "A", "B", "C", "D" }, global::OfficeIMO.OfficeLength.Points(320D), global::OfficeIMO.OfficeLength.Points(180D));
 
         OfficeDrawing drawing = OfficeDiagramDrawingRenderer.Render(snapshot,
             includeBackground: false);

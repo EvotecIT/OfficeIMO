@@ -40,7 +40,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
         OfficeProvenanceWorkflowRequest request,
         IProgress<OfficeWorkflowProgress>? progress = null,
         CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(request);
+        if (request == null) throw new ArgumentNullException(nameof(request));
         var stopwatch = Stopwatch.StartNew();
         var diagnostics = new List<OfficeWorkflowDiagnostic>();
         ValidatedProvenanceRequest? validated = null;
@@ -287,7 +287,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                 validated.BatchOwnReservedOutputIdentity,
                 stagedFingerprint,
                 validated.PublicationGuard,
-                validated.ConflictPolicy == OfficeWorkflowConflictPolicy.Replace &&
+                validated.ConflictPolicy == OfficePublicationPolicy.Replace &&
                 OfficeWorkflowPathIdentity.AreEquivalentWithPortableFallback(validated.InputPath, validated.OutputPath!)
                     ? inputSnapshot
                     : null,
@@ -442,14 +442,14 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
     }
 
     private static ValidatedProvenanceRequest ValidateProvenanceRequest(OfficeProvenanceWorkflowRequest request) {
-        if (string.IsNullOrWhiteSpace(request.Id)) throw new ArgumentException("Request id cannot be empty.", nameof(request));
+        if ((request.Id == null || string.IsNullOrWhiteSpace(request.Id))) throw new ArgumentException("Request id cannot be empty.", nameof(request));
         if (!Enum.IsDefined(typeof(OfficeProvenanceWorkflowOperation), request.Operation)) {
             throw new ArgumentOutOfRangeException(nameof(request), request.Operation, "Choose a supported provenance operation.");
         }
-        if (!Enum.IsDefined(typeof(OfficeWorkflowConflictPolicy), request.ConflictPolicy)) {
+        if (!Enum.IsDefined(typeof(OfficePublicationPolicy), request.ConflictPolicy)) {
             throw new ArgumentOutOfRangeException(nameof(request), request.ConflictPolicy, "Choose a supported output conflict policy.");
         }
-        if (string.IsNullOrWhiteSpace(request.InputPath)) throw new ArgumentException("Input path cannot be empty.", nameof(request));
+        if ((request.InputPath == null || string.IsNullOrWhiteSpace(request.InputPath))) throw new ArgumentException("Input path cannot be empty.", nameof(request));
         string inputPath = Path.GetFullPath(request.InputPath);
         if (!File.Exists(inputPath)) throw new FileNotFoundException("The provenance input file does not exist.", inputPath);
         OfficeProvenanceWorkflowCapability capability = OfficeProvenanceWorkflowCatalog.FindByPath(inputPath) ??
@@ -460,7 +460,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
             throw new NotSupportedException(
                 $"The OfficeIMO owner for {format.Extension} does not support the requested {request.Operation} provenance operation.");
         }
-        OfficeWorkflowLimits limits = (request.Limits ?? throw new ArgumentException("Workflow limits cannot be null.", nameof(request))).CloneAndValidate();
+        OfficeOperationLimits limits = (request.Limits ?? throw new ArgumentException("Workflow limits cannot be null.", nameof(request))).CloneAndValidate();
         OfficeProvenanceOptions inspection = CloneInspectionOptions(
             request.Inspection ?? throw new ArgumentException("Inspection options cannot be null.", nameof(request)),
             limits);
@@ -477,7 +477,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
             removalSource,
             limits.MaximumInputBytes);
         OfficeProvenanceOptions removalOutputInspection = CreateOutputInspectionOptions(removal);
-        string? outputPath = string.IsNullOrWhiteSpace(request.OutputPath) ? null : Path.GetFullPath(request.OutputPath);
+        string? outputPath = (request.OutputPath == null || string.IsNullOrWhiteSpace(request.OutputPath)) ? null : Path.GetFullPath(request.OutputPath);
 
         if (request.Operation == OfficeProvenanceWorkflowOperation.Remove) {
             outputPath ??= Path.Combine(
@@ -514,7 +514,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
             removalOutputInspection);
     }
 
-    private static OfficeProvenanceOptions CloneInspectionOptions(OfficeProvenanceOptions source, OfficeWorkflowLimits limits) => new() {
+    private static OfficeProvenanceOptions CloneInspectionOptions(OfficeProvenanceOptions source, OfficeOperationLimits limits) => new() {
         MaxAssetBytes = Math.Min(source.MaxAssetBytes, limits.MaximumInputBytes),
         MaxManifestBytes = Math.Min(source.MaxManifestBytes, Math.Min(source.MaxAssetBytes, limits.MaximumInputBytes)),
         MaxCarriers = source.MaxCarriers,
@@ -526,7 +526,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
 
     private static OfficeProvenanceAssessmentOptions CloneAssessmentOptions(
         OfficeProvenanceAssessmentOptions source,
-        OfficeWorkflowLimits limits) {
+        OfficeOperationLimits limits) {
         var clone = new OfficeProvenanceAssessmentOptions {
             InspectTextIntegrity = source.InspectTextIntegrity
         };
@@ -623,7 +623,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
 
     internal static void EnsureEquivalent(OfficeProvenanceReport expected, OfficeProvenanceReport actual) {
         bool evidenceMatches = expected.Evidence.Count == actual.Evidence.Count &&
-            expected.Evidence.Zip(actual.Evidence).All(pair =>
+            expected.Evidence.Zip(actual.Evidence, (first, second) => (First: first, Second: second)).All(pair =>
                 pair.First.Carrier == pair.Second.Carrier &&
                 string.Equals(pair.First.Location, pair.Second.Location, StringComparison.Ordinal) &&
                 pair.First.IsStructurallyValid == pair.Second.IsStructurallyValid &&
@@ -687,7 +687,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
 
     private sealed record ValidatedProvenanceRequest(
         string? ExpectedInputSha256,
-        IOfficeWorkflowPublicationGuard? PublicationGuard,
+        IOfficePublicationGuard? PublicationGuard,
         string Id,
         OfficeProvenanceWorkflowOperation Operation,
         string InputPath,
@@ -695,10 +695,10 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
         ProvenanceOwner Owner,
         OfficeProvenanceWorkflowCapability Capability,
         OfficeProvenanceWorkflowFormat Format,
-        OfficeWorkflowConflictPolicy ConflictPolicy,
+        OfficePublicationPolicy ConflictPolicy,
         SortedSet<string>? BatchBlockedOutputIdentities,
         string? BatchOwnReservedOutputIdentity,
-        OfficeWorkflowLimits Limits,
+        OfficeOperationLimits Limits,
         OfficeProvenanceOptions Inspection,
         OfficeProvenanceAssessmentOptions Assessment,
         OfficeProvenanceRemovalOptions Removal,

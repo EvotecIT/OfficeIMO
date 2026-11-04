@@ -5,7 +5,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Text;
 using OfficeIMO.Drawing;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Visio {
     internal static partial class VisioPngRenderer {
@@ -50,9 +50,9 @@ namespace OfficeIMO.Visio {
 
         private static (double Left, double Bottom, double Right, double Top) GetPageBounds(VisioShape shape) {
             (double x1, double y1) = GetPagePoint(shape, 0, 0);
-            (double x2, double y2) = GetPagePoint(shape, shape.Width, 0);
-            (double x3, double y3) = GetPagePoint(shape, 0, shape.Height);
-            (double x4, double y4) = GetPagePoint(shape, shape.Width, shape.Height);
+            (double x2, double y2) = GetPagePoint(shape, shape.WidthInches, 0);
+            (double x3, double y3) = GetPagePoint(shape, 0, shape.HeightInches);
+            (double x4, double y4) = GetPagePoint(shape, shape.WidthInches, shape.HeightInches);
             double left = Math.Min(Math.Min(x1, x2), Math.Min(x3, x4));
             double right = Math.Max(Math.Max(x1, x2), Math.Max(x3, x4));
             double bottom = Math.Min(Math.Min(y1, y2), Math.Min(y3, y4));

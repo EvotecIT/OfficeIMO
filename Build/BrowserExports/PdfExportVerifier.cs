@@ -8,7 +8,7 @@ internal static class PdfExportVerifier {
     internal static object Verify(string path) {
         using JsonDocument expected = JsonDocument.Parse(File.ReadAllText(path + ".json"));
         JsonElement contract = expected.RootElement;
-        PdfReadDocument document = PdfReadDocument.Open(path);
+        using PdfDocument document = PdfDocument.Load(path);
         if (document.RepairReport.HasRepairs)
             throw new InvalidDataException("PDF required reader repairs: " + JsonSerializer.Serialize(document.RepairReport.Diagnostics));
         string[] texts = document.Pages.Select(p => string.Concat(p.GetTextSpans().Select(s => s.Text))).ToArray();

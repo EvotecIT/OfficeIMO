@@ -2,7 +2,7 @@ using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
 
                 document.Settings.SetBackgroundColor(Color.BlueViolet);
 
-                Assert.True(document.Settings.BackgroundColor == "8A2BE2");
+                Assert.True(document.Settings.BackgroundColor == OfficeColor.Parse("8A2BE2"));
 
                 document.Settings.ZoomPercentage = 150;
 
@@ -37,21 +37,21 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Settings.UpdateFieldsOnOpen == true);
 
-                Assert.True(document.Settings.FontSize == 11); // default value
+                Assert.True(document.Settings.FontSize?.ToPoints() == 11); // default value
 
-                document.Settings.FontSize = 30;
+                document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(30);
 
-                Assert.True(document.Settings.FontSize == 30);
+                Assert.True(document.Settings.FontSize?.ToPoints() == 30);
 
-                Assert.True(document.Settings.FontSizeComplexScript == 11);
+                Assert.True(document.Settings.FontSizeComplexScript?.ToPoints() == 11);
 
-                document.Settings.FontSizeComplexScript = 20;
+                document.Settings.FontSizeComplexScript = global::OfficeIMO.OfficeLength.Points(20);
 
-                Assert.True(document.Settings.FontSizeComplexScript == 20);
+                Assert.True(document.Settings.FontSizeComplexScript?.ToPoints() == 20);
 
                 // those are default values
-                Assert.True(document.Settings.FontFamily == null);
-                Assert.True(document.Settings.FontFamilyHighAnsi == null);
+                Assert.Equal(OfficeTheme.Default.Fonts.Body.Family, document.Settings.FontFamily);
+                Assert.Equal(OfficeTheme.Default.Fonts.Body.Family, document.Settings.FontFamilyHighAnsi);
 
                 document.Settings.FontFamily = "Courier New";
 
@@ -108,9 +108,9 @@ namespace OfficeIMO.Tests {
 
                 document.Settings.RemoveProtection();
 
-                Assert.True(document.Settings.BackgroundColor == "8A2BE2");
+                Assert.True(document.Settings.BackgroundColor == OfficeColor.Parse("8A2BE2"));
 
-                document.Settings.SetBackgroundColor("FFA07A");
+                document.Settings.SetBackgroundColor(OfficeColor.Parse("FFA07A"));
 
                 Assert.True(document.Settings.ZoomPercentage == 150);
 
@@ -122,8 +122,8 @@ namespace OfficeIMO.Tests {
 
                 document.Settings.UpdateFieldsOnOpen = false;
 
-                Assert.True(document.Settings.FontSizeComplexScript == 20);
-                Assert.True(document.Settings.FontSize == 30);
+                Assert.True(document.Settings.FontSizeComplexScript?.ToPoints() == 20);
+                Assert.True(document.Settings.FontSize?.ToPoints() == 30);
                 Assert.True(document.Settings.FontFamily == "Times New Roman");
 
                 document.Settings.FontFamilyHighAnsi = "Abadi";
@@ -142,7 +142,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.FontFamily == "Times New Roman");
 
                 Assert.True(document.Settings.ProtectionType == null);
-                Assert.True(document.Settings.BackgroundColor == "FFA07A");
+                Assert.True(document.Settings.BackgroundColor == OfficeColor.Parse("FFA07A"));
                 Assert.True(document.Settings.ZoomPercentage == 100);
                 Assert.True(document.Settings.UpdateFieldsOnOpen == false);
 
@@ -219,7 +219,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Test FinalDocument values");
                 if (value != null) {
-                    document.CustomDocumentProperties.Add("_MarkAsFinal", new WordCustomProperty(value));
+                    document.CustomProperties.Add("_MarkAsFinal", new WordCustomProperty(value));
                 }
                 document.Save();
             }

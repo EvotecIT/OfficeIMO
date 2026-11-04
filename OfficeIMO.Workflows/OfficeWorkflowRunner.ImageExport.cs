@@ -11,7 +11,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
         PdfPageImageExportRequest request,
         IProgress<OfficeWorkflowProgress>? progress = null,
         CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(request);
+        if (request == null) throw new ArgumentNullException(nameof(request));
         var stopwatch = Stopwatch.StartNew();
         var diagnostics = new List<OfficeWorkflowDiagnostic>();
         string? stagingDirectory = null;
@@ -19,7 +19,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
         WorkflowFailureStage failureStage = WorkflowFailureStage.Validation;
         ValidatedImageExportRequest? validated = null;
         var inputs = new WorkflowInputSnapshots();
-        var stagingGuard = request.PublicationGuard as IOfficeWorkflowStagingGuard;
+        var stagingGuard = request.PublicationGuard as IOfficeStagingGuard;
 
         try {
             validated = ValidateImageExportRequest(request);
@@ -50,6 +50,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
 
             var options = new PdfImageExportOptions {
                 TargetDpi = validated.TargetDpi,
+                Format = validated.Format,
+                PageSelector = PdfPageSelector.Parse(PdfPageSelection.From(pageNumbers).ToString()),
                 RasterEncoding = validated.RasterEncoding,
                 ThumbnailMaxDimension = validated.MaximumDimension,
                 MaximumOutputCount = validated.MaximumPages,
@@ -61,15 +63,10 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
             });
             options.Progress = exportProgress;
 
-            PdfDocumentImageExportBuilder builder = document
-                .ToImages(options)
-                .Pages(PdfPageSelection.From(pageNumbers))
-                .As(validated.Format);
             Report(progress, validated.Id, "render", "Rendering selected PDF pages", 0.12D);
             OfficeImageExportBatchSaveResult saved;
             try {
-                saved = await builder
-                    .SaveFilesAsync(stagingDirectory, cancellationToken)
+                saved = await document.SaveImageFilesAsync(stagingDirectory, options, cancellationToken)
                     .ConfigureAwait(false);
             } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
                 failureStage = WorkflowFailureStage.Output;
@@ -81,7 +78,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
             for (int index = 0; index < saved.Files.Count; index++) {
                 OfficeImageExportSavedFile file = saved.Files[index];
                 outputBytes = checked(outputBytes + file.EncodedLength);
-                byte[] bytes = await File.ReadAllBytesAsync(file.Path, cancellationToken).ConfigureAwait(false);
+                byte[] bytes = await OfficeRuntimeCompatibility.ReadAllBytesAsync(file.Path, cancellationToken).ConfigureAwait(false);
                 if (!OfficeImageReader.TryValidateContent(bytes, file.Path, cancellationToken, out OfficeImageInfo imageInfo) ||
                     imageInfo.Width != file.Width || imageInfo.Height != file.Height) {
                     throw new InvalidOperationException("A staged page image failed content and dimension validation.");
@@ -187,15 +184,15 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
     }
 
     private static ValidatedImageExportRequest ValidateImageExportRequest(PdfPageImageExportRequest request) {
-        if (string.IsNullOrWhiteSpace(request.Id)) throw new ArgumentException("Request id cannot be empty.", nameof(request));
-        if (string.IsNullOrWhiteSpace(request.InputPath)) throw new ArgumentException("Input path cannot be empty.", nameof(request));
-        if (string.IsNullOrWhiteSpace(request.OutputDirectory)) throw new ArgumentException("Output directory cannot be empty.", nameof(request));
+        if ((request.Id == null || string.IsNullOrWhiteSpace(request.Id))) throw new ArgumentException("Request id cannot be empty.", nameof(request));
+        if ((request.InputPath == null || string.IsNullOrWhiteSpace(request.InputPath))) throw new ArgumentException("Input path cannot be empty.", nameof(request));
+        if ((request.OutputDirectory == null || string.IsNullOrWhiteSpace(request.OutputDirectory))) throw new ArgumentException("Output directory cannot be empty.", nameof(request));
         string inputPath = ValidateInputLocation(request.InputPath, request.InputStream);
         EnsurePdfExtension(request.InputStream?.Name ?? inputPath);
         string outputDirectory = request.DirectoryOutput is null
-            ? Path.TrimEndingDirectorySeparator(ValidateLocalOutput(request.OutputDirectory))
+            ? OfficeRuntimeCompatibility.TrimEndingDirectorySeparator(ValidateLocalOutput(request.OutputDirectory))
             : OfficeStorageIdentity.Normalize(request.OutputDirectory);
-        if (request.DirectoryOutput is not null && request.ConflictPolicy != OfficeWorkflowConflictPolicy.Replace)
+        if (request.DirectoryOutput is not null && request.ConflictPolicy != OfficePublicationPolicy.Replace)
             throw new ArgumentException("Provider folder publication requires explicit Replace semantics.", nameof(request));
         if (request.DirectoryOutput is null && string.IsNullOrEmpty(Path.GetDirectoryName(outputDirectory))) {
             throw new ArgumentException("Output directory cannot be a filesystem root.", nameof(request));
@@ -203,17 +200,17 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
         if (request.DirectoryOutput is null && request.InputStream is null && OfficeStorageIdentity.GetLocalPath(inputPath) is { } localInput && OfficeWorkflowPathIdentity.IsSameOrDescendant(localInput, outputDirectory)) {
             throw new ArgumentException("Output directory cannot be the source PDF path or one of its physical ancestors.", nameof(request));
         }
-        if (!Enum.IsDefined(request.Format)) throw new ArgumentOutOfRangeException(nameof(request.Format));
+        if (!OfficeRuntimeCompatibility.IsDefined(request.Format)) throw new ArgumentOutOfRangeException(nameof(request.Format));
         if (request.TargetDpi <= 0D || double.IsNaN(request.TargetDpi) || double.IsInfinity(request.TargetDpi)) {
             throw new ArgumentOutOfRangeException(nameof(request.TargetDpi));
         }
         if (request.MaximumDimension is < 1) throw new ArgumentOutOfRangeException(nameof(request.MaximumDimension));
         if (request.MaximumPages < 1) throw new ArgumentOutOfRangeException(nameof(request.MaximumPages));
-        if (!Enum.IsDefined(request.ConflictPolicy)) throw new ArgumentOutOfRangeException(nameof(request.ConflictPolicy));
-        PdfPageSelector? pageSelector = string.IsNullOrWhiteSpace(request.Pages)
+        if (!OfficeRuntimeCompatibility.IsDefined(request.ConflictPolicy)) throw new ArgumentOutOfRangeException(nameof(request.ConflictPolicy));
+        PdfPageSelector? pageSelector = (request.Pages == null || string.IsNullOrWhiteSpace(request.Pages))
             ? null
             : PdfPageSelector.Parse(request.Pages);
-        OfficeWorkflowLimits limits = (request.Limits ?? throw new ArgumentException("Workflow limits cannot be null.", nameof(request))).CloneAndValidate();
+        OfficeOperationLimits limits = (request.Limits ?? throw new ArgumentException("Workflow limits cannot be null.", nameof(request))).CloneAndValidate();
         return new ValidatedImageExportRequest(
             request.Id,
             inputPath,
@@ -268,10 +265,10 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
         double TargetDpi,
         int? MaximumDimension,
         int MaximumPages,
-        OfficeWorkflowConflictPolicy ConflictPolicy,
-        OfficeWorkflowLimits Limits,
+        OfficePublicationPolicy ConflictPolicy,
+        OfficeOperationLimits Limits,
         PdfLoadOptions LoadOptions,
-        IOfficeWorkflowPublicationGuard? PublicationGuard = null,
+        IOfficePublicationGuard? PublicationGuard = null,
         OfficeWorkflowStreamInput? InputStream = null,
         OfficeWorkflowDirectoryOutput? DirectoryOutput = null);
 }

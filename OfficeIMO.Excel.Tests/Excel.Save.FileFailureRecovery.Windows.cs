@@ -11,14 +11,14 @@ namespace OfficeIMO.Tests {
             try {
                 string targetPath = Path.Combine(directory, "target.xlsx");
                 using (var existing = ExcelDocument.Create()) {
-                    existing.AddWorksheet("Original target").CellValue(1, 1, "Target before failure");
+                    existing.AddSheet("Original target").Cell(1, 1).SetValue("Target before failure");
                     existing.Save(targetPath);
                 }
                 byte[] originalTarget = File.ReadAllBytes(targetPath);
 
                 using var document = ExcelDocument.Create();
-                ExcelSheet retainedSheet = document.AddWorksheet("Report");
-                retainedSheet.CellValue(1, 1, "Live before failure");
+                ExcelSheet retainedSheet = document.AddSheet("Report");
+                retainedSheet.Cell(1, 1).SetValue("Live before failure");
                 var retainedProperty = new ExcelCustomProperty("Property before failure");
                 document.SetCustomDocumentProperty("Review", retainedProperty);
 
@@ -28,14 +28,14 @@ namespace OfficeIMO.Tests {
                     Assert.Equal(originalTarget, File.ReadAllBytes(targetPath));
                 }
 
-                retainedSheet.CellValue(1, 1, "Live after failure");
+                retainedSheet.Cell(1, 1).SetValue("Live after failure");
                 retainedProperty.Value = "Property after failure";
-                Assert.Same(retainedProperty, document.CustomDocumentProperties["Review"]);
+                Assert.Same(retainedProperty, document.CustomProperties["Review"]);
                 document.Save(targetPath);
 
                 using var reopened = ExcelDocument.Load(targetPath);
-                Assert.Equal("Live after failure", reopened["Report"].CellAt(1, 1).GetValue<string>());
-                Assert.Equal("Property after failure", reopened.CustomDocumentProperties["Review"].Value);
+                Assert.Equal("Live after failure", reopened["Report"].Cell(1, 1).GetValue<string>());
+                Assert.Equal("Property after failure", reopened.CustomProperties["Review"].Value);
             } finally {
                 Directory.Delete(directory, recursive: true);
             }

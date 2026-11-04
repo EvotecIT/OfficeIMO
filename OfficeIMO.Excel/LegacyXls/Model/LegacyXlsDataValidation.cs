@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents a data validation rule parsed from a legacy BIFF worksheet.
     /// </summary>
-    public sealed class LegacyXlsDataValidation {
+    internal sealed class LegacyXlsDataValidation {
         /// <summary>
         /// Creates a parsed legacy XLS data validation rule.
         /// </summary>
@@ -177,7 +177,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Identifies a legacy data validation value type.
     /// </summary>
-    public enum LegacyXlsDataValidationType {
+    internal enum LegacyXlsDataValidationType {
         /// <summary>
         /// Any-value validation used to carry prompt or error messages without restricting input.
         /// </summary>
@@ -222,7 +222,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Identifies a legacy data validation comparison operator.
     /// </summary>
-    public enum LegacyXlsDataValidationOperator {
+    internal enum LegacyXlsDataValidationOperator {
         /// <summary>Between two bounds.</summary>
         Between,
         /// <summary>Not between two bounds.</summary>
@@ -244,7 +244,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Identifies the legacy data validation error alert style.
     /// </summary>
-    public enum LegacyXlsDataValidationErrorStyle {
+    internal enum LegacyXlsDataValidationErrorStyle {
         /// <summary>Stop alert.</summary>
         Stop,
         /// <summary>Warning alert.</summary>
@@ -256,7 +256,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Identifies the source shape for a legacy list validation rule.
     /// </summary>
-    public enum LegacyXlsDataValidationListSourceKind {
+    internal enum LegacyXlsDataValidationListSourceKind {
         /// <summary>No list source was identified, or the validation is not a list rule.</summary>
         None,
         /// <summary>The rule stores its allowed values inline.</summary>

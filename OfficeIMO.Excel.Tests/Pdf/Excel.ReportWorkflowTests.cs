@@ -7,70 +7,53 @@ using PdfCore = OfficeIMO.Pdf;
 using Xunit;
 
 namespace OfficeIMO.Tests;
-
-public partial class Excel {
+public partial class Excel
+{
     [Fact]
-    public void ReportWorkflow_TemplateFormulaChartPivot_PreflightsAndExportsPdf() {
+    public void ReportWorkflow_TemplateFormulaChartPivot_PreflightsAndExportsPdf()
+    {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelReportWorkflow.xlsx");
-
-        try {
+        try
+        {
             byte[] pdfBytes;
-            using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Report")) {
+            using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Report" }))
+            {
                 ExcelSheet sheet = document.Sheets[0];
-                sheet.Cell(1, 1, "{{ReportTitle}}");
-                sheet.Cell(2, 1, "Region");
-                sheet.Cell(2, 2, "Revenue");
-                sheet.Cell(2, 3, "Cost");
-                sheet.Cell(2, 4, "Margin");
-                sheet.Cell(3, 1, "East");
-                sheet.Cell(3, 2, 120);
-                sheet.Cell(3, 3, 50);
-                sheet.CellFormula(3, 4, "B3-C3");
-                sheet.Cell(4, 1, "West");
-                sheet.Cell(4, 2, 90);
-                sheet.Cell(4, 3, 40);
-                sheet.CellFormula(4, 4, "B4-C4");
-
-                int replacements = document.ApplyTemplate(new Dictionary<string, object?> {
-                    ["ReportTitle"] = "Executive revenue report"
-                });
+                sheet.Cell(1, 1).SetValue("{{ReportTitle}}");
+                sheet.Cell(2, 1).SetValue("Region");
+                sheet.Cell(2, 2).SetValue("Revenue");
+                sheet.Cell(2, 3).SetValue("Cost");
+                sheet.Cell(2, 4).SetValue("Margin");
+                sheet.Cell(3, 1).SetValue("East");
+                sheet.Cell(3, 2).SetValue(120);
+                sheet.Cell(3, 3).SetValue(50);
+                sheet.Cell(3, 4).SetFormula("B3-C3");
+                sheet.Cell(4, 1).SetValue("West");
+                sheet.Cell(4, 2).SetValue(90);
+                sheet.Cell(4, 3).SetValue(40);
+                sheet.Cell(4, 4).SetFormula("B4-C4");
+                int replacements = document.ApplyTemplate(new Dictionary<string, object?> { ["ReportTitle"] = "Executive revenue report" });
                 Assert.Equal(1, replacements);
-
                 Assert.Equal(2, document.RecalculateSupportedFormulas());
                 Assert.True(sheet.TryGetCachedFormulaValue(3, 4, out string? eastMargin));
                 Assert.Equal("70", eastMargin);
-
                 sheet.AddTable("A2:D4", hasHeader: true, name: "RevenueData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4);
-                sheet.AddChartFromRange("A2:D4", row: 6, column: 1, widthPixels: 420, heightPixels: 240,
-                    type: ExcelChartType.ColumnClustered, title: "Revenue and Margin");
-                sheet.AddPivotTable(
-                    sourceRange: "A2:D4",
-                    destinationCell: "F2",
-                    name: "RevenuePivot",
-                    rowFields: new[] { "Region" },
-                    dataFields: new[] { new ExcelPivotDataField("Revenue", ExcelPivotDataFunction.Sum, "Total Revenue") },
-                    pivotStyleName: "PivotStyleMedium9");
-
+                sheet.AddChart(OfficeChartType.ColumnClustered, "A2:D4", new OfficeIMO.Excel.ExcelChartOptions { Row = 6, Column = 1, Width = OfficeLength.Pixels(420), Height = OfficeLength.Pixels(240), Title = "Revenue and Margin" });
+                sheet.AddPivotTable("A2:D4", "F2", options: new ExcelPivotTableOptions { Name = "RevenuePivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Revenue", ExcelPivotDataFunction.Sum, "Total Revenue") }, PivotStyleName = "PivotStyleMedium9" });
                 ExcelFeatureReport report = document.InspectFeatures();
                 Assert.True(report.Can(ExcelPreflightCapability.BindTemplate));
                 Assert.True(report.Can(ExcelPreflightCapability.CalculateFormulas));
                 Assert.True(report.Can(ExcelPreflightCapability.UseCachedFormulaValues));
-                Assert.False(report.Can(ExcelPreflightCapability.ExportPdfReport));
-                Assert.Contains("PDF-unrendered pivot tables", string.Join(Environment.NewLine,
-                    report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport)));
-
+                // SaveAsPdf calculates the pivot from its cache, so the preflight lets the export through.
+                Assert.True(report.Can(ExcelPreflightCapability.ExportPdfReport));
+                Assert.DoesNotContain("PDF-unrendered pivot tables", string.Join(Environment.NewLine, report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport)));
                 document.Save();
-                pdfBytes = document.ToPdfBytes(new ExcelToPdfOptions {
-                    IncludeSheetHeadings = false,
-                    HeaderRowCount = 1,
-                    PageSize = new PdfCore.PageSize(560, 520),
-                    Margins = PdfCore.PageMargins.Uniform(24)
-                });
+                pdfBytes = document.ToPdf(new ExcelPdfExportOptions { IncludeSheetHeadings = false, HeaderRowCount = 1, PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(560),OfficeIMO.OfficeLength.Points(520)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24)) }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
             }
 
-            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(workbookPath, false)) {
-                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts
-                    .Single(part => part.PivotTableParts.Any());
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(workbookPath, false))
+            {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single(part => part.PivotTableParts.Any());
                 Assert.Single(worksheetPart.TableDefinitionParts);
                 Assert.Single(worksheetPart.PivotTableParts);
                 Assert.Single(worksheetPart.DrawingsPart!.ChartParts);
@@ -82,8 +65,11 @@ public partial class Excel {
             Assert.Contains("Revenue and Margin", text);
             Assert.Contains("East", text);
             Assert.Contains("70", text);
-        } finally {
-            if (File.Exists(workbookPath)) {
+        }
+        finally
+        {
+            if (File.Exists(workbookPath))
+            {
                 File.Delete(workbookPath);
             }
         }

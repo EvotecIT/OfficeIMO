@@ -25,7 +25,7 @@ public sealed class PdfExtractionWorkflowTests {
             });
             var result = await OfficeWorkflow.ExtractPages(source, 1)
                 .To(replaceSource ? Path.Combine(root, "output.pdf") : source)
-                .OnConflict(OfficeWorkflowConflictPolicy.Replace).RunAsync(progress: progress);
+                .OnConflict(OfficePublicationPolicy.Replace).RunAsync(progress: progress);
             Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
             Assert.Null(result.OutputPath);
             if (replaceSource) Assert.Equal("external replacement", File.ReadAllText(source));
@@ -68,7 +68,7 @@ public sealed class PdfExtractionWorkflowTests {
             File.WriteAllText(output, "keep");
             var result = await new OfficeWorkflowRunner().RunAsync(new() {
                 Operation = OfficeWorkflowOperation.ExtractPages, InputPath = source, OutputPath = output,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                ConflictPolicy = OfficePublicationPolicy.Replace,
                 PageNumbers = invalid == 100001 ? Enumerable.Repeat(1, invalid).ToArray() : [invalid]
             });
             Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
@@ -88,7 +88,7 @@ public sealed class PdfExtractionWorkflowTests {
             using var cts = new CancellationTokenSource();
             if (cancel) cts.Cancel();
             var result = await OfficeWorkflow.ExtractPages(source, 1, 2).To(output)
-                .OnConflict(OfficeWorkflowConflictPolicy.Replace).WithLimits(1000000, 10)
+                .OnConflict(OfficePublicationPolicy.Replace).WithLimits(1000000, 10)
                 .RunAsync(cancellationToken: cts.Token);
             Assert.Equal(cancel ? OfficeWorkflowStatus.Cancelled : OfficeWorkflowStatus.Failed, result.Status);
             Assert.Equal("keep", File.ReadAllText(output));
@@ -122,7 +122,7 @@ public sealed class PdfExtractionWorkflowTests {
     }
 
     private static byte[] CreatePdf() => PdfDocument.Create(document => {
-        for (int index = 0; index < 3; index++) { int width = 200 + index; document.Page(page => page.Size(width, 350)); }
+        for (int index = 0; index < 3; index++) { int width = 200 + index; document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(350))); }
     }).ToBytes();
     private sealed class InlineProgress(Action<OfficeWorkflowProgress> report) : IProgress<OfficeWorkflowProgress> {
         public void Report(OfficeWorkflowProgress value) => report(value);

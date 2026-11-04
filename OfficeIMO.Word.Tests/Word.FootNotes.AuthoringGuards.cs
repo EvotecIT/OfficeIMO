@@ -14,7 +14,7 @@ public partial class Word {
     public void AddFootNote_RunningParagraphRejectsWithoutChangingSource(bool footer, bool tableCell) {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("Body remains unchanged");
-        document.AddHeadersAndFooters();
+        _ = document.PageSetup.Header;
         WordHeaderFooter story = footer
             ? RequireSectionFooter(document, 0, HeaderFooterValues.Default)
             : RequireSectionHeader(document, 0, HeaderFooterValues.Default);
@@ -24,7 +24,7 @@ public partial class Word {
         paragraph.Text = "Running paragraph";
         SortedDictionary<string, byte[]> before = ReadFootnoteGuardPackageParts(document.ToBytes());
 
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => paragraph.AddFootNote("Rejected note"));
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => paragraph.AddFootNote("Rejected note").Paragraph);
 
         Assert.Contains("header or footer", exception.Message, StringComparison.Ordinal);
         Assert.Equal("Running paragraph", paragraph.Text);

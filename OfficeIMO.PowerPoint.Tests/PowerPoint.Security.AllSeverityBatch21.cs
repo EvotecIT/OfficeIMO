@@ -22,7 +22,7 @@ public class PowerPointAllSeverityBatch21Tests {
     [Fact]
     public void ScatterSnapshotAllowsSeriesWithDifferentPointCounts() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         PowerPointSlide slide = presentation.AddSlide();
         var data = new PowerPointScatterChartData(new[] {
             new PowerPointScatterChartSeries(

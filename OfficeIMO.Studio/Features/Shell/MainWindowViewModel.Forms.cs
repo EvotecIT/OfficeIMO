@@ -23,7 +23,10 @@ public sealed partial class MainWindowViewModel {
     public bool HasUnassignedFormDrafts => UnassignedFormDrafts.Count > 0;
     public bool HasFormDrafts => FormFields.Any(entry => entry.HasDraft) || HasUnassignedFormDrafts;
     public bool CanApplyFormDrafts => !IsWorkspaceBusy && _workspace?.CanFillForms == true && HasFormDrafts &&
-        !HasUnassignedFormDrafts && FormFields.Where(entry => entry.HasDraft).All(entry => entry.CanApplyValue);
+        !HasUnassignedFormDrafts && !HasAmbiguousFormDrafts() && FormFields.Where(entry => entry.HasDraft).All(entry => entry.CanApplyValue);
+
+    private bool HasAmbiguousFormDrafts() => FormFields.GroupBy(field => field.Name, StringComparer.Ordinal)
+        .Any(group => group.Skip(1).Any() && group.Any(field => field.HasDraft));
 
     /// <summary>Puts every field back to its saved value, the Cancel of the forms inspector; applied values stay undoable.</summary>
     [RelayCommand]
@@ -55,6 +58,10 @@ public sealed partial class MainWindowViewModel {
             return null;
         }
         var drafts = FormFields.Where(field => field.HasDraft).ToArray();
+        if (drafts.Length > 0 && HasAmbiguousFormDrafts()) {
+            ErrorMessage = UiText("Forms.ApplyNotPermitted");
+            return null;
+        }
         if (drafts.Length > 0 && _workspace?.CanFillForms != true) {
             ErrorMessage = UiText("Forms.ApplyNotPermitted");
             return null;

@@ -36,7 +36,9 @@ internal static partial class MultilingualLayoutCorpus {
                 .Select(row => row.EnumerateArray().Select(item => item.GetString()!).ToArray()).ToArray();
             string caption = fixture.GetProperty("caption").GetString()!;
             byte[] native = await ReadVerifiedAsync(root, fixture, "native.pdf", deadline.Token);
-            PdfDocumentReadResult nativeRead = PdfDocument.Load(native).Read(new PdfReadOptions { Profile = PdfReadProfile.Structured });
+
+            using var nativeDocument = CorpusPdfInput.Load(native);
+            PdfDocumentReadResult nativeRead = nativeDocument.Read(new PdfLoadOptions { Profile = PdfReadProfile.Structured });
             await RecordAsync(id, "native", nativeRead, expected, expectedTable, caption, acceptance, output, results, qualifications, deadline.Token);
             if (args.Length == 4 && args[3] == "native") continue;
 
@@ -54,7 +56,9 @@ internal static partial class MultilingualLayoutCorpus {
                 }
             }
             int turn = fixture.GetProperty("clockwiseDegrees").GetInt32() / 90;
-            PdfSearchableOcrResult searchable = await PdfDocument.Load(scan).MakeSearchableAsync(engine,
+
+            using var scanDocument = CorpusPdfInput.Load(scan);
+            PdfSearchableOcrResult searchable = await scanDocument.MakeSearchableAsync(engine,
                 new PdfOcrMergeOptions {
 #if !PDF_LAYOUT_BASELINE
                     ReconstructLayout = true,
@@ -73,7 +77,9 @@ internal static partial class MultilingualLayoutCorpus {
                 Tokens = MeasureRecognitionTokens(string.Join(" ", expected), providerText) });
             byte[] bytes = searchable.Document.ToBytes();
             await File.WriteAllBytesAsync(Path.Combine(output, id + "-searchable.pdf"), bytes, deadline.Token);
-            PdfDocumentReadResult roundTrip = PdfDocument.Load(bytes).Read(new PdfReadOptions { Profile = PdfReadProfile.Structured });
+
+            using var readbackDocument = CorpusPdfInput.Load(bytes);
+            PdfDocumentReadResult roundTrip = readbackDocument.Read(new PdfLoadOptions { Profile = PdfReadProfile.Structured });
             await RecordAsync(id, "readback", roundTrip, expected, expectedTable, caption, acceptance, output, results, qualifications, deadline.Token);
         }
         if (ids.Count == 0) throw new InvalidDataException("A layout corpus must contain at least one case.");

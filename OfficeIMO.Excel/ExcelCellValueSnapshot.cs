@@ -24,8 +24,8 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Describes a native worksheet cell value without requiring callers to inspect OpenXML directly.
     /// </summary>
-    public sealed class ExcelCellValueSnapshot {
-        internal ExcelCellValueSnapshot(ExcelCellValueKind kind, string text, string rawValue, ExcelCellValueType? openXmlType, DateTime? dateTimeValue = null) {
+    public sealed class ExcelNativeCellValueInfo {
+        internal ExcelNativeCellValueInfo(ExcelCellValueKind kind, string text, string rawValue, ExcelCellValueType? openXmlType, DateTime? dateTimeValue = null) {
             Kind = kind;
             Text = text;
             RawValue = rawValue;

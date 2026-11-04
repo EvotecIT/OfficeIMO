@@ -18,7 +18,7 @@ public sealed class AsciiDocCalloutCatalog {
         var result = new AsciiDocCalloutCatalog(); result.Visit(document, 0, maximumNestingDepth, cancellationToken); return result;
     }
     private void Visit(AsciiDocDocument document, int depth, int maximumDepth, System.Threading.CancellationToken token) {
-        if (depth >= maximumDepth) throw new InvalidDataException("AsciiDoc callout traversal exceeds MaximumNestingDepth.");
+        if (depth >= maximumDepth) throw new InvalidDataException("AsciiDoc callout traversal exceeds MaxNestingDepth.");
         AsciiDocBlock? previous = null;
         foreach (AsciiDocBlock block in document.Blocks) {
             token.ThrowIfCancellationRequested();

@@ -36,10 +36,10 @@ namespace OfficeIMO.Tests {
             Assert.True(result.MacroProjectPreserved);
             Assert.Equal(originalBytes, File.ReadAllBytes(filePath));
             Assert.Contains(result.Findings, finding =>
-                finding.Code == "DuplicateMacroSignatureProfile" &&
+                finding.Code == "duplicate-macro-signature-profile" &&
                 finding.Profile == WordMacroProjectSignatureProfile.Legacy);
             Assert.Contains(result.Findings, finding =>
-                finding.Code == "MacroSignatureProfilePolicyFailed" &&
+                finding.Code == "macro-signature-profile-policy-failed" &&
                 finding.Profile == WordMacroProjectSignatureProfile.Legacy);
         }
 

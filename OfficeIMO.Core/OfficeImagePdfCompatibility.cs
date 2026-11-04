@@ -2,7 +2,7 @@ namespace OfficeIMO.Drawing {
     /// <summary>
     /// Validates image bytes against the shared Drawing raster contract used by first-party PDF export preflight checks.
     /// </summary>
-    public static class OfficeImagePdfCompatibility {
+    internal static class OfficeImagePdfCompatibility {
         /// <summary>Default pixel ceiling for raster formats that must be decoded and re-encoded before PDF embedding.</summary>
         public const long DefaultMaximumTranscodePixels = 8_000_000L;
 

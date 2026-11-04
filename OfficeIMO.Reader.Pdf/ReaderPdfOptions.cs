@@ -26,10 +26,10 @@ public sealed class ReaderPdfOptions {
     };
 
     /// <summary>
-    /// Canonical semantic read settings. Null uses <see cref="PdfReadOptions.Default"/>.
+    /// Canonical semantic read settings. Null uses <see cref="PdfLoadOptions"/>.
     /// When the adapter receives an already reconstructed PDF result, only its page selection is applied.
     /// </summary>
-    public PdfReadOptions? ReadOptions { get; set; }
+    public PdfLoadOptions? ReadOptions { get; set; }
 
     /// <summary>
     /// Markdown rendering options used for page chunk content.
@@ -89,7 +89,7 @@ public sealed class ReaderPdfOptions {
             MergePageContinuations = options.MergePageContinuations,
             RejoinSoftHyphens = options.RejoinSoftHyphens,
             MaximumSegmentsPerParagraph = options.MaximumSegmentsPerParagraph,
-            GeometryTolerancePoints = options.GeometryTolerancePoints,
+            GeometryTolerance = options.GeometryTolerance,
             MinimumConfidence = options.MinimumConfidence
         };
     }

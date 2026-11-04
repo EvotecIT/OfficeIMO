@@ -4,10 +4,10 @@ namespace OfficeIMO.Workflows;
 
 public sealed partial class OfficeWorkflowRunner {
     private static PdfRedactionWorkflowRequest SnapshotRedactionRequest(PdfRedactionWorkflowRequest request) {
-        ArgumentNullException.ThrowIfNull(request.Recipe);
-        ArgumentNullException.ThrowIfNull(request.Limits);
-        ArgumentNullException.ThrowIfNull(request.ProtectedInputPaths);
-        var visited = new HashSet<PdfRedactionRecipeRegion>(ReferenceEqualityComparer.Instance);
+        if (request.Recipe == null) throw new ArgumentNullException("request.Recipe");
+        if (request.Limits == null) throw new ArgumentNullException("request.Limits");
+        if (request.ProtectedInputPaths == null) throw new ArgumentNullException("request.ProtectedInputPaths");
+        var visited = new HashSet<PdfRedactionRecipeRegion>(OfficeReferenceEqualityComparer<PdfRedactionRecipeRegion>.Instance);
         var recipe = new PdfRedactionRecipe {
             Schema = request.Recipe.Schema,
             DetectionMode = request.Recipe.DetectionMode,

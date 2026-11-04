@@ -86,7 +86,15 @@ namespace OfficeIMO.Word.GoogleDocs {
                 });
             }
 
-            if (table.ColumnWidthPoints.Count > 0) {
+            if (table.ColumnWidthPoints.Any(width => width <= 0)) {
+                AddReportNoticeOnce(
+                    report,
+                    TranslationSeverity.Warning,
+                    segmentId == null ? "Tables" : "HeadersAndFooters",
+                    "Word table columns without positive resolved physical widths use Google Docs layout defaults; relative, absent and zero preferences are not emitted as fixed point widths.");
+            }
+
+            if (table.ColumnWidthPoints.Any(width => width > 0)) {
                 AddReportNoticeOnce(
                     report,
                     TranslationSeverity.Info,

@@ -1,3 +1,4 @@
+using OfficeIMO.Pdf.PowerPoint;
 namespace OfficeIMO.Web.Converter.Models;
 
 public enum ConversionInputKind {
@@ -42,7 +43,7 @@ public sealed record BrowserPdfProfile(
     string Description);
 
 public sealed record BrowserPowerPointImportProfile(
-    OfficeIMO.PowerPoint.Pdf.PdfPowerPointImportMode Mode,
+    OfficeIMO.Pdf.PowerPoint.PowerPointPdfImportMode Mode,
     string Id,
     string Label,
     string Description,

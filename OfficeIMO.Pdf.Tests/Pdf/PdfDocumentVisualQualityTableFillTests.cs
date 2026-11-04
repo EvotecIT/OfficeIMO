@@ -15,21 +15,19 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Table_RendersConfiguredBodyColumnFills() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderFill = null;
         style.RowStripeFill = null;
-        style.BodyColumnFills = new List<PdfColor?> {
+        style.BodyColumnFills = new List<global::OfficeIMO.OfficeColor?> {
             null,
-            new PdfColor(0.11, 0.22, 0.33)
+            global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.11, 0.22, 0.33)
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(220)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             })
             .Table(new[] {
                 new[] { "Metric", "Status" },
@@ -47,28 +45,26 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_RendersConfiguredBodyColumnFills() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderFill = null;
         style.RowStripeFill = null;
-        style.BodyColumnFills = new List<PdfColor?> {
+        style.BodyColumnFills = new List<global::OfficeIMO.OfficeColor?> {
             null,
-            new PdfColor(0.11, 0.22, 0.33)
+            global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.11, 0.22, 0.33)
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(220)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             })
             .Compose(document =>
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { "Metric", "Status" },
                                     new[] { "Queue", "Healthy" },
                                     new[] { "Latency", "Warning" }
@@ -84,18 +80,16 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_DoesNotApplyBodyRowStripeFillToHeaderRows() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 2;
         style.HeaderFill = null;
-        style.RowStripeFill = new PdfColor(0.19, 0.29, 0.39);
+        style.RowStripeFill = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.19, 0.29, 0.39);
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(220)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             })
             .Table(new[] {
                 new[] { "Group", "State" },
@@ -114,25 +108,23 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_DoesNotApplyBodyRowStripeFillToHeaderRows() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 2;
         style.HeaderFill = null;
-        style.RowStripeFill = new PdfColor(0.19, 0.29, 0.39);
+        style.RowStripeFill = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.19, 0.29, 0.39);
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(220)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             })
             .Compose(document =>
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { "Group", "State" },
                                     new[] { "Metric", "Owner" },
                                     new[] { "Queue", "Healthy" },
@@ -149,18 +141,16 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_StripesBodyRowsRelativeToFirstBodyRow() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 1;
         style.HeaderFill = null;
-        style.RowStripeFill = new PdfColor(0.21, 0.31, 0.41);
+        style.RowStripeFill = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.21, 0.31, 0.41);
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(220)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             })
             .Table(new[] {
                 new[] { "Metric", "Status" },
@@ -178,25 +168,23 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_StripesBodyRowsRelativeToFirstBodyRow() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 1;
         style.HeaderFill = null;
-        style.RowStripeFill = new PdfColor(0.21, 0.31, 0.41);
+        style.RowStripeFill = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.21, 0.31, 0.41);
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(220)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             })
             .Compose(document =>
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { "Metric", "Status" },
                                     new[] { "Queue", "Healthy" },
                                     new[] { "Latency", "Warning" },
@@ -212,20 +200,18 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_RendersConfiguredCellFills() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderFill = null;
         style.RowStripeFill = null;
-        style.CellFills = new Dictionary<(int Row, int Column), PdfColor> {
-            [(2, 1)] = new PdfColor(0.42, 0.18, 0.66)
+        style.CellFills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor> {
+            [(2, 1)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.42, 0.18, 0.66)
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(220)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             })
             .Table(new[] {
                 new[] { "Metric", "Status" },
@@ -243,27 +229,25 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_RendersConfiguredCellFills() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderFill = null;
         style.RowStripeFill = null;
-        style.CellFills = new Dictionary<(int Row, int Column), PdfColor> {
-            [(2, 1)] = new PdfColor(0.42, 0.18, 0.66)
+        style.CellFills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor> {
+            [(2, 1)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.42, 0.18, 0.66)
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(220)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             })
             .Compose(document =>
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { "Metric", "Status" },
                                     new[] { "Queue", "Healthy" },
                                     new[] { "Latency", "Warning" }
@@ -279,23 +263,21 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_RendersConfiguredCellDataBarsBehindText() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderFill = null;
         style.RowStripeFill = null;
         style.CellDataBars = new Dictionary<(int Row, int Column), PdfCellDataBar> {
             [(1, 1)] = new PdfCellDataBar {
-                Color = new PdfColor(0.12, 0.34, 0.56),
+                Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.12, 0.34, 0.56),
                 Ratio = 0.5
             }
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(220)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             })
             .Table(new[] {
                 new[] { "Metric", "Status" },
@@ -315,30 +297,28 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_RendersConfiguredCellDataBarsBehindText() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderFill = null;
         style.RowStripeFill = null;
         style.CellDataBars = new Dictionary<(int Row, int Column), PdfCellDataBar> {
             [(1, 1)] = new PdfCellDataBar {
-                Color = new PdfColor(0.12, 0.34, 0.56),
+                Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.12, 0.34, 0.56),
                 Ratio = 0.5
             }
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(220)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             })
             .Compose(document =>
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { "Metric", "Status" },
                                     new[] { "Progress", "50" },
                                     new[] { "Done", "100" }
@@ -356,29 +336,27 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_RendersConfiguredCellIconsBeforeText() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderFill = null;
         style.RowStripeFill = null;
         style.CellIcons = new Dictionary<(int Row, int Column), PdfCellIcon> {
             [(1, 1)] = new PdfCellIcon {
                 Kind = PdfCellIconKind.Circle,
-                Color = new PdfColor(0.12, 0.34, 0.56),
-                Size = 8
+                Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.12, 0.34, 0.56),
+                Size = global::OfficeIMO.OfficeLength.Points(8)
             }
         };
         style.CellPaddings = new Dictionary<(int Row, int Column), PdfCellPadding> {
             [(1, 1)] = new PdfCellPadding {
-                Left = 16
+                Left = global::OfficeIMO.OfficeLength.Points(16)
             }
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(220)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             })
             .Table(new[] {
                 new[] { "Metric", "Status" },
@@ -398,36 +376,34 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_RendersConfiguredCellIconsBeforeText() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderFill = null;
         style.RowStripeFill = null;
         style.CellIcons = new Dictionary<(int Row, int Column), PdfCellIcon> {
             [(1, 1)] = new PdfCellIcon {
                 Kind = PdfCellIconKind.TriangleUp,
-                Color = new PdfColor(0.12, 0.34, 0.56),
-                Size = 8
+                Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.12, 0.34, 0.56),
+                Size = global::OfficeIMO.OfficeLength.Points(8)
             }
         };
         style.CellPaddings = new Dictionary<(int Row, int Column), PdfCellPadding> {
             [(1, 1)] = new PdfCellPadding {
-                Left = 16
+                Left = global::OfficeIMO.OfficeLength.Points(16)
             }
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(220)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             })
             .Compose(document =>
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { "Metric", "Status" },
                                     new[] { "Progress", "50" },
                                     new[] { "Done", "100" }
@@ -445,39 +421,38 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void CanvasTable_RendersCellIndicatorsAfterOpaqueFillsAndBeforeText() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderFill = null;
         style.RowStripeFill = null;
-        style.CellFills = new Dictionary<(int Row, int Column), PdfColor> {
-            [(0, 0)] = new PdfColor(0.42, 0.18, 0.66)
+        style.CellFills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor> {
+            [(0, 0)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.42, 0.18, 0.66)
         };
         style.CellDataBars = new Dictionary<(int Row, int Column), PdfCellDataBar> {
             [(0, 0)] = new PdfCellDataBar {
-                Color = new PdfColor(0.12, 0.34, 0.56),
+                Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.12, 0.34, 0.56),
                 Ratio = 0.5
             }
         };
         style.CellIcons = new Dictionary<(int Row, int Column), PdfCellIcon> {
             [(0, 0)] = new PdfCellIcon {
                 Kind = PdfCellIconKind.TriangleUp,
-                Color = new PdfColor(0.75, 0.25, 0.1),
-                Size = 8
+                Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.75, 0.25, 0.1),
+                Size = global::OfficeIMO.OfficeLength.Points(8)
             }
         };
         style.CellPaddings = new Dictionary<(int Row, int Column), PdfCellPadding> {
             [(0, 0)] = new PdfCellPadding {
-                Left = 16
+                Left = global::OfficeIMO.OfficeLength.Points(16)
             }
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 240,
-                PageHeight = 160,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = { Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(160)) },
                 CompressContentStreams = false
             })
             .Canvas(canvas => canvas.Table(new[] {
                 new[] { "FixedIndicatorText" }
-            }, 24, 24, 160, 60, style))
+            }, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(160), global::OfficeIMO.OfficeLength.Points(60), style))
             .ToBytes();
 
         string content = PdfTestContentText.JoinTextArrays(string.Join("\n", GetPageContentStreams(bytes, pageNumber: 1)));

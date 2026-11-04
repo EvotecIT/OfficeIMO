@@ -11,12 +11,12 @@ Adds a paragraph to a PDF document.
 ## SYNTAX
 ### Context (Default)
 ```powershell
-Add-OfficePdfParagraph [-Text] <string> [-Align <PdfAlign>] [-Color <string>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfParagraph [-Text] <string> [-Align <OfficeAlignment>] [-Color <string>] [-PassThru] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Add-OfficePdfParagraph [-Text] <string> -Document <PdfDocument> [-Align <PdfAlign>] [-Color <string>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfParagraph [-Text] <string> -Document <PdfDocument> [-Align <OfficeAlignment>] [-Color <string>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -40,10 +40,10 @@ Adds a colored body paragraph after a heading.
 Paragraph alignment.
 
 ```yaml
-Type: PdfAlign
+Type: OfficeAlignment
 Parameter Sets: Context, Document
 Aliases: None
-Possible values: Left, Center, Right, Justify
+Possible values: Left, Center, Right, Justify, Start, End
 
 Required: False
 Position: named

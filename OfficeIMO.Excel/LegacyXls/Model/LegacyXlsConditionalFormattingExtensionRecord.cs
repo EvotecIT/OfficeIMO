@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Preserve-only metadata for a conditional-formatting extension BIFF record.
     /// </summary>
-    public sealed class LegacyXlsConditionalFormattingExtensionRecord {
+    internal sealed class LegacyXlsConditionalFormattingExtensionRecord {
         /// <summary>
         /// Creates preserve-only conditional-formatting extension metadata.
         /// </summary>

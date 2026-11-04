@@ -21,10 +21,10 @@ public sealed class PdfRepairReport {
     // An index rebuilt from complete objects can still support precise feature detection.
     // Lost objects or uncertain object/stream boundaries require conservative marker checks.
     internal bool HasIncompleteObjectCoverage => Diagnostics.Any(static diagnostic => diagnostic.Code is
-        "UnreadableIndirectObject" or "MissingEndObject" or "IncorrectStreamLength" or
-        "MissingStreamLength" or "DuplicateObjectIdentifier");
+        "unreadable-indirect-object" or "missing-end-object" or "incorrect-stream-length" or
+        "missing-stream-length" or "duplicate-object-identifier");
 
-    internal bool HasUnreadableObjects => Diagnostics.Any(static diagnostic => diagnostic.Code == "UnreadableIndirectObject");
+    internal bool HasUnreadableObjects => Diagnostics.Any(static diagnostic => diagnostic.Code == "unreadable-indirect-object");
 
     internal PdfRepairReport Append(IEnumerable<PdfRepairDiagnostic> diagnostics) {
         PdfRepairDiagnostic[] appended = diagnostics.ToArray();

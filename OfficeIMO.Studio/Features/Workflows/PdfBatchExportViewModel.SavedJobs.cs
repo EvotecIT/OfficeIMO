@@ -9,7 +9,7 @@ namespace OfficeIMO.Studio.Features.Workflows;
 
 public sealed partial class PdfBatchExportViewModel {
     private readonly Func<IStudioFileDialogs> _fileDialogs;
-    private OfficeConversionJob? _loadedJob;
+    private OfficeBatchOptions? _loadedJob;
     private string _jobBaseDirectory = Path.GetFullPath(Environment.CurrentDirectory);
     private bool _applyingJob, _savedMatchesFields, _hasRun;
     private Func<string, Task>? _copyCommandText;
@@ -69,43 +69,43 @@ public sealed partial class PdfBatchExportViewModel {
     }
 
     /// <summary>Changes only the fields this surface edits; every other loaded portable setting remains intact.</summary>
-    private OfficeConversionJob CreateCurrentJob() {
-        OfficeConversionBatchRequest request = _loadedJob?.CreateRequest(_jobBaseDirectory)
-            ?? new OfficeConversionBatchRequest { OutputDirectory = OutputDirectory };
-        OfficeWorkflowConversionOptions options = request.ConversionOptions.Clone();
-        options.LegacyDocLossPolicy = AllowLegacyImportLoss ? OfficeConversionLossPolicy.Allow : OfficeConversionLossPolicy.Block;
-        var text = options.PlainText?.Clone() ?? new OfficeIMO.Pdf.PdfPlainTextOptions();
+    private OfficeBatchOptions CreateCurrentJob() {
+        OfficeBatchOptions request = _loadedJob ?? new OfficeBatchOptions { OutputDirectory = OutputDirectory };
+        OfficeConversionOptions options = request.ConversionOptions.Snapshot();
+        options.WordLoad ??= new OfficeIMO.Word.WordLoadOptions();
+        options.WordLoad.FailOnLoss = !AllowLegacyImportLoss;
+        var text = options.PlainText?.Clone() ?? new OfficeIMO.Pdf.PdfTextImportOptions();
         text.EncodingName = string.IsNullOrWhiteSpace(TextEncoding) ? null : TextEncoding;
         text.TabSize = (int)TabSize;
         options.PlainText = text;
         request = request with {
             InputDirectory = InputDirectory, OutputDirectory = OutputDirectory,
-            CheckpointDirectory = string.IsNullOrWhiteSpace(CheckpointDirectory) ? null : CheckpointDirectory,
-            RetryFailed = RetryFailed, ConversionOptions = options
+            ResumeFrom = string.IsNullOrWhiteSpace(CheckpointDirectory) ? null : Path.Combine(CheckpointDirectory, "plan.json"),
+            RetryFailed = RetryFailed, ConversionOptions = options, JobPath = null, JobSha256 = null
         };
-        var definition = OfficeConversionJob.FromRequest(request, _jobBaseDirectory);
+        var definition = request;
         definition.Name = _loadedJob?.Name;
         return definition;
     }
 
     [RelayCommand(CanExecute = nameof(CanEdit))]
     private Task SaveJobAsync(CancellationToken token) => WithJobOperationAsync(async cancellation => {
-        OfficeConversionBatchRequest request = CreateCurrentJob().CreateRequest(_jobBaseDirectory);
+        OfficeBatchOptions request = CreateCurrentJob();
         string? location = await _fileDialogs().PickSaveFileAsync(T("SaveTitle", "Save folder conversion job"),
             HasSavedJob ? Path.GetFileName(SavedJobPath) : "conversion.oijob.json",
             new StudioFileType(T("FileType", "OfficeIMO conversion job"), ["json"], "application/json"), cancellation);
         if (location is null) return;
         string path = RequireLocalJobPath(location);
         string baseDirectory = Path.GetDirectoryName(path)!;
-        OfficeConversionJob definition = OfficeConversionJob.FromRequest(request, baseDirectory);
+        OfficeBatchOptions definition = request;
         definition.Name = _loadedJob?.Name;
-        string serialized = OfficeConversionJobSerializer.Serialize(definition);
-        OfficeConversionJobSerializer.ValidateStoragePath(definition, path);
+        string serialized = definition.ToJson(baseDirectory);
+        OfficeBatchOptionsSerializer.ValidateStoragePath(definition, path);
         await AuthorizeJobDestinationAsync(path, request, cancellation);
         string? expected = null;
         if (File.Exists(path)) {
             // Replacing an existing job is useful; replacing an unrelated document is not a save-job operation.
-            await Task.Run(() => OfficeConversionJobSerializer.ReadFile(path), cancellation);
+            await Task.Run(() => OfficeBatchOptions.Load(path), cancellation);
             using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
             expected = Convert.ToHexString(await System.Security.Cryptography.SHA256.HashDataAsync(stream, cancellation));
         }
@@ -114,7 +114,7 @@ public sealed partial class PdfBatchExportViewModel {
         SavedJobPath = path;
         _loadedJob = definition; _jobBaseDirectory = baseDirectory;
         _applyingJob = true;
-        try { InputDirectory = request.InputDirectory!; OutputDirectory = request.OutputDirectory; CheckpointDirectory = request.CheckpointDirectory ?? string.Empty; }
+        try { InputDirectory = request.InputDirectory!; OutputDirectory = request.OutputDirectory; CheckpointDirectory = request.ResumeFrom is { } resume ? Path.GetDirectoryName(resume)! : string.Empty; }
         finally { _applyingJob = false; }
         _savedMatchesFields = true;
         JobSettingsSummary = DescribeSettings(request);
@@ -127,7 +127,7 @@ public sealed partial class PdfBatchExportViewModel {
             new StudioFileType(T("FileType", "OfficeIMO conversion job"), ["json"], "application/json"), cancellation);
         if (location is null) return;
         string path = RequireLocalJobPath(location);
-        OfficeConversionJob definition = await Task.Run(() => OfficeConversionJobSerializer.ReadFile(path), cancellation);
+        OfficeBatchOptions definition = await Task.Run(() => OfficeBatchOptions.Load(path), cancellation);
         ApplyLoadedJob(definition, path);
     }, token);
 
@@ -142,7 +142,7 @@ public sealed partial class PdfBatchExportViewModel {
             if (!File.Exists(path)) throw new FileNotFoundException(_localizer.GetOrDefault("Jobs.RunReport.MissingJob", "The saved job is no longer available. Locate it through Convert → Load job."));
             var snapshot = await Task.Run(() => {
                 try {
-                    OfficeConversionJob definition = OfficeConversionJobSerializer.ReadFile(path, out string fingerprint);
+                    OfficeBatchOptions definition = OfficeBatchOptionsSerializer.ReadSnapshot(path, out string fingerprint);
                     return (Definition: definition, Fingerprint: fingerprint);
                 } catch (Exception error) when (error is InvalidDataException or System.Text.Json.JsonException or NotSupportedException) {
                     throw new IOException(_localizer.GetOrDefault("Jobs.RunReport.ChangedJob", "The saved job changed after this attempt. Load it explicitly in Convert to review the new definition."), error);
@@ -156,19 +156,19 @@ public sealed partial class PdfBatchExportViewModel {
         return loaded;
     }
 
-    private void ApplyLoadedJob(OfficeConversionJob definition, string path) {
-        if (definition.Secrets.SourcePasswordEnvironmentVariable is not null || definition.Secrets.PdfPasswordEnvironmentVariable is not null)
+    private void ApplyLoadedJob(OfficeBatchOptions definition, string path) {
+        if (definition.SourcePasswordEnvironmentVariable is not null || definition.PdfPasswordEnvironmentVariable is not null)
             throw new NotSupportedException(T("Secrets", "This workbench cannot request saved-job password references. Run that job through the CLI or PowerShell."));
         string baseDirectory = Path.GetDirectoryName(path)!;
-        OfficeConversionBatchRequest request = definition.CreateRequest(baseDirectory);
+        OfficeBatchOptions request = definition;
         ValidateFolderJob(request);
         // Validation and projection finish before any visible fields or the retained definition change.
         string summary = DescribeSettings(request);
         _applyingJob = true;
         try {
             InputDirectory = request.InputDirectory!; OutputDirectory = request.OutputDirectory;
-            CheckpointDirectory = request.CheckpointDirectory ?? string.Empty; RetryFailed = request.RetryFailed;
-            AllowLegacyImportLoss = request.ConversionOptions.LegacyDocLossPolicy == OfficeConversionLossPolicy.Allow;
+            CheckpointDirectory = request.ResumeFrom is { } resume ? Path.GetDirectoryName(resume)! : string.Empty; RetryFailed = request.RetryFailed;
+            AllowLegacyImportLoss = request.ConversionOptions.WordLoad?.FailOnLoss != true;
             TextEncoding = request.ConversionOptions.PlainText?.EncodingName ?? string.Empty;
             TabSize = request.ConversionOptions.PlainText?.TabSize ?? 8;
             _loadedJob = definition; _jobBaseDirectory = baseDirectory;
@@ -180,9 +180,8 @@ public sealed partial class PdfBatchExportViewModel {
 
     [RelayCommand(CanExecute = nameof(CanEdit))]
     private Task PlanJobAsync(CancellationToken token) => WithJobOperationAsync(async cancellation => {
-        OfficeConversionJob definition = CreateCurrentJob();
-        var plan = await OfficeConversionJobRunner.PlanAsync(definition, _jobBaseDirectory, _runner,
-            cancellationToken: cancellation);
+        OfficeBatchOptions definition = CreateCurrentJob();
+        var plan = await OfficeConverter.PlanAsync(definition, cancellationToken: cancellation);
         PlanSummary = _localizer.FormatOrDefault("Conversion.SavedJob.PlanResult",
             "Found {0:N0} · Selected {1:N0} · Skipped {2:N0} · Failed {3:N0} · Output conflicts {4:N0}",
             plan.Discovered, plan.Selected, plan.Skipped, plan.Failed, plan.Collisions);
@@ -197,7 +196,7 @@ public sealed partial class PdfBatchExportViewModel {
             string sample = T("PlanSample", "Showing the first plan items; the counts cover the whole selection.");
             PlanSummary += Environment.NewLine + sample; PlanFindings += Environment.NewLine + sample;
         }
-        JobSettingsSummary = DescribeSettings(definition.CreateRequest(_jobBaseDirectory));
+        JobSettingsSummary = DescribeSettings(definition);
         Status = plan.CanRun ? T("PlanReady", "Plan ready. No output or checkpoints were written. Review the destinations before running.")
             : T("PlanBlocked", "The plan has findings to resolve before running. No output or checkpoints were written.");
     }, token);
@@ -209,11 +208,11 @@ public sealed partial class PdfBatchExportViewModel {
 
     private Task CopySavedCommandAsync(bool powerShell, CancellationToken token) => WithJobOperationAsync(async cancellation => {
         // A command points at the saved file, so do not copy it after that file changed outside Studio.
-        OfficeConversionJob current = await Task.Run(() => OfficeConversionJobSerializer.ReadFile(SavedJobPath), cancellation);
-        if (_loadedJob is null || OfficeConversionJobSerializer.Serialize(current) != OfficeConversionJobSerializer.Serialize(_loadedJob))
+        OfficeBatchOptions current = await Task.Run(() => OfficeBatchOptions.Load(SavedJobPath), cancellation);
+        if (_loadedJob is null || current.ToJson(_jobBaseDirectory) != _loadedJob.ToJson(_jobBaseDirectory))
             throw new IOException(T("FileChanged", "The saved job changed outside Studio. Load it again or save the reviewed settings before copying a command."));
-        await _copyCommandText!(powerShell ? OfficeConversionJobCommands.GetPowerShellCommand(SavedJobPath)
-            : OfficeConversionJobCommands.GetCliCommand(SavedJobPath));
+        await _copyCommandText!(powerShell ? OfficeBatchCommands.GetPowerShellCommand(SavedJobPath)
+            : OfficeBatchCommands.GetCliCommand(SavedJobPath));
         Status = T("Copied", "Command copied for the saved job. It runs only when you execute it.");
     }, token);
 
@@ -230,17 +229,17 @@ public sealed partial class PdfBatchExportViewModel {
     private string RequireLocalJobPath(string location) => OfficeStorageIdentity.GetLocalPath(location)
         ?? throw new IOException(T("LocalFile", "Choose a local job file. Saved folder jobs need filesystem paths that Studio, the CLI and PowerShell can all use."));
 
-    private void ValidateFolderJob(OfficeConversionBatchRequest request) {
+    private void ValidateFolderJob(OfficeBatchOptions request) {
         if (string.IsNullOrWhiteSpace(request.InputDirectory) || request.InputPaths is { Length: > 0 } ||
             !string.Equals(request.TargetExtension, ".pdf", StringComparison.OrdinalIgnoreCase) || !string.IsNullOrWhiteSpace(request.ConversionRouteId))
             throw new NotSupportedException(T("FolderOnly", "This workbench loads folder-to-PDF jobs. Use the CLI or PowerShell for explicit-file lists, other targets or a fixed conversion route."));
-        if (!string.IsNullOrEmpty(request.PdfPassword) || !string.IsNullOrEmpty(request.ConversionOptions.SourcePassword))
+        if (!string.IsNullOrEmpty(request.ConversionOptions.PdfLoad?.Password) || !string.IsNullOrEmpty(request.ConversionOptions.SourcePassword))
             throw new NotSupportedException(T("Secrets", "This workbench cannot request saved-job password references. Run that job through the CLI or PowerShell."));
     }
 
-    private async Task AuthorizeJobDestinationAsync(string path, OfficeConversionBatchRequest request, CancellationToken token) {
+    private async Task AuthorizeJobDestinationAsync(string path, OfficeBatchOptions request, CancellationToken token) {
         token.ThrowIfCancellationRequested();
-        OfficeConversionJobSerializer.ValidateStoragePath(OfficeConversionJob.FromRequest(request, Path.GetDirectoryName(path)!), path);
+        OfficeBatchOptionsSerializer.ValidateStoragePath(request, path);
         if (OfficeStorageIdentity.AreEquivalent(path, request.InputDirectory!) ||
             request.InputPaths?.Any(input => OfficeStorageIdentity.AreEquivalent(path, input)) == true)
             throw new IOException(T("PreserveInput", "Choose a separate job filename to preserve its inputs."));
@@ -248,27 +247,27 @@ public sealed partial class PdfBatchExportViewModel {
             throw new IOException(T("Protected", "The job destination is used by an open document or recovery operation."));
     }
 
-    private string DescribeSettings(OfficeConversionBatchRequest request) {
+    private string DescribeSettings(OfficeBatchOptions request) {
         string summary = _localizer.FormatOrDefault("Conversion.SavedJob.Settings",
         "PDF · {0} profile · {1} conflicts · {2} concurrent · {3:N0} files maximum · {4:N0} MiB input / {5:N0} MiB output · {6}.",
-        request.OutputProfile, request.ConflictPolicy, request.MaximumConcurrency, request.MaximumFiles,
+        request.OutputProfile, request.ConflictPolicy, request.MaxParallelism, request.MaximumFiles,
         request.MaximumInputBytes / (1024 * 1024), request.MaximumOutputBytes / (1024 * 1024),
         request.Recursive ? T("Recursive", "includes subfolders") : T("TopFolder", "top folder only"));
-        string filters = request.SourceExtensions is { Length: > 0 } ? string.Join(", ", request.SourceExtensions) : T("AllFormats", "all supported formats");
+        string filters = request.Extensions is { Length: > 0 } ? string.Join(", ", request.Extensions) : T("AllFormats", "all supported formats");
         summary += Environment.NewLine + _localizer.FormatOrDefault("Conversion.SavedJob.Filters", "Source selection: {0}. XML limit: {1:N0} characters per part.", filters, request.MaximumXmlCharactersInPart);
         var options = request.ConversionOptions;
         var extra = new List<string>();
         void Add(string name, string fallback, object? value) {
             if (value is not null) extra.Add(_localizer.FormatOrDefault("Conversion.SavedJob.Option." + name, fallback, value));
         }
-        Add("Pages", "Pages: {0}", options.PageRanges);
-        Add("Word", "PDF to Word: {0}", options.WordMode);
-        Add("Slides", "PDF to slides: {0}", options.PowerPointMode);
-        Add("Dpi", "Raster resolution: {0} DPI", options.RasterDpi);
-        Add("Worksheet", "Worksheet layout: {0}", options.WorksheetLayout);
-        Add("Html", "HTML layout: {0}", options.HtmlProfile);
+        Add("Pages", "Pages: {0}", options.PdfLoad?.PageSelection);
+        Add("Word", "PDF to Word: {0}", options.PdfWord?.Mode);
+        Add("Slides", "PDF to slides: {0}", options.PdfPowerPoint?.Mode);
+        Add("Dpi", "Raster resolution: {0} DPI", options.PdfWord?.Dpi ?? options.PdfPowerPoint?.Dpi);
+        Add("Worksheet", "Worksheet layout: {0}", options.Excel?.WorksheetLayout);
+        Add("Html", "HTML layout: {0}", options.PdfHtml?.Profile);
         if (options.CompressPdfOutput) extra.Add(T("Compression", "Lossless PDF compression"));
-        if (options.RequireNoLoss) extra.Add(T("StrictLoss", "Reject reported conversion loss"));
+        if (options.FailOnLoss) extra.Add(T("StrictLoss", "Reject reported conversion loss"));
         if (extra.Count > 0) summary += Environment.NewLine + T("AdditionalOptions", "Additional retained conversion settings:") + Environment.NewLine + string.Join(Environment.NewLine, extra);
         return summary;
     }

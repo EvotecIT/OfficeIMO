@@ -15,7 +15,7 @@ public sealed partial class PdfTextRun {
                 throw new ArgumentException("A footnote reference must be an ordinary text run without layout controls.", nameof(definition));
         }
         var copy = CopyRunFormattingTo(new PdfTextRun(Text, Bold, Underline, Color, Italic, Strike,
-            FontSize, Font, LinkUri, LinkContents, Baseline, LinkDestinationName, TabLeader, TabAlignment,
+            FontSize, StandardFont, LinkUri, LinkContents, Baseline, LinkDestinationName, TabLeader, TabAlignment,
             BackgroundColor, FontFamily, UnderlineStyle, StrikeStyle, DecorationColor));
         copy.FootnoteReference = definition;
         return copy;

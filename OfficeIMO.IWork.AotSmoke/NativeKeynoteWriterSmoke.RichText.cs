@@ -38,11 +38,10 @@ internal static partial class NativeKeynoteWriterSmoke {
             "NativeAOT rich run lost decoration.");
         Require(reset.Bold == false && reset.Italic == false && reset.Underline == false && reset.Strikethrough == false
             && reset.FontSizePoints == 24 && reset.Color?.RgbHex == "000000", "NativeAOT plain run failed to reset formatting.");
-        using var converted = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(new MemoryStream(bytes),
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Open(new MemoryStream(bytes), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         converted.Report.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); converted.Value.Save(output); output.Position = 0;
-        using var saved = PowerPointPresentation.Load(output);
+        using var saved = PowerPointDocument.Load(output);
         Require(saved.Slides.Count == 3 && !saved.ValidateDocument().Any(), "NativeAOT rich-run PPTX did not save/reopen correctly.");
         PowerPointTextRun savedReset = saved.Slides[1].TextBoxes.Single().Paragraphs.SelectMany(paragraph => paragraph.Runs)
             .Single(run => run.Text == " plain");
@@ -50,7 +49,7 @@ internal static partial class NativeKeynoteWriterSmoke {
             "NativeAOT saved PPTX inherited earlier character decoration.");
         using var unchanged = new MemoryStream(new byte[] { 9, 8, 7 });
         try {
-            document.Save(unchanged, new IWorkKeynoteWriteOptions { MaximumTextRuns = 10 });
+            document.Save(unchanged, new IWorkKeynoteWriteOptions { MaxTextRuns = 10 });
             throw new InvalidOperationException("NativeAOT character-run budget was not enforced.");
         } catch (InvalidDataException) { }
         Require(unchanged.ToArray().SequenceEqual(new byte[] { 9, 8, 7 }), "NativeAOT run-budget failure changed the destination.");

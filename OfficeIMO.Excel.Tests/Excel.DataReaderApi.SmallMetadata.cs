@@ -28,7 +28,7 @@ public partial class Excel {
             }
             ReplaceZipEntry(path, entry, output.ToArray());
 
-            Assert.Equal(new[] { "Łódź 🚀" }, XlsxTabularWorkbook.ReadSheetNames(path, new ExcelReadOptions()));
+            Assert.Equal(new[] { "Łódź 🚀" }, XlsxTabularWorkbook.ReadSheetNames(path, new ExcelReaderOptions()));
             Assert.Equal(new[] { "Łódź 🚀" }, ExcelDocument.GetSheetNames(path));
             AssertCompactNumericRows(path);
         } finally {
@@ -41,11 +41,13 @@ public partial class Excel {
         string path = CreateCompactFastPathWorkbook();
         try {
             string xml = Encoding.UTF8.GetString(ReadZipEntry(path, "xl/workbook.xml"));
-            int rootStart = xml.IndexOf("<workbook", StringComparison.Ordinal);
+            int declarationEnd = xml.StartsWith("<?xml", StringComparison.Ordinal)
+                ? xml.IndexOf("?>", StringComparison.Ordinal) + 2 : 0;
+            int rootStart = xml.IndexOf('<', declarationEnd);
             xml = xml.Insert(rootStart, "<!DOCTYPE workbook [<!ENTITY name 'unexpected'>]>");
             ReplaceZipEntry(path, "xl/workbook.xml", Encoding.UTF8.GetBytes(xml));
             Assert.Throws<XlsxTabularFastPathNotSupportedException>(() =>
-                XlsxTabularWorkbook.ReadSheetNames(path, new ExcelReadOptions()));
+                XlsxTabularWorkbook.ReadSheetNames(path, new ExcelReaderOptions()));
         } finally {
             File.Delete(path);
         }
@@ -75,7 +77,7 @@ public partial class Excel {
             }
             ReplaceZipEntry(path, entry, Encoding.UTF8.GetBytes(workbook.ToString(SaveOptions.DisableFormatting)));
 
-            using XlsxTabularWorkbook native = XlsxTabularWorkbook.Open(path, new ExcelReadOptions());
+            using XlsxTabularWorkbook native = XlsxTabularWorkbook.Open(path, new ExcelReaderOptions());
             Assert.Equal(ExcelDateSystem.NineteenFour, native.DateSystem);
             Assert.Equal(new[] { "Data" }, native.TableNames);
             Assert.Equal(new[] { "Data" }, ExcelDocument.GetSheetNames(path));

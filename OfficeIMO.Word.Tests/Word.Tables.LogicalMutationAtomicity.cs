@@ -1,6 +1,5 @@
 using DocumentFormat.OpenXml;
 using OfficeIMO.Word;
-using OfficeIMO.Word.Fluent;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 using Xunit;
 
@@ -23,19 +22,13 @@ public sealed class WordLogicalTableMutationAtomicityTests {
     }
 
     [Fact]
-    public void FluentInsertionRejectsExcessiveRowDepthBeforeAppending() {
+    public void InsertionRejectsExcessiveRowDepthBeforeAppending() {
         using WordDocument document = WordDocument.Create();
-        WordTable? table = null;
-        WordTableBuilder? builder = null;
-        document.AsFluent().Table(value => {
-            builder = value;
-            value.Create(2, 1);
-            table = value.Table;
-        });
+        var table = document.AddTable(2, 1);
         WrapBeyondLimit(table!.Rows[1]._tableRow, row: true);
         string before = table._table.OuterXml;
 
-        Assert.Throws<InvalidDataException>(() => builder!.InsertRow(1, "NEW"));
+        Assert.Throws<InvalidDataException>(() => table.InsertRow(0, "NEW"));
 
         Assert.Equal(before, table._table.OuterXml);
     }

@@ -182,7 +182,7 @@ internal partial class StudioDocumentSessionController<TDocument, TTab> : Observ
             byte[] recovered = _recovery.ReadVerifiedSnapshot(item.SourcePath, item.Document.Fingerprint) ?? throw new IOException();
             if (_services.Storage.UsesProviderPublication(destination)) {
                 using var serialized = new OfficeBoundedMemoryStream(StudioDocumentStorage.MaximumDocumentBytes);
-                await PdfDocument.Load(recovered).SaveAsync(serialized, cancellation.Token);
+                await PdfDocument.Load(new System.IO.MemoryStream(recovered)).SaveAsync(serialized, cancellationToken:cancellation.Token);
                 await _services.Storage.PublishAsync(destination, serialized.ToArray(), null, token => {
                     token.ThrowIfCancellationRequested();
                     if (_disposed || !_host.CanPublishPath(destination) || PathsEqual(destination, item.SourcePath)) {
@@ -192,7 +192,7 @@ internal partial class StudioDocumentSessionController<TDocument, TTab> : Observ
                 }, cancellation.Token);
             } else {
                 staging = Path.Combine(Path.GetDirectoryName(destination)!, ".recovered-" + Guid.NewGuid().ToString("N") + ".pdf");
-                PdfDocument.Load(recovered).Save(staging);
+                PdfDocument.Load(new System.IO.MemoryStream(recovered)).Save(staging);
                 cancellation.Token.ThrowIfCancellationRequested();
                 File.Move(staging, destination, overwrite: false);
             }

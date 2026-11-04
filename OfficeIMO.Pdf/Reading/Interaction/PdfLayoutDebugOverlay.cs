@@ -24,7 +24,7 @@ internal static class PdfLayoutDebugOverlay {
 
         PdfReadPage page = document.Pages[pageNumber - 1];
         PdfPageInteractionMap interactions = PdfPageInteractionMap.Create(pdf, pageNumber, readOptions: readOptions);
-        StructuredPage structure = page.ExtractStructured(layoutOptions);
+        PdfStructuredPage structure = page.ExtractStructured(layoutOptions);
         var drawing = new OfficeDrawing(interactions.Width, interactions.Height);
         int elementCount = 0;
         if (effective.ShowRegions) {
@@ -100,11 +100,11 @@ internal static class PdfLayoutDebugOverlay {
     private static void AddLines(
         OfficeDrawing drawing,
         PdfReadPage page,
-        StructuredPage structure,
+        PdfStructuredPage structure,
         PdfLayoutDebugOverlayOptions options,
         ref int elementCount) {
         for (int i = 0; i < structure.LinesDetailed.Count; i++) {
-            StructuredLine line = structure.LinesDetailed[i];
+            PdfStructuredLine line = structure.LinesDetailed[i];
             DebugBounds bounds = TransformBounds(
                 page,
                 line.XStart,
@@ -137,11 +137,11 @@ internal static class PdfLayoutDebugOverlay {
     private static void AddRegions(
         OfficeDrawing drawing,
         PdfReadPage page,
-        StructuredPage structure,
+        PdfStructuredPage structure,
         PdfLayoutDebugOverlayOptions options,
         ref int elementCount) {
         for (int i = 0; i < structure.Paragraphs.Count; i++) {
-            StructuredParagraph paragraph = structure.Paragraphs[i];
+            PdfStructuredParagraph paragraph = structure.Paragraphs[i];
             double largestFont = paragraph.Lines.Count == 0
                 ? 10D
                 : paragraph.Lines.Max(static line => Math.Max(1D, line.FontSize));

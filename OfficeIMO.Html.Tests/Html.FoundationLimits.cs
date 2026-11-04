@@ -64,7 +64,7 @@ public sealed class HtmlFoundationLimitTests {
         Assert.Equal(p.SourceIndex, captured.Document.GetNode(p.NodeId)!.SourceIndex);
         Assert.Equal("Kept", captured.Document.GetNode(p.NodeId)!.TextContent);
         Assert.Equal("Template", captured.Document.GetNode(content.NodeId)!.TextContent);
-        Assert.Contains("Kept", captured.ToMarkdown());
+        Assert.Contains("Kept", captured.ToMarkdown().ToMarkdown());
     }
 
     [Fact]
@@ -84,8 +84,8 @@ public sealed class HtmlFoundationLimitTests {
         });
         Assert.Null(edited.Document.GetNode(removedId));
         Assert.True(editor!.IsReadOnly);
-        Assert.Contains("Edited", edited.ToMarkdown());
-        Assert.Contains("Kept", conversion.ToMarkdown());
+        Assert.Contains("Edited", edited.ToMarkdown().ToMarkdown());
+        Assert.Contains("Kept", conversion.ToMarkdown().ToMarkdown());
         Assert.NotNull(supplied.GetNode(detached.NodeId));
     }
 

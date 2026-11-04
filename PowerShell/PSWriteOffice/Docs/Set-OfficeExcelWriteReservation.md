@@ -11,17 +11,17 @@ Sets workbook write-reservation metadata.
 ## SYNTAX
 ### Context (Default)
 ```powershell
-Set-OfficeExcelWriteReservation [-ReadOnlyRecommended] [-UserName <string>] [-Password <string>] [-LegacyPasswordHash <string>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Set-OfficeExcelWriteReservation [-ReadOnlyRecommended] [-UserName <string>] [-Password <securestring>] [-LegacyPasswordHash <string>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Path
 ```powershell
-Set-OfficeExcelWriteReservation [-Path] <string> [-ReadOnlyRecommended] [-UserName <string>] [-Password <string>] [-LegacyPasswordHash <string>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Set-OfficeExcelWriteReservation [-Path] <string> [-ReadOnlyRecommended] [-UserName <string>] [-Password <securestring>] [-LegacyPasswordHash <string>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Set-OfficeExcelWriteReservation -Document <ExcelDocument> [-ReadOnlyRecommended] [-UserName <string>] [-Password <string>] [-LegacyPasswordHash <string>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Set-OfficeExcelWriteReservation -Document <ExcelDocument> [-ReadOnlyRecommended] [-UserName <string>] [-Password <securestring>] [-LegacyPasswordHash <string>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -91,7 +91,7 @@ Accept wildcard characters: False
 Optional write-reservation password. This is legacy Excel metadata, not package encryption.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: Context, Path, Document
 Aliases: None
 Possible values:

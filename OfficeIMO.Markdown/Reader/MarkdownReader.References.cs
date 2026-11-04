@@ -5,9 +5,9 @@ using System.Text;
 
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     private static void PreScanReferenceLinkDefinitions(string[] lines, MarkdownReaderState state) {
-        PreScanReferenceLinkDefinitions(lines, state, new MarkdownReaderOptions());
+        PreScanReferenceLinkDefinitions(lines, state, new MarkdownLoadOptions());
     }
 
     private static IReadOnlyList<MarkdownReferenceLinkDefinition> SnapshotReferenceLinkDefinitions(MarkdownReaderState state) {
@@ -22,7 +22,7 @@ public static partial class MarkdownReader {
             .ToArray();
     }
 
-    private static void PreScanReferenceLinkDefinitions(string[] lines, MarkdownReaderState state, MarkdownReaderOptions options) {
+    private static void PreScanReferenceLinkDefinitions(string[] lines, MarkdownReaderState state, MarkdownLoadOptions options) {
         if (!ContainsPotentialReferenceLinkDefinition(lines)) {
             return;
         }
@@ -179,7 +179,7 @@ public static partial class MarkdownReader {
         IMarkdownBlockParser parser,
         string[] lines,
         int startIndex,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         List<MarkdownSyntaxNode> syntaxNodes,
         MarkdownReaderState state) {
         if (parser is ReferenceLinkDefParser
@@ -255,7 +255,7 @@ public static partial class MarkdownReader {
     private static bool TryBuildReferenceDefinitionSyntaxNode(
         string[] lines,
         int index,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state,
         out MarkdownSyntaxNode node,
         out int consumedLines) {
@@ -325,7 +325,7 @@ public static partial class MarkdownReader {
     private static bool TryParseReferenceLinkDefinition(
         string[] lines,
         int index,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState? state,
         out string label,
         out string url,
@@ -447,7 +447,7 @@ public static partial class MarkdownReader {
         return !string.IsNullOrEmpty(label);
     }
 
-    private static bool TryParseReferenceLinkDefinition(string[] lines, int index, MarkdownReaderOptions options, out string label, out string url, out string? title, out int consumedLines) =>
+    private static bool TryParseReferenceLinkDefinition(string[] lines, int index, MarkdownLoadOptions options, out string label, out string url, out string? title, out int consumedLines) =>
         TryParseReferenceLinkDefinition(lines, index, options, state: null, out label, out url, out title, out consumedLines, out _, out _, out _, out _, out _);
 
     private static bool TryParseReferenceTitleContinuation(string[] lines, int index, out string? title) =>

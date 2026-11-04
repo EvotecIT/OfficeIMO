@@ -7,7 +7,7 @@ namespace OfficeIMO.Word;
 /// Provides access to the built-in list styles and helper methods for
 /// working with numbering definitions.
 /// </summary>
-public static partial class WordListStyles {
+internal static partial class WordListStyles {
     /// <summary>
     /// Retrieves the abstract numbering definition for the specified built-in list style.
     /// </summary>

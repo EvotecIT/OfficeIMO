@@ -32,7 +32,7 @@ public partial class Word {
         note.Append(paragraph);
         var authored = new WordParagraph(source, paragraph);
         using (var pixels = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng((byte)0, (byte)180, (byte)80)))
-            authored.AddText(string.Empty).InsertImage(pixels, "owned-note-image.png", 64, 32);
+            authored.AddText(string.Empty).AddImage(pixels, "owned-note-image.png", OfficeIMO.OfficeLength.Pixels(64), OfficeIMO.OfficeLength.Pixels(32));
         authored.AddText(" AFTERIMAGE").Italic = true;
         note.Append(new W.Paragraph(RichNoteRun("FOLLOWINGNOTEPARAGRAPH")));
         Assert.Empty(source.ValidateDocument());
@@ -43,7 +43,7 @@ public partial class Word {
         OpenXmlCompositeElement loaded = endnote ? main.EndnotesPart!.Endnotes! : main.FootnotesPart!.Footnotes!;
         string originalBody = main.Document.OuterXml;
         string originalNotes = loaded.OuterXml;
-        byte[] bytes = document.ToPdfBytes(FootnoteDiagnosticOptions());
+        byte[] bytes = document.ToPdf(FootnoteDiagnosticOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         PdfImagePlacement image = Assert.Single(PdfImageExtractor.ExtractImagePlacements(bytes));
         Assert.Equal(48D, image.Width, 3);
         Assert.Equal(24D, image.Height, 3);

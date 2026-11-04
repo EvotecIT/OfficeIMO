@@ -22,11 +22,9 @@ public sealed class OdfSaveResult {
     public byte[] RequireValue() => Value;
 
     /// <summary>Returns the serialized bytes or throws when the save removed or lossily projected content.</summary>
-    public byte[] RequireNoLoss() {
+    public void ThrowIfLoss() {
         if (HasLoss) {
             throw new InvalidOperationException("OpenDocument save could not preserve every source entry losslessly.");
         }
-
-        return Value;
     }
 }

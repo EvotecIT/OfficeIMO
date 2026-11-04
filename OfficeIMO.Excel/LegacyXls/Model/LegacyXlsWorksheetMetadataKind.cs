@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Identifies worksheet-level BIFF metadata that has been decoded into the legacy import model.
     /// </summary>
-    public enum LegacyXlsWorksheetMetadataKind {
+    internal enum LegacyXlsWorksheetMetadataKind {
         /// <summary>Worksheet option flags from a WsBool record.</summary>
         SheetOptions,
 

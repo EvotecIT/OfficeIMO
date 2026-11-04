@@ -20,13 +20,13 @@ internal sealed class WordHeaderFooterResolutionSnapshot {
             cancellationToken.ThrowIfCancellationRequested();
             foreach (var reference in section._sectionProperties.ChildElements) {
                 if (reference is HeaderReference header) {
-                    if (header.Type?.Value == HeaderFooterValues.Default) defaultHeader = section.Header?.Default;
-                    else if (header.Type?.Value == HeaderFooterValues.First) firstHeader = section.Header?.First;
-                    else if (header.Type?.Value == HeaderFooterValues.Even) evenHeader = section.Header?.Even;
+                    if (header.Type?.Value == HeaderFooterValues.Default) defaultHeader = section.Headers?.Default;
+                    else if (header.Type?.Value == HeaderFooterValues.First) firstHeader = section.Headers?.First;
+                    else if (header.Type?.Value == HeaderFooterValues.Even) evenHeader = section.Headers?.Even;
                 } else if (reference is FooterReference footer) {
-                    if (footer.Type?.Value == HeaderFooterValues.Default) defaultFooter = section.Footer?.Default;
-                    else if (footer.Type?.Value == HeaderFooterValues.First) firstFooter = section.Footer?.First;
-                    else if (footer.Type?.Value == HeaderFooterValues.Even) evenFooter = section.Footer?.Even;
+                    if (footer.Type?.Value == HeaderFooterValues.Default) defaultFooter = section.Footers?.Default;
+                    else if (footer.Type?.Value == HeaderFooterValues.First) firstFooter = section.Footers?.First;
+                    else if (footer.Type?.Value == HeaderFooterValues.Even) evenFooter = section.Footers?.Even;
                 }
             }
             _stories.Add(section, new Stories(defaultHeader, firstHeader, evenHeader, defaultFooter, firstFooter, evenFooter));

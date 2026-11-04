@@ -216,7 +216,7 @@ internal static class HtmlRenderingCorpus {
             """,
             new[] { "Action Required", "Review the attached status update", "2 checks need attention", "Blocked status image" },
             linkUri: "https://example.test/action",
-            diagnosticCodes: new[] { "ImageResourceRejectedByPolicy", "HyperlinkRejectedByPolicy" },
+            diagnosticCodes: new[] { global::OfficeIMO.OfficeDiagnosticCodes.ImageResourceRejectedByPolicy, "HyperlinkRejectedByPolicy" },
             minimumVisualCount: 20),
         new HtmlRenderingCorpusCase(
             "dashboard-print",
@@ -323,7 +323,7 @@ internal sealed class HtmlRenderingCorpusCase {
         MinimumHeadingCount = minimumHeadingCount;
         ForbiddenDiagnosticCodes = forbiddenDiagnosticCodes ?? Array.Empty<string>();
         RequiredVisualSources = requiredVisualSources ?? Array.Empty<string>();
-        RequireNoLoss = requireNoLoss;
+        FailOnLoss = requireNoLoss;
     }
 
     internal string Id { get; }
@@ -337,17 +337,17 @@ internal sealed class HtmlRenderingCorpusCase {
     internal int MinimumHeadingCount { get; }
     internal IReadOnlyList<string> ForbiddenDiagnosticCodes { get; }
     internal IReadOnlyList<string> RequiredVisualSources { get; }
-    internal bool RequireNoLoss { get; }
+    internal bool FailOnLoss { get; }
     internal double ExpectedSurfaceWidth => Mode == HtmlRenderMode.Paged ? 8.27D * HtmlRenderOptions.CssPixelsPerInch : 640D;
 
     internal HtmlRenderOptions CreateOptions() => new HtmlRenderOptions {
         Mode = Mode,
         ViewportWidth = 640D,
-        PageSize = new OfficePageSize(8.27D, 11.69D),
+        PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(8.27D), global::OfficeIMO.OfficeLength.Inches(11.69D)),
         Margins = HtmlRenderMargins.All(40D),
         Scale = 0.5D,
         BackgroundColor = OfficeColor.White,
         UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile(),
-        FidelityPolicy = RequireNoLoss ? HtmlRenderFidelityPolicy.RequireNoLoss : HtmlRenderFidelityPolicy.AllowDiagnosedLoss
+        FidelityPolicy = FailOnLoss ? HtmlRenderFidelityPolicy.FailOnLoss : HtmlRenderFidelityPolicy.AllowDiagnosedLoss
     };
 }

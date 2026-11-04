@@ -32,8 +32,8 @@ public class WordChartSeriesQualificationTests {
     [Fact]
     public void OfficeSnapshot_HidesLegendByPlottedOrdinal() {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartKind.Line, new OfficeChartData(new[] { "A" }, new[] {
-            new OfficeChartSeries("First", new[] { 1d }), new OfficeChartSeries("Second", new[] { 2d }) }));
+        var chart = document.AddChart(OfficeChartType.Line,new OfficeChartData(new[] { "A" }, new[] {
+            new OfficeSeries("First", new[] { 1d }), new OfficeSeries("Second", new[] { 2d }) }));
         C.Chart native = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!;
         native.Descendants<C.LineChartSeries>().First().Index!.Val = 5;
         native.GetFirstChild<C.Legend>()!.AddChild(
@@ -46,10 +46,9 @@ public class WordChartSeriesQualificationTests {
     [Fact]
     public void OfficeSnapshot_RejectsDistinctCategoryAxesInOneGroup() {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartKind.ColumnClustered,
-            new OfficeChartData(new[] { "A", "B" }, new[] {
-                new OfficeChartSeries("Columns", new[] { 1d, 2d }, null, null, null, true, renderKind: OfficeChartKind.ColumnClustered),
-                new OfficeChartSeries("Line", new[] { 3d, 4d }, null, null, null, true, renderKind: OfficeChartKind.Line) }));
+        var chart = document.AddChart(OfficeChartType.ColumnClustered,            new OfficeChartData(new[] { "A", "B" }, new[] {
+                new OfficeSeries("Columns", new[] { 1d, 2d }, null, null, null, true, renderKind: OfficeChartType.ColumnClustered),
+                new OfficeSeries("Line", new[] { 3d, 4d }, null, null, null, true, renderKind: OfficeChartType.Line) }));
         C.PlotArea plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
         C.CategoryAxis second = (C.CategoryAxis)plot.GetFirstChild<C.CategoryAxis>()!.CloneNode(true);
         second.AxisId!.Val = 700001;
@@ -63,16 +62,16 @@ public class WordChartSeriesQualificationTests {
     [InlineData(true)]
     public void UpdatingAreaSeriesCanRestoreAnInheritedOutline(bool zeroWidth) {
         OfficeChartData Data(bool connectLine) => new(new[] { "A", "B" }, new[] {
-            new OfficeChartSeries("Area", new[] { 1d, 2d }, null, null, null,
+            new OfficeSeries("Area", new[] { 1d, 2d }, null, null, null,
                 showMarkers: false, connectLine: connectLine)
         });
         using var document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartKind.Area, Data(false));
+        var chart = document.AddChart(OfficeChartType.Area,Data(false));
         A.Outline Outline() => chart.ChartPart!.ChartSpace!.Descendants<C.AreaChartSeries>().Single()
             .GetFirstChild<C.ChartShapeProperties>()!.GetFirstChild<A.Outline>()!;
         Assert.NotNull(Outline().GetFirstChild<A.NoFill>());
         if (zeroWidth) Outline().Width = 0;
-        chart.SetData(OfficeChartKind.Area, Data(true));
+        chart.SetData(OfficeChartType.Area, Data(true));
         Assert.Null(Outline().GetFirstChild<A.NoFill>());
         Assert.NotEqual(0, Outline().Width?.Value);
         Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
@@ -80,15 +79,17 @@ public class WordChartSeriesQualificationTests {
     }
 
     [Theory]
-    [InlineData(OfficeChartKind.Area)]
-    [InlineData(OfficeChartKind.AreaStacked)]
-    [InlineData(OfficeChartKind.AreaStacked100)]
-    public void Snapshot_MapsHiddenAreaOutlinesToFillOnlyGeometry(OfficeChartKind kind) {
+    [InlineData(OfficeChartType.Area)]
+    [InlineData(OfficeChartType.AreaStacked)]
+    [InlineData(OfficeChartType.AreaStacked100)]
+    public void Snapshot_MapsHiddenAreaOutlinesToFillOnlyGeometry(OfficeChartType kind) {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(kind, new OfficeChartData(new[] { "A", "B" }, new[] {
-            new OfficeChartSeries("Values", new[] { 1d, 2d }, null, OfficeColor.Parse("#123456")) }));
-        var outline = chart.ChartPart!.ChartSpace!.Descendants<C.AreaChartSeries>().Single()
-            .GetFirstChild<C.ChartShapeProperties>()!.GetFirstChild<A.Outline>()!;
+        var chart = document.AddChart(kind,new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeSeries("Values", new[] { 1d, 2d }, null, OfficeColor.Parse("#123456")) }));
+        // New series carry no outline of their own; add the hidden one under test.
+        var properties = chart.ChartPart!.ChartSpace!.Descendants<C.AreaChartSeries>().Single()
+            .GetFirstChild<C.ChartShapeProperties>()!;
+        var outline = properties.GetFirstChild<A.Outline>() ?? properties.AppendChild(new A.Outline());
         outline.RemoveAllChildren(); outline.Append(new A.NoFill());
         Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         Assert.False(Assert.Single(snapshot.Data.Series).ConnectLine);
@@ -98,12 +99,12 @@ public class WordChartSeriesQualificationTests {
         Assert.Null(area.Shape.StrokeColor);
     }
     [Theory]
-    [InlineData(OfficeChartKind.Line)]
-    [InlineData(OfficeChartKind.Scatter)]
-    public void Snapshot_RejectsPerPointPictureMarkers(OfficeChartKind kind) {
+    [InlineData(OfficeChartType.Line)]
+    [InlineData(OfficeChartType.Scatter)]
+    public void Snapshot_RejectsPerPointPictureMarkers(OfficeChartType kind) {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(kind, new OfficeChartData(new[] { "1", "2" }, new[] {
-            new OfficeChartSeries("Values", new[] { 1d, 2d }, kind == OfficeChartKind.Scatter ? new[] { 1d, 2d } : null) }));
+        var chart = document.AddChart(kind,new OfficeChartData(new[] { "1", "2" }, new[] {
+            new OfficeSeries("Values", new[] { 1d, 2d }, kind == OfficeChartType.Scatter ? new[] { 1d, 2d } : null) }));
         var series = chart.ChartPart!.ChartSpace!.Descendants<OpenXmlCompositeElement>().Single(item => item.LocalName == "ser");
         series.InsertBefore(new C.DataPoint(new C.Index { Val = 0 },
             new C.Marker(new C.Symbol { Val = C.MarkerStyleValues.Picture })), (OpenXmlElement?)series.GetFirstChild<C.CategoryAxisData>() ?? series.GetFirstChild<C.XValues>());
@@ -112,10 +113,11 @@ public class WordChartSeriesQualificationTests {
     [Fact]
     public void Snapshot_PreservesFilledSeriesOutlineAndPointOverrides() {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartKind.ColumnClustered, new OfficeChartData(new[] { "A", "B" },
-            new[] { new OfficeChartSeries("Values", new[] { 1d, 2d }, null, OfficeColor.Parse("#123456")) }));
+        var chart = document.AddChart(OfficeChartType.ColumnClustered,new OfficeChartData(new[] { "A", "B" },
+            new[] { new OfficeSeries("Values", new[] { 1d, 2d }, null, OfficeColor.Parse("#123456")) }));
         var series = chart.ChartPart!.ChartSpace!.Descendants<C.BarChartSeries>().Single();
-        var outline = series.GetFirstChild<C.ChartShapeProperties>()!.GetFirstChild<A.Outline>()!;
+        var properties = series.GetFirstChild<C.ChartShapeProperties>()!;
+        var outline = properties.GetFirstChild<A.Outline>() ?? properties.AppendChild(new A.Outline());
         outline.AddChild(new A.SolidFill(new A.RgbColorModelHex { Val = "ABCDEF" }), true);
         outline.Width = 25400;
         series.InsertBefore(new C.DataPoint(new C.Index { Val = 1 },
@@ -124,18 +126,18 @@ public class WordChartSeriesQualificationTests {
         var shared = snapshot.Data.Series.Single().ToOfficeSeries();
         var styles = shared.PointStyles!;
         Assert.Equal(OfficeColor.Parse("#ABCDEF"), shared.SeriesStyle!.OutlineColor);
-        Assert.Equal(2d, shared.SeriesStyle.OutlineWidth);
+        Assert.Equal(2d, shared.SeriesStyle.OutlineWidth?.ToPoints());
         Assert.True(styles[1]!.NoFill);
         Assert.False(styles[1]!.ShowOutline);
     }
     [Theory]
-    [InlineData(OfficeChartKind.ColumnStacked)]
-    [InlineData(OfficeChartKind.Scatter)]
-    public void Snapshot_PreservesNativePlottingOrder(OfficeChartKind kind) {
+    [InlineData(OfficeChartType.ColumnStacked)]
+    [InlineData(OfficeChartType.Scatter)]
+    public void Snapshot_PreservesNativePlottingOrder(OfficeChartType kind) {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(kind, new OfficeChartData(new[] { "1" }, new[] {
-            new OfficeChartSeries("First", new[] { 10d }, kind == OfficeChartKind.Scatter ? new[] { 1d } : null),
-            new OfficeChartSeries("Second", new[] { 20d }, kind == OfficeChartKind.Scatter ? new[] { 2d } : null) }));
+        var chart = document.AddChart(kind,new OfficeChartData(new[] { "1" }, new[] {
+            new OfficeSeries("First", new[] { 10d }, kind == OfficeChartType.Scatter ? new[] { 1d } : null),
+            new OfficeSeries("Second", new[] { 20d }, kind == OfficeChartType.Scatter ? new[] { 2d } : null) }));
         var orders = chart.ChartPart!.ChartSpace!.Descendants<C.Order>().ToArray();
         orders[0].Val = 1; orders[1].Val = 0;
         Assert.True(chart.TryGetSnapshot(out var snapshot));
@@ -153,8 +155,7 @@ public class WordChartSeriesQualificationTests {
     [InlineData(true, "miterLimit")]
     public void Snapshot_RejectsUnrepresentedNativeAppearance(bool point, string appearance) {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(appearance == "marker" ? OfficeChartKind.Line : OfficeChartKind.ColumnClustered,
-            new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 1d }) }));
+        var chart = document.AddChart(appearance == "marker" ? OfficeChartType.Line : OfficeChartType.ColumnClustered,            new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 1d }) }));
         var series = chart.ChartPart!.ChartSpace!.Descendants<OpenXmlCompositeElement>().Single(item => item.LocalName == "ser");
         var properties = new C.ChartShapeProperties();
         if (appearance == "gradient") properties.Append(new A.GradientFill());

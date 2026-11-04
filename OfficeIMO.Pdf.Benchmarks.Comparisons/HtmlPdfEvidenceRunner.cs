@@ -250,15 +250,17 @@ internal static class HtmlPdfEvidenceRunner {
             stage = "ContractValidation";
             PdfReadObservation observation = PdfBenchmarkValidation.ValidateHtmlGenerated(bytes, scenario, engine.ToString());
             stage = "TaggedContentObservation";
-            PdfDocumentInfo info = OfficeIMO.Pdf.PdfDocument.Load(bytes).Inspect();
+            using var pdfInput = new MemoryStream(bytes, writable: false);
+            using var pdfDocument = OfficeIMO.Pdf.PdfDocument.Load(pdfInput);
+            PdfDocumentInfo info = pdfDocument.Inspect();
             PdfTaggedContentInfo tagged = info.TaggedContent
                 ?? throw new InvalidDataException($"{engine} did not expose tagged-content evidence.");
 
             stage = "ManagedPreview";
-            PdfPageRenderResult visual = OfficeIMO.Pdf.PdfDocument.Load(bytes).Render.Pages(
+            PdfPageRenderResult visual = pdfDocument.Render.Pages(
                 "1",
                 new PdfPageRenderOptions {
-                    Format = PdfPageRenderFormat.Png,
+                    Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png,
                     Dpi = 120D,
                     ContinueOnError = false,
                     MaxPages = 1
@@ -455,7 +457,7 @@ internal static class HtmlPdfEvidenceRunner {
         foreach (string seed in new[] { AppContext.BaseDirectory, Directory.GetCurrentDirectory() }) {
             string? current = Path.GetFullPath(seed);
             while (!string.IsNullOrWhiteSpace(current)) {
-                if (File.Exists(Path.Combine(current, "OfficeIMO.sln"))) return current;
+                if (File.Exists(Path.Combine(current, "OfficeIMO.slnx"))) return current;
                 current = Directory.GetParent(current)?.FullName;
             }
         }
@@ -482,7 +484,7 @@ internal static class HtmlPdfEvidenceRunner {
 
     private static string AssemblyVersion(HtmlPdfComparisonEngine engine) {
         Assembly assembly = engine switch {
-            HtmlPdfComparisonEngine.OfficeIMO => typeof(OfficeIMO.Html.Pdf.HtmlToPdfOptions).Assembly,
+            HtmlPdfComparisonEngine.OfficeIMO => typeof(OfficeIMO.Html.Pdf.HtmlPdfExportOptions).Assembly,
             HtmlPdfComparisonEngine.PeachPDF => typeof(PeachPDF.PdfGenerator).Assembly,
             HtmlPdfComparisonEngine.PdfPecker => typeof(global::PdfPecker.HtmlToPdf).Assembly,
             HtmlPdfComparisonEngine.ITextPdfHtml => typeof(iText.Html2pdf.HtmlConverter).Assembly,
@@ -565,7 +567,7 @@ internal static class HtmlPdfEvidenceRunner {
         using var cancellation = new CancellationTokenSource();
         PdfResourcePolicy resourcePolicy = PdfResourcePolicy.CreateDefault();
         resourcePolicy.AllowRemoteResourceResolution = true;
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             ResourcePolicy = resourcePolicy,
             ResourceResolver = async (_, cancellationToken) => {
                 started.TrySetResult(true);
@@ -576,7 +578,14 @@ internal static class HtmlPdfEvidenceRunner {
         const string probeImage = "<img src=\"https://officeimo.invalid/cancellation-probe.png\" alt=\"cancellation probe\">";
         int bodyEnd = html.LastIndexOf("</body>", StringComparison.OrdinalIgnoreCase);
         string probeHtml = bodyEnd >= 0 ? html.Insert(bodyEnd, probeImage) : html + probeImage;
-        Task<byte[]> conversion = HtmlConversionDocument.Parse(probeHtml).ToPdfBytesAsync(options, cancellation.Token);
+        Task<OfficeConversionReport> conversion = ConvertProbeAsync();
+
+        async Task<OfficeConversionReport> ConvertProbeAsync() {
+            HtmlConversionDocument source = HtmlConversionDocument.Parse(probeHtml);
+            // Keep the destination alive until conversion settles, even if the probe times out.
+            using var output = new MemoryStream();
+            return await source.SaveAsPdfAsync(output, options, cancellation.Token).ConfigureAwait(false);
+        }
         try {
             await started.Task.WaitAsync(CancellationStartTimeout).ConfigureAwait(false);
             var stopwatch = Stopwatch.StartNew();
@@ -589,7 +598,7 @@ internal static class HtmlPdfEvidenceRunner {
                 return new HtmlPdfCancellationEvidence(
                     true,
                     "Passed",
-                    $"An in-flight OfficeIMO HTML-to-PDF request cancelled in {stopwatch.Elapsed.TotalMilliseconds:0} ms through ToPdfBytesAsync.");
+                    $"An in-flight OfficeIMO HTML-to-PDF request cancelled in {stopwatch.Elapsed.TotalMilliseconds:0} ms through SaveAsPdfAsync.");
             } catch (TimeoutException) {
                 return new HtmlPdfCancellationEvidence(true, "Failed", "An in-flight OfficeIMO HTML-to-PDF request did not cancel promptly.");
             }

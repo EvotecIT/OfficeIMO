@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfRewritePreservation {
+internal static partial class PdfRewritePreservation {
     private static void CompareViewerActionState(List<PdfRewritePreservationIssue> issues, PdfDocumentInfo original, PdfDocumentInfo rewritten, PdfRewritePreservationOptions options) {
         CompareOpenAction(
             issues,

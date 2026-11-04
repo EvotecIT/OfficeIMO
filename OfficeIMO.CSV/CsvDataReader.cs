@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Collections;
 using System.Buffers;
 using System.Data;
@@ -16,7 +14,7 @@ namespace OfficeIMO.CSV;
 /// <summary>
 /// Forward-only reader for CSV rows projected through an optional schema.
 /// </summary>
-internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialectMetadata, ICsvDataReaderPositionMetadata, IDataReaderMappingMetadata, IDataReaderMappingErrorMetadata, IDataReaderFastMappingValues, IDataReaderParallelBatchSource, IDataReaderParallelBatchInfo
+public partial class CsvDataReader : DbDataReader, ICsvDataReaderDialectMetadata, ICsvDataReaderPositionMetadata, IDataReaderMappingMetadata, IDataReaderMappingErrorMetadata, IDataReaderFastMappingValues, IDataReaderParallelBatchSource, IDataReaderParallelBatchInfo
 {
     private const string IsReadOnlyColumn = "IsReadOnly";
     private const string IsRowVersionColumn = "IsRowVersion";
@@ -42,7 +40,7 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
     bool IDataReaderMappingMetadata.RequireAllColumnsMapped => false;
     DataMappingErrorValuePolicy IDataReaderMappingErrorMetadata.MappingErrorValuePolicy => _mappingErrorValuePolicy;
     private readonly IDisposable? _rowOwner;
-    private readonly CsvLoadOptions? _stringRowOptions;
+    private readonly CsvParsingSettings? _stringRowOptions;
     private readonly CancellationToken _processingCancellationToken;
     private readonly object?[]? _staticColumnValues;
     private readonly int _sourceColumnCount;
@@ -66,6 +64,17 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
     private bool _closed;
     private int _rowIndex = -1;
 
+    // Only internal implementations can derive from this reader.
+    internal CsvDataReader(CsvDataReader source)
+    {
+        _columns = source._columns;
+        _culture = source._culture;
+        _dateTimeFormats = source._dateTimeFormats;
+        _mappingErrorValuePolicy = source._mappingErrorValuePolicy;
+        Delimiter = source.Delimiter;
+        DelimiterText = source.DelimiterText;
+    }
+
     internal CsvDataReader(
         CsvDataColumnProjection[] columns,
         IEnumerable<object?[]> rows,
@@ -76,7 +85,7 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
         bool rawRowsAreParsedStringsOnly = false,
         IDisposable? rowOwner = null,
         CancellationToken processingCancellationToken = default,
-        CsvLoadOptions? operationCancellationOptions = null,
+        CsvParsingSettings? operationCancellationOptions = null,
         string? delimiterText = null)
     {
         _columns = columns;
@@ -99,7 +108,7 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
         CsvDataColumnProjection[] columns,
         IEnumerable<IReadOnlyList<string>> rows,
         int sourceColumnCount,
-        CsvLoadOptions options,
+        CsvParsingSettings options,
         CultureInfo culture,
         IReadOnlyList<string>? dateTimeFormats,
         IDisposable? rowOwner = null)
@@ -125,7 +134,7 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
         CsvDataColumnProjection[] columns,
         CsvDataReaderTextRowSource rows,
         int sourceColumnCount,
-        CsvLoadOptions options,
+        CsvParsingSettings options,
         CultureInfo culture,
         IReadOnlyList<string>? dateTimeFormats,
         int initialRowIndex = -1,
@@ -171,21 +180,21 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
     public override int Depth => 0;
 
     /// <inheritdoc />
-    public char Delimiter { get; }
+    public virtual char Delimiter { get; }
 
     /// <inheritdoc />
-    public string DelimiterText { get; }
+    public virtual string DelimiterText { get; }
 
     /// <inheritdoc />
-    public long RecordNumber => IsPositionedOnRow ? _rowIndex + 1L : 0L;
+    public virtual long RecordNumber => IsPositionedOnRow ? _rowIndex + 1L : 0L;
 
     /// <inheritdoc />
-    public int? PhysicalLineNumber => IsPositionedOnRow
+    public virtual int? PhysicalLineNumber => IsPositionedOnRow
         ? (_textRowSource as ICsvDataReaderPositionSource)?.CurrentPhysicalLineNumber
         : null;
 
     /// <inheritdoc />
-    public int? PhysicalEndLineNumber => IsPositionedOnRow
+    public virtual int? PhysicalEndLineNumber => IsPositionedOnRow
         ? (_textRowSource as ICsvDataReaderPositionSource)?.CurrentPhysicalEndLineNumber
         : null;
 

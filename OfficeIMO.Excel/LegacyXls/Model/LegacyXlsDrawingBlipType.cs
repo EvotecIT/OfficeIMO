@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Identifies the OfficeArt BLIP persistence type declared by an FBSE entry.
     /// </summary>
-    public enum LegacyXlsDrawingBlipType {
+    internal enum LegacyXlsDrawingBlipType {
         /// <summary>The BLIP could not be read.</summary>
         Error = 0x00,
 

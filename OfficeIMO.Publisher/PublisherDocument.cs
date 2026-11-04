@@ -27,16 +27,16 @@ public sealed partial class PublisherDocument {
     /// <summary>Immutable native decoding evidence captured before the initial page projection, or zero source evidence for source-free creation. Edits do not replace this snapshot.</summary>
     public PublisherReadReport SourceReadReport { get; private set; }
     /// <summary>Loads a publication from a file without retaining file handles.</summary>
-    public static PublisherDocument Load(string path, PublisherReadOptions? options = null, CancellationToken cancellationToken = default) {
+    public static PublisherDocument Load(string path, PublisherLoadOptions? options = null, CancellationToken cancellationToken = default) {
         if (path == null) throw new ArgumentNullException(nameof(path));
         cancellationToken.ThrowIfCancellationRequested();
         using var stream = File.OpenRead(path);
         return Load(stream, options, cancellationToken);
     }
     /// <summary>Loads bounded native publication bytes. Unsupported generations and malformed records are rejected.</summary>
-    public static PublisherDocument Load(byte[] bytes, PublisherReadOptions? options = null, CancellationToken cancellationToken = default) {
+    public static PublisherDocument Load(byte[] bytes, PublisherLoadOptions? options = null, CancellationToken cancellationToken = default) {
         if (bytes == null) throw new ArgumentNullException(nameof(bytes));
-        PublisherReadOptions operation = (options ?? new PublisherReadOptions()).Clone();
+        PublisherLoadOptions operation = (options ?? new PublisherLoadOptions()).Clone();
         cancellationToken.ThrowIfCancellationRequested();
         if (bytes.Length > operation.Limits.MaxInputBytes) throw new InvalidDataException("Publisher input byte limit exceeded.");
         var compoundOptions = new OfficeCompoundReadOptions(maxDirectoryEntries: operation.Limits.MaxRecords,
@@ -47,8 +47,8 @@ public sealed partial class PublisherDocument {
         return PublisherNativeReader.Read(compound!, operation, cancellationToken, bytes);
     }
     /// <summary>Reads from the current position to EOF, leaving the caller's stream open. Non-seekable streams are supported.</summary>
-    public static PublisherDocument Load(Stream stream, PublisherReadOptions? options = null, CancellationToken cancellationToken = default) {
-        PublisherReadOptions operation = (options ?? new PublisherReadOptions()).Clone();
+    public static PublisherDocument Load(Stream stream, PublisherLoadOptions? options = null, CancellationToken cancellationToken = default) {
+        PublisherLoadOptions operation = (options ?? new PublisherLoadOptions()).Clone();
         return Load(OfficeLegacyImportBuffer.ReadAll(stream, operation.Limits, cancellationToken), operation, cancellationToken);
     }
 }

@@ -64,7 +64,7 @@ public class PdfImageInputLimitTests {
     }
 
     private static byte[] BuildPdf() => PdfDocument.Create()
-        .Paragraph(paragraph => paragraph.Text("Bounded image source"))
+        .Paragraph(paragraph => paragraph.AddText("Bounded image source"))
         .ToBytes();
 
     private sealed class ChunkedNonSeekableStream : Stream {

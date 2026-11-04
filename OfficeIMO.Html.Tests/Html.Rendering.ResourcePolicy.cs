@@ -65,7 +65,7 @@ public sealed partial class HtmlRenderingTests {
         });
 
         Assert.Equal(0, requests);
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "StylesheetResourceRejectedByPolicy");
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "stylesheet-resource-rejected-by-policy");
     }
 
     [Theory]
@@ -208,7 +208,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(0, requests);
         Assert.Equal(0, session.ResolverRequestCount);
         Assert.Empty(session.Resources);
-        Assert.Equal(new[] { "FontResourceRejectedByPolicy", "ImageResourceRejectedByPolicy", "StylesheetResourceRejectedByPolicy" },
+        Assert.Equal(new[] { "FontResourceRejectedByPolicy", "image-resource-rejected-by-policy", "stylesheet-resource-rejected-by-policy" },
             session.Diagnostics.Select(diagnostic => diagnostic.Code).OrderBy(code => code).ToArray());
         Assert.All(session.Diagnostics, diagnostic => Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind));
     }
@@ -234,8 +234,8 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal("https://allowed.example.test/site.css", Assert.Single(requests).AbsoluteUri);
         Assert.Single(session.Resources);
-        Assert.Contains(session.Diagnostics, diagnostic => diagnostic.Code == "ImageResourceRejectedByPolicy");
-        Assert.Contains(session.Diagnostics, diagnostic => diagnostic.Code == "StylesheetResourceRejectedByPolicy");
+        Assert.Contains(session.Diagnostics, diagnostic => diagnostic.Code == "image-resource-rejected-by-policy");
+        Assert.Contains(session.Diagnostics, diagnostic => diagnostic.Code == "stylesheet-resource-rejected-by-policy");
     }
 
     [Fact]

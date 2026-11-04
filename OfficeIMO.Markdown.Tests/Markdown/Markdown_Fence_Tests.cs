@@ -91,7 +91,7 @@ public class Markdown_Fence_Tests {
         var span = MarkdownFence.BuildSafeCodeSpan(content);
 
         Assert.Equal(expected, span);
-        var document = MarkdownReader.Parse(span, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var document = MarkdownDocument.Parse(span, MarkdownLoadOptions.CreateCommonMarkProfile());
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
         var code = Assert.IsType<CodeSpanInline>(Assert.Single(paragraph.Inlines.Nodes));
         Assert.Equal(content, code.Text);

@@ -22,21 +22,20 @@ internal static partial class NativeKeynoteWriterSmoke {
             IWorkKeynoteDrawableKind.TextBox, IWorkKeynoteDrawableKind.TextBox,
             IWorkKeynoteDrawableKind.Image, IWorkKeynoteDrawableKind.TextBox
         }), "NativeAOT text/image insertion order differs.");
-        using var converted = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(new MemoryStream(bytes),
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Open(new MemoryStream(bytes), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         converted.Report.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); converted.Value.Save(output); output.Position = 0;
-        using var saved = PowerPointPresentation.Load(output);
+        using var saved = PowerPointDocument.Load(output);
         Require(saved.Slides.Count == 3 && !saved.ValidateDocument().Any(), "NativeAOT image PPTX did not save/reopen correctly.");
         for (int i = 0; i < 3; i++) {
-            PowerPointPicture picture = saved.Slides[i].Pictures.Single();
+            PowerPointImage picture = saved.Slides[i].Images.Single();
             IWorkImageAsset image = projection.Slides[i].Images.Single();
             Require(picture.GetImageBytes().SequenceEqual(image.GetBytes()) && picture.AltText == image.AccessibilityDescription,
                 "NativeAOT saved image lost its payload or accessibility description.");
         }
         using var unchanged = new MemoryStream(new byte[] { 9, 8, 7 });
         try {
-            document.Save(unchanged, new IWorkKeynoteWriteOptions { MaximumImages = 2 });
+            document.Save(unchanged, new IWorkKeynoteWriteOptions { MaxImages = 2 });
             throw new InvalidOperationException("NativeAOT image-count budget was not enforced.");
         } catch (InvalidDataException) { }
         Require(unchanged.ToArray().SequenceEqual(new byte[] { 9, 8, 7 }), "NativeAOT image-budget failure changed the destination.");

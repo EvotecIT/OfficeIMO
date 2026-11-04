@@ -14,7 +14,11 @@ namespace OfficeIMO.Core.Internal {
             return exception;
         }
 
-        internal static bool Is(Exception exception) => exception is InvalidDataException && exception.Data.Contains(Marker);
+        internal static bool Is(Exception exception) {
+            for (Exception? current = exception; current != null; current = current.InnerException)
+                if (current is InvalidDataException && current.Data.Contains(Marker)) return true;
+            return false;
+        }
     }
 
     /// <summary>Bounds artifact serialization before writes or explicit capacity changes grow the buffer.</summary>

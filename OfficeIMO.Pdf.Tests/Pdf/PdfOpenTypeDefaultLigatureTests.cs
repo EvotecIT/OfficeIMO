@@ -74,9 +74,9 @@ public class PdfOpenTypeDefaultLigatureTests {
     public void DeclinedComplexScriptRetainsFallbackDiagnostic() {
         byte[] data = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(0x20, 0x0915, 0x094D, 0x0937);
         var report = new PdfConversionReport();
-        PdfDocument.Create(new PdfOptions().ReportDiagnosticsTo(report).UseManagedTextShaping()
+        PdfDocument.Create(new PdfCreateOptions().ReportDiagnosticsTo(report).UseManagedTextShaping()
             .EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test"))
-            .Paragraph(p => p.Text("\u0915\u094D\u0937")).ToBytes();
+            .Paragraph(p => p.AddText("\u0915\u094D\u0937")).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-complex-script-shaping");
     }
 
@@ -85,9 +85,12 @@ public class PdfOpenTypeDefaultLigatureTests {
     [InlineData(true)]
     public void EmbeddedCompositeJustificationPositionsWordsAtMeasuredGap(bool cff) {
         byte[] data = File.ReadAllBytes((cff ? PdfComplianceTestFonts.FindBundledOpenTypeCffFont() : PdfComplianceTestFonts.FindBundledTrueTypeFont())!);
-        var options = new PdfOptions { PageWidth = 250, MarginLeft = 20, MarginRight = 20 }
+        var options = new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(250), global::OfficeIMO.OfficeLength.Points(792)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20) }
+        } }
             .EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test");
-        byte[] pdf = PdfDocument.Create(options).Paragraph(p => p.Text("office affinity fine flow efficient office affinity fine flow efficient"), PdfAlign.Justify).ToBytes();
+        byte[] pdf = PdfDocument.Create(options).Paragraph(p => p.AddText("office affinity fine flow efficient office affinity fine flow efficient"), OfficeAlignment.Justify).ToBytes();
         using var reader = UglyToad.PdfPig.PdfDocument.Open(pdf);
         var firstLine = reader.GetPage(1).GetWords().GroupBy(word => System.Math.Round(word.BoundingBox.Bottom, 1))
             .OrderByDescending(group => group.Key).First().OrderBy(word => word.BoundingBox.Left).ToArray();
@@ -144,8 +147,8 @@ public class PdfOpenTypeDefaultLigatureTests {
     [Fact]
     public void RedactingOneOrdinaryCharacterPreservesOtherCharactersInWord() {
         byte[] data = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'A', 'a', 'h', 'l', 'p');
-        byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = false }.EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test"))
-            .Canvas(c => c.Text("Alpha", 40, 40, 200, 30, fontSize: 12)).ToBytes();
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false }.EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test"))
+            .Canvas(c => c.Text("Alpha", global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(30), fontSize: global::OfficeIMO.OfficeLength.Points(12))).ToBytes();
         using var reader = UglyToad.PdfPig.PdfDocument.Open(pdf);
         var target = reader.GetPage(1).Letters.Single(letter => letter.Value == "p").BoundingBox;
         byte[] redacted = PdfRedactionApplier.Apply(pdf, new[] { new PdfRedactionArea(1,
@@ -170,8 +173,8 @@ public class PdfOpenTypeDefaultLigatureTests {
         Assert.Equal(text, run.Glyphs[0].UnicodeText);
         byte[] unsupported = ManagedTextShapingTestAssets.CreateFontWithRequiredLigature("ccmp", first, 'A', 8);
         var report = new PdfConversionReport();
-        PdfDocument.Create(new PdfOptions().ReportDiagnosticsTo(report).EmbedStandardFont(PdfStandardFont.Helvetica, unsupported, "Test"))
-            .Paragraph(p => p.Text(text)).ToBytes();
+        PdfDocument.Create(new PdfCreateOptions().ReportDiagnosticsTo(report).EmbedStandardFont(PdfStandardFont.Helvetica, unsupported, "Test"))
+            .Paragraph(p => p.AddText(text)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-font-ligature-substitution");
     }
 
@@ -242,8 +245,8 @@ public class PdfOpenTypeDefaultLigatureTests {
     public void UnsupportedLatinFeaturesWarnOnlyForEligibleInput(string text, bool warningExpected) {
         byte[] data = ManagedTextShapingTestAssets.CreateFontWithCommonSubstitution(true);
         var report = new PdfConversionReport();
-        PdfDocument.Create(new PdfOptions().ReportDiagnosticsTo(report).EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test"))
-            .Paragraph(p => p.Text(text)).ToBytes();
+        PdfDocument.Create(new PdfCreateOptions().ReportDiagnosticsTo(report).EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test"))
+            .Paragraph(p => p.AddText(text)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.Equal(warningExpected, report.Warnings.Any(w => w.Code == "unsupported-font-ligature-substitution"));
     }
     [Theory]
@@ -262,9 +265,9 @@ public class PdfOpenTypeDefaultLigatureTests {
         Assert.Equal(text, shaped.ActualText);
         Assert.Equal(0, successes);
         var report = new PdfConversionReport();
-        byte[] pdf = PdfDocument.Create(new PdfOptions().ReportDiagnosticsTo(report)
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions().ReportDiagnosticsTo(report)
                 .EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test"))
-            .Paragraph(paragraph => paragraph.Text(text)).ToBytes();
+            .Paragraph(paragraph => paragraph.AddText(text)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.Equal(text, PdfReadDocument.Open(pdf).ExtractText().Trim());
         Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-mark-positioning-or-joiner-shaping");
         Assert.True(report.HasLoss);
@@ -303,8 +306,8 @@ public class PdfOpenTypeDefaultLigatureTests {
     [Fact]
     public void RedactingMixedWhitespaceLigaturePreservesFollowingWord() {
         byte[] data = ManagedTextShapingTestAssets.CreateMixedWhitespaceLigatureFont();
-        byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = false }.EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test"))
-            .Canvas(canvas => canvas.Text("A B", 40, 40, 200, 30, fontSize: 12)).ToBytes();
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false }.EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test"))
+            .Canvas(canvas => canvas.Text("A B", global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(30), fontSize: global::OfficeIMO.OfficeLength.Points(12))).ToBytes();
         var spans = PdfReadDocument.Open(pdf).Pages[0].GetTextSpans();
         var first = spans.First(span => span.Text.Contains("A"));
         Assert.Contains("B", PdfTextExtractor.ExtractAllText(pdf));
@@ -378,9 +381,20 @@ public class PdfOpenTypeDefaultLigatureTests {
         byte[] data = tag == "ccmp" ? ManagedTextShapingTestAssets.CreateFontWithRequiredLigature(tag, first, second, 8)
             : ManagedTextShapingTestAssets.CreateFontWithLigature(first, second, scriptTag: "latn", lookupFlags: 8);
         var report = new PdfConversionReport();
-        PdfDocument.Create(new PdfOptions().ReportDiagnosticsTo(report).EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test"))
-            .Paragraph(p => p.Text(new string(new[] { first, second }))).ToBytes();
+        PdfDocument.Create(new PdfCreateOptions().ReportDiagnosticsTo(report).EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test"))
+            .Paragraph(p => p.AddText(new string(new[] { first, second }))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-font-ligature-substitution");
+    }
+
+    [Fact]
+    public void UnsupportedLookupOutsideTheRunsGlyphsReportsNoLoss() {
+        // The declined IgnoreMarks ligature starts only on 's'; a run of 't' cannot reach it.
+        byte[] data = ManagedTextShapingTestAssets.CreateFontWithLigature('s', 't', scriptTag: "latn", lookupFlags: 8);
+        var report = new PdfConversionReport();
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions().ReportDiagnosticsTo(report).EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test"))
+            .Paragraph(p => p.AddText("tt")).ToBytes();
+        Assert.Contains("tt", PdfReadDocument.Open(pdf).ExtractText());
+        Assert.DoesNotContain(report.Warnings, warning => warning.Code == "unsupported-font-ligature-substitution");
     }
 
     [Theory]
@@ -435,8 +449,8 @@ public class PdfOpenTypeDefaultLigatureTests {
     public void OversizedLookupListDeclinesShapingAndRetainsDiagnostic() {
         byte[] data = ManagedTextShapingTestAssets.CreateFontWithOversizedLookupList();
         var report = new PdfConversionReport();
-        byte[] pdf = PdfDocument.Create(new PdfOptions().ReportDiagnosticsTo(report)
-            .EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test")).Paragraph(p => p.Text("fi")).ToBytes();
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions().ReportDiagnosticsTo(report)
+            .EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test")).Paragraph(p => p.AddText("fi")).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.Contains("fi", PdfReadDocument.Open(pdf).ExtractText());
         Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-font-ligature-substitution");
     }
@@ -470,8 +484,8 @@ public class PdfOpenTypeDefaultLigatureTests {
         Assert.Equal("office", string.Concat(run.Glyphs.Select(glyph => glyph.UnicodeText)));
         Assert.Null(run.ActualText);
         var report = new PdfConversionReport();
-        var options = new PdfOptions().ReportDiagnosticsTo(report).EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test");
-        byte[] pdf = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text("office affinity fine flow")).ToBytes();
+        var options = new PdfCreateOptions().ReportDiagnosticsTo(report).EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test");
+        byte[] pdf = PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddText("office affinity fine flow")).ToBytes();
         Assert.Contains("office affinity fine flow", PdfReadDocument.Open(pdf).ExtractText());
         Assert.DoesNotContain(report.Warnings, warning => warning.Code == "unsupported-font-ligature-substitution");
         if (!cff) {
@@ -507,8 +521,8 @@ public class PdfOpenTypeDefaultLigatureTests {
     public void OtherScriptLigaturesDoNotWarnForLatinText() {
         byte[] data = ManagedTextShapingTestAssets.CreateFontWithLigature('f', 'i', scriptTag: "arab");
         var report = new PdfConversionReport();
-        var options = new PdfOptions().ReportDiagnosticsTo(report).EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test");
-        byte[] pdf = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text("fi")).ToBytes();
+        var options = new PdfCreateOptions().ReportDiagnosticsTo(report).EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test");
+        byte[] pdf = PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddText("fi")).ToBytes();
         Assert.Contains("fi", PdfReadDocument.Open(pdf).ExtractText());
         Assert.DoesNotContain(report.Warnings, warning => warning.Code == "unsupported-font-ligature-substitution");
     }
@@ -520,8 +534,8 @@ public class PdfOpenTypeDefaultLigatureTests {
             PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.OpenTypeLigatures));
         Assert.Equal(2, run.Glyphs.Count);
         var report = new PdfConversionReport();
-        var options = new PdfOptions().ReportDiagnosticsTo(report).EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test");
-        byte[] pdf = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text("fi")).ToBytes();
+        var options = new PdfCreateOptions().ReportDiagnosticsTo(report).EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test");
+        byte[] pdf = PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddText("fi")).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.Contains("fi", PdfReadDocument.Open(pdf).ExtractText());
         Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-font-ligature-substitution");
     }
@@ -530,12 +544,12 @@ public class PdfOpenTypeDefaultLigatureTests {
     public void AutomaticMarkedLatinRetainsCompleteSourceWithoutUnsupportedPositioningWarnings() {
         byte[] data = File.ReadAllBytes(PdfComplianceTestFonts.FindBundledOpenTypeCffFont()!);
         var report = new PdfConversionReport();
-        var options = new PdfOptions().ReportDiagnosticsTo(report).EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test");
-        byte[] pdf = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text("office e\u0301")).ToBytes();
+        var options = new PdfCreateOptions().ReportDiagnosticsTo(report).EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test");
+        byte[] pdf = PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddText("office e\u0301")).ToBytes();
         Assert.Equal("office e\u0301", PdfReadDocument.Open(pdf).ExtractText().Trim());
         Assert.DoesNotContain(report.Warnings, warning => warning.Code == "unsupported-font-mark-positioning"
             || warning.Code == "unsupported-mark-positioning-or-joiner-shaping");
-        report.RequireNoLoss();
+        report.ThrowIfLoss();
     }
 
     [Fact]
@@ -558,9 +572,9 @@ public class PdfOpenTypeDefaultLigatureTests {
         byte[] data = File.ReadAllBytes((cff ? PdfComplianceTestFonts.FindBundledOpenTypeCffFont() : PdfComplianceTestFonts.FindBundledTrueTypeFont())!);
         string first = reverse ? "fi" : "\uFB01";
         string second = reverse ? "\uFB01" : "fi";
-        byte[] pdf = PdfDocument.Create(new PdfOptions().EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test"))
-            .Paragraph(paragraph => paragraph.Text(first))
-            .Paragraph(paragraph => paragraph.Text(second)).ToBytes();
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions().EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test"))
+            .Paragraph(paragraph => paragraph.AddText(first))
+            .Paragraph(paragraph => paragraph.AddText(second)).ToBytes();
         string extracted = PdfReadDocument.Open(pdf).ExtractText();
         Assert.Contains("\uFB01", extracted);
         Assert.Contains("fi", extracted);
@@ -571,10 +585,10 @@ public class PdfOpenTypeDefaultLigatureTests {
         byte[] supported = ManagedTextShapingTestAssets.CreateFontWithLigature('f', 'i', scriptTag: "latn");
         byte[] unsupported = ManagedTextShapingTestAssets.CreateFontWithLigature('f', 'i', scriptTag: "latn", lookupFlags: 8);
         var report = new PdfConversionReport();
-        var options = new PdfOptions().ReportDiagnosticsTo(report)
+        var options = new PdfCreateOptions().ReportDiagnosticsTo(report)
             .EmbedStandardFont(PdfStandardFont.Helvetica, supported, "SharedName")
             .EmbedStandardFont(PdfStandardFont.HelveticaBold, unsupported, "SharedName");
-        byte[] pdf = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text("fi").Bold("fi")).ToBytes();
+        byte[] pdf = PdfDocument.Create(options).Paragraph(paragraph => { paragraph.AddText("fi"); paragraph.AddText("fi").SetBold(); }).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.Contains("unsupported-font-ligature-substitution", report.Warnings.Select(warning => warning.Code));
     }
 
@@ -704,8 +718,8 @@ public class PdfOpenTypeDefaultLigatureTests {
     public void RedactionRemovesComposedContinuationPaint(string text, bool continuationOnly) {
         byte[] data = ManagedTextShapingTestAssets.CreateFontWithComposedMultipleLigature('B', continuationOnly);
         var run = PdfTrueTypeFontProgram.Parse(data, "Test").ShapeText(text, PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.OpenTypeLigatures));
-        byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = false }.EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test"))
-            .Paragraph(paragraph => paragraph.Text(text)).ToBytes();
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false }.EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test"))
+            .Paragraph(paragraph => paragraph.AddText(text)).ToBytes();
         var span = PdfReadDocument.Open(pdf).Pages[0].GetTextSpans().First();
         string painted = "<" + string.Concat(run.Glyphs.Select(glyph => glyph.GlyphId.ToString("X4"))) + "> Tj";
         Assert.Contains(painted, PdfEncoding.Latin1GetString(pdf));
@@ -720,8 +734,8 @@ public class PdfOpenTypeDefaultLigatureTests {
         var run = font.ShapeText("A", PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.OpenTypeLigatures));
         Assert.Equal(2, run.Glyphs.Count);
         Assert.Equal("", run.Glyphs[1].UnicodeText);
-        byte[] source = PdfDocument.Create(new PdfOptions { CompressContentStreams = false }.EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test"))
-            .Paragraph(paragraph => paragraph.Text("A")).ToBytes();
+        byte[] source = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false }.EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test"))
+            .Paragraph(paragraph => paragraph.AddText("A")).ToBytes();
         var span = Assert.Single(PdfReadDocument.Open(source).Pages[0].GetTextSpans(), item => item.Text == "A");
         Assert.Equal(run.TotalAdvanceWidth1000 * span.FontSize / 1000D, span.Advance, 3);
         byte[] redacted = PdfRedactionApplier.Apply(source, new[] { new PdfRedactionArea(1, span.X - 1, span.Y - span.FontSize * 1.5, span.Advance + 2, span.FontSize * 2, "cluster") });

@@ -168,6 +168,7 @@ public sealed partial class PdfReadPage {
                 patternBaseColorSpaces: GetPatternBaseColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget),
                 maxNestingDepth: _limits.MaxContentNestingDepth,
                 maxOperands: _limits.MaxContentOperands,
+                strokeDashProjectionConsumer: pageContentBudget.ChargeStrokeDashProjection,
                 primitiveVisitor: static _ => { },
                 retainPrimitiveData: false,
                 unsupportedShadingTransformVisitor: () => AddRenderDiagnostic(
@@ -560,6 +561,7 @@ public sealed partial class PdfReadPage {
                 patternBaseColorSpaces: patternBaseColorSpaces,
                 maxNestingDepth: _limits.MaxContentNestingDepth,
                 maxOperands: _limits.MaxContentOperands,
+                strokeDashProjectionConsumer: pageContentBudget.ChargeStrokeDashProjection,
                 initialClipPath: programState.ClipPath,
                 initialFillOpacity: programState.FillOpacity,
                 initialStrokeOpacity: programState.StrokeOpacity,

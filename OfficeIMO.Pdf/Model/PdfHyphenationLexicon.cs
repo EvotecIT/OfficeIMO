@@ -46,7 +46,7 @@ public sealed class PdfHyphenationLexicon {
         return _inner.Contains(token);
     }
 
-    /// <summary>Creates the callback shape consumed by <see cref="PdfOptions.SetTextHyphenation"/>.</summary>
+    /// <summary>Creates the callback shape consumed by <see cref="PdfCreateOptions.SetTextHyphenation"/>.</summary>
     public PdfTextHyphenationCallback AsCallback() => GetBreakpoints;
 
 }

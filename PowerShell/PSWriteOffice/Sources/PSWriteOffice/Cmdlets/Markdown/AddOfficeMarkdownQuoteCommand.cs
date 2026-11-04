@@ -17,7 +17,7 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeMarkdownQuote", DefaultParameterSetName = ParameterSetContext)]
 [Alias("MarkdownQuote")]
-[OutputType(typeof(MarkdownDoc))]
+[OutputType(typeof(MarkdownDocument))]
 public sealed class AddOfficeMarkdownQuoteCommand : PSCmdlet
 {
     private const string ParameterSetContext = "Context";
@@ -25,7 +25,7 @@ public sealed class AddOfficeMarkdownQuoteCommand : PSCmdlet
 
     /// <summary>Markdown document to update outside the DSL context.</summary>
     [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public MarkdownDoc Document { get; set; } = null!;
+    public MarkdownDocument Document { get; set; } = null!;
 
     /// <summary>Quote text.</summary>
     [Parameter(Mandatory = true, Position = 0)]
@@ -47,7 +47,7 @@ public sealed class AddOfficeMarkdownQuoteCommand : PSCmdlet
         }
     }
 
-    private MarkdownDoc ResolveDocument()
+    private MarkdownDocument ResolveDocument()
     {
         if (ParameterSetName == ParameterSetDocument)
         {

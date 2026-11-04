@@ -50,14 +50,15 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the position of the tab stop in twentieths of a point.
+        /// Gets or sets the position of the tab stop as a signed physical length.
         /// </summary>
-        public int Position {
+        /// <remarks>Lengths round to signed Int32 twips; midpoint ties round away from zero. An unset native position reads as zero.</remarks>
+        public OfficeLength Position {
             get {
-                return (int)(_tabStop.Position ?? 0);
+                return OfficeLength.Emus((long)(_tabStop.Position?.Value ?? 0) * 635);
             }
             set {
-                _tabStop.Position = value;
+                _tabStop.Position = checked((int)value.ToTwips());
             }
         }
 
@@ -83,14 +84,15 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Adds a new tab stop to the paragraph and sets this instance to reference it.
         /// </summary>
-        /// <param name="position">The position of the tab stop in twentieths of a point.</param>
+        /// <param name="position">The position of the tab stop as a signed physical length.</param>
         /// <param name="alignment">Optional alignment value. Defaults to <see cref="TabStopValues.Left"/>.</param>
         /// <param name="leader">Optional leader value. Defaults to <see cref="TabStopLeaderCharValues.None"/>.</param>
         /// <returns>The current <see cref="WordTabStop"/> instance.</returns>
-        internal WordTabStop AddTab(int position, TabStopValues? alignment = null, TabStopLeaderCharValues? leader = null) {
+        internal WordTabStop AddTab(OfficeLength position, TabStopValues? alignment = null, TabStopLeaderCharValues? leader = null) {
+            int nativePosition = checked((int)position.ToTwips());
             alignment ??= TabStopValues.Left;
             leader ??= TabStopLeaderCharValues.None;
-            TabStop tabStop1 = new TabStop() { Val = alignment, Leader = leader, Position = position };
+            TabStop tabStop1 = new TabStop() { Val = alignment, Leader = leader, Position = nativePosition };
             _tabs.Append(tabStop1);
             _tabStop = tabStop1;
             return this;

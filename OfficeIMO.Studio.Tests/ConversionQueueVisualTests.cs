@@ -41,7 +41,7 @@ public sealed class ConversionQueueVisualTests {
                 run.Command!.Execute(null);
                 await queue.RunQueueCommand.ExecutionTask!;
                 Assert.Equal(ConversionJobState.Completed, job.State);
-                Assert.Equal(literal, PdfReadDocument.Open(File.ReadAllBytes(job.OutputPath!)).ExtractText().Trim());
+                Assert.Equal(literal, PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(job.OutputPath!))).ExtractText().Trim());
                 Layout(window, width, height);
                 Capture(window, width, false, "literal-completed");
             } finally { window.Close(); }

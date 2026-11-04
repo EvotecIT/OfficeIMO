@@ -12,8 +12,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanCountsFormulaRemovedWithDeletedRow() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellFormula(5, 1, "1+1");
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(5, 1).SetFormula("1+1");
             CellFormula formula = Assert.Single(
                 sheet.WorksheetPart.Worksheet.Descendants<CellFormula>());
             formula.CalculateCell = true;
@@ -29,17 +29,17 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanCountsFormulaReplacedByPendingOrdinaryValue() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet summary = document.AddWorksheet("Summary");
+            ExcelSheet summary = document.AddSheet("Summary");
             SheetData sheetData = summary.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
             for (int column = 1; column < 128; column++) {
-                summary.CellValue(1, column, column);
+                summary.Cell(1, column).SetValue(column);
             }
             Row row = Assert.Single(sheetData.Elements<Row>());
             row.Append(new Cell {
                 CellReference = "DX1",
                 CellFormula = new CellFormula("1+1")
             });
-            summary.CellValue(1, 128, 128);
+            summary.Cell(1, 128).SetValue(128);
             Assert.True(document.HasPendingDirectCellValues);
             Assert.Single(summary.WorksheetPart.Worksheet.Descendants<CellFormula>());
             ExcelSheet data = AddWorksheetWithoutMaterializingPending(document, "Data");
@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanCountsFormulasRemovedWithMetadata() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             var validation = new DataValidation(new Formula1("B1")) {
                 SequenceOfReferences = new ListValue<StringValue> {
                     InnerText = "A5"
@@ -94,12 +94,12 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanClassifiesSparklineGroupDateAxisFormula() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
-            ExcelSheet summary = document.AddWorksheet("Summary");
-            data.CellValue(5, 1, 1);
-            data.CellValue(6, 1, 2);
-            summary.CellValue(1, 1, 1);
-            summary.CellValue(2, 1, 2);
+            ExcelSheet data = document.AddSheet("Data");
+            ExcelSheet summary = document.AddSheet("Summary");
+            data.Cell(5, 1).SetValue(1);
+            data.Cell(6, 1).SetValue(2);
+            summary.Cell(1, 1).SetValue(1);
+            summary.Cell(2, 1).SetValue(2);
             summary.AddSparklines("'Data'!A5:A6", "B1");
             X14.SparklineGroup group = Assert.Single(
                 summary.WorksheetPart.Worksheet.Descendants<X14.SparklineGroup>());
@@ -118,11 +118,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanClassifiesTargetSheetSparklineGroupDateAxisFormula() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, 1);
-            sheet.CellValue(2, 1, 2);
-            sheet.CellValue(5, 1, 5);
-            sheet.CellValue(6, 1, 6);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue(1);
+            sheet.Cell(2, 1).SetValue(2);
+            sheet.Cell(5, 1).SetValue(5);
+            sheet.Cell(6, 1).SetValue(6);
             sheet.AddSparklines("A1:A2", "B1");
             X14.SparklineGroup group = Assert.Single(
                 sheet.WorksheetPart.Worksheet.Descendants<X14.SparklineGroup>());
@@ -139,17 +139,17 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanRejectsRemovedWorksheet() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet original = document.AddWorksheet("Data");
+            ExcelSheet original = document.AddSheet("Data");
             ExcelRowMutationPlan plan = original.PlanInsertRows(1);
             document.RemoveWorksheet("Data");
-            ExcelSheet replacement = document.AddWorksheet("Data");
-            replacement.CellValue(1, 1, "Replacement");
+            ExcelSheet replacement = document.AddSheet("Data");
+            replacement.Cell(1, 1).SetValue("Replacement");
 
             InvalidOperationException exception =
                 Assert.Throws<InvalidOperationException>(() => plan.Apply());
 
             Assert.Contains("no longer part", exception.Message);
-            Assert.Equal("Replacement", replacement.CellAt(1, 1).GetValue<string>());
+            Assert.Equal("Replacement", replacement.Cell(1, 1).GetValue<string>());
             Assert.True(plan.IsConsumed);
             Assert.False(plan.IsApplied);
         }
@@ -157,7 +157,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_UnchangedMergeContainerIsNotNormalized() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             var merges = new MergeCells(new MergeCell { Reference = "A1:B1" });
             sheet.WorksheetPart.Worksheet.Append(merges);
 
@@ -176,7 +176,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_UnchangedRowBreakContainerIsNotNormalized() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             var pageBreak = new Break {
                 Id = 1U,
                 ManualPageBreak = true
@@ -198,7 +198,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_UnchangedValidationContainersAreNotNormalized() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             var standard = new DataValidations(
                 new DataValidation {
                     SequenceOfReferences = new ListValue<StringValue> {
@@ -247,7 +247,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanUsesChargedWorksheetSortSnapshot() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             var sortState = new SortState { Reference = "A1:A64" };
             for (int index = 1; index <= 64; index++) {
                 sortState.Append(new SortCondition {
@@ -256,6 +256,7 @@ namespace OfficeIMO.Tests {
             }
             sheet.WorksheetPart.Worksheet.Append(
                 new AutoFilter(sortState) { Reference = "A1:A64" });
+            _ = document.OpenXmlDocument.WorkbookPart?.ThemePart?.Theme;
             ExcelRowMutationPlan baseline = sheet.PlanInsertRows(65);
 
             ExcelRowMutationPlan exactBudget = sheet.PlanInsertRows(
@@ -273,17 +274,18 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanUsesChargedWorksheetCellSnapshot() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             SheetData sheetData =
                 sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
             var row = new Row { RowIndex = 1U };
             for (int column = 1; column <= 64; column++) {
                 row.Append(new Cell {
-                    CellReference = A1.CellReference(1, column),
+                    CellReference = ExcelA1.CellReference(1, column),
                     CellValue = new CellValue(column)
                 });
             }
             sheetData.Append(row);
+            _ = document.OpenXmlDocument.WorkbookPart?.ThemePart?.Theme;
             ExcelRowMutationPlan baseline = sheet.PlanInsertRows(2);
 
             ExcelRowMutationPlan exactBudget = sheet.PlanInsertRows(
@@ -301,7 +303,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_UnchangedCellSmartTagCountIsNotNormalized() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             const string spreadsheetNamespace =
                 "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
             var tags = new OpenXmlUnknownElement(
@@ -346,7 +348,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_UnchangedScenarioCountIsNotNormalized() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             var scenario = new Scenario(
                 new InputCells { CellReference = "A1", Val = "10" }) {
                 Name = "Stable"

@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests;
 public sealed class HtmlTextFormattingReviewClosureTests {
     [Fact]
     public void PowerPointSemanticHtmlResolvesInheritedTypographyAndDirectOffOverrides() {
-        using PowerPointPresentation source = PowerPointPresentation.Create();
+        using PowerPointDocument source = PowerPointDocument.Create();
         PowerPointParagraph paragraph = source.AddSlide().AddTextBox("Inherited")
             .Paragraphs.Single();
         A.ParagraphProperties paragraphProperties = paragraph.Paragraph.ParagraphProperties ??= new A.ParagraphProperties();
@@ -34,7 +34,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         defaults.Append(new A.SolidFill(new A.RgbColorModelHex { Val = "336699" }));
         paragraphProperties.Append(defaults);
 
-        PowerPointTextRun directOff = paragraph.AddRun(" Plain");
+        PowerPointTextRun directOff = paragraph.AddText(" Plain");
         directOff.Run.RunProperties = new A.RunProperties {
             Bold = false,
             Italic = false,
@@ -44,7 +44,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
             Baseline = 0
         };
 
-        string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
+        string html = source.ToHtml(PowerPointHtmlExportOptions.CreateSemanticSlidesProfile());
 
         Assert.Contains("font-weight:700", html, StringComparison.Ordinal);
         Assert.Contains("font-style:italic", html, StringComparison.Ordinal);
@@ -59,9 +59,9 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         Assert.Contains("data-officeimo-powerpoint-underline=\"None\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-powerpoint-strike=\"None\"", html, StringComparison.Ordinal);
 
-        using PowerPointPresentation imported = HtmlConversionDocument
+        using PowerPointDocument imported = HtmlConversionDocument
             .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToPowerPointPresentationResult()
+            .ConvertToPowerPointWithEvidence()
             .RequireValue();
         PowerPointTextRun[] runs = Assert.Single(Assert.Single(Assert.Single(imported.Slides).TextBoxes).Paragraphs)
             .Runs.ToArray();
@@ -72,9 +72,9 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         Assert.Equal(PowerPointStrikeStyle.Double, runs[0].StrikeStyle);
         Assert.Equal(PowerPointCapitalization.SmallCaps, runs[0].Capitalization);
         Assert.Equal(30D, runs[0].BaselinePercent);
-        Assert.Equal(18D, runs[0].FontSizePoints);
-        Assert.Equal("Aptos Display", runs[0].FontName);
-        Assert.Equal("336699", runs[0].Color);
+        Assert.Equal(OfficeLength.Points(18), runs[0].FontSize);
+        Assert.Equal("Aptos Display", runs[0].FontFamily);
+        Assert.Equal(OfficeColor.Parse("336699"), runs[0].Color);
         Assert.Equal("pl-PL", runs[0].Language);
         Assert.False(runs[1].Bold);
         Assert.False(runs[1].Italic);
@@ -86,7 +86,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
 
     [Fact]
     public void PowerPointSemanticHtmlResolvesMappedThemeColors() {
-        using PowerPointPresentation source = PowerPointPresentation.Create();
+        using PowerPointDocument source = PowerPointDocument.Create();
         PowerPointSlide slide = source.AddSlide();
         PowerPointParagraph paragraph = slide.AddTextBox("Theme text").Paragraphs[0];
         PowerPointTextRun run = paragraph.Runs[0];
@@ -94,7 +94,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         run.RunProperties.Append(new A.SolidFill(new A.SchemeColor {
             Val = A.SchemeColorValues.Text1
         }));
-        PowerPointTextRun systemRun = paragraph.AddRun(" System text");
+        PowerPointTextRun systemRun = paragraph.AddText(" System text");
         systemRun.Run.RunProperties = new A.RunProperties();
         systemRun.RunProperties.Append(new A.SolidFill(new A.SystemColor {
             Val = A.SystemColorValues.WindowText,
@@ -108,7 +108,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         accent.RemoveAllChildren();
         accent.Append(new A.RgbColorModelHex { Val = "336699" });
 
-        string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
+        string html = source.ToHtml(PowerPointHtmlExportOptions.CreateSemanticSlidesProfile());
 
         Assert.Contains("color:#336699", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("color:#884422", html, StringComparison.OrdinalIgnoreCase);
@@ -116,13 +116,13 @@ public sealed class HtmlTextFormattingReviewClosureTests {
 
     [Fact]
     public void PowerPointSemanticHtmlResolvesThemeFontTokensToRealFamilies() {
-        using PowerPointPresentation source = PowerPointPresentation.Create();
+        using PowerPointDocument source = PowerPointDocument.Create();
         source.SetThemeLatinFonts("Theme Major", "Theme Minor");
         PowerPointTextRun run = source.AddSlide().AddTextBox("Theme font").Paragraphs[0].Runs[0];
         run.Run.RunProperties = new A.RunProperties();
         run.RunProperties.Append(new A.LatinFont { Typeface = "+mn-lt" });
 
-        string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
+        string html = source.ToHtml(PowerPointHtmlExportOptions.CreateSemanticSlidesProfile());
 
         Assert.Contains("font-family:&#39;Theme Minor&#39;", html, StringComparison.Ordinal);
         Assert.DoesNotContain("+mn-lt", html, StringComparison.Ordinal);
@@ -130,7 +130,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
 
     [Fact]
     public void PowerPointSemanticHtmlResolvesEastAsianAndComplexScriptThemeFonts() {
-        using PowerPointPresentation source = PowerPointPresentation.Create();
+        using PowerPointDocument source = PowerPointDocument.Create();
         source.SetThemeFontsForAllMasters(new PowerPointThemeFontSet(
             majorLatin: "Major Latin",
             minorLatin: "Minor Latin",
@@ -142,11 +142,11 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         PowerPointTextRun eastAsian = paragraph.Runs[0];
         eastAsian.Run.RunProperties = new A.RunProperties { Language = "ja-JP" };
         eastAsian.RunProperties.Append(new A.EastAsianFont { Typeface = "+mj-ea" });
-        PowerPointTextRun complexScript = paragraph.AddRun(" العربية");
+        PowerPointTextRun complexScript = paragraph.AddText(" العربية");
         complexScript.Run.RunProperties = new A.RunProperties { Language = "ar-SA" };
         complexScript.RunProperties.Append(new A.ComplexScriptFont { Typeface = "+mn-cs" });
 
-        string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
+        string html = source.ToHtml(PowerPointHtmlExportOptions.CreateSemanticSlidesProfile());
 
         Assert.Contains("font-family:&#39;Major East Asian&#39;", html, StringComparison.Ordinal);
         Assert.Contains("font-family:&#39;Minor Complex Script&#39;", html, StringComparison.Ordinal);
@@ -156,14 +156,14 @@ public sealed class HtmlTextFormattingReviewClosureTests {
 
     [Fact]
     public void PowerPointSemanticHtmlSplitsMixedScriptRunsAcrossFontSlots() {
-        using PowerPointPresentation source = PowerPointPresentation.Create();
+        using PowerPointDocument source = PowerPointDocument.Create();
         PowerPointTextRun run = source.AddSlide().AddTextBox("Latin 日本語 العربية").Paragraphs[0].Runs[0];
         run.Run.RunProperties = new A.RunProperties();
         run.RunProperties.Append(new A.LatinFont { Typeface = "Latin Face" });
         run.RunProperties.Append(new A.EastAsianFont { Typeface = "East Asian Face" });
         run.RunProperties.Append(new A.ComplexScriptFont { Typeface = "Complex Face" });
 
-        string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
+        string html = source.ToHtml(PowerPointHtmlExportOptions.CreateSemanticSlidesProfile());
 
         Assert.Contains("font-family:&#39;Latin Face&#39;", html, StringComparison.Ordinal);
         Assert.Contains("font-family:&#39;East Asian Face&#39;", html, StringComparison.Ordinal);
@@ -175,16 +175,16 @@ public sealed class HtmlTextFormattingReviewClosureTests {
 
     [Fact]
     public void PowerPointSemanticHtmlRoundTripPreservesParagraphBreaksAndRunFormatting() {
-        using PowerPointPresentation source = PowerPointPresentation.Create();
+        using PowerPointDocument source = PowerPointDocument.Create();
         PowerPointTextBox textBox = source.AddSlide().AddTextBox("First");
         textBox.Paragraphs[0].Runs[0].Bold = true;
         PowerPointParagraph second = textBox.AddParagraph("Second");
         second.Runs[0].Italic = true;
 
-        string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
-        using PowerPointPresentation imported = HtmlConversionDocument
+        string html = source.ToHtml(PowerPointHtmlExportOptions.CreateSemanticSlidesProfile());
+        using PowerPointDocument imported = HtmlConversionDocument
             .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToPowerPointPresentationResult()
+            .ConvertToPowerPointWithEvidence()
             .RequireValue();
 
         PowerPointTextBox actual = Assert.Single(Assert.Single(imported.Slides).TextBoxes);
@@ -197,22 +197,22 @@ public sealed class HtmlTextFormattingReviewClosureTests {
 
     [Fact]
     public void PowerPointSemanticHtmlIncludesExplicitLineBreaksAndFieldsInOrder() {
-        using PowerPointPresentation source = PowerPointPresentation.Create();
+        using PowerPointDocument source = PowerPointDocument.Create();
         PowerPointParagraph paragraph = source.AddSlide().AddTextBox("Before")
             .Paragraphs.Single();
         paragraph.AddLineBreak();
         paragraph.AddField("27 August 2026", "datetime1", "{11111111-1111-1111-1111-111111111111}");
 
-        string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
+        string html = source.ToHtml(PowerPointHtmlExportOptions.CreateSemanticSlidesProfile());
 
         Assert.Contains("Before</span><br data-officeimo-powerpoint-inline-break=\"true\"><span data-officeimo-powerpoint-field=\"true\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-powerpoint-field-id=\"{11111111-1111-1111-1111-111111111111}\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-powerpoint-field-type=\"datetime1\"", html, StringComparison.Ordinal);
         Assert.Contains(">27 August 2026</span>", html, StringComparison.Ordinal);
 
-        using PowerPointPresentation imported = HtmlConversionDocument
+        using PowerPointDocument imported = HtmlConversionDocument
             .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToPowerPointPresentationResult()
+            .ConvertToPowerPointWithEvidence()
             .RequireValue();
         PowerPointParagraph actual = Assert.Single(Assert.Single(Assert.Single(imported.Slides).TextBoxes).Paragraphs);
         Assert.Collection(actual.InlineNodes,
@@ -223,34 +223,34 @@ public sealed class HtmlTextFormattingReviewClosureTests {
 
     [Fact]
     public void PowerPointSemanticHtmlKeepsUnderlineStrikeAndEscapedFontFamilyIndependent() {
-        using PowerPointPresentation source = PowerPointPresentation.Create();
+        using PowerPointDocument source = PowerPointDocument.Create();
         PowerPointTextRun run = source.AddSlide().AddTextBox("Styled").Paragraphs.Single().Runs.Single();
         run.UnderlineStyle = PowerPointUnderlineStyle.Wavy;
         run.StrikeStyle = PowerPointStrikeStyle.Double;
-        run.FontName = "O'Brien Sans";
+        run.FontFamily = "O'Brien Sans";
 
-        string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
+        string html = source.ToHtml(PowerPointHtmlExportOptions.CreateSemanticSlidesProfile());
 
         Assert.Contains("data-officeimo-powerpoint-font-family=\"O&#39;Brien Sans\"", html, StringComparison.Ordinal);
         Assert.Contains("text-decoration-line:underline;text-decoration-style:wavy", html, StringComparison.Ordinal);
         Assert.Contains("text-decoration-line:line-through;text-decoration-style:double", html, StringComparison.Ordinal);
 
-        using PowerPointPresentation imported = HtmlConversionDocument
+        using PowerPointDocument imported = HtmlConversionDocument
             .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToPowerPointPresentationResult()
+            .ConvertToPowerPointWithEvidence()
             .RequireValue();
         PowerPointTextRun actual = Assert.Single(Assert.Single(Assert.Single(imported.Slides).TextBoxes).Paragraphs).Runs.Single();
         Assert.Equal(PowerPointUnderlineStyle.Wavy, actual.UnderlineStyle);
         Assert.Equal(PowerPointStrikeStyle.Double, actual.StrikeStyle);
-        Assert.Equal("O'Brien Sans", actual.FontName);
+        Assert.Equal("O'Brien Sans", actual.FontFamily);
     }
 
     [Fact]
     public void PowerPointSemanticHtmlFallsBackForMixedAndNestedOrdinarySpanContent() {
         const string html = "<section class='officeimo-slide'><p><span><strong>Bold</strong></span> tail</p></section>";
 
-        using PowerPointPresentation imported = HtmlConversionDocument.Parse(html)
-            .ToPowerPointPresentationResult()
+        using PowerPointDocument imported = HtmlConversionDocument.Parse(html)
+            .ConvertToPowerPointWithEvidence()
             .RequireValue();
 
         PowerPointTextBox textBox = Assert.Single(Assert.Single(imported.Slides).TextBoxes);
@@ -262,8 +262,8 @@ public sealed class HtmlTextFormattingReviewClosureTests {
     public void PowerPointOrdinaryHtmlDistributesStyledRunsAcrossExplicitBreakParagraphs() {
         const string html = "<section class='officeimo-slide'><p><strong>one</strong><br><em>two</em></p></section>";
 
-        using PowerPointPresentation imported = HtmlConversionDocument.Parse(html)
-            .ToPowerPointPresentationResult()
+        using PowerPointDocument imported = HtmlConversionDocument.Parse(html)
+            .ConvertToPowerPointWithEvidence()
             .RequireValue();
 
         PowerPointTextBox textBox = Assert.Single(Assert.Single(imported.Slides).TextBoxes);
@@ -287,7 +287,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         source._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
         source.AddParagraph().AddText("Styled").SetCharacterStyleId("Decorated");
 
-        string html = source.ToHtml(new WordToHtmlOptions { IncludeRunClasses = true });
+        string html = source.ToHtml(new WordHtmlExportOptions { IncludeRunClasses = true, IncludeDefaultCss = false });
 
         Assert.Contains("class=\"Decorated\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-word-underline=\"Wave\"", html, StringComparison.Ordinal);
@@ -299,7 +299,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
 
         using WordDocument imported = HtmlConversionDocument
             .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToWordDocumentResult()
+            .ConvertToWordWithEvidence()
             .RequireValue();
         WordParagraph actual = Assert.Single(imported.Paragraphs);
         Assert.Equal(WordUnderlineStyle.Wave, actual.Underline);
@@ -323,7 +323,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         styles.Append(reset);
         source.AddParagraph().AddText("Baseline").SetCharacterStyleId("ResetScript");
 
-        string html = source.ToHtml(new WordToHtmlOptions { IncludeRunClasses = true });
+        string html = source.ToHtml(new WordHtmlExportOptions { IncludeRunClasses = true });
 
         string styleRule = Assert.Single(html.Split('\n'), line => line.Contains(".ResetScript {", StringComparison.Ordinal));
         Assert.Contains("vertical-align:baseline", styleRule, StringComparison.Ordinal);
@@ -351,7 +351,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
             .SetVerticalTextAlignment(WordVerticalTextPosition.Baseline);
         reset._runProperties!.Strike = new Strike { Val = false };
 
-        string html = source.ToHtml(new WordToHtmlOptions { IncludeParagraphClasses = true });
+        string html = source.ToHtml(new WordHtmlExportOptions { IncludeParagraphClasses = true, IncludeDefaultCss = false });
         IElement output = HtmlDocumentParser.ParseDocument(html)
             .QuerySelector("p.ParagraphDecoratedScript")!;
 
@@ -376,8 +376,8 @@ public sealed class HtmlTextFormattingReviewClosureTests {
             </section>
             """;
 
-        using PowerPointPresentation imported = HtmlConversionDocument.Parse(html)
-            .ToPowerPointPresentationResult()
+        using PowerPointDocument imported = HtmlConversionDocument.Parse(html)
+            .ConvertToPowerPointWithEvidence()
             .RequireValue();
 
         string[] texts = Assert.Single(imported.Slides).TextBoxes.Select(box => box.Text).ToArray();
@@ -390,7 +390,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         paragraph.AddMath(OfficeIMO.Drawing.OfficeMath.Fraction(
             OfficeIMO.Drawing.OfficeMath.Identifier("x"), OfficeIMO.Drawing.OfficeMath.Number("2")));
 
-        string html = section.ToHtmlDocument();
+        string html = section.ConvertToHtmlWithEvidence().RequireValue();
 
         Assert.Contains("class=\"officeimo-onenote-math\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-math-format=\"latex\"", html, StringComparison.Ordinal);
@@ -404,12 +404,12 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         page.DirectContent.Add(new OneNoteImage { FileName = "missing.png", AltText = "Missing" });
         int resolverCalls = 0;
 
-        string html = section.ToHtmlDocument(new OfficeIMO.OneNote.Markdown.OneNoteMarkdownOptions {
+        string html = section.ConvertToHtmlWithEvidence(new OfficeIMO.OneNote.Markdown.OneNoteMarkdownExportOptions {
             AssetUriResolver = element => {
                 resolverCalls++;
                 return element.Payload!.Length.ToString();
             }
-        });
+        }).RequireValue();
 
         Assert.Equal(0, resolverCalls);
         Assert.Contains("officeimo-onenote-image-placeholder", html, StringComparison.Ordinal);
@@ -425,18 +425,18 @@ public sealed class HtmlTextFormattingReviewClosureTests {
             Payload = OneNoteBinaryPayload.FromBytes(new byte[] { 1, 2, 3 })
         });
 
-        HtmlTextConversionResult result = section.ToHtmlDocumentResult(new OfficeIMO.OneNote.Markdown.OneNoteMarkdownOptions {
+        HtmlTextConversionResult result = section.ConvertToHtmlWithEvidence(new OfficeIMO.OneNote.Markdown.OneNoteMarkdownExportOptions {
             AssetUriResolver = _ => "javascript:alert(1)"
         });
 
         Assert.Contains("officeimo-onenote-image-placeholder", result.Value, StringComparison.Ordinal);
         Assert.DoesNotContain("javascript:", result.Value, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == "ONENOTE_HTML_ASSET_URI_REJECTED_BY_POLICY"
             && diagnostic.Source == "blocked.png"
             && diagnostic.LossKind == OfficeConversionLossKind.Omission);
 
-        HtmlTextConversionResult allowed = section.ToHtmlDocumentResult(new OfficeIMO.OneNote.Markdown.OneNoteMarkdownOptions {
+        HtmlTextConversionResult allowed = section.ConvertToHtmlWithEvidence(new OfficeIMO.OneNote.Markdown.OneNoteMarkdownExportOptions {
             AssetUriResolver = _ => "https://example.com/allowed.png"
         });
         Assert.Contains("src=\"https://example.com/allowed.png\"", allowed.Value, StringComparison.Ordinal);
@@ -451,12 +451,12 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         paragraph.Runs[0].Style.FontFamily = "Aptos";
         paragraph.Runs[0].Style.Underline = true;
 
-        HtmlTextConversionResult styled = section.ToHtmlDocumentResult();
+        HtmlTextConversionResult styled = section.ConvertToHtmlWithEvidence();
         Assert.DoesNotContain(styled.Report.Diagnostics,
             diagnostic => diagnostic.Code is "ONENOTE_MARKDOWN_FORMATTING_SIMPLIFIED" or "ONENOTE_HTML_FORMATTING_SIMPLIFIED");
 
         paragraph.Style.SpaceBefore = 12D;
-        HtmlTextConversionResult spaced = section.ToHtmlDocumentResult();
+        HtmlTextConversionResult spaced = section.ConvertToHtmlWithEvidence();
         Assert.Contains(spaced.Report.Diagnostics,
             diagnostic => diagnostic.Code == "ONENOTE_HTML_FORMATTING_SIMPLIFIED"
                 && diagnostic.LossKind == OfficeConversionLossKind.Approximation);

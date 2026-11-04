@@ -102,9 +102,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         AddBoxPaint(visuals, style, boxX, style.MarginTop, boxWidth, boxHeight, element);
         double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft + alignmentOffset;
         double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
+        // HTML-syntax MathML (no xmlns, named entities, edited DOM) is serialized from the
+        // current DOM. The painted formula and the retained MathML still describe the same
+        // formula, so this is informational: nothing is lost, only the lexical form differs.
         if (mathMlSource != null && !mathMlSource.IsOriginalMarkup) _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.MathMlSourceNormalized,
-                "The formula source uses current namespace-aware MathML because exact original markup is unavailable or differs from the current DOM.",
-                HtmlDiagnosticSeverity.Warning, source, lossKind: OfficeConversionLossKind.Approximation);
+                "The formula was rendered completely. Its retained MathML source is serialized from the current DOM because the original markup is HTML syntax or no longer matches the document.",
+                HtmlDiagnosticSeverity.Info, source, "Retained MathML is namespace-aware XML equivalent to the rendered formula.", OfficeConversionLossKind.None);
         string logicalText = expression.ToPlainText();
         string alternativeText = ResolveMathAlternativeText(element, logicalText);
         string? link = inheritedLink ?? (element.ParentElement != null && string.Equals(element.ParentElement.TagName, "a", StringComparison.OrdinalIgnoreCase)

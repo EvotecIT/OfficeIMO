@@ -2,13 +2,53 @@ namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         // One context per workbook calculation, or per standalone sheet calculation.
         // Referenced sheets already borrow these objects when resolving dependencies.
-        internal sealed class FormulaCalculationContext {
+        internal sealed class FormulaCalculationContext : IDisposable {
             internal Dictionary<string, FormulaArgumentValue> Cache { get; } = new(StringComparer.OrdinalIgnoreCase);
             internal Dictionary<string, int> DepthCache { get; } = new(StringComparer.OrdinalIgnoreCase);
             internal HashSet<string> Stack { get; } = new(StringComparer.OrdinalIgnoreCase);
             internal Stack<FormulaEvaluationDepthFrame> DepthFrames { get; } = new();
             internal FormulaEvaluationGuardState GuardState { get; } = new();
+            internal Dictionary<string, ExcelSheet> ReferenceSheets { get; } = new(StringComparer.OrdinalIgnoreCase);
+            internal Dictionary<string, Dictionary<string, string>> CacheKeys { get; } = new(StringComparer.Ordinal);
+            /// <summary>Parsed qualified or absolute references by text; the text alone determines each entry.</summary>
+            internal Dictionary<string, FormulaReferenceSyntax> ReferenceSyntax { get; } = new(StringComparer.Ordinal);
+            /// <summary>Resolved ranges whose every cell held its final value for the pass, with the deepest dependency among them.</summary>
+            internal Dictionary<(object Part, int R1, int C1, int R2, int C2), (FormulaArgumentValue[] Values, int Depth)> Ranges { get; } = new();
+            /// <summary>Lookup ranges that hold formulas or array output, which lookups keep reading cell by cell.</summary>
+            internal HashSet<(object Part, int R1, int C1, int R2, int C2)> LazyRanges { get; } = new();
+            private SharedStringCache? _sharedStrings;
+            private long _sharedStringMutationVersion;
+            private FormulaDefinedNameResolutionCatalog? _definedNames;
+            private long _definedNameMutationVersion;
+            internal bool IsDisposed { get; private set; }
+
+            // Cross-sheet wrappers borrow this snapshot only while the pass owns it.
+            internal SharedStringCache GetSharedStrings(DocumentFormat.OpenXml.Packaging.SpreadsheetDocument document, long mutationVersion) {
+                if (_sharedStrings == null || _sharedStringMutationVersion != mutationVersion) {
+                    _sharedStrings?.Dispose();
+                    _sharedStrings = SharedStringCache.Build(document);
+                    _sharedStringMutationVersion = mutationVersion;
+                }
+                return _sharedStrings;
+            }
+
+            public void Dispose() {
+                _sharedStrings?.Dispose();
+                _sharedStrings = null;
+                _definedNames = null;
+                IsDisposed = true;
+            }
+
+            internal FormulaDefinedNameResolutionCatalog GetDefinedNames(ExcelSheet owner, long mutationVersion) {
+                if (_definedNames == null || _definedNameMutationVersion != mutationVersion) {
+                    _definedNames = new FormulaDefinedNameResolutionCatalog(owner);
+                    _definedNameMutationVersion = mutationVersion;
+                }
+                return _definedNames;
+            }
         }
+
+        private FormulaCalculationContext? _formulaCalculationContext;
 
         // Each expression owns reference failures. A nested expression returns its
         // typed error to IFERROR/ISERROR rather than leaking it into the parent scope.

@@ -11,16 +11,16 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_HonorsEscapedStructuredReferenceBrackets() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellAt(1, 1).SetValue("Cost [ old");
-            sheet.CellAt(2, 1).SetValue(10);
-            sheet.CellAt(5, 1).SetValue(20);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Cost [ old");
+            sheet.Cell(2, 1).SetValue(10);
+            sheet.Cell(5, 1).SetValue(20);
             sheet.AddTable(
                 "A1:A2",
                 hasHeader: true,
                 name: "Table1",
                 OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
-            sheet.CellFormula(1, 3, "Table1[Cost '[ old]+Data!A5");
+            sheet.Cell(1, 3).SetFormula("Table1[Cost '[ old]+Data!A5");
 
             sheet.InsertRows(5);
 
@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RemapsQueryTableRefreshSortRanges() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             SortState sortState = AddQueryTableRefreshSortState(
                 document,
                 sheet,
@@ -60,9 +60,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_PreflightsQueryTableRefreshSortRanges() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellAt(1, 1).SetValue("Keep");
-            string reference = $"A{A1.MaxRows}:C{A1.MaxRows}";
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Keep");
+            string reference = $"A{ExcelA1.MaxRows}:C{ExcelA1.MaxRows}";
             SortState sortState = AddQueryTableRefreshSortState(
                 document,
                 sheet,
@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("row limit", exception.Message);
             Assert.Equal(reference, sortState.Reference!.Value);
-            Assert.Equal("Keep", sheet.CellAt(1, 1).GetValue<string>());
+            Assert.Equal("Keep", sheet.Cell(1, 1).GetValue<string>());
         }
 
         [Fact]
@@ -82,18 +82,18 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = CreateDrawingSheet(document);
             Xdr.TwoCellAnchor anchor = ReplaceWithTwoCellAnchor(
                 sheet,
-                fromRow: A1.MaxRows - 2,
-                toRow: A1.MaxRows - 1,
+                fromRow: ExcelA1.MaxRows - 2,
+                toRow: ExcelA1.MaxRows - 1,
                 toRowOffset: "0",
                 Xdr.EditAsValues.TwoCell);
 
-            sheet.InsertRows(A1.MaxRows - 1);
+            sheet.InsertRows(ExcelA1.MaxRows - 1);
 
             Assert.Equal(
-                (A1.MaxRows - 1).ToString(),
+                (ExcelA1.MaxRows - 1).ToString(),
                 anchor.FromMarker!.RowId!.Text);
             Assert.Equal(
-                A1.MaxRows.ToString(),
+                ExcelA1.MaxRows.ToString(),
                 anchor.ToMarker!.RowId!.Text);
         }
 

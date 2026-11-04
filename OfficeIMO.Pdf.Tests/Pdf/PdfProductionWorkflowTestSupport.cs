@@ -9,7 +9,7 @@ internal static class PdfProductionWorkflowTestSupport {
         for (int index = 0; index < pageTexts.Length; index++) {
             if (index > 0) document.PageBreak();
             string text = pageTexts[index];
-            document.Paragraph(paragraph => paragraph.Text(text));
+            document.Paragraph(paragraph => paragraph.AddText(text));
         }
         return document.ToBytes();
     }

@@ -37,7 +37,7 @@ namespace OfficeIMO.Tests {
                 document.AddPageBreak();
                 document.AddParagraph("Page2");
                 document.Save();
-                document.SaveAsPdf(pdfCustom, new WordToPdfOptions {
+                document.SaveAsPdf(pdfCustom, new WordPdfExportOptions {
                     IncludePageNumbers = true,
                     PageNumberFormat = "Page {current} of {total}"
                 });
@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
                 document.AddPageBreak();
                 document.AddParagraph("After native page break");
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -84,7 +84,7 @@ namespace OfficeIMO.Tests {
                 document.AddPageBreak();
                 document.AddParagraph("Native section page numbering second page");
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = true
                 });
             }
@@ -109,7 +109,7 @@ namespace OfficeIMO.Tests {
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeNumPagesDocumentTotal.pdf");
 
             using (WordDocument document = WordDocument.Create(docPath)) {
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
                 RequireSectionFooter(document, 0, HeaderFooterValues.Default)
                     .AddParagraph("First field footer ")
                     .AddPageNumber(includeTotalPages: true, separator: " / ");
@@ -127,7 +127,7 @@ namespace OfficeIMO.Tests {
                 secondSection.AddParagraph("Restarted section second page");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -147,7 +147,7 @@ namespace OfficeIMO.Tests {
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeSectionPagesField.pdf");
 
             using (WordDocument document = WordDocument.Create(docPath)) {
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
                 WordParagraph firstFooter = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("First section ");
                 firstFooter.AddField(WordFieldType.Page);
                 firstFooter.AddText(" / ");
@@ -171,7 +171,7 @@ namespace OfficeIMO.Tests {
                 secondSection.AddParagraph("Second section second page");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -192,14 +192,14 @@ namespace OfficeIMO.Tests {
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterPageFields.pdf");
 
             using (WordDocument document = WordDocument.Create(docPath)) {
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
                 WordParagraph footerParagraph = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("Native field footer ");
                 footerParagraph.AddPageNumber(includeTotalPages: true, separator: " / ");
                 document.AddParagraph("Native field footer first page");
                 document.AddPageBreak();
                 document.AddParagraph("Native field footer second page");
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     PageNumberFormat = "AUTO {current}/{total}"
                 });
             }
@@ -224,14 +224,14 @@ namespace OfficeIMO.Tests {
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterPageFieldFormats.pdf");
 
             using (WordDocument document = WordDocument.Create(docPath)) {
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
                 WordParagraph footerParagraph = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("Native roman field footer ");
-                footerParagraph.AddPageNumber(includeTotalPages: true, format: WordFieldFormat.Roman, separator: " / ");
+                footerParagraph.AddPageNumber(includeTotalPages: true, format: WordFieldFormat.UpperRoman, separator: " / ");
                 document.AddParagraph("Native roman field footer first page");
                 document.AddPageBreak();
                 document.AddParagraph("Native roman field footer second page");
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordToPdfOptions());
+                document.SaveAsPdf(pdfPath, new WordPdfExportOptions());
             }
 
             Assert.True(File.Exists(pdfPath));

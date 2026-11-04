@@ -5,16 +5,16 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 public sealed class PdfCellIcon {
     private PdfCellIconKind _kind;
-    private double _size = 8D;
-    private double _offsetX;
-    private double _offsetY;
-    private PdfColumnAlign? _horizontalAlignment;
+    private global::OfficeIMO.OfficeLength _size = global::OfficeIMO.OfficeLength.Points(8D);
+    private global::OfficeIMO.OfficeLength _offsetX;
+    private global::OfficeIMO.OfficeLength _offsetY;
+    private OfficeAlignment? _horizontalAlignment;
 
     /// <summary>Optional icon alignment independent of cell text. Null uses the cell's alignment.</summary>
-    public PdfColumnAlign? HorizontalAlignment {
+    public OfficeAlignment? HorizontalAlignment {
         get => _horizontalAlignment;
         set {
-            if (value.HasValue && (value.Value < PdfColumnAlign.Left || value.Value > PdfColumnAlign.Right))
+            if (value.HasValue && (value.Value < OfficeAlignment.Left || value.Value > OfficeAlignment.Right))
                 throw new System.ArgumentOutOfRangeException(nameof(value), "Icon alignment must be a supported table column alignment.");
             _horizontalAlignment = value;
         }
@@ -33,13 +33,13 @@ public sealed class PdfCellIcon {
     }
 
     /// <summary>Icon fill color.</summary>
-    public PdfColor Color { get; set; } = PdfColor.Black;
+    public global::OfficeIMO.OfficeColor Color { get; set; } = global::OfficeIMO.OfficeColor.Black;
 
-    /// <summary>Icon size in points.</summary>
-    public double Size {
+    /// <summary>Icon size as a physical length.</summary>
+    public global::OfficeIMO.OfficeLength Size {
         get => _size;
         set {
-            if (value <= 0D || double.IsNaN(value) || double.IsInfinity(value)) {
+            if (value.ToPoints() <= 0D || double.IsNaN(value.ToPoints()) || double.IsInfinity(value.ToPoints())) {
                 throw new System.ArgumentException("PDF table cell icon size must be a positive finite value.", nameof(Size));
             }
 
@@ -47,20 +47,20 @@ public sealed class PdfCellIcon {
         }
     }
 
-    /// <summary>Additional horizontal icon offset in points after table-cell alignment is applied.</summary>
-    public double OffsetX {
+    /// <summary>Additional horizontal icon offset as a physical length after table-cell alignment is applied.</summary>
+    public global::OfficeIMO.OfficeLength OffsetX {
         get => _offsetX;
         set {
-            ValidateOffset(value, nameof(OffsetX));
+            ValidateOffset(value.ToPoints(), nameof(OffsetX));
             _offsetX = value;
         }
     }
 
-    /// <summary>Additional vertical icon offset in points after table-cell alignment is applied.</summary>
-    public double OffsetY {
+    /// <summary>Additional vertical icon offset as a physical length after table-cell alignment is applied.</summary>
+    public global::OfficeIMO.OfficeLength OffsetY {
         get => _offsetY;
         set {
-            ValidateOffset(value, nameof(OffsetY));
+            ValidateOffset(value.ToPoints(), nameof(OffsetY));
             _offsetY = value;
         }
     }

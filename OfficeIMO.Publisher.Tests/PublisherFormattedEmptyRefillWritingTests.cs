@@ -21,7 +21,7 @@ public sealed class PublisherFormattedEmptyRefillWritingTests {
                 PublisherTable t = document.Pages[0].Tables.Single();
                 document.ReplaceTableCellParagraphs(t.Id, 0, 0, t.Cells[0].Paragraphs.Take(3).ToArray());
             } else document.ReplaceStoryParagraphs(document.TextStories[0].Id, document.TextStories[0].Paragraphs.Take(3).ToArray());
-            source = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+            source = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
             original = PublisherDocument.Load(source); document = PublisherDocument.Load(source);
         }
         int page = operation == "equivalent" ? 8 : 0, selected = page == 8 ? 0 : 1;
@@ -38,7 +38,7 @@ public sealed class PublisherFormattedEmptyRefillWritingTests {
         };
         if (cells) document.ReplaceTableCellParagraphs(table!.Id, 0, 0, requested);
         else document.ReplaceStoryParagraphs(story.Id, requested);
-        byte[] output = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        byte[] output = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         PublisherDocument saved = PublisherDocument.Load(output);
         var actual = cells ? saved.Pages[page].Tables.Single().Cells[0].Paragraphs : saved.TextStories.Single(s => s.Id == story.Id).Paragraphs;
         Assert.Equal(requested.Length, actual.Count);
@@ -59,7 +59,7 @@ public sealed class PublisherFormattedEmptyRefillWritingTests {
         if (cells) foreach (PublisherTableCell cell in table!.Cells.Skip(1))
             Assert.True(cell.Paragraphs.SequenceEqual(saved.Pages[page].Tables.Single().Cells[cell.RowIndex * table.ColumnCount + cell.ColumnIndex].Paragraphs, PublisherTextComparison.Paragraphs));
         PublisherNativeWritingTests.AssertPreservedStorage(source, output, "Quill/QuillSub/CONTENTS");
-        Assert.Equal(output, saved.ToPubBytes());
+        Assert.Equal(output, saved.ToBytes());
     }
 
     [Theory]
@@ -73,7 +73,7 @@ public sealed class PublisherFormattedEmptyRefillWritingTests {
             int cr = binding.Uses.Where(u => u.Tag == "FDPP").ElementAt(1).NativeStart;
             var span = binding.Uses.Single(u => u.Tag == "FDPC" && u.NativeStart <= cr && u.NativeStart + u.NativeLength > cr).DirectDefinition;
             source = PublisherInputContractTests.Mutate("Quill/QuillSub/CONTENTS", bytes => {
-                var fields = new PublisherBlockReader(new PublisherBinaryData(bytes, "test/Quill"), new PublisherParseContext(new PublisherReadOptions(), default)).Chunk(span.Offset, span.Offset + span.Length);
+                var fields = new PublisherBlockReader(new PublisherBinaryData(bytes, "test/Quill"), new PublisherParseContext(new PublisherLoadOptions(), default)).Chunk(span.Offset, span.Offset + span.Length);
                 // This source CR is a separate one-field language override;
                 // equivalent empty CRs on page 8 share one native definition.
                 PublisherBlock language = Assert.Single(fields, f => f.Id == 0x12); Assert.Equal(0x22, language.Type); Assert.Equal(1036U, language.Value);
@@ -86,7 +86,7 @@ public sealed class PublisherFormattedEmptyRefillWritingTests {
         var runs = new[] { Run("Changed ", 0), Run("typing", 1) };
         if (!opaque) runs = runs.Select(r => r.WithLanguageId(null)).ToArray();
         document.ReplaceStoryParagraphs(story.Id, new[] { Copy(story.Paragraphs[0], runs), story.Paragraphs[2] });
-        Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        Assert.Throws<OfficeConversionException>(() => document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
     }
 
     private static OfficeRichTextRun Run(string text, int i) => new OfficeRichTextRun(text, i % 2 == 0 ? 12 : 14,
@@ -107,7 +107,7 @@ public sealed class PublisherFormattedEmptyRefillWritingTests {
     }
     private static byte[] Residue(byte[] bytes) {
         byte[] changed = { 2, 3, 0x0C, 0x0F, 0x10, 0x12, 0x18, 0x1E, 0x24, 0x44, 0x58 };
-        var fields = new PublisherBlockReader(new PublisherBinaryData(bytes, "test/residue"), new PublisherParseContext(new PublisherReadOptions(), default)).Chunk(0, bytes.Length);
+        var fields = new PublisherBlockReader(new PublisherBinaryData(bytes, "test/residue"), new PublisherParseContext(new PublisherLoadOptions(), default)).Chunk(0, bytes.Length);
         return fields.Where(f => !changed.Contains(f.Id)).SelectMany(f => bytes.Skip(f.Offset - 2).Take(f.Length + 2)).ToArray();
     }
 }

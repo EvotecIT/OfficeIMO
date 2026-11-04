@@ -1,7 +1,7 @@
 namespace OfficeIMO.DjVu;
 
 internal sealed class DjVuReadBudget {
-    internal readonly DjVuReadOptions Options;
+    internal readonly DjVuLoadOptions Options;
     internal readonly CancellationToken Cancellation;
     private long _expanded;
     private int _chunks;
@@ -12,7 +12,7 @@ internal sealed class DjVuReadBudget {
     private long _jb2DecodedSamples;
     private long _jb2CommentBytes;
 
-    internal DjVuReadBudget(DjVuReadOptions options, CancellationToken cancellation) {
+    internal DjVuReadBudget(DjVuLoadOptions options, CancellationToken cancellation) {
         Options = options;
         Cancellation = cancellation;
     }

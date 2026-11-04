@@ -43,7 +43,7 @@ public sealed partial class SearchablePdfOcrViewModel {
                 InputStream = _storage?.CreateWorkflowInput(input),
                 OutputPath = output,
                 PublicationGuard = _publicationGuard,
-                ConflictPolicy = provider || ReplaceExistingOutput ? OfficeWorkflowConflictPolicy.Replace : OfficeWorkflowConflictPolicy.Fail,
+                ConflictPolicy = provider || ReplaceExistingOutput ? OfficePublicationPolicy.Replace : OfficePublicationPolicy.Fail,
                 OutputStream = provider ? _storage!.CreateWorkflowOutput(output, _recoveryStore ?? throw new IOException("Workflow recovery storage is unavailable.")) : null,
                 ScanCleanup = new() { Preparation = options, ExpectedSourceSha256 = sourceHash, AcknowledgeRasterOutput = true }
             };

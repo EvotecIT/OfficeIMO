@@ -6,7 +6,7 @@ using System.Xml.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Visio;
 using Xunit;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Tests {
     public class VisioTextStyleTests {
@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
             document.AddPage("Fonts")
-                .AddRectangle(2, 4, 2.5, 1.1, "Bounded font")
+                .AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.5, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.1, VisioMeasurementUnit.Inches)), "Bounded font")
                 .ApplyTextStyle(new VisioTextStyle { FontFamily = new string('F', 10_000), Size = 12 });
             document.Save();
 
@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Text");
-            page.AddRectangle(2, 4, 2.5, 1.1, "Styled text")
+            page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.1, page.DefaultUnit)), "Styled text")
                 .ApplyTextStyle(new VisioTextStyle {
                     FontFamily = "Aptos",
                     Color = Color.FromRgb(0x33, 0x66, 0x99),
@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
                     Bold = true,
                     Italic = true,
                     Underline = false,
-                    HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+                    HorizontalAlignment = OfficeAlignment.Center,
                     VerticalAlignment = VisioTextVerticalAlignment.Middle,
                     LeftMargin = 0.08,
                     RightMargin = 0.09,
@@ -102,13 +102,13 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("RoundTrip");
-            page.AddRectangle(2, 4, 2.5, 1.1, "Round tripped")
+            page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.1, page.DefaultUnit)), "Round tripped")
                 .ApplyTextStyle(new VisioTextStyle {
                     FontFamily = "Consolas",
                     Color = Color.Crimson,
                     Size = 12,
                     Bold = true,
-                    HorizontalAlignment = VisioTextHorizontalAlignment.Right,
+                    HorizontalAlignment = OfficeAlignment.Right,
                     VerticalAlignment = VisioTextVerticalAlignment.Bottom,
                     LeftMargin = 0.12,
                     BackgroundColor = Color.LightCyan,
@@ -133,7 +133,7 @@ namespace OfficeIMO.Tests {
             Assert.True(loadedShape.TextStyle.Bold);
             Assert.False(loadedShape.TextStyle.Italic);
             Assert.False(loadedShape.TextStyle.Underline);
-            Assert.Equal(VisioTextHorizontalAlignment.Right, loadedShape.TextStyle.HorizontalAlignment);
+            Assert.Equal(OfficeAlignment.Right, loadedShape.TextStyle.HorizontalAlignment);
             Assert.Equal(VisioTextVerticalAlignment.Bottom, loadedShape.TextStyle.VerticalAlignment);
             Assert.Equal(0.12, loadedShape.TextStyle.LeftMargin);
             Assert.Equal(Color.LightCyan, loadedShape.TextStyle.BackgroundColor);
@@ -163,7 +163,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
             VisioShape shape = document.AddPage("NativeText")
-                .AddRectangle(2, 4, 2.5, 1.1, "Mixed Case")
+                .AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.5, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.1, VisioMeasurementUnit.Inches)), "Mixed Case")
                 .ApplyTextStyle(new VisioTextStyle {
                     FontFamily = "Aptos",
                     Size = 14,
@@ -206,8 +206,8 @@ namespace OfficeIMO.Tests {
         public void VisioInitialCapsPreservesExistingMixedCaseInRenderedOutputs() {
             using var stream = new MemoryStream();
             VisioDocument document = VisioDocument.Create(stream);
-            document.AddPage("InitialCaps").Size(4, 2)
-                .AddRectangle(2, 1, 3, 1, "iPhone PRO")
+            document.AddPage("InitialCaps").Size(OfficeLength.Inches(4), OfficeLength.Inches(2))
+                .AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), "iPhone PRO")
                 .ApplyTextStyle(new VisioTextStyle {
                     Capitalization = VisioTextCapitalization.InitialCaps
                 });
@@ -223,8 +223,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void VisioSuperscriptFitsSvgUsingItsEffectiveRenderedSize() {
             VisioDocument document = VisioDocument.Create(new MemoryStream());
-            document.AddPage("ScriptFit").Size(2, 1)
-                .AddRectangle(1, 0.5, 1.25, 0.6, "WWWW")
+            document.AddPage("ScriptFit").Size(OfficeLength.Inches(2), OfficeLength.Inches(1))
+                .AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.25, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.6, VisioMeasurementUnit.Inches)), "WWWW")
                 .ApplyTextStyle(new VisioTextStyle {
                     FontFamily = "Aptos",
                     Size = 24,
@@ -248,8 +248,8 @@ namespace OfficeIMO.Tests {
         [InlineData(OfficeImageExportFormat.Webp)]
         public void NativeTypographyExportsThroughEverySharedImageFormat(OfficeImageExportFormat format) {
             VisioDocument document = VisioDocument.Create(new MemoryStream());
-            document.AddPage("Typography").Size(3, 1.5)
-                .AddRectangle(1.5, 0.75, 2.5, 0.8, "Styled")
+            document.AddPage("Typography").Size(OfficeLength.Inches(3), OfficeLength.Inches(1.5))
+                .AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.75, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.5, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, VisioMeasurementUnit.Inches)), "Styled")
                 .ApplyTextStyle(new VisioTextStyle {
                     FontFamily = "Aptos",
                     Size = 14,
@@ -279,8 +279,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("ConnectorText");
-            VisioShape source = page.AddRectangle(1, 4, 1.5, 0.7, "Source");
-            VisioShape target = page.AddRectangle(5, 4, 1.5, 0.7, "Target");
+            VisioShape source = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.7, page.DefaultUnit)), "Source");
+            VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.7, page.DefaultUnit)), "Target");
             page.AddConnector(source, target, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left)
                 .PlaceLabelAt(3.25, 4.45, width: 1.4, height: 0.35)
                 .ApplyTextStyle(new VisioTextStyle {
@@ -289,7 +289,7 @@ namespace OfficeIMO.Tests {
                     Size = 9.5,
                     Bold = true,
                     Underline = true,
-                    HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+                    HorizontalAlignment = OfficeAlignment.Center,
                     VerticalAlignment = VisioTextVerticalAlignment.Middle,
                     LeftMargin = 0.03,
                     RightMargin = 0.04,
@@ -316,7 +316,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("RGB(255,255,255)+1", Cell(connector, ns, "TextBkgnd").Attribute("F")?.Value);
             Assert.Equal("0", Cell(connector, ns, "TextBkgndTrans").Attribute("V")?.Value);
             double ReadCell(string name) => double.Parse(Cell(connector, ns, name).Attribute("V")!.Value, System.Globalization.CultureInfo.InvariantCulture);
-            var frame = new VisioShape("label-frame") { PinX = ReadCell("PinX"), PinY = ReadCell("PinY"), LocPinX = ReadCell("LocPinX"), LocPinY = ReadCell("LocPinY"), Angle = ReadCell("Angle") };
+            var frame = new VisioShape("label-frame") { PinX = OfficeLength.Inches(ReadCell("PinX")), PinY = OfficeLength.Inches(ReadCell("PinY")), LocPinX = OfficeLength.Inches(ReadCell("LocPinX")), LocPinY = OfficeLength.Inches(ReadCell("LocPinY")), Angle = ReadCell("Angle") };
             var point = frame.GetAbsolutePoint(ReadCell("TxtPinX"), ReadCell("TxtPinY"));
             Assert.Equal(3.25, point.X, 8); Assert.Equal(4.45, point.Y, 8);
             Assert.Equal("1.4", Cell(connector, ns, "TxtWidth").Attribute("V")?.Value);
@@ -342,8 +342,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("ConnectorRoundTrip");
-            VisioShape source = page.AddRectangle(1, 4, 1.5, 0.7, "Source");
-            VisioShape target = page.AddRectangle(5, 4, 1.5, 0.7, "Target");
+            VisioShape source = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.7, page.DefaultUnit)), "Source");
+            VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.7, page.DefaultUnit)), "Target");
             page.AddConnector(source, target, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left)
                 .PlaceLabelAt(3.25, 4.45, width: 1.4, height: 0.35)
                 .ApplyTextStyle(new VisioTextStyle {
@@ -351,7 +351,7 @@ namespace OfficeIMO.Tests {
                     Color = Color.Crimson,
                     Size = 10,
                     Italic = true,
-                    HorizontalAlignment = VisioTextHorizontalAlignment.Right,
+                    HorizontalAlignment = OfficeAlignment.Right,
                     VerticalAlignment = VisioTextVerticalAlignment.Bottom,
                     LeftMargin = 0.07,
                     BackgroundColor = Color.LightCyan,
@@ -370,7 +370,7 @@ namespace OfficeIMO.Tests {
             Assert.False(loadedConnector.TextStyle.Bold);
             Assert.True(loadedConnector.TextStyle.Italic);
             Assert.False(loadedConnector.TextStyle.Underline);
-            Assert.Equal(VisioTextHorizontalAlignment.Right, loadedConnector.TextStyle.HorizontalAlignment);
+            Assert.Equal(OfficeAlignment.Right, loadedConnector.TextStyle.HorizontalAlignment);
             Assert.Equal(VisioTextVerticalAlignment.Bottom, loadedConnector.TextStyle.VerticalAlignment);
             Assert.Equal(0.07, loadedConnector.TextStyle.LeftMargin);
             Assert.Equal(Color.LightCyan, loadedConnector.TextStyle.BackgroundColor);
@@ -395,8 +395,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("NativeConnector");
-            VisioShape source = page.AddRectangle(1, 4, 1.5, 0.7, "Source");
-            VisioShape target = page.AddRectangle(5, 4, 1.5, 0.7, "Target");
+            VisioShape source = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.7, page.DefaultUnit)), "Source");
+            VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.7, page.DefaultUnit)), "Target");
             page.AddConnector(source, target, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left).Label = "Native connector text";
             document.Save();
 
@@ -430,7 +430,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Native");
-            page.AddRectangle(2, 4, 2.5, 1.1, "Native rich text");
+            page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.1, page.DefaultUnit)), "Native rich text");
             document.Save();
 
             RewritePage(filePath, pageXml => {
@@ -462,12 +462,12 @@ namespace OfficeIMO.Tests {
         public void ApplyTextStyleSelectionUsesDetachedCopies() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("Selection");
-            VisioShape first = page.AddRectangle(2, 4, 2, 1, "One");
-            VisioShape second = page.AddRectangle(5, 4, 2, 1, "Two");
+            VisioShape first = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "One");
+            VisioShape second = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Two");
             VisioTextStyle style = new() {
                 Size = 11,
                 Bold = true,
-                HorizontalAlignment = VisioTextHorizontalAlignment.Justify
+                HorizontalAlignment = OfficeAlignment.Justify
             };
 
             page.SelectShapes(_ => true).ApplyTextStyle(style);
@@ -480,22 +480,22 @@ namespace OfficeIMO.Tests {
             Assert.Equal(11, second.TextStyle!.Size);
             Assert.False(first.TextStyle.Bold);
             Assert.True(second.TextStyle.Bold);
-            Assert.Equal(VisioTextHorizontalAlignment.Justify, second.TextStyle.HorizontalAlignment);
+            Assert.Equal(OfficeAlignment.Justify, second.TextStyle.HorizontalAlignment);
         }
 
         [Fact]
         public void ApplyTextStyleConnectorSelectionUsesDetachedCopies() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("ConnectorSelection");
-            VisioShape source = page.AddRectangle(1, 4, 1.5, 0.7, "Source");
-            VisioShape middle = page.AddRectangle(3, 4, 1.5, 0.7, "Middle");
-            VisioShape target = page.AddRectangle(5, 4, 1.5, 0.7, "Target");
+            VisioShape source = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.7, page.DefaultUnit)), "Source");
+            VisioShape middle = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.7, page.DefaultUnit)), "Middle");
+            VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.7, page.DefaultUnit)), "Target");
             VisioConnector first = page.AddConnector(source, middle, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left);
             VisioConnector second = page.AddConnector(middle, target, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left);
             VisioTextStyle style = new() {
                 Size = 8,
                 Bold = true,
-                HorizontalAlignment = VisioTextHorizontalAlignment.Center
+                HorizontalAlignment = OfficeAlignment.Center
             };
 
             new VisioConnectorSelection(new[] { first, second }).ApplyTextStyle(style);
@@ -508,7 +508,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(8, second.TextStyle!.Size);
             Assert.False(first.TextStyle.Bold);
             Assert.True(second.TextStyle.Bold);
-            Assert.Equal(VisioTextHorizontalAlignment.Center, second.TextStyle.HorizontalAlignment);
+            Assert.Equal(OfficeAlignment.Center, second.TextStyle.HorizontalAlignment);
         }
 
         [Fact]

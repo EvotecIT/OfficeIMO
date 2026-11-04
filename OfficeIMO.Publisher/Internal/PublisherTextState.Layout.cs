@@ -16,7 +16,7 @@ internal sealed partial class PublisherTextState {
     }
 
     internal PublisherTextState SetFrameLayout(uint frameId, int columns, double spacing, OfficeTextPadding padding,
-        OfficeTextVerticalAlignment alignment, PublisherReadOptions options) {
+        OfficeTextVerticalAlignment alignment, PublisherLoadOptions options) {
         if (!Frames.TryGetValue(frameId, out PublisherFrameState? frame))
             throw new ArgumentOutOfRangeException(nameof(frameId), "The publication has no such text frame.");
         string? limitation = FrameLayoutEditLimitation(frameId, HasResolvedFrameRange(frame));

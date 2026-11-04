@@ -17,7 +17,7 @@ public sealed class PdfRegionTextSourceReuseTests {
             .Text.Add(new PdfPageRegion(1, 50D, 590D, 200D, 30D), "kept neighbor", new PdfTextEditOptions {
                 Font = PdfStandardFont.CourierBold,
                 FontSize = 11D,
-                Color = PdfColor.FromRgb(0, 0, 255)
+                Color = global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255)
             }).Document;
         byte[] original = source.ToBytes();
         byte[] originalSnapshot = original.ToArray();

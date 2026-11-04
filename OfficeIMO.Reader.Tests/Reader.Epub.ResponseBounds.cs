@@ -22,7 +22,7 @@ public sealed partial class ReaderEpubModularTests {
             long before = GC.GetAllocatedBytesForCurrentThread();
             using var stream = new MemoryStream(bytes, writable: false);
             try {
-                _ = EpubDocument.Load(stream, new EpubReadOptions {
+                _ = EpubDocument.Load(stream, new EpubLoadOptions {
                     MaxChapterBytes = null,
                     MaxTotalUncompressedBytes = long.MaxValue
                 });

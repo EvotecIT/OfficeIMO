@@ -5,7 +5,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// Represents the DrawingML theme and color mapping stored in PowerPoint 2007+
     /// round-trip records inside a binary presentation.
     /// </summary>
-    public sealed class LegacyPptRoundTripTheme {
+    internal sealed class LegacyPptRoundTripTheme {
         internal LegacyPptRoundTripTheme(string? themeXml,
             string? colorMappingXml, bool isOverride,
             string? name, string? colorSchemeName,

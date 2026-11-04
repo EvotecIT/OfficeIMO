@@ -430,7 +430,7 @@ public sealed class PdfPaintedGlyphRenderingTests {
         string referencePath = Path.Combine(root, "Pdf", "Fixtures", "ShapedText", "poppler-" + reference + ".png");
 
         byte[] rendered = PdfDocument.Load(pdfPath).Render.Pages("1", new PdfPageRenderOptions {
-            Format = PdfPageRenderFormat.Png,
+            Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png,
             Scale = 2D,
             MaxPages = 1
         })[0].Bytes!;

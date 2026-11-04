@@ -24,7 +24,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.Red, line.Shape.FillColor);
         Assert.False(text.Font.IsUnderline);
         Assert.DoesNotContain(scene.Diagnostics, d => d.Code == "HtmlRenderTextDecorationThicknessApproximated");
-        PdfReadDocument pdf = PdfReadDocument.Open(HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions { ViewportWidth = 600 }));
+        PdfReadDocument pdf = PdfReadDocument.Open((HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions { ViewportWidth = 600 })).ToBytes());
         Assert.Single(pdf.Pages.SelectMany(p => p.GetLinkAnnotations()));
         Assert.Contains("Geometry", string.Concat(pdf.Pages.Select(p => p.ExtractText())));
     }
@@ -72,7 +72,7 @@ public sealed partial class HtmlRenderingTests {
     public void TextDecorationPatternsExportToPdfWithoutDuplicateLinksOrText(string pattern) {
         string html = "<a href='https://example.test' style='font:32px/40px Arial;text-decoration:underline 3px "
             + pattern + " red;text-underline-offset:8px;text-decoration-skip-ink:none'>Pattern</a>";
-        PdfReadDocument pdf = PdfReadDocument.Open(HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions { ViewportWidth = 600 }));
+        PdfReadDocument pdf = PdfReadDocument.Open((HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions { ViewportWidth = 600 })).ToBytes());
         Assert.Single(pdf.Pages.SelectMany(p => p.GetLinkAnnotations()));
         Assert.Equal("Pattern", string.Concat(pdf.Pages.Select(p => p.ExtractText())).Trim());
     }
@@ -80,7 +80,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void TextDecorationBidiControlsRetainAutomaticPaintAndReportTheSpecialization() {
         var scene = HtmlRenderTestDriver.Render("<span style='text-decoration:underline 3px solid red;text-underline-offset:8px'>\u202Eabc\u202C</span>", new HtmlRenderOptions());
-        Assert.Contains(scene.Diagnostics, d => d.Code == "HtmlRenderTextDecorationThicknessApproximated"
+        Assert.Contains(scene.NativeDiagnostics, d => d.Code == "HtmlRenderTextDecorationThicknessApproximated"
             && d.Detail?.Contains("bidi", StringComparison.Ordinal) == true);
         Assert.DoesNotContain(scene.Pages.SelectMany(p => EnumerateCorpusVisuals(p.Scene)).OfType<HtmlRenderShape>(),
             s => s.Source?.Contains(":decoration:", StringComparison.Ordinal) == true);
@@ -93,7 +93,7 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("text-decoration:underline 3px;text-decoration-skip-ink:all", "skipping")]
     public void SpecializedDecorationGeometryRetainsActionableLoss(string declarations, string detail) {
         var scene = HtmlRenderTestDriver.Render("<span style='" + declarations + "'>Boundary</span>", new HtmlRenderOptions());
-        Assert.Contains(scene.Diagnostics, d => d.Code == "HtmlRenderTextDecorationThicknessApproximated" && d.Detail?.Contains(detail, StringComparison.Ordinal) == true);
+        Assert.Contains(scene.NativeDiagnostics, d => d.Code == "HtmlRenderTextDecorationThicknessApproximated" && d.Detail?.Contains(detail, StringComparison.Ordinal) == true);
         Assert.True(scene.HasLoss);
     }
 }

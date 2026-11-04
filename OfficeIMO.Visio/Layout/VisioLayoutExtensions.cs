@@ -21,7 +21,7 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentNullException(nameof(shape));
             }
 
-            (double left, double bottom, double right, double top) = shape.GetBounds();
+            (double left, double bottom, double right, double top) = shape.GetBoundsInches();
             return new VisioShapeBounds(left, bottom, right, top);
         }
 
@@ -51,18 +51,18 @@ namespace OfficeIMO.Visio {
             foreach (VisioShape shape in shapes) {
                 VisioShapeBounds bounds = shape.GetShapeBounds();
                 if (!any) {
-                    left = bounds.Left;
-                    bottom = bounds.Bottom;
-                    right = bounds.Right;
-                    top = bounds.Top;
+                    left = bounds.LeftInches;
+                    bottom = bounds.BottomInches;
+                    right = bounds.RightInches;
+                    top = bounds.TopInches;
                     any = true;
                     continue;
                 }
 
-                left = Math.Min(left, bounds.Left);
-                bottom = Math.Min(bottom, bounds.Bottom);
-                right = Math.Max(right, bounds.Right);
-                top = Math.Max(top, bounds.Top);
+                left = Math.Min(left, bounds.LeftInches);
+                bottom = Math.Min(bottom, bounds.BottomInches);
+                right = Math.Max(right, bounds.RightInches);
+                top = Math.Max(top, bounds.TopInches);
             }
 
             return any ? new VisioShapeBounds(left, bottom, right, top) : VisioShapeBounds.Empty;
@@ -121,18 +121,18 @@ namespace OfficeIMO.Visio {
                 options.IncludeConnectors);
             if (bounds.IsEmpty) return page;
             if (options.MoveContent) {
-                double deltaX = options.HorizontalMargin - bounds.Left;
-                double deltaY = options.VerticalMargin - bounds.Bottom;
+                double deltaX = options.HorizontalMargin - bounds.LeftInches;
+                double deltaY = options.VerticalMargin - bounds.BottomInches;
                 MoveShapes(page.Shapes, deltaX, deltaY);
                 MoveConnectorPageCoordinates(page.Connectors, deltaX, deltaY);
             }
             if (options.ResizePage) {
-                page.Width = Math.Max(MinimumPageSize, options.MoveContent
-                    ? bounds.Width + options.HorizontalMargin * 2D
-                    : Math.Max(0D, bounds.Right) + options.HorizontalMargin);
-                page.Height = Math.Max(MinimumPageSize, options.MoveContent
-                    ? bounds.Height + options.VerticalMargin * 2D
-                    : Math.Max(0D, bounds.Top) + options.VerticalMargin);
+                page.WidthInches = Math.Max(MinimumPageSize, options.MoveContent
+                    ? bounds.WidthInches + options.HorizontalMargin * 2D
+                    : Math.Max(0D, bounds.RightInches) + options.HorizontalMargin);
+                page.HeightInches = Math.Max(MinimumPageSize, options.MoveContent
+                    ? bounds.HeightInches + options.VerticalMargin * 2D
+                    : Math.Max(0D, bounds.TopInches) + options.VerticalMargin);
             }
             return page;
         }
@@ -162,14 +162,14 @@ namespace OfficeIMO.Visio {
                 return page;
             }
 
-            double deltaX = horizontalMargin - bounds.Left;
-            double deltaY = verticalMargin - bounds.Bottom;
+            double deltaX = horizontalMargin - bounds.LeftInches;
+            double deltaY = verticalMargin - bounds.BottomInches;
             MoveShapes(page.Shapes, deltaX, deltaY);
             MoveConnectorPageCoordinates(page.Connectors, deltaX, deltaY);
 
             if (resizePage) {
-                page.Width = Math.Max(MinimumPageSize, bounds.Width + horizontalMargin * 2D);
-                page.Height = Math.Max(MinimumPageSize, bounds.Height + verticalMargin * 2D);
+                page.WidthInches = Math.Max(MinimumPageSize, bounds.WidthInches + horizontalMargin * 2D);
+                page.HeightInches = Math.Max(MinimumPageSize, bounds.HeightInches + verticalMargin * 2D);
             }
 
             return page;
@@ -189,8 +189,8 @@ namespace OfficeIMO.Visio {
                 return page;
             }
 
-            MoveShapes(page.Shapes, (page.Width / 2D) - bounds.CenterX, (page.Height / 2D) - bounds.CenterY);
-            MoveConnectorPageCoordinates(page.Connectors, (page.Width / 2D) - bounds.CenterX, (page.Height / 2D) - bounds.CenterY);
+            MoveShapes(page.Shapes, (page.WidthInches / 2D) - bounds.CenterXInches, (page.HeightInches / 2D) - bounds.CenterYInches);
+            MoveConnectorPageCoordinates(page.Connectors, (page.WidthInches / 2D) - bounds.CenterXInches, (page.HeightInches / 2D) - bounds.CenterYInches);
             return page;
         }
 
@@ -228,8 +228,8 @@ namespace OfficeIMO.Visio {
                     continue;
                 }
 
-                double originalX = shape.PinX;
-                double originalY = shape.PinY;
+                double originalX = shape.PinXInches;
+                double originalY = shape.PinYInches;
                 double bestX = originalX;
                 double bestY = originalY;
                 double bestOverlap = initialOverlap;
@@ -239,25 +239,25 @@ namespace OfficeIMO.Visio {
                         continue;
                     }
 
-                    shape.PinX = originalX + candidate.OffsetX;
-                    shape.PinY = originalY + candidate.OffsetY;
+                    shape.PinXInches = originalX + candidate.OffsetX;
+                    shape.PinYInches = originalY + candidate.OffsetY;
                     double overlap = GetTotalShapeOverlap(shape, shapes);
                     if (overlap <= 1e-9) {
-                        bestX = shape.PinX;
-                        bestY = shape.PinY;
+                        bestX = shape.PinXInches;
+                        bestY = shape.PinYInches;
                         bestOverlap = overlap;
                         break;
                     }
 
                     if (overlap < bestOverlap - 1e-9) {
-                        bestX = shape.PinX;
-                        bestY = shape.PinY;
+                        bestX = shape.PinXInches;
+                        bestY = shape.PinYInches;
                         bestOverlap = overlap;
                     }
                 }
 
-                shape.PinX = bestX;
-                shape.PinY = bestY;
+                shape.PinXInches = bestX;
+                shape.PinYInches = bestY;
             }
 
             return page;

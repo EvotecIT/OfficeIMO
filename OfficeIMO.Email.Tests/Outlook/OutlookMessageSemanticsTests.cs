@@ -38,7 +38,7 @@ public sealed class OutlookMessageSemanticsTests {
         source.MessageMetadata.Voting.Response = "Yes";
 
         byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
-        EmailReadResult read = new EmailDocumentReader().Read(bytes);
+        EmailReadResult read = new EmailDocumentReader().ReadDocument(bytes);
         EmailMessageMetadata result = read.Document.MessageMetadata;
 
         Assert.Equal(OutlookFollowUpStatus.Flagged, result.FollowUp.Status);
@@ -82,7 +82,7 @@ public sealed class OutlookMessageSemanticsTests {
         };
         source.MessageMetadata.FollowUp.MarkComplete(completed);
 
-        EmailDocument result = new EmailDocumentReader().Read(
+        EmailDocument result = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg)).Document;
 
         Assert.Equal(OutlookFollowUpStatus.Complete, result.MessageMetadata.FollowUp.Status);
@@ -103,7 +103,7 @@ public sealed class OutlookMessageSemanticsTests {
         };
         source.MessageMetadata.Voting.RawVerbStream = new byte[] { 0x02, 0x01, 0x01 };
 
-        EmailReadResult read = new EmailDocumentReader().Read(
+        EmailReadResult read = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg));
 
         Assert.Equal(new byte[] { 0x02, 0x01, 0x01 }, read.Document.MessageMetadata.Voting.RawVerbStream);
@@ -125,7 +125,7 @@ public sealed class OutlookMessageSemanticsTests {
             Task = new OutlookTask { CompletedAt = completed, Status = 2, IsComplete = true, PercentComplete = 1 }
         };
 
-        EmailDocument result = new EmailDocumentReader().Read(
+        EmailDocument result = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg)).Document;
 
         Assert.Equal(completed, result.Task!.CompletedAt);

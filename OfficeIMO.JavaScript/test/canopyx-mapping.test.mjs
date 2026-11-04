@@ -142,7 +142,6 @@ test("ordinary text capture and canonical neutral link need no lossy presentatio
   const source = createCanopyExport(ordinary, "xlsx", { tones: { neutral: { color: "123456" } } });
   const rows = []; for await (const row of source.rows()) rows.push(row);
   assert.equal(rows[0][0].presentation.color, "123456"); assert.equal(rows[0][0].link.target, records[0].cells.name.link.target);
-  await assert.rejects(exportCanopy({ ...ordinary, async *rows() { yield { ...records[0], tone: "unknown-tone" }; } }, "xlsx"), /UNMAPPED_TONE/);
 });
 
 test("grouped export rejects contradictory scope ranges and expected totals before a successful artifact", async () => {

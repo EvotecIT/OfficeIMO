@@ -25,7 +25,7 @@ public sealed class WordHyperlinkContentControlScopeTests {
         Assert.NotNull(hyperlink.Descendants<SdtRun>().Single().Descendants<Run>().Single().RunProperties?.Bold);
         Assert.Null(hyperlink.Elements<Run>().Last().RunProperties?.Bold);
 
-        using var package = document.ToStream();
+        using var package = new System.IO.MemoryStream(document.ToBytes());
         using var reopened = WordDocument.Load(package);
         Assert.Equal(new[] { "Before ", "Changed", " After" }, reopened.Paragraphs.Single().GetRuns().Select(run => run.Text));
     }

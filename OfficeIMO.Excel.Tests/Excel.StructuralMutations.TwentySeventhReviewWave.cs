@@ -12,26 +12,26 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralInsertion_RejectsVmlNoteEndpointsAtWorksheetLimits() {
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                ExcelSheet sheet = document.AddWorksheet("Columns");
+                ExcelSheet sheet = document.AddSheet("Columns");
                 sheet.SetComment(1, 2, "Keep", author: "Tester");
                 VmlDrawingPart vmlPart = Assert.Single(sheet.WorksheetPart.VmlDrawingParts);
                 SetCommentVmlAnchor(vmlPart, "16382, 15, 0, 2, 16383, 15, 3, 4");
 
                 InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
-                    () => sheet.InsertColumns(A1.MaxColumns - 1));
+                    () => sheet.InsertColumnsTransactional(ExcelA1.MaxColumns - 1));
 
                 Assert.Contains("comment note anchor", exception.Message, StringComparison.OrdinalIgnoreCase);
                 Assert.True(sheet.HasComment(1, 2));
             }
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                ExcelSheet sheet = document.AddWorksheet("Rows");
+                ExcelSheet sheet = document.AddSheet("Rows");
                 sheet.SetComment(1, 2, "Keep", author: "Tester");
                 VmlDrawingPart vmlPart = Assert.Single(sheet.WorksheetPart.VmlDrawingParts);
-                SetCommentVmlAnchor(vmlPart, $"1, 15, {A1.MaxRows - 2}, 2, 4, 15, {A1.MaxRows - 1}, 4");
+                SetCommentVmlAnchor(vmlPart, $"1, 15, {ExcelA1.MaxRows - 2}, 2, 4, 15, {ExcelA1.MaxRows - 1}, 4");
 
                 InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
-                    () => sheet.InsertRows(A1.MaxRows - 1));
+                    () => sheet.InsertRows(ExcelA1.MaxRows - 1));
 
                 Assert.Contains("comment note anchor", exception.Message, StringComparison.OrdinalIgnoreCase);
                 Assert.True(sheet.HasComment(1, 2));
@@ -41,15 +41,15 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_NamedStyleApplication_CancellationRollsBackPartialRange() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Style source");
-            sheet.CellAt(1, 1).SetFillColor("C6EFCE");
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Style source");
+            sheet.Cell(1, 1).SetFillColor("C6EFCE");
             sheet.DefineNamedStyle("Input", 1, 1);
-            sheet.CellValue(1, 26, "Probe");
+            sheet.Cell(1, 26).SetValue("Probe");
             sheet.ApplyNamedStyle("Input", "Z1:Z1");
             uint appliedStyle = sheet.WorksheetPart.Worksheet.Descendants<Cell>()
                 .Single(cell => cell.CellReference?.Value == "Z1").StyleIndex!.Value;
-            sheet.CellValue(1, 2, "Keep");
+            sheet.Cell(1, 2).SetValue("Keep");
             Cell observed = sheet.WorksheetPart.Worksheet.Descendants<Cell>()
                 .Single(cell => cell.CellReference?.Value == "B1");
             uint originalStyle = observed.StyleIndex?.Value ?? 0U;
@@ -81,7 +81,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ModernCharts_RejectNonFiniteValuesBeforeMutation() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Dashboard");
+            ExcelSheet sheet = document.AddSheet("Dashboard");
             foreach (double value in new[] { double.NaN, double.PositiveInfinity, double.NegativeInfinity }) {
                 var invalid = new ExcelChartData(
                     new[] { "A" },
@@ -109,14 +109,14 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(originalRange.StartRow, chart.DataRange!.StartRow);
             Assert.Equal(1d, document[originalRange.SheetName]
-                .CellAt(originalRange.CategoryStartRow, originalRange.SeriesStartColumn).GetValue<double>());
+                .Cell(originalRange.CategoryStartRow, originalRange.SeriesStartColumn).GetValue<double>());
             Assert.Empty(document.ValidateOpenXml());
         }
 
         [Fact]
         public void Test_QueryBackedTable_SchemaChangesSynchronizeNativeFields() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             ExcelQueryBackedTableInfo source = document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
                 ConnectionName = "SchemaQuery",
                 WorksheetName = sheet.Name,

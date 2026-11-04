@@ -13,7 +13,7 @@ public sealed partial class BookProject {
         XNamespace ns = OnixNamespace;
         foreach (var rating in ratings) {
             token.ThrowIfCancellationRequested();
-            ArgumentNullException.ThrowIfNull(rating);
+            if (rating == null) throw new ArgumentNullException(nameof(rating));
             string value = rating.Rating switch {
                 BookOnixAdultAudienceRating.Unrated => "00", BookOnixAdultAudienceRating.AnyAdultAudience => "01",
                 BookOnixAdultAudienceRating.ContentAdvice => "02", BookOnixAdultAudienceRating.SexualContent => "03",

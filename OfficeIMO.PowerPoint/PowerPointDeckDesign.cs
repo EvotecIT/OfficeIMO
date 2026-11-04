@@ -253,7 +253,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Applies the deck theme to the presentation.
         /// </summary>
-        public PowerPointPresentation ApplyTo(PowerPointPresentation presentation) {
+        public PowerPointDocument ApplyTo(PowerPointDocument presentation) {
             if (presentation == null) {
                 throw new ArgumentNullException(nameof(presentation));
             }

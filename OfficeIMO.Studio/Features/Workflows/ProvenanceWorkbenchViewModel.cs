@@ -15,7 +15,7 @@ public sealed partial class ProvenanceWorkbenchViewModel : ObservableObject, IDi
     private readonly Func<CancellationToken, Task<string?>> _pickInput;
     private readonly Func<CancellationToken, Task<string?>> _pickFolder;
     private readonly IOfficeProvenanceWorkflowRunner _runner;
-    private readonly IOfficeWorkflowPublicationGuard? _publicationGuard;
+    private readonly IOfficePublicationGuard? _publicationGuard;
     private readonly StudioJobHistory? _jobs;
     private OfficeProvenanceWorkflowResult? _review, _lastResult;
     private CancellationTokenSource? _cancellation;
@@ -23,12 +23,12 @@ public sealed partial class ProvenanceWorkbenchViewModel : ObservableObject, IDi
     private bool _disposed;
 
     public ProvenanceWorkbenchViewModel(Func<CancellationToken, Task<string?>> pickInput,
-        Func<CancellationToken, Task<string?>> pickFolder, IOfficeProvenanceWorkflowRunner? runner = null, IOfficeWorkflowPublicationGuard? publicationGuard = null)
+        Func<CancellationToken, Task<string?>> pickFolder, IOfficeProvenanceWorkflowRunner? runner = null, IOfficePublicationGuard? publicationGuard = null)
         : this(pickInput, pickFolder, runner, publicationGuard, null) { }
 
     internal ProvenanceWorkbenchViewModel(Func<CancellationToken, Task<string?>> pickInput,
         Func<CancellationToken, Task<string?>> pickFolder, IOfficeProvenanceWorkflowRunner? runner,
-        IOfficeWorkflowPublicationGuard? publicationGuard, StudioJobHistory? jobHistory) {
+        IOfficePublicationGuard? publicationGuard, StudioJobHistory? jobHistory) {
         _pickInput = pickInput; _pickFolder = pickFolder; _runner = runner ?? new OfficeWorkflowRunner(); _publicationGuard = publicationGuard;
         _jobs = jobHistory;
     }
@@ -108,7 +108,7 @@ public sealed partial class ProvenanceWorkbenchViewModel : ObservableObject, IDi
             Operation = remove ? OfficeProvenanceWorkflowOperation.Remove : OfficeProvenanceWorkflowOperation.Assess,
             ExpectedInputSha256 = remove ? _review!.InputSha256 : null,
             OutputPath = remove ? Path.Combine(OutputFolder, Path.GetFileNameWithoutExtension(InputPath) + ".provenance-cleaned" + Path.GetExtension(InputPath)) : null,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Rename, PublicationGuard = _publicationGuard };
+            ConflictPolicy = OfficePublicationPolicy.Rename, PublicationGuard = _publicationGuard };
         request.Removal.RemoveC2paManifests = RemoveManifests;
         request.Removal.RemoveExternalC2paReferences = RemoveReferences;
         request.Removal.RemoveAiSourceMetadata = RemoveDeclarations;

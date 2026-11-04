@@ -5,129 +5,127 @@ using System.Threading.Tasks;
 
 namespace OfficeIMO.Markdown;
 
-public partial class MarkdownDoc {
+public partial class MarkdownDocument : IDisposable {
     private static readonly Encoding Utf8WithoutBom = new UTF8Encoding(false);
+    private string? _filePath;
 
-    /// <summary>Parses Markdown text into the typed document model.</summary>
-    public static MarkdownDoc Parse(string markdown, MarkdownReaderOptions? options = null) =>
-        MarkdownReader.Parse(markdown, options);
+    /// <summary>Gets the associated path, or null for an in-memory document.</summary>
+    public string? FilePath => _filePath;
+    /// <summary>Gets the source syntax and transform snapshot, when the document was parsed.</summary>
+    public MarkdownParseInfo? ParseInfo => _parseResult;
 
-    /// <summary>Parses Markdown text and returns the document with syntax and transform evidence.</summary>
-    public static MarkdownParseResult ParseResult(string markdown, MarkdownReaderOptions? options = null) =>
-        MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
+    /// <summary>Parses Markdown text into the document model.</summary>
+    public static MarkdownDocument Parse(string markdown, MarkdownLoadOptions? options = null) =>
+        options?.CaptureSyntaxTree == false ? MarkdownReader.ParseSemantic(markdown, options) : MarkdownReader.Parse(markdown, options);
 
-    /// <summary>Loads and parses a Markdown file.</summary>
-    public static MarkdownDoc Load(string path, MarkdownReaderOptions? options = null, Encoding? encoding = null) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
-        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-        return Load(stream, options, encoding);
+    /// <summary>Parses Markdown text and reports the completed native read.</summary>
+    public static MarkdownDocument Parse(string markdown, MarkdownLoadOptions? options,
+        out OfficeConversionReport report) {
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+        MarkdownDocument value = Parse(markdown, options);
+        report = new OfficeConversionReport("Markdown", "Markdown", itemsWritten: value.Blocks.Count, elapsed: timer.Elapsed);
+        return value;
     }
 
-    /// <summary>Loads and parses Markdown from a caller-owned stream.</summary>
-    public static MarkdownDoc Load(Stream stream, MarkdownReaderOptions? options = null, Encoding? encoding = null) =>
-        MarkdownReader.Parse(DecodeText(OfficeStreamReader.ReadAllBytes(stream), encoding ?? Utf8WithoutBom), options);
-
-    /// <summary>Loads Markdown from a file and returns the document with syntax and transform evidence.</summary>
-    public static MarkdownParseResult LoadResult(string path, MarkdownReaderOptions? options = null, Encoding? encoding = null) {
+    /// <summary>Loads Markdown from a path and associates it for subsequent saves.</summary>
+    public static MarkdownDocument Load(string path, MarkdownLoadOptions? options = null) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-        return LoadResult(stream, options, encoding);
+        MarkdownDocument document = Load(stream, options);
+        document._filePath = Path.GetFullPath(path);
+        return document;
     }
 
-    /// <summary>Loads Markdown from a caller-owned stream and returns syntax and transform evidence.</summary>
-    public static MarkdownParseResult LoadResult(Stream stream, MarkdownReaderOptions? options = null, Encoding? encoding = null) =>
-        ParseResult(DecodeText(OfficeStreamReader.ReadAllBytes(stream), encoding ?? Utf8WithoutBom), options);
+    /// <summary>Loads Markdown from a caller-owned stream, preserving seekable stream position.</summary>
+    public static MarkdownDocument Load(Stream stream, MarkdownLoadOptions? options = null) =>
+        Parse(DecodeText(OfficeStreamReader.ReadAllBytes(stream, options?.MaxInputBytes), options?.Encoding ?? Utf8WithoutBom), options);
 
-    /// <summary>Asynchronously loads and parses a Markdown file.</summary>
-    public static async Task<MarkdownDoc> LoadAsync(
-        string path,
-        MarkdownReaderOptions? options = null,
-        Encoding? encoding = null,
+    /// <summary>Loads a Markdown file and returns its completed native read report.</summary>
+    public static MarkdownDocument Load(string path, MarkdownLoadOptions? options, out OfficeConversionReport report) {
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+        MarkdownDocument document = Load(path, options);
+        report = new OfficeConversionReport(Path.GetFullPath(path), "Markdown", itemsWritten: document.Blocks.Count, elapsed: timer.Elapsed);
+        return document;
+    }
+
+    /// <summary>Loads a caller-owned Markdown stream and returns its completed native read report.</summary>
+    public static MarkdownDocument Load(Stream stream, MarkdownLoadOptions? options, out OfficeConversionReport report) {
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+        MarkdownDocument document = Load(stream, options);
+        report = new OfficeConversionReport("Markdown", "Markdown", itemsWritten: document.Blocks.Count, elapsed: timer.Elapsed);
+        return document;
+    }
+
+    /// <summary>Asynchronously loads a Markdown file and associates its path.</summary>
+    public static async Task<MarkdownDocument> LoadAsync(string path, MarkdownLoadOptions? options = null,
         CancellationToken cancellationToken = default) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true);
-        return await LoadAsync(stream, options, encoding, cancellationToken).ConfigureAwait(false);
+        MarkdownDocument document = await LoadAsync(stream, options, cancellationToken).ConfigureAwait(false);
+        document._filePath = Path.GetFullPath(path);
+        return document;
     }
 
-    /// <summary>Asynchronously loads and parses Markdown from a caller-owned stream.</summary>
-    public static async Task<MarkdownDoc> LoadAsync(
-        Stream stream,
-        MarkdownReaderOptions? options = null,
-        Encoding? encoding = null,
+    /// <summary>Asynchronously loads Markdown from a caller-owned stream.</summary>
+    public static async Task<MarkdownDocument> LoadAsync(Stream stream, MarkdownLoadOptions? options = null,
         CancellationToken cancellationToken = default) {
-        byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
+        options = (options ?? new MarkdownLoadOptions()).Clone();
+        byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken, options?.MaxInputBytes).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
-        return MarkdownReader.Parse(DecodeText(bytes, encoding ?? Utf8WithoutBom), options);
+        return Parse(DecodeText(bytes, options?.Encoding ?? Utf8WithoutBom), options);
     }
 
-    /// <summary>Asynchronously loads Markdown from a file with syntax and transform evidence.</summary>
-    public static async Task<MarkdownParseResult> LoadResultAsync(
-        string path,
-        MarkdownReaderOptions? options = null,
-        Encoding? encoding = null,
+    /// <summary>Encodes the native document with the selected writer and encoding.</summary>
+    public byte[] ToBytes(MarkdownSaveOptions? options = null, CancellationToken cancellationToken = default) {
+        EnsureNativeSaveAllowed(options);
+        return (options?.Encoding ?? Utf8WithoutBom).GetBytes(ToMarkdown(options, cancellationToken));
+    }
+
+    /// <summary>Saves to the associated path.</summary>
+    public void Save() => Save(_filePath ?? throw new InvalidOperationException("The document has no associated path."));
+    /// <summary>Saves to the associated path with explicit writer options.</summary>
+    public void Save(MarkdownSaveOptions options) => Save(_filePath ?? throw new InvalidOperationException("The document has no associated path."), options);
+
+    /// <summary>Atomically saves the native document and associates its path.</summary>
+    public void Save(string path, MarkdownSaveOptions? options = null) {
+        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        OfficeFileCommit.WriteAllBytes(path, ToBytes(options));
+        _filePath = Path.GetFullPath(path);
+    }
+
+    /// <summary>Writes native Markdown to a caller-owned stream.</summary>
+    public void Save(Stream stream, MarkdownSaveOptions? options = null) =>
+        OfficeStreamWriter.WriteAllBytes(stream, ToBytes(options));
+
+    /// <summary>Asynchronously saves to the associated path.</summary>
+    public Task SaveAsync(CancellationToken cancellationToken = default) =>
+        SaveAsync(_filePath ?? throw new InvalidOperationException("The document has no associated path."), null, cancellationToken);
+
+    /// <summary>Asynchronously saves the native document and associates its path.</summary>
+    public async Task SaveAsync(string path, MarkdownSaveOptions? options = null,
         CancellationToken cancellationToken = default) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
-        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true);
-        return await LoadResultAsync(stream, options, encoding, cancellationToken).ConfigureAwait(false);
+        await OfficeFileCommit.WriteAllBytesAsync(path, ToBytes(options, cancellationToken), cancellationToken: cancellationToken).ConfigureAwait(false);
+        _filePath = Path.GetFullPath(path);
     }
 
-    /// <summary>Asynchronously loads Markdown from a caller-owned stream with syntax and transform evidence.</summary>
-    public static async Task<MarkdownParseResult> LoadResultAsync(
-        Stream stream,
-        MarkdownReaderOptions? options = null,
-        Encoding? encoding = null,
-        CancellationToken cancellationToken = default) {
-        byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
-        cancellationToken.ThrowIfCancellationRequested();
-        return ParseResult(DecodeText(bytes, encoding ?? Utf8WithoutBom), options);
+    /// <summary>Asynchronously writes native Markdown to a caller-owned stream.</summary>
+    public Task SaveAsync(Stream stream, MarkdownSaveOptions? options = null, CancellationToken cancellationToken = default) =>
+        OfficeStreamWriter.WriteAllBytesAsync(stream, ToBytes(options, cancellationToken), cancellationToken);
+
+    private void EnsureNativeSaveAllowed(MarkdownSaveOptions? options) {
+        if (options?.AllowLoss != true) AssessNativeSave(options).ThrowIfLoss();
     }
 
-    /// <summary>Encodes this document as Markdown.</summary>
-    public byte[] ToBytes(MarkdownWriteOptions? options = null, Encoding? encoding = null) =>
-        (encoding ?? Utf8WithoutBom).GetBytes(ToMarkdown(options));
-
-    /// <summary>Encodes Markdown with cooperative cancellation during serialization.</summary>
-    public byte[] ToBytes(MarkdownWriteOptions? options, Encoding? encoding, CancellationToken cancellationToken) {
-        byte[] bytes = (encoding ?? Utf8WithoutBom).GetBytes(ToMarkdown(options, cancellationToken));
-        cancellationToken.ThrowIfCancellationRequested();
-        return bytes;
-    }
-
-    /// <summary>Encodes this document in a new writable stream positioned at the beginning.</summary>
-    public MemoryStream ToStream(MarkdownWriteOptions? options = null, Encoding? encoding = null) =>
-        new MemoryStream(ToBytes(options, encoding));
-
-    /// <summary>Saves this document as Markdown.</summary>
-    public void Save(string path, MarkdownWriteOptions? options = null, Encoding? encoding = null) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
-        OfficeFileCommit.WriteAllBytes(path, ToBytes(options, encoding));
-    }
-
-    /// <summary>Writes this document as Markdown to a caller-owned stream.</summary>
-    public void Save(Stream stream, MarkdownWriteOptions? options = null, Encoding? encoding = null) {
-        OfficeStreamWriter.WriteAllBytes(stream, ToBytes(options, encoding));
-    }
-
-    /// <summary>Asynchronously saves this document as Markdown.</summary>
-    public async Task SaveAsync(
-        string path,
-        MarkdownWriteOptions? options = null,
-        Encoding? encoding = null,
-        CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
-        await OfficeFileCommit.WriteAllBytesAsync(
-            path,
-            ToBytes(options, encoding, cancellationToken),
-            cancellationToken: cancellationToken).ConfigureAwait(false);
-    }
-
-    /// <summary>Asynchronously writes this document as Markdown to a caller-owned stream.</summary>
-    public async Task SaveAsync(
-        Stream stream,
-        MarkdownWriteOptions? options = null,
-        Encoding? encoding = null,
-        CancellationToken cancellationToken = default) {
-        await OfficeStreamWriter.WriteAllBytesAsync(stream, ToBytes(options, encoding, cancellationToken), cancellationToken).ConfigureAwait(false);
+    internal OfficeConversionReport AssessNativeSave(MarkdownSaveOptions? options) {
+        var diagnostics = new List<OfficeDiagnostic>();
+        if (options?.FrontMatterRendering == MarkdownFrontMatterRenderingMode.Omit && HasDocumentHeader)
+            diagnostics.Add(new OfficeDiagnostic(OfficeDiagnosticCodes.ContentOmitted, OfficeDiagnosticSeverity.Warning,
+                "Native save would omit document front matter.", "FrontMatter", "Markdown", OfficeConversionLossKind.Omission));
+        if (options?.AbbreviationDefinitionRendering == MarkdownAbbreviationDefinitionRenderingMode.Omit && _parseResult?.AbbreviationDefinitions.Count > 0)
+            diagnostics.Add(new OfficeDiagnostic(OfficeDiagnosticCodes.ContentOmitted, OfficeDiagnosticSeverity.Warning,
+                "Native save would omit abbreviation definitions.", "Abbreviations", "Markdown", OfficeConversionLossKind.Omission));
+        return new OfficeConversionReport("Markdown", "Markdown", diagnostics: diagnostics);
     }
 
     private static string DecodeText(byte[] bytes, Encoding encoding) {
@@ -135,4 +133,9 @@ public partial class MarkdownDoc {
         using var reader = new StreamReader(stream, encoding, true, 1024, false);
         return reader.ReadToEnd();
     }
+
+    /// <summary>Completes this in-memory document's lifetime without closing caller-owned streams.</summary>
+    public void Dispose() { }
+    /// <summary>Completes this in-memory document's lifetime asynchronously.</summary>
+    public Task DisposeAsync() { Dispose(); return Task.CompletedTask; }
 }

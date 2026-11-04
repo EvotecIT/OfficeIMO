@@ -7,7 +7,7 @@ using System.Threading;
 namespace OfficeIMO.ContentSafety;
 
 /// <summary>Applies encoded and package-expansion limits before format parsers allocate decoded content.</summary>
-public static class OfficeContentSafetyInputGuard {
+internal static class OfficeContentSafetyInputGuard {
     /// <summary>Reads a file only after validating its encoded length and, when applicable, ZIP package metadata.</summary>
     public static byte[] ReadAllBytes(string filePath, OfficeContentSafetyOptions options, bool inspectZipPackage = false) =>
         ReadAllBytes(filePath, options, inspectZipPackage, CancellationToken.None);

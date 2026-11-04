@@ -10,19 +10,20 @@ namespace OfficeIMO.Studio.Features.Workflows;
 /// <summary>Thin local-folder surface for the shared durable batch runner.</summary>
 public sealed partial class PdfBatchExportViewModel : ObservableObject, IDisposable {
     private readonly Func<CancellationToken, Task<string?>> _pickFolder;
-    private readonly IOfficeWorkflowPublicationGuard? _guard;
+    private readonly IOfficePublicationGuard? _guard;
     private readonly Func<bool> _otherWorkBusy;
     private readonly IStudioLocalizer _localizer;
-    private readonly IOfficeWorkflowRunner _runner;
     private readonly StudioJobHistory? _jobs;
     private CancellationTokenSource? _cancellation;
     private bool _disposed;
-    internal PdfBatchExportViewModel(Func<CancellationToken, Task<string?>> pickFolder, IOfficeWorkflowPublicationGuard? guard,
-        Func<bool> otherWorkBusy, IStudioLocalizer localizer, IOfficeWorkflowRunner runner, StudioJobHistory? jobs,
+    internal PdfBatchExportViewModel(Func<CancellationToken, Task<string?>> pickFolder, IOfficePublicationGuard? guard,
+        Func<bool> otherWorkBusy, IStudioLocalizer localizer, StudioJobHistory? jobs,
         Func<Infrastructure.IStudioFileDialogs>? fileDialogs = null) {
         _pickFolder = pickFolder; _guard = guard; _otherWorkBusy = otherWorkBusy;
         _localizer = localizer;
-        _runner = runner; _jobs = jobs;
+        _jobs = jobs;
+        OfficeWorkflow.RegisterConversions();
+        OfficeIMO.Workflows.IWork.IWorkWorkflow.RegisterConversions();
         _fileDialogs = fileDialogs ?? (() => Infrastructure.NoStudioFileDialogs.Instance);
         Status = UnavailableReason ?? _localizer.GetOrDefault("Conversion.BatchExport.Ready", "Choose source and PDF output folders. Add optional checkpoints to resume mixed-format document export.");
     }
@@ -60,11 +61,12 @@ public sealed partial class PdfBatchExportViewModel : ObservableObject, IDisposa
     }
     [RelayCommand(CanExecute = nameof(CanEdit))]
     private async Task RunAsync() {
-        OfficeConversionBatchRequest request;
-        OfficeConversionJob definition;
+        OfficeBatchOptions request;
+        OfficeBatchOptions definition;
         try {
             definition = CreateCurrentJob();
-            request = definition.CreateRequest(_jobBaseDirectory);
+            _ = definition.ToJson(_jobBaseDirectory);
+            request = definition;
         } catch (Exception error) when (error is not OutOfMemoryException and not StackOverflowException) {
             Status = error.Message;
             return;
@@ -93,17 +95,18 @@ public sealed partial class PdfBatchExportViewModel : ObservableObject, IDisposa
                 try { reportPath = store.CreateReportPath(); }
                 catch (Exception error) when (error is not OutOfMemoryException and not StackOverflowException) { recordingFailure = error.Message; }
             }
-            OfficeConversionJobRunReport? recorded = null;
-            OfficeConversionBatchResult result;
+            OfficeBatchReport? recorded = null;
+            OfficeBatchSummary result;
             if (reportPath is not null) {
                 job?.OwnRunReportPath(reportPath);
-                recorded = await OfficeConversionJobRunner.RunRecordedAsync(definition, SavedJobPath, reportPath, _runner,
-                    progress: progress, cancellationToken: cancellation.Token, publicationGuard: _guard,
-                    retainReport: () => _jobs!.RunStore!.CanRetainReport).ConfigureAwait(true);
-                result = recorded.Batch?.Summary ?? new OfficeConversionBatchResult(0, progress.Completed, 0, progress.Failed,
-                    recorded.State == OfficeConversionJobRunState.Cancelled) { FailureSummary = recorded.FailureSummary };
-            } else result = await OfficeConversionJobRunner.RunAsync(definition, _jobBaseDirectory, _runner,
-                progress: progress, cancellationToken: cancellation.Token, publicationGuard: _guard).ConfigureAwait(true);
+                request = OfficeBatchOptions.Load(SavedJobPath) with {
+                    RetryFailed = request.RetryFailed, ReportPath = reportPath, PublicationGuard = _guard,
+                    RetainReport = () => _jobs!.RunStore!.CanRetainReport
+                };
+                recorded = await OfficeConverter.ConvertAsync(request, progress, cancellation.Token).ConfigureAwait(true);
+                result = recorded.Summary;
+            } else result = (await OfficeConverter.ConvertAsync(request with { PublicationGuard = _guard },
+                progress, cancellation.Token).ConfigureAwait(true)).Summary;
             _hasRun = true;
             OnPropertyChanged(nameof(RunLabel));
             Status = _localizer.FormatOrDefault(result.FailureSummary is not null ? "Conversion.BatchExport.StoppedResult"
@@ -133,7 +136,7 @@ public sealed partial class PdfBatchExportViewModel : ObservableObject, IDisposa
             Status = error.Message;
             bool restoredReport = false;
             if (reportPath is not null && File.Exists(reportPath)) {
-                try { _jobs?.RecordRun(job, OfficeConversionJobRunReportSerializer.ReadFile(reportPath), reportPath); restoredReport = _jobs is not null; }
+                try { _jobs?.RecordRun(job, OfficeBatchReport.Load(reportPath), reportPath); restoredReport = _jobs is not null; }
                 catch (Exception recordingError) when (recordingError is not OutOfMemoryException and not StackOverflowException) { job?.SetRecordingError(recordingError.Message); }
             }
             if (!restoredReport) job?.CompleteBatch(OfficeWorkflowStatus.Failed, progress.Completed > 0 ? request.OutputDirectory : null, Status, [], progress.Completed > 0, isDirectoryOutput: true);
@@ -144,7 +147,7 @@ public sealed partial class PdfBatchExportViewModel : ObservableObject, IDisposa
     private void Cancel() => _cancellation?.Cancel();
     /// <inheritdoc />
     public void Dispose() { if (_disposed) return; _disposed = true; _cancellation?.Cancel(); RefreshHostState(); }
-    private sealed class BatchProgress : IProgress<OfficeConversionBatchItemResult> {
+    private sealed class BatchProgress : IProgress<OfficeBatchItemReport> {
         private long _completed, _failed;
         private string? _firstFailure;
         private int _unconfirmed;
@@ -152,10 +155,10 @@ public sealed partial class PdfBatchExportViewModel : ObservableObject, IDisposa
         public long Completed => Interlocked.Read(ref _completed);
         public long Failed => Interlocked.Read(ref _failed);
         public bool HasUnconfirmed => Volatile.Read(ref _unconfirmed) != 0;
-        public void Report(OfficeConversionBatchItemResult item) {
-            if (item.Status == OfficeWorkflowStatus.Completed) Interlocked.Increment(ref _completed);
-            else if (item.Status is OfficeWorkflowStatus.Failed or OfficeWorkflowStatus.Unconfirmed) {
-                if (item.Status == OfficeWorkflowStatus.Unconfirmed) Interlocked.Exchange(ref _unconfirmed, 1);
+        public void Report(OfficeBatchItemReport item) {
+            if (item.Status == OfficeBatchItemStatus.Completed) Interlocked.Increment(ref _completed);
+            else if (item.Status is OfficeBatchItemStatus.Failed or OfficeBatchItemStatus.Unconfirmed) {
+                if (item.Status == OfficeBatchItemStatus.Unconfirmed) Interlocked.Exchange(ref _unconfirmed, 1);
                 Interlocked.Increment(ref _failed);
                 string message = Path.GetFileName(item.InputPath) + ": " + item.Summary;
                 Interlocked.CompareExchange(ref _firstFailure, message.Length > 1024 ? message[..1024] : message, null);

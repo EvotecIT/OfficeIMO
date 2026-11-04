@@ -30,12 +30,12 @@ public sealed class PublisherInputContractTests {
     [Fact]
     public void Resource_limits_reject_whole_input_instead_of_returning_partial_documents() {
         string file = PublisherNativeTests.Fixture("Sample.pub");
-        Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(file, new PublisherReadOptions { MaximumPages = 1 }));
-        Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(file, new PublisherReadOptions { Limits = new OfficeLegacyImportLimits { MaxInputBytes = 100 } }));
-        Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(file, new PublisherReadOptions { Limits = new OfficeLegacyImportLimits { MaxRecords = 100 } }));
-        Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(file, new PublisherReadOptions { Limits = new OfficeLegacyImportLimits { MaxTextCharacters = 100 } }));
-        Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(PublisherNativeTests.Fixture("SampleBrochure.pub"), new PublisherReadOptions { MaximumImageBytes = 100 }));
-        Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(PublisherNativeTests.Fixture("SampleBrochure.pub"), new PublisherReadOptions { MaximumTotalImageBytes = 40000 }));
+        Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(file, new PublisherLoadOptions { MaxPages = 1 }));
+        Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(file, new PublisherLoadOptions { Limits = new OfficeLegacyImportLimits { MaxInputBytes = 100 } }));
+        Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(file, new PublisherLoadOptions { Limits = new OfficeLegacyImportLimits { MaxRecords = 100 } }));
+        Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(file, new PublisherLoadOptions { Limits = new OfficeLegacyImportLimits { MaxTextCharacters = 100 } }));
+        Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(PublisherNativeTests.Fixture("SampleBrochure.pub"), new PublisherLoadOptions { MaxImageBytes = 100 }));
+        Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(PublisherNativeTests.Fixture("SampleBrochure.pub"), new PublisherLoadOptions { MaxTotalImageBytes = 40000 }));
     }
 
     [Theory]
@@ -63,10 +63,10 @@ public sealed class PublisherInputContractTests {
         string file = PublisherNativeTests.Fixture("Sample.pub");
         PublisherDocument baseline = PublisherDocument.Load(file);
         long sourceCharacters = baseline.TextStories.Sum(story => (long)story.Text.Length);
-        Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(file, new PublisherReadOptions {
+        Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(file, new PublisherLoadOptions {
             Limits = new OfficeLegacyImportLimits { MaxTextCharacters = (int)sourceCharacters + 1 }
         }));
-        Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(file, new PublisherReadOptions {
+        Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(file, new PublisherLoadOptions {
             Limits = new OfficeLegacyImportLimits { MaxItems = 8 }
         }));
     }

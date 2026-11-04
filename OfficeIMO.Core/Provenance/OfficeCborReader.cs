@@ -11,6 +11,24 @@ internal sealed class OfficeCborTag {
     internal object? Value { get; }
 }
 
+/// <summary>Caps dictionary key comparisons across one or more CBOR payloads in a manifest.</summary>
+internal sealed class OfficeCborMapComparisonBudget {
+    internal const int DefaultLimit = 400_000;
+    private int _remaining;
+
+    internal OfficeCborMapComparisonBudget(int maximumComparisons) {
+        _remaining = maximumComparisons;
+    }
+
+    internal bool Exceeded { get; private set; }
+
+    internal void Charge() {
+        if (_remaining-- > 0) return;
+        Exceeded = true;
+        throw new FormatException("CBOR map comparison budget exceeded.");
+    }
+}
+
 /// <summary>
 /// Minimal, bounded CBOR (RFC 8949) decoder for reading C2PA claims, assertions, and COSE headers.
 /// Produces <see cref="Dictionary{TKey, TValue}"/> (string or long keys), <see cref="List{T}"/>, string, byte[],
@@ -22,18 +40,29 @@ internal sealed class OfficeCborReader {
     private readonly int _end;
     private int _position;
     private int _budget;
+    private readonly BoundedKeyComparer _keyComparer;
 
-    private OfficeCborReader(byte[] data, int offset, int length, int maximumItems) {
+    private OfficeCborReader(byte[] data, int offset, int length, int maximumItems,
+        OfficeCborMapComparisonBudget comparisonBudget) {
         _data = data;
         _position = offset;
         _end = offset + length;
         _budget = maximumItems;
+        _keyComparer = new BoundedKeyComparer(comparisonBudget);
     }
 
     internal static bool TryDecode(byte[] data, int offset, int length, out object? value, int maximumItems = 50_000) {
+        int maximumComparisons = (int)Math.Max(0L, Math.Min(
+            OfficeCborMapComparisonBudget.DefaultLimit, (long)maximumItems * 8L));
+        return TryDecode(data, offset, length, out value,
+            new OfficeCborMapComparisonBudget(maximumComparisons), maximumItems);
+    }
+
+    internal static bool TryDecode(byte[] data, int offset, int length, out object? value,
+        OfficeCborMapComparisonBudget comparisonBudget, int maximumItems = 50_000) {
         value = null;
         if (data == null || offset < 0 || length <= 0 || offset > data.Length - length) return false;
-        var reader = new OfficeCborReader(data, offset, length, maximumItems);
+        var reader = new OfficeCborReader(data, offset, length, maximumItems, comparisonBudget);
         try {
             value = reader.ReadItem(0);
             if (reader._position != reader._end) throw new FormatException("Trailing CBOR data.");
@@ -41,7 +70,26 @@ internal sealed class OfficeCborReader {
         } catch (FormatException) {
             value = null;
             return false;
+        } finally {
+            // Returned maps remain readable without charging manifest parsing work.
+            reader._keyComparer.StopCounting();
         }
+    }
+
+    private sealed class BoundedKeyComparer : IEqualityComparer<object> {
+        private readonly OfficeCborMapComparisonBudget _budget;
+        private bool _counting = true;
+
+        internal BoundedKeyComparer(OfficeCborMapComparisonBudget budget) { _budget = budget; }
+
+        public new bool Equals(object? left, object? right) {
+            if (_counting) _budget.Charge();
+            return object.Equals(left, right);
+        }
+
+        public int GetHashCode(object key) => key.GetHashCode();
+
+        internal void StopCounting() { _counting = false; }
     }
 
     private object? ReadItem(int depth) {
@@ -72,7 +120,7 @@ internal sealed class OfficeCborReader {
                 return list;
             }
             case 5: {
-                var map = new Dictionary<object, object?>();
+                var map = new Dictionary<object, object?>(_keyComparer);
                 if (info == 31) {
                     while (!TryReadBreak()) AddEntry(map, depth);
                 } else {

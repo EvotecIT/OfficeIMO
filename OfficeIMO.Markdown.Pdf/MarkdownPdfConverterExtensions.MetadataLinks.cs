@@ -15,7 +15,7 @@ public static partial class MarkdownPdfConverterExtensions {
         return normalized.Length == 0 ? null : normalized;
     }
 
-    private static string? FindMatchingFirstHeadingAnchor(MarkdownDoc document, string title) {
+    private static string? FindMatchingFirstHeadingAnchor(MarkdownDocument document, string title) {
         for (int i = 0; i < document.TopLevelBlocks.Count; i++) {
             if (document.TopLevelBlocks[i] is HeadingBlock heading && heading.Level == 1 && IsSameNormalizedText(heading.Text, title)) {
                 return document.GetHeadingAnchor(heading);

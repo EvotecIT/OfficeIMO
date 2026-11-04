@@ -18,7 +18,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// <example>
 ///   <summary>Inspect existing list items.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$doc = Get-OfficeWord -Path .\Report.docx
+///   <code>$doc = Open-OfficeWord -Path .\Report.docx
 /// $list = $doc | Get-OfficeWordList | Select-Object -First 1
 /// $list.ListItems | Select-Object -Property Text</code>
 ///   <para>Returns OfficeIMO list objects so existing list items can be reviewed or appended to.</para>
@@ -26,7 +26,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// <example>
 ///   <summary>Select a checklist by existing item text and append an item.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$doc = Get-OfficeWord -Path .\Report.docx
+///   <code>$doc = Open-OfficeWord -Path .\Report.docx
 /// Get-OfficeWordList -Document $doc |
 ///     Where-Object { $_.ListItems.Text -contains 'Initial review' } |
 ///     Add-OfficeWordListItem -Text 'Final approval'

@@ -94,11 +94,11 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
         private static bool TryParseRange(string reference, out XlsbCellRange? range) {
             range = null;
-            if (A1.TryParseRange(reference, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+            if (ExcelA1.TryParseRange(reference, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
                 range = new XlsbCellRange(firstRow, lastRow, firstColumn, lastColumn);
                 return true;
             }
-            if (A1.TryParseCellReferenceFast(reference, out int row, out int column)) {
+            if (ExcelA1.TryParseCellReferenceFast(reference, out int row, out int column)) {
                 range = new XlsbCellRange(row, row, column, column);
                 return true;
             }

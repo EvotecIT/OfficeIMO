@@ -19,20 +19,20 @@ namespace OfficeIMO.Word.Html {
             AppendWordParagraphHtml appendParagraph,
             AppendWordTableHtml appendTable,
             Action resetParagraphFlow,
-            WordToHtmlOptions options,
+            WordHtmlExportOptions options,
             CancellationToken cancellationToken) {
             if (!options.ExportHeadersAndFooters) {
                 return;
             }
 
             if (headers) {
-                AppendHeaderFooterRegion(htmlDoc, parent, section.Header.Default, "header", "default", sectionIndex, appendParagraph, appendTable, resetParagraphFlow, options, cancellationToken);
-                AppendHeaderFooterRegion(htmlDoc, parent, section.Header.First, "header", "first", sectionIndex, appendParagraph, appendTable, resetParagraphFlow, options, cancellationToken);
-                AppendHeaderFooterRegion(htmlDoc, parent, section.Header.Even, "header", "even", sectionIndex, appendParagraph, appendTable, resetParagraphFlow, options, cancellationToken);
+                AppendHeaderFooterRegion(htmlDoc, parent, section.PageSetup.GetHeader(WordHeaderFooterType.Default), "header", "default", sectionIndex, appendParagraph, appendTable, resetParagraphFlow, options, cancellationToken);
+                AppendHeaderFooterRegion(htmlDoc, parent, section.PageSetup.GetHeader(WordHeaderFooterType.First), "header", "first", sectionIndex, appendParagraph, appendTable, resetParagraphFlow, options, cancellationToken);
+                AppendHeaderFooterRegion(htmlDoc, parent, section.PageSetup.GetHeader(WordHeaderFooterType.Even), "header", "even", sectionIndex, appendParagraph, appendTable, resetParagraphFlow, options, cancellationToken);
             } else {
-                AppendHeaderFooterRegion(htmlDoc, parent, section.Footer.Default, "footer", "default", sectionIndex, appendParagraph, appendTable, resetParagraphFlow, options, cancellationToken);
-                AppendHeaderFooterRegion(htmlDoc, parent, section.Footer.First, "footer", "first", sectionIndex, appendParagraph, appendTable, resetParagraphFlow, options, cancellationToken);
-                AppendHeaderFooterRegion(htmlDoc, parent, section.Footer.Even, "footer", "even", sectionIndex, appendParagraph, appendTable, resetParagraphFlow, options, cancellationToken);
+                AppendHeaderFooterRegion(htmlDoc, parent, section.PageSetup.GetFooter(WordHeaderFooterType.Default), "footer", "default", sectionIndex, appendParagraph, appendTable, resetParagraphFlow, options, cancellationToken);
+                AppendHeaderFooterRegion(htmlDoc, parent, section.PageSetup.GetFooter(WordHeaderFooterType.First), "footer", "first", sectionIndex, appendParagraph, appendTable, resetParagraphFlow, options, cancellationToken);
+                AppendHeaderFooterRegion(htmlDoc, parent, section.PageSetup.GetFooter(WordHeaderFooterType.Even), "footer", "even", sectionIndex, appendParagraph, appendTable, resetParagraphFlow, options, cancellationToken);
             }
         }
 
@@ -46,7 +46,7 @@ namespace OfficeIMO.Word.Html {
             AppendWordParagraphHtml appendParagraph,
             AppendWordTableHtml appendTable,
             Action resetParagraphFlow,
-            WordToHtmlOptions options,
+            WordHtmlExportOptions options,
             CancellationToken cancellationToken) {
             if (headerFooter == null || !HasRenderableHeaderFooterContent(headerFooter)) {
                 return;

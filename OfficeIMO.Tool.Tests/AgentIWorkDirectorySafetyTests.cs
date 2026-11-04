@@ -104,7 +104,7 @@ public sealed partial class AgentIWorkConversionTests {
         var result = await service.ConvertAsync(files.Input, output, "docx");
         Assert.False(result.Workflow!.Succeeded);
         Assert.NotNull(result.Workflow.ConversionEvidence);
-        Assert.Contains(result.Workflow.Diagnostics, diagnostic => diagnostic.Code == "OutputReopened");
+        Assert.Contains(result.Workflow.Diagnostics, diagnostic => diagnostic.Code == "conversion-output-reopened");
         Assert.Equal("keep existing", File.ReadAllText(output));
         Assert.Equal((await service.InspectAsync(files.Input)).SourceId, result.SourceId);
     }

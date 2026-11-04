@@ -9,7 +9,7 @@ schema: 2.0.0
 Sets a built-in or application document property on an Excel workbook.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Set-OfficeExcelDocumentProperty [-Name] <string> [[-Value] <Object>] [-Document <ExcelDocument>] [-PassThru] [-Custom] [<CommonParameters>]
 ```
@@ -36,7 +36,7 @@ Treat the property as a custom workbook property.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -52,7 +52,7 @@ Workbook to update when provided explicitly.
 
 ```yaml
 Type: ExcelDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -68,7 +68,7 @@ Property name to update.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -84,7 +84,7 @@ Emit the updated workbook.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -100,7 +100,7 @@ Property value.
 
 ```yaml
 Type: Object
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

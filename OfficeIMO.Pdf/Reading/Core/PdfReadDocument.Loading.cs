@@ -2,9 +2,9 @@ using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfReadDocument {
+internal sealed partial class PdfReadDocument {
     /// <summary>Opens a PDF from bytes into the canonical typed object model.</summary>
-    public static PdfReadDocument Open(byte[] pdf, PdfLoadOptions? options = null) =>
+    internal static PdfReadDocument Open(byte[] pdf, PdfLoadOptions? options = null) =>
         Open(pdf, options, CancellationToken.None);
 
     internal static PdfReadDocument Open(
@@ -111,11 +111,11 @@ public sealed partial class PdfReadDocument {
     }
 
     /// <summary>Opens a PDF from a bounded file snapshot.</summary>
-    public static PdfReadDocument Open(string path, PdfLoadOptions? options = null) =>
+    internal static PdfReadDocument Open(string path, PdfLoadOptions? options = null) =>
         PdfDocumentSource.FromPath(path, options).Read();
 
     /// <summary>Opens a PDF from a bounded readable stream snapshot.</summary>
-    public static PdfReadDocument Open(Stream stream, PdfLoadOptions? options = null) =>
+    internal static PdfReadDocument Open(Stream stream, PdfLoadOptions? options = null) =>
         PdfDocumentSource.FromStream(stream, options).Read();
 
     /// <summary>Extracts full‑document plain text (pages separated by blank lines).</summary>

@@ -30,20 +30,19 @@ public sealed class PdfTableCompatibilityPlacementTests {
             new RightBorder { Val = BorderValues.Nil }, new InsideHorizontalBorder { Val = BorderValues.Nil },
             new InsideVerticalBorder { Val = BorderValues.Nil });
         foreach (WordTableCell cell in table.Rows[0].Cells) {
-            cell.Width = 3240;
-            cell.WidthType = WordTableWidthUnit.Dxa;
-            cell.MarginLeftWidth = 108;
-            cell.MarginRightWidth = 108;
+            cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3240) * 635)));
+            cell.MarginLeft = global::OfficeIMO.OfficeLength.Points(5.4D);
+            cell.MarginRight = global::OfficeIMO.OfficeLength.Points(5.4D);
             cell.Paragraphs[0].FontFamily = "Courier New";
-            cell.Paragraphs[0].FontSize = 12;
+            cell.Paragraphs[0].FontSize = global::OfficeIMO.OfficeLength.Points(12);
         }
-        table.Rows[0].Cells[firstCellMargin ? 0 : 1].MarginLeftWidth = 360;
+        table.Rows[0].Cells[firstCellMargin ? 0 : 1].MarginLeft = global::OfficeIMO.OfficeLength.Points(18D);
         table.Rows[0].Cells[0].Paragraphs[0].Text = "FIRST";
         table.Rows[0].Cells[1].Paragraphs[0].Text = "OTHER";
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
-            IncludePageNumbers = false, FontFamily = "Courier", PageSize = new OfficeIMO.Pdf.PageSize(612, 792),
-            Margins = OfficeIMO.Pdf.PageMargins.Uniform(72)
-        }));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
+            IncludePageNumbers = false, FontFamily = "Courier", PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(612),OfficeIMO.OfficeLength.Points(792)),
+            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72))
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var words = pdf.GetPage(1).GetWords().ToArray();
         var first = Assert.Single(words, word => word.Text == "FIRST");
         var other = Assert.Single(words, word => word.Text == "OTHER");

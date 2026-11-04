@@ -1,7 +1,7 @@
 # OfficeIMO.Email MIME comparisons
 
 This opt-in BenchmarkDotNet project compares complete EML read and write
-workflows through OfficeIMO.Email and MimeKit. It stays outside `OfficeIMO.sln`
+workflows through OfficeIMO.Email and MimeKit. It stays outside `OfficeIMO.slnx`
 so MimeKit does not enter OfficeIMO runtime restore, build, or packages.
 
 The read lane gives both implementations the same MimeKit-generated EML and

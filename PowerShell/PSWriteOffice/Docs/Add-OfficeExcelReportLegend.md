@@ -9,7 +9,7 @@ schema: 2.0.0
 Adds a legend table to the current Excel report sheet.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Add-OfficeExcelReportLegend [[-Title] <string>] -Header <string[]> -InputObject <Object[]> [-FirstColumnFillByValue <hashtable>] [-HeaderFillColor <string>] [-CaseSensitive] [-PassThru] [<CommonParameters>]
 ```
@@ -41,7 +41,7 @@ Use case-sensitive matching for first-column fill values.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -57,7 +57,7 @@ Optional first-column fill colors keyed by first-column value.
 
 ```yaml
 Type: Hashtable
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -73,7 +73,7 @@ Column headers.
 
 ```yaml
 Type: String[]
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: Headers
 Possible values:
 
@@ -89,7 +89,7 @@ Optional header fill color.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -105,7 +105,7 @@ Rows. Each row may be an array, enumerable, hashtable, or object.
 
 ```yaml
 Type: Object[]
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: Rows
 Possible values:
 
@@ -121,7 +121,7 @@ Emit the object created or changed by the command.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -137,7 +137,7 @@ Optional legend title.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

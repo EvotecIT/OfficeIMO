@@ -12,7 +12,7 @@ public sealed class PublisherAuthoringTests {
         PublisherReadReport source = document.SourceReadReport;
         Assert.False(document.HasNativeSource); Assert.False(originalPage.HasNativeOrigin);
         Assert.Empty(document.MasterPages); Assert.Empty(document.TextStories); Assert.Empty(document.Images);
-        Assert.Equal(0, document.ReadReport.CurrentObjectCount); Assert.Empty(source.FidelityDiagnostics);
+        Assert.Equal(0, document.ReadReport.CurrentObjectCount); Assert.Empty(source.Diagnostics);
         PublisherPage master = document.AddMasterPage("Newsletter header");
         PublisherTextFrame heading = document.AddTextFrame(master.Id, 36, 18, 600, 28, Paragraphs("Weekly publication", bold: true));
         PublisherShape rule = document.AddShape(master.Id, OfficeShape.Rectangle(720, 2), 36, 54);
@@ -31,10 +31,10 @@ public sealed class PublisherAuthoringTests {
         PublisherTable table = document.AddTable(second.Id, 36, 480, new[] { 120D, 160D }, new[] { 28D });
         byte[] suppliedPicture = File.ReadAllBytes(PublisherNativeTests.Fixture("NativeComparison/Image/native-image.png"));
         byte[] expectedPicture = (byte[])suppliedPicture.Clone();
-        PublisherPicture illustration = document.AddPicture(originalPage.Id, suppliedPicture, 360, 84, 96, 96);
+        PublisherPicture illustration = document.AddImage(originalPage.Id, suppliedPicture, 360, 84, 96, 96);
         Array.Clear(suppliedPicture, 0, suppliedPicture.Length);
         byte[] jpeg = OfficeJpegCodec.Encode(new OfficeRasterImage(4, 3, OfficeColor.FromRgb(20, 130, 40)));
-        PublisherPicture logo = document.AddPicture(master.Id, jpeg, 720, 12, 32, 32);
+        PublisherPicture logo = document.AddImage(master.Id, jpeg, 720, 12, 32, 32);
         document.ReplaceTableCellParagraphs(table.Id, 0, 0, Paragraphs("Table left"));
         document.ReplaceTableCellParagraphs(table.Id, 0, 1, Paragraphs("Table right"));
 
@@ -67,13 +67,13 @@ public sealed class PublisherAuthoringTests {
         Assert.Equal(0, source.TextStoryCount); Assert.Equal(0, source.InspectedRecordCount);
         Assert.Equal(0, document.ReadReport.SourceObjectCount); Assert.Equal(0, document.ReadReport.InspectedRecordCount);
         Assert.Equal(7, document.ReadReport.CurrentObjectCount); Assert.Equal(7, document.ReadReport.ProjectedObjectCount); Assert.Equal(2, document.ReadReport.ImageCount);
-        Assert.DoesNotContain(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_NATIVE_FIELDS_UNASSESSED");
+        Assert.DoesNotContain(document.ReadReport.Diagnostics, item => item.Code == "PUB_NATIVE_FIELDS_UNASSESSED");
         Assert.Null(originalPage.MasterPageId); Assert.Empty(originalPage.TextFrames);
         Assert.True(Assert.Single(firstSnapshot.TextFrames).HasOverflow); Assert.Null(Assert.Single(firstSnapshot.TextFrames).NextFrameId);
         Assert.Empty(second.TextFrames); Assert.Empty(second.Tables);
         Assert.Contains("Independent styled story", document.ToSvg()); Assert.Contains("Table right", document.ToSvg(1));
         Assert.Contains(Convert.ToBase64String(expectedPicture), document.ToSvg()); Assert.Contains(Convert.ToBase64String(jpeg), document.ToSvg(1));
-        PdfReadDocument pdf = PdfReadDocument.Open(document.ToPdfBytes());
+        using PdfDocument pdf = PublisherNativeTests.ExportAndReloadPdf(document);
         Assert.Equal(2, pdf.Pages.Count);
         Assert.All(pdf.Pages, page => { Assert.Equal(792, page.GetPageSize().Width); Assert.Equal(612, page.GetPageSize().Height); Assert.Contains("Weekly publication", page.ExtractText()); });
         Assert.Contains("Continued body content", pdf.Pages[1].ExtractText()); Assert.Contains("Table left", pdf.Pages[1].ExtractText());
@@ -122,7 +122,7 @@ public sealed class PublisherAuthoringTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => PublisherDocument.Create(0, 400));
         Assert.Throws<ArgumentOutOfRangeException>(() => PublisherDocument.Create(300, double.PositiveInfinity));
         Assert.Throws<ArgumentOutOfRangeException>(() => PublisherDocument.Create(double.NaN, 400));
-        Assert.Throws<ArgumentOutOfRangeException>(() => PublisherDocument.Create(300, 400, new PublisherReadOptions { MaximumPages = 0 }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PublisherDocument.Create(300, 400, new PublisherLoadOptions { MaxPages = 0 }));
         Assert.Throws<ArgumentOutOfRangeException>(() => document.AddTextFrame(900, 0, 0, 100, 20, Paragraphs("Invalid owner")));
         Assert.Throws<ArgumentOutOfRangeException>(() => document.AddTextFrame(id, double.NaN, 0, 100, 20, Paragraphs("Invalid point")));
         Assert.Throws<ArgumentOutOfRangeException>(() => document.AddTextFrame(id, 0, 0, 0, 20, Paragraphs("Invalid size")));
@@ -148,9 +148,9 @@ public sealed class PublisherAuthoringTests {
 
     [Fact]
     public void Page_and_object_admission_limits_are_copied_and_do_not_count_pages_as_shape_objects() {
-        var options = new PublisherReadOptions { MaximumPages = 2, Limits = new OfficeLegacyImportLimits { MaxItems = 2 } };
+        var options = new PublisherLoadOptions { MaxPages = 2, Limits = new OfficeLegacyImportLimits { MaxItems = 2 } };
         PublisherDocument document = PublisherDocument.Create(300, 400, options);
-        options.MaximumPages = 100; options.Limits.MaxItems = 100;
+        options.MaxPages = 100; options.Limits.MaxItems = 100;
         PublisherPage master = document.AddMasterPage("Header");
         var pages = document.Pages; var masters = document.MasterPages;
         Assert.Throws<InvalidDataException>(() => document.AddPage());
@@ -166,7 +166,7 @@ public sealed class PublisherAuthoringTests {
 
     [Fact]
     public void Repeated_master_projection_failure_does_not_publish_a_page_or_consume_its_identifier() {
-        var options = new PublisherReadOptions { Limits = new OfficeLegacyImportLimits { MaxTextCharacters = 20 } };
+        var options = new PublisherLoadOptions { Limits = new OfficeLegacyImportLimits { MaxTextCharacters = 20 } };
         PublisherDocument document = PublisherDocument.Create(300, 400, options);
         PublisherPage master = document.AddMasterPage("Header");
         PublisherTextFrame header = document.AddTextFrame(master.Id, 12, 12, 200, 30, Paragraphs("Master"));
@@ -182,7 +182,7 @@ public sealed class PublisherAuthoringTests {
 
     [Fact]
     public void Story_labels_count_toward_global_admission_and_failed_creation_can_be_retried() {
-        var options = new PublisherReadOptions { Limits = new OfficeLegacyImportLimits { MaxTextCharacters = 12 } };
+        var options = new PublisherLoadOptions { Limits = new OfficeLegacyImportLimits { MaxTextCharacters = 12 } };
         PublisherDocument document = PublisherDocument.Create(300, 400, options);
         uint page = document.Pages[0].Id;
         // These frames deliberately retain overflow without painting characters,

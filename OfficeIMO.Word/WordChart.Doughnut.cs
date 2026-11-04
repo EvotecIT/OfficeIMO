@@ -27,6 +27,7 @@ public partial class WordChart {
             var doughnut = new DoughnutChart(new VaryColors { Val = true }, AddDataLabel(), new HoleSize { Val = (ByteValue)50 });
             _chart.PlotArea!.Append(doughnut);
             _chartPart?.ChartSpace?.Append(_chart);
+            EnsureFramelessChartArea();
             UpdateTitle();
         }
         AddSingleCategory(category);

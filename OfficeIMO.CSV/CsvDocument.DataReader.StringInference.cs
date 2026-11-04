@@ -1,4 +1,3 @@
-#nullable enable
 using System.Threading;
 
 namespace OfficeIMO.CSV;
@@ -6,7 +5,7 @@ namespace OfficeIMO.CSV;
 public sealed partial class CsvDocument
 {
     private CsvDataReader CreateStreamingStringInferredDataReader(
-        int sampleSize, CsvLoadOptions options, CancellationToken cancellationToken)
+        int sampleSize, CsvParsingSettings options, CancellationToken cancellationToken)
     {
         var rows = _streamingSource!.ReadReusableStringRows(options).GetEnumerator();
         try

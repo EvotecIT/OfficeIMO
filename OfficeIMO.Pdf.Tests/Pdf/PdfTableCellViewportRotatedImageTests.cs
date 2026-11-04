@@ -14,7 +14,7 @@ public sealed partial class PdfTableCellViewportTests {
     [InlineData("column", -90)]
     [InlineData("canvas", -90)]
     public void Rotated_image_and_link_survive_when_only_rotated_ink_intersects_the_fragment(string mode, double rotation) {
-        var imageStyle = new PdfImageStyle { Align = PdfAlign.Center, RotationAngle = rotation };
+        var imageStyle = new PdfImageStyle { Align = OfficeAlignment.Center, RotationAngle = rotation };
         using PdfPigDocument full = PdfPigDocument.Open(RenderRotatedImage(mode, imageStyle, fragment: false));
         Assert.Single(full.GetPage(1).GetImages());
         var fullLink = Assert.Single(full.GetPage(1).GetHyperlinks());
@@ -35,7 +35,7 @@ public sealed partial class PdfTableCellViewportTests {
     [InlineData("column")]
     [InlineData("canvas")]
     public void Rotated_ink_outside_the_existing_image_clip_is_omitted_with_its_link(string mode) {
-        var imageStyle = new PdfImageStyle { Align = PdfAlign.Center, RotationAngle = 90,
+        var imageStyle = new PdfImageStyle { Align = OfficeAlignment.Center, RotationAngle = 90,
             ClipPath = OfficeClipPath.Rectangle(12, 12) };
         using PdfPigDocument fragment = PdfPigDocument.Open(RenderRotatedImage(mode, imageStyle));
         Assert.Empty(fragment.GetPage(1).GetImages());
@@ -50,7 +50,7 @@ public sealed partial class PdfTableCellViewportTests {
     [InlineData("column", true)]
     [InlineData("canvas", true)]
     public void Source_crop_keeps_the_authored_rotation_pivot_and_rotated_link_bounds(string mode, bool top) {
-        var imageStyle = new PdfImageStyle { Align = PdfAlign.Center, RotationAngle = 90,
+        var imageStyle = new PdfImageStyle { Align = OfficeAlignment.Center, RotationAngle = 90,
             SourceCrop = top ? new PdfImageSourceCrop { Top = .5 } : new PdfImageSourceCrop { Bottom = .5 } };
         using PdfPigDocument fragment = PdfPigDocument.Open(RenderRotatedImage(mode, imageStyle));
         Assert.Single(fragment.GetPage(1).GetImages());
@@ -66,23 +66,25 @@ public sealed partial class PdfTableCellViewportTests {
     private static byte[] RenderRotatedImage(string mode, PdfImageStyle imageStyle, bool fragment = true) {
         double width = fragment ? 80 : 200;
         var cell = PdfTableCell.WithImages(string.Empty, new[] {
-            new PdfTableCellImage(PdfPngTestImages.CreateRgbPng(2, 2), 12, 60, imageStyle, linkUri: "https://example.com/")
+            new PdfTableCellImage(PdfPngTestImages.CreateRgbPng(2, 2), global::OfficeIMO.OfficeLength.Points(12), global::OfficeIMO.OfficeLength.Points(60), imageStyle, linkUri: "https://example.com/")
         });
-        if (fragment) cell = cell.WithViewport(new PdfTableCellViewport(200, 72, 80, 72, offsetX: 120));
+        if (fragment) cell = cell.WithViewport(new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(80), global::OfficeIMO.OfficeLength.Points(72), offsetX: global::OfficeIMO.OfficeLength.Points(120)));
         var rows = new[] { new[] { cell } };
-        var options = new PdfOptions { PageWidth = 320, PageHeight = 180,
-            MarginTop = 24, MarginBottom = 24, MarginLeft = 24, MarginRight = 24 };
-        var style = TableStyles.Minimal();
-        style.BorderColor = null; style.BorderWidth = 0; style.HeaderRowCount = 0;
-        style.ColumnWidthPoints = new List<double?> { width }; style.FixedRowHeights = new List<double?> { 72 };
-        style.CellPaddingX = 0; style.CellPaddingY = 0; style.CellSpacing = 0;
-        style.SpacingBefore = 0; style.SpacingAfter = 0;
+        var options = new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(180)),
+            Margins = { Top = global::OfficeIMO.OfficeLength.Points(24), Bottom = global::OfficeIMO.OfficeLength.Points(24), Left = global::OfficeIMO.OfficeLength.Points(24), Right = global::OfficeIMO.OfficeLength.Points(24) }
+        } };
+        var style = PdfTableStyles.Minimal();
+        style.BorderColor = null; style.BorderWidth = global::OfficeIMO.OfficeLength.Points(0); style.HeaderRowCount = 0;
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(width) }; style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(72) };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0); style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0); style.CellSpacing = global::OfficeIMO.OfficeLength.Points(0);
+        style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0); style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
         style.VerticalAlignments = new List<PdfCellVerticalAlign> { PdfCellVerticalAlign.Top };
         return PdfDocument.Create(options).Compose(document => document.Page(page => {
-            if (mode == "canvas") page.Canvas(canvas => canvas.Table(rows, 24, 24, width, 72, style));
+            if (mode == "canvas") page.Canvas(canvas => canvas.Table(rows, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(72), style));
             else page.Content(content => {
-                if (mode == "flow") content.Item(item => item.Table(rows, style: style));
-                else content.Row(row => row.PercentColumn(100, column => column.Table(rows, style: style)));
+                if (mode == "flow") content.Item(item => item.AddTable(rows, style: style));
+                else content.Row(row => row.PercentColumn(100, column => column.AddTable(rows, style: style)));
             });
         })).ToBytes();
     }

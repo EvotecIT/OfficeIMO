@@ -51,7 +51,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             table.Rows.Add(new[] { @"\*\*not bold\*\* and \| literal pipe" });
 
             var markdown = ((IMarkdownBlock)table).RenderMarkdown();
-            MarkdownDoc parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
+            MarkdownDocument parsed = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown);
             TableBlock parsedTable = Assert.IsType<TableBlock>(Assert.Single(parsed.Blocks));
 
             const string expected = "| Header |\n" +
@@ -70,7 +70,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             table.Rows.Add(new[] { @"Test A \(stacked bar\)" });
 
             var markdown = ((IMarkdownBlock)table).RenderMarkdown();
-            MarkdownDoc parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
+            MarkdownDocument parsed = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown);
             TableBlock parsedTable = Assert.IsType<TableBlock>(Assert.Single(parsed.Blocks));
 
             const string expected = "| Header |\n" +
@@ -152,8 +152,8 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             var table = new TableBlock();
             table.Headers.Add("Code");
             table.Headers.Add("Description");
-            table.ColumnWidthPoints.Add(54D);
-            table.ColumnWidthPoints.Add(null);
+            table.ColumnWidths.Add(OfficeLength.Inches(0.75));
+            table.ColumnWidths.Add(null);
             table.ColumnWidthWeights.Add(1D);
             table.ColumnWidthWeights.Add(3D);
 
@@ -166,6 +166,9 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                                     "</tbody></table>";
 
             Assert.Equal(expected, html);
+
+            table.ColumnWidthWeights[1] = double.PositiveInfinity;
+            Assert.Equal(expected.Replace("75%", "50%"), ((IMarkdownBlock)table).RenderHtml());
         }
 
         [Fact]

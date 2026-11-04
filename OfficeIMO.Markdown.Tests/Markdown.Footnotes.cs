@@ -6,7 +6,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void MarkdownToWord_Footnotes() {
             string md = "Text with footnote[^1].\n\n[^1]: Footnote text";
-            using var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument();
+            using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord();
             var footNotes = doc.FootNotes;
             Assert.NotNull(footNotes);
             Assert.Single(footNotes!);

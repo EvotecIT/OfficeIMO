@@ -32,8 +32,8 @@ public sealed class ReaderReliabilityRegressionTests {
                     return document;
                 })).Build();
             IEnumerable<ReaderChunk> chunks = route switch {
-                "folder" => reader.ReadFolder(directory),
-                "documents" => reader.ReadFolderDocuments(directory).SelectMany(document => document.Chunks),
+                "folder" => reader.EnumerateFolder(directory),
+                "documents" => reader.EnumerateFolderDocuments(directory).SelectMany(document => document.Chunks),
                 "detailed" => reader.ReadFolderDetailed(directory).Chunks,
                 "path-file" => reader.ReadPathDocumentsDetailed(path).Documents.SelectMany(document => document.Chunks),
                 _ => reader.ReadPathDocumentsDetailed(directory).Documents.SelectMany(document => document.Chunks)
@@ -53,7 +53,7 @@ public sealed class ReaderReliabilityRegressionTests {
         byte[] bytes = rtf
             ? Encoding.ASCII.GetBytes("{\\rtf1\\ansi\\uc1 " + new string('a', 255) + "\\u-10179?\\u-8704?b}")
             : Encoding.UTF8.GetBytes(text);
-        var chunks = reader.Read(bytes, rtf ? "unicode.rtf" : "unicode.txt", new ReaderOptions { MaxChars = 256 }).ToArray();
+        var chunks = reader.Enumerate(bytes, rtf ? "unicode.rtf" : "unicode.txt", new ReaderOptions { MaxChars = 256 }).ToArray();
         var strict = new UTF8Encoding(false, true);
         Assert.Equal(text, string.Concat(chunks.Select(chunk => strict.GetString(strict.GetBytes(chunk.Text)))));
         if (rtf) Assert.All(chunks, chunk => strict.GetBytes(chunk.Markdown!));
@@ -63,7 +63,7 @@ public sealed class ReaderReliabilityRegressionTests {
     public void RtfSplitParagraphDoesNotDuplicatePlainText() {
         string text = new string('a', 1000);
         var reader = new OfficeDocumentReaderBuilder().AddRtfHandler().Build();
-        var chunks = reader.Read(Encoding.ASCII.GetBytes("{\\rtf1\\ansi " + text + "}"), "long.rtf",
+        var chunks = reader.Enumerate(Encoding.ASCII.GetBytes("{\\rtf1\\ansi " + text + "}"), "long.rtf",
             new ReaderOptions { MaxChars = 256 }).ToArray();
         Assert.Equal(text, string.Concat(chunks.Select(chunk => chunk.Text)));
         Assert.All(chunks, chunk => Assert.InRange(chunk.Text.Length, 1, 256));
@@ -93,7 +93,7 @@ public sealed class ReaderReliabilityRegressionTests {
             .AddHandler(new ReaderHandlerRegistration {
                 Id = "framing", Kind = ReaderInputKind.Text, Extensions = new[] { ".framing" },
                 ReadStream = (_, _, _, _) => new[] { new ReaderChunk { Kind = ReaderInputKind.Text, Text = text, Markdown = markdown } }
-            }).Build().Read(new byte[] { 1 }, "same.framing"));
+            }).Build().Enumerate(new byte[] { 1 }, "same.framing"));
         Assert.NotEqual(Read("alpha|beta", "gamma").ChunkHash, Read("alpha", "beta|gamma").ChunkHash);
         Assert.Equal(Read("alpha", "beta").ChunkHash, Read("alpha", "beta").ChunkHash);
     }
@@ -102,12 +102,12 @@ public sealed class ReaderReliabilityRegressionTests {
     public void ExcelRegistrationSnapshotsMutableReadOptions() {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Data");
-            sheet.Cell(1, 1, "Name");
-            sheet.Cell(2, 1, "alpha");
+            var sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(2, 1).SetValue("alpha");
             document.Save();
         }
-        var policy = new ExcelReadOptions();
+        var policy = new ExcelReaderOptions();
         var reader = new OfficeDocumentReaderBuilder().AddExcelHandler(new ReaderExcelOptions { ReadOptions = policy }).Build();
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
@@ -117,7 +117,7 @@ public sealed class ReaderReliabilityRegressionTests {
 
     [Fact]
     public void ExcelOptionsCloneIsolatesCultureAndExecutionThresholds() {
-        var options = new ExcelReadOptions { Culture = new CultureInfo("pl-PL") };
+        var options = new ExcelReaderOptions { Culture = new CultureInfo("pl-PL") };
         var clone = options.Clone();
         options.Culture.NumberFormat.NumberDecimalSeparator = "!";
         options.Execution.OperationThresholds["ReadRange"] = 1;

@@ -26,11 +26,11 @@ namespace OfficeIMO.Examples.Visio {
             var doc = VisioDocument.Create(filePath);
             doc.UseMastersByDefault = true;
             doc.LearnMastersFromVsdx(sample, new[] { "Ellipse", "Diamond", "Triangle", "Rectangle" });
-            var page = doc.AddPage("Assets Demo", 29.7, 21.0, VisioMeasurementUnit.Centimeters);
-            page.Shapes.Add(new VisioShape("1") { NameU = "Ellipse", PinX = 6, PinY = 12, Width = 4, Height = 3, Text = "Ellipse" });
-            page.Shapes.Add(new VisioShape("2") { NameU = "Diamond", PinX = 13, PinY = 12, Width = 3.5, Height = 3, Text = "Diamond" });
-            page.Shapes.Add(new VisioShape("3") { NameU = "Triangle", PinX = 6, PinY = 7, Width = 4, Height = 3, Text = "Triangle" });
-            page.Shapes.Add(new VisioShape("4") { NameU = "Rectangle", PinX = 13, PinY = 7, Width = 4, Height = 2.5, Text = "Rectangle" });
+            var page = doc.AddPage("Assets Demo", OfficeLength.Centimeters(29.7), OfficeLength.Centimeters(21.0), scaleUnit: VisioMeasurementUnit.Centimeters);
+            page.Shapes.Add(new VisioShape("1") { NameU = "Ellipse", PinX = OfficeLength.Inches(6), PinY = OfficeLength.Inches(12), Width = OfficeLength.Inches(4), Height = OfficeLength.Inches(3), Text = "Ellipse" });
+            page.Shapes.Add(new VisioShape("2") { NameU = "Diamond", PinX = OfficeLength.Inches(13), PinY = OfficeLength.Inches(12), Width = OfficeLength.Inches(3.5), Height = OfficeLength.Inches(3), Text = "Diamond" });
+            page.Shapes.Add(new VisioShape("3") { NameU = "Triangle", PinX = OfficeLength.Inches(6), PinY = OfficeLength.Inches(7), Width = OfficeLength.Inches(4), Height = OfficeLength.Inches(3), Text = "Triangle" });
+            page.Shapes.Add(new VisioShape("4") { NameU = "Rectangle", PinX = OfficeLength.Inches(13), PinY = OfficeLength.Inches(7), Width = OfficeLength.Inches(4), Height = OfficeLength.Inches(2.5), Text = "Rectangle" });
             doc.Save();
         }
     }

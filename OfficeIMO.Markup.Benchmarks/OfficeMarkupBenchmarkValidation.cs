@@ -2,7 +2,7 @@ using Markdig;
 using Markdig.Extensions.Tables;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
-using OfficeMarkdownReaderOptions = OfficeIMO.Markdown.MarkdownReaderOptions;
+using OfficeMarkdownReaderOptions = OfficeIMO.Markdown.MarkdownLoadOptions;
 using System.Security.Cryptography;
 using System.Text;
 

@@ -45,11 +45,11 @@ public sealed class InvoicePdfLayoutOptions {
     /// <summary>Ordered line-table columns. Choose two to eight distinct columns including Item and NetAmount. The default contains Item, Quantity, NetPrice, Vat and NetAmount.</summary>
     public IList<InvoicePdfLineColumn> LineColumns => _lineColumns;
 
-    /// <summary>Unit description mode. Defaults to the original machine-readable code.</summary>
-    public InvoicePdfCodeDisplay UnitCodeDisplay { get; set; }
+    /// <summary>Unit description mode. Defaults to the translated description, such as "hour" for HUR, falling back to the code when unknown.</summary>
+    public InvoicePdfCodeDisplay UnitCodeDisplay { get; set; } = InvoicePdfCodeDisplay.Description;
 
-    /// <summary>Payment description mode. Defaults to the original code; authored payment text is always retained.</summary>
-    public InvoicePdfCodeDisplay PaymentCodeDisplay { get; set; }
+    /// <summary>Payment description mode. Defaults to the translated description, falling back to the code when unknown; authored payment text is always retained.</summary>
+    public InvoicePdfCodeDisplay PaymentCodeDisplay { get; set; } = InvoicePdfCodeDisplay.Description;
 
     /// <summary>Reduces spacing and table padding for document details while retaining their values.</summary>
     public bool CompactDetails { get; set; }

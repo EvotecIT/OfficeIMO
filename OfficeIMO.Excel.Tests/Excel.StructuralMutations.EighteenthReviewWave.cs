@@ -14,9 +14,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_TableSchema_RewritesWorksheetChartExAndChartsheetFormulaRoots() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Amount");
-            sheet.CellValue(2, 1, 10);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Amount");
+            sheet.Cell(2, 1).SetValue(10);
             sheet.AddTable("A1:A2", true, "Sales", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
 
             DrawingsPart worksheetDrawings = sheet.WorksheetPart.AddNewPart<DrawingsPart>();
@@ -58,11 +58,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralColumns_RemoveStaleRowSpans() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet insertSheet = document.AddWorksheet("Insert");
-            insertSheet.CellValue(1, 1, "A");
-            insertSheet.CellValue(1, 2, "B");
-            insertSheet.CellValue(1, 3, "C");
-            insertSheet.CellValue(2, 1, "Unchanged");
+            ExcelSheet insertSheet = document.AddSheet("Insert");
+            insertSheet.Cell(1, 1).SetValue("A");
+            insertSheet.Cell(1, 2).SetValue("B");
+            insertSheet.Cell(1, 3).SetValue("C");
+            insertSheet.Cell(2, 1).SetValue("Unchanged");
             Row[] insertRows = insertSheet.WorksheetPart.Worksheet!
                 .GetFirstChild<SheetData>()!.Elements<Row>().ToArray();
             Row insertedRow = insertRows.Single(row => row.RowIndex!.Value == 1U);
@@ -70,22 +70,22 @@ namespace OfficeIMO.Tests {
             insertedRow.Spans = new ListValue<StringValue> { InnerText = "1:3" };
             unchangedRow.Spans = new ListValue<StringValue> { InnerText = "1:1" };
 
-            insertSheet.InsertColumns(2);
+            insertSheet.InsertColumnsTransactional(2);
 
             Assert.Null(insertedRow.Spans);
             Assert.Equal("1:1", unchangedRow.Spans!.InnerText);
             Assert.Equal(new[] { "A1", "C1", "D1" },
                 insertedRow.Elements<Cell>().Select(cell => cell.CellReference!.Value).ToArray());
 
-            ExcelSheet deleteSheet = document.AddWorksheet("Delete");
-            deleteSheet.CellValue(1, 1, "A");
-            deleteSheet.CellValue(1, 2, "B");
-            deleteSheet.CellValue(1, 3, "C");
+            ExcelSheet deleteSheet = document.AddSheet("Delete");
+            deleteSheet.Cell(1, 1).SetValue("A");
+            deleteSheet.Cell(1, 2).SetValue("B");
+            deleteSheet.Cell(1, 3).SetValue("C");
             Row deletedRow = Assert.Single(deleteSheet.WorksheetPart.Worksheet!
                 .GetFirstChild<SheetData>()!.Elements<Row>());
             deletedRow.Spans = new ListValue<StringValue> { InnerText = "1:3" };
 
-            deleteSheet.DeleteColumns(1);
+            deleteSheet.DeleteColumnsTransactional(1);
 
             Assert.Null(deletedRow.Spans);
             Assert.Equal(new[] { "A1", "B1" },

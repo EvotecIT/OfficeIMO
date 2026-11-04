@@ -4,8 +4,8 @@ using System.Text;
 
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
-    private static int GetListContinuationIndent(string line, MarkdownReaderOptions? options = null) {
+internal static partial class MarkdownReader {
+    private static int GetListContinuationIndent(string line, MarkdownLoadOptions? options = null) {
         if (string.IsNullOrEmpty(line)) return 0;
         if (TryGetOrderedListMarkerInfo(line, options, out int orderedLeadingSpaces, out _, out int orderedContentStartIndex, out _, out _)) {
             if (IsWhiteSpaceFrom(line, orderedContentStartIndex)
@@ -81,7 +81,7 @@ public static partial class MarkdownReader {
             : 0;
     }
 
-    private static void SetListItemMarkerSourceSpans(ListItem item, string line, int lineIndex, bool isTask, MarkdownReaderOptions options, MarkdownReaderState state) {
+    private static void SetListItemMarkerSourceSpans(ListItem item, string line, int lineIndex, bool isTask, MarkdownLoadOptions options, MarkdownReaderState state) {
         if (item == null) {
             return;
         }
@@ -104,7 +104,7 @@ public static partial class MarkdownReader {
         }
     }
 
-    private static string? TryGetListMarkerText(string line, MarkdownReaderOptions? options = null) {
+    private static string? TryGetListMarkerText(string line, MarkdownLoadOptions? options = null) {
         if (string.IsNullOrEmpty(line)) {
             return null;
         }
@@ -128,7 +128,7 @@ public static partial class MarkdownReader {
         };
     }
 
-    private static string? TryGetTaskMarkerText(string line, MarkdownReaderOptions? options = null) {
+    private static string? TryGetTaskMarkerText(string line, MarkdownLoadOptions? options = null) {
         if (string.IsNullOrEmpty(line)
             || !TryGetRawListItemContentAfterMarker(line, out string content, options)
             || !TryGetTaskListMarkerContentStartIndex(content, out _)) {
@@ -138,7 +138,7 @@ public static partial class MarkdownReader {
         return content.Length >= 3 ? content.Substring(0, 3) : null;
     }
 
-    private static MarkdownSourceSpan? TryCreateListMarkerSourceSpan(string line, int absoluteLineNumber, MarkdownReaderOptions? options, MarkdownReaderState state) {
+    private static MarkdownSourceSpan? TryCreateListMarkerSourceSpan(string line, int absoluteLineNumber, MarkdownLoadOptions? options, MarkdownReaderState state) {
         if (string.IsNullOrEmpty(line)) {
             return null;
         }
@@ -158,7 +158,7 @@ public static partial class MarkdownReader {
         return null;
     }
 
-    private static MarkdownSourceSpan? TryCreateTaskMarkerSourceSpan(string line, int absoluteLineNumber, MarkdownReaderOptions options, MarkdownReaderState state) {
+    private static MarkdownSourceSpan? TryCreateTaskMarkerSourceSpan(string line, int absoluteLineNumber, MarkdownLoadOptions options, MarkdownReaderState state) {
         if (string.IsNullOrEmpty(line)) {
             return null;
         }
@@ -249,7 +249,7 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static bool TryGetRawListItemContentAfterMarker(string line, out string content, MarkdownReaderOptions? options = null) {
+    private static bool TryGetRawListItemContentAfterMarker(string line, out string content, MarkdownLoadOptions? options = null) {
         content = string.Empty;
         if (string.IsNullOrEmpty(line)) return false;
         if (options?.OrderedLists != false &&
@@ -285,7 +285,7 @@ public static partial class MarkdownReader {
 
     private static bool TryGetOrderedListMarkerInfo(
         string line,
-        MarkdownReaderOptions? options,
+        MarkdownLoadOptions? options,
         out int leadingSpaces,
         out int number,
         out int contentStartIndex,
@@ -449,7 +449,7 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static bool TryGetIndentedCodeListLead(string line, MarkdownReaderOptions? options, out int continuationIndent, out string content, out int startColumn) {
+    private static bool TryGetIndentedCodeListLead(string line, MarkdownLoadOptions? options, out int continuationIndent, out string content, out int startColumn) {
         continuationIndent = 0;
         content = string.Empty;
         startColumn = 1;
@@ -481,7 +481,7 @@ public static partial class MarkdownReader {
         return TryGetOrderedListMarkerWidth(line, leadingSpaces, null, out markerWidth);
     }
 
-    private static bool TryGetOrderedListMarkerWidth(string line, int leadingSpaces, MarkdownReaderOptions? options, out int markerWidth) {
+    private static bool TryGetOrderedListMarkerWidth(string line, int leadingSpaces, MarkdownLoadOptions? options, out int markerWidth) {
         markerWidth = 0;
         if (string.IsNullOrEmpty(line) || leadingSpaces >= line.Length) return false;
 
@@ -509,7 +509,7 @@ public static partial class MarkdownReader {
         return spaces >= 5;
     }
 
-    private static int GetListLeadContentStartColumn(string line, MarkdownReaderOptions? options = null, bool stripTaskMarker = false) {
+    private static int GetListLeadContentStartColumn(string line, MarkdownLoadOptions? options = null, bool stripTaskMarker = false) {
         int startColumn = GetListContinuationIndent(line, options) + 1;
         if (!stripTaskMarker) return startColumn;
 

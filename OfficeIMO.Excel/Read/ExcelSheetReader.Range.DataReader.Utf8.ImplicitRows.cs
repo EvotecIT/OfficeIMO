@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Threading;
 
 namespace OfficeIMO.Excel {
@@ -19,6 +17,16 @@ namespace OfficeIMO.Excel {
                 int rowOffset,
                 CancellationToken ct) {
                 int originalPosition = position;
+                if (_cachedImplicitRowReady) {
+                    if (TryIndexCachedImplicitRow(ref position, rowIndex, rowOffset, ct)) return true;
+                    // A changing layout keeps the adaptive per-cell parser. Do not
+                    // repeatedly scan prefixes through a rejected whole-row shape.
+                    _cachedImplicitRowRejected = true;
+                    position = originalPosition;
+                }
+                _cachedImplicitRowReady = false;
+                // Cached misses leave bounds untouched. Only the adaptive parser
+                // below needs a rollback snapshot; the usual cached row does not.
                 int minimumCellRow = _minimumCellRow;
                 int maximumCellRow = _maximumCellRow;
                 int minimumCellColumn = _minimumCellColumn;
@@ -55,6 +63,10 @@ namespace OfficeIMO.Excel {
                         }
                         position += 6;
                         UpdateUsedBounds(rowIndex, columnIndex - 1);
+                        // The first row commonly holds headers. All slots must have
+                        // qualified tags before a later complete row can reuse them.
+                        _cachedImplicitRowReady = !_cachedImplicitRowRejected && _rowCount > 0
+                            && _firstColumn == 1 && columnIndex - 1 == _fieldCount;
                         return true;
                     }
 

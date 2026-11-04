@@ -26,6 +26,7 @@ public sealed class PdfLogicalLeaderRow : IPdfLogicalElement {
 /// <summary>
 /// Detected table-like region with simple geometry.
 /// </summary>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfLogicalTable : IPdfLogicalElement {
     private PdfLogicalTable(
         int pageNumber,
@@ -57,9 +58,9 @@ public sealed class PdfLogicalTable : IPdfLogicalElement {
         double completeness = expectedCells == 0 ? 0D : (double)filledCells / expectedCells;
         Confidence = PdfInference.Clamp(confidence ?? ((columns.Count > 1 ? 0.45D : 0.2D) + (completeness * 0.45D) + (visualBounds is not null || yTop > yBottom ? 0.1D : 0D)));
         Evidence = evidence ?? new[] {
-            new PdfInferenceEvidence("table.detection-kind", "The table was produced by the " + kind + " detector.", 0.5D),
-            new PdfInferenceEvidence("table.cell-completeness", "Filled-cell completeness is " + completeness.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + ".", (completeness * 2D) - 1D),
-            new PdfInferenceEvidence("table.column-geometry", columns.Count > 1 ? "Multiple column boundaries were detected." : "Fewer than two column boundaries were detected.", columns.Count > 1 ? 0.7D : -0.5D)
+            new PdfInferenceEvidence("table-detection-kind", "The table was produced by the " + kind + " detector.", 0.5D),
+            new PdfInferenceEvidence("table-cell-completeness", "Filled-cell completeness is " + completeness.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + ".", (completeness * 2D) - 1D),
+            new PdfInferenceEvidence("table-column-geometry", columns.Count > 1 ? "Multiple column boundaries were detected." : "Fewer than two column boundaries were detected.", columns.Count > 1 ? 0.7D : -0.5D)
         };
     }
 
@@ -98,7 +99,10 @@ public sealed class PdfLogicalTable : IPdfLogicalElement {
     public IReadOnlyList<PdfInferenceEvidence> Evidence { get; }
     internal IReadOnlyList<PdfUnderstandingLine> SourceLines { get; }
 
-    internal static PdfLogicalTable From(int pageNumber, StructuredTable table) {
+    /// <summary>Per-row, per-column visible cell styling read from the source page, when it was analyzed.</summary>
+    internal IReadOnlyList<IReadOnlyList<PdfLogicalTableCellStyle?>>? CellStyles { get; set; }
+
+    internal static PdfLogicalTable From(int pageNumber, PdfStructuredTable table) {
         var columns = new List<PdfLogicalTableColumn>(table.Columns.Count);
         for (int i = 0; i < table.Columns.Count; i++) {
             columns.Add(new PdfLogicalTableColumn(table.Columns[i].From, table.Columns[i].To, table.Columns[i].VisualBounds));
@@ -192,6 +196,7 @@ public sealed class PdfLogicalTableCell {
 /// <summary>
 /// Detected table column geometry.
 /// </summary>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfLogicalTableColumn {
     internal PdfLogicalTableColumn(double from, double to, PdfLogicalVisualBounds? visualBounds = null) {
         From = from;

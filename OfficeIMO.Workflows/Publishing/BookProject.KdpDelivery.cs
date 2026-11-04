@@ -28,9 +28,9 @@ public sealed partial class BookProject {
     /// The EPUB uses the same import-review, signature and writer policies as Export.
     /// No files are written, accounts accessed or publications uploaded.
     /// </remarks>
-    public byte[] ToKdpDeliveryBytes(byte[] listingCover, EpubWriteOptions? options = null,
+    public byte[] ToKdpDeliveryBytes(byte[] listingCover, EpubSaveOptions? options = null,
         long maximumOutputBytes = MaximumKdpDeliveryBytes, CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(listingCover);
+        if (listingCover == null) throw new ArgumentNullException(nameof(listingCover));
         if (maximumOutputBytes <= 0 || maximumOutputBytes > MaximumKdpDeliveryBytes)
             throw new ArgumentOutOfRangeException(nameof(maximumOutputBytes));
         cancellationToken.ThrowIfCancellationRequested();

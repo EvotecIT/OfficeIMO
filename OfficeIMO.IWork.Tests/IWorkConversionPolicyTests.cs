@@ -8,7 +8,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Native_keynote_conversion_preserves_both_independent_source_slides_without_partial_policy() {
         string path = CorpusFixture("nim-iwork/simple.key");
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(path);
+        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Keynote).ToPowerPointResult();
 
         Assert.False(result.IsVisualFallback, string.Join("; ", result.Report.Diagnostics.Select(diagnostic => diagnostic.ToString())));
         Assert.Equal(2, result.Value.Slides.Count);
@@ -20,15 +20,14 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream();
         result.Value.Save(saved);
         saved.Position = 0;
-        using PowerPointPresentation reopened = PowerPointPresentation.Load(saved);
+        using PowerPointDocument reopened = PowerPointDocument.Load(saved);
         Assert.Equal(2, reopened.Slides.Count);
         Assert.NotEmpty(reopened.Slides.SelectMany(slide => slide.TextBoxes));
     }
 
     [Fact]
     public void Partial_pages_conversion_keeps_independent_text_tables_and_image() {
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(CorpusFixture("picodocs/sample-v14.4.pages"),
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(CorpusFixture("picodocs/sample-v14.4.pages"), IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
 
         Assert.False(result.IsVisualFallback, string.Join("; ", result.Report.Diagnostics.Select(diagnostic => diagnostic.ToString())));
         Assert.Equal(3, result.Value.Tables.Count);
@@ -73,9 +72,9 @@ public sealed partial class IWorkBoundaryTests {
             Mode = IWorkConversionMode.VisualOnly, RequireCompleteVisualCoverage = true
         };
         Action convert = kind switch {
-            IWorkDocumentKind.Pages => () => { using var result = WordIWorkConverter.ConvertPagesToWordResult(CorpusFixture(fixture), conversionOptions: options); },
-            IWorkDocumentKind.Numbers => () => { using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(CorpusFixture(fixture), conversionOptions: options); },
-            _ => () => { using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(CorpusFixture(fixture), conversionOptions: options); }
+            IWorkDocumentKind.Pages => () => { using var result = IWorkSourceDocument.Open(CorpusFixture(fixture), IWorkDocumentKind.Pages).ToWordResult(options); },
+            IWorkDocumentKind.Numbers => () => { using var result = IWorkSourceDocument.Open(CorpusFixture(fixture), IWorkDocumentKind.Numbers).ToExcelResult(options); },
+            _ => () => { using var result = IWorkSourceDocument.Open(CorpusFixture(fixture), IWorkDocumentKind.Keynote).ToPowerPointResult(options); }
         };
 
         InvalidDataException error = Assert.Throws<InvalidDataException>(convert);
@@ -86,13 +85,13 @@ public sealed partial class IWorkBoundaryTests {
     public void Editable_geometry_quantization_is_an_approximation_not_an_omission() {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
             slideWidth: 960.0001f, slideHeight: 540f);
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult();
 
         Assert.False(result.IsVisualFallback, string.Join("; ", result.Report.Diagnostics.Select(diagnostic => diagnostic.ToString())));
-        IWorkDiagnostic precision = Assert.Single(result.Report.Diagnostics, diagnostic =>
+        IWorkDiagnostic precision = Assert.Single(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == "IWORK_KEYNOTE_PPTX_PRECISION");
         Assert.Equal(global::OfficeIMO.OfficeConversionLossKind.Approximation, precision.LossKind);
-        Assert.Contains(result.Report.FidelityDiagnostics, diagnostic =>
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == precision.Code && diagnostic.LossKind == precision.LossKind);
     }
 
@@ -103,8 +102,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec(longName + ":first", 1, 1, 42d, hasFormula: true, completeFormula: true),
             new TableSpec(longName + "/second", 1, 1, 84d)
         }, includePreview: true);
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
-            conversionOptions: new IWorkConversionOptions { NormalizeWorksheetNames = true });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { NormalizeWorksheetNames = true });
 
         Assert.False(result.IsVisualFallback);
         Assert.Equal(2, result.Value.Sheets.Count);
@@ -122,7 +120,7 @@ public sealed partial class IWorkBoundaryTests {
         using global::OfficeIMO.Excel.ExcelDocument reopened = global::OfficeIMO.Excel.ExcelDocument.Load(saved);
         Assert.Equal(result.WorksheetMappings.Select(mapping => mapping.DestinationName), reopened.Sheets.Select(sheet => sheet.Name));
         Assert.Equal(result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!.Formula!.TrimStart('='), reopened.Sheets[0].GetFormulaText(1, 1));
-        Assert.Equal(84d, reopened.Sheets[1].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(84d, reopened.Sheets[1].Cell(1, 1).GetValue<double>());
     }
 
     [Fact]
@@ -130,13 +128,13 @@ public sealed partial class IWorkBoundaryTests {
         var conversion = new IWorkConversionOptions {
             Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true
         };
-        var limits = new IWorkReadOptions { MaximumProjectedTables = 1 };
+        var limits = new IWorkReadOptions { MaxProjectedTables = 1 };
         using MemoryStream package = CreateNumbersPackage(new[] {
             new TableSpec("One", 1, 1, 1d), new TableSpec("Two", 1, 1, 2d)
         });
 
         InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
-            ExcelIWorkConverter.ConvertNumbersToExcelResult(package, limits, conversion));
+            IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers, limits).ToExcelResult(conversion));
         Assert.Contains("table count", error.Message);
     }
 
@@ -155,8 +153,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Partial_policy_still_rejects_oversized_word_destination_geometry() {
         using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: null,
             includePreview: true, documentLayoutFields: PageLayoutFields(float.MaxValue));
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package,
-            conversionOptions: IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }));
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }));
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
@@ -170,8 +167,7 @@ public sealed partial class IWorkBoundaryTests {
             FloatField(34, 72f), FloatField(35, 72f), FloatField(36, 36f), FloatField(37, 36f));
         using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: null,
             includePreview: true, documentLayoutFields: layout);
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package,
-            conversionOptions: IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }));
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }));
 
         Assert.True(result.IsVisualFallback);
     }
@@ -183,8 +179,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Keynote_table_cell_pagination_is_reported_as_partial(int styleField) {
         using MemoryStream package = CreateFormulaTableWithRichCacheStyle(IWorkDocumentKind.Keynote,
             paginationStyleField: styleField);
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
 
         Assert.False(result.IsVisualFallback);
         Assert.True(result.Report.IsPartialEditableReconstruction);
@@ -194,7 +189,7 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream();
         result.Value.Save(saved);
         saved.Position = 0;
-        using PowerPointPresentation reopened = PowerPointPresentation.Load(saved);
+        using PowerPointDocument reopened = PowerPointDocument.Load(saved);
         Assert.Contains("Styled", reopened.Slides[0].Tables.First().GetCell(0, 0).Text);
     }
 
@@ -206,8 +201,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateNumbersPackage(new[] {
             new TableSpec(name, 1, 1, 1d), new TableSpec(name, 1, 1, 2d)
         });
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
-            conversionOptions: new IWorkConversionOptions { NormalizeWorksheetNames = true });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { NormalizeWorksheetNames = true });
         using var saved = new MemoryStream();
         result.Value.Save(saved);
         saved.Position = 0;
@@ -219,8 +213,8 @@ public sealed partial class IWorkBoundaryTests {
             System.Xml.XmlConvert.VerifyXmlChars(sheet.Name);
             Assert.InRange(sheet.Name.Length, 1, 31);
         });
-        Assert.Equal(1d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
-        Assert.Equal(2d, reopened.Sheets[1].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(1d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
+        Assert.Equal(2d, reopened.Sheets[1].Cell(1, 1).GetValue<double>());
     }
 
     private static string CorpusFixture(string path) => Path.Combine(AppContext.BaseDirectory,

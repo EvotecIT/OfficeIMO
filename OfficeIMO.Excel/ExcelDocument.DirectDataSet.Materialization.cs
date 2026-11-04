@@ -72,7 +72,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            if (_pendingDirectCellValueSheet != null && !replacingPendingDirectCellValues) {
+            if (_pendingDirectCellValueSheets.Count > 0 && !replacingPendingDirectCellValues) {
                 MaterializePendingDirectCellValueSheetIfNeeded(cancellationToken);
                 return false;
             }
@@ -86,41 +86,53 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (_pendingDirectCellValueSheet == null) {
-                _pendingDirectCellValueSheet = sheet;
-                _pendingDirectCellValueRequiresSavePreflight = false;
-                return true;
+            if (!_pendingDirectCellValueSheets.Contains(sheet)) {
+                if (_pendingDirectCellValueSheets.Count == 0) {
+                    _pendingDirectCellValueRequiresSavePreflight = false;
+                }
+
+                _pendingDirectCellValueSheets.Add(sheet);
             }
 
-            return ReferenceEquals(_pendingDirectCellValueSheet, sheet);
+            return true;
         }
 
         internal void ClearPendingDirectCellValueSheet(ExcelSheet sheet) {
-            if (ReferenceEquals(_pendingDirectCellValueSheet, sheet)) {
-                _pendingDirectCellValueSheet = null;
+            if (_pendingDirectCellValueSheets.Remove(sheet) && _pendingDirectCellValueSheets.Count == 0) {
                 _pendingDirectCellValueRequiresSavePreflight = false;
             }
         }
 
         private ExcelSheet? MaterializePendingDirectCellValueSheetIfNeeded(CancellationToken ct = default) {
             ct.ThrowIfCancellationRequested();
-            var sheet = _pendingDirectCellValueSheet;
-            if (sheet == null) {
-                return null;
+            ExcelSheet? first = null;
+            foreach (ExcelSheet sheet in _pendingDirectCellValueSheets.ToArray()) {
+                first ??= sheet;
+                sheet.MaterializePendingDirectCellValues(ct);
             }
 
-            sheet.MaterializePendingDirectCellValues(ct);
-            return sheet;
+            return first;
+        }
+
+        private bool TryPromotePendingDirectCellValueSheet() {
+            return _pendingDirectCellValueSheets.Count == 1
+                && _pendingDirectCellValueSheets[0].TryPromotePendingDirectCellValuesToSaveCandidate();
         }
 
         private void PromotePendingDirectCellValueSheetIfPossible() {
-            var sheet = _pendingDirectCellValueSheet;
-            if (sheet == null) {
-                return;
-            }
-
-            if (!sheet.TryPromotePendingDirectCellValuesToSaveCandidate()) {
+            if (_pendingDirectCellValueSheets.Count > 0 && !TryPromotePendingDirectCellValueSheet()) {
                 MaterializePendingDirectCellValueSheetIfNeeded();
+            }
+        }
+
+        // Worksheet metadata can stay on the direct model; a rejected promotion leaves the
+        // pending cells for the caller's DOM route.
+        private void PromotePendingDirectCellValuesForMetadata(ExcelSheet sheet) {
+            bool requiresSavePreflight = _pendingDirectCellValueRequiresSavePreflight;
+            if (_pendingDirectCellValueSheets.Contains(sheet)
+                && !sheet.HasStyledPendingCells
+                && TryPromotePendingDirectCellValueSheet()) {
+                _requiresSavePreflight |= requiresSavePreflight;
             }
         }
 
@@ -185,9 +197,13 @@ namespace OfficeIMO.Excel {
                    && _materializedDirectDataSetFastSaveModel != null
                    && !_materializedDirectDataSetFastSaveModelHasMaterializedWorksheet);
 
-        internal bool HasPendingDirectCellValues => _pendingDirectCellValueSheet != null;
+        internal bool HasPendingDirectCellValues => _pendingDirectCellValueSheets.Count > 0;
 
-        internal ExcelSheet? PendingDirectCellValueSheet => _pendingDirectCellValueSheet;
+        /// <summary>The workbook will be written by a direct package writer that bypasses the cell model.</summary>
+        internal bool UsesDirectPackageWriter => _directDataSetSaveCandidate?.IsValid == true
+            || HasDeferredDirectDataSetImport || HasUnmaterializedDirectDataSetRows;
+
+        internal IReadOnlyList<ExcelSheet> PendingDirectCellValueSheets => _pendingDirectCellValueSheets;
 
         internal void RefreshDeferredDirectDataSetDateSystem(ExcelDateSystem dateSystem) {
             var candidate = _directDataSetSaveCandidate;
@@ -211,14 +227,31 @@ namespace OfficeIMO.Excel {
                 }
 
                 ExcelSheet sheet = TryGetExistingSheet(sheetModel.SheetName)
-                    ?? AddWorksheet(sheetModel.SheetName, ExcelSheetNameValidationMode.Strict);
+                    ?? AddSheet(sheetModel.SheetName, ExcelSheetNameValidationMode.Strict);
                 if (sheetModel.Range.Length == 0) {
+                    continue;
+                }
+
+                if (sheetModel.Table.CellValueBuffer is { } cellValueBuffer) {
+                    // The worksheet already holds these cells' settings and its first cells.
+                    using var bufferNoLock = sheet.BeginNoLock();
+                    sheet.ApplyCellValueBufferToWorksheet(cellValueBuffer, sheet.MirroredCellCount, cancellationToken);
                     continue;
                 }
 
                 DirectWorksheetMetadata? preservedMetadata = sheetModel.Metadata;
                 bool hasExistingTablePart = preserveExistingWorksheetStructure && sheet.WorksheetPart.TableDefinitionParts.Any();
-                if (preserveExistingWorksheetStructure) {
+                bool preserveWorksheet = preserveExistingWorksheetStructure;
+                if (!preserveWorksheet) {
+                    if (TryCaptureDirectWorksheetMetadata(sheetModel, out DirectWorksheetMetadata? sheetMetadata, out _, allowDrawings: true, allowUnsupportedOverlayStyles: true)) {
+                        preservedMetadata = MergeDirectWorksheetMetadata(sheetModel.Metadata, sheetMetadata, replaceOverlayCells: true);
+                    } else {
+                        // Merges, comments and hyperlinks have no metadata form; a reset would drop them.
+                        preserveWorksheet = !sheetModel.HasTable;
+                    }
+                }
+
+                if (preserveWorksheet) {
                     var worksheet = sheet.WorksheetPart.Worksheet;
                     var sheetData = worksheet?.GetFirstChild<SheetData>();
                     IReadOnlyList<DirectOverlayCell> overlayCells = Array.Empty<DirectOverlayCell>();
@@ -236,10 +269,6 @@ namespace OfficeIMO.Excel {
 
                     preservedMetadata = MergeDirectMaterializationOverlayCells(preservedMetadata, overlayCells);
                 } else {
-                    if (TryCaptureDirectWorksheetMetadata(sheetModel, out DirectWorksheetMetadata? sheetMetadata, out _, allowDrawings: true, allowUnsupportedOverlayStyles: true)) {
-                        preservedMetadata = MergeDirectWorksheetMetadata(sheetModel.Metadata, sheetMetadata, replaceOverlayCells: true);
-                    }
-
                     ResetWorksheetForDirectDataSetMaterialization(sheet.WorksheetPart);
                 }
 
@@ -273,6 +302,9 @@ namespace OfficeIMO.Excel {
                             style: sheetModel.TableStyle,
                             includeAutoFilter: sheetModel.IncludeAutoFilter,
                             ct: cancellationToken);
+                        if (!sheetModel.IncludeHeaders && tableRange.Length > 0) {
+                            sheet.SetTableSchema(tableRange, sheetModel.Table.CreateColumnNameArray());
+                        }
                     }
 
                     if (tableRange.Length > 0) {
@@ -340,7 +372,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                string column = A1.ColumnIndexToLetters(i + 1);
+                string column = ExcelA1.ColumnIndexToLetters(i + 1);
                 sheet.FormatRange(
                     column + startRow.ToString(CultureInfo.InvariantCulture) + ":" + column + endRow.ToString(CultureInfo.InvariantCulture),
                     numberFormat!);
@@ -466,7 +498,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static Cell GetOrCreateDirectOverlayCell(Row row, int rowIndex, int columnIndex) {
-            string reference = A1.CellReference(rowIndex, columnIndex);
+            string reference = ExcelA1.CellReference(rowIndex, columnIndex);
             Cell? insertAfter = null;
             foreach (Cell cell in row.Elements<Cell>()) {
                 if (string.Equals(cell.CellReference?.Value, reference, StringComparison.Ordinal)) {

@@ -10,6 +10,26 @@ public sealed class EpubResourceRenameContracts {
     private static readonly XNamespace Html = "http://www.w3.org/1999/xhtml";
     private static readonly byte[] Png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=");
 
+    [Fact]
+    public void LongDirectoryLinkExpansionStopsBeforeRetainingOversizedXml() {
+        string directory = "EPUB/" + new string('a', 100) + "/" + new string('b', 100) + "/"
+            + new string('c', 100) + "/";
+        var book = EpubPublication.Create("Bounded rename", "en");
+        book.AddChapter("one", directory + "one.xhtml", "First",
+            string.Concat(Enumerable.Repeat("<a href='peer.xhtml'>Peer</a>", 100)));
+        book.AddChapter("peer", directory + "peer.xhtml", "Peer", "<p>Peer</p>");
+        byte[] bytes = book.Write().Bytes;
+        var loaded = EpubPublication.Load(new MemoryStream(bytes),
+            new EpubPublicationLoadOptions { MaxEntryBytes = 8_192 });
+        byte[] before = loaded.Write().Bytes;
+
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
+            loaded.RenameResource("one", "EPUB/renamed.xhtml"));
+
+        Assert.Contains("Rewritten XML references", error.Message);
+        Assert.Equal(before, loaded.Write().Bytes);
+    }
+
     [Theory]
     [InlineData(EpubVersion.Epub2)]
     [InlineData(EpubVersion.Epub3)]
@@ -102,11 +122,11 @@ public sealed class EpubResourceRenameContracts {
         book.RenameResource("image", "EPUB/art/final.png");
         var report = book.Write().Report;
         Assert.Equal("EPUB/art/final.png", report.RenamedEntries["EPUB/images/dot.png"]);
-        report.RequireNoLoss();
+        report.ThrowIfLoss();
         book.RemoveResource("image");
         var removed = book.Write().Report;
         Assert.Empty(removed.RenamedEntries);
-        Assert.Contains(removed.FidelityDiagnostics, item => item.Code == "EPUB_WRITE_ENTRY_REMOVED" && item.Location == "EPUB/images/dot.png");
+        Assert.Contains(removed.Diagnostics, item => item.Code == "EPUB_WRITE_ENTRY_REMOVED" && item.Location == "EPUB/images/dot.png");
     }
 
     [Fact]
@@ -153,7 +173,7 @@ public sealed class EpubResourceRenameContracts {
         var report = book.Write().Report;
         Assert.Empty(report.RenamedEntries);
         Assert.True(report.HasLoss);
-        Assert.Contains(report.FidelityDiagnostics, item => item.Code == "EPUB_WRITE_ENTRY_REMOVED" && item.Location == "EPUB/images/dot.png");
+        Assert.Contains(report.Diagnostics, item => item.Code == "EPUB_WRITE_ENTRY_REMOVED" && item.Location == "EPUB/images/dot.png");
     }
 
     [Theory]

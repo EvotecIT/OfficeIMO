@@ -1,4 +1,4 @@
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
@@ -7,7 +7,7 @@ namespace OfficeIMO.Word {
     /// Provides utilities for resolving <see cref="Color"/> instances to their
     /// named equivalents.
     /// </summary>
-    public class WordColorNameResolver {
+    internal class WordColorNameResolver {
         private static readonly Dictionary<Color, string> colorNameMap = new Dictionary<Color, string>();
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.PublicProperties)]
         private static readonly Type ColorType = typeof(Color);

@@ -20,8 +20,10 @@ using Xunit;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 using Vt = DocumentFormat.OpenXml.VariantTypes;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Fact]
         public void PerformanceReview_InvariantNumberTextExpandsForMediumIndexes() {
             string text = InvariantNumberText.Get(25000);
@@ -42,13 +44,13 @@ namespace OfficeIMO.Tests {
         public void PerformanceReview_SheetBatchWritesCellsWithSinglePublicCall() {
             using var memory = new MemoryStream();
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Batch");
+                var sheet = document.AddSheet("Batch");
 
                 sheet.Batch(s => {
                     for (int row = 1; row <= 100; row++) {
-                        s.CellValue(row, 1, "Item " + (row % 10).ToString(CultureInfo.InvariantCulture));
-                        s.CellValue(row, 2, row);
-                        s.CellValue(row, 3, row % 2 == 0);
+                        s.Cell(row, 1).SetValue("Item " + (row % 10).ToString(CultureInfo.InvariantCulture));
+                        s.Cell(row, 2).SetValue(row);
+                        s.Cell(row, 3).SetValue(row % 2 == 0);
                     }
                 });
 
@@ -69,7 +71,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PerformanceReview_SheetBatchRejectsNullAction() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            var sheet = document.AddWorksheet("Batch");
+            var sheet = document.AddSheet("Batch");
 
             Assert.Throws<ArgumentNullException>(() => sheet.Batch(null!));
         }
@@ -78,8 +80,8 @@ namespace OfficeIMO.Tests {
         public void PerformanceReview_SheetBatchReadOnlyActionDoesNotDirtyLoadedWorkbook() {
             using var memory = new MemoryStream();
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
-                var sheet = document.AddWorksheet("Batch");
-                sheet.CellValue(1, 1, "Status");
+                var sheet = document.AddSheet("Batch");
+                sheet.Cell(1, 1).SetValue("Status");
                 document.Save(memory);
             }
 
@@ -103,13 +105,13 @@ namespace OfficeIMO.Tests {
         public void PerformanceReview_SheetBatchAllowsNestedWriteLockOperations() {
             using var memory = new MemoryStream();
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Batch");
+                var sheet = document.AddSheet("Batch");
 
                 sheet.Batch(s => {
-                    s.CellValue(1, 1, "Name");
-                    s.CellValue(1, 2, "Score");
-                    s.CellValue(2, 1, "Alpha");
-                    s.CellValue(2, 2, 42);
+                    s.Cell(1, 1).SetValue("Name");
+                    s.Cell(1, 2).SetValue("Score");
+                    s.Cell(2, 1).SetValue("Alpha");
+                    s.Cell(2, 2).SetValue(42);
                     s.AddTable("A1:B2", hasHeader: true, name: "BatchTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
                 });
 
@@ -128,13 +130,13 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PerformanceReview_SheetBatchHeaderMutationRefreshesCachedHeadersInsideBatch() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            var sheet = document.AddWorksheet("Batch");
-            sheet.CellValue(1, 1, "Status");
+            var sheet = document.AddSheet("Batch");
+            sheet.Cell(1, 1).SetValue("Status");
             Assert.True(sheet.TryGetColumnIndexByHeader("Status", out int statusColumn));
             Assert.Equal(1, statusColumn);
 
             sheet.Batch(s => {
-                s.CellValue(1, 1, "State");
+                s.Cell(1, 1).SetValue("State");
 
                 Assert.True(s.TryGetColumnIndexByHeader("State", out int stateColumn));
                 Assert.Equal(1, stateColumn);
@@ -146,8 +148,8 @@ namespace OfficeIMO.Tests {
         public void PerformanceReview_CellValuesEmptyStringsUseDirectStringCells() {
             using var memory = new MemoryStream();
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Empty");
-                sheet.CellValues(new[] {
+                var sheet = document.AddSheet("Empty");
+                sheet.SetValues(new[] {
                     (1, 1, (object)string.Empty),
                     (1, 2, (object)"Header"),
                     (2, 1, (object)string.Empty)
@@ -179,8 +181,8 @@ namespace OfficeIMO.Tests {
 
             using var memory = new MemoryStream();
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.CellValues(values);
+                var sheet = document.AddSheet("Data");
+                sheet.SetValues(values);
 
                 document.Save(memory);
 
@@ -200,8 +202,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "PerformanceReview.DirectAppendDirty.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.CellValue(1, 1, "Name");
+                var sheet = document.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Name");
                 document.Save();
             }
 
@@ -210,7 +212,7 @@ namespace OfficeIMO.Tests {
                 var cells = Enumerable.Range(2, 20)
                     .Select(row => (row, 1, (object)("Row " + row.ToString(System.Globalization.CultureInfo.InvariantCulture))))
                     .ToList();
-                sheet.CellValues(cells, ExcelExecutionMode.Sequential);
+                sheet.SetValues(cells, ExcelExecutionMode.Sequential);
                 document.Save();
             }
 
@@ -225,20 +227,20 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "PerformanceReview.FastCellValueOverloadsDirty.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                document.AddWorksheet("Data").CellValue(1, 1, "Seed");
+                document.AddSheet("Data").Cell(1, 1).SetValue("Seed");
                 document.Save();
             }
 
             using (var document = ExcelDocument.Load(filePath)) {
                 var sheet = document.Sheets[0];
-                sheet.CellValue(2, 1, "Text");
-                sheet.CellValue(3, 1, 12.5d);
-                sheet.CellValue(4, 1, 12.5m);
-                sheet.CellValue(5, 1, new DateTime(2026, 5, 20));
-                sheet.CellValue(6, 1, TimeSpan.FromHours(2));
-                sheet.CellValue(7, 1, true);
-                sheet.CellFormula(8, 1, "SUM(A3:A4)");
-                sheet.CellValue(9, 1, (object)"Object");
+                sheet.Cell(2, 1).SetValue("Text");
+                sheet.Cell(3, 1).SetValue(12.5d);
+                sheet.Cell(4, 1).SetValue(12.5m);
+                sheet.Cell(5, 1).SetValue(new DateTime(2026, 5, 20));
+                sheet.Cell(6, 1).SetValue(TimeSpan.FromHours(2));
+                sheet.Cell(7, 1).SetValue(true);
+                sheet.Cell(8, 1).SetFormula("SUM(A3:A4)");
+                sheet.Cell(9, 1).SetValue((object)"Object");
                 document.Save();
             }
 
@@ -262,7 +264,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "PerformanceReview.WorkbookProtectionDirty.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                document.AddWorksheet("Data").CellValue(1, 1, "Value");
+                document.AddSheet("Data").Cell(1, 1).SetValue("Value");
                 document.Save();
             }
 
@@ -286,15 +288,15 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.CellValue(1, 1, "Value");
-                document.BuiltinDocumentProperties.Title = "Performance Review";
+                var sheet = document.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Value");
+                document.Properties.Title = "Performance Review";
                 document.ApplicationProperties.Company = "Evotec";
             }
 
             memory.Position = 0;
             using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
-            Assert.Equal("Performance Review", loaded.BuiltinDocumentProperties.Title);
+            Assert.Equal("Performance Review", loaded.Properties.Title);
             Assert.Equal("Evotec", loaded.ApplicationProperties.Company);
         }
 
@@ -303,8 +305,8 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.CellValue(1, 1, "Hidden");
+                var sheet = document.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Hidden");
                 var row = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!.Elements<Row>().First();
                 row.Hidden = true;
                 row.Height = 24D;
@@ -324,12 +326,12 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Formulas");
+                var sheet = document.AddSheet("Formulas");
                 for (int row = 1; row <= 5; row++) {
-                    sheet.CellValue(row, 1, (double)row);
-                    sheet.CellValue(row, 2, (double)(row + 1));
-                    sheet.CellValue(row, 3, (double)(row + 2));
-                    sheet.CellFormula(row, 4, $"SUM(A{row}:C{row})");
+                    sheet.Cell(row, 1).SetValue((double)row);
+                    sheet.Cell(row, 2).SetValue((double)(row + 1));
+                    sheet.Cell(row, 3).SetValue((double)(row + 2));
+                    sheet.Cell(row, 4).SetFormula($"SUM(A{row}:C{row})");
                 }
 
                 document.Save(memory);
@@ -350,8 +352,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "PerformanceReview.FormulaWithoutCache.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Formula");
-                sheet.CellFormula(1, 1, "SUM(1,2)");
+                var sheet = document.AddSheet("Formula");
+                sheet.Cell(1, 1).SetFormula("SUM(1,2)");
                 document.Save();
             }
 
@@ -362,7 +364,7 @@ namespace OfficeIMO.Tests {
                 worksheetPart.Worksheet.Save();
             }
 
-            using var reader = ExcelDocumentReader.Open(filePath, new ExcelReadOptions { UseCachedFormulaResult = true });
+            using var reader = ExcelDocumentReader.Open(filePath, new ExcelReaderOptions { UseCachedFormulaResult = true });
             object?[,] values = reader.GetSheet("Formula").ReadRange("A1:A1", ExcelExecutionMode.Sequential);
 
             Assert.Equal("SUM(1,2)", values[0, 0]);
@@ -373,11 +375,11 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "PerformanceReview.HeaderlessTableReaders.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.CellValue(1, 1, "Alpha");
-                sheet.CellValue(1, 2, 10d);
-                sheet.CellValue(2, 1, "Beta");
-                sheet.CellValue(2, 2, 20d);
+                var sheet = document.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Alpha");
+                sheet.Cell(1, 2).SetValue(10d);
+                sheet.Cell(2, 1).SetValue("Beta");
+                sheet.Cell(2, 2).SetValue(20d);
                 sheet.AddTable("A1:B2", false, "HeaderlessData", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9);
                 document.Save();
             }
@@ -397,11 +399,11 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "PerformanceReview.ImplicitRowIndexReadObjects.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(1, 2, "Score");
-                sheet.CellValue(2, 1, "Alpha");
-                sheet.CellValue(2, 2, 10d);
+                var sheet = document.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Score");
+                sheet.Cell(2, 1).SetValue("Alpha");
+                sheet.Cell(2, 2).SetValue(10d);
                 document.Save();
             }
 
@@ -420,7 +422,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "PerformanceReview.ImplicitRowIndexCellValues.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                document.AddWorksheet("Data").CellValue(1, 1, "Existing");
+                document.AddSheet("Data").Cell(1, 1).SetValue("Existing");
                 document.Save();
             }
 
@@ -431,7 +433,7 @@ namespace OfficeIMO.Tests {
                 var cells = Enumerable.Range(2, 20)
                     .Select(row => (row, 1, (object)("Row " + row.ToString(System.Globalization.CultureInfo.InvariantCulture))))
                     .ToList();
-                sheet.CellValues(cells, ExcelExecutionMode.Sequential);
+                sheet.SetValues(cells, ExcelExecutionMode.Sequential);
                 document.Save();
             }
 
@@ -444,7 +446,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "PerformanceReview.ImplicitRowIndexDataTable.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                document.AddWorksheet("Data").CellValue(1, 1, "Existing");
+                document.AddSheet("Data").Cell(1, 1).SetValue("Existing");
                 document.Save();
             }
 
@@ -457,7 +459,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Load(filePath)) {
-                document.Sheets[0].InsertDataTable(table, startRow: 2, startColumn: 1);
+                document.Sheets[0].WriteData(table, row: 2, column: 1);
                 document.Save();
             }
 
@@ -470,9 +472,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "PerformanceReview.TypedDateAndDecimal.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.CellValue(1, 1, "placeholder");
-                sheet.CellValue(1, 2, 1d);
+                var sheet = document.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("placeholder");
+                sheet.Cell(1, 2).SetValue(1d);
                 document.Save();
             }
 
@@ -504,7 +506,7 @@ namespace OfficeIMO.Tests {
                 spreadsheet.WorkbookPart.WorksheetParts.First().Worksheet.Save();
             }
 
-            using var reader = ExcelDocumentReader.Open(filePath, new ExcelReadOptions { NumericAsDecimal = true });
+            using var reader = ExcelDocumentReader.Open(filePath, new ExcelReaderOptions { NumericAsDecimal = true });
             object?[,] values = reader.GetSheet("Data").ReadRange("A1:E1", ExcelExecutionMode.Sequential);
 
             var date = Assert.IsType<DateTime>(values[0, 0]);
@@ -524,9 +526,9 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
-                document.AddWorksheet("Visible").CellValue(1, 1, "Visible");
-                var hidden = document.AddWorksheet("Hidden");
-                hidden.CellValue(1, 1, "Hidden");
+                document.AddSheet("Visible").Cell(1, 1).SetValue("Visible");
+                var hidden = document.AddSheet("Hidden");
+                hidden.Cell(1, 1).SetValue("Hidden");
                 hidden.SetHidden(true);
             }
 
@@ -536,78 +538,6 @@ namespace OfficeIMO.Tests {
             Assert.Equal(SheetStateValues.Hidden, hiddenSheet.State!.Value);
         }
 
-        [Fact]
-        public void PerformanceReview_WriteDataSet_RejectsEmptyDataSet() {
-            using var memory = new MemoryStream();
-            var dataSet = new DataSet();
-
-            var exception = Assert.Throws<ArgumentException>(() => ExcelDocument.WriteDataSet(memory, dataSet));
-            Assert.Contains("at least one DataTable", exception.Message);
-        }
-
-        [Fact]
-        public void PerformanceReview_WriteDataSet_SerializesNonNumericFormattableValuesAsText() {
-            using var memory = new MemoryStream();
-            var id = Guid.Parse("89f22c99-1d51-4de5-b3b4-b20c4a60164f");
-            var dataSet = new DataSet();
-            var table = new DataTable("Items");
-            table.Columns.Add("Id", typeof(Guid));
-            table.Rows.Add(id);
-            dataSet.Tables.Add(table);
-
-            ExcelDocument.WriteDataSet(memory, dataSet);
-
-            memory.Position = 0;
-            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
-            var cell = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>().Single(c => c.CellReference?.Value == "A2");
-            Assert.Equal(CellValues.InlineString, cell.DataType!.Value);
-            Assert.Equal(id.ToString(), GetSpreadsheetCellText(spreadsheet, cell));
-        }
-
-        [Fact]
-        public void PerformanceReview_WriteDataSet_RejectsOversizedTextValues() {
-            using var memory = new MemoryStream();
-            var dataSet = new DataSet();
-            var table = new DataTable("Items");
-            table.Columns.Add("Notes", typeof(string));
-            table.Rows.Add(new string('A', 32768));
-            dataSet.Tables.Add(table);
-
-            var exception = Assert.Throws<ArgumentException>(() => ExcelDocument.WriteDataSet(memory, dataSet));
-            Assert.Contains("32,767", exception.Message);
-        }
-
-        [Fact]
-        public void PerformanceReview_WriteDataSet_RejectsOversizedObjectStringValues() {
-            using var memory = new MemoryStream();
-            var dataSet = new DataSet();
-            var table = new DataTable("Items");
-            table.Columns.Add("Notes", typeof(object));
-            table.Rows.Add(new string('A', 32768));
-            dataSet.Tables.Add(table);
-
-            var exception = Assert.Throws<ArgumentException>(() => ExcelDocument.WriteDataSet(memory, dataSet));
-            Assert.Contains("32,767", exception.Message);
-        }
-
-        [Fact]
-        public void PerformanceReview_WriteDataSet_FallsBackForOutOfRangeDateTimeOffset() {
-            using var memory = new MemoryStream();
-            var value = DateTimeOffset.MinValue;
-            var dataSet = new DataSet();
-            var table = new DataTable("Items");
-            table.Columns.Add("When", typeof(DateTimeOffset));
-            table.Rows.Add(value);
-            dataSet.Tables.Add(table);
-
-            ExcelDocument.WriteDataSet(memory, dataSet);
-
-            memory.Position = 0;
-            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
-            var cell = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>().Single(c => c.CellReference?.Value == "A2");
-            Assert.Equal(CellValues.InlineString, cell.DataType!.Value);
-            Assert.Equal(value.ToString("o", CultureInfo.InvariantCulture), GetSpreadsheetCellText(spreadsheet, cell));
-        }
 
         [Fact]
         public void PerformanceReview_InsertDataTable_DirectPackagePreservesDateTimeOffsetFallbackThreshold() {
@@ -618,8 +548,8 @@ namespace OfficeIMO.Tests {
             table.Rows.Add(value);
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertDataTable(table);
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(table);
 
                 document.Save(memory);
 
@@ -633,167 +563,6 @@ namespace OfficeIMO.Tests {
             Assert.Equal(value.ToString("o", CultureInfo.InvariantCulture), GetSpreadsheetCellText(spreadsheet, cell));
         }
 
-        [Fact]
-        public void PerformanceReview_WriteDataSet_StreamsLargeWorksheetPackageReadable() {
-            using var memory = new MemoryStream();
-            var dataSet = new DataSet("Export");
-            var table = new DataTable("Rows");
-            table.Columns.Add("Index", typeof(int));
-            table.Columns.Add("Name", typeof(string));
-            table.Columns.Add("When", typeof(DateTime));
-            table.Columns.Add("Duration", typeof(TimeSpan));
-            for (int i = 0; i < 5000; i++) {
-                table.Rows.Add(
-                    i,
-                    "Row " + i.ToString(CultureInfo.InvariantCulture),
-                    new DateTime(2026, 5, 18).AddMinutes(i),
-                    TimeSpan.FromSeconds(i));
-            }
-
-            dataSet.Tables.Add(table);
-
-            ExcelDocument.WriteDataSet(memory, dataSet);
-
-            memory.Position = 0;
-            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
-            var worksheet = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet!;
-            var cells = worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
-            Assert.Equal("4999", cells["A5001"].CellValue!.Text);
-            Assert.Equal(CellValues.InlineString, cells["B5001"].DataType!.Value);
-            Assert.Equal("Row 4999", GetSpreadsheetCellText(spreadsheet, cells["B5001"]));
-            Assert.Equal(1U, cells["C5001"].StyleIndex!.Value);
-            Assert.Equal(2U, cells["D5001"].StyleIndex!.Value);
-        }
-
-        [Fact]
-        public void PerformanceReview_WriteDataSet_SmallStringExportSkipsSharedStringTable() {
-            using var memory = new MemoryStream();
-            var dataSet = new DataSet("Export");
-            var table = new DataTable("Rows");
-            table.Columns.Add("Name", typeof(string));
-
-            for (int i = 0; i < 20; i++) {
-                table.Rows.Add("Row " + i.ToString(CultureInfo.InvariantCulture));
-            }
-
-            dataSet.Tables.Add(table);
-
-            ExcelDocument.WriteDataSet(memory, dataSet);
-
-            memory.Position = 0;
-            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
-            Assert.Null(spreadsheet.WorkbookPart!.SharedStringTablePart);
-
-            var worksheet = spreadsheet.WorkbookPart.WorksheetParts.First().Worksheet;
-            var cells = worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
-            Assert.Equal(CellValues.InlineString, cells["A2"].DataType!.Value);
-            Assert.Equal("Row 0", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
-        }
-
-        [Fact]
-        public void PerformanceReview_WriteDataSet_DuplicateStringsBuildSharedStringIndexes() {
-            using var memory = new MemoryStream();
-            var dataSet = new DataSet("Export");
-            var table = new DataTable("Rows");
-            table.Columns.Add("Name", typeof(string));
-
-            for (int i = 0; i < 600; i++) {
-                table.Rows.Add("Repeated");
-            }
-
-            dataSet.Tables.Add(table);
-
-            ExcelDocument.WriteDataSet(memory, dataSet);
-
-            memory.Position = 0;
-            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
-            var sharedStrings = spreadsheet.WorkbookPart!.SharedStringTablePart!.SharedStringTable.Elements<SharedStringItem>().ToList();
-            var worksheet = spreadsheet.WorkbookPart.WorksheetParts.First().Worksheet;
-            var cells = worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
-
-            Assert.Equal(new[] { "Name", "Repeated" }, sharedStrings.Select(item => item.InnerText).ToArray());
-            Assert.Equal(CellValues.SharedString, cells["A2"].DataType!.Value);
-            Assert.Equal("1", cells["A601"].CellValue!.Text);
-        }
-
-        [Fact]
-        public void PerformanceReview_WriteDataSet_SharedStringPlannerRejectsOverLimitSharedValue() {
-            using var memory = new MemoryStream();
-            var dataSet = new DataSet("Export");
-            var table = new DataTable("Rows");
-            table.Columns.Add("Name", typeof(string));
-            string tooLong = new('A', 32_768);
-
-            for (int i = 0; i < 511; i++) {
-                table.Rows.Add(tooLong);
-            }
-
-            dataSet.Tables.Add(table);
-
-            var exception = Assert.Throws<ArgumentException>(() => ExcelDocument.WriteDataSet(memory, dataSet));
-            Assert.Contains("32,767", exception.Message, StringComparison.Ordinal);
-        }
-
-        [Fact]
-        public void PerformanceReview_WriteDataSet_ForcedSharedHeaderCountsPriorDataOccurrence() {
-            using var memory = new MemoryStream();
-            var dataSet = new DataSet("Export");
-
-            var first = new DataTable("First");
-            first.Columns.Add("Value", typeof(string));
-            first.Rows.Add("CrossSheetHeader");
-            for (int i = 0; i < 600; i++) {
-                first.Rows.Add("Repeated");
-            }
-
-            var second = new DataTable("Second");
-            second.Columns.Add("CrossSheetHeader", typeof(string));
-            second.Rows.Add("Other");
-
-            dataSet.Tables.Add(first);
-            dataSet.Tables.Add(second);
-
-            ExcelDocument.WriteDataSet(memory, dataSet);
-
-            memory.Position = 0;
-            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
-            var sharedStringTable = spreadsheet.WorkbookPart!.SharedStringTablePart!.SharedStringTable;
-            int actualSharedCellReferences = spreadsheet.WorkbookPart.WorksheetParts
-                .SelectMany(part => part.Worksheet.Descendants<Cell>())
-                .Count(cell => cell.DataType?.Value == CellValues.SharedString);
-
-            Assert.Contains(sharedStringTable.Elements<SharedStringItem>(), item => item.InnerText == "CrossSheetHeader");
-            Assert.Equal((uint)actualSharedCellReferences, sharedStringTable.Count!.Value);
-        }
-
-        [Fact]
-        public void PerformanceReview_WriteDataSet_SharedStringsSkipUniqueDataValues() {
-            using var memory = new MemoryStream();
-            var dataSet = new DataSet("Export");
-            var table = new DataTable("Rows");
-            table.Columns.Add("Name", typeof(string));
-            table.Columns.Add("Unique", typeof(string));
-
-            for (int i = 0; i < 600; i++) {
-                table.Rows.Add("Repeated", "Unique " + i.ToString(CultureInfo.InvariantCulture));
-            }
-
-            dataSet.Tables.Add(table);
-
-            ExcelDocument.WriteDataSet(memory, dataSet);
-
-            memory.Position = 0;
-            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
-            var sharedStrings = spreadsheet.WorkbookPart!.SharedStringTablePart!.SharedStringTable.Elements<SharedStringItem>().Select(item => item.InnerText).ToList();
-            var worksheet = spreadsheet.WorkbookPart.WorksheetParts.First().Worksheet;
-            var cells = worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
-
-            Assert.Equal(new[] { "Name", "Unique", "Repeated" }, sharedStrings);
-            Assert.Equal(CellValues.SharedString, cells["A2"].DataType!.Value);
-            Assert.Equal("2", cells["A2"].CellValue!.Text);
-            Assert.Equal(CellValues.InlineString, cells["B2"].DataType!.Value);
-            Assert.Equal("Unique 0", GetSpreadsheetCellText(spreadsheet, cells["B2"]));
-        }
 
         [Fact]
         public void PerformanceReview_CellValueDistinctStringsPromotesNewValuesToPlainStringsAfterSharedStringThreshold() {
@@ -801,9 +570,10 @@ namespace OfficeIMO.Tests {
             int rowCount = ExcelSheet.CellValuePlainStringPromotionSharedStringCount + 3;
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Distinct");
+                OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
+                var sheet = document.AddSheet("Distinct");
                 for (int row = 1; row <= rowCount; row++) {
-                    sheet.CellValue(row, 1, "Distinct " + row.ToString(CultureInfo.InvariantCulture));
+                    sheet.Cell(row, 1).SetValue("Distinct " + row.ToString(CultureInfo.InvariantCulture));
                     if (row == 1) {
                         sheet.MaterializePendingDirectCellValues();
                     }
@@ -841,9 +611,9 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.CellValues(seedCells);
-                sheet.InsertObjects(rows);
+                var sheet = document.AddSheet("Data");
+                sheet.SetValues(seedCells);
+                sheet.WriteData(rows);
 
                 document.Save(memory);
             }
@@ -859,46 +629,6 @@ namespace OfficeIMO.Tests {
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 
-        [Fact]
-        public void PerformanceReview_WriteDataSet_PreservesMissingValuesFormatsAndEmptyStrings() {
-            using var memory = new MemoryStream();
-            var dataSet = new DataSet("Export");
-            var table = new DataTable("Sparse");
-            table.Columns.Add("Id", typeof(int));
-            table.Columns.Add("OptionalCode", typeof(string));
-            table.Columns.Add("ExplicitEmpty", typeof(string));
-            table.Columns.Add("ReviewDate", typeof(DateTime));
-            table.Rows.Add(1, DBNull.Value, string.Empty, new DateTime(2026, 5, 20));
-            table.Rows.Add(2, "C2", DBNull.Value, DBNull.Value);
-            dataSet.Tables.Add(table);
-
-            ExcelDocument.WriteDataSet(memory, dataSet);
-
-            memory.Position = 0;
-            using (var spreadsheet = SpreadsheetDocument.Open(memory, false)) {
-                var worksheet = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet!;
-                var cells = worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
-                Assert.False(cells.ContainsKey("B2"));
-                Assert.True(cells.ContainsKey("C2"));
-                Assert.Equal(CellValues.InlineString, cells["C2"].DataType!.Value);
-                Assert.Equal(string.Empty, GetSpreadsheetCellText(spreadsheet, cells["C2"]));
-                Assert.True(cells.ContainsKey("D2"));
-                Assert.True(cells.ContainsKey("A3"));
-                Assert.True(cells.ContainsKey("B3"));
-                Assert.False(cells.ContainsKey("C3"));
-                AssertMissingSpreadsheetCell(cells, "D3");
-                Assert.Equal(cells["D2"].StyleIndex!.Value, cells["D3"].StyleIndex!.Value);
-                Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
-            }
-
-            using var reader = ExcelDocumentReader.Open(memory.ToArray());
-            DataTable imported = reader.ReadTableAsDataTable("Sparse");
-            Assert.Equal(2, imported.Rows.Count);
-            Assert.Equal(DBNull.Value, imported.Rows[0]["OptionalCode"]);
-            Assert.Equal(string.Empty, imported.Rows[0]["ExplicitEmpty"]);
-            Assert.Equal(DBNull.Value, imported.Rows[1]["ExplicitEmpty"]);
-            Assert.Equal(DBNull.Value, imported.Rows[1]["ReviewDate"]);
-        }
 
         [Fact]
         public void PerformanceReview_InsertDataSet_ExplicitSaveUsesDirectDataSetPackageWhenUnchanged() {
@@ -1015,7 +745,7 @@ namespace OfficeIMO.Tests {
             using var cancellation = new CancellationTokenSource();
             cancellation.Cancel();
 
-            await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
                 document.SaveAsync(filePath, null, cancellation.Token));
         }
 
@@ -1048,12 +778,12 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "PerformanceReview.SimplePackageCancelledFileSave.xlsx");
 
             using var document = ExcelDocument.Create(filePath);
-            var sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Value");
+            var sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Value");
             using var cancellation = new CancellationTokenSource();
             cancellation.Cancel();
 
-            await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
                 document.SaveAsync(filePath, null, cancellation.Token));
         }
 
@@ -1062,13 +792,13 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "PerformanceReview.SimplePackageCancelledStreamSave.xlsx");
 
             using var document = ExcelDocument.Create(filePath);
-            var sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Value");
+            var sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Value");
             using var destination = new MemoryStream();
             using var cancellation = new CancellationTokenSource();
             cancellation.Cancel();
 
-            await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
                 document.SaveAsync(destination, options: null, cancellationToken: cancellation.Token));
         }
 
@@ -1200,7 +930,7 @@ namespace OfficeIMO.Tests {
             AssertMissingSpreadsheetCell(cells, "C3");
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
 
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(File.ReadAllBytes(filePath));
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(File.ReadAllBytes(filePath));
             Assert.Equal(3, reader.FieldCount);
             Assert.True(reader.Read());
             Assert.Equal("Alpha", reader.GetString(0));
@@ -1244,7 +974,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("A1:B4", tableDefinition.Reference!.Value);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
 
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(File.ReadAllBytes(filePath));
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(File.ReadAllBytes(filePath));
             Assert.Equal(2, reader.FieldCount);
             Assert.True(reader.Read());
             Assert.Equal("Alpha", reader.GetString(0));
@@ -1265,8 +995,8 @@ namespace OfficeIMO.Tests {
             table.Rows.Add(long.MaxValue);
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertDataTable(table);
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(table);
 
                 document.Save(memory);
 
@@ -1293,8 +1023,8 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.CellValues(cells);
+                var sheet = document.AddSheet("Data");
+                sheet.SetValues(cells);
 
                 document.Save(memory);
 
@@ -1362,7 +1092,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sheets[0].TryGetCellText(2, 1, out string? savedValue));
                 Assert.Equal("Alpha", savedValue);
 
-                document.Sheets[0].CellValue(4, 1, "Gamma");
+                document.Sheets[0].Cell(4, 1).SetValue("Gamma");
                 document.Save();
             }
 
@@ -1476,7 +1206,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 document.InsertDataSet(dataSet);
-                document.Sheets[0].CellValue(3, 1, "Workbook");
+                document.Sheets[0].Cell(3, 1).SetValue("Workbook");
 
                 document.Save();
 
@@ -1489,24 +1219,7 @@ namespace OfficeIMO.Tests {
         }
 
 #if NET6_0_OR_GREATER
-        [Fact]
-        public void PerformanceReview_WriteDataSet_AppliesDateOnlyAndTimeOnlyStyles() {
-            using var memory = new MemoryStream();
-            var dataSet = new DataSet();
-            var table = new DataTable("Items");
-            table.Columns.Add("Date", typeof(DateOnly));
-            table.Columns.Add("Time", typeof(TimeOnly));
-            table.Rows.Add(new DateOnly(2026, 5, 17), new TimeOnly(14, 30, 0));
-            dataSet.Tables.Add(table);
 
-            ExcelDocument.WriteDataSet(memory, dataSet);
-
-            memory.Position = 0;
-            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
-            var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>().ToDictionary(c => c.CellReference!.Value!);
-            Assert.Equal(1U, cells["A2"].StyleIndex!.Value);
-            Assert.Equal(2U, cells["B2"].StyleIndex!.Value);
-        }
 #endif
 
         [Fact]
@@ -1514,7 +1227,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "PerformanceReview.DimensionOrder.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                document.AddWorksheet("Data").CellValue(1, 1, "Existing");
+                document.AddSheet("Data").Cell(1, 1).SetValue("Existing");
                 document.Save();
             }
 
@@ -1532,7 +1245,7 @@ namespace OfficeIMO.Tests {
                 var cells = Enumerable.Range(2, 20)
                     .Select(row => (row, 1, (object)("Row " + row.ToString(CultureInfo.InvariantCulture))))
                     .ToList();
-                document.Sheets[0].CellValues(cells, ExcelExecutionMode.Sequential);
+                document.Sheets[0].SetValues(cells, ExcelExecutionMode.Sequential);
                 document.Save();
             }
 
@@ -1552,7 +1265,7 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose });
-            document.AddWorksheet("Data").CellValue(1, 1, "Closed");
+            document.AddSheet("Data").Cell(1, 1).SetValue("Closed");
             document.Dispose();
 
             memory.Position = 0;
@@ -1566,7 +1279,7 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
-                document.AddWorksheet("Source").CellValue(1, 1, "Copied");
+                document.AddSheet("Source").Cell(1, 1).SetValue("Copied");
             }
 
             memory.Position = 0;
@@ -1584,8 +1297,8 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.CellValue(1, 1, "Value");
+                var sheet = document.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Value");
                 var worksheet = sheet.WorksheetPart.Worksheet;
                 var sheetData = worksheet.GetFirstChild<SheetData>()!;
                 var columns = new Columns(new Column {
@@ -1608,9 +1321,10 @@ namespace OfficeIMO.Tests {
         public void PerformanceReview_ExplicitStreamSave_UsesSimplePackageWriterWhenEligible() {
             using var memory = new MemoryStream();
             using var document = ExcelDocument.Create(new MemoryStream());
-            var sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Name");
-            sheet.CellValue(2, 1, "OfficeIMO");
+            OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
+            var sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(2, 1).SetValue("OfficeIMO");
 
             document.Save(memory);
 
@@ -1630,9 +1344,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "PerformanceReview.SimplePackageExplicitSave.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 1, "OfficeIMO");
+                OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
+                var sheet = document.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 1).SetValue("OfficeIMO");
 
                 document.Save();
 
@@ -1652,8 +1367,8 @@ namespace OfficeIMO.Tests {
         public void PerformanceReview_ExplicitStreamSave_ReportsSimplePackageFallbackReason() {
             using var memory = new MemoryStream();
             using var document = ExcelDocument.Create(new MemoryStream());
-            var sheet = document.AddWorksheet("Comments");
-            sheet.CellValue(1, 1, "Project");
+            var sheet = document.AddSheet("Comments");
+            sheet.Cell(1, 1).SetValue("Project");
             sheet.SetComment(1, 1, "Fallback coverage", "OfficeIMO");
 
             document.Save(memory);
@@ -1667,8 +1382,8 @@ namespace OfficeIMO.Tests {
         public void PerformanceReview_ExplicitStreamSave_FallsBackForUnknownSheetDataChild() {
             using var memory = new MemoryStream();
             using var document = ExcelDocument.Create(new MemoryStream());
-            var sheet = document.AddWorksheet("Unknown");
-            sheet.CellValue(1, 1, "Project");
+            var sheet = document.AddSheet("Unknown");
+            sheet.Cell(1, 1).SetValue("Project");
 
             var sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
             var row = sheetData.Elements<Row>().First();
@@ -1685,8 +1400,8 @@ namespace OfficeIMO.Tests {
         public void PerformanceReview_ExplicitStreamSave_FallsBackForUnknownDirectSheetDataChild() {
             using var memory = new MemoryStream();
             using var document = ExcelDocument.Create(new MemoryStream());
-            var sheet = document.AddWorksheet("Unknown");
-            sheet.CellValue(1, 1, "Project");
+            var sheet = document.AddSheet("Unknown");
+            sheet.Cell(1, 1).SetValue("Project");
 
             var sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
             sheetData.AppendChild(new OpenXmlUnknownElement("x", "unknown", "urn:officeimo:test"));
@@ -1702,7 +1417,8 @@ namespace OfficeIMO.Tests {
         public void PerformanceReview_ExplicitStreamSave_UsesSimplePackageWriterForHyperlinks() {
             using var memory = new MemoryStream();
             using var document = ExcelDocument.Create(new MemoryStream());
-            var sheet = document.AddWorksheet("Links");
+            OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
+            var sheet = document.AddSheet("Links");
             sheet.SetHyperlink(1, 1, "https://github.com/EvotecIT/OfficeIMO", "OfficeIMO");
             sheet.SetInternalLink(2, 1, "'Links'!A1", "Back");
 
@@ -1726,9 +1442,10 @@ namespace OfficeIMO.Tests {
         public void PerformanceReview_ExplicitStreamSave_UsesSimplePackageWriterForDefinedNames() {
             using var memory = new MemoryStream();
             using var document = ExcelDocument.Create(new MemoryStream());
-            var sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Name");
-            sheet.CellValue(2, 1, "OfficeIMO");
+            OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
+            var sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(2, 1).SetValue("OfficeIMO");
             document.SetNamedRange("GlobalData", "'Data'!A1:A2", save: false);
             sheet.SetNamedRange("LocalData", "A2", save: false);
 
@@ -1750,7 +1467,8 @@ namespace OfficeIMO.Tests {
             const string plainValue = " Plain\r\ninline 東京 😀 &<> ";
             using var memory = new MemoryStream();
             using var document = ExcelDocument.Create(new MemoryStream());
-            var sheet = document.AddWorksheet("Inline");
+            OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
+            var sheet = document.AddSheet("Inline");
             var sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
             var row = new Row { RowIndex = 1U };
             row.Append(
@@ -1789,7 +1507,8 @@ namespace OfficeIMO.Tests {
         public void PerformanceReview_ExplicitStreamSave_UsesSimplePackageWriterForRichSharedStrings() {
             using var memory = new MemoryStream();
             using var document = ExcelDocument.Create(new MemoryStream());
-            var sheet = document.AddWorksheet("Shared");
+            OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
+            var sheet = document.AddSheet("Shared");
             var sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
             sheetData.Append(new Row(
                 new Cell {
@@ -1831,8 +1550,9 @@ namespace OfficeIMO.Tests {
         public void PerformanceReview_ExplicitStreamSave_UsesSimplePackageWriterForRowMetadata() {
             using var memory = new MemoryStream();
             using var document = ExcelDocument.Create(new MemoryStream());
-            var sheet = document.AddWorksheet("Rows");
-            sheet.CellValue(1, 1, "Hidden");
+            OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
+            var sheet = document.AddSheet("Rows");
+            sheet.Cell(1, 1).SetValue("Hidden");
             var row = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!.Elements<Row>().First();
             row.Hidden = true;
             row.Height = 24D;
@@ -1861,12 +1581,14 @@ namespace OfficeIMO.Tests {
         public void PerformanceReview_ExplicitStreamSave_UsesSimplePackageWriterForPrintMetadata() {
             using var memory = new MemoryStream();
             using var document = ExcelDocument.Create(new MemoryStream());
-            var sheet = document.AddWorksheet("Report");
-            sheet.CellValue(1, 1, "Report");
-            sheet.SetMargins(0.25D, 0.25D, 0.5D, 0.5D, 0.3D, 0.3D);
-            sheet.SetOrientation(OfficePageOrientation.Landscape);
-            sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 0U);
-            sheet.SetHeaderFooter(headerCenter: "OfficeIMO", footerRight: "Page &P of &N");
+            OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
+            var sheet = document.AddSheet("Report");
+            sheet.Cell(1, 1).SetValue("Report");
+            sheet.PageSetup.SetMargins(OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.5D), OfficeLength.Inches(0.5D), OfficeLength.Inches(0.3D), OfficeLength.Inches(0.3D));
+            sheet.PageSetup.Orientation = OfficePageOrientation.Landscape;
+            sheet.PageSetup.FitToWidth = 1U; sheet.PageSetup.FitToHeight = 0U;
+            sheet.PageSetup.Header.Center.Text = "OfficeIMO";
+            sheet.PageSetup.Footer.Right.Text = "Page &P of &N";
 
             document.Save(memory);
 
@@ -1894,8 +1616,9 @@ namespace OfficeIMO.Tests {
         public void PerformanceReview_ExplicitStreamSave_UsesSimplePackageWriterForWorksheetMetadata() {
             using var memory = new MemoryStream();
             using var document = ExcelDocument.Create(new MemoryStream());
-            var sheet = document.AddWorksheet("Metadata");
-            sheet.CellValue(1, 1, "Watched");
+            OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
+            var sheet = document.AddSheet("Metadata");
+            sheet.Cell(1, 1).SetValue("Watched");
             var worksheet = sheet.WorksheetPart.Worksheet;
             worksheet.Append(new SheetCalculationProperties { FullCalculationOnLoad = true });
             worksheet.Append(new PhoneticProperties { FontId = 0U });
@@ -1920,10 +1643,11 @@ namespace OfficeIMO.Tests {
         public void PerformanceReview_ExplicitStreamSave_UsesSimplePackageWriterForHiddenSheets() {
             using var memory = new MemoryStream();
             using var document = ExcelDocument.Create(new MemoryStream());
-            var visible = document.AddWorksheet("Visible");
-            visible.CellValue(1, 1, "Shown");
-            var hidden = document.AddWorksheet("Hidden");
-            hidden.CellValue(1, 1, "Hidden");
+            OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
+            var visible = document.AddSheet("Visible");
+            visible.Cell(1, 1).SetValue("Shown");
+            var hidden = document.AddSheet("Hidden");
+            hidden.Cell(1, 1).SetValue("Hidden");
             hidden.SetHidden(true);
 
             document.Save(memory);
@@ -1945,8 +1669,9 @@ namespace OfficeIMO.Tests {
         public void PerformanceReview_ExplicitStreamSave_UsesSimplePackageWriterForWorkbookMetadata() {
             using var memory = new MemoryStream();
             using var document = ExcelDocument.Create(new MemoryStream());
-            var sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Value");
+            OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
+            var sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Value");
 
             var workbookPart = sheet.WorksheetPart.GetParentParts().OfType<WorkbookPart>().Single();
             var workbook = workbookPart.Workbook;
@@ -1984,15 +1709,16 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "PerformanceReview.SimplePackageRepeatedSave.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 1, "OfficeIMO");
+                OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
+                var sheet = document.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 1).SetValue("OfficeIMO");
 
                 document.Save();
                 Assert.Equal(ExcelSavePackageWriter.SimplePackage, document.LastSaveDiagnostics.Writer);
 
                 sheet = document.Sheets[0];
-                sheet.CellValue(3, 1, "Again");
+                sheet.Cell(3, 1).SetValue("Again");
                 document.Save();
 
                 Assert.True(
@@ -2012,10 +1738,11 @@ namespace OfficeIMO.Tests {
         public void PerformanceReview_ExplicitStreamSave_UsesSimplePackageWriterForSimpleFormulas() {
             using var memory = new MemoryStream();
             using var document = ExcelDocument.Create(new MemoryStream());
-            var sheet = document.AddWorksheet("Calc");
-            sheet.CellValue(1, 1, 2d);
-            sheet.CellValue(2, 1, 3d);
-            sheet.CellFormula(3, 1, "SUM(A1:A2)");
+            OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
+            var sheet = document.AddSheet("Calc");
+            sheet.Cell(1, 1).SetValue(2d);
+            sheet.Cell(2, 1).SetValue(3d);
+            sheet.Cell(3, 1).SetFormula("SUM(A1:A2)");
             document.RecalculateSupportedFormulas();
             Assert.True(sheet.TryGetCachedFormulaValue(3, 1, out string? cachedValue));
             Assert.Equal("5", cachedValue);
@@ -2037,13 +1764,13 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PerformanceReview_RecalculateMaterializesPendingDirectCellValuesBeforeFormulaScan() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            var sheet = document.AddWorksheet("Calc");
+            var sheet = document.AddSheet("Calc");
 
             for (int row = 1; row <= 130; row++) {
-                sheet.CellValue(row, 1, row);
+                sheet.Cell(row, 1).SetValue(row);
             }
 
-            sheet.CellFormula(131, 1, "SUM(A1:A130)");
+            sheet.Cell(131, 1).SetFormula("SUM(A1:A130)");
 
             Assert.Equal(1, document.RecalculateSupportedFormulas());
             Assert.True(sheet.TryGetCachedFormulaValue(131, 1, out string? value));
@@ -2054,10 +1781,10 @@ namespace OfficeIMO.Tests {
         public void PerformanceReview_ExplicitStreamSave_FallsBackWhenCalculationPolicyIsPending() {
             using var memory = new MemoryStream();
             using var document = ExcelDocument.Create(new MemoryStream());
-            var sheet = document.AddWorksheet("Calc");
-            sheet.CellValue(1, 1, 2d);
-            sheet.CellValue(2, 1, 3d);
-            sheet.CellFormula(3, 1, "SUM(A1:A2)");
+            var sheet = document.AddSheet("Calc");
+            sheet.Cell(1, 1).SetValue(2d);
+            sheet.Cell(2, 1).SetValue(3d);
+            sheet.Cell(3, 1).SetFormula("SUM(A1:A2)");
             document.Calculation.ForceFullCalculationOnOpen = true;
 
             document.Save(memory);
@@ -2073,8 +1800,8 @@ namespace OfficeIMO.Tests {
             var created = new DateTime(2026, 5, 19);
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.CellValues(new[] {
+                var sheet = document.AddSheet("Data");
+                sheet.SetValues(new[] {
                     (1, 1, (object)"Name"),
                     (1, 2, (object)"Score"),
                     (1, 3, (object)"Created"),
@@ -2123,8 +1850,8 @@ namespace OfficeIMO.Tests {
             static void AssertCellValuesMultilineFallback((int Row, int Column, object Value)[] cells, string reference, string expectedText) {
                 using var memory = new MemoryStream();
                 using (var document = ExcelDocument.Create(new MemoryStream())) {
-                    var sheet = document.AddWorksheet("Data");
-                    sheet.CellValues(cells);
+                    var sheet = document.AddSheet("Data");
+                    sheet.SetValues(cells);
                     document.Save(memory);
 
                     Assert.NotEqual(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
@@ -2155,7 +1882,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                document.AddWorksheet("Data").CellValues(cells, ExcelExecutionMode.Parallel);
+                document.AddSheet("Data").SetValues(cells, ExcelExecutionMode.Parallel);
                 document.Save(memory);
 
                 Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
@@ -2192,7 +1919,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                document.AddWorksheet("Strings").CellValues(cells, ExcelExecutionMode.Parallel);
+                document.AddSheet("Strings").SetValues(cells, ExcelExecutionMode.Parallel);
                 document.Save(memory);
 
                 Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
@@ -2224,8 +1951,8 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.CellValues(cells);
+                var sheet = document.AddSheet("Data");
+                sheet.SetValues(cells);
 
                 Assert.True(sheet.TryGetCellText(100, 3, out string? immediateText));
                 Assert.Equal("Item 100", immediateText);
@@ -2255,7 +1982,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                document.AddWorksheet("Data").CellValues(cells);
+                document.AddSheet("Data").SetValues(cells);
                 document.Save(memory);
 
                 Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
@@ -2303,7 +2030,7 @@ namespace OfficeIMO.Tests {
             byte[] package;
             using (var output = new MemoryStream()) {
                 using (var document = ExcelDocument.Create(new MemoryStream())) {
-                    document.AddWorksheet("Data").CellValues(cells);
+                    document.AddSheet("Data").SetValues(cells);
                     document.Save(output);
 
                     Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
@@ -2340,7 +2067,7 @@ namespace OfficeIMO.Tests {
 
             using var output = new MemoryStream();
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                document.AddWorksheet("Data").CellValues(cells);
+                document.AddSheet("Data").SetValues(cells);
                 document.Save(output);
 
                 Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
@@ -2372,8 +2099,8 @@ namespace OfficeIMO.Tests {
             byte[] package;
             using (var output = new MemoryStream()) {
                 using (var document = ExcelDocument.Create(new MemoryStream())) {
-                    ExcelSheet sheet = document.AddWorksheet("Data");
-                    sheet.CellValues(new[] {
+                    ExcelSheet sheet = document.AddSheet("Data");
+                    sheet.SetValues(new[] {
                         (1, 1, (object)"Id"),
                         (1, 2, (object)"Region"),
                         (1, 3, (object)"Owner"),
@@ -2383,7 +2110,7 @@ namespace OfficeIMO.Tests {
                         (1, 7, (object)"Active"),
                         (1, 8, (object)"Notes")
                     }, ExcelExecutionMode.Sequential);
-                    sheet.CellValues(dataCells, ExcelExecutionMode.Parallel);
+                    sheet.SetValues(dataCells, ExcelExecutionMode.Parallel);
                     document.Save(output);
 
                     Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
@@ -2429,9 +2156,9 @@ namespace OfficeIMO.Tests {
             byte[] package;
             using (var output = new MemoryStream()) {
                 using (var document = ExcelDocument.Create(new MemoryStream())) {
-                    ExcelSheet sheet = document.AddWorksheet("Data");
-                    sheet.CellValue(1, 1, "Column1");
-                    sheet.CellValues(cells);
+                    ExcelSheet sheet = document.AddSheet("Data");
+                    sheet.Cell(1, 1).SetValue("Column1");
+                    sheet.SetValues(cells);
                     cells[cells.Length - 1] = (dataRowCount + 1, columnCount, -1);
                     document.Save(output);
                 }
@@ -2449,11 +2176,11 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 for (int row = 1; row <= 100; row++) {
-                    sheet.CellValue(row, 1, (double)row * 1.25d);
-                    sheet.CellValue(row, 2, row % 2 == 0);
-                    sheet.CellValue(row, 3, row);
+                    sheet.Cell(row, 1).SetValue((double)row * 1.25d);
+                    sheet.Cell(row, 2).SetValue(row % 2 == 0);
+                    sheet.Cell(row, 3).SetValue(row);
                 }
 
                 document.Save(memory);
@@ -2479,10 +2206,10 @@ namespace OfficeIMO.Tests {
             var start = new DateTime(2026, 1, 1, 8, 30, 0, DateTimeKind.Unspecified);
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 for (int row = 1; row <= 100; row++) {
-                    sheet.CellValue(row, 1, start.AddDays(row));
-                    sheet.CellValue(row, 2, TimeSpan.FromMinutes(row * 7));
+                    sheet.Cell(row, 1).SetValue(start.AddDays(row));
+                    sheet.Cell(row, 2).SetValue(TimeSpan.FromMinutes(row * 7));
                 }
 
                 document.Save(memory);
@@ -2510,12 +2237,12 @@ namespace OfficeIMO.Tests {
             var start = new DateTime(2026, 1, 1, 8, 30, 0, DateTimeKind.Unspecified);
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 for (int row = 1; row <= 100; row++) {
-                    sheet.CellValue(row, 1, (object)("Item " + row.ToString(CultureInfo.InvariantCulture)));
-                    sheet.CellValue(row, 2, (object)(row * 1.5d));
-                    sheet.CellValue(row, 3, (object)(row % 2 == 0));
-                    sheet.CellValue(row, 4, (object)start.AddMinutes(row));
+                    sheet.Cell(row, 1).SetValue((object)("Item " + row.ToString(CultureInfo.InvariantCulture)));
+                    sheet.Cell(row, 2).SetValue((object)(row * 1.5d));
+                    sheet.Cell(row, 3).SetValue((object)(row % 2 == 0));
+                    sheet.Cell(row, 4).SetValue((object)start.AddMinutes(row));
                 }
 
                 document.Save(memory);
@@ -2541,7 +2268,7 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 WriteSparseCellValueObjectRows(sheet);
 
                 document.Save(memory);
@@ -2558,7 +2285,7 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.Batch(WriteSparseCellValueObjectRows);
 
                 document.Save(memory);
@@ -2577,10 +2304,10 @@ namespace OfficeIMO.Tests {
                 object? amount = row % 4 == 0 ? DBNull.Value : row * 1.25d;
                 object? active = row % 5 == 0 ? null : row % 2 == 0;
                 object? created = row % 7 == 0 ? null : start.AddDays(row);
-                sheet.CellValue(row, 1, name);
-                sheet.CellValue(row, 2, amount);
-                sheet.CellValue(row, 3, active);
-                sheet.CellValue(row, 4, created);
+                sheet.Cell(row, 1).SetValue(name);
+                sheet.Cell(row, 2).SetValue(amount);
+                sheet.Cell(row, 3).SetValue(active);
+                sheet.Cell(row, 4).SetValue(created);
             }
         }
 
@@ -2613,11 +2340,11 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 for (int row = 1; row <= 100; row++) {
-                    sheet.CellValue(row, 1, "Region " + (row % 8).ToString(CultureInfo.InvariantCulture));
-                    sheet.CellValue(row, 2, "Owner " + (row % 16).ToString(CultureInfo.InvariantCulture));
-                    sheet.CellValue(row, 3, "Status " + (row % 4).ToString(CultureInfo.InvariantCulture));
+                    sheet.Cell(row, 1).SetValue("Region " + (row % 8).ToString(CultureInfo.InvariantCulture));
+                    sheet.Cell(row, 2).SetValue("Owner " + (row % 16).ToString(CultureInfo.InvariantCulture));
+                    sheet.Cell(row, 3).SetValue("Status " + (row % 4).ToString(CultureInfo.InvariantCulture));
                 }
 
                 document.Save(memory);
@@ -2642,11 +2369,11 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.CellValue(1, 1, "Alpha");
-                sheet.CellValue(1, 2, "Beta");
-                sheet.CellValue(2, 1, "Gamma");
-                sheet.CellValue(2, 2, "Delta");
+                var sheet = document.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Alpha");
+                sheet.Cell(1, 2).SetValue("Beta");
+                sheet.Cell(2, 1).SetValue("Gamma");
+                sheet.Cell(2, 2).SetValue("Delta");
 
                 Assert.True(sheet.TryGetCellText(2, 1, out string? text));
                 Assert.Equal("Gamma", text);
@@ -2667,8 +2394,8 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.CellValue(1, 1, "Top\nBottom");
+                var sheet = document.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Top\nBottom");
 
                 document.Save(memory);
 
@@ -2688,11 +2415,11 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.CellValue(1, 1, 1d);
-                sheet.CellValue(1, 2, 2d);
-                sheet.CellValue(2, 1, 3d);
-                sheet.CellValue(2, 2, 10d);
+                var sheet = document.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue(1d);
+                sheet.Cell(1, 2).SetValue(2d);
+                sheet.Cell(2, 1).SetValue(3d);
+                sheet.Cell(2, 2).SetValue(10d);
 
                 Assert.True(sheet.TryGetCellText(2, 1, out string? text));
                 Assert.Equal("3", text);
@@ -2713,11 +2440,11 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.CellValue(1, 1, 1d);
-                sheet.CellValue(1, 2, 2d);
-                sheet.CellValue(2, 1, 3d);
-                sheet.CellValue(3, 1, 4d);
+                var sheet = document.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue(1d);
+                sheet.Cell(1, 2).SetValue(2d);
+                sheet.Cell(2, 1).SetValue(3d);
+                sheet.Cell(3, 1).SetValue(4d);
 
                 document.Save(memory);
 
@@ -2740,8 +2467,8 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.CellValues(new[] {
+                var sheet = document.AddSheet("Data");
+                sheet.SetValues(new[] {
                     (1, 1, (object)"Name"),
                     (1, 2, (object)"Score"),
                     (2, 1, (object)"Alpha"),
@@ -2751,7 +2478,7 @@ namespace OfficeIMO.Tests {
                 }, ExcelExecutionMode.Parallel);
 
                 using (sheet.BeginNoLock()) {
-                    sheet.CellValue(2, 2, 999);
+                    sheet.Cell(2, 2).SetValue(999);
                 }
 
                 document.Save(memory);
@@ -2774,8 +2501,8 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.CellValues(new[] {
+                var sheet = document.AddSheet("Data");
+                sheet.SetValues(new[] {
                     (1, 1, (object)"Name"),
                     (1, 2, (object)"Name"),
                     (2, 1, (object)"Alpha"),
@@ -2806,12 +2533,12 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.CellValues(new[] {
+                var sheet = document.AddSheet("Data");
+                sheet.SetValues(new[] {
                     (1, 1, (object)"Name"),
                     (1, 2, (object)"Score")
                 }, ExcelExecutionMode.Sequential);
-                sheet.CellValues(new[] {
+                sheet.SetValues(new[] {
                     (2, 1, (object)"Alpha"),
                     (2, 2, (object)10),
                     (3, 1, (object)"Beta"),
@@ -2840,12 +2567,12 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.CellValues(new[] {
+                var sheet = document.AddSheet("Data");
+                sheet.SetValues(new[] {
                     (1, 1, (object)"Name"),
                     (1, 2, (object)"Score")
                 }, ExcelExecutionMode.Sequential);
-                sheet.CellValues(new[] {
+                sheet.SetValues(new[] {
                     (2, 1, (object)"Alpha"),
                     (2, 2, (object)10),
                     (3, 1, (object)"Beta"),
@@ -2873,9 +2600,9 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertDataTable(CreateSingleColumnDataTable("First", "Alpha"));
-                sheet.InsertDataTable(CreateSingleColumnDataTable("Second", "Beta"), startRow: 3, includeHeaders: false);
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(CreateSingleColumnDataTable("First", "Alpha"));
+                sheet.WriteData(CreateSingleColumnDataTable("Second", "Beta"), row: 3, includeHeaders: false);
 
                 document.Save(memory);
 
@@ -2895,8 +2622,8 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertDataTable(CreateSingleColumnDataTable("Items", "Alpha"));
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(CreateSingleColumnDataTable("Items", "Alpha"));
 
                 Assert.True(sheet.TryGetColumnIndexByHeader("Name", out int columnIndex));
                 Assert.Equal(1, columnIndex);
@@ -2916,9 +2643,9 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertDataTable(CreateSingleColumnDataTable("First", "Alpha"));
-                sheet.InsertDataTable(CreateSingleColumnDataTable("Second", "Beta"), startRow: 3, includeHeaders: false, mode: ExcelExecutionMode.Parallel);
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(CreateSingleColumnDataTable("First", "Alpha"));
+                sheet.WriteData(CreateSingleColumnDataTable("Second", "Beta"), row: 3, includeHeaders: false, mode: ExcelExecutionMode.Parallel);
 
                 document.Save(memory);
 
@@ -2938,8 +2665,8 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertDataTable(CreateSingleColumnDataTable("First", "Alpha"));
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(CreateSingleColumnDataTable("First", "Alpha"));
                 using var reader = CreateSingleColumnDataTable("Second", "Beta").CreateDataReader();
                 sheet.InsertDataReader(reader, startRow: 3, includeHeaders: false, createTable: false);
 
@@ -2964,7 +2691,7 @@ namespace OfficeIMO.Tests {
             table.Rows.Add("Alpha");
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 using var reader = table.CreateDataReader();
 
                 MethodInfo? method = typeof(ExcelSheet).GetMethod(
@@ -3010,16 +2737,16 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.CellValues(new[] {
+                var sheet = document.AddSheet("Data");
+                sheet.SetValues(new[] {
                     (1, 1, (object)"Name"),
                     (1, 2, (object)"Score")
                 }, ExcelExecutionMode.Sequential);
-                sheet.CellValues(new[] {
+                sheet.SetValues(new[] {
                     (2, 1, (object)"Alpha"),
                     (2, 2, (object)10)
                 }, ExcelExecutionMode.Parallel);
-                sheet.CellValue(5, 1, "Manual edit");
+                sheet.Cell(5, 1).SetValue("Manual edit");
 
                 document.Save(memory);
 
@@ -3041,8 +2768,8 @@ namespace OfficeIMO.Tests {
             var created = new DateTime(2026, 5, 19);
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.CellValues(new[] {
+                var sheet = document.AddSheet("Data");
+                sheet.SetValues(new[] {
                     (1, 1, (object)created)
                 });
 
@@ -3066,11 +2793,11 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.CellValues(new[] {
+                var sheet = document.AddSheet("Data");
+                sheet.SetValues(new[] {
                     (1, 1, (object)"Original")
                 });
-                sheet.CellValue(2, 1, "Manual edit");
+                sheet.Cell(2, 1).SetValue("Manual edit");
 
                 document.Save(memory);
 
@@ -3090,14 +2817,14 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.CellValues(new[] {
+                var sheet = document.AddSheet("Data");
+                sheet.SetValues(new[] {
                     (1, 1, (object)"Name"),
                     (1, 2, (object)"Score"),
                     (2, 1, (object)"Alpha"),
                     (2, 2, (object)10)
                 });
-                sheet.CellValue(5, 1, "Manual edit");
+                sheet.Cell(5, 1).SetValue("Manual edit");
 
                 document.Save(memory);
 
@@ -3116,8 +2843,8 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.CellValues(new[] {
+                var sheet = document.AddSheet("Data");
+                sheet.SetValues(new[] {
                     (1, 1, (object)"Left"),
                     (1, 3, (object)"Right")
                 });
@@ -3140,8 +2867,8 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.CellValues(new[] {
+                var sheet = document.AddSheet("Data");
+                sheet.SetValues(new[] {
                     (1, 1, (object)"Line 1\nLine 2")
                 });
 
@@ -3168,17 +2895,17 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 var start = new DateTime(2026, 1, 1, 8, 30, 0, DateTimeKind.Unspecified);
                 for (int row = 1; row <= 100; row++) {
                     object? name = "Item " + row.ToString(CultureInfo.InvariantCulture);
                     object? created = start.AddDays(row);
                     object? duration = TimeSpan.FromMinutes(row * 7);
                     object? offset = new DateTimeOffset(start.AddHours(row), TimeSpan.Zero);
-                    sheet.CellValue(row, 1, name);
-                    sheet.CellValue(row, 2, created);
-                    sheet.CellValue(row, 3, duration);
-                    sheet.CellValue(row, 4, offset);
+                    sheet.Cell(row, 1).SetValue(name);
+                    sheet.Cell(row, 2).SetValue(created);
+                    sheet.Cell(row, 3).SetValue(duration);
+                    sheet.Cell(row, 4).SetValue(offset);
                 }
 
                 document.Save(memory);
@@ -3211,9 +2938,9 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 document.DateTimeOffsetWriteStrategy = value => value.UtcDateTime;
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 for (int row = 1; row <= 150; row++) {
-                    sheet.CellValue(row, 1, start.AddMinutes(row));
+                    sheet.Cell(row, 1).SetValue(start.AddMinutes(row));
                 }
 
                 document.Save(memory);
@@ -3242,11 +2969,8 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
 
                 document.Save(memory);
 
@@ -3272,11 +2996,8 @@ namespace OfficeIMO.Tests {
 
             using var memory = new MemoryStream();
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
 
                 document.Save(memory);
 
@@ -3293,10 +3014,8 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score));
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score));
 
                 rows[0].Name = "Changed";
                 rows[0].Score = 99;
@@ -3322,8 +3041,8 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows, ("", row => row.Name));
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("", row => row.Name));
 
                 Assert.True(sheet.TryGetCellText(1, 1, out string? header));
                 Assert.Equal(string.Empty, header);
@@ -3349,8 +3068,8 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows);
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows);
 
                 Assert.True(sheet.TryGetCellText(1, 1, out string? header));
                 Assert.Equal(" ", header);
@@ -3387,8 +3106,8 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows);
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows);
                 rows[0]["Name"] = "Changed after InsertObjects";
                 rows[1]["Score"] = 99;
                 rows[1]["Active"] = false;
@@ -3432,7 +3151,7 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                document.AddWorksheet("Data").InsertObjects(rows);
+                document.AddSheet("Data").WriteData(rows);
                 rows[0]["Name"] = "Changed after InsertObjects";
                 rows[1]["Score"] = 99;
 
@@ -3466,7 +3185,7 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                document.AddWorksheet("Data").InsertObjects(rows);
+                document.AddSheet("Data").WriteData(rows);
                 document.Save(memory);
 
                 Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
@@ -3495,7 +3214,7 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                document.AddWorksheet("Data").InsertObjects(rows);
+                document.AddSheet("Data").WriteData(rows);
                 document.Save(memory);
             }
 
@@ -3530,8 +3249,8 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 document.Execution.SaveWorksheetAfterAutoFit = false;
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows);
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows);
                 sheet.AutoFitColumnsFor(new[] { 1, 3 });
 
                 document.Save(memory);
@@ -3575,8 +3294,8 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows);
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows);
 
                 document.Save(memory);
 
@@ -3610,8 +3329,8 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows);
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows);
 
                 document.Save(memory);
 
@@ -3644,8 +3363,8 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows);
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows);
 
                 document.Save(memory);
 
@@ -3675,8 +3394,8 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows);
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows);
 
                 document.Save(memory);
 
@@ -3705,8 +3424,8 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows);
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows);
 
                 rows[0].Name = "Changed";
                 rows[0].Score = 99;
@@ -3733,9 +3452,9 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.CellValue(5, 5, "Manual edit");
-                sheet.InsertObjects(rows);
+                var sheet = document.AddSheet("Data");
+                sheet.Cell(5, 5).SetValue("Manual edit");
+                sheet.WriteData(rows);
 
                 document.Save(memory);
 
@@ -3765,8 +3484,8 @@ namespace OfficeIMO.Tests {
 
             using var memory = new MemoryStream();
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows);
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows);
 
                 document.Save(memory);
 
@@ -3783,12 +3502,9 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
-                sheet.CellValue(4, 1, "Manual edit");
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
+                sheet.Cell(4, 1).SetValue("Manual edit");
 
                 document.Save(memory);
 
@@ -3811,11 +3527,8 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C3", hasHeader: true, name: "Object Sales", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
 
                 document.Save(memory);
@@ -3848,11 +3561,8 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 document.Execution.SaveWorksheetAfterAutoFit = false;
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C3", hasHeader: true, name: "Object Sales", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
                 sheet.AutoFitColumns();
 
@@ -3886,11 +3596,8 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 document.Execution.SaveWorksheetAfterAutoFit = false;
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AutoFitColumnsFor(new[] { 1, 2, 3 });
 
                 document.Save(memory);
@@ -3923,11 +3630,8 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 document.Execution.SaveWorksheetAfterAutoFit = false;
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AutoFitColumnsFor(new[] { 1, 3 });
 
                 document.Save(memory);
@@ -3961,11 +3665,8 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 document.Execution.SaveWorksheetAfterAutoFit = false;
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AutoFitColumn(2);
 
                 document.Save(memory);
@@ -4019,8 +3720,8 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows);
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows);
 
                 document.Save(memory);
 
@@ -4064,8 +3765,8 @@ namespace OfficeIMO.Tests {
             ];
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows);
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows);
 
                 document.Save(memory);
 
@@ -4104,8 +3805,8 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows);
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows);
 
                 document.Save(memory);
 
@@ -4155,7 +3856,7 @@ namespace OfficeIMO.Tests {
                 document.Execution.OnDecision = (operation, _, mode) => {
                     if (operation == "InsertObjects.PowerShellProjection") decidedMode = mode;
                 };
-                document.AddWorksheet("Data").InsertObjects(rows);
+                document.AddSheet("Data").WriteData(rows);
                 document.Save(memory);
             }
 
@@ -4185,8 +3886,8 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows);
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows);
 
                 document.Save(memory);
 
@@ -4233,8 +3934,8 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows);
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows);
 
                 document.Save(memory);
 
@@ -4262,8 +3963,8 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows);
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows);
 
                 document.Save(memory);
 
@@ -4293,11 +3994,8 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 document.Execution.SaveWorksheetAfterAutoFit = false;
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AutoFitColumnsFor(new[] { 1 });
 
                 document.Save(memory);
@@ -4327,17 +4025,14 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
-                sheet.AddConditionalRule("B2:B4", ExcelConditionalFormattingOperator.GreaterThan, "15");
-                sheet.AddConditionalColorScale("B2:B4", OfficeIMO.Drawing.OfficeColor.LightPink, OfficeIMO.Drawing.OfficeColor.LightGreen);
-                sheet.AddConditionalDataBar("B2:B4", OfficeIMO.Drawing.OfficeColor.SteelBlue);
-                sheet.ValidationWholeNumber("B2:B4", ExcelDataValidationOperator.Between, 1, 100);
-                sheet.Freeze(topRows: 1, leftCols: 1);
-                sheet.AddAutoFilter("A1:C4");
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
+                sheet.Range("B2:B4").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "15");
+                sheet.Range("B2:B4").ConditionalFormat().ColorScale(OfficeIMO.OfficeColor.LightPink, OfficeIMO.OfficeColor.LightGreen);
+                sheet.Range("B2:B4").ConditionalFormat().DataBar(OfficeIMO.OfficeColor.SteelBlue);
+                sheet.Range("B2:B4").Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 100);
+                sheet.View.Freeze(topRows: 1, leftColumns: 1);
+                sheet.Range("A1:C4").AutoFilter();
 
                 document.Save(memory);
 
@@ -4374,13 +4069,11 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.SetGridlinesVisible(false);
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
-                sheet.Freeze(topRows: 1, leftCols: 1);
+                OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
+                var sheet = document.AddSheet("Data");
+                sheet.View.ShowGridlines = false;
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
+                sheet.View.Freeze(topRows: 1, leftColumns: 1);
 
                 document.Save(memory);
 
@@ -4410,16 +4103,13 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 var chartData = new ExcelChartData(
                     rows.Select(row => row.Name),
                     new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) });
 
-                sheet.AddChart(chartData, row: 6, column: 5, widthPixels: 480, heightPixels: 280, type: ExcelChartType.ColumnClustered, title: "Scores");
+                sheet.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.Excel.ExcelChartOptions { Row = 6, Column = 5, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(280), Title = "Scores" });
 
                 document.Save(memory);
 
@@ -4439,30 +4129,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_InsertObjects_RangeChartBeforePivotPreservesDeferredDataAndDrawing() {
+        public void PerformanceReview_InsertObjects_RangeChartBeforePivotPreservesDeferredDataAndDrawing()
+        {
             using var memory = new MemoryStream();
-            var rows = new[] {
+            var rows = new[]
+            {
                 new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
                 new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
                 new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
             };
-
-            using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+            using (var document = ExcelDocument.Create(new MemoryStream()))
+            {
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
-                sheet.AddChartFromRange("A1:B4", row: 2, column: 6, widthPixels: 480, heightPixels: 280, type: ExcelChartType.ColumnClustered, title: "Scores", includeCachedData: false);
-                sheet.AddPivotTable(
-                    "A1:C4",
-                    "F20",
-                    rowFields: new[] { "Name" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") });
-
+                sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 6, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(280), Title = "Scores", IncludeCachedData = false });
+                sheet.AddPivotTable("A1:C4", "F20", options: new ExcelPivotTableOptions { RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") } });
                 document.Save(memory);
-
                 Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
                 Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
             }
@@ -4481,32 +4164,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_InsertObjects_IndependentChartBeforePivotResolvesDeferredHeaders() {
+        public void PerformanceReview_InsertObjects_IndependentChartBeforePivotResolvesDeferredHeaders()
+        {
             using var memory = new MemoryStream();
-            var rows = new[] {
+            var rows = new[]
+            {
                 new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
                 new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
                 new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
             };
-
-            using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
-                var chartData = new ExcelChartData(
-                    rows.Select(row => row.Name),
-                    new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) });
-                sheet.AddChart(chartData, row: 2, column: 6, widthPixels: 480, heightPixels: 280, type: ExcelChartType.ColumnClustered, title: "Scores");
-                sheet.AddPivotTable(
-                    "A1:C4",
-                    "F20",
-                    rowFields: new[] { "Name" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") });
-
+            using (var document = ExcelDocument.Create(new MemoryStream()))
+            {
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
+                var chartData = new ExcelChartData(rows.Select(row => row.Name), new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) });
+                sheet.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 6, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(280), Title = "Scores" });
+                sheet.AddPivotTable("A1:C4", "F20", options: new ExcelPivotTableOptions { RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") } });
                 document.Save(memory);
-
                 Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
                 Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
             }
@@ -4520,34 +4194,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_InsertObjects_PostFeatureExternalCellMutationKeepsExtendedFastPath() {
+        public void PerformanceReview_InsertObjects_PostFeatureExternalCellMutationKeepsExtendedFastPath()
+        {
             using var memory = new MemoryStream();
-            var rows = new[] {
+            var rows = new[]
+            {
                 new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
                 new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
                 new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
             };
-
-            using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+            using (var document = ExcelDocument.Create(new MemoryStream()))
+            {
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
-                sheet.AddPivotTable(
-                    "A1:C4",
-                    "F20",
-                    rowFields: new[] { "Name" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") });
-                var chartData = new ExcelChartData(
-                    rows.Select(row => row.Name),
-                    new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) });
-                sheet.AddChart(chartData, row: 2, column: 6, widthPixels: 480, heightPixels: 280, type: ExcelChartType.ColumnClustered, title: "Scores");
-                sheet.CellValue(rows.Length + 4, 1, "Manual note after report features");
-
+                sheet.AddPivotTable("A1:C4", "F20", options: new ExcelPivotTableOptions { RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") } });
+                var chartData = new ExcelChartData(rows.Select(row => row.Name), new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) });
+                sheet.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 6, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(280), Title = "Scores" });
+                sheet.Cell(rows.Length + 4, 1).SetValue("Manual note after report features");
                 document.Save(memory);
-
                 Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
                 Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
             }
@@ -4571,11 +4236,8 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
 
                 var relationship = sheet.WorksheetPart.AddHyperlinkRelationship(new Uri("https://example.org/deferred"), true);
@@ -4595,7 +4257,7 @@ namespace OfficeIMO.Tests {
                 var chartData = new ExcelChartData(
                     rows.Select(row => row.Name),
                     new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) });
-                sheet.AddChart(chartData, row: 2, column: 6, widthPixels: 480, heightPixels: 280, type: ExcelChartType.ColumnClustered, title: "Scores");
+                sheet.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 6, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(280), Title = "Scores" });
 
                 document.Save(memory);
             }
@@ -4611,43 +4273,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_InsertObjects_PostFeatureSideColumnMutationKeepsExtendedFastPath() {
+        public void PerformanceReview_InsertObjects_PostFeatureSideColumnMutationKeepsExtendedFastPath()
+        {
             using var memory = new MemoryStream();
-            var rows = new[] {
+            var rows = new[]
+            {
                 new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
                 new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
                 new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
             };
-
-            using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var links = document.AddWorksheet("Links");
+            using (var document = ExcelDocument.Create(new MemoryStream()))
+            {
+                var links = document.AddSheet("Links");
                 links.SetHyperlink(1, 1, "https://example.org/review", display: "Review link", style: false);
-
                 var customPart = document._spreadSheetDocument.AddCustomFilePropertiesPart();
-                customPart.Properties = new DocumentFormat.OpenXml.CustomProperties.Properties(
-                    new DocumentFormat.OpenXml.CustomProperties.CustomDocumentProperty(
-                        new Vt.VTLPWSTR("preserved")) {
-                            FormatId = "{D5CDD505-2E9C-101B-9397-08002B2CF9AE}",
-                            PropertyId = 2,
-                            Name = "OfficeIMOReview"
-                        });
-
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                customPart.Properties = new DocumentFormat.OpenXml.CustomProperties.Properties(new DocumentFormat.OpenXml.CustomProperties.CustomDocumentProperty(new Vt.VTLPWSTR("preserved")) { FormatId = "{D5CDD505-2E9C-101B-9397-08002B2CF9AE}", PropertyId = 2, Name = "OfficeIMOReview" });
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
-                sheet.AddPivotTable(
-                    "A1:C4",
-                    "F20",
-                    rowFields: new[] { "Name" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") });
-                sheet.CellValue(2, 4, 123.45d);
-                sheet.CellAt(2, 4).SetNumberFormat("0.00");
-
+                sheet.AddPivotTable("A1:C4", "F20", options: new ExcelPivotTableOptions { RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") } });
+                sheet.Cell(2, 4).SetValue(123.45d);
+                sheet.Cell(2, 4).SetNumberFormat("0.00");
                 document.Save(memory);
-
                 Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
                 Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
             }
@@ -4672,15 +4319,12 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
 
                 Assert.True(document.HasDeferredDirectDataSetImport);
 
-                sheet.CellValue(2, 4, "Manual side note");
+                sheet.Cell(2, 4).SetValue("Manual side note");
 
                 Assert.True(document.HasDeferredDirectDataSetImport);
                 var sourceCells = sheet.WorksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
@@ -4710,15 +4354,12 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
-                sheet.CellValue(2, 4, 123.45d);
-                sheet.CellAt(2, 4).SetNumberFormat("0.00");
-                sheet.CellValue(2, 5, 45000d);
-                sheet.CellValue(2, 6, 30d);
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
+                sheet.Cell(2, 4).SetValue(123.45d);
+                sheet.Cell(2, 4).SetNumberFormat("0.00");
+                sheet.Cell(2, 5).SetValue(45000d);
+                sheet.Cell(2, 6).SetValue(30d);
 
                 var stylesheet = document._spreadSheetDocument.WorkbookPart!.WorkbookStylesPart!.Stylesheet!;
                 stylesheet.CellFormats ??= new CellFormats();
@@ -4760,12 +4401,9 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
-                sheet.CellValue(2, 4, "Styled side note");
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
+                sheet.Cell(2, 4).SetValue("Styled side note");
 
                 uint styleIndex = AddBoldCellStyle(document._spreadSheetDocument);
                 var sourceCells = sheet.WorksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
@@ -4789,12 +4427,9 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
-                sheet.CellValue(2, 4, "Styled side note");
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
+                sheet.Cell(2, 4).SetValue("Styled side note");
 
                 uint styleIndex = AddBoldCellStyle(document._spreadSheetDocument);
                 var sourceCells = sheet.WorksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
@@ -4817,12 +4452,9 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
-                sheet.CellValue(2, 4, "Styled side note");
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
+                sheet.Cell(2, 4).SetValue("Styled side note");
 
                 uint styleIndex = AddBoldCellStyle(document._spreadSheetDocument);
                 var sourceCells = sheet.WorksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
@@ -4831,7 +4463,7 @@ namespace OfficeIMO.Tests {
                 var chartData = new ExcelChartData(
                     rows.Select(row => row.Name),
                     new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) });
-                sheet.AddChart(chartData, row: 2, column: 6, widthPixels: 480, heightPixels: 280, type: ExcelChartType.ColumnClustered, title: "Scores");
+                sheet.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 6, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(280), Title = "Scores" });
 
                 document.Save(memory);
             }
@@ -4850,12 +4482,9 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
-                sheet.CellValue(2, 4, "Manual");
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
+                sheet.Cell(2, 4).SetValue("Manual");
 
                 document.Save(firstMemory);
 
@@ -4877,35 +4506,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_InsertObjects_DirectOverlayClearBeyondTableDoesNotPreserveStaleValue() {
+        public void PerformanceReview_InsertObjects_DirectOverlayClearBeyondTableDoesNotPreserveStaleValue()
+        {
             using var firstMemory = new MemoryStream();
             using var secondMemory = new MemoryStream();
-            var rows = new[] {
+            var rows = new[]
+            {
                 new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
                 new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
                 new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
             };
-
-            using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+            using (var document = ExcelDocument.Create(new MemoryStream()))
+            {
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
-                sheet.AddPivotTable(
-                    "A1:C4",
-                    "F20",
-                    rowFields: new[] { "Name" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") });
-                sheet.CellValue(10, 4, "Manual");
-
+                sheet.AddPivotTable("A1:C4", "F20", options: new ExcelPivotTableOptions { RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") } });
+                sheet.Cell(10, 4).SetValue("Manual");
                 document.Save(firstMemory);
-
-                sheet.CellValue(10, 4, (object?)null);
-
+                sheet.Cell(10, 4).SetValue((object? )null);
                 document.Save(secondMemory);
-
                 Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
                 Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
             }
@@ -4919,30 +4539,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_InsertObjects_PathSaveUsesExtendedFastSaveModel() {
+        public void PerformanceReview_InsertObjects_PathSaveUsesExtendedFastSaveModel()
+        {
             var path = Path.Combine(Path.GetTempPath(), "officeimo-path-extended-" + Guid.NewGuid().ToString("N") + ".xlsx");
-            try {
-                var rows = new[] {
+            try
+            {
+                var rows = new[]
+                {
                     new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
                     new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
                     new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
                 };
-
-                using (var document = ExcelDocument.Create(new MemoryStream())) {
-                    var sheet = document.AddWorksheet("Data");
-                    sheet.InsertObjects(rows,
-                        ("Name", row => row.Name),
-                        ("Score", row => row.Score),
-                        ("Created", row => row.Created));
+                using (var document = ExcelDocument.Create(new MemoryStream()))
+                {
+                    var sheet = document.AddSheet("Data");
+                    sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                     sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
-                    sheet.AddPivotTable(
-                        "A1:C4",
-                        "F20",
-                        rowFields: new[] { "Name" },
-                        dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") });
-
+                    sheet.AddPivotTable("A1:C4", "F20", options: new ExcelPivotTableOptions { RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") } });
                     document.Save(path, null);
-
                     Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
                     Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
                 }
@@ -4953,37 +4567,33 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("North", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
                 Assert.Equal("30", GetSpreadsheetCellText(spreadsheet, cells["B4"]));
                 Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
-            } finally {
-                if (File.Exists(path)) {
+            }
+            finally
+            {
+                if (File.Exists(path))
+                {
                     File.Delete(path);
                 }
             }
         }
 
         [Fact]
-        public void PerformanceReview_InsertObjects_NonSeekableStreamSaveUsesExtendedFastSaveModel() {
+        public void PerformanceReview_InsertObjects_NonSeekableStreamSaveUsesExtendedFastSaveModel()
+        {
             using var stream = new NonSeekableWriteStream();
-            var rows = new[] {
+            var rows = new[]
+            {
                 new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
                 new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
                 new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
             };
-
-            using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+            using (var document = ExcelDocument.Create(new MemoryStream()))
+            {
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
-                sheet.AddPivotTable(
-                    "A1:C4",
-                    "F20",
-                    rowFields: new[] { "Name" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") });
-
+                sheet.AddPivotTable("A1:C4", "F20", options: new ExcelPivotTableOptions { RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") } });
                 document.Save(stream);
-
                 Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
                 Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
             }
@@ -4998,40 +4608,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_InsertObjects_ExtendedSimpleDrawingSheetDeclaresRelationshipNamespace() {
+        public void PerformanceReview_InsertObjects_ExtendedSimpleDrawingSheetDeclaresRelationshipNamespace()
+        {
             using var memory = new MemoryStream();
-            var rows = new[] {
+            var rows = new[]
+            {
                 new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
                 new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
                 new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
             };
-
-            using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var chartSheet = document.AddWorksheet("ChartOnly");
-                chartSheet.CellValue(1, 1, "Name");
-                chartSheet.CellValue(1, 2, "Score");
-                chartSheet.CellValue(2, 1, "North");
-                chartSheet.CellValue(2, 2, 10);
-                chartSheet.CellValue(3, 1, "South");
-                chartSheet.CellValue(3, 2, 20);
-                chartSheet.CellValue(4, 1, "East");
-                chartSheet.CellValue(4, 2, 30);
-                chartSheet.AddChartFromRange("A1:B4", row: 2, column: 5, widthPixels: 480, heightPixels: 280, type: ExcelChartType.ColumnClustered, title: "Scores", includeCachedData: false);
-
-                var dataSheet = document.AddWorksheet("Data");
-                dataSheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+            using (var document = ExcelDocument.Create(new MemoryStream()))
+            {
+                var chartSheet = document.AddSheet("ChartOnly");
+                chartSheet.Cell(1, 1).SetValue("Name");
+                chartSheet.Cell(1, 2).SetValue("Score");
+                chartSheet.Cell(2, 1).SetValue("North");
+                chartSheet.Cell(2, 2).SetValue(10);
+                chartSheet.Cell(3, 1).SetValue("South");
+                chartSheet.Cell(3, 2).SetValue(20);
+                chartSheet.Cell(4, 1).SetValue("East");
+                chartSheet.Cell(4, 2).SetValue(30);
+                chartSheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 5, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(280), Title = "Scores", IncludeCachedData = false });
+                var dataSheet = document.AddSheet("Data");
+                dataSheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 dataSheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
-                dataSheet.AddPivotTable(
-                    "A1:C4",
-                    "F20",
-                    rowFields: new[] { "Name" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") });
-
+                dataSheet.AddPivotTable("A1:C4", "F20", options: new ExcelPivotTableOptions { RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") } });
                 document.Save(memory);
-
                 Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
                 Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
             }
@@ -5039,7 +4641,8 @@ namespace OfficeIMO.Tests {
             memory.Position = 0;
             using var spreadsheet = SpreadsheetDocument.Open(memory, false);
             var chartHostPart = spreadsheet.WorkbookPart!.WorksheetParts.Single(part => part.DrawingsPart?.ChartParts.Any() == true);
-            using (var reader = new StreamReader(chartHostPart.GetStream(FileMode.Open, FileAccess.Read))) {
+            using (var reader = new StreamReader(chartHostPart.GetStream(FileMode.Open, FileAccess.Read)))
+            {
                 string xml = reader.ReadToEnd();
                 Assert.Contains("xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"", xml);
                 Assert.Contains("r:id=", xml);
@@ -5050,52 +4653,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_InsertObjects_OverlaySharedFormulaMetadataIsPreserved() {
+        public void PerformanceReview_InsertObjects_OverlaySharedFormulaMetadataIsPreserved()
+        {
             using var memory = new MemoryStream();
-            var rows = new[] {
+            var rows = new[]
+            {
                 new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
                 new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
                 new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
             };
-
-            using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+            using (var document = ExcelDocument.Create(new MemoryStream()))
+            {
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
-                sheet.AddPivotTable(
-                    "A1:C4",
-                    "F20",
-                    rowFields: new[] { "Name" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") });
-
+                sheet.AddPivotTable("A1:C4", "F20", options: new ExcelPivotTableOptions { RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") } });
                 var sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
-                var row2 = sheetData.Elements<Row>().FirstOrDefault(row => row.RowIndex?.Value == 2U)
-                           ?? sheetData.AppendChild(new Row { RowIndex = 2U });
-                row2.Append(new Cell {
-                    CellReference = "D2",
-                    CellFormula = new CellFormula("B2*2") {
-                        FormulaType = CellFormulaValues.Shared,
-                        SharedIndex = 0U,
-                        Reference = "D2:D3"
-                    },
-                    CellValue = new CellValue("20")
-                });
-                var row3 = sheetData.Elements<Row>().FirstOrDefault(row => row.RowIndex?.Value == 3U)
-                           ?? sheetData.AppendChild(new Row { RowIndex = 3U });
-                row3.Append(new Cell {
-                    CellReference = "D3",
-                    CellFormula = new CellFormula {
-                        FormulaType = CellFormulaValues.Shared,
-                        SharedIndex = 0U
-                    },
-                    CellValue = new CellValue("40")
-                });
-
+                var row2 = sheetData.Elements<Row>().FirstOrDefault(row => row.RowIndex?.Value == 2U) ?? sheetData.AppendChild(new Row { RowIndex = 2U });
+                row2.Append(new Cell { CellReference = "D2", CellFormula = new CellFormula("B2*2") { FormulaType = CellFormulaValues.Shared, SharedIndex = 0U, Reference = "D2:D3" }, CellValue = new CellValue("20") });
+                var row3 = sheetData.Elements<Row>().FirstOrDefault(row => row.RowIndex?.Value == 3U) ?? sheetData.AppendChild(new Row { RowIndex = 3U });
+                row3.Append(new Cell { CellReference = "D3", CellFormula = new CellFormula { FormulaType = CellFormulaValues.Shared, SharedIndex = 0U }, CellValue = new CellValue("40") });
                 document.Save(memory);
-
                 Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
                 Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
             }
@@ -5114,29 +4692,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_InsertObjects_OverlayTypedCellsPreserveDataTypes() {
+        public void PerformanceReview_InsertObjects_OverlayTypedCellsPreserveDataTypes()
+        {
             using var memory = new MemoryStream();
-            var rows = new[] {
+            var rows = new[]
+            {
                 new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
                 new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
                 new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
             };
-
-            using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+            using (var document = ExcelDocument.Create(new MemoryStream()))
+            {
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
-                sheet.AddPivotTable(
-                    "A1:C4",
-                    "F20",
-                    rowFields: new[] { "Name" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") });
-                sheet.CellValue(2, 4, string.Empty);
-                sheet.CellValue(2, 5, string.Empty);
-
+                sheet.AddPivotTable("A1:C4", "F20", options: new ExcelPivotTableOptions { RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") } });
+                sheet.Cell(2, 4).SetValue(string.Empty);
+                sheet.Cell(2, 5).SetValue(string.Empty);
                 var sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
                 var row2 = sheetData.Elements<Row>().First(row => row.RowIndex?.Value == 2U);
                 var d2 = row2.Elements<Cell>().First(cell => cell.CellReference?.Value == "D2");
@@ -5145,9 +4717,7 @@ namespace OfficeIMO.Tests {
                 var e2 = row2.Elements<Cell>().First(cell => cell.CellReference?.Value == "E2");
                 e2.DataType = CellValues.Date;
                 e2.CellValue = new CellValue("2026-05-19");
-
                 document.Save(memory);
-
                 Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
                 Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
             }
@@ -5163,42 +4733,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_InsertObjects_CompactOverlayCellReferencesKeepSideColumnMutation() {
+        public void PerformanceReview_InsertObjects_CompactOverlayCellReferencesKeepSideColumnMutation()
+        {
             using var memory = new MemoryStream();
-            var rows = new[] {
+            var rows = new[]
+            {
                 new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
                 new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
                 new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
             };
-
-            using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+            using (var document = ExcelDocument.Create(new MemoryStream()))
+            {
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
-                sheet.AddPivotTable(
-                    "A1:C4",
-                    "F20",
-                    rowFields: new[] { "Name" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") });
-                sheet.CellValue(2, 4, "Compact side note");
-
+                sheet.AddPivotTable("A1:C4", "F20", options: new ExcelPivotTableOptions { RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") } });
+                sheet.Cell(2, 4).SetValue("Compact side note");
                 var sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
                 sheetData.RemoveAllChildren<Row>();
                 sheetData.Append(new Row());
-                sheetData.Append(new Row(
-                    new Cell(),
-                    new Cell(),
-                    new Cell(),
-                    new Cell {
-                        DataType = CellValues.String,
-                        CellValue = new CellValue("Compact side note")
-                    }));
-
+                sheetData.Append(new Row(new Cell(), new Cell(), new Cell(), new Cell { DataType = CellValues.String, CellValue = new CellValue("Compact side note") }));
                 document.Save(memory);
-
                 Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
                 Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
             }
@@ -5213,28 +4768,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_InsertObjects_PostFeatureInRangeMutationMaterializesSourceRows() {
+        public void PerformanceReview_InsertObjects_PostFeatureInRangeMutationMaterializesSourceRows()
+        {
             using var memory = new MemoryStream();
-            var rows = new[] {
+            var rows = new[]
+            {
                 new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
                 new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
                 new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
             };
-
-            using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+            using (var document = ExcelDocument.Create(new MemoryStream()))
+            {
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
-                sheet.AddPivotTable(
-                    "A1:C4",
-                    "F20",
-                    rowFields: new[] { "Name" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") });
-                sheet.CellValue(2, 2, 42);
-
+                sheet.AddPivotTable("A1:C4", "F20", options: new ExcelPivotTableOptions { RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") } });
+                sheet.Cell(2, 2).SetValue(42);
                 document.Save(memory);
             }
 
@@ -5249,69 +4798,58 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_InsertDataSet_ExtendedPackagePreservesSharedStringsStylesHyperlinksAndRootParts() {
+        public void PerformanceReview_InsertDataSet_ExtendedPackagePreservesSharedStringsStylesHyperlinksAndRootParts()
+        {
             using var memory = new MemoryStream();
             var dataSet = new DataSet("Export");
             var table = new DataTable("Items");
             table.Columns.Add("Name", typeof(string));
             table.Columns.Add("Score", typeof(int));
             table.Columns.Add("Created", typeof(DateTime));
-            for (int index = 0; index < 600; index++) {
-                table.Rows.Add(
-                    index % 2 == 0 ? "North Region Repeated" : "South Region Repeated",
-                    index,
-                    new DateTime(2026, 5, 19).AddDays(index % 7));
+            for (int index = 0; index < 600; index++)
+            {
+                table.Rows.Add(index % 2 == 0 ? "North Region Repeated" : "South Region Repeated", index, new DateTime(2026, 5, 19).AddDays(index % 7));
             }
 
             dataSet.Tables.Add(table);
-
-            using (var document = ExcelDocument.Create(new MemoryStream())) {
+            using (var document = ExcelDocument.Create(new MemoryStream()))
+            {
                 document._spreadSheetDocument.PackageProperties.Title = "Review Metadata";
                 document._spreadSheetDocument.PackageProperties.Creator = "OfficeIMO Tests";
                 document._spreadSheetDocument.PackageProperties.LastModifiedBy = "Reviewer";
                 document._spreadSheetDocument.PackageProperties.Created = new DateTime(2026, 5, 26, 12, 0, 0, DateTimeKind.Utc);
                 document._spreadSheetDocument.PackageProperties.Modified = new DateTime(2026, 5, 26, 13, 0, 0, DateTimeKind.Utc);
-
-                var appPart = document._spreadSheetDocument.ExtendedFilePropertiesPart
-                              ?? document._spreadSheetDocument.AddExtendedFilePropertiesPart();
-                appPart.Properties = new DocumentFormat.OpenXml.ExtendedProperties.Properties {
-                    Application = new DocumentFormat.OpenXml.ExtendedProperties.Application { Text = "OfficeIMO Review App" },
-                    Company = new DocumentFormat.OpenXml.ExtendedProperties.Company { Text = "Evotec" },
-                    Manager = new DocumentFormat.OpenXml.ExtendedProperties.Manager { Text = "OfficeIMO" }
+                var appPart = document._spreadSheetDocument.ExtendedFilePropertiesPart ?? document._spreadSheetDocument.AddExtendedFilePropertiesPart();
+                appPart.Properties = new DocumentFormat.OpenXml.ExtendedProperties.Properties
+                {
+                    Application = new DocumentFormat.OpenXml.ExtendedProperties.Application
+                    {
+                        Text = "OfficeIMO Review App"
+                    },
+                    Company = new DocumentFormat.OpenXml.ExtendedProperties.Company
+                    {
+                        Text = "Evotec"
+                    },
+                    Manager = new DocumentFormat.OpenXml.ExtendedProperties.Manager
+                    {
+                        Text = "OfficeIMO"
+                    }
                 };
-
-                var links = document.AddWorksheet("Links");
+                var links = document.AddSheet("Links");
                 links.SetHyperlink(1, 1, "https://example.org/review", display: "Review link", style: false);
-                links.CellValue(2, 1, 123.45d);
-                links.CellAt(2, 1).SetNumberFormat("0.00");
-                links.CellValue(3, 1, "#DIV/0!");
+                links.Cell(2, 1).SetValue(123.45d);
+                links.Cell(2, 1).SetNumberFormat("0.00");
+                links.Cell(3, 1).SetValue("#DIV/0!");
                 var linkSourceCells = links.WorksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
                 linkSourceCells["A3"].DataType = CellValues.Error;
                 linkSourceCells["A3"].CellValue = new CellValue("#DIV/0!");
-
                 var customPart = document._spreadSheetDocument.AddCustomFilePropertiesPart();
-                customPart.Properties = new DocumentFormat.OpenXml.CustomProperties.Properties(
-                    new DocumentFormat.OpenXml.CustomProperties.CustomDocumentProperty(
-                        new Vt.VTLPWSTR("preserved")) {
-                            FormatId = "{D5CDD505-2E9C-101B-9397-08002B2CF9AE}",
-                            PropertyId = 2,
-                            Name = "OfficeIMOReview"
-                        });
-                document._spreadSheetDocument.AddExternalRelationship(
-                    "https://schemas.example.org/officeimo/review",
-                    new Uri("https://example.org/package-root"),
-                    "rIdCore");
-
+                customPart.Properties = new DocumentFormat.OpenXml.CustomProperties.Properties(new DocumentFormat.OpenXml.CustomProperties.CustomDocumentProperty(new Vt.VTLPWSTR("preserved")) { FormatId = "{D5CDD505-2E9C-101B-9397-08002B2CF9AE}", PropertyId = 2, Name = "OfficeIMOReview" });
+                document._spreadSheetDocument.AddExternalRelationship("https://schemas.example.org/officeimo/review", new Uri("https://example.org/package-root"), "rIdCore");
                 document.InsertDataSet(dataSet);
                 var sheet = document.Sheets.First(item => string.Equals(item.Name, "Items", StringComparison.Ordinal));
-                sheet.AddPivotTable(
-                    "A1:C601",
-                    "F20",
-                    rowFields: new[] { "Name" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") });
-
+                sheet.AddPivotTable("A1:C601", "F20", options: new ExcelPivotTableOptions { RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") } });
                 document.Save(memory);
-
                 Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
                 Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
             }
@@ -5330,13 +4868,11 @@ namespace OfficeIMO.Tests {
             Assert.Equal("rIdCore", packageRelationship.Id);
             Assert.Equal("https://schemas.example.org/officeimo/review", packageRelationship.RelationshipType);
             Assert.Equal("https://example.org/package-root", packageRelationship.Uri.ToString());
-
             var sheets = spreadsheet.WorkbookPart.Workbook.Sheets!.Elements<Sheet>().ToDictionary(sheet => sheet.Name!.Value!);
             var dataPart = (WorksheetPart)spreadsheet.WorkbookPart.GetPartById(sheets["Items"].Id!);
             var dataCells = dataPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
             Assert.Equal("North Region Repeated", GetSpreadsheetCellText(spreadsheet, dataCells["A2"]));
             Assert.Equal("South Region Repeated", GetSpreadsheetCellText(spreadsheet, dataCells["A601"]));
-
             var linksPart = (WorksheetPart)spreadsheet.WorkbookPart.GetPartById(sheets["Links"].Id!);
             var linkCells = linksPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
             Assert.Equal("Review link", GetSpreadsheetCellText(spreadsheet, linkCells["A1"]));
@@ -5359,16 +4895,13 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 document.DefaultChartStylePreset = ExcelChartStylePreset.Default;
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 var chartData = new ExcelChartData(
                     rows.Select(row => row.Name),
                     new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) });
 
-                sheet.AddChart(chartData, row: 1, column: 6, widthPixels: 360, heightPixels: 240, type: ExcelChartType.ColumnClustered, title: "Styled");
+                sheet.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 6, Width = OfficeLength.Pixels(360), Height = OfficeLength.Pixels(240), Title = "Styled" });
 
                 document.Save(memory);
 
@@ -5406,18 +4939,15 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C3", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
                 sheet.AutoFitColumns();
-                sheet.Freeze(topRows: 1, leftCols: 1);
-                sheet.AddAutoFilter("A1:C3");
-                sheet.AddConditionalRule("B2:B3", ExcelConditionalFormattingOperator.GreaterThan, "15");
-                sheet.ValidationWholeNumber("B2:B3", ExcelDataValidationOperator.Between, 1, 100);
-                sheet.CellValue(4, 1, "Manual note");
+                sheet.View.Freeze(topRows: 1, leftColumns: 1);
+                sheet.Range("A1:C3").AutoFilter();
+                sheet.Range("B2:B3").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "15");
+                sheet.Range("B2:B3").Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 100);
+                sheet.Cell(4, 1).SetValue("Manual note");
 
                 document.Save(memory);
 
@@ -5454,17 +4984,14 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C3", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
                 sheet.AutoFitColumns();
-                sheet.Freeze(topRows: 1, leftCols: 1);
-                sheet.AddAutoFilter("A1:C3");
-                sheet.AddConditionalRule("B2:B3", ExcelConditionalFormattingOperator.GreaterThan, "15");
-                sheet.ValidationWholeNumber("B2:B3", ExcelDataValidationOperator.Between, 1, 100);
+                sheet.View.Freeze(topRows: 1, leftColumns: 1);
+                sheet.Range("A1:C3").AutoFilter();
+                sheet.Range("B2:B3").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "15");
+                sheet.Range("B2:B3").Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 100);
 
                 document.Save(memory);
 
@@ -5501,11 +5028,8 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C3", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
                 sheet.AutoFitColumns();
                 sheet.ColumnStyleByHeader("Score").NumberFormat("#,##0.000");
@@ -5535,11 +5059,8 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.ColumnStyleByHeader("Score").NumberFormat("#,##0.000");
                 sheet.AddTable("A1:C3", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
                 sheet.AutoFitColumns();
@@ -5568,8 +5089,8 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows, ("Total   Amount ", row => row.Score));
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Total   Amount ", row => row.Score));
                 sheet.ColumnStyleByHeader("Total Amount").NumberFormat("0.00");
 
                 document.Save(memory);
@@ -5633,11 +5154,8 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.ColumnStyleByHeader("Score", includeHeader: true).NumberFormat("#,##0.000");
 
                 document.Save(memory);
@@ -5662,16 +5180,13 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
                 var chartData = new ExcelChartData(
                     rows.Select(row => row.Name),
                     new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) });
-                sheet.AddChart(chartData, row: 2, column: 6, widthPixels: 480, heightPixels: 280, type: ExcelChartType.ColumnClustered, title: "Scores");
+                sheet.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 6, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(280), Title = "Scores" });
                 sheet.ColumnStyleByHeader("Score").NumberFormat("#,##0.000");
 
                 document.Save(memory);
@@ -5728,15 +5243,10 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C3", hasHeader: true, name: "FilteredReport", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
-                sheet.AddAutoFilter("A1:C3", new Dictionary<uint, IEnumerable<string>> {
-                    { 0U, new[] { "Alpha" } }
-                });
+                sheet.Range("A1:C3").AutoFilter().Column(0U).Equals(new[] { "Alpha" });
 
                 document.Save(memory);
 
@@ -5763,13 +5273,10 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C3", hasHeader: true, name: "FilteredReport", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: false);
-                sheet.AddAutoFilter("A1:C3");
+                sheet.Range("A1:C3").AutoFilter();
 
                 document.Save(memory);
 
@@ -5795,11 +5302,8 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 var worksheet = sheet.WorksheetPart.Worksheet;
                 worksheet.InsertBefore(new SheetFormatProperties {
                     DefaultRowHeight = 21D,
@@ -5807,7 +5311,7 @@ namespace OfficeIMO.Tests {
                     CustomHeight = true
                 }, worksheet.GetFirstChild<SheetData>());
 
-                sheet.CellValue(5, 1, "forces materialization");
+                sheet.Cell(5, 1).SetValue("forces materialization");
                 document.Save(memory);
             }
 
@@ -5829,16 +5333,13 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
-                sheet.SetMargins(0.25D, 0.25D, 0.5D, 0.5D, 0.3D, 0.3D);
-                sheet.SetOrientation(OfficePageOrientation.Landscape);
-                sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 0U);
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
+                sheet.PageSetup.SetMargins(OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.5D), OfficeLength.Inches(0.5D), OfficeLength.Inches(0.3D), OfficeLength.Inches(0.3D));
+                sheet.PageSetup.Orientation = OfficePageOrientation.Landscape;
+                sheet.PageSetup.FitToWidth = 1U; sheet.PageSetup.FitToHeight = 0U;
 
-                sheet.CellValue(5, 1, "forces materialization");
+                sheet.Cell(5, 1).SetValue("forces materialization");
                 document.Save(memory);
             }
 
@@ -5856,29 +5357,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_InsertObjects_PivotTableAfterDeferredImportKeepsSourceRowsAndSharedItems() {
+        public void PerformanceReview_InsertObjects_PivotTableAfterDeferredImportKeepsSourceRowsAndSharedItems()
+        {
             using var memory = new MemoryStream();
-            var rows = new[] {
+            var rows = new[]
+            {
                 new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19)),
                 new PerformanceObjectExportRow("Beta", 20, new DateTime(2026, 5, 20)),
                 new PerformanceObjectExportRow("Alpha", 30, new DateTime(2026, 5, 21))
             };
-
-            using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
-                sheet.AddPivotTable(
-                    sourceRange: "A1:C4",
-                    destinationCell: "E2",
-                    name: "ScorePivot",
-                    rowFields: new[] { "Name" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") });
-
+            using (var document = ExcelDocument.Create(new MemoryStream()))
+            {
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
+                sheet.AddPivotTable("A1:C4", "E2", options: new ExcelPivotTableOptions { Name = "ScorePivot", RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") } });
                 document.Save(memory);
-
                 Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
                 Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
             }
@@ -5889,7 +5382,6 @@ namespace OfficeIMO.Tests {
             var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
             Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
             Assert.Equal("30", cells["B4"].CellValue!.Text);
-
             var pivotPart = Assert.Single(worksheetPart.PivotTableParts);
             Assert.Equal("ScorePivot", pivotPart.PivotTableDefinition!.Name!.Value);
             var cacheDefinition = pivotPart.PivotTableCacheDefinitionPart!.PivotCacheDefinition!;
@@ -5904,38 +5396,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_InsertObjects_PivotTableFallbackAfterDeferredImportKeepsSourceRows() {
+        public void PerformanceReview_InsertObjects_PivotTableFallbackAfterDeferredImportKeepsSourceRows()
+        {
             using var memory = new MemoryStream();
-            var rows = new[] {
+            var rows = new[]
+            {
                 new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19)),
                 new PerformanceObjectExportRow("Beta", 20, new DateTime(2026, 5, 20)),
                 new PerformanceObjectExportRow("Gamma", 30, new DateTime(2026, 5, 21))
             };
-
-            using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
-                sheet.AddPivotTable(
-                    sourceRange: "A1:C4",
-                    destinationCell: "E2",
-                    name: "ScorePivot",
-                    rowFields: new[] { "Name" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") });
-
+            using (var document = ExcelDocument.Create(new MemoryStream()))
+            {
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
+                sheet.AddPivotTable("A1:C4", "E2", options: new ExcelPivotTableOptions { Name = "ScorePivot", RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") } });
                 var relationship = sheet.WorksheetPart.AddHyperlinkRelationship(new Uri("https://example.org/pivot-fallback"), true);
                 var hyperlinks = sheet.WorksheetPart.Worksheet.Elements<Hyperlinks>().FirstOrDefault();
-                if (hyperlinks == null) {
+                if (hyperlinks == null)
+                {
                     hyperlinks = new Hyperlinks();
                     InsertHyperlinksBeforeWorksheetTail(sheet.WorksheetPart.Worksheet, hyperlinks);
                 }
 
                 hyperlinks.Append(new Hyperlink { Reference = "D7", Id = relationship.Id });
-
                 document.Save(memory);
-
                 Assert.NotEqual(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
             }
 
@@ -5953,30 +5437,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_InsertObjects_PivotCacheRawXmlPreservesNonBmpTextWhenEmbeddingRequired() {
+        public void PerformanceReview_InsertObjects_PivotCacheRawXmlPreservesNonBmpTextWhenEmbeddingRequired()
+        {
             using var memory = new MemoryStream();
             string emoji = char.ConvertFromUtf32(0x1F600);
             string rocket = char.ConvertFromUtf32(0x1F680);
-            var rows = new[] {
+            var rows = new[]
+            {
                 new NullablePerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19), "Emoji " + emoji),
                 new NullablePerformanceObjectExportRow("Beta", 20, new DateTime(2026, 5, 20), "Rocket " + rocket)
             };
-
-            using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Note", row => row.Note));
-                sheet.AddPivotTable(
-                    sourceRange: "A1:C3",
-                    destinationCell: "E2",
-                    name: "ScorePivot",
-                    rowFields: new[] { "Name" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") },
-                    calculatedFields: new[] { new ExcelPivotCalculatedField("DoubleScore", "'Score' * 2") },
-                    options: new ExcelPivotTableOptions { SaveSourceData = true });
-
+            using (var document = ExcelDocument.Create(new MemoryStream()))
+            {
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Note", row => row.Note));
+                sheet.AddPivotTable("A1:C3", "E2", options: new ExcelPivotTableOptions { SaveSourceData = true, Name = "ScorePivot", RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") }, CalculatedFields = new[] { new ExcelPivotCalculatedField("DoubleScore", "'Score' * 2") } });
                 document.Save(memory);
             }
 
@@ -5989,35 +5464,21 @@ namespace OfficeIMO.Tests {
             var cacheRecordsPart = Assert.Single(pivotPart.PivotTableCacheDefinitionPart!.GetPartsOfType<PivotTableCacheRecordsPart>());
             using var reader = new StreamReader(cacheRecordsPart.GetStream(FileMode.Open, FileAccess.Read));
             string cacheRecordsXml = reader.ReadToEnd();
-
             Assert.Contains("Emoji " + emoji, cacheRecordsXml);
             Assert.Contains("Rocket " + rocket, cacheRecordsXml);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 
         [Fact]
-        public void PerformanceReview_InsertObjects_LargeSimplePivotOmitsCacheRecords() {
+        public void PerformanceReview_InsertObjects_LargeSimplePivotOmitsCacheRecords()
+        {
             using var memory = new MemoryStream();
-            var rows = Enumerable.Range(1, 5000)
-                .Select(index => new PerformanceObjectExportRow(
-                    index % 2 == 0 ? "Alpha" : "Beta",
-                    index,
-                    new DateTime(2026, 5, 1).AddDays(index % 28)))
-                .ToArray();
-
-            using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
-                sheet.AddPivotTable(
-                    sourceRange: "A1:C5001",
-                    destinationCell: "E2",
-                    name: "ScorePivot",
-                    rowFields: new[] { "Name" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") });
-
+            var rows = Enumerable.Range(1, 5000).Select(index => new PerformanceObjectExportRow(index % 2 == 0 ? "Alpha" : "Beta", index, new DateTime(2026, 5, 1).AddDays(index % 28))).ToArray();
+            using (var document = ExcelDocument.Create(new MemoryStream()))
+            {
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
+                sheet.AddPivotTable("A1:C5001", "E2", options: new ExcelPivotTableOptions { Name = "ScorePivot", RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") } });
                 document.Save(memory);
             }
 
@@ -6027,7 +5488,6 @@ namespace OfficeIMO.Tests {
             var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
             Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A3"]));
             Assert.Equal("5000", cells["B5001"].CellValue!.Text);
-
             var pivotPart = Assert.Single(worksheetPart.PivotTableParts);
             var cacheDefinition = pivotPart.PivotTableCacheDefinitionPart!.PivotCacheDefinition!;
             Assert.False(cacheDefinition.SaveData!.Value);
@@ -6041,35 +5501,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_InsertObjects_OverlayNumericValuesPreserveLexicalText() {
+        public void PerformanceReview_InsertObjects_OverlayNumericValuesPreserveLexicalText()
+        {
             using var memory = new MemoryStream();
-            var rows = new[] {
+            var rows = new[]
+            {
                 new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19)),
                 new PerformanceObjectExportRow("Beta", 20, new DateTime(2026, 5, 20))
             };
-
-            using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
-                sheet.CellValue(2, 4, 0);
-                sheet.CellValue(2, 5, 0);
-
+            using (var document = ExcelDocument.Create(new MemoryStream()))
+            {
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
+                sheet.Cell(2, 4).SetValue(0);
+                sheet.Cell(2, 5).SetValue(0);
                 var cells = sheet.WorksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
                 cells["D2"].DataType = CellValues.Number;
                 cells["D2"].CellValue = new CellValue("1234567890123456789");
                 cells["E2"].DataType = null;
                 cells["E2"].CellValue = new CellValue("1234567890.123456789");
-
-                sheet.AddPivotTable(
-                    sourceRange: "A1:C3",
-                    destinationCell: "G2",
-                    name: "ScorePivot",
-                    rowFields: new[] { "Name" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") });
-
+                sheet.AddPivotTable("A1:C3", "G2", options: new ExcelPivotTableOptions { Name = "ScorePivot", RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") } });
                 document.MaterializeDeferredDataSetImport();
                 document.Save(memory);
             }
@@ -6078,7 +5529,6 @@ namespace OfficeIMO.Tests {
             using var spreadsheet = SpreadsheetDocument.Open(memory, false);
             var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
             var savedCells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
-
             Assert.Equal("1234567890123456789", savedCells["D2"].CellValue!.Text);
             Assert.Equal(CellValues.Number, savedCells["D2"].DataType!.Value);
             Assert.Equal("1234567890.123456789", savedCells["E2"].CellValue!.Text);
@@ -6087,27 +5537,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_InsertObjects_PivotTableDeferredSharedItemsPreserveNativeTypes() {
+        public void PerformanceReview_InsertObjects_PivotTableDeferredSharedItemsPreserveNativeTypes()
+        {
             using var memory = new MemoryStream();
-            var rows = new[] {
+            var rows = new[]
+            {
                 new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19)),
                 new PerformanceObjectExportRow("Beta", 20, new DateTime(2026, 5, 20)),
                 new PerformanceObjectExportRow("Gamma", 30, new DateTime(2026, 5, 21))
             };
-
-            using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
-                sheet.AddPivotTable(
-                    sourceRange: "A1:C4",
-                    destinationCell: "E2",
-                    name: "ScorePivot",
-                    rowFields: new[] { "Score" },
-                    dataFields: new[] { new ExcelPivotDataField("Name", ExcelPivotDataFunction.Count, "Name Count") });
-
+            using (var document = ExcelDocument.Create(new MemoryStream()))
+            {
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
+                sheet.AddPivotTable("A1:C4", "E2", options: new ExcelPivotTableOptions { Name = "ScorePivot", RowFields = new[] { "Score" }, DataFields = new[] { new ExcelPivotDataField("Name", ExcelPivotDataFunction.Count, "Name Count") } });
                 document.Save(memory);
             }
 
@@ -6123,28 +5566,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_InsertObjects_PivotTableDeferredDateHierarchyMaterializesBeforeGrouping() {
+        public void PerformanceReview_InsertObjects_PivotTableDeferredDateHierarchyMaterializesBeforeGrouping()
+        {
             using var memory = new MemoryStream();
-            var rows = new[] {
+            var rows = new[]
+            {
                 new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19)),
                 new PerformanceObjectExportRow("Beta", 20, new DateTime(2026, 5, 20)),
                 new PerformanceObjectExportRow("Gamma", 30, new DateTime(2026, 6, 21))
             };
-
-            using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
-                sheet.AddPivotTable(
-                    sourceRange: "A1:C4",
-                    destinationCell: "E2",
-                    name: "CreatedPivot",
-                    rowFields: new[] { "Created" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") },
-                    groupings: new[] { ExcelPivotGrouping.DateHierarchy("Created", ExcelPivotGroupBy.Years, ExcelPivotGroupBy.Months) });
-
+            using (var document = ExcelDocument.Create(new MemoryStream()))
+            {
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
+                sheet.AddPivotTable("A1:C4", "E2", options: new ExcelPivotTableOptions { Name = "CreatedPivot", RowFields = new[] { "Created" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") }, Groupings = new[] { ExcelPivotGrouping.DateHierarchy("Created", ExcelPivotGroupBy.Years, ExcelPivotGroupBy.Months) } });
                 document.Save(memory);
             }
 
@@ -6154,7 +5589,6 @@ namespace OfficeIMO.Tests {
             var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
             Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
             Assert.Equal("30", cells["B4"].CellValue!.Text);
-
             var pivotPart = Assert.Single(worksheetPart.PivotTableParts);
             var cacheFields = pivotPart.PivotTableCacheDefinitionPart!.PivotCacheDefinition!.CacheFields!.Elements<CacheField>().ToList();
             Assert.Equal("Created Years", cacheFields[3].Name!.Value);
@@ -6169,25 +5603,19 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_WorksheetRangePivotTableDateSharedItemsPreserveDateType() {
+        public void PerformanceReview_WorksheetRangePivotTableDateSharedItemsPreserveDateType()
+        {
             using var memory = new MemoryStream();
-
-            using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.CellValue(1, 1, "Created");
-                sheet.CellValue(1, 2, "Score");
-                sheet.CellValue(2, 1, new DateTime(2026, 5, 19));
-                sheet.CellValue(2, 2, 10);
-                sheet.CellValue(3, 1, new DateTime(2026, 5, 20));
-                sheet.CellValue(3, 2, 20);
-
-                sheet.AddPivotTable(
-                    sourceRange: "A1:B3",
-                    destinationCell: "D2",
-                    name: "CreatedPivot",
-                    rowFields: new[] { "Created" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") });
-
+            using (var document = ExcelDocument.Create(new MemoryStream()))
+            {
+                var sheet = document.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Created");
+                sheet.Cell(1, 2).SetValue("Score");
+                sheet.Cell(2, 1).SetValue(new DateTime(2026, 5, 19));
+                sheet.Cell(2, 2).SetValue(10);
+                sheet.Cell(3, 1).SetValue(new DateTime(2026, 5, 20));
+                sheet.Cell(3, 2).SetValue(20);
+                sheet.AddPivotTable("A1:B3", "D2", options: new ExcelPivotTableOptions { Name = "CreatedPivot", RowFields = new[] { "Created" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") } });
                 document.Save(memory);
             }
 
@@ -6203,25 +5631,15 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_InsertObjects_PivotTableSkipsUnusedSharedItems() {
+        public void PerformanceReview_InsertObjects_PivotTableSkipsUnusedSharedItems()
+        {
             using var memory = new MemoryStream();
-            var rows = Enumerable.Range(1, 50)
-                .Select(index => new PerformanceObjectExportRow(index % 2 == 0 ? "Alpha" : "Beta", index * 10, new DateTime(2026, 5, 1).AddDays(index)))
-                .ToArray();
-
-            using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
-                sheet.AddPivotTable(
-                    sourceRange: "A1:C51",
-                    destinationCell: "E2",
-                    name: "ScorePivot",
-                    rowFields: new[] { "Name" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") });
-
+            var rows = Enumerable.Range(1, 50).Select(index => new PerformanceObjectExportRow(index % 2 == 0 ? "Alpha" : "Beta", index * 10, new DateTime(2026, 5, 1).AddDays(index))).ToArray();
+            using (var document = ExcelDocument.Create(new MemoryStream()))
+            {
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
+                sheet.AddPivotTable("A1:C51", "E2", options: new ExcelPivotTableOptions { Name = "ScorePivot", RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") } });
                 document.Save(memory);
             }
 
@@ -6243,10 +5661,8 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Name", row => row.Score));
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Name", row => row.Score));
                 sheet.AddTable("A1:B2", hasHeader: true, name: "DuplicateHeaders", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
 
                 document.Save(memory);
@@ -6276,7 +5692,7 @@ namespace OfficeIMO.Tests {
                     document.GetSharedStringIndex("Existing " + index.ToString(CultureInfo.InvariantCulture));
                 }
 
-                var historySheet = document.AddWorksheet("History 01");
+                var historySheet = document.AddSheet("History 01");
                 historySheet.InsertDataTableAsTable(
                     history,
                     startRow: 3,
@@ -6310,13 +5726,10 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C2", hasHeader: true, name: "ObjectSales", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
-                sheet.CellValue(4, 1, "Manual edit");
+                sheet.Cell(4, 1).SetValue("Manual edit");
 
                 document.Save(memory);
 
@@ -6335,18 +5748,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_FluentRowsFrom_UsesDirectPackageWhenWorkbookIsClean() {
+        public void PerformanceReview_WriteData_UsesDirectPackageWhenWorkbookIsClean()
+        {
             using var memory = new MemoryStream();
-            var rows = new[] {
+            var rows = new[]
+            {
                 new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19)),
                 new PerformanceObjectExportRow("Beta", 20, new DateTime(2026, 5, 20))
             };
-
-            using (var document = ExcelDocument.Create(new MemoryStream())) {
-                document.AsFluent()
-                    .Sheet("Data", sheet => sheet.RowsFrom(rows))
-                    .End()
-                    .Save(memory);
+            using (var document = ExcelDocument.Create(new MemoryStream()))
+            {
+                {
+                    var sheet1 = document.AddSheet("Data");
+                    sheet1.WriteData(rows);
+                    document.Save(memory);
+                }
 
                 Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
                 Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
@@ -6365,18 +5781,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_FluentRowsFrom_NullableSimpleRowsUseDirectPackage() {
+        public void PerformanceReview_WriteData_NullableSimpleRowsUseDirectPackage()
+        {
             using var memory = new MemoryStream();
-            var rows = new[] {
+            var rows = new[]
+            {
                 new NullablePerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19), string.Empty),
                 new NullablePerformanceObjectExportRow(null, null, null, "Manual")
             };
-
-            using (var document = ExcelDocument.Create(new MemoryStream())) {
-                document.AsFluent()
-                    .Sheet("Data", sheet => sheet.RowsFrom(rows))
-                    .End()
-                    .Save(memory);
+            using (var document = ExcelDocument.Create(new MemoryStream()))
+            {
+                {
+                    var sheet4 = document.AddSheet("Data");
+                    sheet4.WriteData(rows);
+                    document.Save(memory);
+                }
 
                 Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
                 Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
@@ -6390,7 +5809,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
             Assert.Equal("10", cells["B2"].CellValue!.Text);
             Assert.Equal(1U, cells["C2"].StyleIndex!.Value);
-            Assert.Equal(string.Empty, GetSpreadsheetCellText(spreadsheet, cells["A3"]));
+            AssertMissingSpreadsheetCell(cells, "A3");
+            Assert.Equal(string.Empty, GetSpreadsheetCellText(spreadsheet, cells["D2"]));
             AssertMissingSpreadsheetCell(cells, "B3");
             AssertMissingSpreadsheetCell(cells, "C3");
             Assert.Equal(cells["C2"].StyleIndex!.Value, cells["C3"].StyleIndex!.Value);
@@ -6399,27 +5819,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_FluentRowsFrom_RepeatedSimpleTypeUsesDirectPackage() {
-            var rows = new[] {
+        public void PerformanceReview_WriteData_RepeatedSimpleTypeUsesDirectPackage()
+        {
+            var rows = new[]
+            {
                 new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19))
             };
-
             using var first = new MemoryStream();
-            using (var document = ExcelDocument.Create(new MemoryStream())) {
-                document.AsFluent()
-                    .Sheet("First", sheet => sheet.RowsFrom(rows))
-                    .End()
-                    .Save(first);
+            using (var document = ExcelDocument.Create(new MemoryStream()))
+            {
+                {
+                    var sheet7 = document.AddSheet("First");
+                    sheet7.WriteData(rows);
+                    document.Save(first);
+                }
 
                 Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
             }
 
             using var second = new MemoryStream();
-            using (var document = ExcelDocument.Create(new MemoryStream())) {
-                document.AsFluent()
-                    .Sheet("Second", sheet => sheet.RowsFrom(rows))
-                    .End()
-                    .Save(second);
+            using (var document = ExcelDocument.Create(new MemoryStream()))
+            {
+                {
+                    var sheet10 = document.AddSheet("Second");
+                    sheet10.WriteData(rows);
+                    document.Save(second);
+                }
 
                 Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
                 Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
@@ -6427,17 +5852,17 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_FluentRowsFrom_ReadOnlyListUsesDirectPackageWithoutSnapshotEnumeration() {
-            var rows = new ThrowOnEnumerateReadOnlyList<PerformanceObjectExportRow>(
-                new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19)),
-                new PerformanceObjectExportRow("Beta", 20, new DateTime(2026, 5, 20)));
-
+        public void PerformanceReview_WriteData_ReadOnlyListUsesDirectPackageWithoutSnapshotEnumeration()
+        {
+            var rows = new ThrowOnEnumerateReadOnlyList<PerformanceObjectExportRow>(new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19)), new PerformanceObjectExportRow("Beta", 20, new DateTime(2026, 5, 20)));
             using var memory = new MemoryStream();
-            using (var document = ExcelDocument.Create(new MemoryStream())) {
-                document.AsFluent()
-                    .Sheet("Data", sheet => sheet.RowsFrom(rows))
-                    .End()
-                    .Save(memory);
+            using (var document = ExcelDocument.Create(new MemoryStream()))
+            {
+                {
+                    var sheet13 = document.AddSheet("Data");
+                    sheet13.WriteData(rows);
+                    document.Save(memory);
+                }
 
                 Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
                 Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
@@ -6445,20 +5870,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_FluentRowsFrom_DirtyWorkbookPreservesSimpleRows() {
+        public void PerformanceReview_WriteData_DirtyWorkbookPreservesSimpleRows()
+        {
             using var memory = new MemoryStream();
-            var rows = new[] {
+            var rows = new[]
+            {
                 new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19)),
                 new PerformanceObjectExportRow("Beta", 20, new DateTime(2026, 5, 20))
             };
-
-            using (var document = ExcelDocument.Create(new MemoryStream())) {
-                document.AsFluent()
-                    .Sheet("Data", sheet => sheet
-                        .Cell(5, 5, "Manual edit")
-                        .RowsFrom(rows))
-                    .End()
-                    .Save(memory);
+            using (var document = ExcelDocument.Create(new MemoryStream()))
+            {
+                {
+                    var sheet16 = document.AddSheet("Data");
+                    sheet16.Cell(5, 5).SetValue("Manual edit");
+                    sheet16.WriteData(rows);
+                    document.Save(memory);
+                }
 
                 Assert.NotEqual(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
             }
@@ -6479,20 +5906,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_FluentRowsFromThenTable_UsesDirectPackageWhenWorkbookIsClean() {
+        public void PerformanceReview_WriteDataThenTable_UsesDirectPackageWhenWorkbookIsClean()
+        {
             using var memory = new MemoryStream();
-            var rows = new[] {
+            var rows = new[]
+            {
                 new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19)),
                 new PerformanceObjectExportRow("Beta", 20, new DateTime(2026, 5, 20))
             };
-
-            using (var document = ExcelDocument.Create(new MemoryStream())) {
-                document.AsFluent()
-                    .Sheet("Data", sheet => sheet
-                        .RowsFrom(rows)
-                        .Table("Fluent Rows", table => table.Style(OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium5)))
-                    .End()
-                    .Save(memory);
+            using (var document = ExcelDocument.Create(new MemoryStream()))
+            {
+                {
+                    var sheet19 = document.AddSheet("Data");
+                    sheet19.WriteData(rows);
+                    sheet19.AddTable("A1:C3", name: "Plain Rows", style: ExcelTableStyle.TableStyleMedium5);
+                    document.Save(memory);
+                }
 
                 Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
                 Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
@@ -6503,26 +5932,28 @@ namespace OfficeIMO.Tests {
             var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
             var tableDefinition = worksheetPart.TableDefinitionParts.Single().Table!;
             Assert.Equal("A1:C3", tableDefinition.Reference!.Value);
-            Assert.Equal("Fluent_Rows", tableDefinition.Name!.Value);
+            Assert.Equal("Plain_Rows", tableDefinition.Name!.Value);
             Assert.Equal("TableStyleMedium5", tableDefinition.TableStyleInfo!.Name!.Value);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 
         [Fact]
-        public void PerformanceReview_FluentRowsFrom_WorkbookMutationInvalidatesDirectPackageCandidate() {
+        public void PerformanceReview_WriteData_WorkbookMutationInvalidatesDirectPackageCandidate()
+        {
             using var memory = new MemoryStream();
-            var rows = new[] {
+            var rows = new[]
+            {
                 new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19))
             };
+            using (var document = ExcelDocument.Create(new MemoryStream()))
+            {
+                {
+                    var sheet22 = document.AddSheet("Data");
+                    sheet22.WriteData(rows);
+                }
 
-            using (var document = ExcelDocument.Create(new MemoryStream())) {
-                document.AsFluent()
-                    .Sheet("Data", sheet => sheet.RowsFrom(rows))
-                    .End();
-                document.Sheets[0].CellValue(5, 1, "Manual edit");
-
+                document.Sheets[0].Cell(5, 1).SetValue("Manual edit");
                 document.Save(memory);
-
                 Assert.NotEqual(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
             }
 
@@ -6545,10 +5976,8 @@ namespace OfficeIMO.Tests {
             table.Rows.Add("Beta", 20, new DateTime(2026, 5, 20));
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertDataTable(
-                    table,
-                    mode: requestParallel ? ExcelExecutionMode.Parallel : null);
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(table, mode: requestParallel ? ExcelExecutionMode.Parallel : null);
 
                 document.Save(memory);
 
@@ -6578,8 +6007,8 @@ namespace OfficeIMO.Tests {
             table.Rows.Add("Duration", TimeSpan.FromMinutes(95));
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertDataTable(table);
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(table);
 
                 document.Save(memory);
 
@@ -6605,9 +6034,9 @@ namespace OfficeIMO.Tests {
             table.Rows.Add("Duration", TimeSpan.FromMinutes(95));
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertDataTable(table);
-                sheet.CellValue(5, 1, "Manual edit");
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(table);
+                sheet.Cell(5, 1).SetValue("Manual edit");
 
                 document.Save(memory);
 
@@ -6633,8 +6062,8 @@ namespace OfficeIMO.Tests {
             table.Rows.Add("Alpha", 10);
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertDataTable(table, includeHeaders: false);
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(table, includeHeaders: false);
 
                 document.Save(memory);
 
@@ -6661,8 +6090,8 @@ namespace OfficeIMO.Tests {
             table.Rows.Add("Alpha", 10);
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertDataTable(table, includeHeaders: false);
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(table, includeHeaders: false);
                 sheet.AddTable("A1:B1", hasHeader: false, name: "HeaderlessSales", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9, includeAutoFilter: true);
 
                 document.Save(memory);
@@ -6693,10 +6122,8 @@ namespace OfficeIMO.Tests {
             table.Rows.Add("Alpha", 10);
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertDataTable(
-                    table,
-                    mode: requestParallel ? ExcelExecutionMode.Parallel : null);
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(table, mode: requestParallel ? ExcelExecutionMode.Parallel : null);
                 table.Rows[0]["Name"] = "Changed";
                 table.Rows.Add("Late", 20);
 
@@ -6723,8 +6150,8 @@ namespace OfficeIMO.Tests {
             table.Rows.Add(mutableValue);
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertDataTable(table, mode: ExcelExecutionMode.Parallel);
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(table, mode: ExcelExecutionMode.Parallel);
                 mutableValue.Clear().Append("Changed");
 
                 document.Save(memory);
@@ -6749,10 +6176,10 @@ namespace OfficeIMO.Tests {
             table.Rows.Add(value);
 
             using var document = ExcelDocument.Create(new MemoryStream());
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
 
             var exception = Assert.Throws<InvalidOperationException>(() =>
-                sheet.InsertDataTable(table, mode: ExcelExecutionMode.Parallel));
+                sheet.WriteData(table, mode: ExcelExecutionMode.Parallel));
 
             Assert.Equal("Synthetic conversion failure.", exception.Message);
             Assert.Equal(1, value.InvocationCount);
@@ -6765,10 +6192,10 @@ namespace OfficeIMO.Tests {
             table.Rows.Add(new string('x', 32_768));
 
             using var document = ExcelDocument.Create(new MemoryStream());
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
 
             var exception = Assert.Throws<ArgumentException>(() =>
-                sheet.InsertDataTable(table, mode: ExcelExecutionMode.Parallel));
+                sheet.WriteData(table, mode: ExcelExecutionMode.Parallel));
 
             Assert.Equal("value", exception.ParamName);
         }
@@ -6782,9 +6209,9 @@ namespace OfficeIMO.Tests {
             table.Rows.Add("Alpha", 10);
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertDataTable(table);
-                sheet.CellValue(5, 1, "Manual edit");
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(table);
+                sheet.Cell(5, 1).SetValue("Manual edit");
 
                 document.Save(memory);
 
@@ -6806,9 +6233,9 @@ namespace OfficeIMO.Tests {
             table.Rows.Add("Alpha");
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.SetHidden(true);
-                sheet.InsertDataTable(table);
+                sheet.WriteData(table);
 
                 document.Save(memory);
 
@@ -6835,7 +6262,7 @@ namespace OfficeIMO.Tests {
             table.Rows.Add("Alpha", 10);
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 Assert.Equal(
                     "A1:B2",
                     sheet.InsertDataTableAsTable(
@@ -6876,7 +6303,7 @@ namespace OfficeIMO.Tests {
             table.Rows.Add("Beta", 20, new DateTime(2026, 5, 20));
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 Assert.Equal(
                     "A1:C3",
                     sheet.InsertDataTableAsTable(
@@ -6912,7 +6339,7 @@ namespace OfficeIMO.Tests {
             table.Rows.Add("Alpha");
 
             using var document = ExcelDocument.Create(new MemoryStream());
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             using var cancellation = new CancellationTokenSource();
             cancellation.Cancel();
 
@@ -6937,7 +6364,7 @@ namespace OfficeIMO.Tests {
             table.Rows.Add("Alpha", 10);
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 Assert.Equal("A1:B1", sheet.InsertDataTableAsTable(table, includeHeaders: false, tableName: "HeaderlessSales"));
 
                 document.Save(memory);
@@ -6969,9 +6396,9 @@ namespace OfficeIMO.Tests {
             table.Rows.Add("Alpha", 10);
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.InsertDataTableAsTable(table, tableName: "SalesTable");
-                sheet.CellValue(4, 1, "Manual edit");
+                sheet.Cell(4, 1).SetValue("Manual edit");
 
                 document.Save(memory);
 
@@ -6997,8 +6424,8 @@ namespace OfficeIMO.Tests {
             table.Rows.Add("Alpha");
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                document.BuiltinDocumentProperties.Title = "Sales Export";
-                var sheet = document.AddWorksheet("Data");
+                document.Properties.Title = "Sales Export";
+                var sheet = document.AddSheet("Data");
                 sheet.InsertDataTableAsTable(table, tableName: "SalesTable");
 
                 document.Save(memory);
@@ -7008,7 +6435,7 @@ namespace OfficeIMO.Tests {
 
             memory.Position = 0;
             using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
-            Assert.Equal("Sales Export", loaded.BuiltinDocumentProperties.Title);
+            Assert.Equal("Sales Export", loaded.Properties.Title);
             Assert.True(loaded.Sheets[0].TryGetCellText(2, 1, out string? text));
             Assert.Equal("Alpha", text);
         }
@@ -7025,7 +6452,7 @@ namespace OfficeIMO.Tests {
             table.Rows.Add("Gamma", DBNull.Value, DBNull.Value);
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 using IDataReader reader = table.CreateDataReader();
                 Assert.Equal("A1:C4", sheet.InsertDataReader(reader, tableName: "Reader Table", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4));
 
@@ -7062,7 +6489,7 @@ namespace OfficeIMO.Tests {
             table.Rows.Add("Alpha", "A longer value for sizing");
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 using IDataReader reader = table.CreateDataReader();
                 sheet.InsertDataReader(reader, tableName: "ReaderAutoFit", autoFit: true);
 
@@ -7090,10 +6517,10 @@ namespace OfficeIMO.Tests {
             table.Rows.Add("Alpha", 10);
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 using IDataReader reader = table.CreateDataReader();
                 sheet.InsertDataReader(reader, tableName: "ReaderTable");
-                sheet.CellValue(5, 1, "Manual edit");
+                sheet.Cell(5, 1).SetValue("Manual edit");
 
                 document.Save(memory);
 
@@ -7116,7 +6543,7 @@ namespace OfficeIMO.Tests {
             table.Rows.Add("Alpha", 10);
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 using IDataReader reader = table.CreateDataReader();
                 Assert.Equal("A1:B1", sheet.InsertDataReader(reader, includeHeaders: false, tableName: "HeaderlessReader"));
 
@@ -7152,7 +6579,7 @@ namespace OfficeIMO.Tests {
 
             using var reader = new CountingDataReader(table.CreateDataReader());
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.InsertDataReader(reader, tableName: "ReaderTable");
                 document.Save(memory);
             }
@@ -7178,7 +6605,7 @@ namespace OfficeIMO.Tests {
 
             using var reader = new CountingDataReader(table.CreateDataReader(), throwOnGetValues: true);
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.InsertDataReader(reader, tableName: "ReaderTable");
                 document.Save(memory);
             }
@@ -7205,7 +6632,7 @@ namespace OfficeIMO.Tests {
                 table.CreateDataReader(),
                 throwOnGetSchemaTable: true);
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.InsertDataReader(reader, tableName: "ReaderTable");
                 document.Save(memory);
 
@@ -7231,16 +6658,24 @@ namespace OfficeIMO.Tests {
             using var reader = new CountingDataReader(
                 table.CreateDataReader(),
                 throwOnTypedGetters: true);
-            ExcelDataSetImportResult result = ExcelDocument.WriteDataReader(
-                memory,
-                reader,
-                new ExcelTabularWriteOptions {
-                    SheetName = "Data",
-                    CreateTable = true,
-                    TableName = "ReaderTable",
-                    IncludeCellReferences = false,
-                    UseSharedStrings = false
-                });
+            ExcelDataSetImportResult result;
+
+            var destination1 = memory;
+
+            var writeOptions1 = new ExcelWriterOptions {
+                SheetName = "Data",
+                CreateTable = true,
+                TableName = "ReaderTable",
+                IncludeCellReferences = false,
+                UseSharedStrings = false
+            };
+
+            using (var workbookWriter1 = ExcelDocument.CreateWriter(destination1, writeOptions1, leaveOpen: true)) {
+                result = workbookWriter1.WriteTable(writeOptions1.SheetName, reader);
+            }
+
+            if (destination1.CanSeek)
+                destination1.Position = 0;
 
             Assert.Equal(1, result.RowCount);
             Assert.Equal(2, reader.GetValueCalls);
@@ -7261,7 +6696,7 @@ namespace OfficeIMO.Tests {
 
             using var reader = new CountingDataReader(table.CreateDataReader(), throwOnReadAfterRows: 1);
             using var document = ExcelDocument.Create(new MemoryStream());
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
 
             var exception = Assert.Throws<InvalidOperationException>(() => sheet.InsertDataReader(reader, tableName: "ReaderTable"));
             Assert.Contains("Simulated reader failure", exception.Message);
@@ -7270,41 +6705,6 @@ namespace OfficeIMO.Tests {
             Assert.Empty(sheetData.Elements<Row>());
         }
 
-        [Fact]
-        public void PerformanceReview_WriteDataSet_ObjectColumnDateAndTimeValuesUseValueStyles() {
-            using var memory = new MemoryStream();
-            var dataSet = new DataSet();
-            var table = new DataTable("Mixed");
-            table.Columns.Add("Kind", typeof(string));
-            table.Columns.Add("Value", typeof(object));
-            table.Rows.Add("When", new DateTime(2026, 5, 19, 8, 30, 0));
-            table.Rows.Add("Duration", TimeSpan.FromMinutes(95));
-            dataSet.Tables.Add(table);
-
-            ExcelDocument.WriteDataSet(memory, dataSet);
-
-            memory.Position = 0;
-            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
-            var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet!.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
-            Assert.Equal(1U, cells["B2"].StyleIndex!.Value);
-            Assert.Equal(2U, cells["B3"].StyleIndex!.Value);
-            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
-        }
-
-        [Fact]
-        public void PerformanceReview_WriteDataSet_RejectsTooManyColumns() {
-            using var memory = new MemoryStream();
-            var dataSet = new DataSet();
-            var table = new DataTable("TooWide");
-            for (int i = 0; i <= A1.MaxColumns; i++) {
-                table.Columns.Add("Column" + i.ToString(CultureInfo.InvariantCulture));
-            }
-
-            dataSet.Tables.Add(table);
-
-            var exception = Assert.Throws<ArgumentException>(() => ExcelDocument.WriteDataSet(memory, dataSet));
-            Assert.Contains(A1.MaxColumns.ToString(CultureInfo.InvariantCulture), exception.Message);
-        }
 
         private sealed class PerformanceObjectExportRow {
             public PerformanceObjectExportRow(string name, int score, DateTime created) {

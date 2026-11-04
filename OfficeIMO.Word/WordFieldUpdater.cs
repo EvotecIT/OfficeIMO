@@ -10,6 +10,10 @@ namespace OfficeIMO.Word {
             MainDocumentPart mainPart = document._wordprocessingDocument.MainDocumentPart
                 ?? throw new InvalidOperationException("MainDocumentPart is missing.");
 
+            if (!options.DateTimeFieldsOnly && options.UseLayoutPagination && options.LayoutPaginationProvider == null) {
+                throw new InvalidOperationException("Layout pagination requires OfficeIMO.Word.Pdf. Select its engine with WithPdfLayoutPagination() on the field update options.");
+            }
+
             var state = new FieldEvaluationState();
             state.LockedTocFields.AddRange(EnumerateFields(mainPart).Where(IsLockedToc));
             if (!options.DateTimeFieldsOnly && options.UpdateTablesOfContents) {
@@ -17,7 +21,7 @@ namespace OfficeIMO.Word {
             }
 
             if (!options.DateTimeFieldsOnly && options.UseLayoutPagination) {
-                state.Layout = WordLayoutPagination.Create(document);
+                state.Layout = options.LayoutPaginationProvider!(document);
             }
 
             int totalPages = options.DateTimeFieldsOnly ? 0 : state.Layout?.PageCount ?? EstimateTotalPages(document);
@@ -193,25 +197,25 @@ namespace OfficeIMO.Word {
 
             switch (parsed.FieldType) {
                 case WordFieldType.Author:
-                    return TrySetTextValue(document.BuiltinDocumentProperties.Creator, parsed, "Updated from built-in document property Creator.", out value, out status, out message);
+                    return TrySetTextValue(document.Properties.Creator, parsed, "Updated from built-in document property Creator.", out value, out status, out message);
                 case WordFieldType.Title:
-                    return TrySetTextValue(document.BuiltinDocumentProperties.Title, parsed, "Updated from built-in document property Title.", out value, out status, out message);
+                    return TrySetTextValue(document.Properties.Title, parsed, "Updated from built-in document property Title.", out value, out status, out message);
                 case WordFieldType.Subject:
-                    return TrySetTextValue(document.BuiltinDocumentProperties.Subject, parsed, "Updated from built-in document property Subject.", out value, out status, out message);
+                    return TrySetTextValue(document.Properties.Subject, parsed, "Updated from built-in document property Subject.", out value, out status, out message);
                 case WordFieldType.Keywords:
-                    return TrySetTextValue(document.BuiltinDocumentProperties.Keywords, parsed, "Updated from built-in document property Keywords.", out value, out status, out message);
+                    return TrySetTextValue(document.Properties.Keywords, parsed, "Updated from built-in document property Keywords.", out value, out status, out message);
                 case WordFieldType.Comments:
-                    return TrySetTextValue(document.BuiltinDocumentProperties.Description, parsed, "Updated from built-in document property Description.", out value, out status, out message);
+                    return TrySetTextValue(document.Properties.Description, parsed, "Updated from built-in document property Description.", out value, out status, out message);
                 case WordFieldType.LastSavedBy:
-                    return TrySetTextValue(document.BuiltinDocumentProperties.LastModifiedBy, parsed, "Updated from built-in document property LastModifiedBy.", out value, out status, out message);
+                    return TrySetTextValue(document.Properties.LastModifiedBy, parsed, "Updated from built-in document property LastModifiedBy.", out value, out status, out message);
                 case WordFieldType.CreateDate:
-                    return TrySetDate(document.BuiltinDocumentProperties.Created, parsed, "Updated from built-in document property Created.", out value, out status, out message);
+                    return TrySetDate(document.Properties.Created, parsed, "Updated from built-in document property Created.", out value, out status, out message);
                 case WordFieldType.Date:
                     return TrySetDate(updateDateTime, parsed, "Updated from field update date/time.", out value, out status, out message);
                 case WordFieldType.PrintDate:
-                    return TrySetDate(document.BuiltinDocumentProperties.LastPrinted, parsed, "Updated from built-in document property LastPrinted.", out value, out status, out message);
+                    return TrySetDate(document.Properties.LastPrinted, parsed, "Updated from built-in document property LastPrinted.", out value, out status, out message);
                 case WordFieldType.SaveDate:
-                    return TrySetDate(document.BuiltinDocumentProperties.Modified, parsed, "Updated from built-in document property Modified.", out value, out status, out message);
+                    return TrySetDate(document.Properties.Modified, parsed, "Updated from built-in document property Modified.", out value, out status, out message);
                 case WordFieldType.Time:
                     return TrySetDate(updateDateTime, parsed, "Updated from field update date/time.", out value, out status, out message);
                 case WordFieldType.FileName:
@@ -246,7 +250,7 @@ namespace OfficeIMO.Word {
                     usedLayout = state.Layout != null;
                     return TryFormatIntegerField(totalPages, parsed, state.Layout != null ? "Updated from OfficeIMO page layout." : "Updated from OfficeIMO page-break count.", out value, out status, out message);
                 case WordFieldType.RevNum:
-                    return TrySetTextValue(document.BuiltinDocumentProperties.Revision, parsed, "Updated from built-in document property Revision.", out value, out status, out message);
+                    return TrySetTextValue(document.Properties.Revision, parsed, "Updated from built-in document property Revision.", out value, out status, out message);
                 case WordFieldType.Section:
                     return TryEvaluateSectionNumber(document, candidate, parsed, out value, out status, out message);
                 case WordFieldType.SectionPages:
@@ -318,7 +322,7 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
-            KeyValuePair<string, WordCustomProperty> customProperty = document.CustomDocumentProperties
+            KeyValuePair<string, WordCustomProperty> customProperty = document.CustomProperties
                 .FirstOrDefault(pair => string.Equals(pair.Key, propertyName, StringComparison.OrdinalIgnoreCase));
 
             if (!string.IsNullOrEmpty(customProperty.Key)) {
@@ -443,7 +447,7 @@ namespace OfficeIMO.Word {
 
             value = formattedValue;
             status = WordFieldUpdateStatus.Updated;
-            message = parsed.FormatSwitches.Any(fieldFormat => fieldFormat != WordFieldFormat.Mergeformat && fieldFormat != WordFieldFormat.CharFormat)
+            message = parsed.FormatSwitches.Any(fieldFormat => fieldFormat != WordFieldFormat.MergeFormat && fieldFormat != WordFieldFormat.CharFormat)
                 ? usedNumericFormat
                     ? "Updated from QUOTE numeric literal instruction with deterministic number formatting."
                     : "Updated from QUOTE literal instruction with deterministic text formatting."
@@ -460,12 +464,12 @@ namespace OfficeIMO.Word {
             usedNumericFormat = false;
             WordFieldFormat? format = GetLastMeaningfulFormat(formatSwitches);
             switch (format) {
-                case WordFieldFormat.Roman:
-                case WordFieldFormat.roman:
+                case WordFieldFormat.UpperRoman:
+                case WordFieldFormat.LowerRoman:
                 case WordFieldFormat.Arabic:
                 case WordFieldFormat.Ordinal:
-                case WordFieldFormat.Alphabetical:
-                case WordFieldFormat.ALPHABETICAL:
+                case WordFieldFormat.LowerLetter:
+                case WordFieldFormat.UpperLetter:
                 case WordFieldFormat.Hex:
                 case WordFieldFormat.CardText:
                 case WordFieldFormat.OrdText:
@@ -543,35 +547,35 @@ namespace OfficeIMO.Word {
             switch (propertyName.Replace(" ", string.Empty).ToUpperInvariant()) {
                 case "AUTHOR":
                 case "CREATOR":
-                    return TrySetTextValue(document.BuiltinDocumentProperties.Creator, parsed, "Updated from built-in document property Creator.", out value, out status, out message);
+                    return TrySetTextValue(document.Properties.Creator, parsed, "Updated from built-in document property Creator.", out value, out status, out message);
                 case "TITLE":
-                    return TrySetTextValue(document.BuiltinDocumentProperties.Title, parsed, "Updated from built-in document property Title.", out value, out status, out message);
+                    return TrySetTextValue(document.Properties.Title, parsed, "Updated from built-in document property Title.", out value, out status, out message);
                 case "SUBJECT":
-                    return TrySetTextValue(document.BuiltinDocumentProperties.Subject, parsed, "Updated from built-in document property Subject.", out value, out status, out message);
+                    return TrySetTextValue(document.Properties.Subject, parsed, "Updated from built-in document property Subject.", out value, out status, out message);
                 case "CATEGORY":
-                    return TrySetTextValue(document.BuiltinDocumentProperties.Category, parsed, "Updated from built-in document property Category.", out value, out status, out message);
+                    return TrySetTextValue(document.Properties.Category, parsed, "Updated from built-in document property Category.", out value, out status, out message);
                 case "KEYWORDS":
-                    return TrySetTextValue(document.BuiltinDocumentProperties.Keywords, parsed, "Updated from built-in document property Keywords.", out value, out status, out message);
+                    return TrySetTextValue(document.Properties.Keywords, parsed, "Updated from built-in document property Keywords.", out value, out status, out message);
                 case "COMMENTS":
                 case "DESCRIPTION":
-                    return TrySetTextValue(document.BuiltinDocumentProperties.Description, parsed, "Updated from built-in document property Description.", out value, out status, out message);
+                    return TrySetTextValue(document.Properties.Description, parsed, "Updated from built-in document property Description.", out value, out status, out message);
                 case "LASTSAVEDBY":
                 case "LASTMODIFIEDBY":
-                    return TrySetTextValue(document.BuiltinDocumentProperties.LastModifiedBy, parsed, "Updated from built-in document property LastModifiedBy.", out value, out status, out message);
+                    return TrySetTextValue(document.Properties.LastModifiedBy, parsed, "Updated from built-in document property LastModifiedBy.", out value, out status, out message);
                 case "LASTPRINTED":
                 case "PRINTDATE":
-                    return TrySetDate(document.BuiltinDocumentProperties.LastPrinted, parsed, "Updated from built-in document property LastPrinted.", out value, out status, out message);
+                    return TrySetDate(document.Properties.LastPrinted, parsed, "Updated from built-in document property LastPrinted.", out value, out status, out message);
                 case "CREATED":
                 case "CREATEDATE":
-                    return TrySetDate(document.BuiltinDocumentProperties.Created, parsed, "Updated from built-in document property Created.", out value, out status, out message);
+                    return TrySetDate(document.Properties.Created, parsed, "Updated from built-in document property Created.", out value, out status, out message);
                 case "MODIFIED":
                 case "SAVEDATE":
-                    return TrySetDate(document.BuiltinDocumentProperties.Modified, parsed, "Updated from built-in document property Modified.", out value, out status, out message);
+                    return TrySetDate(document.Properties.Modified, parsed, "Updated from built-in document property Modified.", out value, out status, out message);
                 case "REVISION":
                 case "REVNUM":
-                    return TrySetTextValue(document.BuiltinDocumentProperties.Revision, parsed, "Updated from built-in document property Revision.", out value, out status, out message);
+                    return TrySetTextValue(document.Properties.Revision, parsed, "Updated from built-in document property Revision.", out value, out status, out message);
                 case "VERSION":
-                    return TrySetTextValue(document.BuiltinDocumentProperties.Version, parsed, "Updated from built-in document property Version.", out value, out status, out message);
+                    return TrySetTextValue(document.Properties.Version, parsed, "Updated from built-in document property Version.", out value, out status, out message);
                 default:
                     return false;
             }
@@ -786,11 +790,11 @@ namespace OfficeIMO.Word {
                     status = WordFieldUpdateStatus.Updated;
                     message = successMessage;
                     return true;
-                case WordFieldFormat.Roman:
-                case WordFieldFormat.roman:
+                case WordFieldFormat.UpperRoman:
+                case WordFieldFormat.LowerRoman:
                 case WordFieldFormat.Ordinal:
-                case WordFieldFormat.Alphabetical:
-                case WordFieldFormat.ALPHABETICAL:
+                case WordFieldFormat.LowerLetter:
+                case WordFieldFormat.UpperLetter:
                 case WordFieldFormat.Hex:
                 case WordFieldFormat.CardText:
                 case WordFieldFormat.OrdText:

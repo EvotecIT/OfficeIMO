@@ -13,7 +13,7 @@ public class PdfSectionTableOfContentsTests {
             .TableOfContents()
             .Section(
                 "Introduction",
-                item => item.Paragraph(paragraph => paragraph.Text("Introduction body")),
+                item => item.AddParagraph(paragraph => paragraph.AddText("Introduction body")),
                 new PdfSectionOptions {
                     DestinationName = "intro",
                     StartOnNewPage = true,
@@ -21,7 +21,7 @@ public class PdfSectionTableOfContentsTests {
                 })
             .Section(
                 "Details",
-                item => item.Paragraph(paragraph => paragraph.Text("Details body")),
+                item => item.AddParagraph(paragraph => paragraph.AddText("Details body")),
                 new PdfSectionOptions {
                     DestinationName = "details",
                     StartOnNewPage = true,
@@ -74,7 +74,7 @@ public class PdfSectionTableOfContentsTests {
             .TableOfContents()
             .Deferred(_ => item => item.Section(
                 "Deferred details",
-                section => section.Paragraph(paragraph => paragraph.Text("Deferred body")),
+                section => section.AddParagraph(paragraph => paragraph.AddText("Deferred body")),
                 new PdfSectionOptions { StartOnNewPage = true }))
             .ToBytes();
 
@@ -96,7 +96,7 @@ public class PdfSectionTableOfContentsTests {
             .TableOfContents()
             .Deferred(_ => item => item.Section(
                 "Deferred details",
-                section => section.Paragraph(paragraph => paragraph.Text("Deferred body")),
+                section => section.AddParagraph(paragraph => paragraph.AddText("Deferred body")),
                 new PdfSectionOptions { StartOnNewPage = true }));
 
         byte[] first = document.ToBytes();

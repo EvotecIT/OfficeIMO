@@ -1,7 +1,10 @@
+using OfficeIMO.Pdf.Excel;
 using System;
 using System.IO;
 using System.Management.Automation;
+using System.Security;
 using OfficeIMO.Excel.Pdf;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services;
 using PSWriteOffice.Services.Pdf;
 
@@ -33,7 +36,8 @@ public sealed class ConvertToOfficePdfExcelCommand : PSCmdlet
 
     /// <summary>Password used to authenticate an encrypted PDF.</summary>
     [Parameter]
-    public string? Password { get; set; }
+    [OfficePasswordTransformation]
+    public SecureString? Password { get; set; }
 
     /// <summary>After successful authentication, explicitly ignore owner-imposed extraction restrictions.</summary>
     [Parameter]
@@ -41,7 +45,7 @@ public sealed class ConvertToOfficePdfExcelCommand : PSCmdlet
 
     /// <summary>Advanced OfficeIMO PDF-table-to-Excel options.</summary>
     [Parameter]
-    public PdfTablesToExcelOptions? Options { get; set; }
+    public PdfExcelExportOptions? Options { get; set; }
 
     /// <summary>Overwrite an existing output file.</summary>
     [Parameter]
@@ -76,9 +80,7 @@ public sealed class ConvertToOfficePdfExcelCommand : PSCmdlet
                 PdfCommandUtilities.CreateReadOptions(Password, IgnorePermissionRestrictions.IsPresent));
             outputOperation = true;
             PdfCommandUtilities.EnsureDirectory(outputPath);
-            var outputResult = document.SaveTablesAsExcel(outputPath, Options).RequireSuccess();
-            var report = outputResult.Report
-                ?? throw new InvalidOperationException("PDF-to-Excel conversion completed without a conversion report.");
+            var report = document.SaveAsExcel(outputPath, Options);
             if (Open.IsPresent)
             {
                 FileOpenService.Open(outputPath);

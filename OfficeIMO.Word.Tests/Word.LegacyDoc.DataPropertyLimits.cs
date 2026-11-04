@@ -14,7 +14,7 @@ public partial class Word {
         LegacyDocDocument complete = LegacyDocDocument.Load(bytes);
         Assert.Equal(new[] { "first", "second", "third" }, complete.Paragraphs);
         Assert.All(complete.ParagraphFormats, format => Assert.True(format.KeepLinesTogether));
-        Assert.DoesNotContain(complete.Diagnostics, diagnostic => diagnostic.Code == "DOC-PAPX-INVALID");
+        Assert.DoesNotContain(complete.Diagnostics, diagnostic => diagnostic.Code == "doc-papx-invalid");
 
         var options = new LegacyDocImportOptions { MaxParagraphPropertyWorkBytes = 1100, ReportUnsupportedContent = false };
         LegacyDocDocument limited = LegacyDocDocument.Load(new MemoryStream(bytes), options);
@@ -22,7 +22,7 @@ public partial class Word {
         Assert.True(limited.ParagraphFormats[0].KeepLinesTogether);
         Assert.True(limited.ParagraphFormats[1].KeepLinesTogether);
         Assert.Null(limited.ParagraphFormats[2].KeepLinesTogether);
-        Assert.Contains(limited.Diagnostics, diagnostic => diagnostic.Code == "DOC-PAPX-INVALID"
+        Assert.Contains(limited.Diagnostics, diagnostic => diagnostic.Code == "doc-papx-invalid"
             && diagnostic.Message.IndexOf("work limit", StringComparison.Ordinal) >= 0);
     }
 
@@ -33,7 +33,7 @@ public partial class Word {
         Assert.All(complete.ParagraphFormats, format => Assert.Equal((ushort)1, format.StyleIndex));
         var limited = LegacyDocDocument.Load(bytes, new LegacyDocImportOptions { MaxParagraphPropertyWorkBytes = 1 });
         Assert.Equal(complete.Text, limited.Text);
-        Assert.Contains(limited.Diagnostics, diagnostic => diagnostic.Code == "DOC-PAPX-INVALID"
+        Assert.Contains(limited.Diagnostics, diagnostic => diagnostic.Code == "doc-papx-invalid"
             && diagnostic.Message.IndexOf("work limit", StringComparison.Ordinal) >= 0);
     }
 
@@ -45,7 +45,7 @@ public partial class Word {
             pageNumber: tableSpan ? null : int.MaxValue, overflowingTableSpan: tableSpan);
         var model = LegacyDocDocument.Load(bytes);
         Assert.Equal(new[] { "first", "second", "third" }, model.Paragraphs);
-        Assert.Contains(model.Diagnostics, diagnostic => diagnostic.Code == "DOC-PAPX-INVALID");
+        Assert.Contains(model.Diagnostics, diagnostic => diagnostic.Code == "doc-papx-invalid");
     }
 
     [Theory]

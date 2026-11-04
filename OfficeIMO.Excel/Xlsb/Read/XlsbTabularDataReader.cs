@@ -39,7 +39,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private readonly IReadOnlyList<string> _sharedStrings;
         private readonly ExcelSerialDateStyle[] _dateStyles;
         private readonly bool _uses1904DateSystem;
-        private readonly ExcelReadOptions _options;
+        private readonly ExcelReaderOptions _options;
         private readonly XlsbImportOptions _limits;
         private readonly string[] _headers;
         private readonly Dictionary<string, int> _ordinals;
@@ -69,7 +69,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             ExcelSerialDateStyle[] dateStyles,
             bool uses1904DateSystem,
             bool hasHeaderRow,
-            ExcelReadOptions options,
+            ExcelReaderOptions options,
             XlsbImportOptions limits,
             XlsbRecordReadBudget recordBudget,
             XlsbCellReadBudget cellBudget,
@@ -95,7 +95,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             ExcelSerialDateStyle[] dateStyles,
             bool uses1904DateSystem,
             bool hasHeaderRow,
-            ExcelReadOptions options,
+            ExcelReaderOptions options,
             XlsbImportOptions limits,
             XlsbRecordReadBudget recordBudget,
             XlsbCellReadBudget cellBudget,
@@ -298,10 +298,11 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     "The XLSB worksheet ended before the required BrtEndSheetData record.");
             }
 
-            Array.Clear(_kinds, 0, _kinds.Length);
-            Array.Clear(_strings, 0, _strings.Length);
+            // Typed span clears avoid the general Array.Clear dispatch on every row.
+            _kinds.AsSpan().Clear();
+            _strings.AsSpan().Clear();
             if (_options.CellValueConverter != null) {
-                Array.Clear(_customValues, 0, _customValues.Length);
+                _customValues.AsSpan().Clear();
             }
             if (_nextLogicalRowIndex < _pendingRowIndex) {
                 _logicalRowBudget.Consume();
@@ -699,7 +700,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             byte flags = Unsafe.Add(ref payload, 11);
             byte phoneticFlags = Unsafe.Add(ref payload, 12);
             uint declaredSpanCount = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref payload, 13));
-            if (rowIndex >= A1.MaxRows
+            if (rowIndex >= ExcelA1.MaxRows
                 || (extraFlags & 0xFC) != 0
                 || (flags & 0x80) != 0
                 || (phoneticFlags & 0xFE) != 0
@@ -719,7 +720,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 uint firstColumn = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref payload, spanOffset));
                 uint lastColumn = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref payload, spanOffset + 4));
                 if (firstColumn > lastColumn
-                    || lastColumn >= A1.MaxColumns
+                    || lastColumn >= ExcelA1.MaxColumns
                     || firstColumn / 1024U != lastColumn / 1024U
                     || firstColumn <= previousLast) {
                     throw new InvalidDataException(

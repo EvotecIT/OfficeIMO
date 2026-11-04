@@ -1,0 +1,100 @@
+using System;
+using OfficeIMO.Drawing;
+using PdfCore = OfficeIMO.Pdf;
+using PptCore = OfficeIMO.PowerPoint;
+
+namespace OfficeIMO.PowerPoint.Pdf;
+
+public static partial class PowerPointPdfConverterExtensions {
+    private static void RenderChart(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointChart chart, double x, double y, double width, double height, int slideNumber, PowerPointPdfExportOptions options) {
+        if (!chart.TryGetSnapshot(out PptCore.PowerPointChartSnapshot snapshot, out string? failureReason)) {
+            AddLayoutWarning(
+                options,
+                slideNumber,
+                "unsupported-chart",
+                "Skipped a PowerPoint chart because the shared chart renderer cannot draw it: " +
+                    (failureReason ?? "the chart could not be projected."),
+                PdfCore.PdfLayoutDiagnosticKind.SkippedContent,
+                "PowerPointChart",
+                "The PowerPoint chart snapshot could not be read into the shared PDF chart renderer.",
+                x,
+                y,
+                width,
+                height);
+            return;
+        }
+
+        try {
+            OfficeChartSnapshot chartSnapshot = CreateOfficeChartSnapshot(snapshot, width, height, options);
+            OfficeChartRenderingResult rendering = OfficeChartDrawingRenderer.RenderWithQuality(chartSnapshot);
+            AddChartQualityWarning(options, slideNumber, snapshot, rendering.QualityReport, x, y, width, height);
+            if (snapshot.ProjectionNotice != null) {
+                AddLayoutWarning(
+                    options,
+                    slideNumber,
+                    "chart-flattened",
+                    snapshot.ProjectionNotice,
+                    PdfCore.PdfLayoutDiagnosticKind.SimplifiedContent,
+                    "PowerPointChart",
+                    "The shared PDF chart renderer drew a flat projection of the native chart family.",
+                    x,
+                    y,
+                    width,
+                    height);
+            }
+            canvas.Drawing(
+                rendering.Drawing,
+                global::OfficeIMO.OfficeLength.Points(x),
+                global::OfficeIMO.OfficeLength.Points(y),
+                global::OfficeIMO.OfficeLength.Points(width),
+                global::OfficeIMO.OfficeLength.Points(height),
+                style: new PdfCore.PdfDrawingStyle {
+                    AlternativeText = string.IsNullOrWhiteSpace(snapshot.Title) ? "PowerPoint chart" : snapshot.Title
+                },
+                rotationAngle: chart.Rotation ?? 0D);
+        } catch (Exception ex) {
+            AddLayoutWarning(
+                options,
+                slideNumber,
+                "unsupported-chart",
+                "Skipped a PowerPoint chart because it could not be rendered as a shared PDF chart: " + ex.Message,
+                PdfCore.PdfLayoutDiagnosticKind.SkippedContent,
+                "PowerPointChart",
+                "The PowerPoint chart could not be rendered by the shared PDF chart renderer.",
+                x,
+                y,
+                width,
+                height);
+        }
+    }
+
+    private static void AddChartQualityWarning(PowerPointPdfExportOptions options, int slideNumber, PptCore.PowerPointChartSnapshot snapshot, OfficeDrawingQualityReport qualityReport, double x, double y, double width, double height) {
+        if (!qualityReport.HasIssues) {
+            return;
+        }
+
+        AddLayoutWarning(
+            options,
+            slideNumber,
+            "chart-quality",
+            "Rendered PowerPoint chart '" + (string.IsNullOrWhiteSpace(snapshot.Title) ? snapshot.Name : snapshot.Title) + "' with shared drawing quality warnings: " + FormatQualityIssues(qualityReport),
+            PdfCore.PdfLayoutDiagnosticKind.SimplifiedContent,
+            "PowerPointChart",
+            "The shared PDF chart renderer reported visual quality issues.",
+            x,
+            y,
+            width,
+            height);
+    }
+
+    private static string FormatQualityIssues(OfficeDrawingQualityReport qualityReport) {
+        return string.Join("; ", qualityReport.Issues.Select(issue => issue.ToString()));
+    }
+
+    /// <summary>
+    /// Maps the native PowerPoint snapshot into the shared chart contract used by PDF rendering.
+    /// </summary>
+    internal static OfficeChartSnapshot CreateOfficeChartSnapshot(PptCore.PowerPointChartSnapshot snapshot, double width, double height, PowerPointPdfExportOptions options) =>
+        PptCore.PowerPointChartSnapshotMapper.ToOfficeSnapshot(snapshot, width, height,
+            options.ChartStyle, options.ChartLayout);
+}

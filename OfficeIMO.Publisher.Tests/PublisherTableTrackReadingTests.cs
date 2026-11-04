@@ -20,7 +20,7 @@ public sealed class PublisherTableTrackReadingTests {
         Assert.Equal(36D, table.Cells[2].Height, 9);
         Assert.Equal("Alpha", table.Cells[2].Text);
         Assert.Equal(2, table.Cells[0].Paragraphs.Count);
-        Assert.Equal(source, document.ToPubBytes());
+        Assert.Equal(source, document.ToBytes());
     }
 
     [Fact]
@@ -30,9 +30,9 @@ public sealed class PublisherTableTrackReadingTests {
         PublisherTable table = Assert.Single(document.Pages[0].Tables);
         Assert.Equal(new[] { 36D, 36D }, table.RowHeights);
         Assert.Equal(new[] { 90D, 90D }, table.ColumnWidths);
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, finding => finding.Code == "PUB_TABLE_TRACK_POSITIONS_UNASSESSED"
+        Assert.Contains(document.ReadReport.Diagnostics, finding => finding.Code == "PUB_TABLE_TRACK_POSITIONS_UNASSESSED"
             && finding.LossKind == OfficeConversionLossKind.Unassessed && finding.Location == "Contents/object/294");
-        Assert.Equal(source, document.ToPubBytes());
+        Assert.Equal(source, document.ToBytes());
     }
 
     [Fact]
@@ -45,7 +45,7 @@ public sealed class PublisherTableTrackReadingTests {
     private static byte[] MutateTrack(Action<byte[], PublisherBlock> mutation, int index) =>
         PublisherInputContractTests.Mutate("Contents", bytes => {
             var data = new PublisherBinaryData(bytes, "Contents");
-            var context = new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None);
+            var context = new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None);
             PublisherContents contents = new PublisherContentsReader(data, context).Read();
             PublisherSourceShape table = contents.Shapes.Values.Single(shape => shape.Table != null);
             var blocks = new PublisherBlockReader(data, context);

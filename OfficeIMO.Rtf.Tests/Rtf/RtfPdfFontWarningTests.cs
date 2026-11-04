@@ -18,12 +18,12 @@ public sealed class RtfPdfFontWarningTests {
     public void UnavailableLiteralFamilyDoesNotBorrowCompatibleMappingFromAComponent(string scenario) {
         string unavailableFamily = scenario == "comma" ? "Unavailable, Courier" : "Unavailable; Courier";
         RtfDocument document = CreateDocument(Target, unavailableFamily);
-        var caller = new PdfCore.PdfOptions().RegisterNamedFontFamily(CreateFamily(Target, 500));
+        var caller = new PdfCore.PdfCreateOptions().RegisterNamedFontFamily(CreateFamily(Target, 500));
         caller.RegisterFontFamilySubstitution("Courier", Target, PdfCore.PdfFontFamilySubstitutionImpact.Compatible);
-        PdfCore.PdfOptions originalOptions = caller.Clone();
+        PdfCore.PdfCreateOptions originalOptions = caller.Clone();
         byte[] originalSource = document.ToBytes();
 
-        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(ConvertOptions(caller));
+        PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(ConvertOptions(caller));
         AssertPaintedFamilyAndAdvance(result.ToBytes(), Target, 5D);
 
         PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings,
@@ -35,7 +35,7 @@ public sealed class RtfPdfFontWarningTests {
         Assert.Equal(OfficeConversionLossKind.Approximation, warning.LossKind);
         Assert.False(warning.Details.ContainsKey("plannedSubstitution"));
         Assert.True(result.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
         Assert.Equal(originalSource, document.ToBytes());
         AssertCallerOptionsUnchanged(originalOptions, caller);
     }
@@ -46,18 +46,19 @@ public sealed class RtfPdfFontWarningTests {
     public void ProfileOwnedFamilyDoesNotReportAnInactiveSubstitution(PdfCore.PdfFontFamilySubstitutionImpact impact) {
         RtfDocument document = CreateDocument(Source, Source);
         var fonts = new OfficeFontFaceCollection().Add(Source, CreateFont(300));
-        var caller = new PdfCore.PdfOptions().UseRenderingProfile(new OfficeRenderingProfile("warning-source", fonts));
+        var caller = new PdfCore.PdfCreateOptions().UseRenderingProfile(new OfficeRenderingProfile("warning-source", fonts));
         caller.RegisterNamedFontFamily(CreateFamily(Target, 800));
         caller.RegisterFontFamilySubstitution(Source, Target, impact);
-        PdfCore.PdfOptions originalOptions = caller.Clone();
+        PdfCore.PdfCreateOptions originalOptions = caller.Clone();
         byte[] originalSource = document.ToBytes();
 
-        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(ConvertOptions(caller));
+        PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(ConvertOptions(caller));
         AssertPaintedFamilyAndAdvance(result.ToBytes(), Source, 3D);
 
         Assert.DoesNotContain(result.Warnings, warning => warning.Code == "FontFamilySubstituted");
         Assert.False(result.HasLoss);
-        Assert.Same(result.Value, result.RequireNoLoss());
+        result.ThrowIfLoss();
+        Assert.Same(result.Value, result.Value);
         Assert.Equal(originalSource, document.ToBytes());
         AssertCallerOptionsUnchanged(originalOptions, caller);
     }
@@ -65,14 +66,14 @@ public sealed class RtfPdfFontWarningTests {
     [Fact]
     public void NonProfileNamedSourceKeepsConfiguredSubstitutionPriority() {
         RtfDocument document = CreateDocument(Source, Source);
-        var caller = new PdfCore.PdfOptions()
+        var caller = new PdfCore.PdfCreateOptions()
             .RegisterNamedFontFamily(CreateFamily(Source, 300))
             .RegisterNamedFontFamily(CreateFamily(Target, 800));
         caller.RegisterFontFamilySubstitution(Source, Target, PdfCore.PdfFontFamilySubstitutionImpact.Compatible);
-        PdfCore.PdfOptions originalOptions = caller.Clone();
+        PdfCore.PdfCreateOptions originalOptions = caller.Clone();
         byte[] originalSource = document.ToBytes();
 
-        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(ConvertOptions(caller));
+        PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(ConvertOptions(caller));
         AssertPaintedFamilyAndAdvance(result.ToBytes(), Target, 8D);
 
         PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings,
@@ -83,7 +84,8 @@ public sealed class RtfPdfFontWarningTests {
         Assert.Equal(PdfCore.PdfConversionWarningSeverity.Information, warning.Severity);
         Assert.Equal(OfficeConversionLossKind.None, warning.LossKind);
         Assert.False(result.HasLoss);
-        Assert.Same(result.Value, result.RequireNoLoss());
+        result.ThrowIfLoss();
+        Assert.Same(result.Value, result.Value);
         Assert.Equal(originalSource, document.ToBytes());
         AssertCallerOptionsUnchanged(originalOptions, caller);
     }
@@ -103,7 +105,7 @@ public sealed class RtfPdfFontWarningTests {
     private static PdfCore.PdfEmbeddedFontFamily CreateFamily(string family, ushort advance) =>
         new PdfCore.PdfEmbeddedFontFamily(family, CreateFont(advance));
 
-    private static RtfToPdfOptions ConvertOptions(PdfCore.PdfOptions caller) => new RtfToPdfOptions {
+    private static RtfPdfExportOptions ConvertOptions(PdfCore.PdfCreateOptions caller) => new RtfPdfExportOptions {
         PdfOptions = caller,
         ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
         TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
@@ -122,7 +124,7 @@ public sealed class RtfPdfFontWarningTests {
         Assert.Equal(expectedAdvance, letters[1].StartBaseLine.X - letters[0].StartBaseLine.X, 3);
     }
 
-    private static void AssertCallerOptionsUnchanged(PdfCore.PdfOptions expected, PdfCore.PdfOptions actual) {
+    private static void AssertCallerOptionsUnchanged(PdfCore.PdfCreateOptions expected, PdfCore.PdfCreateOptions actual) {
         Assert.Equal(expected.NamedFontFamilies.Keys.OrderBy(key => key), actual.NamedFontFamilies.Keys.OrderBy(key => key));
         foreach (var family in expected.NamedFontFamilies) {
             Assert.Equal(family.Value.Regular, actual.NamedFontFamilies[family.Key].Regular);

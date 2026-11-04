@@ -33,7 +33,7 @@ foreach (var page in publication.Pages)
 foreach (var story in publication.TextStories)
     Console.WriteLine(story.Text);
 
-foreach (var diagnostic in publication.ReadReport.FidelityDiagnostics)
+foreach (var diagnostic in publication.ReadReport.Diagnostics)
     Console.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
 ```
 
@@ -56,18 +56,17 @@ PublisherSaveReport copyReport = publication.Save("flyer-copy.pub");
 
 // After supported edits, accept and inspect the operation's unassessed fidelity.
 var settings = new PublisherSaveOptions {
-    LossPolicy = OfficeConversionLossPolicy.Allow,
+    AllowLoss = true,
     MaxOutputBytes = 64L * 1024 * 1024
 };
 PublisherSaveReport report = await publication.SaveAsync("flyer-edited.pub", settings);
-foreach (var diagnostic in report.FidelityDiagnostics)
+foreach (var diagnostic in report.Diagnostics)
     Console.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
 
-var result = publication.ToPubBytesResult(settings);
-byte[] detachedBytes = result.Value;
+byte[] detachedBytes = publication.ToBytes(settings, out PublisherSaveReport bytesReport);
 ```
 
-`ToPubBytes`, `ToPubBytesResult`, `Save` and `SaveAsync` use the same bounded native
+`ToBytes`, `Save` and `SaveAsync` use the same bounded native
 codec. Unchanged semantic content produces a byte-exact copy of the original
 source. Supported edits include existing page object ordering, ordinary frame/shape/picture bounds,
 existing solid scalar paint slots, qualified frame columns/full intercolumn gap,
@@ -175,7 +174,7 @@ collection prepares one native empty CR paragraph using the source final
 paragraph definition and CR typing. The public model keeps zero paragraphs;
 reloading the native file exposes one styled empty paragraph. The save report
 includes `PUB_NATIVE_EMPTY_STORY_PARAGRAPH` as `Approximation`, requiring explicit
-`Allow` even when an already-empty source can be copied exactly.
+`AllowLoss = true` even when an already-empty source can be copied exactly.
 Paragraph edits include alignment, before/after spacing, margins, first-line or
 hanging indents, explicit absolute/multiple line spacing, and ordinary left tabs.
 For native center/right paragraphs, use tab settings with
@@ -197,7 +196,7 @@ stories remain available in `MasterPages` and `TextStories`. Unqualified referen
 or display tokens reject assignment edits; other unsupported topology remains refused.
 
 The default loss policy is `Block`, including unassessed fidelity. Edited native
-output requires explicit `Allow`; this policy still refuses unsupported edits and
+output requires explicit `AllowLoss = true`; this policy still refuses unsupported edits and
 unsafe source carriers. `OfficeConversionException.Report` carries a
 `PublisherSaveReport` for policy or preparation refusal. Its diagnostics describe
 this save operation; `SourceReadReport` separately retains the original decoding
@@ -246,7 +245,7 @@ File.WriteAllText("newsletter-page.svg", newsletter.ToSvg());
 ```
 
 `Create` takes a positive finite width and height in points and creates one empty
-document page without a master or native source. Its optional `PublisherReadOptions`
+document page without a master or native source. Its optional `PublisherLoadOptions`
 is copied and bounds authoring and projection as well as native reading.
 `AddPage` appends at the existing publication size; omitting its master ID creates
 a page without a master. `AddMasterPage` creates a centered single-page definition
@@ -295,12 +294,12 @@ requires a loaded publication and the supported source-edit profile below.
 Add an embedded picture to a qualified document or master page:
 
 ```csharp
-var illustration = newsletter.AddPicture(firstPage.Id,
+var illustration = newsletter.AddImage(firstPage.Id,
     File.ReadAllBytes("illustration.png"), 360, 84, 144, 96);
 newsletter.SetPictureBounds(illustration.Id, 360, 84, 120, 80);
 ```
 
-`AddPicture` accepts a static PNG or JPEG with normal encoded orientation,
+`AddImage` accepts a static PNG or JPEG with normal encoded orientation,
 validated through the shared managed image decoder. Animated PNGs, non-normal
 EXIF orientations, other formats and invalid payloads are rejected. The supplied
 point rectangle controls placement and size; image DPI does not choose the frame.
@@ -313,7 +312,7 @@ one placement and a separate asset, even for identical input. To reuse a documen
 image, pass its document-scoped ID instead of bytes:
 
 ```csharp
-var repeated = newsletter.AddPicture(firstPage.Id, illustration.ImageId!.Value,
+var repeated = newsletter.AddImage(firstPage.Id, illustration.ImageId!.Value,
     48, 480, 72, 48);
 ```
 
@@ -344,10 +343,7 @@ var publication = PublisherDocument.Load("flyer.pub");
 var page = publication.Pages[0];
 publication.SetPageObjectOrder(page.Id, page.ObjectIds.Reverse().ToArray());
 
-var result = publication.ToPubBytesResult(new PublisherSaveOptions {
-    LossPolicy = OfficeConversionLossPolicy.Allow
-});
-File.WriteAllBytes("flyer-reordered.pub", result.Value);
+var report = publication.Save("flyer-reordered.pub", new PublisherSaveOptions { AllowLoss = true });
 File.WriteAllText("flyer-reordered.svg", publication.ToSvg());
 ```
 
@@ -360,7 +356,7 @@ or removing foreground obstacles. Ordinary rectangular native defaults are also
 supported. Grouped artwork and unqualified side, outline or master wrapping
 remain outside this profile. The save report includes
 `PUB_NATIVE_OBJECT_ORDER_UNQUALIFIED` and, when exclusions change,
-`PUB_NATIVE_WRAP_REFERENCES_UNQUALIFIED`, requiring explicit `Allow`. See the
+`PUB_NATIVE_WRAP_REFERENCES_UNQUALIFIED`, requiring explicit `AllowLoss = true`. See the
 [qualified ordering contract](SUPPORT.md#existing-page-object-ordering).
 
 ### Edit text and layout
@@ -407,7 +403,7 @@ normal feature defaults. Same-font mixed-run activation and exact native glyph
 geometry remain qualification limits. See the
 [native threshold contract](SUPPORT.md#native-pair-kerning-metadata).
 
-`PublisherReadOptions.Fonts` supplies scoped font faces for story flow and page
+`PublisherLoadOptions.Fonts` supplies scoped font faces for story flow and page
 rendering. The options clone the font collection, and exported drawing snapshots
 retain independent copies. For example:
 
@@ -415,7 +411,7 @@ retain independent copies. For example:
 var fonts = new OfficeFontFaceCollection()
     .Add("Arial", File.ReadAllBytes("assets/Arial.ttf"));
 var withFonts = PublisherDocument.Load("newsletter.pub",
-    new PublisherReadOptions { Fonts = fonts });
+    new PublisherLoadOptions { Fonts = fonts });
 File.WriteAllText("newsletter.svg", withFonts.ToSvg());
 ```
 
@@ -635,7 +631,7 @@ Unsupported paint is reported rather than presented as an observed empty style.
 
 Fill visibility changes compose with supported cell-paragraph growth. Native
 source saving refuses ambiguous visibility ownership and unsupported complex or
-BLIP-role boolean fields, including under `Allow`. See the [qualified fill and
+BLIP-role boolean fields, including under `AllowLoss = true`. See the [qualified fill and
 shared-border profiles](SUPPORT.md#native-cell-fills-and-shared-borders) for exact limits.
 
 ```csharp
@@ -736,7 +732,7 @@ that agree with the laid-out tracks. Expanded rows can move with their track
 records retained, but resizing them is refused. Supported moves rebuild native
 rectangular wrap references; unqualified wrap relationships refuse saving.
 Edited output reports `PUB_NATIVE_TABLE_BOUNDS_UNQUALIFIED` and requires explicit
-`Allow`. Native opening can reflow a table, so stored bounds do not promise a
+`AllowLoss = true`. Native opening can reflow a table, so stored bounds do not promise a
 fixed rendered height. See the [qualified source profile](SUPPORT.md#native-table-placement-and-fixed-track-resizing).
 
 `AddTable` copies positive finite column widths and row heights, appends an empty,
@@ -783,8 +779,8 @@ Native transparent-color keys, brightness/contrast controls, grayscale and
 two-color picture modes produce a processed PNG in the page scene. Original
 assets remain in `Images`. The read report identifies the managed color-space
 and threshold approximations; recoloring and extended color controls remain
-unassessed. Picture effects require bounded raster decoding. `MaximumRasterPixels`
-limits each decoded picture, and `MaximumImageProcessingPixels` limits cumulative
+unassessed. Picture effects require bounded raster decoding. `MaxRasterPixels`
+limits each decoded picture, and `MaxImageProcessingPixels` limits cumulative
 decode/filter work and inspected GIF, WebP or icon frame pixels across picture
 references.
 
@@ -870,7 +866,7 @@ recovery; changing the separate page drawing does not update the table model.
 var exported = publication.ToSvgResult(pageIndex: 0);
 File.WriteAllText("page-1.svg", exported.Value);
 
-foreach (var diagnostic in exported.Report.FidelityDiagnostics)
+foreach (var diagnostic in exported.Report.Diagnostics)
     Console.WriteLine($"{diagnostic.LossKind}: {diagnostic.Message}");
 ```
 
@@ -887,9 +883,9 @@ multi-page PDF conversion.
 ```csharp
 using OfficeIMO;
 
-var options = new PublisherReadOptions {
-    MaximumPages = 100,
-    MaximumImageBytes = 8 * 1024 * 1024,
+var options = new PublisherLoadOptions {
+    MaxPages = 100,
+    MaxImageBytes = 8 * 1024 * 1024,
     Limits = new OfficeLegacyImportLimits {
         MaxInputBytes = 32 * 1024 * 1024,
         MaxTextCharacters = 1_000_000
@@ -916,16 +912,31 @@ references; delayed decoding results are reused within the operation.
 256 columns within the configured item limit.
 
 Recovery reports distinguish approximation, omission and unassessed content.
-`RequireNoLoss()` rejects any of those categories. Current native recovery
+`ThrowIfLoss()` rejects any of those categories. Current native recovery
 reports unassessed publication features, so a successful load is not a claim of
 complete Publisher fidelity.
 
 Native WMF/EMF assets remain available in `Images`. Their page projection uses an
-explicit application `PublisherReadOptions.ImageCodec` when supplied; otherwise
+explicit application `PublisherLoadOptions.ImageCodec` when supplied; otherwise
 it displays a placeholder and reports the omission. Codec output is subject to
 pixel and encoded-byte limits. No external decoder is installed or invoked by
 the package.
 
-Publisher 97/98 and 2000 profiles are recognized and rejected. Native `.pub`
-writing, macro execution, external-resource
-refresh, and embedded-object activation are outside this package's contract.
+Publisher 97/98 and 2000 profiles are recognized and rejected. Native saving
+supports the documented modern imported-source profiles. Macro execution,
+external-resource refresh and embedded-object activation are outside the contract.
+
+<!-- officeimo-operation-catalog:start -->
+## Generated capability summary
+
+This table is generated from the package-neutral OfficeIMO operation catalog. The detailed source contracts remain authoritative for feature-level behavior and limitations.
+
+| Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Create | 0 | 0 | 0 | 0 | 1 | 0 |
+| Read | 0 | 1 | 0 | 0 | 0 | 0 |
+| Edit | 0 | 1 | 0 | 0 | 0 | 0 |
+| Preserve | 0 | 1 | 0 | 0 | 0 | 0 |
+
+The complete rows for `OfficeIMO.Publisher` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
+<!-- officeimo-operation-catalog:end -->

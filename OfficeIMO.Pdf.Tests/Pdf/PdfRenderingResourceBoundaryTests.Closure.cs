@@ -90,6 +90,36 @@ public sealed partial class PdfRenderingResourceBoundaryTests {
     }
 
     [Theory]
+    [InlineData(100, null)]
+    [InlineData(130, "filter-chain-too-long")]
+    public void Jbig2DiagnosticBoundsAlternatingEmptyFilterChains(int pairCount, string? expectedFeature) {
+        var dictionary = new PdfDictionary();
+        var filters = new PdfArray();
+        for (int index = 0; index < pairCount; index++) {
+            filters.Items.Add(new PdfName("JBIG2Decode"));
+            filters.Items.Add(new PdfName("RunLengthDecode"));
+        }
+        dictionary.Items["Filter"] = filters;
+        dictionary.Items["Width"] = new PdfNumber(1);
+        dictionary.Items["Height"] = new PdfNumber(4096);
+        var stream = new PdfStream(dictionary, Array.Empty<byte>());
+
+        Assert.Equal(expectedFeature, StreamDecoder.FindUnsupportedJbig2Feature(stream, null, 4096));
+    }
+
+    [Fact]
+    public void Jbig2DiagnosticDoesNotDecodeTheFinalImage() {
+        var dictionary = new PdfDictionary();
+        dictionary.Items["Filter"] = new PdfName("JBIG2Decode");
+        dictionary.Items["Width"] = new PdfNumber(1);
+        dictionary.Items["Height"] = new PdfNumber(4096);
+        var stream = new PdfStream(dictionary, Array.Empty<byte>());
+
+        // Header inspection is legal even when the actual bitmap exceeds this decode limit.
+        Assert.Null(StreamDecoder.FindUnsupportedJbig2Feature(stream, null, maximumBytes: 1));
+    }
+
+    [Theory]
     [InlineData(1, "exclamsmall", 33)]
     [InlineData(2, "dollaroldstyle", 36)]
     public void PredefinedCffExpertCharsetsAndEncodingSelectTheCorrectGlyph(int charset, string glyph, int code) {

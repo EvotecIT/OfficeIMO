@@ -16,7 +16,7 @@ public partial class PdfPageExtractorTests {
 
         byte[] extracted = PdfPageExtractor.ExtractPages(source, 1);
 
-        PdfMetadata metadata = PdfInspector.Inspect(extracted).Metadata;
+        PdfDocumentProperties metadata = PdfInspector.Inspect(extracted).Metadata;
         Assert.Equal(new DateTimeOffset(2024, 8, 15, 12, 0, 0, TimeSpan.Zero), metadata.CreationDate);
         Assert.Equal(new DateTimeOffset(2024, 8, 15, 12, 15, 0, TimeSpan.Zero), metadata.ModificationDate);
         Assert.Equal(creationDate, metadata.CreationDateRaw);
@@ -38,7 +38,7 @@ public partial class PdfPageExtractorTests {
         };
 
         foreach (byte[] pdf in rewritten) {
-            PdfMetadata metadata = PdfInspector.Inspect(pdf).Metadata;
+            PdfDocumentProperties metadata = PdfInspector.Inspect(pdf).Metadata;
             Assert.Equal(creationDate, metadata.CreationDateRaw);
             Assert.Equal(modificationDate, metadata.ModificationDateRaw);
             Assert.DoesNotContain("+00'00'", PdfEncoding.Latin1GetString(pdf), StringComparison.Ordinal);

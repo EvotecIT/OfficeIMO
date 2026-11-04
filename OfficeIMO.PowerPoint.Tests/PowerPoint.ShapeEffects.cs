@@ -13,13 +13,13 @@ namespace OfficeIMO.Tests {
         public void CanSetAndClearShapeShadow() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
-                    PowerPointAutoShape shadow = slide.AddRectangle(0, 0, 4000, 2000, "ShadowRect");
-                    shadow.SetShadow("000000", blurPoints: 6, distancePoints: 5, angleDegrees: 270, transparencyPercent: 40);
+                    PowerPointAutoShape shadow = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(2000), "ShadowRect");
+                    shadow.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(6), distance: OfficeIMO.OfficeLength.Points(5), angleDegrees: 270, transparencyPercent: 40);
 
-                    PowerPointAutoShape clear = slide.AddRectangle(0, 3000, 4000, 2000, "ClearRect");
-                    clear.SetShadow("FF0000", blurPoints: 4, distancePoints: 3, angleDegrees: 45, transparencyPercent: 20);
+                    PowerPointAutoShape clear = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(3000), OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(2000), "ClearRect");
+                    clear.SetShadow("FF0000", blur: OfficeIMO.OfficeLength.Points(4), distance: OfficeIMO.OfficeLength.Points(3), angleDegrees: 45, transparencyPercent: 20);
                     clear.ClearShadow();
 
                     presentation.Save();
@@ -40,8 +40,8 @@ namespace OfficeIMO.Tests {
                     A.RgbColorModelHex? color = shadow?.GetFirstChild<A.RgbColorModelHex>();
                     Assert.Equal("000000", color?.Val?.Value);
                     Assert.Equal(60000, color?.GetFirstChild<A.Alpha>()?.Val?.Value);
-                    Assert.Equal(PowerPointUnits.FromPoints(6), shadow?.BlurRadius?.Value);
-                    Assert.Equal(PowerPointUnits.FromPoints(5), shadow?.Distance?.Value);
+                    Assert.Equal(global::OfficeIMO.OfficeLength.Points(6).ToEmus(), shadow?.BlurRadius?.Value);
+                    Assert.Equal(global::OfficeIMO.OfficeLength.Points(5).ToEmus(), shadow?.Distance?.Value);
                     Assert.Equal(16200000, shadow?.Direction?.Value);
 
                     A.OuterShadow? clearedShadow = clearShape.ShapeProperties?
@@ -60,15 +60,15 @@ namespace OfficeIMO.Tests {
         public void CanSetGlowAndSoftEdges() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
-                    PowerPointAutoShape glowShape = slide.AddRectangle(0, 0, 4000, 2000, "GlowRect");
-                    glowShape.SetGlow("FF00FF", radiusPoints: 5, transparencyPercent: 25);
-                    glowShape.SetSoftEdges(3);
+                    PowerPointAutoShape glowShape = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(2000), "GlowRect");
+                    glowShape.SetGlow("FF00FF", radius: OfficeIMO.OfficeLength.Points(5), transparencyPercent: 25);
+                    glowShape.SetSoftEdges(OfficeIMO.OfficeLength.Points(3));
 
-                    PowerPointAutoShape clearShape = slide.AddRectangle(0, 3000, 4000, 2000, "ClearEffectsRect");
-                    clearShape.SetGlow("00FF00", radiusPoints: 4, transparencyPercent: 10);
-                    clearShape.SetSoftEdges(2);
+                    PowerPointAutoShape clearShape = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(3000), OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(2000), "ClearEffectsRect");
+                    clearShape.SetGlow("00FF00", radius: OfficeIMO.OfficeLength.Points(4), transparencyPercent: 10);
+                    clearShape.SetSoftEdges(OfficeIMO.OfficeLength.Points(2));
                     clearShape.ClearGlow();
                     clearShape.ClearSoftEdges();
 
@@ -87,7 +87,7 @@ namespace OfficeIMO.Tests {
 
                     A.Glow? glow = effects?.GetFirstChild<A.Glow>();
                     Assert.NotNull(glow);
-                    Assert.Equal(PowerPointUnits.FromPoints(5), glow?.Radius?.Value);
+                    Assert.Equal(global::OfficeIMO.OfficeLength.Points(5).ToEmus(), glow?.Radius?.Value);
 
                     A.RgbColorModelHex? color = glow?.GetFirstChild<A.RgbColorModelHex>();
                     Assert.Equal("FF00FF", color?.Val?.Value);
@@ -95,7 +95,7 @@ namespace OfficeIMO.Tests {
 
                     A.SoftEdge? softEdge = effects?.GetFirstChild<A.SoftEdge>();
                     Assert.NotNull(softEdge);
-                    Assert.Equal(PowerPointUnits.FromPoints(3), softEdge?.Radius?.Value);
+                    Assert.Equal(global::OfficeIMO.OfficeLength.Points(3).ToEmus(), softEdge?.Radius?.Value);
 
                     A.EffectList? clearedEffects = clearXml.ShapeProperties?.GetFirstChild<A.EffectList>();
                     Assert.Null(clearedEffects?.GetFirstChild<A.Glow>());
@@ -112,13 +112,13 @@ namespace OfficeIMO.Tests {
         public void CanSetBlurAndReflection() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
-                    PowerPointAutoShape blurShape = slide.AddRectangle(0, 0, 4000, 2000, "BlurRect");
-                    blurShape.SetBlur(5, grow: true);
+                    PowerPointAutoShape blurShape = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(2000), "BlurRect");
+                    blurShape.SetBlur(OfficeIMO.OfficeLength.Points(5), grow: true);
 
-                    PowerPointAutoShape reflectionShape = slide.AddRectangle(0, 3000, 4000, 2000, "ReflectionRect");
-                    reflectionShape.SetReflection(blurPoints: 6, distancePoints: 4,
+                    PowerPointAutoShape reflectionShape = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(3000), OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(2000), "ReflectionRect");
+                    reflectionShape.SetReflection(blur: OfficeIMO.OfficeLength.Points(6), distance: OfficeIMO.OfficeLength.Points(4),
                         directionDegrees: 270, fadeDirectionDegrees: 90,
                         startOpacityPercent: 60, endOpacityPercent: 0,
                         startPositionPercent: 0, endPositionPercent: 100,
@@ -137,14 +137,14 @@ namespace OfficeIMO.Tests {
 
                     A.Blur? blur = blurXml.ShapeProperties?.GetFirstChild<A.EffectList>()?.GetFirstChild<A.Blur>();
                     Assert.NotNull(blur);
-                    Assert.Equal(PowerPointUnits.FromPoints(5), blur?.Radius?.Value);
+                    Assert.Equal(global::OfficeIMO.OfficeLength.Points(5).ToEmus(), blur?.Radius?.Value);
                     Assert.True(blur?.Grow?.Value == true);
 
                     A.Reflection? reflection = reflectionXml.ShapeProperties?.GetFirstChild<A.EffectList>()?
                         .GetFirstChild<A.Reflection>();
                     Assert.NotNull(reflection);
-                    Assert.Equal(PowerPointUnits.FromPoints(6), reflection?.BlurRadius?.Value);
-                    Assert.Equal(PowerPointUnits.FromPoints(4), reflection?.Distance?.Value);
+                    Assert.Equal(global::OfficeIMO.OfficeLength.Points(6).ToEmus(), reflection?.BlurRadius?.Value);
+                    Assert.Equal(global::OfficeIMO.OfficeLength.Points(4).ToEmus(), reflection?.Distance?.Value);
                     Assert.Equal(16200000, reflection?.Direction?.Value);
                     Assert.Equal(5400000, reflection?.FadeDirection?.Value);
                     Assert.Equal(60000, reflection?.StartOpacity?.Value);
@@ -165,18 +165,18 @@ namespace OfficeIMO.Tests {
         public void ShapePropertiesStayInSchemaOrderWhenStylingAfterEffects() {
             string filePath = CreateTempFilePath(".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
-                    PowerPointAutoShape shape = slide.AddRectangle(0, 0, 4000, 2000, "StyledAfterEffects");
+                    PowerPointAutoShape shape = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(2000), "StyledAfterEffects");
 
-                    shape.SetSoftEdges(2);
-                    shape.SetReflection(blurPoints: 2, distancePoints: 1, startOpacityPercent: 20);
-                    shape.SetShadow("000000", blurPoints: 6, distancePoints: 3, transparencyPercent: 55);
-                    shape.SetGlow("F26A3D", radiusPoints: 3, transparencyPercent: 30);
+                    shape.SetSoftEdges(OfficeIMO.OfficeLength.Points(2));
+                    shape.SetReflection(blur: OfficeIMO.OfficeLength.Points(2), distance: OfficeIMO.OfficeLength.Points(1), startOpacityPercent: 20);
+                    shape.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(6), distance: OfficeIMO.OfficeLength.Points(3), transparencyPercent: 55);
+                    shape.SetGlow("F26A3D", radius: OfficeIMO.OfficeLength.Points(3), transparencyPercent: 30);
                     shape.FillColor = "EFE8DA";
                     shape.FillTransparency = 8;
                     shape.OutlineColor = "6B6EA8";
-                    shape.OutlineWidthPoints = 1.2;
+                    shape.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1.2);
 
                     presentation.Save();
                     Assert.Empty(presentation.ValidateDocument());

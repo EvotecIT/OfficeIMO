@@ -96,8 +96,8 @@ namespace OfficeIMO.Tests {
             var worker = new System.Threading.Thread(() => {
                 try {
                     using var document = ExcelDocument.Create();
-                    var first = document.AddWorksheet("First");
-                    var second = crossSheet ? document.AddWorksheet("Second") : first;
+                    var first = document.AddSheet("First");
+                    var second = crossSheet ? document.AddSheet("Second") : first;
                     const int cells = 30;
                     int nesting = parentheses ? 70 : 50;
                     for (int row = 1; row <= cells; row++) {
@@ -105,9 +105,9 @@ namespace OfficeIMO.Tests {
                         var next = row % 2 == 0 ? first : second;
                         string child = row == cells ? "1" : next.Name + "!A" + (row + 1);
                         string prefix = parentheses ? new string('(', nesting) : string.Concat(Enumerable.Repeat("ABS(", nesting));
-                        sheet.CellFormula(row, 1, prefix + child + new string(')', nesting));
+                        sheet.Cell(row, 1).SetFormula(prefix + child + new string(')', nesting));
                     }
-                    first.CellFormula(1, 2, "40+2");
+                    first.Cell(1, 2).SetFormula("40+2");
                     Assert.True(document.Calculate() > 0);
                     Assert.True(first.TryGetCachedFormulaValue(1, 2, out string? unrelated));
                     Assert.Equal("42", unrelated);

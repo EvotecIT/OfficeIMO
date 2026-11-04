@@ -85,8 +85,8 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(.8D, Assert.Single(groups, group => group.Source == "div#block").Transform.M11, 3);
         Assert.Equal(.5D, Assert.Single(groups, group => group.Source == "span#inline").Transform.M11, 3);
-        Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.TransformValueUnsupported && item.Source == "div#block");
-        Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.TransformValueUnsupported && item.Source == "span#inline");
+        Assert.Contains(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.TransformValueUnsupported && item.Source == "div#block");
+        Assert.Contains(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.TransformValueUnsupported && item.Source == "span#inline");
     }
 
     [Fact]
@@ -216,15 +216,15 @@ public sealed partial class HtmlRenderingTests {
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         OfficeImageExportResult png = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, options);
         string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
-        var pdfOptions = new HtmlToPdfOptions {
+        var pdfOptions = new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(140D / HtmlRenderOptions.CssPixelsPerInch, 40D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(140D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(40D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent
         };
-        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions);
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes();
+        string pdfText = string.Concat(PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
         PdfCore.PdfLogicalLinkAnnotation pdfLink = Assert.Single(PdfCore.PdfDocumentReadResult.Load(pdf).GetLinksByUri(link));
 
         Assert.Equal(OfficeColor.Transparent, raster.GetPixel(5, 5));
@@ -234,7 +234,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("EffectPdfMarker", pdfText, StringComparison.Ordinal);
         Assert.Contains("/Group << /S /Transparency /I true /K false >>", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
         Assert.True(pdfLink.SourceLink.X1 >= 15D - 0.01D);
-        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -256,11 +256,11 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderEffectGroup outer = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderEffectGroup>(), item => item.Source == "div#outer");
         HtmlRenderEffectGroup inner = Assert.Single(EnumerateRenderVisuals(outer.Visuals).OfType<HtmlRenderEffectGroup>(), item => item.Source == "div#inner");
         OfficeColor pixel = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing()).GetPixel(10, 10);
-        HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
-        pdfOptions = new HtmlToPdfOptions(renderOptions);
-        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions);
+        HtmlPdfExportOptions pdfOptions = new HtmlPdfExportOptions();
+        pdfOptions = new HtmlPdfExportOptions(renderOptions);
+        byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes();
         string rawPdf = Encoding.ASCII.GetString(pdf);
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string pdfText = string.Concat(PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(0.5D, outer.Opacity, 3);
         Assert.Equal(0.5D, inner.Opacity, 3);
@@ -269,7 +269,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("NestedEffectMarker", pdfText, StringComparison.Ordinal);
         Assert.True(rawPdf.Split(new[] { "/Group << /S /Transparency /I true /K false >>" }, StringSplitOptions.None).Length - 1 >= 2);
         Assert.DoesNotContain("OIMO_EFFECT_GROUP", rawPdf, StringComparison.Ordinal);
-        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -277,7 +277,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<div id='paged-effect' style='width:20px;height:50px;margin:0;background:#0000ff;transform-origin:0 0;transform:translateX(10px);opacity:.75'></div>";
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(40D / HtmlRenderOptions.CssPixelsPerInch, 30D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(40D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(30D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent
@@ -329,11 +329,11 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         });
 
-        Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.TransformValueUnsupported && item.Source == "div#invalid-effect");
-        Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.OpacityValueUnsupported && item.Source == "div#invalid-effect");
-        Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.TransformValueUnsupported && item.Source == "span#invalid-inline-effect");
-        Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.OpacityValueUnsupported && item.Source == "span#invalid-inline-effect");
-        Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.ClipPathValueUnsupported && item.Source == "span#invalid-inline-effect");
+        Assert.Contains(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.TransformValueUnsupported && item.Source == "div#invalid-effect");
+        Assert.Contains(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.OpacityValueUnsupported && item.Source == "div#invalid-effect");
+        Assert.Contains(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.TransformValueUnsupported && item.Source == "span#invalid-inline-effect");
+        Assert.Contains(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.OpacityValueUnsupported && item.Source == "span#invalid-inline-effect");
+        Assert.Contains(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.ClipPathValueUnsupported && item.Source == "span#invalid-inline-effect");
         Assert.Contains(HtmlRenderDiagnosticCodes.TransformValueUnsupported, HtmlRenderDiagnosticCodes.All);
         Assert.Contains(HtmlRenderDiagnosticCodes.OpacityValueUnsupported, HtmlRenderDiagnosticCodes.All);
         Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.TransformValueUnsupported, out _));
@@ -364,7 +364,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderPathClipGroup clip = Assert.Single(visuals.OfType<HtmlRenderPathClipGroup>(), group => group.Source == "span#inline-effect");
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         string svg = OfficeDrawingSvgExporter.ToSvg(rendered.Pages[0].CreateDrawing());
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions(options))).ToBytes();
 
         Assert.Equal(OfficeTransform.Identity, effect.Transform);
         Assert.Equal(.5D, effect.Opacity, 3);
@@ -390,9 +390,9 @@ public sealed partial class HtmlRenderingTests {
         };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options) {
-            PdfOptions = new PdfCore.PdfOptions { TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers }
-        });
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions(options) {
+            PdfOptions = new PdfCore.PdfCreateOptions { TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers }
+        })).ToBytes();
 
         Assert.Equal("AB", string.Concat(rendered.Text.Where(character => !char.IsWhiteSpace(character))));
         Assert.Equal("AB", string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character))));
@@ -412,7 +412,7 @@ public sealed partial class HtmlRenderingTests {
             ViewportHeight = 90D,
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent,
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
@@ -447,7 +447,7 @@ public sealed partial class HtmlRenderingTests {
             ViewportWidth = 30D,
             ViewportHeight = 70D,
             Margins = HtmlRenderMargins.All(0D),
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
@@ -460,7 +460,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderPathClipGroup circle = Assert.Single(clips, group => group.Source == "div#circle");
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         string svg = OfficeDrawingSvgExporter.ToSvg(rendered.Pages[0].CreateDrawing());
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions(options))).ToBytes();
         Assert.Equal((-5D, 30D), (inset.X, inset.Width));
         Assert.Equal((-10D, 30D), (polygon.X, polygon.Width));
         Assert.Equal((-7D, 10D), (circle.X, circle.Width));
@@ -479,14 +479,14 @@ public sealed partial class HtmlRenderingTests {
             ViewportWidth = 30D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D),
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
         HtmlRenderPathClipGroup clip = Assert.Single(
             EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderPathClipGroup>(),
             group => group.Source == "x-box#far-edge");
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions(options))).ToBytes();
 
         Assert.True(clip.ClipX >= 0D && clip.ClipY >= 0D);
         Assert.True(clip.ClipPath.Width > 20D && clip.ClipPath.Height > 20D);
@@ -499,14 +499,14 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlPdf_PathClipCrossingPhysicalPageEdgeStillWritesPdf() {
         const string html = "<body style='margin:0'><div style='margin-left:15px;width:20px;height:20px;background:red;clip-path:inset(-5px)'>Edge marker</div></body>";
-        var options = new HtmlToPdfOptions {
-            PageSize = new OfficePageSize(30D / 96D, 30D / 96D),
+        var options = new HtmlPdfExportOptions {
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(30D / 96D), global::OfficeIMO.OfficeLength.Inches(30D / 96D)),
             ViewportWidth = 30D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D)
         };
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(options);
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
 
         Assert.Equal(1, PdfCore.PdfInspector.Inspect(pdf).PageCount);
     }
@@ -522,7 +522,7 @@ public sealed partial class HtmlRenderingTests {
             Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(0D),
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
@@ -568,8 +568,8 @@ public sealed partial class HtmlRenderingTests {
             .ToList();
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         string svg = OfficeDrawingSvgExporter.ToSvg(rendered.Pages[0].CreateDrawing());
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions(options))).ToBytes();
+        string pdfText = string.Concat(PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(5, clips.Count);
         Assert.All(clips, clip => Assert.Equal(OfficeClipPathKind.Empty, clip.ClipPath.Kind));
@@ -586,7 +586,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("CollinearMarker", pdfText, StringComparison.Ordinal);
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(clip-path:polygon(0 0,0 0,0 0))"));
         Assert.Empty(rendered.Diagnostics);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -595,12 +595,12 @@ public sealed partial class HtmlRenderingTests {
             + "<a style='font-size:8px;line-height:10px' href='https://example.com/inside'>Inside</a></div>"
             + "<div style='width:100px;height:20px;margin:0;font-size:8px;line-height:10px;clip-path:polygon(100% 0,100% 100%,0 100%)'>"
             + "<a style='font-size:8px;line-height:10px' href='https://example.com/outside'>Outside</a></div>";
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             Margins = HtmlRenderMargins.All(0D),
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         };
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(options);
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
 
         Assert.Single(logical.GetLinksByUri("https://example.com/inside"));
@@ -616,7 +616,7 @@ public sealed partial class HtmlRenderingTests {
             ViewportWidth = 30D,
             ViewportHeight = 50D,
             Margins = HtmlRenderMargins.All(0D),
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
@@ -654,7 +654,7 @@ public sealed partial class HtmlRenderingTests {
             Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 50D,
             Margins = HtmlRenderMargins.All(0D),
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         });
 
         IReadOnlyList<HtmlRenderPathClipGroup> clips = EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderPathClipGroup>().ToList();
@@ -677,42 +677,42 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlClipPath_Standard14WithoutOutlinesKeepsItsStrictUnmeasuredBoundsDiagnostic() {
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(120D / 96D, 50D / 96D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(120D / 96D), global::OfficeIMO.OfficeLength.Inches(50D / 96D)),
             HonorCssPageRules = false, Margins = HtmlRenderMargins.All(0D),
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         };
-        HtmlConversionException error = Assert.Throws<HtmlConversionException>(() => HtmlConversionDocument.Parse(
+        HtmlConversionException error = Assert.Throws<HtmlConversionException>(() => (HtmlConversionDocument.Parse(
             "<div style='width:100px;height:30px;margin:0;clip-path:ellipse(50% 45% at center);font-size:10px'>ClipPathPdfMarker</div>")
-            .ToPdfBytes(options));
-        Assert.Contains("CanvasTextPaintBoundsUnmeasured", error.Message, StringComparison.Ordinal);
+            .ToPdf(options)).ToBytes());
+        Assert.Contains("canvas-text-paint-bounds-unmeasured", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]
     public void HtmlClipPath_PreservesSearchablePdfAndTruthfullyRejectsUnsupportedGeometry() {
         const string supported = "<div style='width:100px;height:30px;margin:0;background:#eee;clip-path:ellipse(50% 45% at center);font-size:10px'>ClipPathPdfMarker</div>";
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(120D / HtmlRenderOptions.CssPixelsPerInch, 50D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(120D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(50D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D),
             FontFamily = SvgPaintedText.CreatePinnedFamily(),
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         };
 
-        byte[] pdf = HtmlConversionDocument.Parse(supported).ToPdfBytes(options);
+        byte[] pdf = (HtmlConversionDocument.Parse(supported).ToPdf(options)).ToBytes();
         string extracted = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
         Assert.Contains("ClipPathPdfMarker", extracted, StringComparison.Ordinal);
 
         HtmlRenderDocument fallback = HtmlRenderTestDriver.Render("<div style='clip-path:url(#missing)'>Fallback</div>");
-        HtmlDiagnostic diagnostic = Assert.Single(fallback.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.ClipPathValueUnsupported);
+        HtmlDiagnostic diagnostic = Assert.Single(fallback.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.ClipPathValueUnsupported);
         Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
         Assert.True(fallback.HasLoss);
         Assert.Throws<HtmlConversionException>(() => HtmlRenderTestDriver.Render(
             "<div style='clip-path:path(\"M 0 0 L 1 1\")'>Fallback</div>",
-            new HtmlRenderOptions { FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss }));
+            new HtmlRenderOptions { FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss }));
         Assert.Contains(HtmlRenderDiagnosticCodes.ClipPathValueUnsupported, HtmlRenderDiagnosticCodes.All);
         Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.ClipPathValueUnsupported, out _));
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(clip-path:polygon(0 0,100% 0,0 100%))"));

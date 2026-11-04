@@ -12,26 +12,26 @@ public sealed class ExcelLegacyStructureEditingTests {
     [InlineData(true)]
     public void Adding_empty_worksheets_preserves_row_and_column_layout_styles(bool explicitStyle) {
         using var seed = ExcelDocument.Create();
-        var original = seed.AddWorksheet("Original");
-        original.CellValue(1, 1, 42);
-        original.CellAt(1, 1).SetNumberFormat("0.000");
-        using var document = ExcelDocument.Load(new MemoryStream(seed.ToBytes(ExcelFileFormat.Xls)));
+        var original = seed.AddSheet("Original");
+        original.Cell(1, 1).SetValue(42);
+        original.Cell(1, 1).SetNumberFormat("0.000");
+        using var document = ExcelDocument.Load(new MemoryStream(seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls })));
         uint style = explicitStyle
             ? document.Sheets[0].WorksheetPart.Worksheet!.Descendants<Cell>().Single().StyleIndex!.Value : 0U;
-        var added = document.AddWorksheet("Layout only");
-        added.SetColumnWidth(2, 12.5);
-        added.SetRowHeight(3, 21);
+        var added = document.AddSheet("Layout only");
+        added.SetColumnWidth(2, ExcelColumnWidth.Characters(12.5));
+        added.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(21)));
         if (explicitStyle) {
             added.WorksheetPart.Worksheet!.GetFirstChild<Columns>()!.Elements<Column>().Single().Style = style;
             var row = added.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!.Elements<Row>().Single();
             row.StyleIndex = style;
             row.CustomFormat = true;
         }
-        using var loaded = ExcelDocument.Load(new MemoryStream(document.ToBytes(ExcelFileFormat.Xls)));
+        using var loaded = ExcelDocument.Load(new MemoryStream(document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls })));
         var result = loaded.GetSheet("Layout only");
-        Assert.Equal(12.5, Assert.Single(result.GetColumnDefinitions()).Width);
-        Assert.Equal(21, Assert.Single(result.GetRowDefinitions()).Height);
-        var native = LegacyXlsWorkbook.Load(document.ToBytes(ExcelFileFormat.Xls));
+        Assert.Equal(12.5, Assert.Single(result.GetColumnDefinitions()).Width?.CharacterCount);
+        Assert.Equal(21, Assert.Single(result.GetRowDefinitions()).Height?.PhysicalLength?.ToPoints());
+        var native = LegacyXlsWorkbook.Load(document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls }));
         var layout = native.Worksheets.Single(sheet => sheet.Name == "Layout only");
         Assert.Empty(layout.Cells);
         if (explicitStyle) {
@@ -46,16 +46,16 @@ public sealed class ExcelLegacyStructureEditingTests {
         Directory.CreateDirectory(root);
         string originalPath = Path.Combine(root, "original.xls"), target = Path.Combine(root, "edited.xls");
         try {
-            using var seed = ExcelDocument.Create(); seed.AddWorksheet("Data").CellValue(1, 1, "Original");
-            byte[] original = seed.ToBytes(ExcelFileFormat.Xls); File.WriteAllBytes(originalPath, original);
+            using var seed = ExcelDocument.Create(); seed.AddSheet("Data").Cell(1, 1).SetValue("Original");
+            byte[] original = seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls }); File.WriteAllBytes(originalPath, original);
             using (var document = ExcelDocument.Load(originalPath)) {
-                document.Sheets[0].CellValue(1, 1, "First edit"); document.Save(target);
+                document.Sheets[0].Cell(1, 1).SetValue("First edit"); document.Save(target);
                 Assert.Equal(target, document.FilePath);
-                document.Sheets[0].CellValue(1, 1, "Second edit"); document.Save();
+                document.Sheets[0].Cell(1, 1).SetValue("Second edit"); document.Save();
             }
             Assert.Equal(original, File.ReadAllBytes(originalPath));
             using var loaded = ExcelDocument.Load(target);
-            Assert.Equal("Second edit", loaded.Sheets[0].CellAt(1, 1).GetValue<string>());
+            Assert.Equal("Second edit", loaded.Sheets[0].Cell(1, 1).GetValue<string>());
         } finally { Directory.Delete(root, recursive: true); }
     }
 
@@ -72,18 +72,18 @@ public sealed class ExcelLegacyStructureEditingTests {
         string removedName = document.Sheets[1].Name;
         var model = LegacyXlsWorkbook.Load(new MemoryStream(original));
         string? removedCodeName = model.Worksheets.Single(sheet => sheet.Name == removedName).CodeName;
-        var retained = document.Sheets[0]; retained.Name = "Sales Łódź"; retained.CellValue(1, 1, 42D);
+        var retained = document.Sheets[0]; retained.Name = "Sales Łódź"; retained.Cell(1, 1).SetValue(42D);
         document.ReorderWorksheet(retained, document.WorkbookRoot.Sheets!.Elements<Sheet>().Count() - 1);
         document.RemoveWorksheet(removedName);
-        var added = document.AddWorksheet("Added data");
-        added.CellValue(1, 1, "New worksheet host");
-        added.CellFormula(2, 1, "'Sales Łódź'!A1+1"); added.RecalculateSupportedFormulas();
-        byte[] bytes = document.ToBytes(ExcelFileFormat.Xls);
+        var added = document.AddSheet("Added data");
+        added.Cell(1, 1).SetValue("New worksheet host");
+        added.Cell(2, 1).SetFormula("'Sales Łódź'!A1+1"); added.RecalculateSupportedFormulas();
+        byte[] bytes = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
         using var loaded = ExcelDocument.Load(new MemoryStream(bytes));
         Assert.Equal(document.Sheets.Select(sheet => sheet.Name), loaded.Sheets.Select(sheet => sheet.Name));
         Assert.Equal(4, loaded.LegacyXlsChartSheets.Count);
-        Assert.Equal(42D, loaded.GetSheet("Sales Łódź").CellAt(1, 1).GetValue<double>());
-        Assert.Equal(43D, loaded.GetSheet("Added data").CellAt(2, 1).GetValue<double>());
+        Assert.Equal(42D, loaded.GetSheet("Sales Łódź").Cell(1, 1).GetValue<double>());
+        Assert.Equal(43D, loaded.GetSheet("Added data").Cell(2, 1).GetValue<double>());
         var result = LegacyXlsWorkbook.Load(new MemoryStream(bytes));
         string? addedCodeName = result.Worksheets.Single(sheet => sheet.Name == "Added data").CodeName;
         foreach (var native in result.Worksheets)
@@ -92,9 +92,9 @@ public sealed class ExcelLegacyStructureEditingTests {
 
         Assert.False(string.IsNullOrEmpty(addedCodeName));
         Assert.Equal(addedCodeName, document.GetSheet("Added data").WorksheetPart.Worksheet!.SheetProperties?.CodeName?.Value);
-        document.GetSheet("Added data").CellValue(3, 1, "Second native save");
-        using var secondSave = ExcelDocument.Load(new MemoryStream(document.ToBytes(ExcelFileFormat.Xls)));
-        Assert.Equal("Second native save", secondSave.GetSheet("Added data").CellAt(3, 1).GetValue<string>());
+        document.GetSheet("Added data").Cell(3, 1).SetValue("Second native save");
+        using var secondSave = ExcelDocument.Load(new MemoryStream(document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls })));
+        Assert.Equal("Second native save", secondSave.GetSheet("Added data").Cell(3, 1).GetValue<string>());
         Assert.Equal(addedCodeName, secondSave.GetSheet("Added data").WorksheetPart.Worksheet!.SheetProperties?.CodeName?.Value);
         Assert.True(OfficeCompoundFileReader.TryRead(original, out OfficeCompoundFile? before, out string? error), error);
         Assert.True(OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? after, out error), error);
@@ -109,18 +109,18 @@ public sealed class ExcelLegacyStructureEditingTests {
     [Fact]
     public void Reordering_keeps_local_names_attached_and_removing_a_named_sheet_does_not_retarget_name_tokens() {
         using var seed = ExcelDocument.Create();
-        var first = seed.AddWorksheet("First"); first.CellValue(1, 1, 10);
-        var second = seed.AddWorksheet("Second"); second.CellValue(1, 1, 20);
-        var third = seed.AddWorksheet("Third"); third.CellValue(1, 1, 30);
+        var first = seed.AddSheet("First"); first.Cell(1, 1).SetValue(10);
+        var second = seed.AddSheet("Second"); second.Cell(1, 1).SetValue(20);
+        var third = seed.AddSheet("Third"); third.Cell(1, 1).SetValue(30);
         seed.SetNamedRange("FirstLocal", "A1", first, save: false);
         seed.SetNamedRange("SecondLocal", "A1", second, save: false);
         seed.SetNamedRange("GlobalThird", "'Third'!A1", save: false);
-        third.CellFormula(2, 1, "GlobalThird+1"); third.RecalculateSupportedFormulas();
-        using var document = ExcelDocument.Load(new MemoryStream(seed.ToBytes(ExcelFileFormat.Xls)));
+        third.Cell(2, 1).SetFormula("GlobalThird+1"); third.RecalculateSupportedFormulas();
+        using var document = ExcelDocument.Load(new MemoryStream(seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls })));
         document.ReorderWorksheet("Second", 0);
         Assert.Equal(0U, document.WorkbookRoot.DefinedNames!.Elements<DefinedName>().Single(name => name.Name == "SecondLocal").LocalSheetId?.Value);
         document.RemoveWorksheet("First");
-        byte[] bytes = document.ToBytes(ExcelFileFormat.Xls);
+        byte[] bytes = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
         using var loaded = ExcelDocument.Load(new MemoryStream(bytes));
         Assert.Equal(new[] { "Second", "Third" }, loaded.Sheets.Select(sheet => sheet.Name));
         Assert.DoesNotContain(loaded.WorkbookRoot.DefinedNames!.Elements<DefinedName>(), name => name.Name == "FirstLocal");
@@ -132,15 +132,15 @@ public sealed class ExcelLegacyStructureEditingTests {
     [InlineData(ExcelFileFormat.Xls)]
     [InlineData(ExcelFileFormat.Xlsb)]
     public void Renaming_a_native_sheet_keeps_internal_hyperlinks_pointing_at_it(ExcelFileFormat format) {
-        using var seed = ExcelDocument.Create(); var links = seed.AddWorksheet("Links"); var target = seed.AddWorksheet("Target");
-        target.CellValue(2, 2, "Destination"); links.SetInternalLink(1, 1, target, "B2", "Jump", style: false);
+        using var seed = ExcelDocument.Create(); var links = seed.AddSheet("Links"); var target = seed.AddSheet("Target");
+        target.Cell(2, 2).SetValue("Destination"); links.SetInternalLink(1, 1, target, "B2", "Jump", style: false);
         using var document = ExcelDocument.Load(new MemoryStream(seed.ToBytes(format)));
         document.GetSheet("Target").Name = "Sales Łódź";
         byte[] bytes = document.ToBytes(format);
         using var loaded = ExcelDocument.Load(new MemoryStream(bytes));
         var link = Assert.Single(loaded.GetSheet("Links").WorksheetPart.Worksheet!.Descendants<Hyperlink>());
         Assert.Equal("'Sales Łódź'!B2", link.Location?.Value);
-        document.GetSheet("Links").CellValue(2, 1, "Second save");
+        document.GetSheet("Links").Cell(2, 1).SetValue("Second save");
         using var second = ExcelDocument.Load(new MemoryStream(document.ToBytes(format)));
         Assert.Equal(link.Location?.Value, Assert.Single(second.GetSheet("Links").WorksheetPart.Worksheet!.Descendants<Hyperlink>()).Location?.Value);
     }

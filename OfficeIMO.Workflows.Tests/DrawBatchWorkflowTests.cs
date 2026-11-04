@@ -10,31 +10,31 @@ public sealed class DrawBatchWorkflowTests {
         try {
             CreateDraw(Path.Combine(input, "drawing.fodg"));
             File.WriteAllText(Path.Combine(input, "text.txt"), "Literal batch marker");
-            var request = new OfficeConversionBatchRequest {
+            var request = new OfficeBatchOptions {
                 InputDirectory = input, OutputDirectory = Path.Combine(root, "output"),
-                CheckpointDirectory = Path.Combine(root, "state"), MaximumConcurrency = 1
+                ResumeFrom = Path.Combine(Path.Combine(root, "state"), "plan.json"), MaxParallelism = 1
             };
-            var firstItems = new List<OfficeConversionBatchItemResult>();
-            var first = await new OfficeWorkflowRunner().RunBatchAsync(request, new InlineProgress(firstItems));
+            var firstItems = new List<OfficeBatchItemReport>();
+            var first = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request, new InlineProgress(firstItems));
             Assert.Equal(2, first.Completed);
             var original = Assert.Single(firstItems, item => item.InputPath.EndsWith(".fodg", StringComparison.Ordinal));
-            var located = original.Diagnostics.Where(d => d.Severity == OfficeWorkflowDiagnosticSeverity.Warning && d.Details.ContainsKey("location")).ToArray();
-            Assert.Contains(located, d => d.Details["location"].StartsWith("page:1:", StringComparison.Ordinal));
+            var located = original.Diagnostics.Where(d => d.Severity == OfficeDiagnosticSeverity.Warning && d.Location != null).ToArray();
+            Assert.Contains(located, d => d.Location!.StartsWith("page:1:", StringComparison.Ordinal));
 
-            var reusedItems = new List<OfficeConversionBatchItemResult>();
-            var reused = await new OfficeWorkflowRunner().RunBatchAsync(request, new InlineProgress(reusedItems));
+            var reusedItems = new List<OfficeBatchItemReport>();
+            var reused = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request, new InlineProgress(reusedItems));
             Assert.Equal(2, reused.Reused);
             var restored = Assert.Single(reusedItems, item => item.InputPath.EndsWith(".fodg", StringComparison.Ordinal));
             foreach (var finding in located)
-                Assert.Contains(restored.Diagnostics, d => d.Code == finding.Code && d.Details["location"] == finding.Details["location"]
-                    && d.Details["source"] == finding.Details["source"] && d.Details["lossKind"] == finding.Details["lossKind"]);
+                Assert.Contains(restored.Diagnostics, d => d.Code == finding.Code && d.Location! == finding.Location
+                    && d.Format == finding.Format && d.LossKind == finding.LossKind);
 
-            byte[] originalOutput = File.ReadAllBytes(Path.Combine(request.OutputDirectory, "drawing.fodg.pdf"));
+            byte[] originalOutput = File.ReadAllBytes(Path.Combine(request.OutputDirectory, "drawing.pdf"));
             request.MaximumXmlCharactersInPart = 256;
-            var changed = await new OfficeWorkflowRunner().RunBatchAsync(request);
+            var changed = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request);
             Assert.Equal(1, changed.Failed);
             Assert.Equal(1, changed.Reused);
-            Assert.Equal(originalOutput, File.ReadAllBytes(Path.Combine(request.OutputDirectory, "drawing.fodg.pdf")));
+            Assert.Equal(originalOutput, File.ReadAllBytes(Path.Combine(request.OutputDirectory, "drawing.pdf")));
         } finally { Directory.Delete(root, true); }
     }
 
@@ -47,16 +47,18 @@ public sealed class DrawBatchWorkflowTests {
         try {
             CreateDraw(Path.Combine(input, "drawing.fodg"));
             File.WriteAllText(Path.Combine(input, "text.txt"), "Literal batch marker");
-            var request = new OfficeConversionBatchRequest {
-                InputDirectory = input, OutputDirectory = Path.Combine(root, "output"), MaximumConcurrency = 1,
+            var request = new OfficeBatchOptions {
+                InputDirectory = input, OutputDirectory = Path.Combine(root, "output"), MaxParallelism = 1,
                 MaximumXmlCharactersInPart = strictLoss ? 1024 * 1024 : 256,
-                ConversionOptions = new() { RequireNoLoss = strictLoss }
+                ConversionOptions = new() {
+                FailOnLoss = strictLoss
+            }
             };
-            var result = await new OfficeWorkflowRunner().RunBatchAsync(request);
+            var result = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request);
             Assert.Equal(1, result.Completed);
             Assert.Equal(1, result.Failed);
-            Assert.True(File.Exists(Path.Combine(request.OutputDirectory, "text.txt.pdf")));
-            Assert.False(File.Exists(Path.Combine(request.OutputDirectory, "drawing.fodg.pdf")));
+            Assert.True(File.Exists(Path.Combine(request.OutputDirectory, "text.pdf")));
+            Assert.False(File.Exists(Path.Combine(request.OutputDirectory, "drawing.pdf")));
         } finally { Directory.Delete(root, true); }
     }
 
@@ -67,7 +69,7 @@ public sealed class DrawBatchWorkflowTests {
         drawing.SaveFlatXml(path);
     }
 
-    private sealed class InlineProgress(List<OfficeConversionBatchItemResult> items) : IProgress<OfficeConversionBatchItemResult> {
-        public void Report(OfficeConversionBatchItemResult item) => items.Add(item);
+    private sealed class InlineProgress(List<OfficeBatchItemReport> items) : IProgress<OfficeBatchItemReport> {
+        public void Report(OfficeBatchItemReport item) => items.Add(item);
     }
 }

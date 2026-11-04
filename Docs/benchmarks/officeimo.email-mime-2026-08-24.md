@@ -73,7 +73,7 @@ dotnet run -c Release -f net10.0 --project .\OfficeIMO.Email.Benchmarks.Comparis
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Email.Benchmarks.Comparisons -- --evidence --repeat 3 --json .benchmark-artifacts\email\memory-evidence.json
 ```
 
-The comparison project remains outside `OfficeIMO.sln`; MimeKit is an opt-in
+The comparison project remains outside `OfficeIMO.slnx`; MimeKit is an opt-in
 benchmark dependency and does not enter OfficeIMO runtime restore or packages.
 Raw BenchmarkDotNet output remains local.
 

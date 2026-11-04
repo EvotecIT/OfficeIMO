@@ -1,6 +1,4 @@
 #if NET8_0_OR_GREATER
-#nullable enable
-
 namespace OfficeIMO.CSV;
 
 internal static partial class CsvWriter

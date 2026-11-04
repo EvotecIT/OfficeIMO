@@ -12,7 +12,7 @@ public sealed class PublisherNativeWritingTests {
         byte[] source = File.ReadAllBytes(PublisherNativeTests.Fixture("native-authored.pub"));
         PublisherDocument document = PublisherDocument.Load(source);
         PublisherNativePreparation prepared = document.PrepareNativeBytes(MaximumBytes);
-        Assert.True(prepared.IsPrepared); Assert.False(prepared.HasLoss); prepared.RequireNoLoss();
+        Assert.True(prepared.IsPrepared); Assert.False(prepared.HasLoss); prepared.ThrowIfLoss();
         Assert.Equal(source, prepared.CopyBytes());
         byte[] detached = prepared.CopyBytes(); detached[0] ^= 0xFF;
         Assert.Equal(source, prepared.CopyBytes());
@@ -40,7 +40,7 @@ public sealed class PublisherNativeWritingTests {
         byte[] before = Compound(source).Streams[name], after = Compound(prepared.CopyBytes()).Streams[name];
         Assert.DoesNotContain(OfficeOlePropertySetReader.ReadSections(after, CancellationToken.None), section =>
             section.FormatId == OfficeOlePropertySetWriter.SummaryInformationFormatId && section.Properties.ContainsKey(17));
-        Assert.Contains(prepared.FidelityDiagnostics, item => item.Code == "PUB_NATIVE_PREVIEW_INVALIDATED"
+        Assert.Contains(prepared.Diagnostics, item => item.Code == "PUB_NATIVE_PREVIEW_INVALIDATED"
             && item.LossKind == OfficeConversionLossKind.None);
         AssertSummaryPreviewInvalidated(before, after);
     }
@@ -55,7 +55,7 @@ public sealed class PublisherNativeWritingTests {
         document.SetShapeBounds(shape.Id, 36, 48, 120, 84);
         PublisherNativePreparation prepared = document.PrepareNativeBytes(MaximumBytes);
         Assert.False(prepared.IsPrepared);
-        Assert.Contains(prepared.FidelityDiagnostics, item => item.Location == OfficeOlePropertySetWriter.SummaryInformationStreamName
+        Assert.Contains(prepared.Diagnostics, item => item.Location == OfficeOlePropertySetWriter.SummaryInformationStreamName
             && item.LossKind == OfficeConversionLossKind.Failure);
         Assert.Equal((36D, 48D, 120D, 84D), (document.Pages[0].Shapes[0].X, document.Pages[0].Shapes[0].Y,
             document.Pages[0].Shapes[0].Width, document.Pages[0].Shapes[0].Height));
@@ -72,10 +72,10 @@ public sealed class PublisherNativeWritingTests {
             paint.FillOpacity ?? 1, paint.StrokeOpacity ?? 1);
         var pages = document.Pages; var report = document.SourceReadReport;
         PublisherNativePreparation prepared = document.PrepareNativeBytes(MaximumBytes);
-        Assert.True(prepared.IsPrepared, string.Join("; ", prepared.FidelityDiagnostics.Select(item => item.Message)));
-        Assert.Contains(prepared.FidelityDiagnostics, item => item.Code == "PUB_NATIVE_FIXED_PATCH_UNQUALIFIED"
+        Assert.True(prepared.IsPrepared, string.Join("; ", prepared.Diagnostics.Select(item => item.Message)));
+        Assert.Contains(prepared.Diagnostics, item => item.Code == "PUB_NATIVE_FIXED_PATCH_UNQUALIFIED"
             && item.LossKind == OfficeConversionLossKind.Unassessed);
-        Assert.Throws<OfficeConversionException>(prepared.RequireNoLoss);
+        Assert.Throws<OfficeConversionException>(prepared.ThrowIfLoss);
         byte[] output = prepared.CopyBytes();
         AssertPreservedStorage(source, output);
         OfficeCompoundFile before = Compound(source), after = Compound(output);
@@ -113,7 +113,7 @@ public sealed class PublisherNativeWritingTests {
         foreach (PublisherTextFrame frame in originals)
             document.SetTextFrameBounds(frame.Id, frame.X + 6, frame.Y + 12, frame.Width, frame.Height);
         PublisherNativePreparation prepared = document.PrepareNativeBytes(MaximumBytes);
-        Assert.True(prepared.IsPrepared, string.Join("; ", prepared.FidelityDiagnostics.Select(item => item.Message)));
+        Assert.True(prepared.IsPrepared, string.Join("; ", prepared.Diagnostics.Select(item => item.Message)));
         byte[] output = prepared.CopyBytes(); AssertPreservedStorage(source, output);
         PublisherDocument reopened = PublisherDocument.Load(output);
         var frames = reopened.MasterPages.Concat(reopened.Pages).SelectMany(page => page.TextFrames).ToDictionary(frame => frame.Id);
@@ -131,7 +131,7 @@ public sealed class PublisherNativeWritingTests {
         PublisherPicture original = document.Pages[0].Pictures[0], sibling = document.Pages[0].Pictures[1];
         document.SetPictureBounds(original.Id, 84, 168, 120, 72);
         PublisherNativePreparation prepared = document.PrepareNativeBytes(MaximumBytes);
-        Assert.True(prepared.IsPrepared, string.Join("; ", prepared.FidelityDiagnostics.Select(item => item.Message)));
+        Assert.True(prepared.IsPrepared, string.Join("; ", prepared.Diagnostics.Select(item => item.Message)));
         byte[] output = prepared.CopyBytes(); AssertPreservedStorage(source, output);
         PublisherDocument reopened = PublisherDocument.Load(output);
         PublisherPicture current = reopened.Pages[0].Pictures.Single(picture => picture.Id == original.Id);
@@ -156,10 +156,10 @@ public sealed class PublisherNativeWritingTests {
         OfficeShape prior = shape.CreateShape();
         document.SetShapePaint(shape.Id, prior.FillColor, prior.StrokeColor, width, prior.FillOpacity ?? 1, prior.StrokeOpacity ?? 1);
         if (!representable) {
-            Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+            Assert.Throws<OfficeConversionException>(() => document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
             return;
         }
-        byte[] output = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        byte[] output = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         AssertPreservedStorage(source, output);
         PublisherShape saved = Assert.Single(PublisherDocument.Load(output).Pages[0].Shapes);
         Assert.Equal(8.2, saved.CreateShape().StrokeWidth);
@@ -181,7 +181,7 @@ public sealed class PublisherNativeWritingTests {
             change == "missing-opacity" ? 0.5 : prior.FillOpacity ?? 1, prior.StrokeOpacity ?? 1);
         PublisherNativePreparation prepared = document.PrepareNativeBytes(MaximumBytes);
         Assert.False(prepared.IsPrepared);
-        Assert.Contains(prepared.FidelityDiagnostics, item => item.LossKind == OfficeConversionLossKind.Failure
+        Assert.Contains(prepared.Diagnostics, item => item.LossKind == OfficeConversionLossKind.Failure
             && item.Message.Contains(change == "missing-opacity" ? "0x0182" : "visibility or alpha"));
     }
 
@@ -214,13 +214,13 @@ public sealed class PublisherNativeWritingTests {
             case "continuation": document.AddLinkedTextFrame(page.TextFrames[0].Id, page.Id, 40, 300, 200, 60); break;
             case "text-frame": document.AddTextFrame(page.Id, 40, 300, 200, 60, Paragraphs("New story")); break;
             case "shape": document.AddShape(page.Id, OfficeShape.Rectangle(40, 30), 40, 300); break;
-            case "picture": document.AddPicture(page.Id, PictureBytes(), 40, 300, 40, 30); break;
+            case "picture": document.AddImage(page.Id, PictureBytes(), 40, 300, 40, 30); break;
             case "table": document.AddTable(page.Id, 40, 300, new[] { 60D }, new[] { 30D }); break;
         }
         var pages = document.Pages; var stories = document.TextStories; var images = document.Images;
         PublisherNativePreparation prepared = document.PrepareNativeBytes(MaximumBytes);
         Assert.False(prepared.IsPrepared); Assert.Equal(0, prepared.ByteLength); Assert.True(prepared.HasLoss);
-        Assert.Contains(prepared.FidelityDiagnostics, item => item.LossKind == OfficeConversionLossKind.Failure);
+        Assert.Contains(prepared.Diagnostics, item => item.LossKind == OfficeConversionLossKind.Failure);
         Assert.Throws<NotSupportedException>(() => prepared.CopyBytes());
         Assert.Same(pages, document.Pages); Assert.Same(stories, document.TextStories); Assert.Same(images, document.Images);
     }
@@ -239,7 +239,7 @@ public sealed class PublisherNativeWritingTests {
         active.SetShapeBounds(active.Pages[0].Shapes[0].Id, 36, 48, 120, 84);
         PublisherNativePreparation refused = active.PrepareNativeBytes(MaximumBytes);
         Assert.False(refused.IsPrepared);
-        Assert.Contains(refused.FidelityDiagnostics, item => item.Message.Contains("active-content"));
+        Assert.Contains(refused.Diagnostics, item => item.Message.Contains("active-content"));
         Assert.Throws<OperationCanceledException>(() => active.PrepareNativeBytes(MaximumBytes, new CancellationToken(true)));
         Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(source).PrepareNativeBytes(source.Length - 1));
     }
@@ -271,7 +271,7 @@ public sealed class PublisherNativeWritingTests {
         document.SetShapeBounds(document.Pages[0].Shapes[0].Id, 36, 48, 120, 84);
         PublisherNativePreparation prepared = document.PrepareNativeBytes(MaximumBytes);
         Assert.False(prepared.IsPrepared);
-        Assert.Contains(prepared.FidelityDiagnostics, item => item.LossKind == OfficeConversionLossKind.Failure
+        Assert.Contains(prepared.Diagnostics, item => item.LossKind == OfficeConversionLossKind.Failure
             && item.Message.Contains("invalid directory tree"));
     }
 
@@ -295,10 +295,10 @@ public sealed class PublisherNativeWritingTests {
             document.SetTextFrameBounds(frame.Id, frame.X + 6, frame.Y + 12, frame.Width, frame.Height);
         }
         PublisherNativePreparation prepared = document.PrepareNativeBytes(MaximumBytes);
-        Assert.True(prepared.IsPrepared, string.Join("; ", prepared.FidelityDiagnostics.Select(item => item.Message)));
-        Assert.Contains(prepared.FidelityDiagnostics, item => item.Code == "PUB_NATIVE_QUILL_TEXT_UNQUALIFIED"
+        Assert.True(prepared.IsPrepared, string.Join("; ", prepared.Diagnostics.Select(item => item.Message)));
+        Assert.Contains(prepared.Diagnostics, item => item.Code == "PUB_NATIVE_QUILL_TEXT_UNQUALIFIED"
             && item.LossKind == OfficeConversionLossKind.Unassessed);
-        Assert.Throws<OfficeConversionException>(() => prepared.RequireNoLoss());
+        Assert.Throws<OfficeConversionException>(() => prepared.ThrowIfLoss());
         Assert.Equal(story.Id, Assert.Single(prepared.StyleDependencies).StoryId);
         byte[] output = prepared.CopyBytes();
         AssertPreservedStorage(source, output, "Quill/QuillSub/CONTENTS", moveFrame ? new[] { "Escher/EscherStm" } : Array.Empty<string>());
@@ -312,10 +312,10 @@ public sealed class PublisherNativeWritingTests {
         Assert.Equal(document.Pages[0].TextFrames[0].Y, reopened.Pages[0].TextFrames[0].Y);
         if (moveFrame) {
             Assert.Equal((78D, 84D), (reopened.Pages[0].TextFrames[0].X, reopened.Pages[0].TextFrames[0].Y));
-            Assert.Contains(prepared.FidelityDiagnostics, item => item.Code == "PUB_NATIVE_FIXED_PATCH_UNQUALIFIED");
+            Assert.Contains(prepared.Diagnostics, item => item.Code == "PUB_NATIVE_FIXED_PATCH_UNQUALIFIED");
         }
         byte[] q = Compound(output).Streams["Quill/QuillSub/CONTENTS"];
-        var context = new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None);
+        var context = new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None);
         var chunks = PublisherQuillDirectory.Read(new PublisherBinaryData(q, "Quill"), context);
         PublisherQuillChunk Find(string tag) => Assert.Single(chunks, item => item.Tag == tag);
         // The native Text/TextLong controls independently establish the TEXT
@@ -358,7 +358,7 @@ public sealed class PublisherNativeWritingTests {
         PublisherNativePreparation prepared = document.PrepareNativeBytes(MaximumBytes);
         Assert.False(prepared.IsPrepared);
         Assert.Throws<NotSupportedException>(() => prepared.CopyBytes());
-        Assert.Contains(prepared.FidelityDiagnostics, item => item.Location == "Quill" && item.LossKind == OfficeConversionLossKind.Failure);
+        Assert.Contains(prepared.Diagnostics, item => item.Location == "Quill" && item.LossKind == OfficeConversionLossKind.Failure);
         Assert.Equal(2U, Assert.Single(prepared.StyleDependencies).StoryId);
     }
 
@@ -371,7 +371,7 @@ public sealed class PublisherNativeWritingTests {
         OfficeRichTextRun original = document.TextStories[0].Paragraphs[0].Runs[0];
         ReplaceRuns(document, new OfficeRichTextRun(original.Text, size, original.Color, bold, fontFamily: original.FontFamily));
         PublisherNativePreparation prepared = document.PrepareNativeBytes(MaximumBytes);
-        Assert.True(prepared.IsPrepared, string.Join("; ", prepared.FidelityDiagnostics.Select(item => item.Message)));
+        Assert.True(prepared.IsPrepared, string.Join("; ", prepared.Diagnostics.Select(item => item.Message)));
         byte[] output = prepared.CopyBytes(); AssertPreservedStorage(source, output, "Quill/QuillSub/CONTENTS");
         PublisherDocument reopened = PublisherDocument.Load(output);
         Assert.Equal("Publisher text\n", reopened.TextStories[0].Text);
@@ -379,12 +379,12 @@ public sealed class PublisherNativeWritingTests {
         Assert.Equal((size, bold, "Arial"), (run.FontSize, run.Bold, run.FontFamily));
         byte[] q = Compound(output).Streams["Quill/QuillSub/CONTENTS"];
         PublisherQuillStyleUse use = reopened.SourceStyleCatalog.Stories[0].Uses.First(item => item.Tag == "FDPC");
-        var context = new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None);
+        var context = new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None);
         var fields = new PublisherBlockReader(new PublisherBinaryData(q, "Quill"), context)
             .Chunk(use.DirectDefinition.Offset, use.DirectDefinition.Offset + use.DirectDefinition.Length);
         Assert.Equal(nativeSize, Assert.Single(fields, field => field.Id == 0x0C).Value);
         if (bold) Assert.Equal(0x0A, Assert.Single(fields, field => field.Id == 2).Type);
-        Assert.Throws<OfficeConversionException>(() => prepared.RequireNoLoss());
+        Assert.Throws<OfficeConversionException>(() => prepared.ThrowIfLoss());
     }
 
     [Fact]
@@ -395,7 +395,7 @@ public sealed class PublisherNativeWritingTests {
             new OfficeRichTextRun("Bold 18", 18, OfficeColor.Black, bold: true, fontFamily: "Arial"),
             new OfficeRichTextRun(" | Plain 12", 12, OfficeColor.Black, fontFamily: "Arial"));
         PublisherNativePreparation first = document.PrepareNativeBytes(MaximumBytes);
-        Assert.True(first.IsPrepared, string.Join("; ", first.FidelityDiagnostics.Select(item => item.Message)));
+        Assert.True(first.IsPrepared, string.Join("; ", first.Diagnostics.Select(item => item.Message)));
         byte[] output = first.CopyBytes(); AssertPreservedStorage(source, output, "Quill/QuillSub/CONTENTS");
         PublisherDocument reopened = PublisherDocument.Load(output);
         Assert.Equal("Plain 12 | Bold 18 | Plain 12\n", reopened.TextStories[0].Text);
@@ -404,7 +404,7 @@ public sealed class PublisherNativeWritingTests {
         ReplaceRuns(reopened, reopened.TextStories[0].Paragraphs[0].Runs[0],
             new OfficeRichTextRun("Re-edited", 20, OfficeColor.Black, fontFamily: "Arial"), reopened.TextStories[0].Paragraphs[0].Runs[2]);
         PublisherNativePreparation second = reopened.PrepareNativeBytes(MaximumBytes);
-        Assert.True(second.IsPrepared, string.Join("; ", second.FidelityDiagnostics.Select(item => item.Message)));
+        Assert.True(second.IsPrepared, string.Join("; ", second.Diagnostics.Select(item => item.Message)));
         byte[] final = second.CopyBytes(); AssertPreservedStorage(output, final, "Quill/QuillSub/CONTENTS");
         PublisherTextStory story = PublisherDocument.Load(final).TextStories[0];
         Assert.Equal("Plain 12 | Re-edited | Plain 12\n", story.Text);
@@ -440,7 +440,7 @@ public sealed class PublisherNativeWritingTests {
         double[] sizes = variant == "style" ? new[] { 18D, 18D, 12D } : new[] { 12D, 12D, 12D };
         ReplaceParagraphs(document, text, sizes, new[] { false, variant == "style", false });
         PublisherNativePreparation prepared = document.PrepareNativeBytes(MaximumBytes);
-        Assert.True(prepared.IsPrepared, string.Join("; ", prepared.FidelityDiagnostics.Select(item => item.Message)));
+        Assert.True(prepared.IsPrepared, string.Join("; ", prepared.Diagnostics.Select(item => item.Message)));
         byte[] output = prepared.CopyBytes();
         AssertPreservedStorage(source, output, "Quill/QuillSub/CONTENTS");
         PublisherDocument reopened = PublisherDocument.Load(output);
@@ -523,7 +523,7 @@ public sealed class PublisherNativeWritingTests {
     private static PublisherEscherData Artwork(OfficeCompoundFile compound) => new PublisherEscherReader(
         new PublisherBinaryData(compound.Streams["Escher/EscherStm"], "Escher/EscherStm"),
         compound.Streams.TryGetValue("Escher/EscherDelayStm", out byte[]? delay) ? new PublisherBinaryData(delay, "Escher/EscherDelayStm") : null,
-        new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None)).Read();
+        new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None)).Read();
     internal static void AssertPreservedStorage(byte[] source, byte[] output, string changedStream = "Escher/EscherStm", params string[] additionalChangedStreams) {
         OfficeCompoundFile before = Compound(source), after = Compound(output);
         Assert.Equal(before.Streams.Keys.OrderBy(path => path), after.Streams.Keys.OrderBy(path => path));

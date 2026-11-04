@@ -28,6 +28,22 @@ if (args.Length > 0 && string.Equals(args[0], "html-payload-evidence", StringCom
     return PdfHtmlPayloadEvidenceRunner.Run(args);
 }
 
+if (args.Length > 0 && string.Equals(args[0], "html-head-to-head", StringComparison.OrdinalIgnoreCase)) {
+    return await HtmlHeadToHeadRunner.RunAsync(args);
+}
+
+if (args.Length > 0 && string.Equals(args[0], "html-head-to-head-worker", StringComparison.OrdinalIgnoreCase)) {
+    return await HtmlHeadToHeadRunner.RunWorkerAsync(args);
+}
+
+if (args.Length > 0 && string.Equals(args[0], "html-head-to-head-stages", StringComparison.OrdinalIgnoreCase)) {
+    return HtmlHeadToHeadRunner.WriteOfficeImoStages(args);
+}
+
+if (args.Length > 0 && string.Equals(args[0], "html-head-to-head-diagnostics", StringComparison.OrdinalIgnoreCase)) {
+    return HtmlHeadToHeadRunner.WriteOfficeImoDiagnostics(args);
+}
+
 if (args.Length > 0 && string.Equals(args[0], "html-evidence", StringComparison.OrdinalIgnoreCase)) {
     return await HtmlPdfEvidenceRunner.RunAsync(args);
 }
@@ -79,7 +95,7 @@ static string? ReadOption(string[] values, string option) {
 static string FindRepositoryRoot() {
     string? current = Directory.GetCurrentDirectory();
     while (!string.IsNullOrWhiteSpace(current)) {
-        if (File.Exists(Path.Combine(current, "OfficeIMO.sln"))) {
+        if (File.Exists(Path.Combine(current, "OfficeIMO.slnx"))) {
             return current;
         }
 

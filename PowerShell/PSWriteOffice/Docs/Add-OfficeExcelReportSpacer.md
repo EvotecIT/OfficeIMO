@@ -9,7 +9,7 @@ schema: 2.0.0
 Adds vertical spacing to the current Excel report sheet.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Add-OfficeExcelReportSpacer [[-Rows] <int>] [-PassThru] [<CommonParameters>]
 ```
@@ -39,7 +39,7 @@ Emit the object created or changed by the command.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -55,7 +55,7 @@ Rows to advance. Defaults to the composer theme spacing.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

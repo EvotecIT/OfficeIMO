@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests.Pdf;
 public class PdfComplianceReadbackTests {
     [Fact]
     public void AssessReadback_ReportsPdfA3GroundworkFromSavedPdf() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 FileVersion = PdfFileVersion.Pdf17,
                 IncludeStandardFontToUnicodeMaps = true
             })
@@ -15,7 +15,7 @@ public class PdfComplianceReadbackTests {
             .Meta(title: "Readback PDF/A", author: "OfficeIMO")
             .Language("en-US")
             .SrgbOutputIntent()
-            .Paragraph(paragraph => paragraph.Text("Readback PDF/A groundwork"))
+            .Paragraph(paragraph => paragraph.AddText("Readback PDF/A groundwork"))
             .ToBytes();
 
         PdfComplianceReadinessReport report = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.PdfA3B, pdf);
@@ -30,7 +30,7 @@ public class PdfComplianceReadbackTests {
 
     [Fact]
     public void AssessReadback_RejectsPdfAEmbeddedFileWithoutModificationDate() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 FileVersion = PdfFileVersion.Pdf17,
                 IncludeStandardFontToUnicodeMaps = true
             })
@@ -39,7 +39,7 @@ public class PdfComplianceReadbackTests {
             .Language("en-US")
             .SrgbOutputIntent()
             .AttachFile("source-data.xml", Encoding.UTF8.GetBytes("<source />"), "application/xml", PdfAssociatedFileRelationship.Data)
-            .Paragraph(paragraph => paragraph.Text("Readback PDF/A attachment groundwork"))
+            .Paragraph(paragraph => paragraph.AddText("Readback PDF/A attachment groundwork"))
             .ToBytes();
 
         PdfComplianceReadinessReport report = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.PdfA3B, pdf);
@@ -49,7 +49,7 @@ public class PdfComplianceReadbackTests {
 
     [Fact]
     public void AssessReadback_UsesCatalogVersionAsEffectiveVersion() {
-        byte[] generated = PdfDocument.Create(new PdfOptions {
+        byte[] generated = PdfDocument.Create(new PdfCreateOptions {
                 FileVersion = PdfFileVersion.Pdf17,
                 IncludeStandardFontToUnicodeMaps = true
             })
@@ -57,7 +57,7 @@ public class PdfComplianceReadbackTests {
             .Meta(title: "Readback PDF/A", author: "OfficeIMO")
             .Language("en-US")
             .SrgbOutputIntent()
-            .Paragraph(paragraph => paragraph.Text("Readback effective version groundwork"))
+            .Paragraph(paragraph => paragraph.AddText("Readback effective version groundwork"))
             .ToBytes();
         string rewritten = PdfEncoding.Latin1GetString(generated)
             .Replace("%PDF-1.7", "%PDF-1.4")
@@ -75,7 +75,7 @@ public class PdfComplianceReadbackTests {
 
     [Fact]
     public void AssessReadback_RejectsPdf20EffectiveVersionForPdfA3() {
-        byte[] generated = PdfDocument.Create(new PdfOptions {
+        byte[] generated = PdfDocument.Create(new PdfCreateOptions {
                 FileVersion = PdfFileVersion.Pdf17,
                 IncludeStandardFontToUnicodeMaps = true
             })
@@ -83,7 +83,7 @@ public class PdfComplianceReadbackTests {
             .Meta(title: "Readback PDF/A", author: "OfficeIMO")
             .Language("en-US")
             .SrgbOutputIntent()
-            .Paragraph(paragraph => paragraph.Text("Readback effective version groundwork"))
+            .Paragraph(paragraph => paragraph.AddText("Readback effective version groundwork"))
             .ToBytes();
         string rewritten = PdfEncoding.Latin1GetString(generated)
             .Replace("/Type /Catalog", "/Type /Catalog /Version /2.0");
@@ -101,7 +101,7 @@ public class PdfComplianceReadbackTests {
         byte[] pdf = PdfDocument.Create()
             .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA4F, "en-US")
             .Meta(title: "Readback PDF/A-4", author: "OfficeIMO")
-            .Paragraph(paragraph => paragraph.Text("Readback PDF/A-4 groundwork"))
+            .Paragraph(paragraph => paragraph.AddText("Readback PDF/A-4 groundwork"))
             .ToBytes();
 
         PdfComplianceReadinessReport report = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.PdfA4F, pdf);
@@ -117,7 +117,7 @@ public class PdfComplianceReadbackTests {
         byte[] pdf = PdfDocument.Create()
             .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA4F, "en-US")
             .Meta(title: "Catalog version PDF/A-4", author: "OfficeIMO")
-            .Paragraph(paragraph => paragraph.Text("Catalog version override"))
+            .Paragraph(paragraph => paragraph.AddText("Catalog version override"))
             .ToBytes();
         string raw = PdfEncoding.Latin1GetString(pdf)
             .Replace("%PDF-2.0", "%PDF-1.7")
@@ -135,14 +135,14 @@ public class PdfComplianceReadbackTests {
 
     [Fact]
     public void AssessReadback_ReportsPdfUaGroundworkFromSavedPdf() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 FileVersion = PdfFileVersion.Pdf17,
                 IncludeStandardFontToUnicodeMaps = true
             })
             .ConfigurePdfUaGroundwork("en-US")
             .Meta(title: "Readback PDF/UA", author: "OfficeIMO")
             .H1("Readback PDF/UA")
-            .Paragraph(paragraph => paragraph.Text("Readback PDF/UA groundwork"))
+            .Paragraph(paragraph => paragraph.AddText("Readback PDF/UA groundwork"))
             .ToBytes();
 
         PdfComplianceReadinessReport report = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.PdfUa1, pdf);
@@ -165,7 +165,7 @@ public class PdfComplianceReadbackTests {
             .ConfigurePdfUaGroundwork(PdfComplianceProfile.PdfUa2, "en-US")
             .Meta(title: "Readback PDF/UA-2", author: "OfficeIMO")
             .H1("Readback PDF/UA-2")
-            .Paragraph(paragraph => paragraph.Text("Readback PDF/UA-2 groundwork"))
+            .Paragraph(paragraph => paragraph.AddText("Readback PDF/UA-2 groundwork"))
             .ToBytes();
 
         PdfComplianceReadinessReport report = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.PdfUa2, pdf);
@@ -180,7 +180,7 @@ public class PdfComplianceReadbackTests {
     [Fact]
     public void AssessReadback_ReportsMissingPdfUaGroundwork() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Plain PDF"))
+            .Paragraph(paragraph => paragraph.AddText("Plain PDF"))
             .ToBytes();
 
         PdfComplianceReadinessReport report = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.PdfUa1, pdf);

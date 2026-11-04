@@ -63,11 +63,11 @@ BibliographyWriteResult csl = read.Document.Write(
     new BibliographyWriteOptions {
         Format = BibliographyFormat.CslJson,
         Mode = BibliographyWriterMode.Canonical,
-        RequireNoLoss = true
+        FailOnLoss = true
     });
 ```
 
-`RequireNoLoss` throws `BibliographyConversionLossException` when the destination would approximate, omit, or fail to preserve data. For permissive conversion, leave it disabled and inspect `csl.Report.Diagnostics`. The report also implements `IOfficeConversionReport`; use `FidelityDiagnostics` when composing bibliography output with another OfficeIMO conversion stage and the policy must retain the exact `None`, `Approximation`, `Omission`, or `Failure` category.
+`ThrowIfLoss` throws `BibliographyConversionLossException` when the destination would approximate, omit, or fail to preserve data. For permissive conversion, leave it disabled and inspect `csl.Report.Diagnostics`. The report also implements `OfficeConversionReport`; use `Diagnostics` when composing bibliography output with another OfficeIMO conversion stage and the policy must retain the exact `None`, `Approximation`, `Omission`, or `Failure` category.
 
 ## File, stream, text, and async APIs
 
@@ -86,7 +86,7 @@ Path saves stage output beside the destination and atomically publish it only af
 
 ```csharp
 BibliographyReferenceResult resolved = read.Document.ResolveReferences(
-    new BibliographyReferenceOptions { MaximumDepth = 64 }, cancellationToken);
+    new BibliographyReferenceOptions { MaxDepth = 64 }, cancellationToken);
 BibliographyItem child = resolved.Document.Items[0];
 IReadOnlyList<BibliographyFieldProvenance> origins = resolved.Provenance;
 IReadOnlyList<BibliographyDiagnostic> referenceDiagnostics = resolved.Diagnostics;
@@ -142,7 +142,7 @@ Set `page-range-format` on the style to expand or abbreviate page ranges. The re
 
 Page expansion resolves abbreviated endpoints before `cs:number` converts them to Roman or ordinal forms. Decimal page digits retain their original glyphs, including fullwidth and Persian digits.
 
-`cs:number` transforms bare numeric units individually and preserves generated locale text. Contextual labels recognize Arabic and Roman numeral lists; page and volume counts use their count value. A dotted version such as `4.2` is one value; a list or range such as `4.2 & 5.3` is plural. Nonnumeric identifiers such as `ES-22-8` retain their hyphens. Ordinals use the accompanying noun's gender, including the selected locator type. Partial locale suffix sets retain their matching rules, and an explicitly empty long ordinal remains empty. Numeric classification, numeral extraction, separators, and page ranges use linear scans with cancellation checkpoints. Numeral and connector expansion observes `MaximumIntermediateCharacters`.
+`cs:number` transforms bare numeric units individually and preserves generated locale text. Contextual labels recognize Arabic and Roman numeral lists; page and volume counts use their count value. A dotted version such as `4.2` is one value; a list or range such as `4.2 & 5.3` is plural. Nonnumeric identifiers such as `ES-22-8` retain their hyphens. Ordinals use the accompanying noun's gender, including the selected locator type. Partial locale suffix sets retain their matching rules, and an explicitly empty long ordinal remains empty. Numeric classification, numeral extraction, separators, and page ranges use linear scans with cancellation checkpoints. Numeral and connector expansion observes `MaxIntermediateCharacters`.
 
 Name sort keys use the CSL priority of family, particles, given name, and suffix. Short-name macros omit dropping particles and suffixes; given-only names sort by their visible name. Institutional sort keys omit initial English articles, including those followed by Unicode whitespace. Displayed names retain their text and formatting.
 
@@ -162,7 +162,7 @@ Set `CslCitation.NoteIndex` to the footnote or endnote number, or zero for a bod
 
 Note styles capitalize the opening of the first rendered citation in a note, preserving formatting and case-protected text. Set `NoteHasPrecedingText = true` when inserting a citation into existing note prose. An item prefix containing text also prevents automatic capitalization. Later citations in the same note retain their casing.
 
-`rendered.BibliographyLayout` carries hanging-indent, line-spacing, entry-spacing, and second-field alignment settings for a document or HTML host. HTML entries use `csl-left-margin` and `csl-right-inline` blocks for automatic second-field alignment and retain explicit CSL display blocks. Layout, group, and macro-wrapper affixes stay with their own first and last fields; formatting preserves emphasis and links. Mixed inline fields and display blocks retain their order. Apply the returned settings in the host's layout system; `MaximumLeftMarginCharacters` counts the final visible UTF-16 text after layout transformations, so use actual text measurement when selecting a column width.
+`rendered.BibliographyLayout` carries hanging-indent, line-spacing, entry-spacing, and second-field alignment settings for a document or HTML host. HTML entries use `csl-left-margin` and `csl-right-inline` blocks for automatic second-field alignment and retain explicit CSL display blocks. Layout, group, and macro-wrapper affixes stay with their own first and last fields; formatting preserves emphasis and links. Mixed inline fields and display blocks retain their order. Apply the returned settings in the host's layout system; `MaxLeftMarginCharacters` counts the final visible UTF-16 text after layout transformations, so use actual text measurement when selecting a column width.
 
 HTML bibliography entries link rendered `URL`, `DOI`, `PMID`, and `PMCID` values to absolute HTTP or HTTPS targets. URI prefixes stay inside the anchor; descriptive affixes stay outside. Set `LinkBibliographyIdentifiers = false` to disable links. Citation clusters and plain text output remain text, and rendering never fetches a link.
 

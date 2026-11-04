@@ -95,6 +95,36 @@ public sealed class AtomicFileWriterTests
         }
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void WriteUnique_preserves_an_unrelated_file_with_a_claim_shaped_name(bool markerShapedContent)
+    {
+        if (!System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows)) return;
+        var directory = Path.Combine(Path.GetTempPath(), $"OfficeIMO-foreign-claim-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        try
+        {
+            var destination = Path.Combine(directory, "report.txt");
+            var foreignPath = OfficeFileCommitClaim.CreatePath(destination);
+            byte[] foreignBytes = markerShapedContent
+                ? Encoding.ASCII.GetBytes("OfficeIMO-commit-claim-v1:").Concat(Guid.NewGuid().ToByteArray()).ToArray()
+                : Encoding.UTF8.GetBytes("keep this unrelated file");
+            File.WriteAllBytes(foreignPath, foreignBytes);
+
+            var output = OfficeFileOutput.WriteUnique(directory, "report.txt", Encoding.UTF8.GetBytes("payload"));
+
+            Assert.Equal(Path.Combine(directory, "report-2.txt"), output);
+            Assert.Equal("payload", File.ReadAllText(output));
+            Assert.Equal(foreignBytes, File.ReadAllBytes(foreignPath));
+            Assert.False(File.Exists(destination));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
     [Fact]
     public void FailedStagingPreservesExistingOutputAndRemovesPartialFile() {
         var directory = Path.Combine(Path.GetTempPath(), $"OfficeIMO-output-{Guid.NewGuid():N}");

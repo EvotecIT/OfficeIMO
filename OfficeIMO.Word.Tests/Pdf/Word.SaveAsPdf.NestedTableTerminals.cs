@@ -40,16 +40,16 @@ public partial class Word {
         foreach ((WordTableCell Cell, string Text) item in new[] {
             (inner.Rows[0].Cells[0], "TERMINALLEFT"), (inner.Rows[0].Cells[1], "TERMINALRIGHT") }) {
             ConfigureNestedLayoutParagraph(item.Cell.Paragraphs[0], item.Text);
-            item.Cell.Paragraphs[0].LineSpacing = checked((int)(lineHeight * 20D));
+            item.Cell.Paragraphs[0].LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(lineHeight));
         }
 
         W.Paragraph terminal = Assert.Single(parent._tableCell.Elements<W.Paragraph>());
         var terminalView = new WordParagraph(document, terminal);
         ConfigureNestedLayoutParagraph(terminalView, kind == NestedTableTerminalKind.Visible ? "VISIBLETAIL" : string.Empty);
-        terminalView.LineSpacing = checked((int)(lineHeight * 20D));
+        terminalView.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(lineHeight));
         if (kind == NestedTableTerminalKind.FormattedStructural) {
-            terminalView.LineSpacing = checked((int)(2D * lineHeight * 20D));
-            terminalView.LineSpacingAfterPoints = 6D;
+            terminalView.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(2D * lineHeight));
+            terminalView.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(6D);
         }
         // The structural paragraph has paragraph properties but no empty run
         // carriers. Content children represent an independently preserved boundary.
@@ -61,7 +61,7 @@ public partial class Word {
 
         WordParagraph after = document.AddParagraph();
         ConfigureNestedLayoutParagraph(after, "TERMINALAFTER");
-        after.LineSpacing = checked((int)(lineHeight * 20D));
+        after.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(lineHeight));
         if (noteKind != 0) {
             OpenXmlCompositeElement note = AddRichNoteFixture(document, endnote: noteKind == 2);
             note.RemoveAllChildren();
@@ -76,9 +76,9 @@ public partial class Word {
             main.DocumentSettingsPart?.Settings?.OuterXml + main.FootnotesPart?.Footnotes?.OuterXml +
             main.EndnotesPart?.Endnotes?.OuterXml;
         string original = OriginalXml();
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(noteKind == 0
-            ? new WordToPdfOptions {
-                IncludePageNumbers = false, PageSize = new PageSize(400D, 500D), Margins = PageMargins.Uniform(30D),
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(noteKind == 0
+            ? new WordPdfExportOptions {
+                IncludePageNumbers = false, PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(400D),OfficeIMO.OfficeLength.Points(500D)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30D)),
                 ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
             } : FootnoteDiagnosticOptions());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
@@ -90,8 +90,8 @@ public partial class Word {
         Assert.True(right.BoundingBox.Left > left.BoundingBox.Right);
         if (kind == NestedTableTerminalKind.Visible)
             Assert.Single(words, word => word.Text == "VISIBLETAIL");
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code is "NativeNestedTableLayoutApproximated" or
-            "NativeFootnotePlacementApproximated" or "NativeEndnoteContentApproximated");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code is "native-nested-table-layout-approximated" or
+            "native-footnote-placement-approximated" or "native-endnote-content-approximated");
         Assert.Equal(original, OriginalXml());
         return left.BoundingBox.Bottom - following.BoundingBox.Bottom;
     }

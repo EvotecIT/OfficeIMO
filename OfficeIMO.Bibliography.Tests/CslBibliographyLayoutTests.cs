@@ -18,7 +18,7 @@ public sealed class CslBibliographyLayoutTests {
         Assert.True(layout.HangingIndent);
         Assert.Equal(2, layout.LineSpacing);
         Assert.Equal(0, layout.EntrySpacing);
-        Assert.Equal(4, layout.MaximumLeftMarginCharacters);
+        Assert.Equal(4, layout.MaxLeftMarginCharacters);
         Assert.Equal(new[] { "[1] Alpha", "[2] Beta" }, new CslProcessor(Data, style).RenderBibliography().Select(entry => entry.Content));
     }
 
@@ -28,7 +28,7 @@ public sealed class CslBibliographyLayoutTests {
         CslRenderResult result = new CslProcessor(Data, style, new CslRenderOptions { OutputFormat = CslOutputFormat.Html }).Render(Array.Empty<CslCitation>(), true);
 
         Assert.Equal("<div class=\"csl-entry\"><div class=\"csl-left-margin\">[<i>1</i>]</div><div class=\"csl-right-inline\">Alpha</div></div>", result.Bibliography[0].Content);
-        Assert.Equal(3, result.BibliographyLayout!.MaximumLeftMarginCharacters);
+        Assert.Equal(3, result.BibliographyLayout!.MaxLeftMarginCharacters);
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public sealed class CslBibliographyLayoutTests {
         Assert.Equal(1, layout.EntrySpacing);
         Assert.False(layout.HangingIndent);
         Assert.Equal(CslSecondFieldAlignment.None, layout.SecondFieldAlignment);
-        Assert.Equal(0, layout.MaximumLeftMarginCharacters);
+        Assert.Equal(0, layout.MaxLeftMarginCharacters);
         Assert.Null(new CslProcessor(empty, CslStyle.Parse(Header + "</style>")).Render(Array.Empty<CslCitation>()).BibliographyLayout);
     }
 
@@ -58,7 +58,7 @@ public sealed class CslBibliographyLayoutTests {
     [Fact]
     public void AlignmentMarkupCountsTowardTheIntermediateBudget() {
         CslStyle style = CslStyle.Parse(Header + "<bibliography second-field-align=\"flush\"><layout><text variable=\"citation-number\"/><text variable=\"title\"/></layout></bibliography></style>");
-        var processor = new CslProcessor(Data, style, new CslRenderOptions { OutputFormat = CslOutputFormat.Html, MaximumIntermediateCharacters = 10 });
+        var processor = new CslProcessor(Data, style, new CslRenderOptions { OutputFormat = CslOutputFormat.Html, MaxIntermediateCharacters = 10 });
         Assert.Throws<InvalidDataException>(() => processor.RenderBibliography());
     }
 }

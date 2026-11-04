@@ -24,6 +24,7 @@ public sealed partial class OfficeTrueTypeFont {
         }
         yield return "/usr/share/fonts/truetype/dejavu";
         yield return "/usr/share/fonts/truetype/liberation2";
+        yield return "/usr/share/fonts/truetype/liberation";
         yield return "/usr/share/fonts/dejavu";
         yield return "/usr/share/fonts/liberation";
         yield return "/usr/share/fonts/truetype/crosextra";

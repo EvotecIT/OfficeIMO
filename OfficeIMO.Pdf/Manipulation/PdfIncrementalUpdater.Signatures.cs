@@ -25,8 +25,10 @@ internal static partial class PdfIncrementalUpdater {
     /// Appends an AcroForm signature field and a detached-signature placeholder as a new incremental revision.
     /// The returned byte ranges can be signed by an external CMS/CAdES/TSA provider without adding cryptographic dependencies.
     /// </summary>
-    public static PdfExternalSignaturePreparation PrepareExternalSignature(byte[] pdf, PdfExternalSignatureOptions? options = null) =>
-        PrepareExternalSignature(pdf, options, readOptions: null);
+    public static PdfExternalSignaturePreparation PrepareExternalSignature(byte[] pdf, PdfExternalSignatureOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return PrepareExternalSignature(pdf, options, readOptions: null);
+    }
 
     internal static PdfExternalSignaturePreparation PrepareExternalSignature(
         byte[] pdf,
@@ -142,24 +144,26 @@ internal static partial class PdfIncrementalUpdater {
     }
 
     /// <summary>Appends an external signature placeholder to a readable PDF stream.</summary>
-    public static PdfExternalSignaturePreparation PrepareExternalSignature(Stream input, PdfExternalSignatureOptions? options = null) {
+    public static PdfExternalSignaturePreparation PrepareExternalSignature(Stream input, PdfExternalSignatureOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNull(input, nameof(input));
         if (!input.CanRead) {
             throw new ArgumentException("Stream must be readable.", nameof(input));
         }
 
         PdfExternalSignatureOptions effectiveOptions = options ?? new PdfExternalSignatureOptions();
-        return PrepareExternalSignature(ReadSigningInput(input, effectiveOptions), effectiveOptions);
+        return PrepareExternalSignature(ReadSigningInput(input, effectiveOptions), effectiveOptions, cancellationToken: cancellationToken);
     }
 
     /// <summary>Appends an external signature placeholder to a PDF file and writes the prepared PDF to <paramref name="outputPath"/>.</summary>
-    public static PdfExternalSignaturePreparation PrepareExternalSignature(string inputPath, string outputPath, PdfExternalSignatureOptions? options = null) {
+    public static PdfExternalSignaturePreparation PrepareExternalSignature(string inputPath, string outputPath, PdfExternalSignatureOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNullOrWhiteSpace(outputPath, nameof(outputPath));
         PdfExternalSignatureOptions effectiveOptions = options ?? new PdfExternalSignatureOptions();
         PdfExternalSignaturePreparation preparation;
         using (var input = new FileStream(inputPath, FileMode.Open, FileAccess.Read, FileShare.Read)) {
-            preparation = PrepareExternalSignature(ReadSigningInput(input, effectiveOptions), effectiveOptions);
+            preparation = PrepareExternalSignature(ReadSigningInput(input, effectiveOptions), effectiveOptions, cancellationToken: cancellationToken);
         }
         OfficeFileCommit.WriteAllBytes(outputPath, preparation.PreparedPdf);
         return preparation;
@@ -196,7 +200,7 @@ internal static partial class PdfIncrementalUpdater {
         // budgets before allowing the generated signature reservation to grow.
         PdfLoadOptions preliminaryOptions = ResolvePersistedCompletionReadOptions(inputOptions, 0);
         Dictionary<int, PdfIndirectObject> preliminaryObjects =
-            inputOptions.Limits.MaxObjectCharacters == PdfReadLimits.Default.MaxObjectCharacters
+            inputOptions.Limits.MaxObjectCharacters == new PdfReadLimits().MaxObjectCharacters
                 ? PdfSyntax.ParseObjectsWithSignatureReservation(preparedPdf, preliminaryOptions,
                     (bytes, start, end) => IsBoundedOversizedSignatureReservation(
                         bytes, start, end, inputOptions.Limits.MaxObjectCharacters))
@@ -210,7 +214,7 @@ internal static partial class PdfIncrementalUpdater {
             throw new ArgumentException("PDF contains multiple zero-filled external signature placeholders. Complete the intended PdfExternalSignaturePreparation instead.", nameof(preparedPdf));
         }
         int maximumContentsHexLength = PdfExternalSignatureOptions.MaximumReservedSignatureContentsBytes * 2;
-        if (inputOptions.Limits.MaxObjectCharacters == PdfReadLimits.Default.MaxObjectCharacters &&
+        if (inputOptions.Limits.MaxObjectCharacters == new PdfReadLimits().MaxObjectCharacters &&
             contentsHexLength > maximumContentsHexLength) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectCharacters,
                 (long)inputOptions.Limits.MaxObjectCharacters + maximumContentsHexLength, signatureObjectLength);
@@ -304,7 +308,7 @@ internal static partial class PdfIncrementalUpdater {
         int maximumObjects = limits.MaxIndirectObjects > int.MaxValue - 64
             ? int.MaxValue
             : limits.MaxIndirectObjects + 64;
-        int generatedObjectCharacters = limits.MaxObjectCharacters == PdfReadLimits.Default.MaxObjectCharacters
+        int generatedObjectCharacters = limits.MaxObjectCharacters == new PdfReadLimits().MaxObjectCharacters
             ? signatureObjectLength
             : 0;
         var growth = new PdfGeneratedOutputGrowth(

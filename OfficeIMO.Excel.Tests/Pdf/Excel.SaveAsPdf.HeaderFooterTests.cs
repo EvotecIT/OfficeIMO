@@ -19,23 +19,22 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfHeaderFooter.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Dashboard")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Dashboard" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Metric");
-            sheet.Cell(2, 1, "HeaderFooterBody");
-            sheet.SetHeaderFooter(
-                headerLeft: "Left Header",
-                headerCenter: "Dashboard Header",
-                headerRight: "Page &P of &N",
-                footerLeft: "Sheet &A",
-                footerRight: "Right Footer");
+            sheet.Cell(1, 1).SetValue("Metric");
+            sheet.Cell(2, 1).SetValue("HeaderFooterBody");
+            sheet.PageSetup.Header.Left.Text = "Left Header";
+            sheet.PageSetup.Header.Center.Text = "Dashboard Header";
+            sheet.PageSetup.Header.Right.Text = "Page &P of &N";
+            sheet.PageSetup.Footer.Left.Text = "Sheet &A";
+            sheet.PageSetup.Footer.Right.Text = "Right Footer";
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
-                PageSize = new PdfCore.PageSize(420, 320),
-                Margins = PdfCore.PageMargins.Uniform(54)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(320)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(54))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -53,24 +52,23 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfHeaderFooterFields.xlsx");
         DateTime printedAt = new DateTime(2026, 5, 31, 14, 35, 0);
 
-        var options = new ExcelToPdfOptions {
+        var options = new ExcelPdfExportOptions {
             IncludeSheetHeadings = false,
             HeaderRowCount = 0,
             HeaderFooterDateTimeProvider = () => printedAt,
-            PageSize = new PdfCore.PageSize(1800, 320),
-            Margins = PdfCore.PageMargins.Uniform(54)
+            PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(1800),OfficeIMO.OfficeLength.Points(320)),
+            Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(54))
         };
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Dashboard")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Dashboard" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "HeaderFooterFieldBody");
-            sheet.SetHeaderFooter(
-                headerLeft: "Printed &D &T Dir &Z File &F",
-                footerRight: "Page &P of &N");
+            sheet.Cell(1, 1).SetValue("HeaderFooterFieldBody");
+            sheet.PageSetup.Header.Left.Text = "Printed &D &T Dir &Z File &F";
+            sheet.PageSetup.Footer.Right.Text = "Page &P of &N";
             document.Save();
 
-            bytes = document.ToPdfBytes(options);
+            bytes = document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -87,21 +85,21 @@ public partial class Excel {
     [Fact]
     public void SaveAsPdf_ExcelWorkbook_Preserves_NonWinAnsi_Dynamic_File_Field() {
         string workbookPath = Path.Combine(_directoryWithFiles, "Zażółć-Źródło.xlsx");
-        var options = new ExcelToPdfOptions {
+        var options = new ExcelPdfExportOptions {
             IncludeSheetHeadings = false,
             HeaderRowCount = 0,
-            PageSize = new PdfCore.PageSize(720, 320),
-            Margins = PdfCore.PageMargins.Uniform(54)
+            PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(720),OfficeIMO.OfficeLength.Points(320)),
+            Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(54))
         };
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Dashboard")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Dashboard" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "DynamicHeaderFooterBody");
-            sheet.SetHeaderFooter(headerCenter: "Source &F");
+            sheet.Cell(1, 1).SetValue("DynamicHeaderFooterBody");
+            sheet.PageSetup.Header.Center.Text = "Source &F";
             document.Save();
 
-            bytes = document.ToPdfBytes(options);
+            bytes = document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -114,23 +112,22 @@ public partial class Excel {
     public void SaveAsPdf_ExcelWorkbook_Maps_Simple_Worksheet_HeaderFooter_Formatting() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfHeaderFooterFormatting.xlsx");
 
-        var options = new ExcelToPdfOptions {
+        var options = new ExcelPdfExportOptions {
             IncludeSheetHeadings = false,
             HeaderRowCount = 0,
-            PageSize = new PdfCore.PageSize(420, 320),
-            Margins = PdfCore.PageMargins.Uniform(54)
+            PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(320)),
+            Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(54))
         };
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Formatting")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Formatting" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "HeaderFooterFormattingBody");
-            sheet.SetHeaderFooter(
-                headerCenter: "&\"Arial,Bold\"&18&KFF0000Styled Header",
-                footerCenter: "&\"Times New Roman,Italic\"&10&K0000FFStyled Footer");
+            sheet.Cell(1, 1).SetValue("HeaderFooterFormattingBody");
+            sheet.PageSetup.Header.Center.Text = "&\"Arial,Bold\"&18&KFF0000Styled Header";
+            sheet.PageSetup.Footer.Center.Text = "&\"Times New Roman,Italic\"&10&K0000FFStyled Footer";
             document.Save();
 
-            bytes = document.ToPdfBytes(options);
+            bytes = document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -146,30 +143,29 @@ public partial class Excel {
         AssertRawPdfContainsAnyBaseFont(rawPdf, "Times-Italic", "TimesNewRoman-Italic", "LiberationSerif-Italic", "DejaVuSerif-Italic");
         Assert.Contains(" 18 Tf", rawPdf, StringComparison.Ordinal);
         Assert.Contains(" 10 Tf", rawPdf, StringComparison.Ordinal);
-        Assert.DoesNotContain(options.Warnings, warning => warning.Feature == "WorksheetHeaderFooterFormatting");
+        Assert.DoesNotContain(options.Warnings, warning => warning.Feature == "worksheet-header-footer-formatting");
     }
 
     [Fact]
     public void SaveAsPdf_ExcelWorkbook_Maps_Office_HeaderFooter_Font_Aliases() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfHeaderFooterFontAliases.xlsx");
 
-        var options = new ExcelToPdfOptions {
+        var options = new ExcelPdfExportOptions {
             IncludeSheetHeadings = false,
             HeaderRowCount = 0,
-            PageSize = new PdfCore.PageSize(420, 320),
-            Margins = PdfCore.PageMargins.Uniform(54)
+            PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(320)),
+            Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(54))
         };
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "FontAliases")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "FontAliases" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "HeaderFooterFontAliasBody");
-            sheet.SetHeaderFooter(
-                headerCenter: "&\"Aptos,Bold\"Alias Header",
-                footerCenter: "&\"Consolas,Italic\"Alias Footer");
+            sheet.Cell(1, 1).SetValue("HeaderFooterFontAliasBody");
+            sheet.PageSetup.Header.Center.Text = "&\"Aptos,Bold\"Alias Header";
+            sheet.PageSetup.Footer.Center.Text = "&\"Consolas,Italic\"Alias Footer";
             document.Save();
 
-            bytes = document.ToPdfBytes(options);
+            bytes = document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -181,15 +177,15 @@ public partial class Excel {
         string rawPdf = PdfOperatorSearchText.From(bytes);
         Assert.Matches("Helvetica-Bold|Arial-Bold|Aptos-Bold|Calibri-Bold|LiberationSans-Bold|DejaVuSans-Bold", rawPdf);
         AssertRawPdfContainsAnyBaseFont(rawPdf, "Courier-Oblique", "CourierNew-Italic", "Consolas-Italic", "LiberationMono-Italic", "DejaVuSansMono-Italic");
-        Assert.DoesNotContain(options.Warnings, warning => warning.Feature == "WorksheetHeaderFooterFormatting");
+        Assert.DoesNotContain(options.Warnings, warning => warning.Feature == "worksheet-header-footer-formatting");
     }
 
     [Fact]
     public void SaveAsPdf_ExcelWorkbook_Uses_Registered_Named_HeaderFooter_Fonts() {
         const string familyName = "Studio Serif";
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfHeaderFooterNamedFont.xlsx");
-        var options = new ExcelToPdfOptions {
-            PdfOptions = new PdfCore.PdfOptions {
+        var options = new ExcelPdfExportOptions {
+            PdfOptions = new PdfCore.PdfCreateOptions {
                     CompressContentStreams = false
                 }
                 .RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily(
@@ -197,20 +193,19 @@ public partial class Excel {
                     OfficeIMO.TestAssets.PdfTestFontAssets.LoadBundledOpenTypeCffFont())),
             IncludeSheetHeadings = false,
             HeaderRowCount = 0,
-            PageSize = new PdfCore.PageSize(420, 320),
-            Margins = PdfCore.PageMargins.Uniform(54)
+            PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(320)),
+            Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(54))
         };
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "NamedFont")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "NamedFont" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "NamedHeaderFooterBody");
-            sheet.SetHeaderFooter(
-                headerCenter: "&\"Studio Serif,Bold\"Named Header",
-                footerCenter: "&\"Studio Serif,Italic\"Named Footer");
+            sheet.Cell(1, 1).SetValue("NamedHeaderFooterBody");
+            sheet.PageSetup.Header.Center.Text = "&\"Studio Serif,Bold\"Named Header";
+            sheet.PageSetup.Footer.Center.Text = "&\"Studio Serif,Italic\"Named Footer";
             document.Save();
 
-            bytes = document.ToPdfBytes(options);
+            bytes = document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -229,22 +224,22 @@ public partial class Excel {
     public void SaveAsPdf_ExcelWorkbook_DoesNotReserve_Escaped_HeaderFooter_Font_Tokens() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfHeaderFooterEscapedFontToken.xlsx");
 
-        var options = new ExcelToPdfOptions {
+        var options = new ExcelPdfExportOptions {
             IncludeSheetHeadings = false,
             HeaderRowCount = 0,
-            PageSize = new PdfCore.PageSize(420, 320),
-            Margins = PdfCore.PageMargins.Uniform(54),
+            PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(320)),
+            Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(54)),
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
         };
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "EscapedFontToken")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "EscapedFontToken" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "EscapedHeaderFooterBody");
-            sheet.SetHeaderFooter(headerCenter: "&&\"Times New Roman\" Literal Header");
+            sheet.Cell(1, 1).SetValue("EscapedHeaderFooterBody");
+            sheet.PageSetup.Header.Center.Text = "&&\"Times New Roman\" Literal Header";
             document.Save();
 
-            bytes = document.ToPdfBytes(options);
+            bytes = document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -261,25 +256,24 @@ public partial class Excel {
     public void SaveAsPdf_ExcelWorkbook_Warns_For_Mixed_Worksheet_HeaderFooter_Formatting() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfHeaderFooterMixedFormatting.xlsx");
 
-        var options = new ExcelToPdfOptions {
+        var options = new ExcelPdfExportOptions {
             IncludeSheetHeadings = false,
             HeaderRowCount = 0,
-            PageSize = new PdfCore.PageSize(420, 320),
-            Margins = PdfCore.PageMargins.Uniform(54)
+            PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(320)),
+            Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(54))
         };
 
         byte[] bytes;
         PdfCore.PdfDocumentConversionResult result;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "MixedFormatting")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "MixedFormatting" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "MixedFormattingBody");
-            sheet.SetHeaderFooter(
-                headerLeft: "&KFF0000Red Left",
-                headerCenter: "Plain Center",
-                footerCenter: "Plain Footer");
+            sheet.Cell(1, 1).SetValue("MixedFormattingBody");
+            sheet.PageSetup.Header.Left.Text = "&KFF0000Red Left";
+            sheet.PageSetup.Header.Center.Text = "Plain Center";
+            sheet.PageSetup.Footer.Center.Text = "Plain Footer";
             document.Save();
 
-            result = document.ToPdfDocumentResult(options);
+            result = document.ConvertToPdfWithEvidence(options);
             bytes = result.ToBytes();
         }
 
@@ -291,7 +285,7 @@ public partial class Excel {
 
         string rawPdf = PdfOperatorSearchText.From(bytes);
         Assert.DoesNotContain("1 0 0 rg", rawPdf, StringComparison.Ordinal);
-        Assert.Contains(result.Warnings, warning => warning.Source == "MixedFormatting" && warning.Code == "WorksheetHeaderFooterFormatting");
+        Assert.Contains(result.Warnings, warning => warning.Source == "MixedFormatting" && warning.Code == "worksheet-header-footer-formatting");
     }
 
     [Fact]
@@ -299,20 +293,23 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfHeaderFooterVariants.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Ledger")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Ledger" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Entry");
-            sheet.Cell(1, 2, "Amount");
+            sheet.Cell(1, 1).SetValue("Entry");
+            sheet.Cell(1, 2).SetValue("Amount");
             for (int row = 2; row <= 90; row++) {
-                sheet.Cell(row, 1, "Ledger row " + row.ToString(CultureInfo.InvariantCulture));
-                sheet.Cell(row, 2, row * 10);
+                sheet.Cell(row, 1).SetValue("Ledger row " + row.ToString(CultureInfo.InvariantCulture));
+                sheet.Cell(row, 2).SetValue(row * 10);
             }
 
-            sheet.SetHeaderFooter(headerCenter: "Odd Header &A", footerCenter: "Odd Footer &P");
-            sheet.SetFirstPageHeaderFooter(headerCenter: "First Header &A", footerCenter: "First Footer &P");
-            sheet.SetEvenPageHeaderFooter(headerCenter: "Even Header &A", footerCenter: "Even Footer &P");
+            sheet.PageSetup.Header.Center.Text = "Odd Header &A";
+            sheet.PageSetup.Footer.Center.Text = "Odd Footer &P";
+            sheet.PageSetup.FirstPageHeader.Center.Text = "First Header &A";
+            sheet.PageSetup.FirstPageFooter.Center.Text = "First Footer &P";
+            sheet.PageSetup.EvenPageHeader.Center.Text = "Even Header &A";
+            sheet.PageSetup.EvenPageFooter.Center.Text = "Even Footer &P";
 
-            ExcelSheet.ExcelHeaderFooterSnapshot snapshot = sheet.GetHeaderFooter();
+            ExcelSheet.ExcelHeaderFooterInfo snapshot = sheet.GetHeaderFooter();
             Assert.True(snapshot.DifferentFirstPage);
             Assert.True(snapshot.DifferentOddEven);
             Assert.Equal("Odd Header &A", snapshot.HeaderCenter);
@@ -321,12 +318,12 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PageSize(360, 220),
-                Margins = PdfCore.PageMargins.Uniform(48)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(48))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -347,24 +344,29 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfBlankHeaderFooterVariants.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Ledger")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Ledger" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Entry");
+            sheet.Cell(1, 1).SetValue("Entry");
             for (int row = 2; row <= 90; row++) {
-                sheet.Cell(row, 1, "Ledger row " + row.ToString(CultureInfo.InvariantCulture));
+                sheet.Cell(row, 1).SetValue("Ledger row " + row.ToString(CultureInfo.InvariantCulture));
             }
 
-            sheet.SetHeaderFooter(headerCenter: "Odd Header &A", footerCenter: "Odd Footer &P");
-            sheet.SetFirstPageHeaderFooter();
-            sheet.SetEvenPageHeaderFooter();
+            sheet.PageSetup.Header.Center.Text = "Odd Header &A";
+            sheet.PageSetup.Footer.Center.Text = "Odd Footer &P";
+            sheet.PageSetup.DifferentFirstPage = true;
+            sheet.PageSetup.FirstPageHeader.Center.Text = string.Empty;
+            sheet.PageSetup.FirstPageFooter.Center.Text = string.Empty;
+            sheet.PageSetup.DifferentOddEven = true;
+            sheet.PageSetup.EvenPageHeader.Center.Text = string.Empty;
+            sheet.PageSetup.EvenPageFooter.Center.Text = string.Empty;
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PageSize(360, 220),
-                Margins = PdfCore.PageMargins.Uniform(48)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(48))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -387,37 +389,37 @@ public partial class Excel {
         byte[] imageBytes = CreateMinimalRgbPng();
         byte[] bytes;
         byte[] disabledBytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Dashboard")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Dashboard" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Metric");
-            sheet.Cell(2, 1, "HeaderFooterImageBody");
-            sheet.SetHeaderFooter(headerCenter: "Logo Header");
-            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, imageBytes, "image/png", widthPoints: 24, heightPoints: 16);
+            sheet.Cell(1, 1).SetValue("Metric");
+            sheet.Cell(2, 1).SetValue("HeaderFooterImageBody");
+            sheet.PageSetup.Header.Center.Text = "Logo Header";
+            sheet.PageSetup.Header.Center.SetImage(imageBytes, "image/png", width: OfficeLength.Points(24), height: OfficeLength.Points(16));
 
-            ExcelSheet.ExcelHeaderFooterSnapshot snapshot = sheet.GetHeaderFooter();
+            ExcelSheet.ExcelHeaderFooterInfo snapshot = sheet.GetHeaderFooter();
             Assert.True(snapshot.HeaderHasPicturePlaceholder);
             Assert.NotNull(snapshot.HeaderCenterImage);
             Assert.Equal(ExcelHeaderFooterPosition.Center, snapshot.HeaderCenterImage!.Position);
             Assert.Equal("image/png", snapshot.HeaderCenterImage.ContentType);
-            Assert.Equal(24, snapshot.HeaderCenterImage.WidthPoints);
-            Assert.Equal(16, snapshot.HeaderCenterImage.HeightPoints);
+            Assert.Equal(24, snapshot.HeaderCenterImage.Width.ToPoints());
+            Assert.Equal(16, snapshot.HeaderCenterImage.Height.ToPoints());
             Assert.Equal(imageBytes, snapshot.HeaderCenterImage.Bytes);
 
             document.Save();
 
-            var options = new ExcelToPdfOptions {
+            var options = new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
-                PageSize = new PdfCore.PageSize(420, 320),
-                Margins = PdfCore.PageMargins.Uniform(54)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(320)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(54))
             };
-            bytes = document.ToPdfBytes(options);
+            bytes = document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
-            disabledBytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            disabledBytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 UseWorksheetHeaderFooterImages = false,
-                PageSize = new PdfCore.PageSize(420, 320),
-                Margins = PdfCore.PageMargins.Uniform(54)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(320)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(54))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -441,15 +443,16 @@ public partial class Excel {
 
         byte[] imageBytes = CreateMinimalRgbPng();
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Ledger")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Ledger" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Entry");
+            sheet.Cell(1, 1).SetValue("Entry");
             for (int row = 2; row <= 90; row++) {
-                sheet.Cell(row, 1, "Ledger row " + row.ToString(CultureInfo.InvariantCulture));
+                sheet.Cell(row, 1).SetValue("Ledger row " + row.ToString(CultureInfo.InvariantCulture));
             }
 
-            sheet.SetHeaderFooter(headerCenter: "Odd Header &A", footerCenter: "Odd Footer &P");
-            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, imageBytes, "image/png", widthPoints: 24, heightPoints: 16);
+            sheet.PageSetup.Header.Center.Text = "Odd Header &A";
+            sheet.PageSetup.Footer.Center.Text = "Odd Footer &P";
+            sheet.PageSetup.Header.Center.SetImage(imageBytes, "image/png", width: OfficeLength.Points(24), height: OfficeLength.Points(16));
 
             HeaderFooter headerFooter = sheet.WorksheetPart.Worksheet.GetFirstChild<HeaderFooter>()!;
             headerFooter.DifferentFirst = true;
@@ -459,19 +462,19 @@ public partial class Excel {
             headerFooter.EvenHeader = new EvenHeader("&C&GEven Header &A");
             sheet.WorksheetPart.Worksheet.Save();
 
-            ExcelSheet.ExcelHeaderFooterSnapshot snapshot = sheet.GetHeaderFooter();
+            ExcelSheet.ExcelHeaderFooterInfo snapshot = sheet.GetHeaderFooter();
             Assert.Equal("Odd Header &A", snapshot.HeaderCenter);
             Assert.Equal("&GFirst Header &A", snapshot.FirstHeaderCenter);
             Assert.Equal("&GEven Header &A", snapshot.EvenHeaderCenter);
 
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PageSize(360, 220),
-                Margins = PdfCore.PageMargins.Uniform(48)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(48))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -497,19 +500,20 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "Zażółć-HeaderFooterDisabled.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Dashboard")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Dashboard" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Metric");
-            sheet.Cell(2, 1, "BodyOnly");
-            sheet.SetHeaderFooter(headerCenter: "DoNotExportHeader &F", footerCenter: "DoNotExportFooter");
+            sheet.Cell(1, 1).SetValue("Metric");
+            sheet.Cell(2, 1).SetValue("BodyOnly");
+            sheet.PageSetup.Header.Center.Text = "DoNotExportHeader &F";
+            sheet.PageSetup.Footer.Center.Text = "DoNotExportFooter";
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 UseWorksheetHeadersAndFooters = false,
                 UseWorksheetHeaderFooterImages = true,
                 UseWorksheetCellStyles = false
-            });
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -518,7 +522,9 @@ public partial class Excel {
         Assert.DoesNotContain("DoNotExportHeader", text);
         Assert.DoesNotContain("DoNotExportFooter", text);
         Assert.DoesNotContain(Path.GetFileName(workbookPath), text);
-        Assert.DoesNotContain("/FontFile", PdfOperatorSearchText.From(bytes), StringComparison.Ordinal);
+        // The body text may embed its own font; the disabled zones must not pull in a Unicode fallback face.
+        string raw = PdfOperatorSearchText.From(bytes);
+        Assert.True(System.Text.RegularExpressions.Regex.Matches(raw, "/FontFile").Count <= 1);
     }
 
 }

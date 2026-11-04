@@ -7,31 +7,31 @@ public sealed class PublisherSaveTests {
     public void Exact_source_copy_owns_its_bytes_and_reports_saving_separately_from_reading() {
         byte[] source = Source();
         PublisherDocument document = PublisherDocument.Load(source);
-        var result = document.ToPubBytesResult();
-        Assert.Equal(source, result.Value);
-        Assert.True(result.Report.IsExactSourceCopy);
-        Assert.False(result.Report.HasErrors); Assert.False(result.Report.HasLoss);
-        Assert.Equal(source.Length, result.Report.OutputByteCount);
-        Assert.Same(document.SourceReadReport, result.Report.SourceReadReport);
-        result.Report.RequireNoLoss();
-        result.Value[0] ^= 0xFF;
-        Assert.Equal(source, document.ToPubBytes());
+        byte[] savedBytes = document.ToBytes(null, out PublisherSaveReport saveReport);
+        Assert.Equal(source, savedBytes);
+        Assert.True(saveReport.IsExactSourceCopy);
+        Assert.False(saveReport.HasErrors); Assert.False(saveReport.HasLoss);
+        Assert.Equal(source.Length, saveReport.OutputByteCount);
+        Assert.Same(document.SourceReadReport, saveReport.SourceReadReport);
+        saveReport.ThrowIfLoss();
+        savedBytes[0] ^= 0xFF;
+        Assert.Equal(source, document.ToBytes());
     }
 
     [Fact]
     public void Supported_edits_require_explicit_loss_acceptance_and_keep_the_original_source_baseline() {
         PublisherDocument document = EditedRectangle();
         PublisherReadReport original = document.SourceReadReport;
-        var refused = Assert.Throws<OfficeConversionException>(() => document.ToPubBytes());
+        var refused = Assert.Throws<OfficeConversionException>(() => document.ToBytes());
         var blocked = Assert.IsType<PublisherSaveReport>(refused.Report);
         Assert.True(blocked.HasLoss); Assert.False(blocked.HasErrors);
         Assert.False(blocked.IsExactSourceCopy); Assert.True(blocked.OutputByteCount > 0);
-        var accepted = document.ToPubBytesResult(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
-        PublisherShape shape = Assert.Single(PublisherDocument.Load(accepted.Value).Pages[0].Shapes);
+        byte[] acceptedBytes = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
+        PublisherShape shape = Assert.Single(PublisherDocument.Load(acceptedBytes).Pages[0].Shapes);
         Assert.Equal((36D, 48D, 120D, 84D), (shape.X, shape.Y, shape.Width, shape.Height));
         Assert.Same(original, document.SourceReadReport);
-        Assert.Throws<OfficeConversionException>(() => document.ToPubBytes());
-        Assert.Equal(accepted.Value, document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        Assert.Throws<OfficeConversionException>(() => document.ToBytes());
+        Assert.Equal(acceptedBytes, document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
     }
 
     [Theory]
@@ -40,7 +40,7 @@ public sealed class PublisherSaveTests {
     public void Loss_acceptance_never_enables_source_free_or_unsupported_topology_writing(bool sourceFree) {
         PublisherDocument document = sourceFree ? PublisherDocument.Create(612, 792) : PublisherDocument.Load(Source());
         if (!sourceFree) document.AddPage();
-        var error = Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        var error = Assert.Throws<OfficeConversionException>(() => document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         var report = Assert.IsType<PublisherSaveReport>(error.Report);
         Assert.True(report.HasErrors); Assert.True(report.HasLoss);
         Assert.Equal(0, report.OutputByteCount);
@@ -100,7 +100,7 @@ public sealed class PublisherSaveTests {
         if (failure == "unsupported") document.AddPage();
         var settings = new PublisherSaveOptions { FileConflictPolicy = OfficeConversionFileConflictPolicy.Replace,
             MaxOutputBytes = failure == "limit" ? 1 : 64L * 1024 * 1024,
-            LossPolicy = failure == "unsupported" ? OfficeConversionLossPolicy.Allow : OfficeConversionLossPolicy.Block };
+            AllowLoss = failure == "unsupported" };
         CancellationToken token = new CancellationToken(failure == "cancellation");
         Type expected = failure == "limit" ? typeof(InvalidDataException) : failure == "cancellation" ? typeof(OperationCanceledException) : typeof(OfficeConversionException);
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pub");
@@ -123,9 +123,7 @@ public sealed class PublisherSaveTests {
         Assert.Equal(64L * 1024 * 1024, settings.MaxOutputBytes);
         settings.MaxOutputBytes = 0; Assert.Throws<ArgumentOutOfRangeException>(() => settings.Clone());
         settings.MaxOutputBytes = (long)int.MaxValue + 1; Assert.Throws<ArgumentOutOfRangeException>(() => settings.Clone());
-        settings.MaxOutputBytes = 1; settings.LossPolicy = (OfficeConversionLossPolicy)99;
-        Assert.Throws<ArgumentOutOfRangeException>(() => settings.Clone());
-        settings.LossPolicy = OfficeConversionLossPolicy.Block; settings.FileConflictPolicy = (OfficeConversionFileConflictPolicy)99;
+        settings.MaxOutputBytes = 1; settings.FileConflictPolicy = (OfficeConversionFileConflictPolicy)99;
         Assert.Throws<ArgumentOutOfRangeException>(() => settings.Clone());
         PublisherDocument document = PublisherDocument.Load(Source());
         Assert.Throws<ArgumentException>(() => document.Save("publication.pdf"));

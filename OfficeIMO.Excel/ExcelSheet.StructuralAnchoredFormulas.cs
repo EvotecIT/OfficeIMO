@@ -200,7 +200,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            return targetRow > 0 && targetRow <= A1.MaxRows;
+            return targetRow > 0 && targetRow <= ExcelA1.MaxRows;
         }
 
         private static bool TryMapAnchoredFormulaRangeRows(
@@ -223,9 +223,9 @@ namespace OfficeIMO.Excel {
             targetStart = sourceStart;
             targetEnd = sourceEnd;
             if (sourceStart <= 0
-                || sourceStart > A1.MaxRows
+                || sourceStart > ExcelA1.MaxRows
                 || sourceEnd <= 0
-                || sourceEnd > A1.MaxRows) {
+                || sourceEnd > ExcelA1.MaxRows) {
                 return false;
             }
 

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace OfficeIMO.Drawing;
 
 /// <summary>Bounded, ordered batch processing shared by document image adapters.</summary>
-public static class OfficeImageExportBatchProcessor {
+internal static class OfficeImageExportBatchProcessor {
     /// <summary>
     /// Executes a streaming batch under one render deadline and one aggregate budget tracker.
     /// When <paramref name="expectedOutputCount"/> is known, the count budget is checked before

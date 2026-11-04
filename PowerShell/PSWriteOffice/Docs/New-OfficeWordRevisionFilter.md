@@ -9,7 +9,7 @@ schema: 2.0.0
 Creates a discoverable Word revision filter for Resolve-OfficeWordRevision.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 New-OfficeWordRevisionFilter [-Author <string>] [-RevisionId <string>] [-RevisionType <WordReviewRevisionType>] [-DateFrom <DateTime>] [-DateTo <DateTime>] [-LocationKind <WordReviewLocationKind>] [-PartUri <string>] [-InTable] [-NotInTable] [-InContentControl] [-NotInContentControl] [-InTextBox] [-NotInTextBox] [<CommonParameters>]
 ```
@@ -33,7 +33,7 @@ Revision author.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -49,7 +49,7 @@ Earliest revision date.
 
 ```yaml
 Type: DateTime
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -65,7 +65,7 @@ Latest revision date.
 
 ```yaml
 Type: DateTime
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -81,7 +81,7 @@ Limit results to revisions inside content controls.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -97,7 +97,7 @@ Limit results to revisions inside tables.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -113,7 +113,7 @@ Limit results to revisions inside text boxes.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -129,7 +129,7 @@ Word part or container location kind.
 
 ```yaml
 Type: WordReviewLocationKind
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: Body, Header, Footer, Footnote, Endnote
 
@@ -145,7 +145,7 @@ Limit results to revisions outside content controls.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -161,7 +161,7 @@ Limit results to revisions outside tables.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -177,7 +177,7 @@ Limit results to revisions outside text boxes.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -193,7 +193,7 @@ Package part URI.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -209,7 +209,7 @@ Revision identifier.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -225,7 +225,7 @@ Revision operation type.
 
 ```yaml
 Type: WordReviewRevisionType
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: Insertion, Deletion, MoveFrom, MoveTo, ParagraphFormatting, RunFormatting, TableFormatting, TableRowFormatting, TableCellFormatting, SectionFormatting, Unknown
 

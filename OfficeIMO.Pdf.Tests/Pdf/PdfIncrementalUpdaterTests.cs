@@ -15,9 +15,9 @@ public class PdfIncrementalUpdaterTests {
             OwnerPassword = "owner",
             Algorithm = algorithm
         };
-        byte[] original = PdfDocument.Create(new PdfOptions { IncludeXmpMetadata = true }.SetEncryption(encryption))
+        byte[] original = PdfDocument.Create(new PdfCreateOptions { IncludeXmpMetadata = true }.SetEncryption(encryption))
             .Meta(title: "Encrypted original", author: "Encrypted author")
-            .Paragraph(paragraph => paragraph.Text("Encrypted incremental body"))
+            .Paragraph(paragraph => paragraph.AddText("Encrypted incremental body"))
             .ToBytes();
         var ownerOptions = new PdfLoadOptions { Password = "owner" };
         var userOptions = new PdfLoadOptions { Password = "open" };
@@ -52,11 +52,11 @@ public class PdfIncrementalUpdaterTests {
 
     [Fact]
     public void UpdateMetadata_SynchronizesXmpAndPreservesExtensionSchemas() {
-        var options = new PdfOptions { IncludeXmpMetadata = true }
+        var options = new PdfCreateOptions { IncludeXmpMetadata = true }
             .SetElectronicInvoiceMetadata(new PdfElectronicInvoiceMetadata("ORDER", "invoice.xml", "1.0", "EN 16931"));
         byte[] original = PdfDocument.Create(options)
             .Meta(title: "Original XMP", author: "Original author", keywords: "first; second")
-            .Paragraph(paragraph => paragraph.Text("XMP extension preservation"))
+            .Paragraph(paragraph => paragraph.AddText("XMP extension preservation"))
             .ToBytes();
 
         byte[] updated = PdfIncrementalUpdater.UpdateMetadata(
@@ -82,7 +82,7 @@ public class PdfIncrementalUpdaterTests {
     public void AppendMetadataRevision_CanCreateSynchronizedXmpPacket() {
         byte[] original = PdfDocument.Create()
             .Meta(title: "Info only")
-            .Paragraph(paragraph => paragraph.Text("Create XMP append"))
+            .Paragraph(paragraph => paragraph.AddText("Create XMP append"))
             .ToBytes();
 
         PdfDocument updated = PdfDocument.Load(original)
@@ -96,9 +96,9 @@ public class PdfIncrementalUpdaterTests {
 
     [Fact]
     public void FluentAppendMetadataRevision_ReusesEncryptedDocumentReadOptions() {
-        byte[] original = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+        byte[] original = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
             .Meta(title: "Before fluent append")
-            .Paragraph(paragraph => paragraph.Text("Fluent encrypted body"))
+            .Paragraph(paragraph => paragraph.AddText("Fluent encrypted body"))
             .ToBytes();
         var ownerOptions = new PdfLoadOptions { Password = "owner" };
 
@@ -113,7 +113,7 @@ public class PdfIncrementalUpdaterTests {
     public void UpdateMetadata_AppendsIncrementalRevisionAndPreservesContent() {
         byte[] original = PdfDocument.Create()
             .Meta(title: "Original title", author: "Original author")
-            .Paragraph(paragraph => paragraph.Text("Incremental update body text"))
+            .Paragraph(paragraph => paragraph.AddText("Incremental update body text"))
             .ToBytes();
 
         byte[] updated = PdfIncrementalUpdater.UpdateMetadata(original, title: "Updated title");
@@ -172,7 +172,7 @@ public class PdfIncrementalUpdaterTests {
     [Fact]
     public void UpdateMetadata_UsesTheActiveTrailerRootInsteadOfThePreviousRevisionRoot() {
         byte[] original = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Active catalog body"))
+            .Paragraph(paragraph => paragraph.AddText("Active catalog body"))
             .ToBytes();
         PdfDocumentSecurityInfo originalSecurity = PdfSyntax.ReadDocumentSecurityInfo(original);
         int originalRoot = originalSecurity.RootObjectNumber!.Value;

@@ -183,12 +183,12 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets data label text style for all chart labels.
         /// </summary>
-        public PowerPointChart SetDataLabelTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null,
+        public PowerPointChart SetDataLabelTextStyle(OfficeLength? fontSize = null, bool? bold = null, bool? italic = null,
             string? color = null, string? fontName = null) {
-            ValidateTextStyle(fontSizePoints, color, fontName);
+            ValidateTextStyle(fontSize, color, fontName);
 
             return ApplyToAllDataLabels(labels => {
-                ApplyDataLabelTextStyle(labels, fontSizePoints, bold, italic, color, fontName);
+                ApplyDataLabelTextStyle(labels, fontSize, bold, italic, color, fontName);
             });
         }
 
@@ -196,11 +196,11 @@ namespace OfficeIMO.PowerPoint {
         ///     Sets data label shape styling for all chart labels.
         /// </summary>
         public PowerPointChart SetDataLabelShapeStyle(string? fillColor = null, string? lineColor = null,
-            double? lineWidthPoints = null, bool noFill = false, bool noLine = false) {
-            ValidateAreaStyle(fillColor, lineColor, lineWidthPoints, noFill, noLine);
+            OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false) {
+            ValidateAreaStyle(fillColor, lineColor, lineWidth, noFill, noLine);
 
             return ApplyToAllDataLabels(labels => {
-                ApplyDataLabelShapeStyle(labels, fillColor, lineColor, lineWidthPoints, noFill, noLine);
+                ApplyDataLabelShapeStyle(labels, fillColor, lineColor, lineWidth, noFill, noLine);
             });
         }
 
@@ -208,11 +208,11 @@ namespace OfficeIMO.PowerPoint {
         ///     Configures data label leader lines for all chart labels.
         /// </summary>
         public PowerPointChart SetDataLabelLeaderLines(bool showLeaderLines = true, string? lineColor = null,
-            double? lineWidthPoints = null) {
-            ValidateDataLabelLeaderLines(lineColor, lineWidthPoints);
+            OfficeLength? lineWidth = null) {
+            ValidateDataLabelLeaderLines(lineColor, lineWidth);
 
             return ApplyToAllDataLabels(labels => {
-                ApplyDataLabelLeaderLines(labels, showLeaderLines, lineColor, lineWidthPoints);
+                ApplyDataLabelLeaderLines(labels, showLeaderLines, lineColor, lineWidth);
             });
         }
 
@@ -246,7 +246,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Enables callout-style labels by positioning labels outside with leader lines.
         /// </summary>
         public PowerPointChart SetDataLabelCallouts(bool enabled = true, OfficeChartDataLabelPosition? position = null,
-            string? lineColor = null, double? lineWidthPoints = null) {
+            string? lineColor = null, OfficeLength? lineWidth = null) {
             OfficeChartDataLabelPosition? resolvedPosition = enabled ? position ?? OfficeChartDataLabelPosition.OutsideEnd : position;
             SetDataLabels(showValue: enabled, showCategoryName: false, showSeriesName: false, showLegendKey: false,
                 showPercent: false);
@@ -254,7 +254,7 @@ namespace OfficeIMO.PowerPoint {
                 SetDataLabelPosition(resolvedPosition.Value);
             }
 
-            return SetDataLabelLeaderLines(enabled, lineColor, lineWidthPoints);
+            return SetDataLabelLeaderLines(enabled, lineColor, lineWidth);
         }
     }
 }

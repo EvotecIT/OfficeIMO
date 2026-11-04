@@ -25,7 +25,7 @@ public sealed class VisioCancellationTests {
     [Fact]
     public async Task CancellationAfterInputReadDoesNotPublishLoadedDocument() {
         VisioDocument source = VisioDocument.Create();
-        source.AddPage("Page", 10, 7);
+        source.AddPage("Page", OfficeLength.Inches(10), OfficeLength.Inches(7));
         using var cancellation = new CancellationTokenSource();
         using var stream = new CancelAtEndOfInputStream(source.ToBytes(), cancellation);
         stream.Position = 3;

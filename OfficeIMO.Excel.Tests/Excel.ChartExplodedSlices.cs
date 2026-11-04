@@ -14,14 +14,13 @@ public sealed class ExcelChartExplodedSlicesTests {
     [Fact]
     public void PieWithoutThemePartUsesSpreadsheetDefaultAccentPalette() {
         using var document = ExcelDocument.Create();
-        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartKind.Pie,
-            new OfficeChartData(new[] { "A", "B" }, new[] {
-                new OfficeChartSeries("Status", new[] { 7d, 3d })
-            }), 1, 1);
+        ExcelChart chart = document.AddSheet("Results").AddChart(OfficeChartType.Pie, new OfficeChartData(new[] { "A", "B" }, new[] {
+                new OfficeSeries("Status", new[] { 7d, 3d })
+            }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1 });
         WorkbookPart workbook = document.OpenXmlDocument.WorkbookPart!;
         if (workbook.ThemePart is ThemePart theme) workbook.DeletePart(theme);
 
-        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+        Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
         Assert.Equal(OfficeColor.Parse("#4F81BD"), snapshot.Style!.Palette[0]);
         Assert.Equal(OfficeColor.Parse("#C0504D"), snapshot.Style.Palette[1]);
     }
@@ -30,13 +29,12 @@ public sealed class ExcelChartExplodedSlicesTests {
     public void MultiRingDoughnutWithExplicitSliceFillsDoesNotNeedTheTransformedPalette() {
         OfficeColor?[] colors = { OfficeColor.Parse("#234567"), OfficeColor.Parse("#89ABCD") };
         using var document = ExcelDocument.Create();
-        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartKind.Doughnut,
-            new OfficeChartData(new[] { "A", "B" }, new[] {
-                new OfficeChartSeries("Inner", new[] { 7d, 3d }, null, null, colors),
-                new OfficeChartSeries("Outer", new[] { 2d, 8d }, null, null, colors)
-            }), 1, 1);
+        ExcelChart chart = document.AddSheet("Results").AddChart(OfficeChartType.Doughnut, new OfficeChartData(new[] { "A", "B" }, new[] {
+                new OfficeSeries("Inner", new[] { 7d, 3d }, null, null, colors),
+                new OfficeSeries("Outer", new[] { 2d, 8d }, null, null, colors)
+            }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1 });
         chart.ApplyStylePreset();
-        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+        Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
         Assert.All(snapshot.Data.Series, series =>
             Assert.Equal(new[] { "234567", "89ABCD" }, series.PointColorArgb));
     }
@@ -50,7 +48,7 @@ public sealed class ExcelChartExplodedSlicesTests {
             .Charts.ToArray();
         Assert.Equal(2, charts.Length);
         foreach (ExcelChart chart in charts) {
-            Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+            Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
             Assert.Equal(new[] { 25, 0 }, snapshot.Data.Series.Single().PointExplosions);
             Assert.Equal(new[] { "156082", "E97132" }, snapshot.Style!.Palette.Take(2)
                 .Select(color => color.ToRgbHex()));
@@ -59,24 +57,24 @@ public sealed class ExcelChartExplodedSlicesTests {
             MethodInfo pdfProjection = typeof(ExcelPdfConverterExtensions).GetMethod(
                 "CreateOfficeChartSnapshot", BindingFlags.NonPublic | BindingFlags.Static)!;
             OfficeChartSnapshot pdfSnapshot = Assert.IsType<OfficeChartSnapshot>(
-                pdfProjection.Invoke(null, new object[] { snapshot, new ExcelToPdfOptions() }));
+                pdfProjection.Invoke(null, new object[] { snapshot, new ExcelPdfExportOptions() }));
             Assert.Equal(new[] { 25, 0 }, pdfSnapshot.Data.Series.Single().PointExplosions);
         }
     }
 
     [Theory]
-    [InlineData(OfficeChartKind.Pie)]
-    [InlineData(OfficeChartKind.Doughnut)]
-    public void ExplodedPoint_RoundTripsIntoStaticExportAndSurvivesValueUpdate(OfficeChartKind kind) {
+    [InlineData(OfficeChartType.Pie)]
+    [InlineData(OfficeChartType.Doughnut)]
+    public void ExplodedPoint_RoundTripsIntoStaticExportAndSurvivesValueUpdate(OfficeChartType kind) {
         var authored = new OfficeChartData(new[] { "A", "B" }, new[] {
-            new OfficeChartSeries("Status", new[] { 7d, 3d }).WithPointExplosions(new[] { 25, 0 })
+            new OfficeSeries("Status", new[] { 7d, 3d }).WithPointExplosions(new[] { 25, 0 })
         });
         using var document = ExcelDocument.Create();
-        document.AddWorksheet("Results").AddChart(kind, authored, 1, 1);
+        document.AddSheet("Results").AddChart(kind, authored, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1 });
         using var bytes = new MemoryStream(document.ToBytes());
         using ExcelDocument reopened = ExcelDocument.Load(bytes);
         ExcelChart chart = reopened.Sheets.Single(sheet => sheet.Name == "Results").Charts.Single();
-        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+        Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
         Assert.Equal(new[] { 25, 0 }, snapshot.Data.Series.Single().PointExplosions);
         Assert.NotEmpty(chart.ExportImage(OfficeImageExportFormat.Svg).Bytes);
         chart.UpdateData(new ExcelChartData(new[] { "A", "B" }, new[] {
@@ -91,20 +89,19 @@ public sealed class ExcelChartExplodedSlicesTests {
     }
 
     [Theory]
-    [InlineData(OfficeChartKind.Pie)]
-    [InlineData(OfficeChartKind.Doughnut)]
-    public void DataPointExplosion_CanBeChangedAndResetWithoutRecreatingTheChart(OfficeChartKind kind) {
+    [InlineData(OfficeChartType.Pie)]
+    [InlineData(OfficeChartType.Doughnut)]
+    public void DataPointExplosion_CanBeChangedAndResetWithoutRecreatingTheChart(OfficeChartType kind) {
         using var document = ExcelDocument.Create();
-        ExcelChart chart = document.AddWorksheet("Results").AddChart(kind,
-            new OfficeChartData(new[] { "A", "B" }, new[] {
-                new OfficeChartSeries("Status", new[] { 7d, 3d })
+        ExcelChart chart = document.AddSheet("Results").AddChart(kind, new OfficeChartData(new[] { "A", "B" }, new[] {
+                new OfficeSeries("Status", new[] { 7d, 3d })
                     .WithPointExplosions(new[] { 25, 0 })
-            }), 1, 1);
+            }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1 });
         chart.SetDataPointExplosion(0, 1, 30);
-        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot changed));
+        Assert.True(chart.TryGetSnapshot(out ExcelChartInfo changed));
         Assert.Equal(new[] { 25, 30 }, changed.Data.Series.Single().PointExplosions);
         chart.SetDataPointExplosion(0, 1, 0);
-        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot reset));
+        Assert.True(chart.TryGetSnapshot(out ExcelChartInfo reset));
         Assert.Equal(new[] { 25, 0 }, reset.Data.Series.Single().PointExplosions);
         Assert.Empty(document.ValidateDocument());
     }
@@ -112,29 +109,27 @@ public sealed class ExcelChartExplodedSlicesTests {
     [Fact]
     public void DataPointExplosion_ExplicitZeroOverridesInheritedSeriesOffset() {
         using var document = ExcelDocument.Create();
-        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartKind.Pie,
-            new OfficeChartData(new[] { "A", "B" }, new[] {
-                new OfficeChartSeries("Status", new[] { 7d, 3d })
-            }), 1, 1);
+        ExcelChart chart = document.AddSheet("Results").AddChart(OfficeChartType.Pie, new OfficeChartData(new[] { "A", "B" }, new[] {
+                new OfficeSeries("Status", new[] { 7d, 3d })
+            }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1 });
         C.PieChartSeries native = document.OpenXmlDocument.WorkbookPart!.WorksheetParts
             .Single(part => part.DrawingsPart != null).DrawingsPart!.ChartParts.Single()
             .ChartSpace!.Descendants<C.PieChartSeries>().Single();
         native.AddChild(new C.Explosion { Val = 10U }, true);
         chart.SetDataPointExplosion(0, 0, 0);
-        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot reset));
+        Assert.True(chart.TryGetSnapshot(out ExcelChartInfo reset));
         Assert.Equal(new[] { 0, 10 }, reset.Data.Series.Single().PointExplosions);
         chart.SetDataPointExplosion(0, 0, null);
-        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot inherited));
+        Assert.True(chart.TryGetSnapshot(out ExcelChartInfo inherited));
         Assert.Equal(new[] { 10, 10 }, inherited.Data.Series.Single().PointExplosions);
     }
 
     [Fact]
     public void UnsupportedNativeExplosion_RejectsStaticSnapshotWithoutChangingNativeXml() {
         using var document = ExcelDocument.Create();
-        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartKind.Pie,
-            new OfficeChartData(new[] { "A", "B" }, new[] {
-                new OfficeChartSeries("Status", new[] { 7d, 3d })
-            }), 1, 1);
+        ExcelChart chart = document.AddSheet("Results").AddChart(OfficeChartType.Pie, new OfficeChartData(new[] { "A", "B" }, new[] {
+                new OfficeSeries("Status", new[] { 7d, 3d })
+            }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1 });
         C.PieChartSeries native = document.OpenXmlDocument.WorkbookPart!.WorksheetParts
             .Single(part => part.DrawingsPart != null).DrawingsPart!.ChartParts.Single()
             .ChartSpace!.Descendants<C.PieChartSeries>().Single();
@@ -144,18 +139,17 @@ public sealed class ExcelChartExplodedSlicesTests {
     }
 
     [Theory]
-    [InlineData(OfficeChartKind.Pie)]
-    [InlineData(OfficeChartKind.Doughnut)]
-    public void ShrinkingValues_IgnoresPreservedExplosionForRemovedPoint(OfficeChartKind kind) {
+    [InlineData(OfficeChartType.Pie)]
+    [InlineData(OfficeChartType.Doughnut)]
+    public void ShrinkingValues_IgnoresPreservedExplosionForRemovedPoint(OfficeChartType kind) {
         using var document = ExcelDocument.Create();
-        ExcelChart chart = document.AddWorksheet("Results").AddChart(kind,
-            new OfficeChartData(new[] { "A", "B" }, new[] {
-                new OfficeChartSeries("Status", new[] { 7d, 3d }).WithPointExplosions(new[] { 0, 25 })
-            }), 1, 1);
+        ExcelChart chart = document.AddSheet("Results").AddChart(kind, new OfficeChartData(new[] { "A", "B" }, new[] {
+                new OfficeSeries("Status", new[] { 7d, 3d }).WithPointExplosions(new[] { 0, 25 })
+            }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1 });
         chart.UpdateData(new ExcelChartData(new[] { "A" }, new[] {
             new ExcelChartSeries("Status", new[] { 8d })
         }));
-        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+        Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
         Assert.Null(snapshot.Data.Series.Single().PointExplosions);
         Assert.NotEmpty(chart.ExportImage(OfficeImageExportFormat.Svg).Bytes);
         Assert.Empty(document.ValidateDocument());

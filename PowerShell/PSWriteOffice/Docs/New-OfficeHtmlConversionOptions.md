@@ -9,7 +9,7 @@ schema: 2.0.0
 Creates discoverable parsing, trust, and document settings for HTML conversion.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 New-OfficeHtmlConversionOptions [-Profile <HtmlConversionProfile>] [-Trust <HtmlInputTrust>] [-BaseUri <string>] [-UseBodyContentsOnly] [-IncludeNormalizedHtml] [<CommonParameters>]
 ```
@@ -33,7 +33,7 @@ Base URI used to resolve relative references.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -49,7 +49,7 @@ Retain normalized HTML in the conversion document.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -65,7 +65,7 @@ Built-in conversion profile.
 
 ```yaml
 Type: HtmlConversionProfile
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: Semantic, Document, HighFidelityPrint, PositionedReview
 
@@ -81,7 +81,7 @@ Input trust level.
 
 ```yaml
 Type: HtmlInputTrust
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: Untrusted, Trusted
 
@@ -97,7 +97,7 @@ Convert only body contents.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

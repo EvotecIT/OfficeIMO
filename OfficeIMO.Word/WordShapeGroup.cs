@@ -9,37 +9,35 @@ using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 using Wpg = DocumentFormat.OpenXml.Office2010.Word.DrawingGroup;
 using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 
-#nullable enable annotations
-
 namespace OfficeIMO.Word {
     /// <summary>
     /// Describes one bounded DrawingML shape inside a Word shape group.
-    /// Coordinates are relative to the group's top-left corner and are expressed in points.
+    /// Coordinates are relative to the group's top-left corner and use physical lengths.
     /// </summary>
     public sealed class WordShapeGroupItem {
         /// <summary>Creates a shape-group item.</summary>
-        public WordShapeGroupItem(WordShapeType shapeType, double leftPt, double topPt, double widthPt, double heightPt) {
+        public WordShapeGroupItem(WordShapeType shapeType, OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height) {
             ShapeType = shapeType;
-            LeftPt = leftPt;
-            TopPt = topPt;
-            WidthPt = widthPt;
-            HeightPt = heightPt;
+            Left = left;
+            Top = top;
+            Width = width;
+            Height = height;
         }
 
         /// <summary>Preset DrawingML geometry.</summary>
         public WordShapeType ShapeType { get; }
         /// <summary>Horizontal position relative to the group.</summary>
-        public double LeftPt { get; }
+        public OfficeLength Left { get; }
         /// <summary>Vertical position relative to the group.</summary>
-        public double TopPt { get; }
+        public OfficeLength Top { get; }
         /// <summary>Shape width.</summary>
-        public double WidthPt { get; }
+        public OfficeLength Width { get; }
         /// <summary>Shape height.</summary>
-        public double HeightPt { get; }
-        /// <summary>Optional RGB fill, with or without a leading '#'.</summary>
-        public string? FillColorHex { get; set; }
-        /// <summary>Optional RGB outline, with or without a leading '#'.</summary>
-        public string? StrokeColorHex { get; set; }
+        public OfficeLength Height { get; }
+        /// <summary>Optional RGB fill.</summary>
+        public OfficeIMO.OfficeColor? FillColor { get; set; }
+        /// <summary>Optional RGB outline.</summary>
+        public OfficeIMO.OfficeColor? StrokeColor { get; set; }
     }
 
     /// <summary>
@@ -67,13 +65,13 @@ namespace OfficeIMO.Word {
         /// Reads package-level placement and geometry evidence for this group.
         /// This is not a claim about Word's final rendered coordinates.
         /// </summary>
-        public bool TryGetLayoutSnapshot(out WordDrawingLayoutSnapshot? snapshot) =>
+        public bool TryGetLayoutSnapshot(out WordDrawingLayoutInfo? snapshot) =>
             WordDrawingLayoutReader.TryRead(_drawing, out snapshot);
 
         /// <summary>Removes the group drawing from its containing paragraph.</summary>
         public void Remove() => _drawing.Remove();
 
-        internal static WordShapeGroup Add(WordParagraph paragraph, IEnumerable<WordShapeGroupItem> items, double? leftPt, double? topPt) {
+        internal static WordShapeGroup Add(WordParagraph paragraph, IEnumerable<WordShapeGroupItem> items, OfficeLength? left, OfficeLength? top) {
             if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
             if (items == null) throw new ArgumentNullException(nameof(items));
 
@@ -82,27 +80,35 @@ namespace OfficeIMO.Word {
                 throw new ArgumentException("A shape group requires at least two shapes.", nameof(items));
             }
 
-            bool anchored = leftPt.HasValue || topPt.HasValue;
-            if (leftPt.HasValue != topPt.HasValue) {
-                throw new ArgumentException("Anchored groups require both left and top offsets.", nameof(leftPt));
+            bool anchored = left.HasValue || top.HasValue;
+            if (left.HasValue != top.HasValue) {
+                throw new ArgumentException("Anchored groups require both left and top offsets.", nameof(left));
             }
-            if (anchored) WordShape.ValidatePosition(leftPt!.Value, topPt!.Value);
+            if (anchored) {
+                if (left!.Value < OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(left));
+                if (top!.Value < OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(top));
+                // wp:posOffset is a signed 32-bit coordinate, unlike a:xfrm's 64-bit coordinates.
+                _ = checked((int)left.Value.ToEmus());
+                _ = checked((int)top.Value.ToEmus());
+            }
 
             long groupCx = 0;
             long groupCy = 0;
             uint firstDrawingId = WordDrawingIdAllocator.Reserve(paragraph._document!, 2U);
             var children = new List<Wps.WordprocessingShape>(materialized.Count);
             foreach (WordShapeGroupItem item in materialized) {
-                WordShape.ValidateDimensions(item.WidthPt, item.HeightPt);
-                WordShape.ValidatePosition(item.LeftPt, item.TopPt);
-                long x = WordShape.ToEmuChecked(item.LeftPt, nameof(item.LeftPt));
-                long y = WordShape.ToEmuChecked(item.TopPt, nameof(item.TopPt));
-                long cx = WordShape.ToEmuChecked(item.WidthPt, nameof(item.WidthPt));
-                long cy = WordShape.ToEmuChecked(item.HeightPt, nameof(item.HeightPt));
+                if (item.Width <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(items), "Shape width must be positive.");
+                if (item.Height <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(items), "Shape height must be positive.");
+                if (item.Left < OfficeLength.Zero || item.Top < OfficeLength.Zero)
+                    throw new ArgumentOutOfRangeException(nameof(items), "Child offsets cannot be negative.");
+                long x = item.Left.ToEmus();
+                long y = item.Top.ToEmus();
+                long cx = item.Width.ToEmus();
+                long cy = item.Height.ToEmus();
                 Wps.WordprocessingShape shape = WordShape.BuildWpsShape(cx, cy, item.ShapeType);
                 A.Transform2D transform = shape.Descendants<A.Transform2D>().First();
                 transform.Offset = new A.Offset { X = x, Y = y };
-                ApplyColors(shape, item.FillColorHex, item.StrokeColorHex);
+                ApplyColors(shape, item.FillColor, item.StrokeColor);
                 children.Add(shape);
                 groupCx = Math.Max(groupCx, checked(x + cx));
                 groupCy = Math.Max(groupCy, checked(y + cy));
@@ -127,8 +133,8 @@ namespace OfficeIMO.Word {
                 ? WordShape.BuildAnchor(
                     groupCx,
                     groupCy,
-                    WordShape.ToEmuChecked(leftPt!.Value, nameof(leftPt)),
-                    WordShape.ToEmuChecked(topPt!.Value, nameof(topPt)),
+                    left!.Value.ToEmus(),
+                    top!.Value.ToEmus(),
                     graphic,
                     firstDrawingId + 1U)
                 : BuildInline(groupCx, groupCy, graphic, firstDrawingId + 1U);
@@ -154,22 +160,15 @@ namespace OfficeIMO.Word {
             return inline;
         }
 
-        private static void ApplyColors(Wps.WordprocessingShape shape, string? fillColorHex, string? strokeColorHex) {
+        private static void ApplyColors(Wps.WordprocessingShape shape, OfficeIMO.OfficeColor? fillColor, OfficeIMO.OfficeColor? strokeColor) {
             Wps.ShapeProperties properties = shape.GetFirstChild<Wps.ShapeProperties>()!;
-            if (!string.IsNullOrWhiteSpace(fillColorHex)) {
-                properties.Append(new A.SolidFill(new A.RgbColorModelHex { Val = NormalizeRgb(fillColorHex!, nameof(fillColorHex)) }));
+            if (fillColor.HasValue) {
+                properties.Append(new A.SolidFill(new A.RgbColorModelHex { Val = fillColor.Value.ToRgbHex() }));
             }
-            if (!string.IsNullOrWhiteSpace(strokeColorHex)) {
+            if (strokeColor.HasValue) {
                 properties.Append(new A.Outline(
-                    new A.SolidFill(new A.RgbColorModelHex { Val = NormalizeRgb(strokeColorHex!, nameof(strokeColorHex)) })));
+                    new A.SolidFill(new A.RgbColorModelHex { Val = strokeColor.Value.ToRgbHex() })));
             }
-        }
-
-        private static string NormalizeRgb(string value, string paramName) {
-            if (!OfficeIMO.Drawing.OfficeColor.TryParseHex(value, out OfficeIMO.Drawing.OfficeColor color)) {
-                throw new ArgumentException("Color must be a three-, six-, or eight-digit hexadecimal value.", paramName);
-            }
-            return color.ToRgbHex();
         }
     }
 }

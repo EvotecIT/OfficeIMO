@@ -10,8 +10,8 @@ internal static partial class PdfWriter {
     private static (double Left, double Bottom, double Right, double Top) ResolveOpenActionDestinationCoordinates(PdfOpenActionOptions openAction, LayoutResult.Page page) {
         double left = openAction.DestinationLeft ?? 0d;
         double bottom = openAction.DestinationBottom ?? 0d;
-        double right = openAction.DestinationRight ?? page.Options.PageWidth;
-        double top = openAction.DestinationTop ?? page.Options.PageHeight;
+        double right = openAction.DestinationRight ?? page.Options.PageWidth.ToPoints();
+        double top = openAction.DestinationTop ?? page.Options.PageHeight.ToPoints();
 
         if (openAction.DestinationMode == PdfOpenActionDestinationMode.FitRectangle) {
             if (right <= left) {

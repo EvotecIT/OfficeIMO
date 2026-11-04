@@ -12,7 +12,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <code>Add-OfficeWordParagraph { Add-OfficeWordDatePicker -Date (Get-Date) -Alias 'DueDate' }</code>
 ///   <para>Creates a date picker control with an initial value.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeWordDatePicker")]
+[Cmdlet(VerbsCommon.Add, "OfficeWordDatePicker", DefaultParameterSetName = "Default")]
 [Alias("WordDatePicker")]
 [OutputType(typeof(WordDatePicker))]
 public sealed class AddOfficeWordDatePickerCommand : PSCmdlet

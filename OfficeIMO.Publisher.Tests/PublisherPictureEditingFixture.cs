@@ -11,8 +11,8 @@ internal static class PublisherPictureEditingFixture {
     internal static byte[] Image(OfficeColor color, int width = 2, int height = 2) =>
         OfficeRasterImageEncoder.Encode(new OfficeRasterImage(width, height, color), OfficeImageExportFormat.Png);
 
-    internal static PublisherDocument Create(PublisherReadOptions? options = null, string? restriction = null, bool withWrapping = false) {
-        var context = new PublisherParseContext((options ?? new PublisherReadOptions()).Clone(), default);
+    internal static PublisherDocument Create(PublisherLoadOptions? options = null, string? restriction = null, bool withWrapping = false) {
+        var context = new PublisherParseContext((options ?? new PublisherLoadOptions()).Clone(), default);
         var source = new PublisherContents(300, 300, new Dictionary<uint, PublisherContentChunk>());
         source.Pages.Add(new PublisherSourcePage(20, "A", null, null, true, 3));
         source.Pages.Add(new PublisherSourcePage(10, "One", 20, null));

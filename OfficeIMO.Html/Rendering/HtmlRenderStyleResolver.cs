@@ -155,7 +155,9 @@ internal sealed partial class HtmlRenderStyleResolver {
         // Document mode's code tags whose unstyled fallback remains monospace.
         if (computed.IsInheritedValue("font-family") && !computed.IsImplicitlyInheritedValue("font-family"))
             defaultFamily = parent?.Font.FamilyName ?? _options.DefaultFontFamily;
-        string family = ResolveFontFamily(fontTag, computed, defaultFamily, ResolveInitialFontFamily(fontTag, _options));
+        string family = pseudoElement
+            ? ResolveFontFamily(fontTag, computed, defaultFamily, ResolveInitialFontFamily(fontTag, _options))
+            : ResolveElementFontFamily(fontTag, computed, defaultFamily, _options);
         if (_fontDefaults.HasValue && HtmlFontSizePolicy.IsSoleGenericMonospace(family)) family = "monospace";
         HtmlFontSizeContext? fontSizeContext = _fontDefaults.HasValue
             ? ResolveBrowserFontSize(tag, computed, family, parent, pseudoElement, pseudoSemanticRole)
@@ -294,7 +296,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             _diagnostics.Add(
                 "OfficeIMO.Html.Renderer",
                 HtmlRenderDiagnosticCodes.FontVariantApproximated,
-                "CSS small-caps used an uppercase managed-rendering approximation because synthetic small-cap glyph sizing is not available.",
+                "CSS small-caps were synthesized from capitals at reduced size because the font's own small-cap glyphs are not used.",
                 HtmlDiagnosticSeverity.Warning,
                 DescribeSource(element),
                 "font-variant-caps=" + fontVariantCaps,
@@ -307,8 +309,10 @@ internal sealed partial class HtmlRenderStyleResolver {
             parent?.TabSize ?? 8D,
             parent?.TabSizeIsLength ?? false,
             fontSize,
-            out style.TabSize,
-            out style.TabSizeIsLength);
+            out double tabSize,
+            out bool tabSizeIsLength);
+        style.TabSize = tabSize;
+        style.TabSizeIsLength = tabSizeIsLength;
         ResolveHyphenateLimitChars(computed.GetValue("hyphenate-limit-chars"), parent, style);
         style.HyphenateLimitZone = ResolveHyphenateLimitZone(computed.GetValue("hyphenate-limit-zone"), containingWidth, fontSize, parent?.HyphenateLimitZone ?? 0D);
         style.ContainerType = ResolveContainerTypeValue(computed);
@@ -528,11 +532,11 @@ internal sealed partial class HtmlRenderStyleResolver {
         string shorthand = computed.GetValue("overflow");
         IReadOnlyList<string> values = HtmlRenderCssValues.SplitWhitespace(shorthand);
         if (values.Count == 1) {
-            style.OverflowX = NormalizeOverflow(values[0], out style.UnsupportedOverflowX);
-            style.OverflowY = NormalizeOverflow(values[0], out style.UnsupportedOverflowY);
+            SetOverflowX(style, values[0]);
+            SetOverflowY(style, values[0]);
         } else if (values.Count == 2) {
-            style.OverflowX = NormalizeOverflow(values[0], out style.UnsupportedOverflowX);
-            style.OverflowY = NormalizeOverflow(values[1], out style.UnsupportedOverflowY);
+            SetOverflowX(style, values[0]);
+            SetOverflowY(style, values[1]);
         } else if (values.Count > 2) {
             style.UnsupportedOverflowX = shorthand.Trim();
             style.UnsupportedOverflowY = shorthand.Trim();
@@ -540,23 +544,25 @@ internal sealed partial class HtmlRenderStyleResolver {
 
         string overflowX = computed.GetValue("overflow-x");
         if (!string.IsNullOrWhiteSpace(overflowX)) {
-            style.OverflowX = NormalizeOverflow(overflowX, out style.UnsupportedOverflowX);
+            SetOverflowX(style, overflowX);
         }
         string overflowY = computed.GetValue("overflow-y");
         if (!string.IsNullOrWhiteSpace(overflowY)) {
-            style.OverflowY = NormalizeOverflow(overflowY, out style.UnsupportedOverflowY);
+            SetOverflowY(style, overflowY);
         }
         string overflowClipMargin = computed.GetValue("overflow-clip-margin");
-        if (!string.IsNullOrWhiteSpace(overflowClipMargin)
-            && !HtmlCssOverflowClipMarginParser.TryParse(
+        if (!string.IsNullOrWhiteSpace(overflowClipMargin)) {
+            bool parsed = HtmlCssOverflowClipMarginParser.TryParse(
                 overflowClipMargin,
                 style.Font.Size,
                 _rootFontSize,
                 _viewportWidth,
                 _viewportHeight,
-                out style.OverflowClipMarginBox,
-                out style.OverflowClipMargin, style.CharacterAdvance)) {
-            style.UnsupportedOverflowClipMargin = overflowClipMargin.Trim().ToLowerInvariant();
+                out string clipMarginBox,
+                out double clipMargin, style.CharacterAdvance);
+            style.OverflowClipMarginBox = clipMarginBox;
+            style.OverflowClipMargin = clipMargin;
+            if (!parsed) style.UnsupportedOverflowClipMargin = overflowClipMargin.Trim().ToLowerInvariant();
         }
 
         if (style.OverflowX == "visible" && style.OverflowY != "visible" && style.OverflowY != "clip") style.OverflowX = "auto";
@@ -612,8 +618,20 @@ internal sealed partial class HtmlRenderStyleResolver {
     }
 
     private static void ApplyFloat(HtmlComputedStyle computed, HtmlRenderBoxStyle style) {
-        style.FloatSide = NormalizeFloatSide(computed.GetValue("float"), style.Direction, out style.UnsupportedFloat);
-        style.ClearSide = NormalizeClearSide(computed.GetValue("clear"), style.Direction, out style.UnsupportedClear);
+        style.FloatSide = NormalizeFloatSide(computed.GetValue("float"), style.Direction, out string unsupportedFloat);
+        style.UnsupportedFloat = unsupportedFloat;
+        style.ClearSide = NormalizeClearSide(computed.GetValue("clear"), style.Direction, out string unsupportedClear);
+        style.UnsupportedClear = unsupportedClear;
+    }
+
+    private static void SetOverflowX(HtmlRenderBoxStyle style, string value) {
+        style.OverflowX = NormalizeOverflow(value, out string unsupported);
+        style.UnsupportedOverflowX = unsupported;
+    }
+
+    private static void SetOverflowY(HtmlRenderBoxStyle style, string value) {
+        style.OverflowY = NormalizeOverflow(value, out string unsupported);
+        style.UnsupportedOverflowY = unsupported;
     }
 
     private static string NormalizeFloatSide(string value, string direction, out string unsupported) {
@@ -831,13 +849,18 @@ internal sealed partial class HtmlRenderStyleResolver {
         whiteSpace == "pre" || whiteSpace == "nowrap";
 
     private void ApplyDefaultMargins(string tag, double fontSize, HtmlRenderBoxStyle style) {
-        if (tag == "body" && _options.UserAgentStyles == HtmlRenderUserAgentStyleMode.Browser) {
+        if (tag == "body" && (_options.UserAgentStyles == HtmlRenderUserAgentStyleMode.Browser || _options.UsesBrowserBodyMargin)) {
             style.MarginTop = 8D;
             style.MarginRight = 8D;
             style.MarginBottom = 8D;
             style.MarginLeft = 8D;
         }
-        if (tag == "p" || tag == "pre" || tag == "blockquote" || tag == "figure" || tag == "ul" || tag == "ol"
+        if (tag == "p") {
+            // Paragraphs take the browser default of one em above and below; adjacent margins collapse, so
+            // HTML written for browsers keeps its spacing, such as the gap after an inline badge.
+            style.MarginTop = fontSize;
+            style.MarginBottom = fontSize;
+        } else if (tag == "pre" || tag == "blockquote" || tag == "figure" || tag == "ul" || tag == "ol"
             || tag == "table" && _options.UserAgentStyles == HtmlRenderUserAgentStyleMode.Document) {
             style.MarginBottom = fontSize;
         } else if (tag.Length == 2 && tag[0] == 'h' && tag[1] >= '1' && tag[1] <= '6') {
@@ -937,6 +960,8 @@ internal sealed partial class HtmlRenderStyleResolver {
             ReportUnsupportedColor(element, pseudoElement, "background-color", computed.GetValue("background-color"));
         }
         ApplyBackgroundLayers(computed, style, backgroundShorthand);
+        ApplyBorderImage(computed, style);
+        ReportUnimplementedProperties(element, computed);
         ApplyOpacity(computed.GetValue("opacity"), style);
         style.Transform = NormalizeCssValue(computed.GetValue("transform"), "none");
         if (HtmlCssTransformParser.TryParseIndividualScale(computed.GetValue("scale"), out string scale)
@@ -995,6 +1020,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         bool hasDeclaredBackgroundImage = false;
         int unsupportedLayerCount = 0;
         int gradientStopLimitExceededCount = 0;
+        var textClipLayers = new List<string>();
         for (int index = 0; index < sourceLayers.Count; index++) {
             string sourceLayer = sourceLayers[index];
             IReadOnlyList<string> urls = HtmlResourcePipeline.ExtractCssUrls(sourceLayer);
@@ -1013,6 +1039,10 @@ internal sealed partial class HtmlRenderStyleResolver {
             string origin = GetLayerValue(originLayers, index, shorthandOrigin, "padding-box");
             string clip = GetLayerValue(clipLayers, index, shorthandClip, "border-box");
             string attachment = GetLayerValue(attachmentLayers, index, ExtractBackgroundAttachment(sourceLayer), "scroll");
+            if (string.Equals(clip.Trim(), "text", StringComparison.OrdinalIgnoreCase)) {
+                textClipLayers.Add(sourceLayer);
+                continue;
+            }
             if (urls.Count == 0) {
                 if (HtmlCssLinearGradientParser.TryParse(sourceLayer, _options.MaxGradientStops, out HtmlCssLinearGradientDefinition? linearGradient, out bool linearStopLimitExceeded)
                     && linearGradient != null) {
@@ -1049,6 +1079,80 @@ internal sealed partial class HtmlRenderStyleResolver {
         style.UnsupportedBackgroundImageLayerCount = unsupportedLayerCount;
         style.GradientStopLimitExceededCount = gradientStopLimitExceededCount;
         style.BackgroundImageLayers = layers.AsReadOnly();
+        ApplyBackgroundClipText(computed, style, textClipLayers);
+    }
+
+    // Text cannot yet clip a paint server, so it takes the gradient's mean color rather than
+    // leaving a filled bar over transparent text.
+    private void ApplyBackgroundClipText(HtmlComputedStyle computed, HtmlRenderBoxStyle style, IReadOnlyList<string> layers) {
+        bool clipsSolidColor = layers.Count == 0 && style.BackgroundColor.HasValue
+            && computed.GetValue("background-clip").IndexOf("text", StringComparison.OrdinalIgnoreCase) >= 0;
+        if (layers.Count == 0 && !clipsSolidColor) return;
+        OfficeColor? fill = clipsSolidColor ? style.BackgroundColor : TryCreateGradientLayer(layers[0])?.MeanGradientColor;
+        if (clipsSolidColor) style.BackgroundColor = null;
+        string textFill = computed.GetValue("-webkit-text-fill-color").Trim();
+        if (fill.HasValue && (style.Color.A == 0 || string.Equals(textFill, "transparent", StringComparison.OrdinalIgnoreCase))) {
+            style.Color = fill.Value;
+        }
+        _diagnostics.Add("OfficeIMO.Html", HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported,
+            "background-clip:text is approximated: text takes the gradient's mean color, and other backgrounds are omitted.",
+            HtmlDiagnosticSeverity.Warning, "background-clip", "background-clip=" + computed.GetValue("background-clip"), OfficeConversionLossKind.Approximation);
+    }
+
+    // Gradient sources paint across the whole border area. Slicing and url() sources are not implemented.
+    private void ApplyBorderImage(HtmlComputedStyle computed, HtmlRenderBoxStyle style) {
+        string source = computed.GetValue("border-image-source");
+        if (source.Length == 0) source = computed.GetValue("border-image");
+        string trimmed = source.Trim();
+        if (trimmed.Length == 0 || trimmed.Equals("none", StringComparison.OrdinalIgnoreCase)
+            || trimmed.Equals("initial", StringComparison.OrdinalIgnoreCase)) return;
+        int start = trimmed.IndexOf("gradient(", StringComparison.OrdinalIgnoreCase);
+        if (start >= 0) {
+            while (start > 0 && (char.IsLetter(trimmed[start - 1]) || trimmed[start - 1] == '-')) start--;
+            int depth = 0;
+            for (int index = start; index < trimmed.Length; index++) {
+                if (trimmed[index] == '(') depth++;
+                if (trimmed[index] == ')' && --depth == 0) {
+                    style.BorderImageLayer = TryCreateGradientLayer(trimmed.Substring(start, index - start + 1));
+                    break;
+                }
+            }
+        }
+        if (style.BorderImageLayer == null) {
+            _diagnostics.Add("OfficeIMO.Html", HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported,
+                "A border-image source is not supported; the ordinary border was painted instead.",
+                HtmlDiagnosticSeverity.Warning, "border-image", "border-image=" + source, OfficeConversionLossKind.Omission);
+        }
+    }
+
+    private static readonly string[] UnimplementedProperties = {
+        "shape-outside", "text-emphasis", "text-emphasis-style", "-webkit-text-emphasis", "-webkit-text-emphasis-style"
+    };
+
+    private void ReportUnimplementedProperties(IElement element, HtmlComputedStyle computed) {
+        foreach (string property in UnimplementedProperties) {
+            string value = computed.GetValue(property).Trim();
+            if (value.Length == 0 || value.Equals("none", StringComparison.OrdinalIgnoreCase)
+                || !_reportedUnimplementedProperties.Add(property)) continue;
+            _diagnostics.Add("OfficeIMO.Html", HtmlRenderDiagnosticCodes.CssPropertyUnsupported,
+                "The CSS property " + property + " is not implemented and had no effect.",
+                HtmlDiagnosticSeverity.Warning, DescribeSource(element), property + "=" + value, OfficeConversionLossKind.Omission);
+        }
+    }
+
+    private readonly HashSet<string> _reportedUnimplementedProperties = new(StringComparer.Ordinal);
+
+    private HtmlRenderBackgroundLayer? TryCreateGradientLayer(string value) {
+        const string position = "0% 0%", repeat = "no-repeat", size = "100% 100%", box = "border-box", attachment = "scroll";
+        if (HtmlCssLinearGradientParser.TryParse(value, _options.MaxGradientStops, out HtmlCssLinearGradientDefinition? linear, out _) && linear != null) {
+            return new HtmlRenderBackgroundLayer(linear, position, repeat, size, box, box, attachment);
+        }
+        if (HtmlCssRadialGradientParser.TryParse(value, _options.MaxGradientStops, out HtmlCssRadialGradientDefinition? radial, out _) && radial != null) {
+            return new HtmlRenderBackgroundLayer(radial, position, repeat, size, box, box, attachment);
+        }
+        return HtmlCssConicGradientParser.TryParse(value, _options.MaxGradientStops, out HtmlCssConicGradientDefinition? conic, out _) && conic != null
+            ? new HtmlRenderBackgroundLayer(conic, position, repeat, size, box, box, attachment)
+            : null;
     }
 
     private static string GetLayerValue(IReadOnlyList<string> values, int index, string shorthandValue, string fallback) {

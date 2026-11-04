@@ -30,7 +30,7 @@ public sealed partial class IWorkBoundaryTests {
         package.Position = 0;
         IWorkConversionReport report = ConvertUnitReport(package, kind);
         AssertMissingReference(Assert.Single(report.SourceReferenceIssues), 11, path, 999);
-        Assert.Equal(OfficeConversionLossKind.Unassessed, Assert.Single(report.FidelityDiagnostics,
+        Assert.Equal(OfficeConversionLossKind.Unassessed, Assert.Single(report.Diagnostics,
             diagnostic => diagnostic.Code == "IWORK_SOURCE_REFERENCES_UNRESOLVED").LossKind);
         Assert.DoesNotContain(report.SourceUnits, unit => unit.Identity.RecordIdentifier == 999);
     }
@@ -106,9 +106,9 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream();
         IWorkConversionReport report;
         if (kind == IWorkDocumentKind.Pages) {
-            using var automatic = source.ToWordDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var automatic = source.ToWordResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
-            using var partial = source.ToWordDocumentResult(options);
+            using var partial = source.ToWordResult(options);
             Assert.False(partial.IsVisualFallback);
             report = partial.Report;
             partial.Value.Save(saved);
@@ -116,24 +116,24 @@ public sealed partial class IWorkBoundaryTests {
             using WordDocument reopened = WordDocument.Load(saved);
             Assert.Equal("42", reopened.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
         } else if (kind == IWorkDocumentKind.Numbers) {
-            using var automatic = source.ToExcelDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var automatic = source.ToExcelResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
-            using var partial = source.ToExcelDocumentResult(options);
+            using var partial = source.ToExcelResult(options);
             Assert.False(partial.IsVisualFallback);
             report = partial.Report;
             partial.Value.Save(saved);
             saved.Position = 0;
             using ExcelDocument reopened = ExcelDocument.Load(saved);
-            Assert.Equal(42d, reopened.Sheets[0].CellAt(1, 1).GetValue().Value);
+            Assert.Equal(42d, reopened.Sheets[0].Cell(1, 1).GetValue().Value);
         } else {
-            using var automatic = source.ToPowerPointPresentationResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var automatic = source.ToPowerPointResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
-            using var partial = source.ToPowerPointPresentationResult(options);
+            using var partial = source.ToPowerPointResult(options);
             Assert.False(partial.IsVisualFallback);
             report = partial.Report;
             partial.Value.Save(saved);
             saved.Position = 0;
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(saved);
+            using PowerPointDocument reopened = PowerPointDocument.Load(saved);
             Assert.Equal("42", reopened.Slides[0].Tables.First().GetCell(0, 0).Text);
         }
         Assert.True(report.IsPartialEditableReconstruction);
@@ -182,7 +182,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = TableDependencyPackage(IWorkDocumentKind.Numbers,
             Message(ReferenceField(2, 999), ReferenceField(4, 998), ReferenceField(6, 997)));
         IWorkSourceDocument source = IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaximumSourceReferenceIssues = 2 });
+            new IWorkReadOptions { MaxSourceReferenceIssues = 2 });
         Assert.Throws<InvalidDataException>(() => source.ReadNumbers());
     }
 
@@ -191,7 +191,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = TableDependencyPackage(IWorkDocumentKind.Numbers,
             Message(ReferenceField(2, 999), ReferenceField(4, 998)), repeatModel: true);
         IWorkNumbersProjection projection = IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaximumSourceReferenceIssues = 2 }).ReadNumbers();
+            new IWorkReadOptions { MaxSourceReferenceIssues = 2 }).ReadNumbers();
         Assert.Equal(2, Assert.Single(projection.Sheets).Tables.Count);
         Assert.Equal(2, projection.SourceReferenceIssues.Count);
         AssertMissingReference(projection.SourceReferenceIssues[0], 11, "4/2", 999);

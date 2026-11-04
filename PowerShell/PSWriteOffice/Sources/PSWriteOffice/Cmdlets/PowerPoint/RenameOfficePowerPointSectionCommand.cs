@@ -2,71 +2,45 @@ using System;
 using System.Linq;
 using System.Management.Automation;
 using OfficeIMO.PowerPoint;
-using PSWriteOffice.Services.PowerPoint;
+using PSWriteOffice.Foundation;
 
 namespace PSWriteOffice.Cmdlets.PowerPoint;
 
-/// <summary>Renames a PowerPoint section.</summary>
-/// <example>
-///   <summary>Rename a section in a presentation.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$ppt = New-OfficePowerPoint -Path .\Examples\Documents\PowerPointRenameSection.pptx -NoSave
-/// Add-OfficePowerPointSlide -Presentation $ppt -Layout 1
-/// Add-OfficePowerPointSection -Presentation $ppt -Name 'Results' -StartSlideIndex 0
-/// Rename-OfficePowerPointSection -Presentation $ppt -Name 'Results' -NewName 'Deep Dive' -PassThru
-/// $ppt | Close-OfficePowerPoint -Save</code>
-///   <para>Renames the first matching section and returns the updated section metadata.</para>
-/// </example>
-[Cmdlet(VerbsCommon.Rename, "OfficePowerPointSection")]
-[OutputType(typeof(PowerPointSectionInfo), typeof(bool))]
-public sealed class RenameOfficePowerPointSectionCommand : PSCmdlet {
-    /// <summary>Presentation to update (optional inside DSL).</summary>
+/// <summary>Renames the first section matching the supplied name.</summary>
+/// <example><summary>Rename a section in a live deck.</summary>
+/// <code>Rename-OfficePowerPointSection -Document $deck -Name Results -NewName 'Deep dive'</code></example>
+/// <example><summary>Return the renamed section.</summary>
+/// <code>$section = Rename-OfficePowerPointSection -Document $deck -Name Appendix -NewName Reference -PassThru</code></example>
+[Cmdlet(VerbsCommon.Rename, "OfficePowerPointSection", DefaultParameterSetName = "Document")]
+[OutputType(typeof(PowerPointSectionInfo))]
+public sealed class RenameOfficePowerPointSectionCommand : OfficeCmdlet {
+    /// <summary>Gets or sets the live document; omission uses its enclosing content block.</summary>
     [Parameter(ValueFromPipeline = true)]
-    public PowerPointPresentation? Presentation { get; set; }
-
-    /// <summary>Existing section name.</summary>
-    [Parameter(Mandatory = true)]
+    public PowerPointDocument? Document { get; set; }
+    /// <summary>Gets or sets the existing section name.</summary>
+    [Parameter(Mandatory = true, Position = 0)]
     public string Name { get; set; } = string.Empty;
-
-    /// <summary>New section name.</summary>
-    [Parameter(Mandatory = true)]
+    /// <summary>Gets or sets the new section name.</summary>
+    [Parameter(Mandatory = true, Position = 1)]
     public string NewName { get; set; } = string.Empty;
-
-    /// <summary>Use case-sensitive matching for the existing section name.</summary>
+    /// <summary>Gets or sets whether name matching is case-sensitive.</summary>
     [Parameter]
     public SwitchParameter CaseSensitive { get; set; }
-
-    /// <summary>Emit the renamed section instead of no output.</summary>
+    /// <summary>Gets or sets whether the changed section is returned.</summary>
     [Parameter]
     public SwitchParameter PassThru { get; set; }
-
     /// <inheritdoc />
     protected override void ProcessRecord() {
+        var document = ResolveDocument(Document);
         try {
-            var presentation = Presentation ?? PowerPointDslContext.Current?.Presentation
-                ?? throw new InvalidOperationException("Presentation was not provided. Use -Presentation or run inside New-OfficePowerPoint.");
-
-            bool renamed = presentation.RenameSection(Name, NewName, ignoreCase: !CaseSensitive.IsPresent);
-            if (!renamed) {
-                WriteError(new ErrorRecord(
-                    new InvalidOperationException($"Section '{Name}' was not found."),
-                    "PowerPointSectionNotFound",
-                    ErrorCategory.ObjectNotFound,
-                    Name));
+            var comparison = CaseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+            var selected = document.GetSections().FirstOrDefault(section => string.Equals(section.Name, Name, comparison));
+            if (string.IsNullOrEmpty(selected.Id) || !document.RenameSection(Name, NewName, ignoreCase: !CaseSensitive)) {
+                WriteError(OfficeError.Create(new ItemNotFoundException("Section '" + Name + "' was not found."),
+                    "section-not-found", Name, ErrorCategory.ObjectNotFound));
                 return;
             }
-
-            if (PassThru.IsPresent) {
-                var comparison = CaseSensitive.IsPresent ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
-                var section = presentation.GetSections().FirstOrDefault(s => string.Equals(s.Name, NewName, comparison));
-                if (!string.IsNullOrEmpty(section.Name)) {
-                    WriteObject(section);
-                } else {
-                    WriteObject(true);
-                }
-            }
-        } catch (Exception ex) {
-            WriteError(new ErrorRecord(ex, "PowerPointRenameSectionFailed", ErrorCategory.InvalidOperation, Presentation));
-        }
+            if (PassThru) WriteObject(document.GetSections().Single(section => section.Id == selected.Id));
+        } catch (ArgumentException error) { InvalidArgument(error, document); }
     }
 }

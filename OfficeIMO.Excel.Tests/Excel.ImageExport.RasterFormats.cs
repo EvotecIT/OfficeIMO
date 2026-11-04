@@ -14,8 +14,8 @@ namespace OfficeIMO.Tests {
             OfficeImageFormat expected) {
             string path = Path.Combine(Path.GetTempPath(), System.Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(path);
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Shared raster export");
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Shared raster export");
 
             OfficeImageExportResult result = sheet.Range("A1:B2").ExportImage(format);
 
@@ -35,10 +35,10 @@ namespace OfficeIMO.Tests {
             OfficeImageFormat expected) {
             string path = Path.Combine(Path.GetTempPath(), System.Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(path);
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Composed raster export");
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Composed raster export");
 
-            OfficeImageExportResult result = Assert.Single(sheet.ExportImages(format, new ExcelWorksheetImageExportOptions {
+            OfficeImageExportResult result = Assert.Single(sheet.ExportImages(format, new ExcelImageExportOptions {
                 SplitByManualPageBreaks = true
             }));
 
@@ -50,13 +50,13 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_CompositionUsesRequestedFormatDensityInsteadOfWorkingPngDensity() {
             string path = Path.Combine(Path.GetTempPath(), System.Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(path);
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Format-specific density");
-            sheet.SetPageSetup(scale: 100, paperSize: ExcelPaperSize.Letter);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Format-specific density");
+            sheet.PageSetup.Scale = 100; sheet.PageSetup.PaperSize = ExcelPaperSize.Letter;
 
             OfficeImageExportResult result = Assert.Single(sheet.ExportImages(
                 OfficeImageExportFormat.Jpeg,
-                new ExcelWorksheetImageExportOptions {
+                new ExcelImageExportOptions {
                     SplitByManualPageBreaks = true,
                     RasterEncoding = new OfficeRasterEncodingOptions {
                         Png = new OfficePngEncodeOptions {
@@ -78,13 +78,13 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageCompositionPlansSafetyReductionBeforeAllocatingFinalCanvas() {
             string path = Path.Combine(Path.GetTempPath(), System.Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(path);
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Safety-limited page");
-            sheet.SetPageSetup(scale: 100, paperSize: ExcelPaperSize.Letter);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Safety-limited page");
+            sheet.PageSetup.Scale = 100; sheet.PageSetup.PaperSize = ExcelPaperSize.Letter;
 
             OfficeImageExportResult result = Assert.Single(sheet.ExportImages(
                 OfficeImageExportFormat.Png,
-                new ExcelWorksheetImageExportOptions {
+                new ExcelImageExportOptions {
                     SplitByManualPageBreaks = true,
                     TargetDpi = 192D,
                     MaximumRasterPixels = 100_000L
@@ -104,10 +104,10 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(Path.GetTempPath(), System.Guid.NewGuid() + ".xlsx");
             string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-" + System.Guid.NewGuid().ToString("N"));
             using ExcelDocument document = ExcelDocument.Create(path);
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Batch raster export");
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Batch raster export");
             try {
-                document.SaveAsImages(folder, OfficeImageExportFormat.Tiff);
+                document.SaveAsImages(folder, new ExcelImageExportOptions { Format = OfficeImageExportFormat.Tiff });
 
                 Assert.True(File.Exists(Path.Combine(folder, "Data.tiff")));
             } finally {

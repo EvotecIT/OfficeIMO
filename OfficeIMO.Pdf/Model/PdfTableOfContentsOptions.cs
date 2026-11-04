@@ -4,7 +4,7 @@ namespace OfficeIMO.Pdf;
 public sealed class PdfTableOfContentsOptions {
     private int _minimumLevel = 1;
     private int _maximumLevel = 3;
-    private double _indentPerLevel = 14D;
+    private global::OfficeIMO.OfficeLength _indentPerLevel = global::OfficeIMO.OfficeLength.Points(14D);
 
     /// <summary>Optional TOC heading; set null to omit it.</summary>
     public string? Title { get; set; } = "Contents";
@@ -25,10 +25,10 @@ public sealed class PdfTableOfContentsOptions {
         }
     }
     /// <summary>Indent added for each hierarchy level after the minimum.</summary>
-    public double IndentPerLevel {
+    public global::OfficeIMO.OfficeLength IndentPerLevel {
         get => _indentPerLevel;
         set {
-            Guard.NonNegative(value, nameof(value));
+            Guard.NonNegative(value.ToPoints(), nameof(value));
             _indentPerLevel = value;
         }
     }

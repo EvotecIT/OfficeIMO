@@ -1,3 +1,4 @@
+using OfficeIMO.Internal;
 using System.Xml;
 using System.Xml.Linq;
 using System.Xml.Schema;
@@ -15,7 +16,7 @@ public sealed partial class BookOnixMessage {
     /// </summary>
     public static BookOnixMessage CreateBlockUpdates(IReadOnlyList<BookOnixBlockUpdate> updates, XmlSchemaSet schemas,
         CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(updates);
+        if (updates == null) throw new ArgumentNullException(nameof(updates));
         cancellationToken.ThrowIfCancellationRequested();
         if (updates.Count is < 1 or > 1000) throw new ArgumentException("Supply 1–1000 block updates.", nameof(updates));
         var sources = new BookOnixExportResult[updates.Count];
@@ -24,7 +25,7 @@ public sealed partial class BookOnixMessage {
         var markets = new OnixMarketSelection[updates.Count];
         for (int index = 0; index < updates.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
-            var update = updates[index]; ArgumentNullException.ThrowIfNull(update); ArgumentNullException.ThrowIfNull(update.Source);
+            var update = updates[index]; if (update == null) throw new ArgumentNullException(nameof(update)); if (update.Source == null) throw new ArgumentNullException("update.Source");
             sources[index] = update.Source;
             replacements[index] = ReadBlocks(update.ReplaceBlocks);
             clears[index] = ReadBlocks(update.ClearBlocks);
@@ -39,7 +40,7 @@ public sealed partial class BookOnixMessage {
         return Compose(sources, schemas, BookOnixMessageKind.BlockUpdates, (index, record) => {
             XNamespace ns = BookProject.OnixNamespace;
             var result = CopyRecordIdentity(record, "04");
-            foreach (var block in Enum.GetValues<BookOnixBlock>()) {
+            foreach (var block in EnumCompat.GetValues<BookOnixBlock>()) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (clears[index].Contains(block)) result.Add(new XElement(ns + block.ToString()));
                 else if (replacements[index].Contains(block)) {
@@ -63,7 +64,7 @@ public sealed partial class BookOnixMessage {
     /// </summary>
     public static BookOnixMessage CreateDeletions(IReadOnlyList<BookOnixDeletion> deletions, XmlSchemaSet schemas,
         CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(deletions);
+        if (deletions == null) throw new ArgumentNullException(nameof(deletions));
         cancellationToken.ThrowIfCancellationRequested();
         if (deletions.Count is < 1 or > 1000) throw new ArgumentException("Supply 1–1000 deletions.", nameof(deletions));
         XNamespace ns = BookProject.OnixNamespace;
@@ -71,14 +72,14 @@ public sealed partial class BookOnixMessage {
         var reasons = new XElement[deletions.Count][];
         for (int index = 0; index < deletions.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
-            var deletion = deletions[index]; ArgumentNullException.ThrowIfNull(deletion); ArgumentNullException.ThrowIfNull(deletion.Source);
+            var deletion = deletions[index]; if (deletion == null) throw new ArgumentNullException(nameof(deletion)); if (deletion.Source == null) throw new ArgumentNullException("deletion.Source");
             sources[index] = deletion.Source;
-            ArgumentNullException.ThrowIfNull(deletion.Reasons);
+            if (deletion.Reasons == null) throw new ArgumentNullException("deletion.Reasons");
             if (deletion.Reasons.Count > 16) throw new ArgumentException("At most 16 deletion-reason translations are supported.", nameof(deletions));
             var languages = new HashSet<string>(StringComparer.Ordinal); var values = new List<XElement>();
             foreach (var reason in deletion.Reasons) {
                 cancellationToken.ThrowIfCancellationRequested();
-                ArgumentNullException.ThrowIfNull(reason); ArgumentException.ThrowIfNullOrWhiteSpace(reason.Text);
+                if (reason == null) throw new ArgumentNullException(nameof(reason)); if ((reason.Text == null || string.IsNullOrWhiteSpace(reason.Text))) throw new ArgumentException("A non-empty value is required.", "reason.Text");
                 if (reason.Text.Length > 100) throw new ArgumentException("Deletion reasons cannot exceed 100 UTF-16 code units.", nameof(deletions));
                 XmlConvert.VerifyXmlChars(reason.Text);
                 BookProject.RequireOnixTranslationLanguage(reason.LanguageCode, deletion.Reasons.Count, nameof(deletion.Reasons));
@@ -95,18 +96,18 @@ public sealed partial class BookOnixMessage {
     }
 
     private static HashSet<BookOnixBlock> ReadBlocks(IReadOnlyList<BookOnixBlock> blocks) {
-        ArgumentNullException.ThrowIfNull(blocks);
+        if (blocks == null) throw new ArgumentNullException(nameof(blocks));
         if (blocks.Count > 8) throw new ArgumentException("At most eight blocks may be selected.", nameof(blocks));
         var result = new HashSet<BookOnixBlock>();
         foreach (var block in blocks)
-            if (!Enum.IsDefined(block) || !result.Add(block)) throw new ArgumentException("Block selections must be defined and distinct.", nameof(blocks));
+            if (!OfficeRuntimeCompatibility.IsDefined(block) || !result.Add(block)) throw new ArgumentException("Block selections must be defined and distinct.", nameof(blocks));
         return result;
     }
 
     private static XElement CopyRecordIdentity(XElement record, string notification) {
         XNamespace ns = BookProject.OnixNamespace;
         // ExportOnix owns this complete-record shape. Copy block zero in full instead of reconstructing an ISBN-only identity.
-        var names = Enum.GetNames<BookOnixBlock>().ToHashSet(StringComparer.Ordinal);
+        var names = Enum.GetNames(typeof(BookOnixBlock)).ToHashSet(StringComparer.Ordinal);
         var result = new XElement(record.Name, record.Attributes(), record.Elements().TakeWhile(element => !names.Contains(element.Name.LocalName))
             .Where(element => element.Name != ns + "DeletionText").Select(element => new XElement(element)));
         result.Element(ns + "NotificationType")!.Value = notification;

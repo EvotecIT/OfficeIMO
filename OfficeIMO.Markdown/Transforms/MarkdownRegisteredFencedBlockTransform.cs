@@ -27,7 +27,7 @@ public sealed class MarkdownRegisteredFencedBlockTransform : IMarkdownDocumentTr
     }
 
     /// <inheritdoc />
-    public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+    public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }
@@ -58,7 +58,7 @@ public sealed class MarkdownRegisteredFencedBlockTransform : IMarkdownDocumentTr
                ?? block;
     }
 
-    private bool ContainsUpgradeableCodeBlock(MarkdownDoc document) {
+    private bool ContainsUpgradeableCodeBlock(MarkdownDocument document) {
         foreach (var codeBlock in document.DescendantObjectsOfType<CodeBlock>()) {
             if (!string.IsNullOrWhiteSpace(codeBlock.Language) && AnyExtensionHandlesLanguage(codeBlock.Language)) {
                 return true;

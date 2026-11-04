@@ -9,7 +9,7 @@ public sealed partial class PublisherNativeComparisonTests {
     public void Labelled_exact_frames_force_only_the_first_line_and_preserve_the_source() {
         byte[] source = File.ReadAllBytes(PublisherNativeTests.Fixture("NativeComparison/TextLabelFitting/native-textlabelfitting.pub"));
         byte[] font = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestAssets", "Carlito-Regular.ttf"));
-        PublisherDocument document = PublisherDocument.Load(source, new PublisherReadOptions {
+        PublisherDocument document = PublisherDocument.Load(source, new PublisherLoadOptions {
             Fonts = new OfficeFontFaceCollection().Add("Arial", font)
         });
         NativeCase contract = ReadContract("TextLabelFitting");
@@ -28,13 +28,13 @@ public sealed partial class PublisherNativeComparisonTests {
             }
         }
         Assert.Equal(10, checkedFrames);
-        Assert.Equal(source, document.ToPubBytes());
+        Assert.Equal(source, document.ToBytes());
         // Exact line allocations and overhang are portable under substitution;
         // native Arial baseline and pixel agreement are separate corpus evidence.
         PublisherTextFrame first = document.Pages[0].TextFrames[0];
         Assert.Equal(6, first.Height);
         Assert.True(InkBelowFrame(OfficeDrawingRasterRenderer.Render(document.Pages[0].CreateDrawing()), first) > 0);
-        PdfReadDocument pdf = PdfReadDocument.Open(document.ToPdfBytes());
+        using PdfDocument pdf = PublisherNativeTests.ExportAndReloadPdf(document);
         Assert.True(InkBelowFrame(OfficeDrawingRasterRenderer.Render(pdf.Pages[0].ToDrawing()), first) > 0);
     }
 }

@@ -19,7 +19,7 @@ public sealed class PdfRestrictedRasterGeometryTests {
             trailer << /Root 1 0 R /Size 4 >>
             %%EOF
             """);
-        byte[] encrypted = PdfDocument.Load(source).Security.Encrypt(new PdfStandardEncryptionOptions("reader") {
+        byte[] encrypted = PdfDocument.Load(new System.IO.MemoryStream(source)).Security.Encrypt(new PdfStandardEncryptionOptions("reader") {
             OwnerPassword = "owner", AllowedPermissions = PdfStandardPermissions.None
         }).Pdf;
         await File.WriteAllBytesAsync(path, encrypted);

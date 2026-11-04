@@ -21,7 +21,7 @@ public sealed class ExcelDataReaderOutputTests
                 using (OfficeFileCommitClaim.Acquire(destination))
                 {
                     Assert.Throws<IOException>(() => ExcelDocumentService.WriteDataReaderPackage(
-                        destination, reader, new ExcelTabularWriteOptions(), overwrite: false));
+                        destination, reader, new ExcelWriterOptions { UseSharedStrings = false }, overwrite: false));
                     Assert.False(reader.IsClosed);
                     Assert.False(File.Exists(destination));
                 }
@@ -49,7 +49,7 @@ public sealed class ExcelDataReaderOutputTests
             using (var reader = rows.CreateDataReader())
             {
                 Assert.Throws<IOException>(() => ExcelDocumentService.WriteDataReaderPackage(
-                    destination, reader, new ExcelTabularWriteOptions(), overwrite: false));
+                    destination, reader, new ExcelWriterOptions { UseSharedStrings = false }, overwrite: false));
                 Assert.False(reader.IsClosed);
                 Assert.True(reader.Read());
                 Assert.Equal("first", reader.GetString(0));
@@ -78,7 +78,7 @@ public sealed class ExcelDataReaderOutputTests
             using (var reader = rows.CreateDataReader())
             {
                 var result = ExcelDocumentService.WriteDataReaderPackage(
-                    destination, reader, new ExcelTabularWriteOptions(), overwrite: true);
+                    destination, reader, new ExcelWriterOptions { UseSharedStrings = false }, overwrite: true);
                 Assert.Equal(1, result.RowCount);
                 Assert.Equal(2, result.ColumnCount);
                 Assert.False(reader.IsClosed);
@@ -87,9 +87,9 @@ public sealed class ExcelDataReaderOutputTests
             using (var workbook = ExcelDocument.Load(destination))
             {
                 var sheet = Assert.Single(workbook.Sheets);
-                Assert.Equal("Name", sheet.CellAt(1, 1).GetValue<string>());
-                Assert.Equal("first", sheet.CellAt(2, 1).GetValue<string>());
-                Assert.Equal(7, sheet.CellAt(2, 2).GetValue<int>());
+                Assert.Equal("Name", sheet.Cell(1, 1).GetValue<string>());
+                Assert.Equal("first", sheet.Cell(2, 1).GetValue<string>());
+                Assert.Equal(7, sheet.Cell(2, 2).GetValue<int>());
             }
 
             Assert.Equal(new[] { destination }, Directory.GetFileSystemEntries(directory));
@@ -117,7 +117,7 @@ public sealed class ExcelDataReaderOutputTests
             using (var reader = rows.CreateDataReader())
             {
                 Assert.Throws<UnauthorizedAccessException>(() => ExcelDocumentService.WriteDataReaderPackage(
-                    destination, reader, new ExcelTabularWriteOptions(), overwrite: true));
+                    destination, reader, new ExcelWriterOptions { UseSharedStrings = false }, overwrite: true));
                 Assert.False(reader.IsClosed);
             }
 
@@ -148,7 +148,7 @@ public sealed class ExcelDataReaderOutputTests
             using (var reader = rows.CreateDataReader())
             {
                 var result = ExcelDocumentService.WriteDataReaderPackage(
-                    destination, reader, new ExcelTabularWriteOptions(), overwrite: true);
+                    destination, reader, new ExcelWriterOptions { UseSharedStrings = false }, overwrite: true);
                 Assert.Equal(1, result.RowCount);
                 Assert.False(reader.IsClosed);
             }
@@ -156,7 +156,7 @@ public sealed class ExcelDataReaderOutputTests
             Assert.Equal(ownerOnly, File.GetUnixFileMode(destination));
             using (var workbook = ExcelDocument.Load(destination))
             {
-                Assert.Equal("first", Assert.Single(workbook.Sheets).CellAt(2, 1).GetValue<string>());
+                Assert.Equal("first", Assert.Single(workbook.Sheets).Cell(2, 1).GetValue<string>());
             }
             Assert.Equal(new[] { destination }, Directory.GetFileSystemEntries(directory));
         }

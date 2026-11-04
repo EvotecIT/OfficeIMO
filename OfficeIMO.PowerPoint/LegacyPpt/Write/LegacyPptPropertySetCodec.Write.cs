@@ -15,13 +15,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static byte[]? CreateSummaryInformation(
-            PowerPointPresentation presentation) {
+            PowerPointDocument presentation) {
             var properties = new List<OfficeOleProperty> {
                 OfficeOleProperty.Int16(
                     OfficeOlePropertySetWriter.CodePagePropertyId, 1200)
             };
             PowerPointBuiltinDocumentProperties builtIn = presentation
-                .BuiltinDocumentProperties;
+                .Properties;
             OfficeOlePropertySetWriter.AddString(properties, 2, builtIn.Title);
             OfficeOlePropertySetWriter.AddString(properties, 3, builtIn.Subject);
             OfficeOlePropertySetWriter.AddString(properties, 4, builtIn.Creator);
@@ -53,7 +53,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static bool TryCreateDocumentSummaryInformation(
-            PowerPointPresentation presentation, out byte[]? bytes,
+            PowerPointDocument presentation, out byte[]? bytes,
             out string? reason) {
             var sections = new List<(Guid FormatId, byte[] Section)>();
             var properties = new List<OfficeOleProperty> {
@@ -61,7 +61,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     OfficeOlePropertySetWriter.CodePagePropertyId, 1200)
             };
             OfficeOlePropertySetWriter.AddString(properties, 2,
-                presentation.BuiltinDocumentProperties.Category);
+                presentation.Properties.Category);
             OfficeOlePropertySetWriter.AddString(properties, 3,
                 presentation.ApplicationProperties.PresentationFormat);
             AddIntegerText(properties, 7,

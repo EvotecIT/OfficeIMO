@@ -65,13 +65,13 @@ public sealed partial class OfficeProvenanceWorkflowTests {
             new OfficeProvenanceWorkflowRequest {
                 Operation = OfficeProvenanceWorkflowOperation.Remove,
                 InputPath = first,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                ConflictPolicy = OfficePublicationPolicy.Replace
             },
             new OfficeProvenanceWorkflowRequest {
                 Operation = OfficeProvenanceWorkflowOperation.Remove,
                 InputPath = second,
                 OutputPath = Path.Combine(scope.Path, "second-clean.html"),
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                ConflictPolicy = OfficePublicationPolicy.Replace
             }
         ], usePhysicalIdentity: false);
 
@@ -116,7 +116,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
                 Operation = OfficeProvenanceWorkflowOperation.Remove,
                 InputPath = firstInput,
                 OutputPath = output,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                ConflictPolicy = OfficePublicationPolicy.Replace
             },
             new OfficeProvenanceWorkflowRequest {
                 Id = "second",
@@ -148,7 +148,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
                 Id = "first",
                 Operation = OfficeProvenanceWorkflowOperation.Remove,
                 InputPath = firstInput,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                ConflictPolicy = OfficePublicationPolicy.Replace
             },
             new OfficeProvenanceWorkflowRequest {
                 Id = "second",

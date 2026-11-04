@@ -41,7 +41,7 @@ public class ModelContracts {
                 .Task("design", "Design", t => t.Duration(ProjectDuration.WorkingDays(3)))
                 .Task("build", "Build", t => t.Duration(ProjectDuration.WorkingDays(5)).After("design").Assign("engineer", ProjectUnits.Percent(50))))
             .End();
-        var allowXml = new ProjectSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow };
+        var allowXml = new ProjectSaveOptions { AllowLoss = true };
         Assert.Equal(normal.ToXml(allowXml), fluent.ToXml(allowXml));
         fluent.Tasks.GetByUid(build.Uid).Notes = "Mixed normal/fluent edit";
         using var copy = ProjectDocument.Parse(fluent.ToXml(allowXml));

@@ -13,8 +13,8 @@ public sealed class PdfStringRewritePreservationTests {
     public void SupportedRewritesRetainSemanticText(string operation) {
         const string text = "Chapter\u00A0note\u00AD";
         byte[] source = PdfDocument.Create().Meta(title: text)
-            .Canvas(canvas => canvas.Outline(text, 1, 10D))
-            .Paragraph(paragraph => paragraph.Link("Link", "https://evotec.xyz/", contents: text))
+            .Canvas(canvas => canvas.Outline(text, 1, global::OfficeIMO.OfficeLength.Points(10D)))
+            .Paragraph(paragraph => paragraph.AddLink("Link", "https://evotec.xyz/", contents: text))
             .ToBytes();
         AssertSemanticText(source, text);
 
@@ -38,7 +38,7 @@ public sealed class PdfStringRewritePreservationTests {
     [InlineData(true)]
     public void MetadataReplacementEncodesNewSemanticValues(bool incremental) {
         const string text = "• Chapter\u00A0note\u00AD";
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Body")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Body")).ToBytes();
 
         byte[] output = incremental
             ? PdfIncrementalUpdater.UpdateMetadata(source, title: text)

@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests {
             using var document = WordDocument.Create();
             document.AddParagraph("Hello memory");
 
-            using MemoryStream ms = document.ToStream();
+            using MemoryStream ms = new System.IO.MemoryStream(document.ToBytes());
             using var openXml = WordprocessingDocument.Open(ms, false);
             Assert.NotNull(openXml.MainDocumentPart);
             ms.Position = 0;
@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
             using var document = WordDocument.Create();
             document.AddParagraph("Memory compatibility");
 
-            using MemoryStream ms = document.ToStream();
+            using MemoryStream ms = new System.IO.MemoryStream(document.ToBytes());
             Assert.True(ms.CanRead);
             Assert.Equal(0, ms.Position);
 

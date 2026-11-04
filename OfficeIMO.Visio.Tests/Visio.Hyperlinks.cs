@@ -5,7 +5,7 @@ using System.Linq;
 using System.Xml.Linq;
 using OfficeIMO.Visio;
 using Xunit;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Tests {
     public class VisioHyperlinkTests {
@@ -15,10 +15,10 @@ namespace OfficeIMO.Tests {
             string roundTripPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Links", 8.5, 6);
+            VisioPage page = document.AddPage("Links", OfficeLength.Inches(8.5), OfficeLength.Inches(6));
 
-            VisioShape start = page.AddRectangle(2, 4, 2, 1, "Start");
-            VisioShape finish = page.AddRectangle(6, 4, 2, 1, "Finish");
+            VisioShape start = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Start");
+            VisioShape finish = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Finish");
             VisioConnector connector = page.AddConnector(start, finish, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left);
             connector.Label = "details";
 
@@ -61,10 +61,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             try {
                 VisioDocument document = VisioDocument.Create(filePath);
-                VisioPage source = document.AddPage("Overview", 8.5, 6);
-                document.AddPage("Detail 2", 8.5, 6);
-                VisioShape start = source.AddRectangle(2, 4, 2, 1, "Start");
-                VisioShape finish = source.AddRectangle(6, 4, 2, 1, "Finish");
+                VisioPage source = document.AddPage("Overview", OfficeLength.Inches(8.5), OfficeLength.Inches(6));
+                document.AddPage("Detail 2", OfficeLength.Inches(8.5), OfficeLength.Inches(6));
+                VisioShape start = source.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, source.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, source.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, source.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, source.DefaultUnit)), "Start");
+                VisioShape finish = source.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, source.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, source.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, source.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, source.DefaultUnit)), "Finish");
                 VisioConnector connector = source.AddConnector(start, finish, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left);
 
                 start.AddPageHyperlink("Detail 2", "Open detail");

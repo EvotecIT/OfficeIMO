@@ -23,7 +23,7 @@ public sealed partial class ProvenanceDocumentContracts {
         Assert.Throws<InvalidDataException>(() => target switch {
             "word" => WordDocument.RemoveProvenance(package, "document.docx"),
             "excel" => ExcelDocument.RemoveProvenance(package, "workbook.xlsx"),
-            "powerpoint" => PowerPointPresentation.RemoveProvenance(package, "presentation.pptx"),
+            "powerpoint" => PowerPointDocument.RemoveProvenance(package, "presentation.pptx"),
             "visio" => VisioDocument.RemoveProvenance(package, "drawing.vsdx"),
             _ => throw new ArgumentOutOfRangeException(nameof(target))
         });

@@ -22,9 +22,9 @@ public partial class Word {
         }
 
         using WordDocument reopened = WordDocument.Load(path);
-        using PdfPigDocument pdf = PdfPigDocument.Open(reopened.ToPdfBytes(new WordToPdfOptions {
+        using PdfPigDocument pdf = PdfPigDocument.Open(reopened.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, FontFamily = "Helvetica"
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.Contains("OverrideCoverMarker", pdf.GetPage(1).Text);
         Assert.DoesNotContain("AfterCoverMarker", pdf.GetPage(1).Text);
@@ -57,9 +57,9 @@ public partial class Word {
         }
 
         using WordDocument reopened = WordDocument.Load(path);
-        byte[] bytes = reopened.ToPdfBytes(new WordToPdfOptions {
+        byte[] bytes = reopened.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, FontFamily = "Helvetica"
-        });
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         Assert.Equal(1, pdf.NumberOfPages);
         Assert.Contains("BeforeOverride", pdf.GetPage(1).Text);

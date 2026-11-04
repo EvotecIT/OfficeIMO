@@ -37,7 +37,7 @@ public sealed class PublisherFrameCreationTests {
         Assert.DoesNotContain(PublisherNativeTests.Elements(document.Pages[1].CreateDrawing()).OfType<OfficeDrawingShape>(),
             shape => shape.SourceElementIds?.Contains("publisher-object-" + created.Id) == true);
         Assert.Contains("Continuation text", document.ToSvg(1));
-        PdfReadDocument pdf = PdfReadDocument.Open(document.ToPdfBytes());
+        using PdfDocument pdf = PublisherNativeTests.ExportAndReloadPdf(document);
         Assert.Equal(2, pdf.Pages.Count); Assert.Contains("Continued publication", pdf.ExtractText());
         Assert.Contains("Continuation text", pdf.Pages[1].ExtractText());
         Assert.Equal(before, document.ToSvg());
@@ -66,7 +66,7 @@ public sealed class PublisherFrameCreationTests {
         document.SetTextFrameBounds(third.Id, -12, 250, 480, 420);
         Assert.Equal(54, third.X);
         Assert.Equal(-12, Frames(document)[2].X);
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, diagnostic => diagnostic.Code == "PUB_PAGE_BLEED_CLIPPED"
+        Assert.Contains(document.ReadReport.Diagnostics, diagnostic => diagnostic.Code == "PUB_PAGE_BLEED_CLIPPED"
             && diagnostic.Location == "publication/frame/" + third.Id);
         document.ReplaceStoryParagraphs(first.StoryId, new[] {
             new OfficeRichTextParagraph(new[] { new OfficeRichTextRun("Short", 11, OfficeColor.Black, fontFamily: "Arial") })
@@ -119,7 +119,7 @@ public sealed class PublisherFrameCreationTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => table.AddLinkedTextFrame(tableId, table.Pages[0].Id, 72, 72, 100, 100));
         byte[] unresolved = PublisherInputContractTests.Mutate("Contents", bytes => {
             var data = new OfficeIMO.Publisher.Internal.PublisherBinaryData(bytes, "Contents");
-            var context = new OfficeIMO.Publisher.Internal.PublisherParseContext(new PublisherReadOptions(), default);
+            var context = new OfficeIMO.Publisher.Internal.PublisherParseContext(new PublisherLoadOptions(), default);
             var blocks = new OfficeIMO.Publisher.Internal.PublisherBlockReader(data, context);
             var publication = new OfficeIMO.Publisher.Internal.PublisherContentsReader(data, context).Read();
             var document = publication.Chunks.Values.Single(chunk => chunk.Kind == 0x44);
@@ -163,7 +163,7 @@ public sealed class PublisherFrameCreationTests {
         PublisherTextFrame added = document.AddLinkedTextFrame(first.Id, document.Pages[0].Id, 72, 200, 360, 72);
         Assert.NotEqual(fixture.ReservedId, added.Id);
         Assert.Equal(new[] { fixture.ReservedId }, Assert.Single(document.Pages[0].TextFrames, frame => frame.Id == first.Id).WrapObjectIds);
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, diagnostic => diagnostic.Code == "PUB_TEXT_WRAP_REFERENCE_UNRESOLVED"
+        Assert.Contains(document.ReadReport.Diagnostics, diagnostic => diagnostic.Code == "PUB_TEXT_WRAP_REFERENCE_UNRESOLVED"
             && diagnostic.Location == "Contents/object/" + first.Id);
         Assert.Equal(2, document.Pages[0].TextFrames.Count);
     }
@@ -174,14 +174,14 @@ public sealed class PublisherFrameCreationTests {
         // TextBlank contains 36 native default-style pairs. Keep its normal
         // admission valid while filling the current object budget explicitly.
         PublisherDocument full = PublisherFrameCreationFixture.Load(extraHiddenObjects: itemLimit - 1,
-            options: new PublisherReadOptions { Limits = new OfficeLegacyImportLimits { MaxItems = itemLimit } }).Document;
+            options: new PublisherLoadOptions { Limits = new OfficeLegacyImportLimits { MaxItems = itemLimit } }).Document;
         PublisherTextFrame frame = Assert.Single(full.Pages[0].TextFrames);
         Assert.Equal(itemLimit, full.ReadReport.CurrentObjectCount);
         var fullPages = full.Pages;
         Assert.Throws<InvalidDataException>(() => full.AddLinkedTextFrame(frame.Id, full.Pages[1].Id, 72, 72, 100, 100));
         Assert.Same(fullPages, full.Pages);
 
-        var boundedOptions = new PublisherReadOptions { Limits = new OfficeLegacyImportLimits { MaxItems = itemLimit, MaxTextCharacters = 512 } };
+        var boundedOptions = new PublisherLoadOptions { Limits = new OfficeLegacyImportLimits { MaxItems = itemLimit, MaxTextCharacters = 512 } };
         PublisherDocument bounded = Load(boundedOptions);
         PublisherTextFrame first = Assert.Single(bounded.Pages[0].TextFrames);
         bounded.SetTextFrameBounds(first.Id, 72, 72, 40, 32);
@@ -207,7 +207,7 @@ public sealed class PublisherFrameCreationTests {
         Assert.Equal(control.AddLinkedTextFrame(controlFrame.Id, control.Pages[1].Id, 72, 72, 100, 100).Id, emptyContinuation.Id);
     }
 
-    private static PublisherDocument Load(PublisherReadOptions? options = null) =>
+    private static PublisherDocument Load(PublisherLoadOptions? options = null) =>
         PublisherDocument.Load(PublisherNativeTests.Fixture("NativeComparison/TextBlank/native-textblank.pub"), options);
     private static OfficeRichTextParagraph[] Paragraphs() => new[] {
         new OfficeRichTextParagraph(new[] { new OfficeRichTextRun("Continued publication", 16, OfficeColor.Black, bold: true, fontFamily: "Arial") }),

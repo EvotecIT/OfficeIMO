@@ -10,7 +10,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private const ushort RecordExternalOleObjectStorage = 0x1011;
 
         internal static bool TryReadVbaProject(
-            PowerPointPresentation presentation, out byte[]? projectBytes,
+            PowerPointDocument presentation, out byte[]? projectBytes,
             out string? reason) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
             projectBytes = null;

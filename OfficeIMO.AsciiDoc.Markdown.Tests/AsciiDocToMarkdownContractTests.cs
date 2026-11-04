@@ -37,7 +37,7 @@ public sealed class AsciiDocToMarkdownContractTests {
         CodeBlock fallback = Assert.Single(result.Value.Blocks.OfType<CodeBlock>());
         Assert.Equal("asciidoc", fallback.Language);
         Assert.Contains("diagram::architecture", fallback.Content);
-        AsciiDocMarkdownConversionDiagnostic diagnostic = Assert.Single(result.Report.Diagnostics);
+        AsciiDocMarkdownConversionDiagnostic diagnostic = Assert.Single(result.Report.NativeDiagnostics);
         Assert.Equal(AsciiDocMarkdownConversionOutcome.SourceFallback, diagnostic.Outcome);
         Assert.Equal(0, diagnostic.SourceSpan.Start.Offset);
         Assert.True(result.HasLoss);
@@ -47,7 +47,7 @@ public sealed class AsciiDocToMarkdownContractTests {
     public void TableSource_ConvertsToTypedMarkdownTable() {
         AsciiDocDocument document = AsciiDocDocument.ParseResult("|===\n|a |b\n|===\n").Document;
 
-        AsciiDocToMarkdownResult result = document.ToMarkdownDocumentResult(new AsciiDocToMarkdownOptions {
+        AsciiDocToMarkdownResult result = document.ToMarkdownDocumentResult(new AsciiDocMarkdownExportOptions {
             PreserveUnsupportedAsSource = false
         });
 
@@ -65,7 +65,7 @@ public sealed class AsciiDocToMarkdownContractTests {
         Assert.Equal(new[] { 1, 2 }, result.Value.Blocks.OfType<HeadingBlock>().Select(static heading => heading.Level));
         TableBlock table = Assert.Single(result.Value.Blocks.OfType<TableBlock>());
         Assert.Equal("Important values", table.Attributes.GetAttribute("caption"));
-        Assert.Contains("caption=\"Important values\"", result.Value.ToMarkdown(), StringComparison.Ordinal);
+        Assert.Contains("caption=\"Important values\"", ((result.Value.ToMarkdown())), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -83,7 +83,7 @@ public sealed class AsciiDocToMarkdownContractTests {
         const string source = "= Guide\n\n== Start\nParagraph text\n\n* one\n* two\n";
         AsciiDocToMarkdownResult conversion = AsciiDocDocument.ParseResult(source).Document.ToMarkdownDocumentResult();
 
-        using var word = conversion.Value.ToWordDocument();
+        using var word = conversion.Value.ToWord();
         string visibleText = string.Join(" ", word.Paragraphs.Select(paragraph => paragraph.Text));
 
         Assert.Contains("Guide", visibleText, StringComparison.Ordinal);
@@ -95,7 +95,7 @@ public sealed class AsciiDocToMarkdownContractTests {
     [Fact]
     public void DirectPdfAdapter_PreservesProjectionDiagnosticsAndProducesPdf() {
         const string source = "= Guide\n\n== Start\nParagraph with stem:[x^2].\n\n|===\n|Name |Value\n|===\n";
-        var result = AsciiDocDocument.ParseResult(source).Document.ToPdfDocumentResult();
+        var result = AsciiDocDocument.ParseResult(source).Document.ConvertToPdfWithEvidence(null, default);
         byte[] bytes = result.ToBytes();
         AsciiDocToMarkdownReport projection = Assert.IsType<AsciiDocToMarkdownReport>(
             Assert.Single(result.SourceConversionReports));

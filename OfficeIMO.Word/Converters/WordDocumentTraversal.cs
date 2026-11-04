@@ -8,7 +8,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Provides helper methods for traversing documents and resolving list markers.
     /// </summary>
-    public static partial class WordDocumentTraversal {
+    internal static partial class WordDocumentTraversal {
         private static readonly AsyncLocal<ListInfoSnapshot?> ActiveListInfoSnapshot = new();
 
         private sealed class ListInfoSnapshot {
@@ -67,7 +67,7 @@ namespace OfficeIMO.Word {
                 : this(level, ordered, markerVisible: true, start, format, text, leftIndentTwips, hangingIndentTwips, markerFontFamily, markerBold, markerItalic, markerColorHex, markerFontSize: null, levelJustification, levelSuffix, pictureBulletId: null) {
             }
 
-            internal ListInfo(int level, bool ordered, bool markerVisible, int start, WordNumberFormat? format, string? text, int? leftIndentTwips, int? hangingIndentTwips, string? markerFontFamily, bool? markerBold, bool? markerItalic, string? markerColorHex, double? markerFontSize, WordListLevelAlignment? levelJustification, WordListLevelSuffix? levelSuffix, int? pictureBulletId, long? markerCharacterScale = null, int? markerCharacterSpacingTwips = null, Tabs? levelTabStops = null) {
+            internal ListInfo(int level, bool ordered, bool markerVisible, int start, WordNumberFormat? format, string? text, int? leftIndentTwips, int? hangingIndentTwips, string? markerFontFamily, bool? markerBold, bool? markerItalic, string? markerColorHex, double? markerFontSize, WordListLevelAlignment? levelJustification, WordListLevelSuffix? levelSuffix, int? pictureBulletId, long? markerCharacterScale = null, int? markerCharacterSpacingTwips = null, Tabs? levelTabStops = null, bool legalNumbering = false) {
                 Level = level;
                 Ordered = ordered;
                 MarkerVisible = markerVisible;
@@ -87,8 +87,10 @@ namespace OfficeIMO.Word {
                 LevelSuffix = levelSuffix;
                 PictureBulletId = pictureBulletId;
                 LevelTabStops = levelTabStops;
+                LegalNumbering = legalNumbering;
             }
 
+            internal bool LegalNumbering { get; }
             internal Tabs? LevelTabStops { get; }
 
             /// <summary>Zero-based nesting level.</summary>
@@ -212,6 +214,7 @@ namespace OfficeIMO.Word {
             WordListLevelSuffix? levelSuffix = null;
             int? pictureBulletId = null;
             Tabs? levelTabStops = null;
+            bool legalNumbering = false;
 
             ListNumberingDefinition? definition = null;
             definitions.TryGetValue(numbering.NumberId, out definition);
@@ -225,6 +228,7 @@ namespace OfficeIMO.Word {
                 if (!overrideStart.HasValue) {
                     start = levelDefinition.Start;
                 }
+                legalNumbering = levelDefinition.LegalNumbering;
                 numberFormat = levelDefinition.NumberFormat.ToOfficeEnum();
                 levelText = levelDefinition.LevelText;
                 leftIndentTwips = levelDefinition.LeftIndentTwips;
@@ -250,7 +254,7 @@ namespace OfficeIMO.Word {
                     WordListStyle.BulletedChars => false,
                     _ => true,
                 };
-            return new ListInfo(level, ordered, markerVisible, start, numberFormat, levelText, leftIndentTwips, hangingIndentTwips, markerFontFamily, markerBold, markerItalic, markerColorHex, markerFontSize, levelJustification, levelSuffix, pictureBulletId, markerCharacterScale, markerCharacterSpacingTwips, levelTabStops);
+            return new ListInfo(level, ordered, markerVisible, start, numberFormat, levelText, leftIndentTwips, hangingIndentTwips, markerFontFamily, markerBold, markerItalic, markerColorHex, markerFontSize, levelJustification, levelSuffix, pictureBulletId, markerCharacterScale, markerCharacterSpacingTwips, levelTabStops, legalNumbering);
         }
 
         private static int? ParseOptionalInt32(string? value) {
@@ -322,6 +326,7 @@ namespace OfficeIMO.Word {
             }
 
             Dictionary<int, AbstractNum> abstracts = WordListNumberingResolver.GetCanonicalAbstractDefinitions(numbering);
+            var levelTabSnapshots = new Dictionary<Level, Tabs?>();
 
             foreach (NumberingInstance instance in numbering.Elements<NumberingInstance>()) {
                 if (instance.NumberID?.Value == null) {
@@ -358,13 +363,13 @@ namespace OfficeIMO.Word {
 
                         levelOverrides.TryGetValue(level.LevelIndex.Value, out Level? overrideLevel);
                         ListLevelDefinition definition = CreateLevelDefinition(level.LevelIndex.Value, overrideLevel ?? level,
-                            level.StartNumberingValue?.Val?.Value ?? 1, level.LevelRestart?.Val?.Value);
+                            levelTabSnapshots, level.StartNumberingValue?.Val?.Value ?? 1, level.LevelRestart?.Val?.Value);
                         levels.Add(definition.Level, definition);
                     }
                 }
                 foreach (KeyValuePair<int, Level> levelOverride in levelOverrides) {
                     if (!levels.ContainsKey(levelOverride.Key)) {
-                        levels.Add(levelOverride.Key, CreateLevelDefinition(levelOverride.Key, levelOverride.Value));
+                        levels.Add(levelOverride.Key, CreateLevelDefinition(levelOverride.Key, levelOverride.Value, levelTabSnapshots));
                     }
                 }
 
@@ -379,11 +384,16 @@ namespace OfficeIMO.Word {
             return result;
         }
 
-        private static ListLevelDefinition CreateLevelDefinition(int level, Level effectiveLevel, int? abstractStart = null, int? restartLevel = null) {
+        private static ListLevelDefinition CreateLevelDefinition(int level, Level effectiveLevel,
+            Dictionary<Level, Tabs?> levelTabSnapshots, int? abstractStart = null, int? restartLevel = null) {
             // A full w:lvlOverride replaces level formatting. Its embedded w:start does
             // not change the abstract start; w:startOverride is applied separately.
             Indentation? indentation = effectiveLevel.GetFirstChild<PreviousParagraphProperties>()?.GetFirstChild<Indentation>();
             NumberingSymbolRunProperties? markerProperties = effectiveLevel.GetFirstChild<NumberingSymbolRunProperties>();
+            if (!levelTabSnapshots.TryGetValue(effectiveLevel, out Tabs? levelTabStops)) {
+                levelTabStops = CloneListLevelTabStops(effectiveLevel);
+                levelTabSnapshots.Add(effectiveLevel, levelTabStops);
+            }
 
             return new ListLevelDefinition(
                 level: level,
@@ -399,11 +409,12 @@ namespace OfficeIMO.Word {
                 markerFontSize: ResolveListMarkerFontSize(markerProperties),
                 markerCharacterScale: markerProperties?.GetFirstChild<CharacterScale>()?.Val?.Value,
                 markerCharacterSpacingTwips: markerProperties?.GetFirstChild<Spacing>()?.Val?.Value,
-                levelJustification: effectiveLevel.LevelJustification?.Val?.Value,
+                levelJustification: WordListLevel.ReadLevelJustification(effectiveLevel.LevelJustification),
                 levelSuffix: effectiveLevel.LevelSuffix?.Val?.Value,
                 pictureBulletId: effectiveLevel.GetFirstChild<LevelPictureBulletId>()?.Val?.Value,
                 restartLevel: restartLevel,
-                levelTabStops: CloneListLevelTabStops(effectiveLevel));
+                levelTabStops: levelTabStops,
+                legalNumbering: ReadListMarkerOnOff(effectiveLevel.IsLegalNumberingStyle) == true);
         }
 
         private static IEnumerable<IEnumerable<WordParagraph>> EnumerateListStories(WordDocument document) {
@@ -434,7 +445,7 @@ namespace OfficeIMO.Word {
 
             yield return EnumerateStory(document._wordprocessingDocument.MainDocumentPart?.Document?.Body);
             foreach (WordSection section in document.Sections) {
-                foreach (WordHeaderFooter? headerFooter in new WordHeaderFooter?[] { section.Header.Default, section.Header.First, section.Header.Even, section.Footer.Default, section.Footer.First, section.Footer.Even }) {
+                foreach (WordHeaderFooter? headerFooter in new WordHeaderFooter?[] { section.Headers.Default, section.Headers.First, section.Headers.Even, section.Footers.Default, section.Footers.First, section.Footers.Even }) {
                     if (headerFooter == null) continue;
                     yield return EnumerateStory((DocumentFormat.OpenXml.OpenXmlCompositeElement?)headerFooter._header ?? headerFooter._footer);
                 }
@@ -525,7 +536,8 @@ namespace OfficeIMO.Word {
                 LevelSuffixValues? levelSuffix,
                 int? pictureBulletId,
                 int? restartLevel,
-                Tabs? levelTabStops) {
+                Tabs? levelTabStops,
+                bool legalNumbering) {
                 Level = level;
                 Start = start;
                 NumberFormat = numberFormat;
@@ -544,6 +556,7 @@ namespace OfficeIMO.Word {
                 PictureBulletId = pictureBulletId;
                 RestartLevel = restartLevel;
                 LevelTabStops = levelTabStops;
+                LegalNumbering = legalNumbering;
             }
 
             internal int Level { get; }
@@ -564,6 +577,7 @@ namespace OfficeIMO.Word {
             internal int? PictureBulletId { get; }
             // Word uses the abstract level's restart rule and ignores it in a full override.
             internal int? RestartLevel { get; }
+            internal bool LegalNumbering { get; }
             internal Tabs? LevelTabStops { get; }
         }
 

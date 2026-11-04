@@ -22,7 +22,7 @@ public sealed class LatexAuditConversionTests {
         Assert.Equal("ab", Assert.Single(result.Value.Blocks.OfType<SemanticFencedBlock>()).Content);
         Assert.DoesNotContain("PRIVATE", result.Value.ToMarkdown(), StringComparison.Ordinal);
         Assert.Equal("ab", result.Value.FindFrontMatterEntry("author")?.Value);
-        MarkdownDoc twoLines = LatexDocument.Parse("\\author{a% note" + ending + ending + "b}" + Wrap("Visible")).ToMarkdownDocument();
+        MarkdownDocument twoLines = LatexDocument.Parse("\\author{a% note" + ending + ending + "b}" + Wrap("Visible")).ToMarkdownDocument();
         Assert.Equal("a" + ending + "b", twoLines.FindFrontMatterEntry("author")?.Value);
     }
 
@@ -59,26 +59,26 @@ public sealed class LatexAuditConversionTests {
         LatexDocument document = LatexDocument.Parse(source, new LatexParseOptions {
             Profile = preserveOnly ? LatexDocumentProfile.PreserveOnly : LatexDocumentProfile.OfficeIMO
         });
-        LatexToMarkdownResult result = document.ToMarkdownDocumentResult(new LatexToMarkdownOptions { IncludePreambleAsFrontMatter = false });
+        LatexToMarkdownResult result = document.ToMarkdownDocumentResult(new LatexMarkdownExportOptions { IncludePreambleAsFrontMatter = false });
         Assert.Contains("IMPORTANT CONTENT", result.Value.ToMarkdown(), StringComparison.Ordinal);
         if (preserveOnly) {
             CodeBlock fallback = Assert.Single(result.Value.Blocks.OfType<CodeBlock>());
             Assert.Equal(source, fallback.Content);
-            LatexMarkdownConversionDiagnostic diagnostic = Assert.Single(result.Report.Diagnostics, static item => item.Code == "LATEXMD297");
+            LatexMarkdownConversionDiagnostic diagnostic = Assert.Single(result.Report.NativeDiagnostics, static item => item.Code == "LATEXMD297");
             Assert.Equal(0, diagnostic.LatexSpan!.Value.Start.Offset);
             Assert.Equal(source.Length, diagnostic.LatexSpan.Value.End.Offset);
         }
-        Assert.Contains(result.Report.Diagnostics, static diagnostic => diagnostic.Outcome == LatexMarkdownConversionOutcome.SourceFallback);
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
-        LatexToMarkdownResult omitted = document.ToMarkdownDocumentResult(new LatexToMarkdownOptions { PreserveUnsupportedAsSource = false });
-        Assert.Contains(omitted.Report.Diagnostics, static diagnostic => diagnostic.Outcome == LatexMarkdownConversionOutcome.Omitted);
+        Assert.Contains(result.Report.NativeDiagnostics, static diagnostic => diagnostic.Outcome == LatexMarkdownConversionOutcome.SourceFallback);
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
+        LatexToMarkdownResult omitted = document.ToMarkdownDocumentResult(new LatexMarkdownExportOptions { PreserveUnsupportedAsSource = false });
+        Assert.Contains(omitted.Report.NativeDiagnostics, static diagnostic => diagnostic.Outcome == LatexMarkdownConversionOutcome.Omitted);
     }
 
     [Fact]
     public void UnsupportedFloatingTableContentIsVisibleAndReported() {
         LatexToMarkdownResult result = LatexDocument.Parse(Wrap("\\begin{table}\\begin{tabularx}{\\linewidth}{ll}IMPORTANT&B\\\\\\end{tabularx}\\end{table}")).ToMarkdownDocumentResult();
         Assert.Contains("IMPORTANT", result.Value.ToMarkdown(), StringComparison.Ordinal);
-        Assert.Contains(result.Report.Diagnostics, static diagnostic => diagnostic.Feature == "environment:table");
+        Assert.Contains(result.Report.NativeDiagnostics, static diagnostic => diagnostic.Feature == "environment:table");
     }
 
     [Fact]
@@ -88,7 +88,7 @@ public sealed class LatexAuditConversionTests {
         string markdown = result.Value.ToMarkdown();
         Assert.Contains("**bold**joined", markdown, StringComparison.Ordinal);
         Assert.DoesNotContain("PRIVATE", markdown, StringComparison.Ordinal);
-        Assert.Contains(result.Report.Diagnostics, static diagnostic => diagnostic.Feature == "comment-environment" && diagnostic.Outcome == LatexMarkdownConversionOutcome.Omitted);
+        Assert.Contains(result.Report.NativeDiagnostics, static diagnostic => diagnostic.Feature == "comment-environment" && diagnostic.Outcome == LatexMarkdownConversionOutcome.Omitted);
     }
 
     [Fact]
@@ -96,7 +96,8 @@ public sealed class LatexAuditConversionTests {
         const string literal = "a_b%{c}~^\\$&#";
         const string url = "https://example.test/a%20b?q=x#part&v=1";
         var inlines = new InlineSequence().Code(literal).Underline(literal).Link(literal, url);
-        MarkdownDoc original = MarkdownDoc.Create().Add(new ParagraphBlock(inlines));
+        MarkdownDocument original = MarkdownDocument.Create();
+        original.Add(new ParagraphBlock(inlines));
         LatexToMarkdownResult back = original.ToLatexDocumentResult().Value.ToMarkdownDocumentResult();
         InlineSequence converted = Assert.Single(back.Value.Blocks.OfType<ParagraphBlock>()).Inlines;
         Assert.Equal(literal, Assert.Single(converted.Nodes.OfType<CodeSpanInline>()).Text);
@@ -112,7 +113,9 @@ public sealed class LatexAuditConversionTests {
         const string text = "Title] AFTER [more]";
         var definitions = new DefinitionListBlock();
         definitions.AddEntry(new DefinitionListEntry(new InlineSequence().Text(text), new IMarkdownBlock[] { new ParagraphBlock(new InlineSequence().Text("Definition body")) }));
-        MarkdownDoc markdown = MarkdownDoc.Create().Callout("theorem", text, "Theorem body").Add(definitions);
+        MarkdownDocument markdown = MarkdownDocument.Create();
+        markdown.Callout("theorem", text, "Theorem body");
+        markdown.Add(definitions);
         MarkdownToLatexResult latex = markdown.ToLatexDocumentResult();
         Assert.DoesNotContain(latex.Value.Diagnostics, static diagnostic => diagnostic.Severity == LatexDiagnosticSeverity.Error);
         LatexToMarkdownResult result = latex.Value.ToMarkdownDocumentResult();
@@ -127,8 +130,8 @@ public sealed class LatexAuditConversionTests {
     [InlineData("é00E9_", "_00E9é")]
     [InlineData("_", "_005F_")]
     public void EncodedLabelNamesCannotCollideWithLiteralEscapeLookingIdentifiers(string first, string second) {
-        MarkdownDoc markdown = MarkdownReader.Parse("## A {#" + first + "}\n\n## B {#" + second + "}\n\n[A](#" + first + ") [B](#" + second + ")\n", new MarkdownReaderOptions { GenericAttributes = true });
-        MarkdownToLatexResult result = markdown.ToLatexDocumentResult(new MarkdownToLatexOptions { FirstHeadingIsTitle = false });
+        MarkdownDocument markdown = MarkdownDocument.Parse("## A {#" + first + "}\n\n## B {#" + second + "}\n\n[A](#" + first + ") [B](#" + second + ")\n", new MarkdownLoadOptions { GenericAttributes = true });
+        MarkdownToLatexResult result = markdown.ToLatexDocumentResult(new MarkdownLatexExportOptions { FirstHeadingIsTitle = false });
         string[] names = result.Value.Labels.Select(static label => label.Name).ToArray();
         Assert.Equal(2, names.Length);
         Assert.NotEqual(names[0], names[1]);
@@ -143,7 +146,7 @@ public sealed class LatexAuditConversionTests {
     [InlineData("\\textbf }", "command-arguments:textbf")]
     public void UnsupportedLayoutAndArgumentSemanticsAreReported(string body, string feature) {
         LatexToMarkdownResult result = LatexDocument.Parse(Wrap(body)).ToMarkdownDocumentResult();
-        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Feature == feature);
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic => diagnostic.Feature == feature);
         Assert.True(result.Report.HasLoss);
     }
 
@@ -154,7 +157,7 @@ public sealed class LatexAuditConversionTests {
     public void PercentCommentsConsumeTheirLineEndingAndPreserveFollowingBlankParagraphs(string ending) {
         LatexDocument document = LatexDocument.Parse(Wrap("word% note" + ending + "join\n\nnext% note" + ending + " \t" + ending + "line"));
         Assert.Equal(3, document.Paragraphs.Count);
-        MarkdownDoc markdown = document.ToMarkdownDocument();
+        MarkdownDocument markdown = document.ToMarkdownDocument();
         ParagraphBlock[] paragraphs = markdown.Blocks.OfType<ParagraphBlock>().ToArray();
         Assert.Equal(3, paragraphs.Length);
         Assert.Equal("wordjoin", PlainText(paragraphs[0].Inlines));
@@ -169,8 +172,8 @@ public sealed class LatexAuditConversionTests {
     public void ScalarInlineNodesReportFlattenedChildFormatting(string source, string command) {
         LatexToMarkdownResult result = LatexDocument.Parse(Wrap(source)).ToMarkdownDocumentResult();
         Assert.Equal("important", PlainText(Assert.Single(result.Value.Blocks.OfType<ParagraphBlock>()).Inlines));
-        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD115" && diagnostic.Feature == "inline-formatting:" + command);
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "LATEXMD115" && diagnostic.Feature == "inline-formatting:" + command);
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
     }
 
     [Theory]
@@ -185,7 +188,7 @@ public sealed class LatexAuditConversionTests {
         ParagraphBlock paragraph = Assert.Single(result.Value.Blocks.OfType<ParagraphBlock>());
         Assert.Equal(definition, Assert.Single(paragraph.Inlines.Nodes.OfType<CodeSpanInline>()).Text);
         Assert.EndsWith("Actual", PlainText(paragraph.Inlines), StringComparison.Ordinal);
-        Assert.Contains(result.Report.Diagnostics, static diagnostic => diagnostic.Outcome == LatexMarkdownConversionOutcome.SourceFallback);
+        Assert.Contains(result.Report.NativeDiagnostics, static diagnostic => diagnostic.Outcome == LatexMarkdownConversionOutcome.SourceFallback);
     }
 
     [Theory]
@@ -201,11 +204,11 @@ public sealed class LatexAuditConversionTests {
         Assert.Contains("Public", markdown, StringComparison.Ordinal);
         Assert.Contains("Actual", markdown, StringComparison.Ordinal);
         Assert.Contains("PRIVATE", document.ToLatex(), StringComparison.Ordinal);
-        Assert.Contains(result.Report.Diagnostics, static diagnostic => diagnostic.Outcome == LatexMarkdownConversionOutcome.SourceFallback);
-        if (source.Contains("\\begin{comment}", StringComparison.Ordinal)) {
-            Assert.Contains(result.Report.Diagnostics, static diagnostic => diagnostic.Feature == "comment-environment" && diagnostic.Outcome == LatexMarkdownConversionOutcome.Omitted);
+        Assert.Contains(result.Report.NativeDiagnostics, static diagnostic => diagnostic.Outcome == LatexMarkdownConversionOutcome.SourceFallback);
+        if (source.IndexOf("\\begin{comment}", StringComparison.Ordinal) >= 0) {
+            Assert.Contains(result.Report.NativeDiagnostics, static diagnostic => diagnostic.Feature == "comment-environment" && diagnostic.Outcome == LatexMarkdownConversionOutcome.Omitted);
         }
-        Assert.DoesNotContain("PRIVATE", PdfReadDocument.Open(document.ToPdfDocumentResult().Value.ToBytes()).ExtractText(), StringComparison.Ordinal);
+        Assert.DoesNotContain("PRIVATE", PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).ExtractText(), StringComparison.Ordinal);
     }
 
     [Theory]
@@ -217,7 +220,7 @@ public sealed class LatexAuditConversionTests {
         LatexToMarkdownResult result = LatexDocument.Parse(preamble + Wrap(body)).ToMarkdownDocumentResult();
         Assert.Contains("Public", result.Value.ToMarkdown(), StringComparison.Ordinal);
         Assert.DoesNotContain("PRIVATE", result.Value.ToMarkdown(), StringComparison.Ordinal);
-        Assert.Contains(result.Report.Diagnostics, static diagnostic => diagnostic.Feature == "comment-environment" && diagnostic.Outcome == LatexMarkdownConversionOutcome.Omitted);
+        Assert.Contains(result.Report.NativeDiagnostics, static diagnostic => diagnostic.Feature == "comment-environment" && diagnostic.Outcome == LatexMarkdownConversionOutcome.Omitted);
     }
 
     [Theory]
@@ -228,15 +231,15 @@ public sealed class LatexAuditConversionTests {
         document.Lists[0].Items[0].Label = "\\textbf{EDITED}";
         LatexToMarkdownResult result = document.ToMarkdownDocumentResult();
         Assert.Contains("**EDITED**: Call now", result.Value.ToMarkdown(), StringComparison.Ordinal);
-        Assert.Contains(result.Report.Diagnostics, static diagnostic => diagnostic.Code == "LATEXMD214" && diagnostic.Outcome == LatexMarkdownConversionOutcome.Simplified);
+        Assert.Contains(result.Report.NativeDiagnostics, static diagnostic => diagnostic.Code == "LATEXMD214" && diagnostic.Outcome == LatexMarkdownConversionOutcome.Simplified);
     }
 
     [Fact]
     public void PdfProjectionPreservesPlainSourceAndReportsItsFallback() {
-        var conversion = LatexDocument.Parse("IMPORTANT CONTENT").ToPdfDocumentResult();
-        Assert.True(conversion.HasLoss);
-        Assert.Contains(conversion.FidelityDiagnostics, static diagnostic => diagnostic.Code == "LATEXMD297");
-        Assert.Contains("IMPORTANT CONTENT", PdfReadDocument.Open(conversion.Value.ToBytes()).ExtractText(), StringComparison.Ordinal);
+        using var conversion = LatexDocument.Parse("IMPORTANT CONTENT").ToPdf(null, out OfficeConversionReport report);
+        Assert.True(report.HasLoss);
+        Assert.Contains(report.Diagnostics, static diagnostic => diagnostic.Code == "LATEXMD297");
+        Assert.Contains("IMPORTANT CONTENT", PdfDocument.Load(new System.IO.MemoryStream(conversion.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -244,14 +247,14 @@ public sealed class LatexAuditConversionTests {
         const string source = "\\documentclass{article}\n\\usepackage{custom}\n\\newcommand{\\greet}{Hello}\n" +
             "\\begin{document}\n\\greet World\n\\end{document}\nTRAILER";
         LatexDocument document = LatexDocument.Parse(source, new LatexParseOptions { Profile = LatexDocumentProfile.PreserveOnly });
-        LatexToMarkdownResult preserved = document.ToMarkdownDocumentResult(new LatexToMarkdownOptions { IncludePreambleAsFrontMatter = false });
+        LatexToMarkdownResult preserved = document.ToMarkdownDocumentResult(new LatexMarkdownExportOptions { IncludePreambleAsFrontMatter = false });
         Assert.Equal(source, Assert.Single(preserved.Value.Blocks.OfType<CodeBlock>()).Content);
-        var pdf = document.ToPdfDocumentResult();
-        string extracted = PdfReadDocument.Open(pdf.Value.ToBytes()).ExtractText();
+        var pdf = document.ToPdf(null, out OfficeConversionReport pdfReport);
+        string extracted = PdfDocument.Load(new System.IO.MemoryStream(pdf.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).ExtractText();
         foreach (string text in new[] { "usepackage", "newcommand", "greet World", "TRAILER" }) Assert.Contains(text, extracted, StringComparison.Ordinal);
-        LatexToMarkdownResult omitted = document.ToMarkdownDocumentResult(new LatexToMarkdownOptions { IncludePreambleAsFrontMatter = false, PreserveUnsupportedAsSource = false });
+        LatexToMarkdownResult omitted = document.ToMarkdownDocumentResult(new LatexMarkdownExportOptions { IncludePreambleAsFrontMatter = false, PreserveUnsupportedAsSource = false });
         Assert.Empty(omitted.Value.Blocks);
-        LatexMarkdownConversionDiagnostic diagnostic = Assert.Single(omitted.Report.Diagnostics, static item => item.Code == "LATEXMD297");
+        LatexMarkdownConversionDiagnostic diagnostic = Assert.Single(omitted.Report.NativeDiagnostics, static item => item.Code == "LATEXMD297");
         Assert.Equal(LatexMarkdownConversionOutcome.Omitted, diagnostic.Outcome);
         Assert.Equal(0, diagnostic.LatexSpan!.Value.Start.Offset);
         Assert.Equal(source.Length, diagnostic.LatexSpan.Value.End.Offset);
@@ -263,16 +266,16 @@ public sealed class LatexAuditConversionTests {
     public void PreservationOnlyFallbackKeepsOuterWhitespaceWithOrWithoutDocumentBody(bool body) {
         string source = " \n" + (body ? "\\begin{document}Body\\end{document}" : "\\newcommand{\\greet}{Hello}") + "\n ";
         LatexToMarkdownResult result = LatexDocument.Parse(source, new LatexParseOptions { Profile = LatexDocumentProfile.PreserveOnly })
-            .ToMarkdownDocumentResult(new LatexToMarkdownOptions { IncludePreambleAsFrontMatter = false });
+            .ToMarkdownDocumentResult(new LatexMarkdownExportOptions { IncludePreambleAsFrontMatter = false });
         Assert.Equal(source, Assert.Single(result.Value.Blocks.OfType<CodeBlock>()).Content);
     }
     [Fact]
     public void PdfReportsParserErrorsIntroducedByNativeEdits() {
         LatexDocument document = LatexDocument.Parse(Wrap("Original paragraph"));
         document.Paragraphs[0].Content = "$unterminated";
-        var conversion = document.ToPdfDocumentResult();
-        Assert.Contains(conversion.Warnings, static warning => warning.Code == "LATEX003");
-        Assert.True(conversion.HasLoss);
+        var conversion = document.ToPdf(null, out OfficeConversionReport conversionReport);
+        Assert.Contains(conversionReport.Diagnostics, static warning => warning.Code == "LATEX003");
+        Assert.True(conversionReport.HasLoss);
     }
 
     private static string PlainText(InlineSequence inlines) {

@@ -7,7 +7,7 @@ namespace OfficeIMO.Drawing.Binary;
 /// <summary>
 /// Decodes rotation and mirroring from an OfficeArt FSP record and its primary property table.
 /// </summary>
-public sealed class OfficeArtShapeTransform {
+internal sealed class OfficeArtShapeTransform {
     private const uint FlipHorizontalFlag = 1U << 6;
     private const uint FlipVerticalFlag = 1U << 7;
     private const uint FlipHorizontalOverride = 1U << 24;

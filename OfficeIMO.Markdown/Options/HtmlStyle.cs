@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Built-in style presets for rendered HTML.
 /// </summary>
-public enum HtmlStyle {
+public enum MarkdownHtmlStyle {
     /// <summary>No styling (only browser defaults).</summary>
     Plain,
     /// <summary>Lightweight readable defaults.</summary>

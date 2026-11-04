@@ -3,7 +3,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel {
     internal static partial class ExcelRangeImageRenderer {
-        private static void RenderRasterConditionalIcons(OfficeRasterCanvas canvas, ExcelRangeVisualSnapshot snapshot, ExcelImageExportOptions options) {
+        private static void RenderRasterConditionalIcons(OfficeRasterCanvas canvas, ExcelRangeVisualInfo snapshot, ExcelImageExportOptions options) {
             double scale = options.Scale;
             foreach (ExcelVisualConditionalIcon icon in snapshot.ConditionalIcons) {
                 DrawConditionalIcon(canvas, icon, scale);
@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel {
 
         private static void AppendSvgConditionalIcons(
             StringBuilder builder,
-            ExcelRangeVisualSnapshot snapshot,
+            ExcelRangeVisualInfo snapshot,
             ExcelImageExportOptions options,
             System.Threading.CancellationToken cancellationToken,
             OfficeSvgUtf8CompositionBudget? budget) {

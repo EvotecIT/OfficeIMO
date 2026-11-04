@@ -22,7 +22,7 @@ internal sealed partial class PublisherPublicationState {
     }
 
     internal PublisherPublicationState ReplaceTableCell(uint tableId, int row, int column,
-        IReadOnlyList<OfficeRichTextParagraph> paragraphs, PublisherReadOptions options, CancellationToken token) {
+        IReadOnlyList<OfficeRichTextParagraph> paragraphs, PublisherLoadOptions options, CancellationToken token) {
         PublisherTableState table = Table(tableId);
         string? limitation = CellTextEditLimitation(table);
         if (limitation != null) throw new NotSupportedException(limitation);
@@ -53,7 +53,7 @@ internal sealed partial class PublisherPublicationState {
     }
 
     internal PublisherPublicationState AddTable(uint pageId, double x, double y, double[] columns, double[] rows,
-        PublisherReadOptions options, CancellationToken token, out uint tableId) {
+        PublisherLoadOptions options, CancellationToken token, out uint tableId) {
         PublisherPageState? page = Pages.SingleOrDefault(item => item.Id == pageId);
         if (page == null) throw new ArgumentOutOfRangeException(nameof(pageId), "The publication has no such page.");
         if (!page.SupportsPlacementEditing) throw new NotSupportedException("This page's coordinate registration is not qualified for table creation.");

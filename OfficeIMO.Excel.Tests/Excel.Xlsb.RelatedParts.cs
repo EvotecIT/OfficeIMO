@@ -22,7 +22,7 @@ public sealed class ExcelXlsbRelatedPartsTests {
         Assert.Equal(4, document.WorkbookPartRoot.ChartsheetParts.Count());
         Assert.True(document.HasMacros);
         Assert.Contains(document.ReadVbaProject()!.Modules, item => item.Name == "PreservationNotes");
-        document.Sheets[0].CellValue(1, 1, "Edited inert preservation value");
+        document.Sheets[0].Cell(1, 1).SetValue("Edited inert preservation value");
         using var destination = new MemoryStream();
         if (asynchronous) await document.SaveAsync(destination, ExcelFileFormat.Xlsb);
         else document.Save(destination, ExcelFileFormat.Xlsb);
@@ -34,10 +34,10 @@ public sealed class ExcelXlsbRelatedPartsTests {
             Assert.Equal(Read(entry), Read(after.GetEntry(entry.FullName)!));
         Assert.NotEqual(Read(before.GetEntry("xl/worksheets/sheet1.bin")!), Read(after.GetEntry("xl/worksheets/sheet1.bin")!));
         using var reloaded = ExcelDocument.Load(new MemoryStream(saved));
-        Assert.Equal("Edited inert preservation value", reloaded.Sheets[0].CellAt(1, 1).GetValue<string>());
+        Assert.Equal("Edited inert preservation value", reloaded.Sheets[0].Cell(1, 1).GetValue<string>());
         Assert.Equal(4, reloaded.WorkbookPartRoot.ChartsheetParts.Count());
         Assert.True(reloaded.HasMacros);
-        Assert.Equal(saved, document.ToBytes(ExcelFileFormat.Xlsb));
+        Assert.Equal(saved, document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
     }
 
     [Theory]
@@ -61,16 +61,16 @@ public sealed class ExcelXlsbRelatedPartsTests {
         var cell = document.Sheets[0].WorksheetPart.Worksheet!.Descendants<Cell>().First(item => item.CellReference?.Value == "A1");
         cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString;
         cell.CellFormula = null; cell.CellValue = null; cell.InlineString = new InlineString(new Text("Direct DOM edit"));
-        byte[] saved = document.ToBytes(ExcelFileFormat.Xlsb);
+        byte[] saved = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
         using var reloaded = ExcelDocument.Load(new MemoryStream(saved));
-        Assert.Equal("Direct DOM edit", reloaded.Sheets[0].CellAt(1, 1).GetValue<string>());
+        Assert.Equal("Direct DOM edit", reloaded.Sheets[0].Cell(1, 1).GetValue<string>());
     }
 
     [Fact]
     public void Direct_workbook_DOM_changes_are_validated_before_source_copy() {
         using var document = ExcelDocument.Load(Fixture);
         document.WorkbookRoot.GetFirstChild<WorkbookProperties>()!.CodeName = "ChangedWorkbookHost";
-        Assert.Throws<NotSupportedException>(() => document.ToBytes(ExcelFileFormat.Xlsb));
+        Assert.Throws<NotSupportedException>(() => document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
     }
 
     [Fact]
@@ -93,7 +93,7 @@ public sealed class ExcelXlsbRelatedPartsTests {
         string reference = cell.CellReference!.Value!;
         int index = int.Parse(cell.CellValue!.Text, System.Globalization.CultureInfo.InvariantCulture);
         document.WorkbookPartRoot.SharedStringTablePart!.SharedStringTable!.Elements<SharedStringItem>().ElementAt(index).GetFirstChild<Text>()!.Text = "Edited shared-string content";
-        using var reloaded = ExcelDocument.Load(new MemoryStream(document.ToBytes(ExcelFileFormat.Xlsb)));
+        using var reloaded = ExcelDocument.Load(new MemoryStream(document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb })));
         Assert.Equal("Edited shared-string content", reloaded.Sheets[0].GetCellText(reloaded.Sheets[0].WorksheetPart.Worksheet!.Descendants<Cell>().Single(item => item.CellReference?.Value == reference)));
     }
 
@@ -107,7 +107,7 @@ public sealed class ExcelXlsbRelatedPartsTests {
         using var document = ExcelDocument.Load(new MemoryStream(source.ToArray()));
         var link = Assert.Single(document.WorkbookPartRoot.ChartsheetParts.SelectMany(part => part.DrawingsPart!.ChartParts).SelectMany(part => part.HyperlinkRelationships));
         Assert.Equal("chartLink", link.Id); Assert.Equal("https://example.test/chart", link.Uri.OriginalString);
-        Assert.Equal(source.ToArray(), document.ToBytes(ExcelFileFormat.Xlsb));
+        Assert.Equal(source.ToArray(), document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
     }
 
     private static byte[] Read(ZipArchiveEntry entry) {

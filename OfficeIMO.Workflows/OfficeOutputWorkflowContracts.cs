@@ -57,13 +57,13 @@ public sealed class PdfPageImageExportRequest {
     public string? PdfPassword { get; set; }
 
     /// <summary>How an existing output folder is handled.</summary>
-    public OfficeWorkflowConflictPolicy ConflictPolicy { get; set; } = OfficeWorkflowConflictPolicy.Rename;
+    public OfficePublicationPolicy ConflictPolicy { get; set; } = OfficePublicationPolicy.Rename;
 
     /// <summary>Optional live application ownership check for final publication candidates.</summary>
-    public IOfficeWorkflowPublicationGuard? PublicationGuard { get; set; }
+    public IOfficePublicationGuard? PublicationGuard { get; set; }
 
     /// <summary>Shared input and aggregate output limits.</summary>
-    public OfficeWorkflowLimits Limits { get; set; } = new();
+    public OfficeOperationLimits Limits { get; set; } = new();
 }
 
 /// <summary>One committed page-image artifact.</summary>
@@ -177,7 +177,7 @@ public sealed class PdfAssemblyOptions {
     public double MaximumArchiveCompressionRatio { get; set; } = 500D;
 
     /// <summary>Image-to-page settings.</summary>
-    public PdfImageDocumentOptions ImageOptions { get; set; } = new();
+    public PdfImageImportOptions ImageOptions { get; set; } = new();
 
     internal PdfAssemblyOptions CloneAndValidate() {
         if (MaximumSourceCount < 1) throw new ArgumentOutOfRangeException(nameof(MaximumSourceCount));
@@ -198,7 +198,7 @@ public sealed class PdfAssemblyOptions {
             MaximumArchiveEntryBytes = MaximumArchiveEntryBytes,
             MaximumArchiveBytes = MaximumArchiveBytes,
             MaximumArchiveCompressionRatio = MaximumArchiveCompressionRatio,
-            ImageOptions = new PdfImageDocumentOptions {
+            ImageOptions = new PdfImageImportOptions {
                 FixedPageSize = ImageOptions.FixedPageSize,
                 FallbackPageSize = ImageOptions.FallbackPageSize,
                 AutoOrientPage = ImageOptions.AutoOrientPage,
@@ -231,13 +231,13 @@ public sealed class PdfAssemblyRequest {
     public OfficeWorkflowStreamOutput? OutputStream { get; set; }
 
     /// <summary>How an existing output path is handled.</summary>
-    public OfficeWorkflowConflictPolicy ConflictPolicy { get; set; } = OfficeWorkflowConflictPolicy.Rename;
+    public OfficePublicationPolicy ConflictPolicy { get; set; } = OfficePublicationPolicy.Rename;
 
     /// <summary>Optional live application ownership check for final publication candidates.</summary>
-    public IOfficeWorkflowPublicationGuard? PublicationGuard { get; set; }
+    public IOfficePublicationGuard? PublicationGuard { get; set; }
 
     /// <summary>Output intent used while normalizing Office inputs.</summary>
-    public OfficeWorkflowOutputProfile OutputProfile { get; set; } = OfficeWorkflowOutputProfile.Faithful;
+    public OfficeConversionProfile OutputProfile { get; set; } = OfficeConversionProfile.Faithful;
 
     /// <summary>Optional password used for source PDFs.</summary>
     public string? PdfPassword { get; set; }
@@ -246,7 +246,7 @@ public sealed class PdfAssemblyRequest {
     public PdfAssemblyOptions Options { get; set; } = new();
 
     /// <summary>Shared input and final output limits.</summary>
-    public OfficeWorkflowLimits Limits { get; set; } = new();
+    public OfficeOperationLimits Limits { get; set; } = new();
 }
 
 /// <summary>Terminal result of one heterogeneous PDF assembly.</summary>

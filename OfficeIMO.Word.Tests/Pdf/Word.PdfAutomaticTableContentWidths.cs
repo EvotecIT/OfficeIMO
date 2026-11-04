@@ -1,3 +1,4 @@
+using System.Linq;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
@@ -19,9 +20,8 @@ public partial class Word {
     public void SaveAsPdf_AutomaticCellWidthsUseUnwrappedContentInsteadOfCachedGrid(int firstGridTwips, int secondGridTwips, int spacingTwips, bool longWord) {
         using WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(2, 2, WordTableStyle.TableGrid);
-        table.WidthType = WordTableWidthUnit.Auto;
-        table.Width = 0;
-        table.GridColumnWidth = new List<int> { firstGridTwips, secondGridTwips };
+        table.Width = WordTableWidth.Auto;
+        table.GridColumnWidth = new List<int> { firstGridTwips, secondGridTwips }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
         table._tableProperties.TableLayout = new W.TableLayout { Type = W.TableLayoutValues.Autofit };
         if (spacingTwips > 0) {
             table._tableProperties.TableCellSpacing = new W.TableCellSpacing {
@@ -37,21 +37,20 @@ public partial class Word {
         for (int row = 0; row < 2; row++) {
             for (int column = 0; column < 2; column++) {
                 WordTableCell cell = table.Rows[row].Cells[column];
-                cell.WidthType = WordTableWidthUnit.Auto;
-                cell.Width = 0;
+                cell.Width = WordTableWidth.Auto;
                 WordParagraph paragraph = cell.Paragraphs[0];
                 paragraph.Text = text[row, column];
                 paragraph.FontFamily = "Courier New";
-                paragraph.FontSize = 12;
-                paragraph.LineSpacingBeforePoints = 0;
-                paragraph.LineSpacingAfterPoints = 0;
+                paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+                paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
+                paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             }
         }
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false,
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
-            PdfOptions = new PdfOptions { DefaultFont = PdfStandardFont.Courier }
-        }));
+            PdfOptions = new PdfCreateOptions { DefaultFont = PdfStandardFont.Courier }
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters;
         var alpha = Assert.Single(letters, x => x.Value == "A");
         var bravo = Assert.Single(letters, x => x.Value == "B");

@@ -14,7 +14,7 @@ public sealed partial class EpubDocument {
     public static OfficeContentSafetyReport InspectContentSafety(
         byte[] packageBytes,
         OfficeContentSafetyOptions? options = null,
-        EpubReadOptions? readOptions = null,
+        EpubLoadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
         if (packageBytes == null) throw new ArgumentNullException(nameof(packageBytes));
         OfficeContentSafetyOptions effective = options ?? new OfficeContentSafetyOptions();
@@ -30,7 +30,7 @@ public sealed partial class EpubDocument {
     public static OfficeContentSafetyReport InspectContentSafety(
         string filePath,
         OfficeContentSafetyOptions? options = null,
-        EpubReadOptions? readOptions = null,
+        EpubLoadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
         if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
         OfficeContentSafetyOptions effective = options ?? new OfficeContentSafetyOptions();
@@ -43,7 +43,7 @@ public sealed partial class EpubDocument {
         byte[] packageBytes,
         OfficeContentCleanupSelection selection,
         OfficeContentCleanupOptions? options = null,
-        EpubReadOptions? readOptions = null,
+        EpubLoadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
         if (packageBytes == null) throw new ArgumentNullException(nameof(packageBytes));
         if (selection == null) throw new ArgumentNullException(nameof(selection));
@@ -105,7 +105,7 @@ public sealed partial class EpubDocument {
         string outputPath,
         OfficeContentCleanupSelection selection,
         OfficeContentCleanupOptions? options = null,
-        EpubReadOptions? readOptions = null,
+        EpubLoadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
         if (string.IsNullOrWhiteSpace(inputPath)) throw new ArgumentException("An input path is required.", nameof(inputPath));
         if (string.IsNullOrWhiteSpace(outputPath)) throw new ArgumentException("An output path is required.", nameof(outputPath));
@@ -120,14 +120,14 @@ public sealed partial class EpubDocument {
     private static EpubContentSafetyPackage LoadContentSafetyPackage(
         byte[] packageBytes,
         OfficeContentSafetyOptions options,
-        EpubReadOptions? readOptions,
+        EpubLoadOptions? readOptions,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         OfficeContentSafetyInputGuard.ValidateBytes(packageBytes, options, inspectZipPackage: true);
         OfficeProvenanceZip.ValidateMimetypeEntry(packageBytes, "application/epub+zip", options.MaxPackageEntries);
         ValidateCanonicalEntryPaths(packageBytes, options.MaxPackageEntries, cancellationToken);
 
-        EpubReadOptions effectiveReadOptions = CreateContentSafetyReadOptions(readOptions, options);
+        EpubLoadOptions effectiveReadOptions = CreateContentSafetyReadOptions(readOptions, options);
         EpubDocument document = EpubReader.ReadBytes(packageBytes, effectiveReadOptions, cancellationToken);
         ThrowForIncompleteContentSafetyRead(document);
 
@@ -231,9 +231,9 @@ public sealed partial class EpubDocument {
         return detector.Encoding ?? new UTF8Encoding(false, true);
     }
 
-    private static EpubReadOptions CreateContentSafetyReadOptions(EpubReadOptions? source, OfficeContentSafetyOptions safety) {
-        source ??= new EpubReadOptions();
-        return new EpubReadOptions {
+    private static EpubLoadOptions CreateContentSafetyReadOptions(EpubLoadOptions? source, OfficeContentSafetyOptions safety) {
+        source ??= new EpubLoadOptions();
+        return new EpubLoadOptions {
             MaxPackageBytes = Math.Min(source.MaxPackageBytes, safety.MaxInputBytes),
             MaxArchiveEntries = Math.Min(source.MaxArchiveEntries, safety.MaxPackageEntries),
             MaxTotalUncompressedBytes = Math.Min(source.MaxTotalUncompressedBytes, safety.MaxExpandedPackageBytes),
@@ -261,7 +261,7 @@ public sealed partial class EpubDocument {
     private static HtmlRenderOptions CreateEpubRenderOptions(
         string contentPath,
         EpubPackageResourceStore resourceStore,
-        EpubReadOptions readOptions,
+        EpubLoadOptions readOptions,
         OfficeContentSafetyOptions options) {
         var resourcePolicy = HtmlUrlPolicy.CreateEmbeddedResourceProfile();
         resourcePolicy.AllowedUrlSchemes.Add("epub");

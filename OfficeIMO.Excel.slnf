@@ -1,0 +1,29 @@
+{
+  "solution": {
+    "path": "OfficeIMO.slnx",
+    "projects": [
+      "OfficeIMO.Core\\OfficeIMO.Core.csproj",
+      "OfficeIMO.CSV.Tests\\OfficeIMO.CSV.Tests.csproj",
+      "OfficeIMO.CSV\\OfficeIMO.CSV.csproj",
+      "OfficeIMO.Data.Arrow\\OfficeIMO.Data.Arrow.csproj",
+      "OfficeIMO.Data.Generators\\OfficeIMO.Data.Generators.csproj",
+      "OfficeIMO.Excel.Csv\\OfficeIMO.Excel.Csv.csproj",
+      "OfficeIMO.Excel.GoogleSheets\\OfficeIMO.Excel.GoogleSheets.csproj",
+      "OfficeIMO.Excel.Html\\OfficeIMO.Excel.Html.csproj",
+      "OfficeIMO.Excel.IWork\\OfficeIMO.Excel.IWork.csproj",
+      "OfficeIMO.Excel.OpenDocument\\OfficeIMO.Excel.OpenDocument.csproj",
+      "OfficeIMO.Excel.Pdf\\OfficeIMO.Excel.Pdf.csproj",
+      "OfficeIMO.Excel.Tests\\OfficeIMO.Excel.Tests.csproj",
+      "OfficeIMO.Excel\\OfficeIMO.Excel.csproj",
+      "OfficeIMO.GoogleWorkspace.Drive\\OfficeIMO.GoogleWorkspace.Drive.csproj",
+      "OfficeIMO.GoogleWorkspace\\OfficeIMO.GoogleWorkspace.csproj",
+      "OfficeIMO.Html.AngleSharp\\OfficeIMO.Html.AngleSharp.csproj",
+      "OfficeIMO.Html.Core\\OfficeIMO.Html.Core.csproj",
+      "OfficeIMO.Html\\OfficeIMO.Html.csproj",
+      "OfficeIMO.IWork\\OfficeIMO.IWork.csproj",
+      "OfficeIMO.OpenDocument\\OfficeIMO.OpenDocument.csproj",
+      "OfficeIMO.Pdf.Excel\\OfficeIMO.Pdf.Excel.csproj",
+      "OfficeIMO.Pdf\\OfficeIMO.Pdf.csproj"
+    ]
+  }
+}

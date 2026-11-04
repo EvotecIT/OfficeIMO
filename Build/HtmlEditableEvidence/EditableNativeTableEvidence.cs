@@ -25,12 +25,12 @@ internal static class EditableNativeTableEvidence {
     internal static IReadOnlyList<NativeTableEvidence> FromExcel(ExcelDocument document) =>
         document.Sheets.Select(sheet => {
             using DataTable cells = sheet.ToDataTable(headersInFirstRow: false,
-                options: new ExcelReadOptions { MaxRangeCells = MaximumCells });
+                options: new ExcelReaderOptions { MaxRangeCells = MaximumCells });
             return Snapshot(sheet.Name, "worksheet-grid", cells.Rows.Cast<DataRow>().Select(row =>
                 row.ItemArray.Select(value => Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty)));
         }).ToArray();
 
-    internal static IReadOnlyList<NativeTableEvidence> FromPowerPoint(PowerPointPresentation document) =>
+    internal static IReadOnlyList<NativeTableEvidence> FromPowerPoint(PowerPointDocument document) =>
         document.Slides.SelectMany((slide, slideIndex) => slide.Tables.Select((table, tableIndex) =>
             Snapshot($"slide-{slideIndex + 1}/table-{tableIndex + 1}", "powerpoint-table",
                 Enumerable.Range(0, table.Rows).Select(row => Enumerable.Range(0, table.Columns)
@@ -46,7 +46,7 @@ internal static class EditableNativeTableEvidence {
             table.Rows.Select(row => row.Cells.Select(cell =>
                 string.Join("\n", cell.Paragraphs.Select(paragraph => paragraph.ToPlainText())))))).ToArray();
 
-    internal static IReadOnlyList<NativeTableEvidence> FromMarkdown(MarkdownDoc document) =>
+    internal static IReadOnlyList<NativeTableEvidence> FromMarkdown(MarkdownDocument document) =>
         document.Blocks.OfType<TableBlock>().Select((table, index) => Snapshot($"table-{index + 1}", "markdown-table",
             new[] { table.Headers.AsEnumerable() }.Concat(table.Rows.Select(row => row.AsEnumerable())))).ToArray();
 

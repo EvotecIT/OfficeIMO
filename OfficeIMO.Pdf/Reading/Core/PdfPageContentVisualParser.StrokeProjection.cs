@@ -2,6 +2,22 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfPageContentVisualParser {
     private sealed partial class Parser {
+        private Action<int>? _strokeDashProjectionConsumer;
+        private long _projectedStrokeDashEntries;
+
+        internal void SetStrokeDashProjectionConsumer(Action<int>? consumer) => _strokeDashProjectionConsumer = consumer;
+
+        private void ChargeStrokeDashProjection(int count) {
+            if (_strokeDashProjectionConsumer != null) {
+                _strokeDashProjectionConsumer(count);
+                return;
+            }
+            _projectedStrokeDashEntries += count;
+            if (_projectedStrokeDashEntries > _maxOperands) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.ContentOperands, _maxOperands, _projectedStrokeDashEntries);
+            }
+        }
+
         private double GetRenderedStrokeWidth((double X, double Y)? direction = null) {
             double strokeWidth = _state.StrokeWidth;
             if (double.IsPositiveInfinity(strokeWidth)) return RenderedHairlineStrokeWidth;
@@ -29,6 +45,8 @@ internal static partial class PdfPageContentVisualParser {
         private PdfStrokeDashPattern? GetRenderedStrokeDashPattern() {
             PdfStrokeDashPattern? pattern = _state.StrokeDashPattern;
             if (!pattern.HasValue || pattern.Value.Array.Count == 0) return pattern;
+            // Charge the retained output before scaling or copying the array, even at identity scale.
+            ChargeStrokeDashProjection(pattern.Value.Array.Count);
             double scale = GetRenderedDashScale();
             if (scale == 1D) return pattern;
 

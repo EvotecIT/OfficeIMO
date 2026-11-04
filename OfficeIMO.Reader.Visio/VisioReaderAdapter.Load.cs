@@ -3,6 +3,9 @@ using OfficeIMO.Visio;
 namespace OfficeIMO.Reader.Visio;
 
 internal static partial class VisioReaderAdapter {
+    internal static VisioDocument LoadForInspection(Stream stream, string sourceName, ReaderOptions options, CancellationToken cancellationToken) =>
+        LoadForReader(stream, sourceName, CreateLoadOptions(options), new SourceMetadata(), cancellationToken);
+
     private static VisioDocument LoadForReader(string path, VisioLoadOptions? options, SourceMetadata source, CancellationToken cancellationToken) {
         using var stream = File.OpenRead(path);
         return LoadForReader(stream, path, options, source, cancellationToken);
@@ -22,16 +25,16 @@ internal static partial class VisioReaderAdapter {
         }
         if (binary) {
             var binaryOptions = new VisioLegacyBinaryImportOptions();
-            if (options?.MaxInputBytes is long budget) binaryOptions.Limits.MaxInputBytes = (int)Math.Min(binaryOptions.Limits.MaxInputBytes, budget);
+            if (options?.Limits.MaxInputBytes is long budget) binaryOptions.Limits.MaxInputBytes = (int)Math.Min(binaryOptions.Limits.MaxInputBytes, budget);
             VisioPackageType family = extension == ".vss" ? VisioPackageType.Stencil : extension == ".vst" ? VisioPackageType.Template : VisioPackageType.Drawing;
             var result = VisioDocument.LoadLegacyBinary(stream, family, binaryOptions, cancellationToken);
-            source.ImportDiagnostics = result.Report.FidelityDiagnostics;
+            source.ImportDiagnostics = result.Report.Diagnostics;
             return result.Value;
         }
         if (extension != ".vdx" && extension != ".vsx" && extension != ".vtx") return VisioDocument.Load(stream, options);
         VisioPackageType type = extension == ".vsx" ? VisioPackageType.Stencil : extension == ".vtx" ? VisioPackageType.Template : VisioPackageType.Drawing;
         var imported = VisioDocument.LoadLegacyXml(stream, type, options, cancellationToken);
-        source.ImportDiagnostics = imported.Report.FidelityDiagnostics;
+        source.ImportDiagnostics = imported.Report.Diagnostics;
         return imported.Value;
     }
 }

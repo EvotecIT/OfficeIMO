@@ -140,7 +140,7 @@ public sealed partial class ScanPreparationViewModel : ObservableObject, IDispos
             int page = PageNumber;
             var options = ApplyTo(new PdfOcrMergeOptions { ReadOptions = new() { PageSelection = PdfPageSelection.From(page) } });
             byte[] source = await _readSource(operation.Token).ConfigureAwait(true);
-            var preview = await Task.Run(() => PdfDocument.Load(source).PreviewScanAsync(page, options, operation.Token), operation.Token).ConfigureAwait(true);
+            var preview = await Task.Run(() => PdfDocument.Load(new MemoryStream(source)).PreviewScanAsync(page, options, operation.Token), operation.Token).ConfigureAwait(true);
             operation.Token.ThrowIfCancellationRequested();
             if (_disposed || !ReferenceEquals(_previewCancellation, operation)) return;
             using var original = new MemoryStream(preview.GetSourcePng());

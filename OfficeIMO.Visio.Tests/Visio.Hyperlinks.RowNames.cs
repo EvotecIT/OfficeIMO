@@ -14,11 +14,11 @@ public sealed class VisioHyperlinkRowNameTests {
         var document = VisioDocument.Create();
         document.UseMastersByDefault = false;
         VisioPage page = document.AddPage("Links");
-        VisioShape shape = page.AddRectangle(2, 2, 2, 1);
-        VisioShape target = page.AddRectangle(6, 2, 2, 1);
+        VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)));
+        VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)));
         VisioConnector connector = page.AddConnector(shape, target);
-        VisioMaster master = document.RegisterMaster("Links", new VisioShape("10", 1, 1, 2, 1, "Master"));
-        master.Shape.Children.Add(new VisioShape("11", 1, 1, 1, 1, "Child"));
+        VisioMaster master = document.RegisterMaster("Links", new VisioShape("10", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Master"));
+        master.Shape.Children.Add(new VisioShape("11", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Child"));
         target.Master = master;
         foreach (Func<string, VisioHyperlink> add in new Func<string, VisioHyperlink>[] {
                      address => shape.AddHyperlink(address), address => connector.AddHyperlink(address),
@@ -49,7 +49,7 @@ public sealed class VisioHyperlinkRowNameTests {
     public void CollisionFreeDefaultNamesAndDeliberateExplicitDuplicatesStayUnchanged() {
         var document = VisioDocument.Create();
         document.UseMastersByDefault = false;
-        VisioShape shape = document.AddPage("Defaults").AddRectangle(1, 1, 2, 1);
+        VisioShape shape = document.AddPage("Defaults").AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)));
         shape.AddHyperlink("https://example.org/one");
         shape.AddHyperlink("https://example.org/two");
         AssertNames(document, new[] { "Row_1", "Row_2" }, 1);
@@ -174,11 +174,11 @@ public sealed class VisioHyperlinkRowNameTests {
     [Fact]
     public void NewSimpleMasterAndSparseInstanceCopiesKeepDistinctInheritedAndLocalRows() {
         var document = VisioDocument.Create();
-        var blueprint = new VisioShape("1", 1, 1, 2, 1, "");
+        var blueprint = new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "");
         blueprint.AddHyperlink("https://example.org/master");
         VisioMaster master = document.RegisterMaster("Links", blueprint);
         VisioPage page = document.AddPage("Instance");
-        VisioShape instance = page.AddShape("10", master, 3, 3, 2, 1);
+        VisioShape instance = page.AddShape("10", master, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)));
         Assert.Empty(instance.Hyperlinks);
         instance.AddHyperlink("https://example.org/instance");
         VisioShape copy = document.DuplicatePage(page, "Copy").Shapes[0];
@@ -209,12 +209,12 @@ public sealed class VisioHyperlinkRowNameTests {
     [Fact]
     public void NewCompleteMasterInstancesAndPageCopiesKeepMaterializedSourceIdentityAfterReorderingAndRemoval() {
         var document = VisioDocument.Create();
-        var blueprint = new VisioShape("1", 1, 1, 2, 1, "");
+        var blueprint = new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "");
         blueprint.AddHyperlink("https://example.org/master");
-        blueprint.Children.Add(new VisioShape("2", 1, 1, 1, 1, "Child"));
+        blueprint.Children.Add(new VisioShape("2", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Child"));
         VisioMaster master = document.RegisterMaster("Links", blueprint);
         VisioPage page = document.AddPage("Instance");
-        VisioShape instance = page.AddShape("10", master, 3, 3, 2, 1);
+        VisioShape instance = page.AddShape("10", master, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)));
         Assert.Equal("Row_1", Assert.Single(instance.Hyperlinks).RowName);
         instance.AddHyperlink("https://example.org/instance");
         VisioShape copy = document.DuplicatePage(page, "Copy").Shapes[0];

@@ -12,7 +12,7 @@ internal sealed class MarkdownToAdfConverter {
         _localIdFactory = options.LocalIdFactory;
     }
 
-    internal static AdfDocument Convert(MarkdownDoc source, List<AdfConversionDiagnostic> diagnostics, AdfConversionOptions options) {
+    internal static AdfDocument Convert(MarkdownDocument source, List<AdfConversionDiagnostic> diagnostics, AdfConversionOptions options) {
         var converter = new MarkdownToAdfConverter(options);
         AdfDocument document = converter.ConvertCore(source, diagnostics);
         converter.AssignTaskIdentities(document, options);
@@ -49,7 +49,7 @@ internal sealed class MarkdownToAdfConverter {
             .Select(task => task.Node);
     }
 
-    private AdfDocument ConvertCore(MarkdownDoc source, List<AdfConversionDiagnostic> diagnostics) {
+    private AdfDocument ConvertCore(MarkdownDocument source, List<AdfConversionDiagnostic> diagnostics) {
         var document = new AdfDocument();
         for (int i = 0; i < source.Blocks.Count; i++) {
             AdfNode? node = ConvertBlock(source.Blocks[i], "$.blocks[" + i + "]", diagnostics);

@@ -7,14 +7,14 @@ internal static class IWorkPreservationPackageWriter {
     internal static IWorkNativeSaveResult Write(IWorkSourceDocument source, IReadOnlyDictionary<IWorkArchiveRecord, byte[]> edits,
         IWorkNativeSaveOptions limits, CancellationToken token) {
         token.ThrowIfCancellationRequested();
-        if (edits.Count > limits.MaximumEditedRecords) throw new InvalidDataException("The edited-record limit was exceeded.");
+        if (edits.Count > limits.MaxEditedRecords) throw new InvalidDataException("The edited-record limit was exceeded.");
         if (edits.Count > 0 && !limits.AllowUnassessedVisualCaches)
             throw new InvalidOperationException("Edited saves retain native visual caches without refreshing them. Set AllowUnassessedVisualCaches to explicitly accept this reported boundary.");
         var entries = new SortedDictionary<string, byte[]>(StringComparer.Ordinal);
         long inputLength = 0;
         foreach (IWorkPackageEntry entry in source.ContainerEntries) {
             token.ThrowIfCancellationRequested(); inputLength += entry.Length;
-            if (inputLength > limits.MaximumPackageBytes) throw new InvalidDataException("The native save input-entry limit was exceeded.");
+            if (inputLength > limits.MaxPackageBytes) throw new InvalidDataException("The native save input-entry limit was exceeded.");
             entries.Add(entry.Path, entry.Bytes);
         }
         var paths = edits.Keys.Select(record => record.EntryPath).Distinct(StringComparer.Ordinal).OrderBy(path => path, StringComparer.Ordinal).ToArray();
@@ -23,25 +23,25 @@ internal static class IWorkPreservationPackageWriter {
             token.ThrowIfCancellationRequested();
             if (!entries.TryGetValue(path, out byte[]? original)) throw new NotSupportedException("The edited archive is not a physical source entry.");
             byte[] raw = IWorkSnappy.DecodeIwa(original, source.Options,
-                limits.MaximumEditedArchiveBytes - decompressedBytes, token);
+                limits.MaxEditedArchiveBytes - decompressedBytes, token);
             decompressedBytes += raw.Length;
             IWorkPreservingArchiveEdit.Rewrite(raw, path, edits, source.Options, token);
-            entries[path] = IWorkSnappy.EncodeIwa(raw, limits.MaximumPackageBytes, token);
+            entries[path] = IWorkSnappy.EncodeIwa(raw, limits.MaxPackageBytes, token);
         }
-        byte[] bytes = IWorkNativePackageWriter.WriteEntries(entries, limits.MaximumPackageBytes, token);
+        byte[] bytes = IWorkNativePackageWriter.WriteEntries(entries, limits.MaxPackageBytes, token);
         // Carrier/encoded entry sizes can grow; retain captured decompression and structural budgets.
         IWorkReadOptions verification = source.Options.Snapshot();
-        verification.MaximumPackageBytes = Math.Max(verification.MaximumPackageBytes, bytes.Length);
+        verification.MaxPackageBytes = Math.Max(verification.MaxPackageBytes, bytes.Length);
         long outputEntryBytes = 0;
         foreach (var entry in entries) {
             token.ThrowIfCancellationRequested(); outputEntryBytes += entry.Value.Length;
-            verification.MaximumEntryBytes = Math.Max(verification.MaximumEntryBytes, entry.Value.Length);
+            verification.MaxEntryBytes = Math.Max(verification.MaxEntryBytes, entry.Value.Length);
             if (entry.Key.EndsWith(".iwa", StringComparison.OrdinalIgnoreCase))
-                verification.MaximumIwaBytes = Math.Max(verification.MaximumIwaBytes, entry.Value.Length);
+                verification.MaxIwaBytes = Math.Max(verification.MaxIwaBytes, entry.Value.Length);
         }
-        verification.MaximumTotalEntryBytes = Math.Max(verification.MaximumTotalEntryBytes, outputEntryBytes);
-        verification.MaximumSnappyChunkBytes = Math.Max(verification.MaximumSnappyChunkBytes,
-            Math.Min(65_536, verification.MaximumDecompressedIwaBytes));
+        verification.MaxTotalEntryBytes = Math.Max(verification.MaxTotalEntryBytes, outputEntryBytes);
+        verification.MaxSnappyChunkBytes = Math.Max(verification.MaxSnappyChunkBytes,
+            Math.Min(65_536, verification.MaxDecompressedIwaBytes));
         IWorkSourceDocument reopened = IWorkSourceDocument.Open(bytes, source.Kind, verification, token);
         if (reopened.Records.Count != source.Records.Count || reopened.Entries.Count != source.Entries.Count)
             throw new InvalidDataException("The saved package changed source entry or record membership.");

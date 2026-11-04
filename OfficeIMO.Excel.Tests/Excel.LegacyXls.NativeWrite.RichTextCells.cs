@@ -15,19 +15,19 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Rich Cells");
-                    sheet.CellAt(1, 1).SetRichText(
+                    ExcelSheet sheet = document.AddSheet("Rich Cells");
+                    sheet.Cell(1, 1).SetRichText(
                         new ExcelRichTextRun("Inline ") {
                             Bold = true,
                             FontColor = "#123456",
                             FontName = "Consolas",
-                            FontSize = 13D
+                            FontSize = global::OfficeIMO.OfficeLength.Points(13D)
                         },
                         new ExcelRichTextRun("cell") {
                             Italic = true,
                             Underline = true,
                             FontName = "Arial",
-                            FontSize = 11D
+                            FontSize = global::OfficeIMO.OfficeLength.Points(11D)
                         });
 
                     document.Save(xlsOutputPath);
@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Inline cell", legacyCell.Value);
                 Assert.Equal(2, legacyCell.TextFormattingRuns.Count);
 
-                IReadOnlyList<ExcelRichTextRun> projectedRuns = result.Document.Sheets[0].CellAt(1, 1).GetRichText();
+                IReadOnlyList<ExcelRichTextRun> projectedRuns = result.Document.Sheets[0].Cell(1, 1).GetRichText();
                 Assert.Equal(2, projectedRuns.Count);
                 AssertRichTextRun(projectedRuns[0], "Inline ", bold: true, italic: false, underline: false, "FF123456", "Consolas", 13D);
                 AssertRichTextRun(projectedRuns[1], "cell", bold: false, italic: true, underline: true, null, "Arial", 11D);
@@ -59,8 +59,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Rich Font Bytes");
-                    sheet.CellAt(1, 1).SetRichText(new ExcelRichTextRun("Run font bytes") {
+                    ExcelSheet sheet = document.AddSheet("Rich Font Bytes");
+                    sheet.Cell(1, 1).SetRichText(new ExcelRichTextRun("Run font bytes") {
                         FontName = "Arial",
                         FontFamily = 2,
                         FontCharacterSet = 238
@@ -81,7 +81,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal((byte)2, font.Family);
                 Assert.Equal((byte)238, font.CharacterSet);
 
-                ExcelRichTextRun projectedRun = Assert.Single(result.Document.Sheets[0].CellAt(1, 1).GetRichText());
+                ExcelRichTextRun projectedRun = Assert.Single(result.Document.Sheets[0].Cell(1, 1).GetRichText());
                 Assert.Equal((byte)2, projectedRun.FontFamily);
                 Assert.Equal((byte)238, projectedRun.FontCharacterSet);
             } finally {
@@ -97,8 +97,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Rich Escapement");
-                    sheet.CellAt(1, 1).SetRichText(new ExcelRichTextRun("Raised") {
+                    ExcelSheet sheet = document.AddSheet("Rich Escapement");
+                    sheet.Cell(1, 1).SetRichText(new ExcelRichTextRun("Raised") {
                         FontName = "Arial",
                         VerticalTextAlignment = ExcelVerticalTextAlignment.Superscript
                     });
@@ -117,7 +117,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Arial", font.Name);
                 Assert.Equal(LegacyXlsFontEscapement.Superscript, font.Escapement);
 
-                ExcelRichTextRun projectedRun = Assert.Single(result.Document.Sheets[0].CellAt(1, 1).GetRichText());
+                ExcelRichTextRun projectedRun = Assert.Single(result.Document.Sheets[0].Cell(1, 1).GetRichText());
                 Assert.Equal(ExcelVerticalTextAlignment.Superscript, projectedRun.VerticalTextAlignment);
             } finally {
                 TryDelete(openXmlPath);
@@ -132,8 +132,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Rich Font Flags");
-                    sheet.CellAt(1, 1).SetRichText(new ExcelRichTextRun("Run flags") {
+                    ExcelSheet sheet = document.AddSheet("Rich Font Flags");
+                    sheet.Cell(1, 1).SetRichText(new ExcelRichTextRun("Run flags") {
                         FontName = "Arial",
                         Outline = true,
                         Shadow = true,
@@ -158,7 +158,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(font.Condense);
                 Assert.True(font.Extend);
 
-                ExcelRichTextRun projectedRun = Assert.Single(result.Document.Sheets[0].CellAt(1, 1).GetRichText());
+                ExcelRichTextRun projectedRun = Assert.Single(result.Document.Sheets[0].Cell(1, 1).GetRichText());
                 Assert.True(projectedRun.Outline);
                 Assert.True(projectedRun.Shadow);
                 Assert.True(projectedRun.Condense);
@@ -176,8 +176,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Rich Underline");
-                    sheet.CellAt(1, 1).SetRichText(new ExcelRichTextRun("Accounting") {
+                    ExcelSheet sheet = document.AddSheet("Rich Underline");
+                    sheet.Cell(1, 1).SetRichText(new ExcelRichTextRun("Accounting") {
                         FontName = "Arial",
                         UnderlineStyle = ExcelUnderlineStyle.SingleAccounting
                     });
@@ -196,7 +196,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Arial", font.Name);
                 Assert.Equal((byte)0x21, font.UnderlineStyle);
 
-                ExcelRichTextRun projectedRun = Assert.Single(result.Document.Sheets[0].CellAt(1, 1).GetRichText());
+                ExcelRichTextRun projectedRun = Assert.Single(result.Document.Sheets[0].Cell(1, 1).GetRichText());
                 Assert.Equal(ExcelUnderlineStyle.SingleAccounting, projectedRun.UnderlineStyle);
             } finally {
                 TryDelete(openXmlPath);
@@ -211,8 +211,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Shared Rich Cells");
-                    sheet.CellValue(1, 1, "Shared rich text");
+                    ExcelSheet sheet = document.AddSheet("Shared Rich Cells");
+                    sheet.Cell(1, 1).SetValue("Shared rich text");
 
                     SharedStringTablePart sharedStringPart = document.WorkbookPartRoot.SharedStringTablePart
                         ?? document.WorkbookPartRoot.AddNewPart<SharedStringTablePart>();
@@ -250,7 +250,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Shared cell", legacyCell.Value);
                 Assert.Equal(2, legacyCell.TextFormattingRuns.Count);
 
-                IReadOnlyList<ExcelRichTextRun> projectedRuns = result.Document.Sheets[0].CellAt(1, 1).GetRichText();
+                IReadOnlyList<ExcelRichTextRun> projectedRuns = result.Document.Sheets[0].Cell(1, 1).GetRichText();
                 Assert.Equal(2, projectedRuns.Count);
                 AssertRichTextRun(projectedRuns[0], "Shared ", bold: false, italic: true, underline: false, "FF654321", "Calibri", 12D);
                 AssertRichTextRun(projectedRuns[1], "cell", bold: true, italic: false, underline: false, null, "Calibri", 11D);
@@ -263,7 +263,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksDuplicateRichTextFontPropertiesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("rich-text font properties with duplicate font name elements", (document, sheet) => {
-                sheet.CellAt(1, 1).SetRichText(new ExcelRichTextRun("Duplicate font") {
+                sheet.Cell(1, 1).SetRichText(new ExcelRichTextRun("Duplicate font") {
                     FontName = "Arial"
                 });
 
@@ -278,7 +278,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksUnsupportedRichTextRunMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("rich-text cell run metadata", (document, sheet) => {
-                sheet.CellAt(1, 1).SetRichText(new ExcelRichTextRun("Run metadata") {
+                sheet.Cell(1, 1).SetRichText(new ExcelRichTextRun("Run metadata") {
                     FontName = "Arial"
                 });
 
@@ -293,7 +293,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksUnsupportedRichTextRunPropertyMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("rich-text font properties with unsupported metadata", (document, sheet) => {
-                sheet.CellAt(1, 1).SetRichText(new ExcelRichTextRun("Run property metadata") {
+                sheet.Cell(1, 1).SetRichText(new ExcelRichTextRun("Run property metadata") {
                     FontName = "Arial"
                 });
 
@@ -320,7 +320,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(underline, run.Underline);
             Assert.Equal(fontColor, run.FontColor);
             Assert.Equal(fontName, run.FontName);
-            Assert.Equal(fontSize, run.FontSize);
+            Assert.Equal(fontSize.HasValue ? OfficeLength.Points(fontSize.Value) : (OfficeLength?)null, run.FontSize);
         }
     }
 }

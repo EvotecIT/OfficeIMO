@@ -9,7 +9,7 @@ schema: 2.0.0
 Imports explicitly mapped tables into a new project without changing existing documents.
 
 ## SYNTAX
-### __AllParameterSets
+### Table (Default)
 ```powershell
 Import-OfficeProjectTable -Table <ProjectMappedTable[]> [-Name <string>] [-StartDate <DateTime>] [-CalendarUid <Int32>] [-AllowUnmappedColumns] [-MaxRows <int>] [-ReportVariable <string>] [<CommonParameters>]
 ```
@@ -32,7 +32,7 @@ Explicitly permit ignored source columns and return notices.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Table
 Aliases: None
 Possible values:
 
@@ -48,7 +48,7 @@ Imported project calendar UID.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Table
 Aliases: None
 Possible values:
 
@@ -64,7 +64,7 @@ Maximum rows across all tables.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Table
 Aliases: None
 Possible values:
 
@@ -80,7 +80,7 @@ Project name.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Table
 Aliases: None
 Possible values:
 
@@ -96,7 +96,7 @@ Variable receiving the import result and notices.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Table
 Aliases: None
 Possible values:
 
@@ -112,7 +112,7 @@ Explicit local start date.
 
 ```yaml
 Type: DateTime
-Parameter Sets: __AllParameterSets
+Parameter Sets: Table
 Aliases: None
 Possible values:
 
@@ -128,7 +128,7 @@ At most one table for each entity kind.
 
 ```yaml
 Type: ProjectMappedTable[]
-Parameter Sets: __AllParameterSets
+Parameter Sets: Table
 Aliases: None
 Possible values:
 

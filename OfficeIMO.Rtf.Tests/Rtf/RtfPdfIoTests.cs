@@ -13,7 +13,7 @@ public class RtfPdfIoTests {
     [Fact]
     public void RtfPdf_TypedDocument_WritesBytesStreamAndFile() {
         RtfDocument document = CreateDocument("Typed PDF");
-        byte[] pdf = document.ToPdfBytes();
+        byte[] pdf = (document.ToPdf()).ToBytes();
 
         AssertPdfContains(pdf, "Typed PDF");
 
@@ -46,42 +46,19 @@ public class RtfPdfIoTests {
         cancellation.Cancel();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             document.SaveAsPdfAsync(new MemoryStream(), cancellationToken: cancellation.Token));
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            document.SaveAsPdfResultAsync(new MemoryStream(), cancellationToken: cancellation.Token));
     }
 
     [Fact]
-    public async Task RtfPdf_TrySave_ReturnsWriteFailuresButNotCancellation() {
-        RtfDocument document = CreateDocument("Try PDF");
+    public async Task RtfPdf_SaveRejectsUnwritableStreamsAndKeepsCallerOwnership() {
+        RtfDocument document = CreateDocument("Stream PDF");
         using var readOnly = new MemoryStream(Array.Empty<byte>(), writable: false);
-
-        PdfCore.PdfSaveResult failure = document.SaveAsPdfResult(readOnly);
-
-        Assert.False(failure.Succeeded);
-        Assert.NotEmpty(failure.Diagnostics);
-
+        Assert.Throws<ArgumentException>(() => document.SaveAsPdf(readOnly));
+        Assert.True(readOnly.CanRead);
         using var output = new MemoryStream();
-        PdfCore.PdfSaveResult success = await document.SaveAsPdfResultAsync(output);
-        Assert.True(success.Succeeded);
-        Assert.Equal(output.Length, success.BytesWritten);
-    }
-
-    [Fact]
-    public void RtfPdf_PublicAdapterSurface_RequiresParsedSourceModels() {
-        MethodInfo[] methods = typeof(RtfPdfConverterExtensions)
-            .GetMethods(BindingFlags.Public | BindingFlags.Static);
-
-        Assert.DoesNotContain(methods, method => method.Name.Contains("FromRtf", StringComparison.Ordinal));
-        Type[] parsedSourceTypes = {
-            typeof(RtfDocument),
-            typeof(PdfCore.PdfDocument),
-            typeof(PdfCore.PdfDocumentReadResult)
-        };
-        Assert.All(methods, method =>
-            Assert.Contains(method.GetParameters()[0].ParameterType, parsedSourceTypes));
-        Assert.Contains(methods, method => method.GetParameters()[0].ParameterType == typeof(RtfDocument));
-        Assert.Contains(methods, method => method.GetParameters()[0].ParameterType == typeof(PdfCore.PdfDocument));
-        Assert.Contains(methods, method => method.GetParameters()[0].ParameterType == typeof(PdfCore.PdfDocumentReadResult));
+        OfficeConversionReport report = await document.SaveAsPdfAsync(output);
+        Assert.Equal("Pdf", report.Target);
+        Assert.True(output.CanWrite);
+        AssertPdfContains(output.ToArray(), "Stream PDF");
     }
 
     private static RtfDocument CreateDocument(string text) {

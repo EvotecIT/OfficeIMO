@@ -10,49 +10,23 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Mhtml;
 
 /// <summary>Converts bounded MHTML archives to the first-party OfficeIMO PDF model.</summary>
-public static class MhtmlPdfConverterExtensions {
-    /// <summary>Converts an MHTML archive and its bounded embedded resources to PDF bytes.</summary>
-    public static byte[] ToPdfBytes(this MhtmlDocument document, HtmlToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
-        document.ToPdfDocumentResult(options, cancellationToken).ToBytes(cancellationToken);
-
-    /// <summary>Asynchronously converts an MHTML archive and its bounded embedded resources to PDF bytes.</summary>
-    public static async Task<byte[]> ToPdfBytesAsync(
-        this MhtmlDocument document,
-        HtmlToPdfOptions? options = null,
-        CancellationToken cancellationToken = default) =>
-        HtmlPdfConverterExtensions.SerializeToBytes(
-            await document.ToPdfDocumentResultAsync(options, cancellationToken).ConfigureAwait(false),
-            cancellationToken);
-
-    /// <summary>Converts an MHTML archive to the first-party PDF document model.</summary>
-    public static PdfCore.PdfDocument ToPdfDocument(this MhtmlDocument document, HtmlToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
-        document.ToPdfDocumentResult(options, cancellationToken).Value;
-
-    /// <summary>Asynchronously converts an MHTML archive to the first-party PDF document model.</summary>
-    public static async Task<PdfCore.PdfDocument> ToPdfDocumentAsync(
-        this MhtmlDocument document,
-        HtmlToPdfOptions? options = null,
-        CancellationToken cancellationToken = default) =>
-        (await document.ToPdfDocumentResultAsync(options, cancellationToken).ConfigureAwait(false)).Value;
-
-    /// <summary>Converts an MHTML archive and returns MIME, HTML-render, and PDF diagnostics.</summary>
-    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this MhtmlDocument document, HtmlToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+public static partial class MhtmlPdfConverterExtensions {
+    internal static PdfCore.PdfDocumentConversionResult ConvertToPdfWithEvidence(this MhtmlDocument document, HtmlPdfExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return Task.Run(() => document.ToPdfDocumentResultAsync(options, cancellationToken))
+        return Task.Run(() => document.ConvertToPdfWithEvidenceAsync(options, cancellationToken))
             .GetAwaiter()
             .GetResult();
     }
 
-    /// <summary>Asynchronously converts an MHTML archive and returns MIME, HTML-render, and PDF diagnostics.</summary>
-    public static async Task<PdfCore.PdfDocumentConversionResult> ToPdfDocumentResultAsync(
+    internal static async Task<PdfCore.PdfDocumentConversionResult> ConvertToPdfWithEvidenceAsync(
         this MhtmlDocument document,
-        HtmlToPdfOptions? options = null,
+        HtmlPdfExportOptions? options = null,
         CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         cancellationToken.ThrowIfCancellationRequested();
         PdfCore.PdfDocumentConversionResult result = await document.HtmlDocument
-            .ToPdfDocumentResultAsync(PrepareMhtmlOptions(document, options), cancellationToken)
+            .ConvertToPdfWithEvidenceAsync(PrepareMhtmlOptions(document, options), cancellationToken)
             .ConfigureAwait(false);
         return AddMhtmlDiagnostics(result, document);
     }
@@ -65,91 +39,15 @@ public static class MhtmlPdfConverterExtensions {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (request == null) throw new ArgumentNullException(nameof(request));
         cancellationToken.ThrowIfCancellationRequested();
-        HtmlToPdfOptions options = PrepareMhtmlOptions(document, new HtmlToPdfOptions(request.Options));
+        HtmlPdfExportOptions options = PrepareMhtmlOptions(document, new HtmlPdfExportOptions(request.Options));
         PdfCore.PdfDocumentConversionResult result = await document.HtmlDocument
             .RenderToPdfDocumentResultAsync(request.WithOptions(options), cancellationToken)
             .ConfigureAwait(false);
         return AddMhtmlDiagnostics(result, document);
     }
 
-    /// <summary>Converts an MHTML archive and saves it as a PDF file.</summary>
-    public static PdfCore.PdfSaveResult SaveAsPdf(this MhtmlDocument document, string path, HtmlToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
-        document.ToPdfDocumentResult(options, cancellationToken).Save(path, cancellationToken);
-
-    /// <summary>Converts an MHTML archive and writes it as PDF to a caller-owned stream.</summary>
-    public static PdfCore.PdfSaveResult SaveAsPdf(this MhtmlDocument document, Stream stream, HtmlToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
-        document.ToPdfDocumentResult(options, cancellationToken).Save(stream, cancellationToken);
-
-    /// <summary>Asynchronously converts an MHTML archive and saves it as a PDF file.</summary>
-    public static async Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(
-        this MhtmlDocument document,
-        string path,
-        HtmlToPdfOptions? options = null,
-        CancellationToken cancellationToken = default) =>
-        await (await document.ToPdfDocumentResultAsync(options, cancellationToken).ConfigureAwait(false))
-            .SaveAsync(path, cancellationToken).ConfigureAwait(false);
-
-    /// <summary>Asynchronously converts an MHTML archive and writes it as PDF to a caller-owned stream.</summary>
-    public static async Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(
-        this MhtmlDocument document,
-        Stream stream,
-        HtmlToPdfOptions? options = null,
-        CancellationToken cancellationToken = default) =>
-        await (await document.ToPdfDocumentResultAsync(options, cancellationToken).ConfigureAwait(false))
-            .SaveAsync(stream, cancellationToken).ConfigureAwait(false);
-
-    /// <summary>Attempts to convert an MHTML archive and save it as a PDF file.</summary>
-    public static PdfCore.PdfSaveResult SaveAsPdfResult(this MhtmlDocument document, string path, HtmlToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
-        cancellationToken.ThrowIfCancellationRequested();
-        try { return document.ToPdfDocumentResult(options, cancellationToken).SaveResult(path, cancellationToken); }
-        catch (OperationCanceledException) { throw; }
-        catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(path, exception); }
-    }
-
-    /// <summary>Attempts to convert an MHTML archive and write it as PDF to a caller-owned stream.</summary>
-    public static PdfCore.PdfSaveResult SaveAsPdfResult(this MhtmlDocument document, Stream stream, HtmlToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
-        cancellationToken.ThrowIfCancellationRequested();
-        try { return document.ToPdfDocumentResult(options, cancellationToken).SaveResult(stream, cancellationToken); }
-        catch (OperationCanceledException) { throw; }
-        catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(null, exception); }
-    }
-
-    /// <summary>Asynchronously attempts to convert an MHTML archive and save it as a PDF file.</summary>
-    public static async Task<PdfCore.PdfSaveResult> SaveAsPdfResultAsync(
-        this MhtmlDocument document,
-        string path,
-        HtmlToPdfOptions? options = null,
-        CancellationToken cancellationToken = default) {
-        cancellationToken.ThrowIfCancellationRequested();
-        try {
-            PdfCore.PdfDocumentConversionResult result = await document.ToPdfDocumentResultAsync(options, cancellationToken).ConfigureAwait(false);
-            return await result.SaveResultAsync(path, cancellationToken).ConfigureAwait(false);
-        } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
-            throw;
-        } catch (Exception exception) {
-            return PdfCore.PdfSaveResult.FromFailure(path, exception);
-        }
-    }
-
-    /// <summary>Asynchronously attempts to convert an MHTML archive and write it as PDF to a caller-owned stream.</summary>
-    public static async Task<PdfCore.PdfSaveResult> SaveAsPdfResultAsync(
-        this MhtmlDocument document,
-        Stream stream,
-        HtmlToPdfOptions? options = null,
-        CancellationToken cancellationToken = default) {
-        cancellationToken.ThrowIfCancellationRequested();
-        try {
-            PdfCore.PdfDocumentConversionResult result = await document.ToPdfDocumentResultAsync(options, cancellationToken).ConfigureAwait(false);
-            return await result.SaveResultAsync(stream, cancellationToken).ConfigureAwait(false);
-        } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
-            throw;
-        } catch (Exception exception) {
-            return PdfCore.PdfSaveResult.FromFailure(null, exception);
-        }
-    }
-
-    private static HtmlToPdfOptions PrepareMhtmlOptions(MhtmlDocument document, HtmlToPdfOptions? options) {
-        HtmlToPdfOptions operation = options?.ClonePdf() ?? new HtmlToPdfOptions();
+    private static HtmlPdfExportOptions PrepareMhtmlOptions(MhtmlDocument document, HtmlPdfExportOptions? options) {
+        HtmlPdfExportOptions operation = options?.ClonePdf() ?? new HtmlPdfExportOptions();
         operation.ProjectSerializedShadowRoots ??= true;
         operation.BaseUri ??= document.BaseUri;
         bool allowEmbeddedResources = operation.ResourcePolicy.AllowEmbeddedPackageResources;

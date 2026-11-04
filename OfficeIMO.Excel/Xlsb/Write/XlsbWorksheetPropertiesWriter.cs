@@ -66,8 +66,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 if (!syncHorizontal && !syncVertical) {
                     throw new NotSupportedException($"Native XLSB generation requires syncHorizontal or syncVertical when syncRef is set on worksheet '{sheetName}'.");
                 }
-                if (!A1.TryParseCellReferenceFast(syncReference, out int row, out int column)
-                    || row <= 0 || row > A1.MaxRows || column <= 0 || column > A1.MaxColumns) {
+                if (!ExcelA1.TryParseCellReferenceFast(syncReference, out int row, out int column)
+                    || row <= 0 || row > ExcelA1.MaxRows || column <= 0 || column > ExcelA1.MaxColumns) {
                     throw new NotSupportedException($"Native XLSB generation cannot encode invalid synchronized-scroll reference '{syncReference}' on worksheet '{sheetName}'.");
                 }
                 synchronizedRow = checked((uint)row - 1U);

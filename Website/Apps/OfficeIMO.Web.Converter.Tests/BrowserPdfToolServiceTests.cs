@@ -152,19 +152,28 @@ public sealed class BrowserPdfToolServiceTests {
     }
 
     [Fact]
-    public void Redact_CaseInsensitiveSearchRejectsConcreteCaseVariantResidue() {
+    public void Redact_CaseInsensitiveSearchRemovesPageAndMetadataVariants() {
         byte[] source = PdfDocument.Create(pdf => pdf.Content(content => content
-                .Paragraph(paragraph => paragraph.Text("Public secret public"))))
+                .AddParagraph(paragraph => paragraph.AddText("Public secret public"))
+                .AddParagraph(paragraph => paragraph.AddText("Retained paragraph"))))
             .Meta(title: "SECRET")
             .ToBytes();
 
-        InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => _service.Execute(Request(
+        PdfToolResult result = _service.Execute(Request(
             "redact",
             [Document(source)],
             redactionText: "secret",
-            confirmed: true)));
+            confirmed: true));
 
-        Assert.Contains("verification", error.Message, StringComparison.OrdinalIgnoreCase);
+        string text = PdfReadDocument.Open(result.Artifact.Bytes).ExtractText();
+        Assert.DoesNotContain("secret", text, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Retained paragraph", text, StringComparison.Ordinal);
+        Assert.Null(PdfInspector.Inspect(result.Artifact.Bytes).Metadata.Title);
+        using JsonDocument report = JsonDocument.Parse(result.Report!.Bytes);
+        JsonElement details = report.RootElement.GetProperty("details");
+        foreach (string check in new[] { "verified", "rawBytesChecked", "encodedStringsChecked", "decodedStreamsChecked" }) {
+            Assert.Equal("True", details.GetProperty(check).GetString());
+        }
     }
 
     [Fact]
@@ -217,22 +226,22 @@ public sealed class BrowserPdfToolServiceTests {
         new(name, ".pdf", "PDF", bytes.LongLength, bytes);
 
     private static byte[] CreatePdf(string text) =>
-        PdfDocument.Create(pdf => pdf.Content(content => content.Paragraph(paragraph => paragraph.Text(text)))).ToBytes();
+        PdfDocument.Create(pdf => pdf.Content(content => content.AddParagraph(paragraph => paragraph.AddText(text)))).ToBytes();
 
     private static byte[] CreateThreePagePdf() =>
         PdfDocument.Create(pdf => pdf.Content(content => content
-            .Paragraph(paragraph => paragraph.Text("Page one"))
+            .AddParagraph(paragraph => paragraph.AddText("Page one"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Page two"))
+            .AddParagraph(paragraph => paragraph.AddText("Page two"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Page three"))))
+            .AddParagraph(paragraph => paragraph.AddText("Page three"))))
             .ToBytes();
 
     private static byte[] CreatePdfWithPages(int pageCount) {
         if (pageCount <= 0) throw new ArgumentOutOfRangeException(nameof(pageCount));
         return PdfDocument.Create(pdf => pdf.Content(content => {
             for (int page = 1; page <= pageCount; page++) {
-                content.Paragraph(paragraph => paragraph.Text($"Page {page}"));
+                content.AddParagraph(paragraph => paragraph.AddText($"Page {page}"));
                 if (page < pageCount) content.PageBreak();
             }
         })).ToBytes();

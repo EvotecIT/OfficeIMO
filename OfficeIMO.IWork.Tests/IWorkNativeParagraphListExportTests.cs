@@ -10,9 +10,7 @@ public sealed partial class IWorkEverydayNativeExportTests {
     [Fact]
     public void Native_Pages_spacing_tabs_and_decimal_restarts_survive_strict_DOCX() {
         VerifyManifest("pages-paragraph-list-v15.4.json");
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(
-            Corpus("native-exports/pages-paragraph-list-v15.4.pages"),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Open(Corpus("native-exports/pages-paragraph-list-v15.4.pages"), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         Assert.True(result.Projection.Body.IsFormattingComplete);
         result.Report.RequireCompleteEditableReconstruction();
         Assert.Equal(new double?[] { 1.5, 2, 1 }, result.Projection.Body.Paragraphs.Take(3)
@@ -82,7 +80,7 @@ public sealed partial class IWorkEverydayNativeExportTests {
         Assert.Contains("4. List continuation", output.Markdown);
         var blocks = output.Pages.SelectMany(page => page.Blocks).Where(block => block.Kind == "list-item").ToArray();
         Assert.Equal(new[] { "7.", "8.", "3.", "4." }, blocks.Select(block => block.Marker));
-        var lists = OfficeIMO.Markdown.MarkdownReader.Parse(output.Markdown!).Blocks
+        var lists = OfficeIMO.Markdown.MarkdownDocument.Parse(output.Markdown!).Blocks
             .OfType<OfficeIMO.Markdown.OrderedListBlock>().ToArray();
         Assert.Equal(new[] { 7, 3 }, lists.Select(list => list.Start));
         Assert.All(lists, list => Assert.Equal(2, list.Items.Count));

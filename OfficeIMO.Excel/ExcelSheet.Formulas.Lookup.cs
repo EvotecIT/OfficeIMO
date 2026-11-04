@@ -18,142 +18,205 @@ namespace OfficeIMO.Excel {
 
         private bool TryEvaluateLookupValue(string function, string args, out FormulaArgumentValue result) {
             result = default;
-            var tokens = SplitFormulaArguments(args, preserveEmpty: function == "XLOOKUP");
+            var tokens = SplitFormulaArguments(args, preserveEmpty: true);
             if (function == "XLOOKUP") {
                 return TryEvaluateXLookupValue(tokens, out result);
             }
 
-            if (tokens.Count != 4
-                || !TryResolveFormulaArgument(tokens[0], out var lookupValue)
+            if (tokens.Count < 3 || tokens.Count > 4
+                || !TryResolveLookupArgument(tokens[0], out var lookupValue)
                 || lookupValue.IsUnresolvedFormula
-                || !TryGetWholeNumberArgument(tokens[2], out int resultIndex)
-                || !IsExactLookupMode(tokens[3])) {
+                || !TryGetLookupPositionArgument(tokens[2], out int resultIndex, out FormulaArgumentValue indexError)) {
                 return false;
             }
-            if (!TryResolveFormulaRangeReference(tokens[1], out ExcelSheet rangeSheet, out int r1, out int c1, out int r2, out int c2))
-                return _formulaReferenceError.IsError;
-            if (!TryGetFormulaRangeCellCount(r1, c1, r2, c2, out _)) return false;
-
-            if (lookupValue.IsUnresolvedFormula) return false;
+            FormulaArgumentValue modeValue = FormulaArgumentValue.Boolean(tokens.Count != 4 || tokens[3].Length > 0);
+            if (tokens.Count == 4 && tokens[3].Length > 0
+                && !TryResolveFormulaValueArgument(tokens[3], out modeValue)) return false;
+            if (!modeValue.IsError && !modeValue.Number.HasValue) return false;
+            int budget = MaxResolvedFormulaRangeCells;
+            if (!TryResolveLookupSource(tokens[1], ref budget, out FormulaLookupSource source)) return false;
+            if (_formulaReferenceError.IsError) return true;
             if (lookupValue.IsError) { result = lookupValue; return true; }
-            if (function == "VLOOKUP") {
-                int width = c2 - c1 + 1;
-                if (resultIndex < 1 || resultIndex > width) {
-                    return false;
-                }
-
-                int resultColumn = c1 + resultIndex - 1;
-                for (int row = r1; row <= r2; row++) {
-                    FormulaArgumentValue candidate = ResolveFormulaDependency(rangeSheet, row, c1);
-                    if (candidate.IsUnresolvedFormula) return false;
-                    if (candidate.IsError) { result = candidate; return true; }
-                    if (!FormulaValuesEqual(candidate, lookupValue)) {
-                        continue;
-                    }
-
-                    result = ResolveFormulaDependency(rangeSheet, row, resultColumn);
-                    return result.HasValue;
-                }
-
-                result = FormulaArgumentValue.Error("#N/A");
+            if (indexError.IsError) { result = indexError; return true; }
+            if (modeValue.IsError) { result = modeValue; return true; }
+            if (source.Error.IsError) { result = source.Error; return true; }
+            lookupValue = NormalizeLookupResult(lookupValue);
+            bool vertical = function == "VLOOKUP", approximate = modeValue.Number != 0d;
+            if (resultIndex < 1 || resultIndex > (vertical ? source.Columns : source.Rows)) {
+                result = FormulaArgumentValue.Error(resultIndex < 1 ? "#VALUE!" : "#REF!");
                 return true;
             }
-
-            int height = r2 - r1 + 1;
-            if (resultIndex < 1 || resultIndex > height) {
-                return false;
+            int matchMode = approximate ? -1 : !lookupValue.Number.HasValue ? 2 : 0;
+            FormulaLookupSource vector = vertical ? source.Column(0) : source.Row(0);
+            if (!TryFindLookupPosition(lookupValue, vector, matchMode, 1, out int position,
+                out FormulaArgumentValue failure, sortedApproximate: approximate)) {
+                if (failure.IsUnresolvedFormula) return false;
+                result = failure.IsError ? failure : FormulaArgumentValue.Error("#N/A");
+                return true;
             }
-
-            int resultRow = r1 + resultIndex - 1;
-            for (int column = c1; column <= c2; column++) {
-                FormulaArgumentValue candidate = ResolveFormulaDependency(rangeSheet, r1, column);
-                if (candidate.IsUnresolvedFormula) return false;
-                if (candidate.IsError) { result = candidate; return true; }
-                if (!FormulaValuesEqual(candidate, lookupValue)) {
-                    continue;
-                }
-
-                result = ResolveFormulaDependency(rangeSheet, resultRow, column);
-                return result.HasValue;
-            }
-
-            result = FormulaArgumentValue.Error("#N/A");
-            return true;
+            result = (vertical ? source.At(position - 1, resultIndex - 1) : source.At(resultIndex - 1, position - 1)).AsScalarValue();
+            return !result.IsUnresolvedFormula;
         }
 
         private bool TryEvaluateXLookupValue(IReadOnlyList<string> tokens, out FormulaArgumentValue result) {
             result = default;
+            if (!TrySelectXLookupSource(tokens, out FormulaLookupSource selected) || selected.Count != 1) return false;
+            // Preserve a selected empty reference until its consumer chooses value semantics.
+            result = selected[0];
+            return !result.IsUnresolvedFormula;
+        }
+
+        private bool TrySelectXLookupSource(IReadOnlyList<string> tokens, out FormulaLookupSource selected) {
+            selected = null!;
             int remainingCellBudget = MaxResolvedFormulaRangeCells;
             if (tokens.Count < 3 || tokens.Count > 6
-                || !TryResolveFormulaArgument(tokens[0], out var lookupValue)
-                || !TryResolveFormulaRange(tokens[1], out var lookupValues, ref remainingCellBudget)
-                || !TryResolveFormulaRange(tokens[2], out var returnValues, ref remainingCellBudget)) {
+                || !TryResolveLookupArgument(tokens[0], out var lookupValue)
+                || !TryResolveLookupSource(tokens[1], ref remainingCellBudget, out FormulaLookupSource lookupValues)
+                || !TryResolveLookupSource(tokens[2], ref remainingCellBudget, out FormulaLookupSource returnValues)) {
                 return false;
             }
 
             int matchMode = 0;
-            if (tokens.Count >= 5 && tokens[4].Length > 0 && !TryGetWholeNumberArgument(tokens[4], out matchMode)) {
+            FormulaArgumentValue matchError = default;
+            if (tokens.Count >= 5 && tokens[4].Length > 0 && !TryGetLookupIntegerArgument(tokens[4], out matchMode, out matchError)) {
                 return false;
             }
 
-            if (matchMode != -1 && matchMode != 0 && matchMode != 1) {
+            if (!matchError.IsError && matchMode != -1 && matchMode != 0 && matchMode != 1 && matchMode != 2) {
                 return false;
             }
 
             int searchMode = 1;
+            FormulaArgumentValue modeError = default;
             if (tokens.Count >= 6 && tokens[5].Length > 0
-                && (!TryGetWholeNumberArgument(tokens[5], out searchMode) || (searchMode != 1 && searchMode != -1))) {
+                && (!TryGetLookupIntegerArgument(tokens[5], out searchMode, out modeError)
+                    || (!modeError.IsError && searchMode != 1 && searchMode != -1 && searchMode != 2 && searchMode != -2))) {
                 return false;
             }
 
             if (lookupValue.IsUnresolvedFormula) return false;
-            if (_formulaReferenceError.IsError) return true;
-            if (lookupValues.Count != returnValues.Count) return false;
-            if (lookupValue.IsError) { result = lookupValue; return true; }
+            FormulaArgumentValue error = _formulaReferenceError.IsError ? _formulaReferenceError
+                : lookupValue.IsError ? lookupValue : matchError.IsError ? matchError : modeError.IsError ? modeError
+                : lookupValues.Error.IsError ? lookupValues.Error : returnValues.Error;
+            bool vertical = lookupValues.Columns == 1 && (lookupValues.Rows > 1 || returnValues.Rows == 1);
+            if (!error.IsError && ((lookupValues.Rows != 1 && lookupValues.Columns != 1)
+                || (vertical ? lookupValues.Rows != returnValues.Rows : lookupValues.Columns != returnValues.Columns)))
+                error = FormulaArgumentValue.Error("#VALUE!");
+            if (error.IsError) { selected = LookupScalarSource(error); return true; }
             if (TryFindLookupPosition(lookupValue, lookupValues, matchMode, searchMode, out int position, out FormulaArgumentValue searchFailure)) {
-                var returnValue = returnValues[position - 1];
-                result = returnValue;
-                return result.HasValue;
-            }
-
-            if (searchFailure.IsUnresolvedFormula) return false;
-            if (searchFailure.IsError) { result = searchFailure; return true; }
-            if (tokens.Count >= 4 && tokens[3].Length > 0) {
-                if (!TryResolveFormulaArgument(tokens[3], out result) || result.IsUnresolvedFormula || !result.HasValue) return false;
+                selected = vertical ? returnValues.Row(position - 1) : returnValues.Column(position - 1);
                 return true;
             }
 
-            result = FormulaArgumentValue.Error("#N/A");
+            if (searchFailure.IsUnresolvedFormula) return false;
+            if (searchFailure.IsError) { selected = LookupScalarSource(searchFailure); return true; }
+            if (tokens.Count >= 4 && tokens[3].Length > 0) {
+                if (!TryResolveFormulaArgument(tokens[3], out FormulaArgumentValue fallback) || fallback.IsUnresolvedFormula) return false;
+                selected = LookupScalarSource(fallback);
+                return true;
+            }
+
+            selected = LookupScalarSource(FormulaArgumentValue.Error("#N/A"));
             return true;
         }
 
+        /// <summary>
+        /// Resolves an integral lookup operand without discarding a typed Excel error.
+        /// Unsupported or unresolved operands still leave the owning formula unevaluated.
+        /// </summary>
+        private bool TryGetLookupIntegerArgument(string token, out int number, out FormulaArgumentValue error) {
+            number = 0;
+            error = default;
+            if (!TryResolveFormulaValueArgument(token, out FormulaArgumentValue value)) return false;
+            if (value.IsError) { error = value; return true; }
+            return value.Number.HasValue && TryGetWholeNumber(value.Number.Value, out number);
+        }
+
+        private bool TryResolveLookupArgument(string token, out FormulaArgumentValue value) {
+            if (string.IsNullOrWhiteSpace(token)) { value = default; return true; }
+            return TryResolveFormulaArgument(token, out value);
+        }
+
+        // Row/column positions coerce numeric text and truncate fractions. Modes
+        // retain their separate discrete-value qualification above.
+        private bool TryGetLookupPositionArgument(string token, out int number, out FormulaArgumentValue error) {
+            number = 0;
+            error = default;
+            if (!TryResolveFormulaArgument(token, out FormulaArgumentValue value) || value.IsUnresolvedFormula) return false;
+            if (value.IsError) { error = value; return true; }
+            double position = value.Number ?? 0d;
+            if (value.HasValue && !value.Number.HasValue
+                && !double.TryParse(value.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out position)) {
+                error = FormulaArgumentValue.Error("#VALUE!");
+                return true;
+            }
+            if (!IsFinite(position)) { error = FormulaArgumentValue.Error("#VALUE!"); return true; }
+            number = position < 0 ? -1 : position >= int.MaxValue ? int.MaxValue : (int)Math.Truncate(position);
+            return true;
+        }
+
+        // Scalar value contexts and published cell caches coerce an empty reference
+        // to zero. Reference-sensitive consumers retain the raw blank instead.
+        private static FormulaArgumentValue NormalizeLookupResult(FormulaArgumentValue value) =>
+            !value.HasValue && !value.IsUnresolvedFormula
+                ? new FormulaArgumentValue(0d, "0", isUnevaluatedFormulaCache: value.IsUnevaluatedFormulaCache) : value;
+
         private bool TryEvaluateSumProduct(string args, out double result) {
             result = 0;
+            if (!TryEvaluateSumProductValue(args, out FormulaArgumentValue value) || !value.Number.HasValue) return false;
+            result = value.Number.Value;
+            return true;
+        }
+
+        private bool TryEvaluateSumProductValue(string args, out FormulaArgumentValue result) {
+            result = default;
             var tokens = SplitFormulaArguments(args);
             if (tokens.Count == 0) {
                 return false;
             }
 
-            var argumentSets = new List<List<double>>();
+            var argumentSets = new List<List<FormulaArgumentValue>>();
+            FormulaArgumentValue firstError = default;
+            int rows = -1, columns = -1;
+            bool mismatchedShape = false;
             int remainingCellBudget = MaxResolvedFormulaRangeCells;
             foreach (string token in tokens) {
-                if (!TryResolveFormulaArgumentNumbers(token, out var values, ref remainingCellBudget)) {
-                    return false;
+                if (!TryResolveLookupSource(token, ref remainingCellBudget, out FormulaLookupSource source,
+                    preserveScalarValue: true)) return false;
+                if (rows < 0) { rows = source.Rows; columns = source.Columns; }
+                else if (rows != source.Rows || columns != source.Columns) mismatchedShape = true;
+                var values = new List<FormulaArgumentValue>(source.Count);
+                for (int index = 0; index < source.Count; index++) {
+                    FormulaArgumentValue value = source[index];
+                    if (value.IsUnresolvedFormula) return false;
+                    if (value.IsError) { if (!firstError.IsError) firstError = value; }
+                    else if (!value.HasValue || value.IsBoolean || !value.IsNumericAggregateValue) {
+                        if (value.IsUnevaluatedFormulaCache) return false;
+                        // Array blanks and nonnumeric elements contribute zero;
+                        // Excel rejects a single blank argument with #VALUE!.
+                        if (!value.HasValue && source.Count == 1 && !firstError.IsError)
+                            firstError = FormulaArgumentValue.Error("#VALUE!");
+                        value = new FormulaArgumentValue(0d, "0");
+                    } else if (!IsFinite(value.Number!.Value)) return false;
+                    values.Add(value);
                 }
                 argumentSets.Add(values);
             }
             if (_formulaReferenceError.IsError) return true;
-            if (argumentSets.Any(values => values.Count == 0 || values.Count != argumentSets[0].Count)) return false;
+            if (argumentSets.Any(values => values.Count == 0)) return false;
+            if (firstError.IsError) { result = firstError; return true; }
+            if (mismatchedShape) { result = FormulaArgumentValue.Error("#VALUE!"); return true; }
 
+            double sum = 0;
             for (int index = 0; index < argumentSets[0].Count; index++) {
                 double product = 1d;
                 foreach (var values in argumentSets) {
-                    product *= values[index];
+                    product *= values[index].Number!.Value;
                 }
 
-                result += product;
+                sum += product;
             }
-
+            result = IsFinite(sum) ? new FormulaArgumentValue(sum, InvariantNumberText.Get(sum)) : FormulaArgumentValue.Error("#NUM!");
             return true;
         }
 

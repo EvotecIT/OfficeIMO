@@ -1,5 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
-using OfficeColor = OfficeIMO.Drawing.OfficeColor;
+using OfficeColor = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -206,19 +206,19 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the font size in points for the content control text.
         /// </summary>
-        public int? FontSize {
+        public global::OfficeIMO.OfficeLength? FontSize {
             get {
                 var runProperties = GetRunProperties();
                 if (runProperties?.FontSize?.Val != null &&
                     int.TryParse(runProperties.FontSize.Val, out var halfPoints)) {
-                    return halfPoints / 2;
+                    return global::OfficeIMO.OfficeLength.Emus((long)halfPoints * 6350);
                 }
                 return null;
             }
             set {
                 var runProperties = VerifyRunProperties();
                 if (value != null) {
-                    runProperties.FontSize = new FontSize { Val = (value * 2).ToString() };
+                    runProperties.FontSize = new FontSize { Val = checked((int)value.Value.ToHalfPoints()).ToString(System.Globalization.CultureInfo.InvariantCulture) };
                 } else {
                     runProperties.FontSize?.Remove();
                 }
@@ -256,20 +256,16 @@ namespace OfficeIMO.Word {
         /// </summary>
         public OfficeColor? Color {
             get {
-                if (string.IsNullOrEmpty(ColorHex)) {
-                    return null;
-                }
-                return Helpers.ParseColor(ColorHex);
+                string value = ColorValue;
+                return value.Length > 0 && OfficeColor.TryParseHex(value, out OfficeColor color) ? color : null;
             }
             set {
-                ColorHex = value?.ToRgbHex() ?? string.Empty;
+                ColorValue = value?.ToRgbHex() ?? string.Empty;
             }
         }
 
-        /// <summary>
-        /// Gets or sets the text color as a hexadecimal string.
-        /// </summary>
-        public string ColorHex {
+        /// <summary>Native run colour value (hexadecimal or <c>auto</c>); empty removes it.</summary>
+        private string ColorValue {
             get {
                 var runProperties = GetRunProperties();
                 return runProperties?.Color?.Val?.Value ?? string.Empty;
@@ -368,7 +364,7 @@ namespace OfficeIMO.Word {
         /// Sets the font size in points and returns the instance for chaining.
         /// </summary>
         /// <param name="fontSize">Font size in points.</param>
-        public WordStructuredDocumentTag SetFontSize(int fontSize) {
+        public WordStructuredDocumentTag SetFontSize(global::OfficeIMO.OfficeLength fontSize) {
             FontSize = fontSize;
             return this;
         }
@@ -379,15 +375,6 @@ namespace OfficeIMO.Word {
         /// <param name="fontFamily">Name of the font family.</param>
         public WordStructuredDocumentTag SetFontFamily(string fontFamily) {
             FontFamily = fontFamily;
-            return this;
-        }
-
-        /// <summary>
-        /// Sets the text color using a hexadecimal value and returns the instance for chaining.
-        /// </summary>
-        /// <param name="color">Color in hexadecimal format.</param>
-        public WordStructuredDocumentTag SetColorHex(string color) {
-            ColorHex = color;
             return this;
         }
 

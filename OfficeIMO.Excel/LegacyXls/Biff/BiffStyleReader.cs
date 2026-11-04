@@ -50,7 +50,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (record.Payload.Length < 2) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-STYLE-SHORT",
+                    "xls-biff-style-short",
                     "The Style record is shorter than expected.",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -65,7 +65,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 if (record.Payload.Length < 4) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Warning,
-                        "XLS-BIFF-STYLE-BUILTIN-SHORT",
+                        "xls-biff-style-builtin-short",
                         "The built-in Style record is missing BuiltInStyle data.",
                         recordOffset: record.Offset,
                         recordType: record.Type));
@@ -87,7 +87,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (record.Payload.Length == 2) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-STYLE-NAME-MISSING",
+                    "xls-biff-style-name-missing",
                     "The custom Style record is missing its style name.",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -110,7 +110,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             } catch (InvalidDataException ex) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-STYLE-NAME-INVALID",
+                    "xls-biff-style-name-invalid",
                     $"The custom Style record name could not be read. {ex.Message}",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -133,7 +133,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (record.Payload.Length < 20) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-XFCRC-SHORT",
+                    "xls-biff-xfcrc-short",
                     "The XFCRC record is shorter than expected.",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -145,7 +145,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (headerRecordType != (ushort)BiffRecordType.XfCrc) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-XFCRC-HEADER-UNEXPECTED",
+                    "xls-biff-xfcrc-header-unexpected",
                     $"The XFCRC future record header declares record type 0x{headerRecordType:X4}.",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -155,7 +155,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (reserved != 0) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-XFCRC-RESERVED-VALUE-UNEXPECTED",
+                    "xls-biff-xfcrc-reserved-value-unexpected",
                     "The XFCRC record contains a non-zero reserved field.",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -175,7 +175,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (record.Payload.Length < 20) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-XFEXT-SHORT",
+                    "xls-biff-xfext-short",
                     "The XFExt record is shorter than expected.",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -187,7 +187,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (headerRecordType != (ushort)BiffRecordType.XfExt) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-XFEXT-HEADER-UNEXPECTED",
+                    "xls-biff-xfext-header-unexpected",
                     $"The XFExt future record header declares record type 0x{headerRecordType:X4}.",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -198,7 +198,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (reserved1 != 0 || reserved2 != 0) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-XFEXT-RESERVED-VALUE-UNEXPECTED",
+                    "xls-biff-xfext-reserved-value-unexpected",
                     "The XFExt record contains non-zero reserved fields.",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -233,7 +233,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     fullyRead = false;
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Warning,
-                        "XLS-BIFF-XFEXT-PROPERTY-SHORT",
+                        "xls-biff-xfext-property-short",
                         "The XFExt record ended before all declared property extension headers could be read.",
                         recordOffset: record.Offset,
                         recordType: record.Type));
@@ -246,7 +246,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     fullyRead = false;
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Warning,
-                        "XLS-BIFF-XFEXT-PROPERTY-SIZE-INVALID",
+                        "xls-biff-xfext-property-size-invalid",
                         $"An XFExt property extension declares an invalid size of {totalByteCount} bytes.",
                         recordOffset: record.Offset,
                         recordType: record.Type));
@@ -257,7 +257,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     fullyRead = false;
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Warning,
-                        "XLS-BIFF-XFEXT-PROPERTY-TRUNCATED",
+                        "xls-biff-xfext-property-truncated",
                         "An XFExt property extension extends beyond the end of the record.",
                         recordOffset: record.Offset,
                         recordType: record.Type));
@@ -298,7 +298,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 fullyRead = false;
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-STYLEEXT-XFPROPS-SHORT",
+                    "xls-biff-styleext-xfprops-short",
                     "The StyleExt record ended before its XFProps header could be read.",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -310,7 +310,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 fullyRead = false;
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-STYLEEXT-XFPROPS-COUNT-INVALID",
+                    "xls-biff-styleext-xfprops-count-invalid",
                     $"The StyleExt XFProps structure declares {propertyCount} properties.",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -394,7 +394,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (record.Payload.Length < 16) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-STYLEEXT-SHORT",
+                    "xls-biff-styleext-short",
                     "The StyleExt record is shorter than expected.",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -406,7 +406,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (headerRecordType != (ushort)BiffRecordType.StyleExt) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-STYLEEXT-HEADER-UNEXPECTED",
+                    "xls-biff-styleext-header-unexpected",
                     $"The StyleExt future record header declares record type 0x{headerRecordType:X4}.",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -426,7 +426,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 } catch (InvalidDataException ex) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Warning,
-                        "XLS-BIFF-STYLEEXT-NAME-INVALID",
+                        "xls-biff-styleext-name-invalid",
                         $"The StyleExt record name could not be read. {ex.Message}",
                         recordOffset: record.Offset,
                         recordType: record.Type));

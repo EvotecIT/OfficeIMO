@@ -13,11 +13,11 @@ namespace OfficeIMO.Tests.Pdf {
             return new string(text.Where(c => !char.IsWhiteSpace(c)).ToArray());
         }
 
-        private static void AssertMargins(PageMargins margins, double left, double top, double right, double bottom) {
-            Assert.Equal(left, margins.Left, 6);
-            Assert.Equal(top, margins.Top, 6);
-            Assert.Equal(right, margins.Right, 6);
-            Assert.Equal(bottom, margins.Bottom, 6);
+        private static void AssertMargins(PdfPageMargins margins, double left, double top, double right, double bottom) {
+            Assert.Equal(left, margins.Left.ToPoints(), 6);
+            Assert.Equal(top, margins.Top.ToPoints(), 6);
+            Assert.Equal(right, margins.Right.ToPoints(), 6);
+            Assert.Equal(bottom, margins.Bottom.ToPoints(), 6);
         }
 
         private static double FindWordStartX(UglyToad.PdfPig.Content.Page page, string word) {

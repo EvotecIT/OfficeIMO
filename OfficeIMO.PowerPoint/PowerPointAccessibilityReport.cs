@@ -73,7 +73,7 @@ namespace OfficeIMO.PowerPoint {
             string message, int? slideIndex = null, uint? shapeId = null, string? shapeName = null,
             double? measuredValue = null, double? requiredValue = null) {
             Severity = severity;
-            Code = string.IsNullOrWhiteSpace(code) ? "Accessibility.Unknown" : code;
+            Code = string.IsNullOrWhiteSpace(code) ? "accessibility-unknown" : code;
             Message = message ?? string.Empty;
             SlideIndex = slideIndex;
             ShapeId = shapeId;

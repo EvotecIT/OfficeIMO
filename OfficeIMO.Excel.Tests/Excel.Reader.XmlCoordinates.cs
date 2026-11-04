@@ -35,9 +35,9 @@ public partial class Excel {
                 """;
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml",
                 Encoding.Unicode.GetPreamble().Concat(Encoding.Unicode.GetBytes(xml)).ToArray());
-            var options = new ExcelReadOptions { NumericAsDecimal = true, InferDataTableColumnTypes = false };
+            var options = new ExcelReaderOptions { NumericAsDecimal = true, InferDataTableColumnTypes = false };
             object[][] expected = { new object[] { 42m, "Hello", 12.5m }, new object[] { 43m, "World", 13.5m } };
-            using (var reader = ExcelDocument.OpenDataReader(path, options)) {
+            using (var reader = ExcelDocument.OpenReader(path, options)) {
                 for (int row = 0; row < expected.Length; row++) {
                     Assert.True(reader.Read());
                     for (int column = 0; column < 3; column++) Assert.Equal(expected[row][column], reader.GetValue(column));
@@ -87,8 +87,8 @@ public partial class Excel {
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml",
                 Encoding.Unicode.GetPreamble().Concat(Encoding.Unicode.GetBytes(xml)).ToArray());
             var exception = Assert.Throws<InvalidDataException>(() => {
-                using var reader = ExcelDocument.OpenDataReader(path);
-            });
+                using var reader = ExcelDocument.OpenReader(path);
+ _ = reader.FieldCount;             });
             Assert.Contains($"cell {expected} references a missing cell style", exception.Message);
         } finally {
             File.Delete(path);
@@ -114,8 +114,8 @@ public partial class Excel {
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml",
                 Encoding.Unicode.GetPreamble().Concat(Encoding.Unicode.GetBytes(xml)).ToArray());
             var exception = Record.Exception(() => {
-                using var reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions { UseCachedFormulaResult = false });
-            });
+                using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { UseCachedFormulaResult = false });
+ _ = reader.FieldCount;             });
             if (failure == "formula") {
                 Assert.IsType<NotSupportedException>(exception);
                 Assert.Contains($"'Data'!{reference}", exception!.Message);

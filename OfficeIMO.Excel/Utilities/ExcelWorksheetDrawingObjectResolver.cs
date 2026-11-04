@@ -277,7 +277,7 @@ namespace OfficeIMO.Excel.Utilities {
             }
 
             string? colorArgb = ExcelThemeColorResolver.Resolve(runProperties.GetFirstChild<A.SolidFill>(), workbookPart);
-            string? fontFamily = NormalizeFontFamily(GetRawAttribute(runProperties.GetFirstChild<A.LatinFont>(), "typeface"));
+            string? fontFamily = ResolveThemeFontFamily(NormalizeFontFamily(GetRawAttribute(runProperties.GetFirstChild<A.LatinFont>(), "typeface")), workbookPart);
             double? fontSize = int.TryParse(GetRawAttribute(runProperties, "sz"), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int rawFontSize) && rawFontSize > 0
                 ? rawFontSize / 100D
                 : null;
@@ -747,6 +747,15 @@ namespace OfficeIMO.Excel.Utilities {
             }
         }
 
+        /// <summary>Replaces a theme reference such as +mj-lt with the family the workbook theme names.</summary>
+        private static string? ResolveThemeFontFamily(string? family, WorkbookPart? workbookPart) {
+            if (family == null || !family.StartsWith("+", StringComparison.Ordinal)) return family;
+            A.FontScheme? fonts = workbookPart?.ThemePart?.Theme?.ThemeElements?.FontScheme;
+            A.FontCollectionType? collection = family.StartsWith("+mj-", StringComparison.OrdinalIgnoreCase) ? fonts?.MajorFont
+                : family.StartsWith("+mn-", StringComparison.OrdinalIgnoreCase) ? fonts?.MinorFont : null;
+            return NormalizeFontFamily(collection?.LatinFont?.Typeface?.Value);
+        }
+
         private static string? NormalizeFontFamily(string? value) =>
             string.IsNullOrWhiteSpace(value) ? null : value!.Trim();
 
@@ -1057,6 +1066,6 @@ namespace OfficeIMO.Excel.Utilities {
 
         internal bool IsRenderable => ShapeKind.HasValue && string.IsNullOrEmpty(UnsupportedReason);
 
-        internal string? CellReference => Row > 0 && Column > 0 ? A1.CellReference(Row, Column) : null;
+        internal string? CellReference => Row > 0 && Column > 0 ? ExcelA1.CellReference(Row, Column) : null;
     }
 }

@@ -12,14 +12,14 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("[*] Creating standard document with different default style (PL)");
             string filePath = System.IO.Path.Combine(folderPath, "BasicWordWithDefaultStyleChangePL.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.Settings.FontSize = 30;
+                document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(30);
                 document.Settings.FontFamily = "Calibri Light";
                 document.Settings.Language = "pl-PL";
                 document.Settings.Language = "pt-Br";
                 var paragraph1 = document.AddParagraph("To jest po polsku");
 
                 var paragraph2 = document.AddParagraph("Adding paragraph1 with some text and pressing ENTER");
-                paragraph2.FontSize = 15;
+                paragraph2.FontSize = global::OfficeIMO.OfficeLength.Points(15);
                 paragraph2.FontFamily = "Courier New";
 
                 document.Save();
@@ -30,8 +30,8 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("[*] Creating standard document with different default style (PT/BR)");
             string filePath = System.IO.Path.Combine(folderPath, "BasicWordWithDefaultStyleChangeBR.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.Settings.FontSize = 30;
-                //document.Settings.FontSizeComplexScript = 30;
+                document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(30);
+                //document.Settings.FontSizeComplexScript = global::OfficeIMO.OfficeLength.Points(30);
                 document.Settings.FontFamily = "Calibri Light";
                 document.Settings.FontFamilyHighAnsi = "Calibri Light";
                 document.Settings.Language = "pt-Br";

@@ -37,20 +37,22 @@ public class PdfDeferredTableRowGroupingTests {
         var style = new PdfTableStyle {
             HeaderRowCount = roles ? 1 : 0, FooterRowCount = roles ? 1 : 0,
             HeaderFill = null, FooterFill = null, BorderColor = null, RowStripeFill = null,
-            CellPaddingX = 0, CellPaddingY = 0, FontSize = 12, LineHeight = 1,
-            FixedRowHeights = Enumerable.Repeat<double?>(20, rows.Count).ToList(),
-            ColumnWidthPoints = new List<double?> { 100 }, PreferredWidth = 100,
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0), FontSize = global::OfficeIMO.OfficeLength.Points(12), LineHeight = 1,
+            FixedRowHeights = (Enumerable.Repeat<double?>(20, rows.Count).ToList()) is { } lengths1984 ? System.Linq.Enumerable.ToList(System.Linq.Enumerable.Select(lengths1984, static length => length.HasValue ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(length.Value) : null)) : null,
+            ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100) }, PreferredWidth = global::OfficeIMO.OfficeLength.Points(100),
             MinimumBodyRowsOnFirstPage = mode == "last" ? 0 : 2,
             MinimumBodyRowsOnLastPage = mode == "first" ? 0 : 2
         };
-        var document = PdfDocument.Create(new PdfOptions {
-            PageWidth = 320, PageHeight = roles ? 160 : 120,
-            MarginLeft = 30, MarginRight = 30, MarginTop = 30, MarginBottom = 30
+        var document = PdfDocument.Create(new PdfCreateOptions {
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(roles ? 160 : 120)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            }
         });
         document.Compose(root => root.Page(page => page.Content(content => {
-            if (mode != "last") content.Paragraph(paragraph => paragraph.Text("Preamble\nContinuation"),
-                style: new PdfParagraphStyle { FontSize = 12, LineHeight = 1, SpacingAfter = 0 });
-            content.TableDeferred(() => rows, batchSize, style: style);
+            if (mode != "last") content.AddParagraph(paragraph => paragraph.AddText("Preamble\nContinuation"),
+                style: new PdfParagraphStyle { FontSize = global::OfficeIMO.OfficeLength.Points(12), LineHeight = 1, SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) });
+            content.AddDeferredTable(() => rows, batchSize, style: style);
         })));
         return document.ToBytes();
     }

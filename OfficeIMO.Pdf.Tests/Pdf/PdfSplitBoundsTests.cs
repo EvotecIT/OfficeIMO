@@ -11,9 +11,9 @@ public sealed class PdfSplitBoundsTests {
     [InlineData(int.MaxValue, 1)]
     public void SplitHandlesPartSizesLargerThanTheDocument(int pagesPerPart, int expectedParts) {
         var document = PdfDocument.Create(compose => {
-            compose.Page(page => page.Size(200, 300));
-            compose.Page(page => page.Size(210, 300));
-            compose.Page(page => page.Size(220, 300));
+            compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300)));
+            compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(210), global::OfficeIMO.OfficeLength.Points(300)));
+            compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(300)));
         });
         var parts = document.Pages.Split(pagesPerPart);
         Assert.Equal(expectedParts, parts.Count);

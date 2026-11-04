@@ -9,7 +9,7 @@ schema: 2.0.0
 Adds a tab stop to a Word paragraph.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Add-OfficeWordTabStop [-Position] <int> [-Paragraph <WordParagraph>] [-Alignment <WordTabAlignment>] [-Leader <WordTabLeader>] [-PassThru] [<CommonParameters>]
 ```
@@ -33,7 +33,7 @@ Tab alignment.
 
 ```yaml
 Type: WordTabAlignment
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: Clear, Left, Start, Center, Right, End, Decimal, Bar, Number
 
@@ -49,7 +49,7 @@ Leader character.
 
 ```yaml
 Type: WordTabLeader
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: None, Dot, Hyphen, Underscore, Heavy, MiddleDot
 
@@ -65,7 +65,7 @@ Paragraph to update.
 
 ```yaml
 Type: WordParagraph
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -81,7 +81,7 @@ Emit the created tab stop.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -97,7 +97,7 @@ Tab position in twips.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

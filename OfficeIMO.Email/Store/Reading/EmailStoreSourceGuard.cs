@@ -18,11 +18,11 @@ internal sealed class EmailStoreSourceGuard {
         } catch (InvalidDataException) { Invalidate(); throw; }
     }
 
-    internal void Validate(Stream source, CancellationToken cancellationToken) {
+    internal void Validate(Stream source, CancellationToken cancellationToken, bool verifyFingerprint = true) {
         cancellationToken.ThrowIfCancellationRequested();
         if (_changed) throw ChangedSource();
         try {
-            if (source.Length != _length || _fingerprint != null &&
+            if (source.Length != _length || verifyFingerprint && _fingerprint != null &&
                 !string.Equals(_fingerprint, EmailStoreSourceFingerprint.Compute(source, _length,
                     _maximumBytes, cancellationToken), StringComparison.Ordinal)) throw ChangedSource();
         } catch (InvalidDataException) { Invalidate(); throw; }

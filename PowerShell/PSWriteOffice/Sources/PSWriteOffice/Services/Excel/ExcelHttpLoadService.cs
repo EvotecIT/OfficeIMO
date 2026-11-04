@@ -5,9 +5,9 @@ namespace PSWriteOffice.Services.Excel;
 
 internal static class ExcelHttpLoadService
 {
-    public static ExcelHttpLoadOptions CreateOptions(SwitchParameter allowHttp)
+    public static ExcelLoadOptions CreateOptions(SwitchParameter allowHttp)
     {
-        return new ExcelHttpLoadOptions
+        return new ExcelLoadOptions
         {
             SchemePolicy = allowHttp.IsPresent
                 ? ExcelUriSchemePolicy.HttpAndHttps

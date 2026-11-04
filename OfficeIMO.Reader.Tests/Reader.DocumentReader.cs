@@ -33,7 +33,7 @@ public sealed class ReaderDocumentReaderTests {
             }
 
             var bytes = File.ReadAllBytes(path);
-            var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(bytes, "Policy.docx").ToList();
+            var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(bytes, "Policy.docx").ToList();
             Assert.NotEmpty(chunks);
             Assert.Contains(chunks, c => c.Kind == ReaderInputKind.Word && (c.Markdown ?? c.Text).Contains("# Policy", StringComparison.Ordinal));
         } finally {
@@ -46,15 +46,15 @@ public sealed class ReaderDocumentReaderTests {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
         try {
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorksheet("Data");
-                sheet.Cell(1, 1, "Name");
-                sheet.Cell(1, 2, "Value");
-                sheet.Cell(2, 1, "A");
-                sheet.Cell(2, 2, 1);
+                var sheet = doc.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("A");
+                sheet.Cell(2, 2).SetValue(1);
                 doc.Save();
             }
 
-            var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.Excel("Data", "A1:B2").Read(path).ToList();
+            var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.Excel("Data", "A1:B2").Enumerate(path).ToList();
             Assert.NotEmpty(chunks);
             Assert.Contains(chunks, c =>
                 c.Kind == ReaderInputKind.Excel &&
@@ -70,7 +70,7 @@ public sealed class ReaderDocumentReaderTests {
     public void DocumentReader_CanReadLegacyDocThroughWordEngine() {
         string path = GetRepositoryPath("OfficeIMO.TestAssets", "Documents", "LegacyDocCorpus", "ComSimpleParagraphs.doc");
 
-        var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(path).ToList();
+        var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(path).ToList();
         var result = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(path);
 
         Assert.Equal(ReaderInputKind.Word, OfficeIMO.Reader.Tests.ReaderTestReaders.All.DetectKind(path));
@@ -88,7 +88,7 @@ public sealed class ReaderDocumentReaderTests {
     public void DocumentReader_CanReadLegacyXlsThroughExcelEngine() {
         string path = GetRepositoryPath("OfficeIMO.TestAssets", "Documents", "LegacyXlsCorpus", "openpreserve-format-corpus", "valid.xls");
 
-        var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(path).ToList();
+        var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(path).ToList();
         var result = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(path);
 
         Assert.Equal(ReaderInputKind.Excel, OfficeIMO.Reader.Tests.ReaderTestReaders.All.DetectKind(path));
@@ -105,7 +105,7 @@ public sealed class ReaderDocumentReaderTests {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using ExcelDocument document = ExcelDocument.Create(path);
-            document.AddWorksheet("Data").CellValue(1, 1, "Preserved record warning");
+            document.AddSheet("Data").Cell(1, 1).SetValue("Preserved record warning");
 
             typeof(ExcelDocument)
                 .GetProperty(nameof(ExcelDocument.SourceFormat))!
@@ -143,9 +143,9 @@ public sealed class ReaderDocumentReaderTests {
         };
 
         OfficeDocumentReader reader = OfficeIMO.Reader.Tests.ReaderTestReaders.Excel("Encrypted", "A1:B2");
-        var pathChunks = reader.Read(path, options).ToList();
+        var pathChunks = reader.Enumerate(path, options).ToList();
         using var stream = File.OpenRead(path);
-        var streamChunks = reader.Read(stream, "encrypted-password.xls", options).ToList();
+        var streamChunks = reader.Enumerate(stream, "encrypted-password.xls", options).ToList();
 
         AssertEncryptedLegacyXlsChunks(pathChunks);
         AssertEncryptedLegacyXlsChunks(streamChunks);
@@ -158,12 +158,12 @@ public sealed class ReaderDocumentReaderTests {
         string encryptedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (var doc = ExcelDocument.Create(sourcePath)) {
-                var sheet = doc.AddWorksheet("SecureData");
-                sheet.Cell(1, 1, "Name");
-                sheet.Cell(1, 2, "Value");
-                sheet.Cell(2, 1, "Token");
-                sheet.Cell(2, 2, 7);
-                doc.SaveEncrypted(encryptedPath, password);
+                var sheet = doc.AddSheet("SecureData");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("Token");
+                sheet.Cell(2, 2).SetValue(7);
+                doc.Save(encryptedPath,new OfficeIMO.Excel.ExcelSaveOptions{Password=password});
             }
 
             var options = new ReaderOptions {
@@ -171,9 +171,9 @@ public sealed class ReaderDocumentReaderTests {
             };
 
             OfficeDocumentReader reader = OfficeIMO.Reader.Tests.ReaderTestReaders.Excel("SecureData", "A1:B2");
-            var pathChunks = reader.Read(encryptedPath, options).ToList();
+            var pathChunks = reader.Enumerate(encryptedPath, options).ToList();
             using var stream = File.OpenRead(encryptedPath);
-            var streamChunks = reader.Read(stream, "encrypted.xlsx", options).ToList();
+            var streamChunks = reader.Enumerate(stream, "encrypted.xlsx", options).ToList();
             OfficeDocumentReadResult pathResult = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(encryptedPath, options);
             using var resultStream = File.OpenRead(encryptedPath);
             OfficeDocumentReadResult streamResult = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(resultStream, "encrypted.xlsx", options);
@@ -194,14 +194,14 @@ public sealed class ReaderDocumentReaderTests {
     public void DocumentReader_CanReadPowerPoint() {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
         try {
-            using (var presentation = PowerPointPresentation.Create(path)) {
+            using (var presentation = PowerPointDocument.Create(path)) {
                 var slide = presentation.AddSlide();
                 slide.AddTextBox("Hello Reader");
                 slide.Notes.Text = "Notes";
                 presentation.Save();
             }
 
-            var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(path).ToList();
+            var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(path).ToList();
             Assert.NotEmpty(chunks);
             Assert.Contains(chunks, c => c.Kind == ReaderInputKind.PowerPoint && (c.Markdown ?? c.Text).Contains("Hello Reader", StringComparison.Ordinal));
             Assert.Contains(chunks, c => c.Kind == ReaderInputKind.PowerPoint && (c.Markdown ?? c.Text).Contains("Notes", StringComparison.Ordinal));
@@ -224,10 +224,10 @@ public sealed class ReaderDocumentReaderTests {
             File.Copy(source, path);
 
             IReadOnlyList<ReaderChunk> pathChunks =
-                OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(path).ToArray();
+                OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(path).ToArray();
             using var stream = File.OpenRead(path);
             IReadOnlyList<ReaderChunk> streamChunks =
-                OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(stream,
+                OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(stream,
                     "binary-deck." + extension).ToArray();
             OfficeDocumentReadResult result =
                 OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(path);
@@ -257,15 +257,15 @@ public sealed class ReaderDocumentReaderTests {
         string path = Path.Combine(Path.GetTempPath(),
             Guid.NewGuid().ToString("N") + ".ppt");
         try {
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 source.AddSlide().AddTextBox("Reader encrypted PPT");
-                source.SaveEncrypted(path, password);
+                source.Save(path,new OfficeIMO.PowerPoint.PowerPointSaveOptions{Password=password});
             }
             var options = new ReaderOptions { OpenPassword = password };
 
             IReadOnlyList<ReaderChunk> pathChunks =
-                OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(path, options).ToArray();
+                OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(path, options).ToArray();
             using var stream = File.OpenRead(path);
             OfficeDocumentReadResult streamResult =
                 OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(stream,
@@ -279,7 +279,7 @@ public sealed class ReaderDocumentReaderTests {
                     "Reader encrypted PPT", StringComparison.Ordinal));
             Assert.Contains(pathChunks.SelectMany(chunk =>
                     chunk.Warnings ?? Array.Empty<string>()), warning =>
-                warning.Contains("PPT-ENCRYPTION-DECRYPTED",
+                warning.Contains("ppt-encryption-decrypted",
                     StringComparison.Ordinal));
         } finally {
             if (File.Exists(path)) File.Delete(path);
@@ -292,18 +292,18 @@ public sealed class ReaderDocumentReaderTests {
         string path = Path.Combine(Path.GetTempPath(),
             Guid.NewGuid().ToString("N") + ".pptx");
         try {
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 source.AddSlide().AddTextBox("Reader encrypted PPTX");
-                source.SaveEncrypted(path, password);
+                source.Save(path,new OfficeIMO.PowerPoint.PowerPointSaveOptions{Password=password});
             }
             var options = new ReaderOptions { OpenPassword = password };
 
             IReadOnlyList<ReaderChunk> pathChunks =
-                OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(path, options).ToArray();
+                OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(path, options).ToArray();
             using var chunkStream = File.OpenRead(path);
             IReadOnlyList<ReaderChunk> streamChunks = OfficeIMO.Reader.Tests.ReaderTestReaders
-                .All.Read(chunkStream, "encrypted.pptx", options)
+                .All.Enumerate(chunkStream, "encrypted.pptx", options)
                 .ToArray();
             OfficeDocumentReadResult pathResult = OfficeIMO.Reader.Tests.ReaderTestReaders
                 .All.ReadDocument(path, options);
@@ -327,10 +327,10 @@ public sealed class ReaderDocumentReaderTests {
         string path = Path.Combine(Path.GetTempPath(),
             Guid.NewGuid().ToString("N") + ".pptx");
         try {
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 source.AddSlide().AddTextBox("Reader encrypted PPTX");
-                source.SaveEncrypted(path, password);
+                source.Save(path,new OfficeIMO.PowerPoint.PowerPointSaveOptions{Password=password});
             }
             var options = new ReaderOptions {
                 OpenPassword = "reader-wrong-pass"
@@ -338,11 +338,11 @@ public sealed class ReaderDocumentReaderTests {
 
             CryptographicException pathException = Assert.Throws<
                 CryptographicException>(() => OfficeIMO.Reader.Tests.ReaderTestReaders.All
-                .Read(path, options).ToArray());
+                .Enumerate(path, options).ToArray());
             using var stream = File.OpenRead(path);
             CryptographicException streamException = Assert.Throws<
                 CryptographicException>(() => OfficeIMO.Reader.Tests.ReaderTestReaders.All
-                .Read(stream, "encrypted.pptx", options).ToArray());
+                .Enumerate(stream, "encrypted.pptx", options).ToArray());
 
             Assert.Contains("password is incorrect", pathException.Message,
                 StringComparison.OrdinalIgnoreCase);
@@ -359,11 +359,11 @@ public sealed class ReaderDocumentReaderTests {
         byte[] encrypted;
         var randomBytes = new byte[32 * 1024];
         new Random(42).NextBytes(randomBytes);
-        using (PowerPointPresentation source =
-               PowerPointPresentation.Create()) {
+        using (PowerPointDocument source =
+               PowerPointDocument.Create()) {
             source.AddSlide().AddTextBox(
                 Convert.ToBase64String(randomBytes));
-            encrypted = source.ToEncryptedBytes(password);
+            encrypted = source.ToBytes(new OfficeIMO.PowerPoint.PowerPointSaveOptions{Password=password});
         }
         int encryptionInfoEntry = FindReaderCompoundDirectoryEntry(encrypted,
             "EncryptionInfo");
@@ -394,7 +394,7 @@ public sealed class ReaderDocumentReaderTests {
             string.Join(" | ", detection.Evidence));
         stream.Position = 0;
         InvalidDataException exception = Assert.Throws<InvalidDataException>(
-            () => OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(stream,
+            () => OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(stream,
                 "encrypted.pptx", options).ToArray());
 
         Assert.Contains("Compound stream bytes exceed", exception.Message,
@@ -408,19 +408,19 @@ public sealed class ReaderDocumentReaderTests {
             Guid.NewGuid().ToString("N"));
         try {
             byte[] encrypted;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 source.AddSlide().AddTextBox("Reader encrypted PPTX");
-                encrypted = source.ToEncryptedBytes(password);
+                encrypted = source.ToBytes(new OfficeIMO.PowerPoint.PowerPointSaveOptions{Password=password});
             }
             File.WriteAllBytes(path, encrypted);
             var options = new ReaderOptions { OpenPassword = password };
             IReadOnlyList<ReaderChunk> pathChunks = OfficeIMO.Reader.Tests.ReaderTestReaders
-                .All.Read(path, options).ToArray();
+                .All.Enumerate(path, options).ToArray();
             using var chunkStream = new MemoryStream(encrypted,
                 writable: false);
             IReadOnlyList<ReaderChunk> streamChunks = OfficeIMO.Reader.Tests.ReaderTestReaders
-                .All.Read(chunkStream, sourceName: null, options)
+                .All.Enumerate(chunkStream, sourceName: null, options)
                 .ToArray();
             OfficeDocumentReadResult pathResult = OfficeIMO.Reader.Tests.ReaderTestReaders
                 .All.ReadDocument(path, options);
@@ -460,7 +460,7 @@ public sealed class ReaderDocumentReaderTests {
             using (WordDocument source = WordDocument.Create()) {
                 source.AddParagraph("Reader encrypted Word");
                 using var output = new MemoryStream();
-                source.SaveEncrypted(output, password);
+                source.Save(output,new OfficeIMO.Word.WordSaveOptions{Password=password});
                 encrypted = output.ToArray();
             }
             File.WriteAllBytes(path, encrypted);
@@ -492,13 +492,13 @@ public sealed class ReaderDocumentReaderTests {
             "LegacyPptCorpus", "AccessibilityPowerPoint.ppt");
 
         IReadOnlyList<ReaderChunk> chunks =
-            OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(path).ToArray();
+            OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(path).ToArray();
 
         Assert.Contains(chunks.SelectMany(chunk =>
                 chunk.Warnings ?? Array.Empty<string>()), warning =>
             warning.Contains("Legacy PPT import diagnostic",
                 StringComparison.Ordinal)
-            && warning.Contains("PPT-SHAPE-STYLE-PARTIAL",
+            && warning.Contains("ppt-shape-style-partial",
                 StringComparison.Ordinal));
     }
 
@@ -582,7 +582,7 @@ public sealed class ReaderDocumentReaderTests {
             File.WriteAllText(path, "# Top\n\nPara 1.\n\n## Child\n\nPara 2.\n");
 
             using var fs = File.OpenRead(path);
-            var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(fs, "Notes.md").ToList();
+            var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(fs, "Notes.md").ToList();
             Assert.True(chunks.Count >= 2);
             Assert.Contains(chunks, c => c.Kind == ReaderInputKind.Markdown && (c.Location.HeadingPath?.Contains("Top", StringComparison.Ordinal) ?? false));
             var markdownChunks = chunks.Where(static c => c.Kind == ReaderInputKind.Markdown).ToList();
@@ -605,7 +605,7 @@ public sealed class ReaderDocumentReaderTests {
         try {
             File.WriteAllText(path, "Top\r\n===\r\n\r\nPara 1.\r\n\r\nChild\r\n---\r\n\r\nPara 2.\r\n");
 
-            var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(path).Where(static c => c.Kind == ReaderInputKind.Markdown).ToList();
+            var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(path).Where(static c => c.Kind == ReaderInputKind.Markdown).ToList();
 
             Assert.True(chunks.Count >= 2);
             Assert.Contains(chunks, c => string.Equals(c.Location.HeadingPath, "Top", StringComparison.Ordinal));
@@ -624,7 +624,7 @@ public sealed class ReaderDocumentReaderTests {
             File.WriteAllText(path,
                 "# Top\n\n```text\n# not a heading\nline 2\n```\n\nAfter fence.\n\n## Child\n\nDone.\n");
 
-            var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(path).Where(static c => c.Kind == ReaderInputKind.Markdown).ToList();
+            var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(path).Where(static c => c.Kind == ReaderInputKind.Markdown).ToList();
 
             Assert.Equal(2, chunks.Count);
             Assert.Equal("Top", chunks[0].Location.HeadingPath);
@@ -644,7 +644,7 @@ public sealed class ReaderDocumentReaderTests {
             File.WriteAllText(path,
                 "# Top\n\nIntro paragraph.\n\n```text\n" + largePayload + "\n```\n\nTail paragraph.\n");
 
-            var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(path, new ReaderOptions { MaxChars = 256 }).Where(static c => c.Kind == ReaderInputKind.Markdown).ToList();
+            var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(path, new ReaderOptions { MaxChars = 256 }).Where(static c => c.Kind == ReaderInputKind.Markdown).ToList();
 
             Assert.True(chunks.Count >= 3);
             Assert.Contains(chunks, c => (c.Warnings?.Any(w => w.Contains("single markdown block exceeded MaxChars", StringComparison.OrdinalIgnoreCase)) ?? false));
@@ -665,7 +665,7 @@ public sealed class ReaderDocumentReaderTests {
             File.WriteAllText(path,
                 "# Data\n\n| Name | Value |\n| --- | ---: |\n| A | 1 |\n| B | 2 |\n");
 
-            var chunk = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(path).Single(c => c.Kind == ReaderInputKind.Markdown && (c.Tables?.Count ?? 0) > 0);
+            var chunk = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(path).Single(c => c.Kind == ReaderInputKind.Markdown && (c.Tables?.Count ?? 0) > 0);
 
             Assert.Equal("Data", chunk.Location.HeadingPath);
             Assert.NotNull(chunk.Tables);
@@ -714,7 +714,7 @@ public sealed class ReaderDocumentReaderTests {
             File.WriteAllText(path,
                 "# Data\n\n| A | 1 |\n| B | 2 |\n| C | 3 |\n");
 
-            var chunk = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(path, new ReaderOptions { MaxTableRows = 2 })
+            var chunk = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(path, new ReaderOptions { MaxTableRows = 2 })
                 .Single(c => c.Kind == ReaderInputKind.Markdown && (c.Tables?.Count ?? 0) > 0);
 
             Assert.NotNull(chunk.Tables);
@@ -738,7 +738,7 @@ public sealed class ReaderDocumentReaderTests {
             File.WriteAllText(path,
                 "# Visual\n\n```ix-dataview\n" + raw + "\n```\n");
 
-            var chunk = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(path).Single(c => c.Kind == ReaderInputKind.Markdown && (c.Tables?.Count ?? 0) > 0);
+            var chunk = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(path).Single(c => c.Kind == ReaderInputKind.Markdown && (c.Tables?.Count ?? 0) > 0);
 
             Assert.Equal("Visual", chunk.Location.HeadingPath);
             Assert.NotNull(chunk.Tables);
@@ -771,7 +771,7 @@ public sealed class ReaderDocumentReaderTests {
             File.WriteAllText(path,
                 "# Visuals\n\n```mermaid\n" + mermaid + "\n```\n\n```ix-chart\n" + chart + "\n```\n\n```ix-network\n" + network + "\n```\n");
 
-            var chunk = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(path)
+            var chunk = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(path)
                 .Single(c => c.Kind == ReaderInputKind.Markdown && (c.Visuals?.Count ?? 0) > 0);
 
             Assert.Equal("Visuals", chunk.Location.HeadingPath);
@@ -805,7 +805,7 @@ public sealed class ReaderDocumentReaderTests {
             File.WriteAllText(path,
                 "# Visual\n\n```ix-dataview\n{\"rows\":[[\"Server\",\"Fails\"],[\"AD0\",\"0\"]]}\n```\n");
 
-            var chunk = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(path)
+            var chunk = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(path)
                 .Single(c => c.Kind == ReaderInputKind.Markdown && (c.Tables?.Count ?? 0) > 0);
 
             Assert.NotNull(chunk.Tables);
@@ -838,7 +838,7 @@ public sealed class ReaderDocumentReaderTests {
             File.WriteAllText(path,
                 "# Visual\n\n```ix-dataview\n{\"kind\":\"ix_tool_dataview_v1\",\"columns\":[\"Server\",\"Fails\"],\"records\":[{\"Server\":\"AD0\",\"Fails\":0},{\"Server\":\"AD1\",\"Fails\":1}]}\n```\n");
 
-            var chunk = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(path).Single(c => c.Kind == ReaderInputKind.Markdown && (c.Tables?.Count ?? 0) > 0);
+            var chunk = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(path).Single(c => c.Kind == ReaderInputKind.Markdown && (c.Tables?.Count ?? 0) > 0);
 
             Assert.NotNull(chunk.Tables);
             Assert.Single(chunk.Tables!);
@@ -859,7 +859,7 @@ public sealed class ReaderDocumentReaderTests {
             File.WriteAllText(path,
                 "# Visual\n\n```ix-dataview\n{\"rows\":[[\"Server\",\"Fails\"],[\"AD0\",\"0\"],[\"AD1\",\"1\"],[\"AD2\",\"2\"]]}\n```\n");
 
-            var chunk = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(path, new ReaderOptions { MaxTableRows = 2 })
+            var chunk = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(path, new ReaderOptions { MaxTableRows = 2 })
                 .Single(c => c.Kind == ReaderInputKind.Markdown && (c.Tables?.Count ?? 0) > 0);
 
             Assert.NotNull(chunk.Tables);
@@ -882,12 +882,12 @@ public sealed class ReaderDocumentReaderTests {
             File.WriteAllText(path,
                 "# Visual\n\n```ix-dataview{\"kind\":\"ix_tool_dataview_v1\",\"rows\":[[\"Server\",\"Fails\"],[\"AD0\",\"0\"]]}\n```\n");
 
-            OfficeDocumentReader reader = OfficeIMO.Reader.Tests.ReaderTestReaders.Markdown(new MarkdownReaderOptions {
+            OfficeDocumentReader reader = OfficeIMO.Reader.Tests.ReaderTestReaders.Markdown(new MarkdownLoadOptions {
                 InputNormalization = new MarkdownInputNormalizationOptions {
                     NormalizeCompactFenceBodyBoundaries = true
                 }
             });
-            var chunk = reader.Read(path).Single(c => c.Kind == ReaderInputKind.Markdown && (c.Tables?.Count ?? 0) > 0);
+            var chunk = reader.Enumerate(path).Single(c => c.Kind == ReaderInputKind.Markdown && (c.Tables?.Count ?? 0) > 0);
 
             Assert.NotNull(chunk.Tables);
             Assert.Single(chunk.Tables!);
@@ -906,7 +906,7 @@ public sealed class ReaderDocumentReaderTests {
             File.WriteAllText(path,
                 "# Top\n\nPara 1.\n\n## Child\n\nPara 2.\n");
 
-            var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(path).Where(static c => c.Kind == ReaderInputKind.Markdown).ToList();
+            var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(path).Where(static c => c.Kind == ReaderInputKind.Markdown).ToList();
 
             var topChunk = chunks.Single(c => string.Equals(c.Location.HeadingPath, "Top", StringComparison.Ordinal));
             Assert.Equal(1, topChunk.Location.StartLine);
@@ -938,13 +938,13 @@ public sealed class ReaderDocumentReaderTests {
         try {
             File.WriteAllText(path, "## Wynik ogólny- **Replication:** wcześniej zdrowa ✅- **FSMO:** technicznie OK");
 
-            OfficeDocumentReader reader = OfficeIMO.Reader.Tests.ReaderTestReaders.Markdown(new MarkdownReaderOptions {
+            OfficeDocumentReader reader = OfficeIMO.Reader.Tests.ReaderTestReaders.Markdown(new MarkdownLoadOptions {
                 InputNormalization = new MarkdownInputNormalizationOptions {
                     NormalizeHeadingListBoundaries = true,
                     NormalizeCompactStrongLabelListBoundaries = true
                 }
             });
-            var chunks = reader.Read(path).Where(static c => c.Kind == ReaderInputKind.Markdown).ToList();
+            var chunks = reader.Enumerate(path).Where(static c => c.Kind == ReaderInputKind.Markdown).ToList();
 
             var chunk = Assert.Single(chunks);
             Assert.Equal("Wynik ogólny", chunk.Location.HeadingPath);
@@ -962,12 +962,12 @@ public sealed class ReaderDocumentReaderTests {
         try {
             File.WriteAllText(path, "# Summary\n\n- Signal **No current failures -> **Why it matters:** transport/auth issues");
 
-            OfficeDocumentReader reader = OfficeIMO.Reader.Tests.ReaderTestReaders.Markdown(new MarkdownReaderOptions {
+            OfficeDocumentReader reader = OfficeIMO.Reader.Tests.ReaderTestReaders.Markdown(new MarkdownLoadOptions {
                 InputNormalization = new MarkdownInputNormalizationOptions {
                     NormalizeBrokenStrongArrowLabels = true
                 }
             });
-            var chunk = reader.Read(path).Single(c => c.Kind == ReaderInputKind.Markdown);
+            var chunk = reader.Enumerate(path).Single(c => c.Kind == ReaderInputKind.Markdown);
 
             Assert.Contains("**No current failures** -> **Why it matters:**", chunk.Markdown ?? string.Empty, StringComparison.Ordinal);
         } finally {
@@ -981,12 +981,12 @@ public sealed class ReaderDocumentReaderTests {
         try {
             File.WriteAllText(path, "# Summary\n\n- Overall health ****healthy****");
 
-            OfficeDocumentReader reader = OfficeIMO.Reader.Tests.ReaderTestReaders.Markdown(new MarkdownReaderOptions {
+            OfficeDocumentReader reader = OfficeIMO.Reader.Tests.ReaderTestReaders.Markdown(new MarkdownLoadOptions {
                 InputNormalization = new MarkdownInputNormalizationOptions {
                     NormalizeLooseStrongDelimiters = true
                 }
             });
-            var chunk = reader.Read(path).Single(c => c.Kind == ReaderInputKind.Markdown);
+            var chunk = reader.Enumerate(path).Single(c => c.Kind == ReaderInputKind.Markdown);
 
             Assert.Contains("**healthy**", chunk.Markdown ?? string.Empty, StringComparison.Ordinal);
             Assert.DoesNotContain("****healthy****", chunk.Markdown ?? string.Empty, StringComparison.Ordinal);
@@ -1001,14 +1001,14 @@ public sealed class ReaderDocumentReaderTests {
         try {
             File.WriteAllText(path, "previous shutdown was unexpected### Reason- **Unplanned / unexpected reboot**");
 
-            OfficeDocumentReader reader = OfficeIMO.Reader.Tests.ReaderTestReaders.Markdown(new MarkdownReaderOptions {
+            OfficeDocumentReader reader = OfficeIMO.Reader.Tests.ReaderTestReaders.Markdown(new MarkdownLoadOptions {
                 InputNormalization = new MarkdownInputNormalizationOptions {
                     NormalizeCompactHeadingBoundaries = true,
                     NormalizeHeadingListBoundaries = true,
                     NormalizeCompactStrongLabelListBoundaries = true
                 }
             });
-            var chunks = reader.Read(path).Where(static c => c.Kind == ReaderInputKind.Markdown).ToList();
+            var chunks = reader.Enumerate(path).Where(static c => c.Kind == ReaderInputKind.Markdown).ToList();
 
             Assert.Equal(2, chunks.Count);
             Assert.Equal("Reason", chunks[1].Location.HeadingPath);
@@ -1027,7 +1027,7 @@ public sealed class ReaderDocumentReaderTests {
             File.WriteAllText(path,
                 "# Top\n\nIntro paragraph.\n\n```text\n" + largePayload + "\n```\n\nTail paragraph.\n");
 
-            var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(path, new ReaderOptions { MaxChars = 256 })
+            var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(path, new ReaderOptions { MaxChars = 256 })
                 .Where(static c => c.Kind == ReaderInputKind.Markdown)
                 .ToList();
 
@@ -1057,7 +1057,7 @@ public sealed class ReaderDocumentReaderTests {
             File.WriteAllText(path,
                 "# Repeat\n\nOne.\n\n## Child\n\nA.\n\n# Repeat\n\nTwo.\n");
 
-            var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(path).Where(static c => c.Kind == ReaderInputKind.Markdown).ToList();
+            var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(path).Where(static c => c.Kind == ReaderInputKind.Markdown).ToList();
 
             Assert.Contains(chunks, c => string.Equals(c.Location.HeadingPath, "Repeat", StringComparison.Ordinal) && string.Equals(c.Location.HeadingSlug, "repeat", StringComparison.Ordinal));
             Assert.Contains(chunks, c => string.Equals(c.Location.HeadingPath, "Repeat > Child", StringComparison.Ordinal) && string.Equals(c.Location.HeadingSlug, "child", StringComparison.Ordinal));
@@ -1074,7 +1074,7 @@ public sealed class ReaderDocumentReaderTests {
             File.WriteAllText(path,
                 "# !!!\n\nOne.\n\n# !!!\n\nTwo.\n\n# ążźć\n\nThree.\n");
 
-            var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(path).Where(static c => c.Kind == ReaderInputKind.Markdown).ToList();
+            var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(path).Where(static c => c.Kind == ReaderInputKind.Markdown).ToList();
 
             var punctuationChunks = chunks.Where(c => string.Equals(c.Location.HeadingPath, "!!!", StringComparison.Ordinal)).ToList();
             Assert.Equal(2, punctuationChunks.Count);
@@ -1092,20 +1092,18 @@ public sealed class ReaderDocumentReaderTests {
     public void DocumentReader_CanReadPdf() {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pdf");
         try {
-            var pdf = PdfDocument.Create(new PdfOptions {
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+            var pdf = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(360)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             });
             pdf.H1("PDF Title");
-            pdf.Paragraph(p => p.Text("This is a PDF body."));
+            pdf.Paragraph(p => p.AddText("This is a PDF body."));
             pdf.Save(path);
 
-            var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(path).ToList();
+            var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(path).ToList();
             Assert.NotEmpty(chunks);
             Assert.Contains(chunks, c => c.Kind == ReaderInputKind.Pdf);
             Assert.Contains(chunks, c => c.Location.Page.HasValue && c.Location.Page.Value >= 1);
@@ -1129,7 +1127,7 @@ public sealed class ReaderDocumentReaderTests {
             File.WriteAllText(a, "alpha");
             File.WriteAllText(b, "beta");
 
-            var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadFolder(
+            var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.EnumerateFolder(
                 folderPath: folder,
                 folderOptions: new ReaderFolderOptions {
                     Recurse = false,
@@ -1157,7 +1155,7 @@ public sealed class ReaderDocumentReaderTests {
             File.WriteAllText(badDocx, "not-a-zip-package");
             File.WriteAllText(goodMarkdown, "# Ok\n\nBody");
 
-            var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadFolder(
+            var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.EnumerateFolder(
                 folderPath: folder,
                 folderOptions: new ReaderFolderOptions {
                     Recurse = false,
@@ -1192,7 +1190,7 @@ public sealed class ReaderDocumentReaderTests {
             File.WriteAllText(nestedMarkdown, "# Nested");
             File.WriteAllText(nestedText, "Ignore me");
 
-            var noRecurse = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadFolder(
+            var noRecurse = OfficeIMO.Reader.Tests.ReaderTestReaders.All.EnumerateFolder(
                 folderPath: folder,
                 folderOptions: new ReaderFolderOptions {
                     Recurse = false,
@@ -1204,7 +1202,7 @@ public sealed class ReaderDocumentReaderTests {
             Assert.DoesNotContain(noRecurse, c => string.Equals(c.Location.Path, nestedMarkdown, StringComparison.OrdinalIgnoreCase));
             Assert.DoesNotContain(noRecurse, c => string.Equals(c.Location.Path, nestedText, StringComparison.OrdinalIgnoreCase));
 
-            var recurse = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadFolder(
+            var recurse = OfficeIMO.Reader.Tests.ReaderTestReaders.All.EnumerateFolder(
                 folderPath: folder,
                 folderOptions: new ReaderFolderOptions {
                     Recurse = true,
@@ -1232,7 +1230,7 @@ public sealed class ReaderDocumentReaderTests {
             File.WriteAllText(smallMarkdown, "# Small\n\nok");
             File.WriteAllText(largeMarkdown, new string('x', 1024));
 
-            var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadFolder(
+            var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.EnumerateFolder(
                 folderPath: folder,
                 folderOptions: new ReaderFolderOptions {
                     Recurse = false,
@@ -1310,7 +1308,7 @@ public sealed class ReaderDocumentReaderTests {
             File.WriteAllText(goodMarkdown, "# Good\n\nBody");
             File.WriteAllText(badDocx, "not-a-zip-package");
 
-            var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadFolder(
+            var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.EnumerateFolder(
                 folderPath: folder,
                 folderOptions: new ReaderFolderOptions {
                     Recurse = false,
@@ -1342,7 +1340,7 @@ public sealed class ReaderDocumentReaderTests {
         try {
             File.WriteAllText(path, "# Title\n\nBody");
 
-            var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(path, new ReaderOptions { ComputeHashes = true }).ToList();
+            var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(path, new ReaderOptions { ComputeHashes = true }).ToList();
             Assert.NotEmpty(chunks);
             Assert.All(chunks, c => {
                 Assert.False(string.IsNullOrWhiteSpace(c.SourceId));
@@ -1368,7 +1366,7 @@ public sealed class ReaderDocumentReaderTests {
             File.WriteAllText(goodMarkdown, "# Good\n\nBody");
             File.WriteAllText(badDocx, "not-a-zip-package");
 
-            var docs = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadFolderDocuments(
+            var docs = OfficeIMO.Reader.Tests.ReaderTestReaders.All.EnumerateFolderDocuments(
                 folderPath: folder,
                 folderOptions: new ReaderFolderOptions {
                     Recurse = false,
@@ -1415,7 +1413,7 @@ public sealed class ReaderDocumentReaderTests {
             File.WriteAllText(firstMarkdown, "# A\n\nalpha");
             File.WriteAllText(secondMarkdown, "# B\n\nbeta");
 
-            var documents = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadFolderDocuments(
+            var documents = OfficeIMO.Reader.Tests.ReaderTestReaders.All.EnumerateFolderDocuments(
                 folderPath: folder,
                 folderOptions: new ReaderFolderOptions {
                     Recurse = false,
@@ -1464,7 +1462,7 @@ public sealed class ReaderDocumentReaderTests {
                 })
                 .Build();
 
-            IReadOnlyList<ReaderSourceDocument> documents = reader.ReadFolderDocuments(
+            IReadOnlyList<ReaderSourceDocument> documents = reader.EnumerateFolderDocuments(
                 folder,
                 new ReaderFolderOptions {
                     Recurse = false,
@@ -1493,7 +1491,7 @@ public sealed class ReaderDocumentReaderTests {
         try {
             File.WriteAllText(largeMarkdown, new string('x', 512));
 
-            var documents = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadFolderDocuments(
+            var documents = OfficeIMO.Reader.Tests.ReaderTestReaders.All.EnumerateFolderDocuments(
                 folderPath: folder,
                 folderOptions: new ReaderFolderOptions {
                     Recurse = false,
@@ -1528,7 +1526,7 @@ public sealed class ReaderDocumentReaderTests {
         try {
             File.WriteAllText(largeMarkdown, new string('x', 512));
 
-            var document = Assert.Single(OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadFolderDocuments(
+            var document = Assert.Single(OfficeIMO.Reader.Tests.ReaderTestReaders.All.EnumerateFolderDocuments(
                 folderPath: folder,
                 folderOptions: new ReaderFolderOptions {
                     Recurse = false,
@@ -1786,7 +1784,7 @@ public sealed class ReaderDocumentReaderTests {
             File.WriteAllText(firstMarkdown, "# A\n\nalpha");
             File.WriteAllText(secondMarkdown, "# B\n\nbeta");
 
-            var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadFolder(
+            var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.EnumerateFolder(
                 folderPath: folder,
                 folderOptions: new ReaderFolderOptions {
                     Recurse = false,
@@ -1817,7 +1815,7 @@ public sealed class ReaderDocumentReaderTests {
             File.WriteAllText(smallMarkdown, "# Small\n\nok");
             File.WriteAllText(largeMarkdown, new string('x', 1024));
 
-            var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadFolder(
+            var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.EnumerateFolder(
                 folderPath: folder,
                 folderOptions: new ReaderFolderOptions {
                     Recurse = false,
@@ -1850,7 +1848,7 @@ public sealed class ReaderDocumentReaderTests {
         try {
             File.WriteAllText(largeMarkdown, new string('x', 512));
 
-            var warningChunk = Assert.Single(OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadFolder(
+            var warningChunk = Assert.Single(OfficeIMO.Reader.Tests.ReaderTestReaders.All.EnumerateFolder(
                 folderPath: folder,
                 folderOptions: new ReaderFolderOptions {
                     Recurse = false,
@@ -1881,7 +1879,7 @@ public sealed class ReaderDocumentReaderTests {
             var html = "<html><body><p>" + new string('x', 2048) + "</p></body></html>";
             File.WriteAllText(htmlPath, html);
 
-            var document = Assert.Single(reader.ReadFolderDocuments(
+            var document = Assert.Single(reader.EnumerateFolderDocuments(
                 folderPath: folder,
                 folderOptions: new ReaderFolderOptions {
                     Recurse = false,

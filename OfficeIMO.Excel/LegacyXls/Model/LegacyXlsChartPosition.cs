@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes shallow metadata decoded from a chart Pos record.
     /// </summary>
-    public sealed class LegacyXlsChartPosition {
+    internal sealed class LegacyXlsChartPosition {
         internal LegacyXlsChartPosition(
             ushort topLeftMode,
             string topLeftModeName,

@@ -17,13 +17,13 @@ public sealed partial class IWorkBoundaryTests {
         Assert.False(text.IsFormattingComplete);
         package.Position = 0;
         if (kind == IWorkDocumentKind.Pages) {
-            using var fallback = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var fallback = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(fallback.IsVisualFallback);
         } else if (kind == IWorkDocumentKind.Numbers) {
-            using var fallback = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var fallback = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(fallback.IsVisualFallback);
         } else {
-            using var fallback = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var fallback = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(fallback.IsVisualFallback);
         }
         package.Position = 0;
@@ -77,7 +77,7 @@ public sealed partial class IWorkBoundaryTests {
         using var package = ParagraphLayoutPackage(IWorkDocumentKind.Numbers,
             Message(BytesField(13, Message(VarintField(1, 2), FloatField(2, 24))),
                 BytesField(25, BytesField(1, Message(FloatField(1, 18), StringField(3, "."))))));
-        var source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaximumSourceDeclarationIssues = 1 });
+        var source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxSourceDeclarationIssues = 1 });
         Assert.Contains("declaration issues", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 
@@ -86,8 +86,7 @@ public sealed partial class IWorkBoundaryTests {
         using var manifest = JsonDocument.Parse(File.ReadAllText(CorpusFixture("pages-paragraph-layout.json")));
         string path = CorpusFixture(manifest.RootElement.GetProperty("source").GetString()!);
         Assert.Equal(manifest.RootElement.GetProperty("sourceSha256").GetString(), HashFile(path));
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(path,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         foreach (var style in manifest.RootElement.GetProperty("styles").EnumerateArray()) {
             ulong identifier = style.GetProperty("recordIdentifier").GetUInt64();
             foreach (var declaration in style.GetProperty("declarations").EnumerateArray()) {
@@ -107,11 +106,10 @@ public sealed partial class IWorkBoundaryTests {
             .First(declaration => declaration.TryGetProperty("relativeMultiplier", out _))
             .GetProperty("relativeMultiplier").GetDouble();
         Assert.Contains(result.Projection.Body.Paragraphs, paragraph => paragraph.Style.LineSpacingMultiplier == expected);
-        Assert.Contains(result.Value.Paragraphs, paragraph => paragraph.LineSpacingRule == OfficeIMO.Word.WordLineSpacingRule.Auto
-            && paragraph.LineSpacing == 276);
+        Assert.Contains(result.Value.Paragraphs, paragraph => paragraph.LineSpacing == global::OfficeIMO.Word.WordLineSpacing.Multiple(1.15));
         Assert.Contains(result.Projection.Body.Paragraphs, paragraph => paragraph.Style.TabStops?.Any(tab => tab.PositionPoints == 18
             && tab.Alignment == IWorkTabAlignment.Left) == true);
-        Assert.Contains(result.Value.Paragraphs, paragraph => paragraph.TabStops.Any(tab => tab.Position == 360
+        Assert.Contains(result.Value.Paragraphs, paragraph => paragraph.TabStops.Any(tab => tab.Position == OfficeLength.Points(18)
             && tab.Alignment == OfficeIMO.Word.WordTabAlignment.Left));
         Assert.False(result.IsVisualFallback);
         Assert.True(result.Report.IsPartialEditableReconstruction);

@@ -58,7 +58,7 @@ public sealed class SetOfficePdfFooterCommand : PSCmdlet
 
     /// <summary>Footer alignment.</summary>
     [Parameter]
-    public PdfAlign Align { get; set; } = PdfAlign.Center;
+    public OfficeAlignment Align { get; set; } = OfficeAlignment.Center;
 
     /// <summary>Footer font size in PDF points.</summary>
     [Parameter]
@@ -82,7 +82,7 @@ public sealed class SetOfficePdfFooterCommand : PSCmdlet
             ApplyAlignment(footer);
             if (FontSize.HasValue)
             {
-                footer.FontSize(FontSize.Value);
+                footer.FontSize(global::OfficeIMO.OfficeLength.Points(FontSize.Value));
             }
             if (compose != null)
             {
@@ -104,14 +104,14 @@ public sealed class SetOfficePdfFooterCommand : PSCmdlet
     {
         switch (Align)
         {
-            case PdfAlign.Right:
-                footer.AlignRight();
+            case OfficeAlignment.Right:
+                footer.Alignment(OfficeAlignment.Right);
                 break;
-            case PdfAlign.Left:
-                footer.AlignLeft();
+            case OfficeAlignment.Left:
+                footer.Alignment(OfficeAlignment.Left);
                 break;
             default:
-                footer.AlignCenter();
+                footer.Alignment(OfficeAlignment.Center);
                 break;
         }
     }

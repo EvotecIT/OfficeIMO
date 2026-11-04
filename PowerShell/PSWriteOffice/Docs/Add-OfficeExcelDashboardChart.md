@@ -11,22 +11,22 @@ Adds a dashboard-ready chart using an OfficeIMO chart preset.
 ## SYNTAX
 ### ContextRange (Default)
 ```powershell
-Add-OfficeExcelDashboardChart [-Range] <string> -Row <int> -Column <int> [-Preset <ExcelDashboardChartPreset>] [-ChartType <ExcelChartType>] [-Title <string>] [-HasHeaders <bool>] [-IncludeCachedData <bool>] [-WidthPixels <Int32>] [-HeightPixels <Int32>] [-StyleId <Int32>] [-ColorStyleId <Int32>] [-PassThru] [<CommonParameters>]
+Add-OfficeExcelDashboardChart [-Range] <string> -Row <int> -Column <int> [-Preset <ExcelDashboardChartPreset>] [-ChartType <OfficeChartType>] [-Title <string>] [-HasHeaders <bool>] [-IncludeCachedData <bool>] [-WidthPixels <Int32>] [-HeightPixels <Int32>] [-StyleId <Int32>] [-ColorStyleId <Int32>] [-PassThru] [<CommonParameters>]
 ```
 
 ### DocumentRange
 ```powershell
-Add-OfficeExcelDashboardChart [-Range] <string> -Document <ExcelDocument> -Row <int> -Column <int> [-Sheet <string>] [-SheetIndex <Int32>] [-Preset <ExcelDashboardChartPreset>] [-ChartType <ExcelChartType>] [-Title <string>] [-HasHeaders <bool>] [-IncludeCachedData <bool>] [-WidthPixels <Int32>] [-HeightPixels <Int32>] [-StyleId <Int32>] [-ColorStyleId <Int32>] [-PassThru] [<CommonParameters>]
+Add-OfficeExcelDashboardChart [-Range] <string> -Document <ExcelDocument> -Row <int> -Column <int> [-Sheet <string>] [-SheetIndex <Int32>] [-Preset <ExcelDashboardChartPreset>] [-ChartType <OfficeChartType>] [-Title <string>] [-HasHeaders <bool>] [-IncludeCachedData <bool>] [-WidthPixels <Int32>] [-HeightPixels <Int32>] [-StyleId <Int32>] [-ColorStyleId <Int32>] [-PassThru] [<CommonParameters>]
 ```
 
 ### DocumentTable
 ```powershell
-Add-OfficeExcelDashboardChart [-TableName] <string> -Document <ExcelDocument> -Row <int> -Column <int> [-Sheet <string>] [-SheetIndex <Int32>] [-Preset <ExcelDashboardChartPreset>] [-ChartType <ExcelChartType>] [-Title <string>] [-IncludeCachedData <bool>] [-WidthPixels <Int32>] [-HeightPixels <Int32>] [-StyleId <Int32>] [-ColorStyleId <Int32>] [-PassThru] [<CommonParameters>]
+Add-OfficeExcelDashboardChart [-TableName] <string> -Document <ExcelDocument> -Row <int> -Column <int> [-Sheet <string>] [-SheetIndex <Int32>] [-Preset <ExcelDashboardChartPreset>] [-ChartType <OfficeChartType>] [-Title <string>] [-IncludeCachedData <bool>] [-WidthPixels <Int32>] [-HeightPixels <Int32>] [-StyleId <Int32>] [-ColorStyleId <Int32>] [-PassThru] [<CommonParameters>]
 ```
 
 ### ContextTable
 ```powershell
-Add-OfficeExcelDashboardChart [-TableName] <string> -Row <int> -Column <int> [-Preset <ExcelDashboardChartPreset>] [-ChartType <ExcelChartType>] [-Title <string>] [-IncludeCachedData <bool>] [-WidthPixels <Int32>] [-HeightPixels <Int32>] [-StyleId <Int32>] [-ColorStyleId <Int32>] [-PassThru] [<CommonParameters>]
+Add-OfficeExcelDashboardChart [-TableName] <string> -Row <int> -Column <int> [-Preset <ExcelDashboardChartPreset>] [-ChartType <OfficeChartType>] [-Title <string>] [-IncludeCachedData <bool>] [-WidthPixels <Int32>] [-HeightPixels <Int32>] [-StyleId <Int32>] [-ColorStyleId <Int32>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -47,10 +47,10 @@ Creates a styled chart from the range using reusable OfficeIMO dashboard chart d
 Optional chart type override.
 
 ```yaml
-Type: ExcelChartType
+Type: OfficeChartType
 Parameter Sets: ContextRange, DocumentRange, DocumentTable, ContextTable
 Aliases: None
-Possible values: ColumnClustered, ColumnStacked, ColumnStacked100, Column3DClustered, Column3DStacked, Column3DStacked100, BarClustered, BarStacked, BarStacked100, Bar3DClustered, Bar3DStacked, Bar3DStacked100, Line, LineStacked, LineStacked100, Line3D, Area, AreaStacked, AreaStacked100, Area3D, Area3DStacked, Area3DStacked100, Pie, Pie3D, PieOfPie, BarOfPie, Doughnut, Scatter, Bubble, Radar, Stock, Surface, SurfaceWireframe, SurfaceContour, SurfaceContourWireframe
+Possible values: ColumnClustered, Column, ColumnStacked, ColumnStacked100, BarClustered, Bar, BarStacked, BarStacked100, Line, LineStacked, LineStacked100, Area, AreaStacked, AreaStacked100, Scatter, Radar, Pie, Doughnut, Bubble, Column3DClustered, Column3DStacked, Column3DStacked100, Bar3DClustered, Bar3DStacked, Bar3DStacked100, Line3D, Area3D, Area3DStacked, Area3DStacked100, Pie3D, PieOfPie, BarOfPie, Stock, Surface, SurfaceWireframe, SurfaceContour, Funnel, Waterfall, BoxWhisker, Treemap, SurfaceContourWireframe, Sunburst
 
 Required: False
 Position: named

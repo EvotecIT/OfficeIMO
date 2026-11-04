@@ -1,6 +1,6 @@
 namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Represents a main master or title master decoded from a binary PowerPoint file.</summary>
-    public sealed class LegacyPptMaster {
+    internal sealed class LegacyPptMaster {
         private readonly List<LegacyPptShape> _shapes = new();
         private readonly List<LegacyPptConnectorRule> _connectorRules = new();
         private readonly List<LegacyPptTextMasterStyle> _textMasterStyles = new();

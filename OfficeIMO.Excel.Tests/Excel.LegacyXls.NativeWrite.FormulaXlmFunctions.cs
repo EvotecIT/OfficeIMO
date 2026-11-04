@@ -12,16 +12,16 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("XlmInfo");
+                    ExcelSheet sheet = document.AddSheet("XlmInfo");
 
-                    sheet.CellValue(1, 1, "ChartItem");
-                    sheet.CellFormula(1, 1, "GET.CHART.ITEM(1)");
-                    sheet.CellValue(2, 1, "ObjectInfo");
-                    sheet.CellFormula(2, 1, "GET.OBJECT(1)");
-                    sheet.CellValue(3, 1, "TextBox");
-                    sheet.CellFormula(3, 1, "TEXT.BOX(\"Caption\")");
-                    sheet.CellValue(4, 1, 2d);
-                    sheet.CellFormula(4, 1, "EVALUATE(\"1+1\")");
+                    sheet.Cell(1, 1).SetValue("ChartItem");
+                    sheet.Cell(1, 1).SetFormula("GET.CHART.ITEM(1)");
+                    sheet.Cell(2, 1).SetValue("ObjectInfo");
+                    sheet.Cell(2, 1).SetFormula("GET.OBJECT(1)");
+                    sheet.Cell(3, 1).SetValue("TextBox");
+                    sheet.Cell(3, 1).SetFormula("TEXT.BOX(\"Caption\")");
+                    sheet.Cell(4, 1).SetValue(2d);
+                    sheet.Cell(4, 1).SetFormula("EVALUATE(\"1+1\")");
 
                     document.Save(xlsOutputPath);
                 }

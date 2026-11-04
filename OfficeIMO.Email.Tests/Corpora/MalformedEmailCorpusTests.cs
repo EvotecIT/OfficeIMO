@@ -40,7 +40,7 @@ public sealed class MalformedEmailCorpusTests {
         try {
             switch (format) {
                 case "eml": case "msg": case "tnef":
-                    using (EmailReadResult result = new EmailDocumentReader().Read(bytes, token))
+                    using (EmailReadResult result = new EmailDocumentReader().ReadDocument(bytes, token))
                         return result.Diagnostics.Any(diagnostic => diagnostic.Severity == EmailDiagnosticSeverity.Error)
                             ? "diagnostic-or-rejection" : "bounded-result";
                 case "pst": case "ost":

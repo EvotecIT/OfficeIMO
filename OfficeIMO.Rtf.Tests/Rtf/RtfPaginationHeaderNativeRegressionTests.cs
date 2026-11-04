@@ -81,13 +81,13 @@ public class RtfPaginationHeaderNativeRegressionTests {
         string path = Path.Combine(AppContext.BaseDirectory, "Documents", "PaginationHeaderControls", id + ".rtf");
         byte[] original = File.ReadAllBytes(path);
         RtfReadResult read = RtfDocument.LoadResult(original);
-        string before = read.Document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string before = read.Document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         var parse = new RtfConversionReport();
         parse.AddReadDiagnostics(read.Diagnostics, path);
         byte[]? mappedDocx = null;
         RtfConversionReport? mappedReport = null;
         if (throughWord) {
-            RtfConversionResult<WordDocument> mapped = read.ToWordDocumentResult(path);
+            RtfConversionResult<WordDocument> mapped = read.ConvertToWordWithEvidence(path);
             using WordDocument word = mapped.Value;
             using var docx = new MemoryStream();
             word.Save(docx);
@@ -98,8 +98,8 @@ public class RtfPaginationHeaderNativeRegressionTests {
         // Word source alive until serialization and its evidence are complete.
         using WordDocument? reopened = throughWord ? WordDocument.Load(new MemoryStream(mappedDocx!)) : null;
         PdfCore.PdfDocumentConversionResult result = throughWord
-            ? reopened!.ToPdfDocumentResult().WithSourceConversionReport(mappedReport!)
-            : read.Document.ToPdfDocumentResult().WithSourceConversionReport(parse);
+            ? reopened!.ConvertToPdfWithEvidence().WithSourceConversionReport(mappedReport!)
+            : read.Document.ConvertToPdfWithEvidence().WithSourceConversionReport(parse);
         using var output = new MemoryStream();
         PdfCore.PdfSaveResult saved = result.Save(output);
         byte[] bytes = output.ToArray();
@@ -114,10 +114,10 @@ public class RtfPaginationHeaderNativeRegressionTests {
                 .AppendLine("HasLoss=" + saved.HasLoss)
                 .AppendLine("SourceBytesUnchanged=" + original.SequenceEqual(File.ReadAllBytes(path)))
                 .AppendLine("LosslessBytesUnchanged=" + original.SequenceEqual(read.ToBytesLossless()))
-                .AppendLine("LoadedModelUnchanged=" + (before == read.Document.ToRtf(new RtfWriteOptions { IncludeGenerator = false })));
+                .AppendLine("LoadedModelUnchanged=" + (before == read.Document.ToRtf(new RtfSaveOptions { IncludeGenerator = false })));
             foreach (var diagnostic in read.Diagnostics) report.AppendLine("Parse: " + diagnostic);
-            foreach (var diagnostic in saved.FidelityDiagnostics) {
-                report.AppendLine($"Fidelity: {diagnostic.Source}|{diagnostic.Code}|{diagnostic.LossKind}|{diagnostic.Location}|{diagnostic.Message}");
+            foreach (var diagnostic in saved.ConversionDiagnostics) {
+                report.AppendLine($"Fidelity: {diagnostic.Format}|{diagnostic.Code}|{diagnostic.LossKind}|{diagnostic.Location}|{diagnostic.Message}");
             }
             foreach (string diagnostic in saved.Diagnostics) report.AppendLine("Save: " + diagnostic);
             if (saved.Succeeded) {
@@ -134,7 +134,7 @@ public class RtfPaginationHeaderNativeRegressionTests {
         saved.RequireSuccess();
         Assert.Equal(original, File.ReadAllBytes(path));
         Assert.Equal(original, read.ToBytesLossless());
-        Assert.Equal(before, read.Document.ToRtf(new RtfWriteOptions { IncludeGenerator = false }));
+        Assert.Equal(before, read.Document.ToRtf(new RtfSaveOptions { IncludeGenerator = false }));
         return bytes;
     }
 

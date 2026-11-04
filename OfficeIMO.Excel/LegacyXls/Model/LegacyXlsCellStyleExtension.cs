@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Metadata and projectable formatting facets from BIFF style extension records.
     /// </summary>
-    public sealed class LegacyXlsCellStyleExtension {
+    internal sealed class LegacyXlsCellStyleExtension {
         internal LegacyXlsCellStyleExtension(
             ushort formatIndex,
             ushort extensionCount,

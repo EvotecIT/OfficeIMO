@@ -23,9 +23,13 @@ public enum PdfOptimizationXrefFormat {
 }
 
 /// <summary>Options for lossless PDF optimization actions.</summary>
-public sealed class PdfOptimizationOptions {
-    /// <summary>Cancellation observed between lossless analysis, object, stream, and validation stages.</summary>
-    public System.Threading.CancellationToken CancellationToken { get; set; }
+public sealed class PdfOptimizationOptions : IPdfOperationCancellation {
+    // Operation cancellation; public methods take it as a parameter and bind it to a per-call copy.
+    System.Threading.CancellationToken IPdfOperationCancellation.CancellationToken { get => CancellationToken; set => CancellationToken = value; }
+
+    internal System.Threading.CancellationToken CancellationToken { get; set; }
+
+    object IPdfOperationCancellation.CloneForOperation() => MemberwiseClone();
 
     /// <summary>Named profile used to create this option set.</summary>
     public PdfOptimizationProfile Profile { get; set; } = PdfOptimizationProfile.Balanced;

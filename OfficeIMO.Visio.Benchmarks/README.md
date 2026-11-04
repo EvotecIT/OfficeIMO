@@ -17,7 +17,7 @@ operation, retained managed heap, sampled managed-heap growth, absolute process
 peak, package bytes, source commit, dirty-tree state, runtime, and operating
 system. Each child process validates its input and result before reporting.
 
-The project stays outside `OfficeIMO.sln`. A commercial comparison belongs in
+The project stays outside `OfficeIMO.slnx`. A commercial comparison belongs in
 a separate opt-in project and may be reported only with a valid license and an
 equivalent package contract; evaluation-mode shape limits are not valid
 comparison evidence.

@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
@@ -79,6 +77,11 @@ namespace OfficeIMO.Excel {
 
             /// <inheritdoc />
             public override double GetDouble(int ordinal) {
+                if (TryGetUnloadedNumber(ordinal, out double value)) return value;
+                return GetCurrentDouble(ordinal);
+            }
+
+            private double GetCurrentDouble(int ordinal) {
                 return TryGetPrimitiveDouble(ordinal, out double value)
                     ? value
                     : TryGetCachedDecimal(ordinal, out decimal decimalValue) ? (double)decimalValue

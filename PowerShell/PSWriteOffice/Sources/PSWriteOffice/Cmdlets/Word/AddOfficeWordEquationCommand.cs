@@ -47,7 +47,7 @@ public sealed class AddOfficeWordEquationCommand : PSCmdlet
         }
 
         var paragraph = ResolveParagraph();
-        var result = paragraph.AddEquation(Omml);
+        var result = paragraph.AddEquation(Omml).Paragraph;
 
         if (PassThru.IsPresent)
         {

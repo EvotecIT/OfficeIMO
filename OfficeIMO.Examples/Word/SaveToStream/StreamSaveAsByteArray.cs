@@ -35,7 +35,7 @@ namespace OfficeIMO.Examples.Word {
             using var document = WordDocument.Create();
             document.AddParagraph("Saved to memory stream");
 
-            using MemoryStream stream = document.ToStream();
+            using MemoryStream stream = new System.IO.MemoryStream(document.ToBytes());
 
             string filePath = Path.Combine(folderPath, "ToDocxStream.docx");
             using (var file = new FileStream(filePath, FileMode.Create, FileAccess.Write)) {

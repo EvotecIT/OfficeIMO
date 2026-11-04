@@ -403,8 +403,8 @@ namespace OfficeIMO.Word.GoogleDocs {
             var firstSection = batch.Snapshot.Sections.FirstOrDefault();
             if (firstSection != null
                 && TryBuildDocumentPageSize(
-                    firstSection.PageWidthPoints,
-                    firstSection.PageHeightPoints,
+                    firstSection.PageWidth?.ToPoints(),
+                    firstSection.PageHeight?.ToPoints(),
                     firstSection.Orientation,
                     out var pageSize)) {
                 documentStyle.PageSize = pageSize;
@@ -413,8 +413,8 @@ namespace OfficeIMO.Word.GoogleDocs {
                 bool hasDifferentPaperSize = batch.Snapshot.Sections.Skip(1).Any(section =>
                     !HasSameDocumentPageSize(
                         pageSize,
-                        section.PageWidthPoints,
-                        section.PageHeightPoints,
+                        section.PageWidth?.ToPoints(),
+                        section.PageHeight?.ToPoints(),
                         section.Orientation));
                 if (hasDifferentPaperSize) {
                     AddReportNoticeOnce(

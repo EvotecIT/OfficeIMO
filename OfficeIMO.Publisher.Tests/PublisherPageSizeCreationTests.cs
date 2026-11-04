@@ -15,7 +15,7 @@ public sealed class PublisherPageSizeCreationTests {
         double width = widthEmu / 12700D, height = heightEmu / 12700D;
         PublisherDocument authored = Author(width, height);
         byte[] generated = PublisherNativeCreationCodec.Create(PublisherNativeCreationProjection.ComposedContent(authored),
-            new PublisherReadOptions(), MaximumBytes, CancellationToken.None);
+            new PublisherLoadOptions(), MaximumBytes, CancellationToken.None);
         PublisherDocument decoded = PublisherDocument.Load(generated);
 
         Assert.Equal(2, decoded.Pages.Count);
@@ -87,7 +87,7 @@ public sealed class PublisherPageSizeCreationTests {
         Assert.Empty(table.BorderSegments);
 
         Assert.True(OfficeCompoundFileReader.TryRead(generated, out OfficeCompoundFile? compound, out string? error), error);
-        var context = new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None);
+        var context = new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None);
         var data = new PublisherBinaryData(compound!.Streams["Contents"], "Contents");
         var blocks = new PublisherBlockReader(data, context);
         PublisherContents contents = new PublisherContentsReader(data, context).Read();
@@ -121,11 +121,11 @@ public sealed class PublisherPageSizeCreationTests {
     public void Creation_preserves_unassigned_physical_content_and_retained_master_suppression() {
         PublisherDocument authored = Author(288, 432);
         byte[] appliedBytes = PublisherNativeCreationCodec.Create(PublisherNativeCreationProjection.ComposedContent(authored),
-            new PublisherReadOptions(), MaximumBytes, CancellationToken.None);
+            new PublisherLoadOptions(), MaximumBytes, CancellationToken.None);
         PublisherDocument applied = PublisherDocument.Load(appliedBytes);
         authored.SetPageMaster(authored.Pages[1].Id, null);
         byte[] clearedBytes = PublisherNativeCreationCodec.Create(PublisherNativeCreationProjection.ComposedContent(authored),
-            new PublisherReadOptions(), MaximumBytes, CancellationToken.None);
+            new PublisherLoadOptions(), MaximumBytes, CancellationToken.None);
         PublisherDocument cleared = PublisherDocument.Load(clearedBytes);
 
         PublisherPage master = Assert.Single(cleared.MasterPages);
@@ -163,11 +163,11 @@ public sealed class PublisherPageSizeCreationTests {
         foreach (var stream in appliedCompound!.Streams.Where(stream => stream.Key != "Contents"))
             Assert.Equal(stream.Value, clearedCompound!.Streams[stream.Key]);
         byte[] beforeContents = appliedCompound.Streams["Contents"], afterContents = clearedCompound!.Streams["Contents"];
-        var context = new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None);
+        var context = new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None);
         var data = new PublisherBinaryData(afterContents, "Contents");
         PublisherContents native = new PublisherContentsReader(data, context).Read();
         PublisherContents beforeNative = new PublisherContentsReader(new PublisherBinaryData(beforeContents, "Contents"),
-            new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None)).Read();
+            new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None)).Read();
         uint clearedPageId = cleared.Pages[1].Id;
         PublisherSourcePage nativePage = native.Pages.Single(page => page.Id == clearedPageId);
         Assert.Equal(master.Id, nativePage.Master);
@@ -188,7 +188,7 @@ public sealed class PublisherPageSizeCreationTests {
         }
 
         cleared.SetPageMaster(clearedPageId, master.Id);
-        PublisherDocument restored = PublisherDocument.Load(cleared.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        PublisherDocument restored = PublisherDocument.Load(cleared.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         Assert.All(restored.Pages, page => Assert.Equal(master.Id, page.MasterPageId));
         Assert.Contains("Sized publication", PublisherAuthoringTests.PaintedText(restored.Pages[1]));
         Assert.Equal(applied.TextStories.Select(story => (story.Id, story.Text)), restored.TextStories.Select(story => (story.Id, story.Text)));
@@ -216,7 +216,7 @@ public sealed class PublisherPageSizeCreationTests {
         rectangle.FillColor = OfficeColor.Blue; rectangle.StrokeColor = null;
         document.AddShape(document.Pages[0].Id, rectangle, x, 36);
         AssertRefusedUnchanged(document, () => PublisherNativeCreationCodec.Create(PublisherNativeCreationProjection.ComposedContent(document),
-            new PublisherReadOptions(), MaximumBytes, CancellationToken.None));
+            new PublisherLoadOptions(), MaximumBytes, CancellationToken.None));
     }
 
     private static PublisherDocument Author(double width, double height) {
@@ -227,7 +227,7 @@ public sealed class PublisherPageSizeCreationTests {
         var rule = OfficeShape.Rectangle(width - 36, 3);
         rule.FillColor = OfficeColor.Blue; rule.StrokeColor = null;
         document.AddShape(master, rule, 18, height - 18);
-        PublisherPicture logo = document.AddPicture(master, PublisherPictureEditingFixture.Image(OfficeColor.FromRgb(40, 120, 200)), width - 42, 18, 24, 24);
+        PublisherPicture logo = document.AddImage(master, PublisherPictureEditingFixture.Image(OfficeColor.FromRgb(40, 120, 200)), width - 42, 18, 24, 24);
         PublisherTextFrame first = document.AddTextFrame(document.Pages[0].Id, 18, 54, width - 36, 36, new[] {
             Paragraph("A dimensioned publication keeps its complete linked story.", true),
             Paragraph(string.Concat(Enumerable.Repeat("Continuation content remains separate from page geometry. ", 5)).TrimEnd())
@@ -236,7 +236,7 @@ public sealed class PublisherPageSizeCreationTests {
         PublisherTextFrame columns = document.AddTextFrame(document.Pages[0].Id, 18, height - 162, width - 36, 66,
             new[] { Paragraph("Independent columns retain their own layout.") });
         document.SetTextFrameLayout(columns.Id, 2, 18, new OfficeTextPadding(6, 9, 12, 3), OfficeTextVerticalAlignment.Top);
-        document.AddPicture(document.Pages[1].Id, logo.ImageId!.Value, width - 54, height - 42, 36, 36);
+        document.AddImage(document.Pages[1].Id, logo.ImageId!.Value, width - 54, height - 42, 36, 36);
         PublisherTable table = document.AddTable(document.Pages[1].Id, width - 174, height - 90, new[] { 72D, 84D }, new[] { 30D });
         document.ReplaceTableCellParagraphs(table.Id, 0, 0, new[] { Paragraph("Item") });
         document.ReplaceTableCellParagraphs(table.Id, 0, 1, new[] { Paragraph("Count") });

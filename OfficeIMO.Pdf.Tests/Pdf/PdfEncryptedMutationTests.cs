@@ -91,7 +91,7 @@ public class PdfEncryptedMutationTests {
     public void MergeRetainsPrimarySecurityAndReportsActualOutput(PdfStandardEncryptionAlgorithm algorithm) {
         byte[] source = CreateEncryptedSource(algorithm);
         PdfDocument document = PdfDocument.Load(source, new PdfLoadOptions { Password = "owner" });
-        PdfDocument extra = PdfDocument.Create(pdf => pdf.Content(c => c.Paragraph(p => p.Text("Imported page"))));
+        PdfDocument extra = PdfDocument.Create(pdf => pdf.Content(c => c.AddParagraph(p => p.AddText("Imported page"))));
         PdfDocument merged = document.MergeWith(extra);
         AssertProtected(source, merged.ToBytes());
         Assert.Equal(2, PdfReadDocument.Open(merged.ToBytes(), new PdfLoadOptions { Password = "owner" }).Pages.Count);
@@ -131,7 +131,7 @@ public class PdfEncryptedMutationTests {
     [InlineData(PdfStandardEncryptionAlgorithm.Aes256)]
     public void InterleaveRetainsPrimarySecurityAndAuthenticatedReadback(PdfStandardEncryptionAlgorithm algorithm) {
         byte[] source = CreateEncryptedSource(algorithm);
-        byte[] incoming = PdfDocument.Create().Paragraph(p => p.Text("Incoming")).ToBytes();
+        byte[] incoming = PdfDocument.Create().Paragraph(p => p.AddText("Incoming")).ToBytes();
         PdfInterleaveResult output = PdfPageInterleaver.Interleave(new[] {
             new PdfInterleaveSource(source, "Protected") { ReadOptions = new PdfLoadOptions { Password = "owner" } },
             new PdfInterleaveSource(incoming, "Incoming")
@@ -145,7 +145,7 @@ public class PdfEncryptedMutationTests {
     [Fact]
     public void EncryptedInterleaveUsesComposedObjectAndPageBudgets() {
         byte[] source = CreateEncryptedSource(PdfStandardEncryptionAlgorithm.Aes256);
-        byte[] incoming = PdfDocument.Create().Paragraph(p => p.Text("Incoming")).ToBytes();
+        byte[] incoming = PdfDocument.Create().Paragraph(p => p.AddText("Incoming")).ToBytes();
         var primaryOptions = new PdfLoadOptions {
             Password = "owner",
             Limits = new PdfReadLimits { MaxPages = 1, MaxIndirectObjects = PdfReadDocument.Open(source, new PdfLoadOptions { Password = "owner" }).RawStructure().TotalObjectCount }
@@ -165,8 +165,8 @@ public class PdfEncryptedMutationTests {
     [InlineData(PdfStandardEncryptionAlgorithm.Aes128)]
     [InlineData(PdfStandardEncryptionAlgorithm.Aes256)]
     public void MetadataExemptionAndRewriteBudgetsRemainEffective(PdfStandardEncryptionAlgorithm algorithm) {
-        byte[] source = PdfDocument.Create(pdf => pdf.Content(c => c.Paragraph(p => p.Text("Protected text"))),
-            new PdfOptions().SetEncryption(new PdfStandardEncryptionOptions("open") {
+        byte[] source = PdfDocument.Create(pdf => pdf.Content(c => c.AddParagraph(p => p.AddText("Protected text"))),
+            new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("open") {
                 OwnerPassword = "owner", Algorithm = algorithm, EncryptMetadata = false
             })).ToBytes();
         var options = new PdfLoadOptions { Password = "owner" };
@@ -187,7 +187,7 @@ public class PdfEncryptedMutationTests {
     [InlineData(PdfStandardPermissions.ModifyAnnotations, false)]
     [InlineData(PdfStandardPermissions.ModifyContents | PdfStandardPermissions.ModifyAnnotations, true)]
     public void StructuralFormEditsRequireBothUserPermissions(PdfStandardPermissions permissions, bool allowed) {
-        PdfDocument source = PdfDocument.Create().Paragraph(p => p.Text("Form document"));
+        PdfDocument source = PdfDocument.Create().Paragraph(p => p.AddText("Form document"));
         source = source.Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "Original", Kind = PdfFormFieldCreationKind.Text, PageNumber = 1,
             X = 20, Y = 20, Width = 100, Height = 20
@@ -229,7 +229,7 @@ public class PdfEncryptedMutationTests {
     [InlineData(PdfStandardEncryptionAlgorithm.Aes256)]
     public void EncryptedMergeAccountsForCiphertextStreamGrowth(PdfStandardEncryptionAlgorithm algorithm) {
         byte[] source = CreateEncryptedSource(algorithm);
-        byte[] incoming = PdfDocument.Create().Paragraph(p => p.Text(string.Join(" ", Enumerable.Range(0, 150).Select(index => "item" + index.ToString("X4"))))).ToBytes();
+        byte[] incoming = PdfDocument.Create().Paragraph(p => p.AddText(string.Join(" ", Enumerable.Range(0, 150).Select(index => "item" + index.ToString("X4"))))).ToBytes();
         int largestIncomingStream = PdfReadDocument.Open(incoming).Objects.Values
             .Where(item => item.Value is PdfStream).Max(item => ((PdfStream)item.Value).Data.Length);
         int largestSourceStream = PdfReadDocument.Open(source, new PdfLoadOptions { Password = "owner" }).Objects.Values
@@ -275,7 +275,7 @@ public class PdfEncryptedMutationTests {
     [InlineData(PdfStandardEncryptionAlgorithm.Aes256)]
     public void EncryptedMiddleInsertionUsesGeneratedCiphertextStreamBudget(PdfStandardEncryptionAlgorithm algorithm) {
         byte[] source = CreateCompactEncryptedSource(algorithm, twoPages: true);
-        byte[] incoming = PdfDocument.Create().Paragraph(p => p.Text(string.Join(" ", Enumerable.Range(0, 150).Select(index => "item" + index.ToString("X4"))))).ToBytes();
+        byte[] incoming = PdfDocument.Create().Paragraph(p => p.AddText(string.Join(" ", Enumerable.Range(0, 150).Select(index => "item" + index.ToString("X4"))))).ToBytes();
         int incomingLength = LargestStoredStream(incoming, encrypted: false);
         var options = new PdfLoadOptions { Password = "owner", Limits = new PdfReadLimits { MaxRawStreamBytes = incomingLength } };
         PdfDocument output = PdfDocument.Load(source, options).Pages.Insert(2, incoming);
@@ -290,8 +290,8 @@ public class PdfEncryptedMutationTests {
             .Where(item => item.Value is PdfStream).Max(item => (int)((PdfStream)item.Value).Dictionary.Get<PdfNumber>("Length")!.Value);
 
     private static byte[] CreateCompactEncryptedSource(PdfStandardEncryptionAlgorithm algorithm, bool twoPages = false, bool includeNeighbor = true) {
-        PdfDocument plain = PdfDocument.Create().Paragraph(p => p.Text("ORIGINAL neighbor"));
-        if (twoPages) plain.PageBreak().Paragraph(p => p.Text("Second page"));
+        PdfDocument plain = PdfDocument.Create().Paragraph(p => p.AddText("ORIGINAL neighbor"));
+        if (twoPages) plain.PageBreak().Paragraph(p => p.AddText("Second page"));
         byte[] source = plain.ToBytes();
         PdfReadDocument read = PdfReadDocument.Open(source);
         source = PdfDocumentObjectGraphRewriter.Rewrite(source, null, null, (objects, security) => {
@@ -313,8 +313,8 @@ public class PdfEncryptedMutationTests {
     }
 
     private static byte[] CreateEncryptedSource(PdfStandardEncryptionAlgorithm algorithm) =>
-        PdfDocument.Create(pdf => pdf.Content(c => c.Paragraph(p => p.Text("ORIGINAL neighbor"))),
-            new PdfOptions().SetEncryption(new PdfStandardEncryptionOptions("open") {
+        PdfDocument.Create(pdf => pdf.Content(c => c.AddParagraph(p => p.AddText("ORIGINAL neighbor"))),
+            new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("open") {
                 OwnerPassword = "owner", Algorithm = algorithm, AllowedPermissions = PdfStandardPermissions.Print
             })).ToBytes();
 

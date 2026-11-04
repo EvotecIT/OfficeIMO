@@ -19,21 +19,23 @@ internal static partial class NativeAdapters {
                 var document = OneNoteSectionReader.Read(source);
                 var imageOptions = Images<OneNotePageBatchRenderingOptions>(suite, profile);
                 imageOptions.DefaultFont = new OfficeFontInfo(suite.FontFamily, 11D);
-                var pdfOptions = new OneNoteVisualPdfOptions {
-                    PdfOptions = new PdfOptions().UseRenderingProfile(profile),
+                var pdfOptions = new OneNoteVisualPdfExportOptions {
+                    PdfOptions = new PdfCreateOptions().UseRenderingProfile(profile),
                     PageRendering = imageOptions, RasterScale = suite.Dpi / 72D
                 };
-                return Capture(document.ToVisualPdfDocumentResult(pdfOptions, token),
-                    format => document.ExportImages(format, imageOptions), token) with { PdfRoute = "native-raster" };
+                using (PdfDocument pdf = document.ToVisualPdf(pdfOptions, out OfficeConversionReport pdfReport, token))
+                    return Capture(pdf, pdfReport,
+                        format => document.ExportImages(format, imageOptions), token) with { PdfRoute = "native-raster" };
             }
             case "vsdx": {
                 var document = VisioDocument.Load(source);
                 var imageOptions = Images<VisioImageExportOptions>(suite, profile);
-                var pdfOptions = new VisioToPdfOptions {
-                    ProjectionOptions = new PdfProjectionOptions { PdfOptions = new PdfOptions().UseRenderingProfile(profile) }
+                var pdfOptions = new VisioPdfExportOptions {
+                    ProjectionOptions = new PdfProjectionOptions { PdfOptions = new PdfCreateOptions().UseRenderingProfile(profile) }
                 };
-                return Capture(document.ToPdfDocumentResult(pdfOptions, token),
-                    format => document.ExportImages(format, imageOptions), token) with { PdfRoute = "native-semantic-projection" };
+                using (PdfDocument pdf = document.ToPdf(pdfOptions, out OfficeConversionReport pdfReport, token))
+                    return Capture(pdf, pdfReport,
+                        format => document.ExportImages(format, imageOptions), token) with { PdfRoute = "native-semantic-projection" };
             }
             case "eml": {
                 byte[] reference = ReferencePdf(contract, source);
@@ -46,7 +48,7 @@ internal static partial class NativeAdapters {
             }
             case "epub": {
                 byte[] reference = ReferencePdf(contract, source);
-                var document = EpubDocument.Load(source, new EpubReadOptions { IncludeRawHtml = true });
+                var document = EpubDocument.Load(source, new EpubLoadOptions { IncludeRawHtml = true });
                 var options = Images<EpubImageExportOptions>(suite, profile);
                 ConfigureHtml(options, contract, suite);
                 options.IncludeChapterTitle = false;
@@ -67,6 +69,6 @@ internal static partial class NativeAdapters {
         options.Mode = HtmlRenderMode.Paged;
         options.DefaultFontFamily = suite.FontFamily;
         options.Margins = HtmlRenderMargins.All(0);
-        options.PageSize = new OfficePageSize(contract.Pages[0].Width / (double)suite.Dpi, contract.Pages[0].Height / (double)suite.Dpi);
+        options.PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(contract.Pages[0].Width / (double)suite.Dpi), global::OfficeIMO.OfficeLength.Inches(contract.Pages[0].Height / (double)suite.Dpi));
     }
 }

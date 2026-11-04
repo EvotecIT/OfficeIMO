@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfReadDocument {
+internal sealed partial class PdfReadDocument {
     private PdfDictionary? ResolveDict(PdfObject? obj) {
         if (obj is null) return null;
         if (obj is PdfDictionary d) return d;

@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing;
+using System.Xml.Linq;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -10,6 +11,22 @@ internal static class HtmlSvgPaintAssertions {
         Assert.Equal(0, unsupported);
         Assert.NotNull(drawing);
         return drawing;
+    }
+
+    internal static void TextPaint(OfficeDrawing drawing, byte[] bytes, string value, OfficeFontStyle? requiredStyle = null) {
+        OfficeDrawingText[] text = DrawingTestTraversal.Elements(drawing).OfType<OfficeDrawingText>()
+            .Where(item => item.Text == value).ToArray();
+        if (text.Length > 0) {
+            if (requiredStyle.HasValue) Assert.Contains(text, item => (item.Font.Style & requiredStyle.Value) == requiredStyle.Value);
+            return;
+        }
+        // Embedded PDF faces export exact glyph contours with their accessible source text.
+        // A label alone is insufficient: the same group must retain painted geometry.
+        XElement group = Assert.Single(XDocument.Parse(System.Text.Encoding.UTF8.GetString(bytes)).Descendants(),
+            element => element.Name.LocalName == "g" && element.Attribute("role")?.Value == "img"
+                && element.Attribute("aria-label")?.Value.Trim() == value);
+        Assert.Contains(group.Descendants(), element => element.Name.LocalName == "path"
+            && !string.IsNullOrWhiteSpace(element.Attribute("d")?.Value));
     }
 
     internal static void WavyStrokes(OfficeDrawing drawing, OfficeColor color, int count) {

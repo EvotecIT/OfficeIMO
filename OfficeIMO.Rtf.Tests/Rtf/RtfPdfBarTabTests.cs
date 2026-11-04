@@ -14,10 +14,10 @@ public class RtfPdfBarTabTests {
         RtfDocument control = Source("BAR", bar: false, positionTab: false, parsed: parsed);
         RtfDocument source = Source("BAR", bar: true, positionTab: false, parsed: parsed);
         string before = Snapshot(source);
-        PdfCore.PdfDocumentConversionResult baseline = control.ToPdfDocumentResult(Options());
-        baseline.RequireNoLoss();
+        PdfCore.PdfDocumentConversionResult baseline = control.ConvertToPdfWithEvidence(Options());
+        baseline.ThrowIfLoss();
 
-        PdfCore.PdfDocumentConversionResult result = source.ToPdfDocumentResult(Options());
+        PdfCore.PdfDocumentConversionResult result = source.ConvertToPdfWithEvidence(Options());
         byte[] bytes = result.ToBytes();
 
         Assert.StartsWith("%PDF-", Encoding.ASCII.GetString(bytes, 0, 5), StringComparison.Ordinal);
@@ -36,10 +36,10 @@ public class RtfPdfBarTabTests {
         RtfDocument control = Source("A\tB", bar: false, positionTab: true, parsed: false);
         RtfDocument source = Source("A\tB", bar: true, positionTab: true, parsed: false);
         string before = Snapshot(source);
-        PdfCore.PdfDocumentConversionResult baseline = control.ToPdfDocumentResult(Options());
-        baseline.RequireNoLoss();
+        PdfCore.PdfDocumentConversionResult baseline = control.ConvertToPdfWithEvidence(Options());
+        baseline.ThrowIfLoss();
 
-        PdfCore.PdfDocumentConversionResult result = source.ToPdfDocumentResult(Options());
+        PdfCore.PdfDocumentConversionResult result = source.ConvertToPdfWithEvidence(Options());
 
         using var expected = PdfPigDocument.Open(baseline.ToBytes());
         using var actual = PdfPigDocument.Open(result.ToBytes());
@@ -61,9 +61,9 @@ public class RtfPdfBarTabTests {
         source.AddHeader().AddParagraph("HEADER").AddTabStop(720, RtfTabAlignment.Bar);
         string before = Snapshot(source);
 
-        RtfToPdfOptions options = Options();
-        if (plainPresentation) options.PdfOptions!.HeaderAlign = PdfCore.PdfAlign.Right;
-        PdfCore.PdfDocumentConversionResult result = source.ToPdfDocumentResult(options);
+        RtfPdfExportOptions options = Options();
+        if (plainPresentation) options.PdfOptions!.PageSetup.Header.Alignment = global::OfficeIMO.OfficeAlignment.Right;
+        PdfCore.PdfDocumentConversionResult result = source.ConvertToPdfWithEvidence(options);
         using var actual = PdfPigDocument.Open(result.ToBytes());
         if (plainPresentation) {
             PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "BarTabOmitted");
@@ -78,8 +78,8 @@ public class RtfPdfBarTabTests {
             var header = Assert.Single(actual.GetPage(1).GetWords(), word => word.Text == "HEADER");
             Assert.Equal(header.Letters[0].StartBaseLine.X + 36D, rule.Left, 3);
         }
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
         string text = PdfCore.PdfReadDocument.Open(result.ToBytes(),
             new PdfCore.PdfLoadOptions { IncludeArtifactText = true }).ExtractText();
         Assert.Contains("BODY", text, StringComparison.Ordinal);
@@ -99,7 +99,7 @@ public class RtfPdfBarTabTests {
         nested.AddTable(1, 1).Rows[0].Cells[0].AddParagraph("DEEP").SetStyle(7);
         string before = Snapshot(source);
 
-        PdfCore.PdfDocumentConversionResult result = source.ToPdfDocumentResult(Options());
+        PdfCore.PdfDocumentConversionResult result = source.ConvertToPdfWithEvidence(Options());
 
         PdfCore.PdfConversionWarning[] omissions = result.Warnings.Where(item => item.Code == "BarTabOmitted").ToArray();
         Assert.Equal(3, omissions.Length);
@@ -112,8 +112,8 @@ public class RtfPdfBarTabTests {
         Assert.Equal(OfficeConversionLossKind.Approximation,
             Assert.Single(result.Warnings, item => item.Code == "NestedTableFlattened").LossKind);
         Assert.DoesNotContain(result.Warnings, item => item.Code == "BarTabAppearanceApproximated");
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
         byte[] bytes = result.ToBytes();
         using var actual = PdfPigDocument.Open(bytes);
         Assert.Empty(VerticalRules(actual.GetPage(1)));
@@ -128,7 +128,7 @@ public class RtfPdfBarTabTests {
     private static RtfDocument Source(string text, bool bar, bool positionTab, bool parsed) {
         if (parsed) {
             string stops = (bar ? @"\tb720" : string.Empty) + (positionTab ? @"\tx2160" : string.Empty);
-            return RtfDocument.Read(@"{\rtf1\ansi\deff0{\fonttbl{\f0 Courier;}}\pard\f0\fs24\sl-400\slmult0" +
+            return RtfDocument.ParseResult(@"{\rtf1\ansi\deff0{\fonttbl{\f0 Courier;}}\pard\f0\fs24\sl-400\slmult0" +
                 stops + " " + text.Replace("\t", @"\tab ") + @"\par}").Document;
         }
 
@@ -141,15 +141,15 @@ public class RtfPdfBarTabTests {
     }
 
     // Built-in Courier keeps the contract proof independent of installed fonts.
-    private static RtfToPdfOptions Options() => new RtfToPdfOptions {
+    private static RtfPdfExportOptions Options() => new RtfPdfExportOptions {
         ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
-        PdfOptions = new PdfCore.PdfOptions {
-            DefaultFont = PdfCore.PdfStandardFont.Courier, DefaultFontSize = 12,
+        PdfOptions = new PdfCore.PdfCreateOptions {
+            DefaultFont = PdfCore.PdfStandardFont.Courier, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12),
             CompressContentStreams = false
         }
     };
 
-    private static string Snapshot(RtfDocument document) => document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+    private static string Snapshot(RtfDocument document) => document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
 
     private static void AssertApproximation(PdfCore.PdfDocumentConversionResult result) {
         PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings,
@@ -157,8 +157,8 @@ public class RtfPdfBarTabTests {
         Assert.Equal("OfficeIMO.Rtf.Pdf", warning.Converter);
         Assert.Equal(OfficeConversionLossKind.Approximation, warning.LossKind);
         Assert.Equal("Flattened", warning.Details["RtfAction"]);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
     }
 
     private static UglyToad.PdfPig.Core.PdfRectangle[] VerticalRules(UglyToad.PdfPig.Content.Page page) => page.Paths

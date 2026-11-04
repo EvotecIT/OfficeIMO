@@ -1,8 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk" TreatAsLocalProperty="TargetFramework;EnableAotAnalyzer;EnableTrimAnalyzer">
   <PropertyGroup>
     <Description>Incremental source generators for AOT-safe OfficeIMO tabular row mappings.</Description>
-    <AssemblyName>OfficeIMO.Data.Generators</AssemblyName>
-    <AssemblyTitle>OfficeIMO.Data.Generators</AssemblyTitle>
     <VersionPrefix>3.5.3</VersionPrefix>
     <TargetFramework>netstandard2.0</TargetFramework>
     <EnableAotAnalyzer>false</EnableAotAnalyzer>

@@ -6,7 +6,7 @@ public sealed class PdfSectionReference {
     private string? _destinationName;
     private string? _title;
     private int? _pageNumber;
-    private double? _y;
+    private global::OfficeIMO.OfficeLength? _y;
 
     /// <summary>Generated named destination.</summary>
     public string? DestinationName { get { lock (_sync) return _destinationName; } }
@@ -15,14 +15,14 @@ public sealed class PdfSectionReference {
     /// <summary>One-based physical output page, or null before successful layout.</summary>
     public int? PageNumber { get { lock (_sync) return _pageNumber; } }
     /// <summary>Top position in PDF points, or null before successful layout.</summary>
-    public double? Y { get { lock (_sync) return _y; } }
+    public global::OfficeIMO.OfficeLength? Y { get { lock (_sync) return _y; } }
 
     internal void Set(string destinationName, string title, int pageNumber, double y) {
         lock (_sync) {
             _destinationName = destinationName;
             _title = title;
             _pageNumber = pageNumber;
-            _y = y;
+            _y = global::OfficeIMO.OfficeLength.Points(y);
         }
     }
 }

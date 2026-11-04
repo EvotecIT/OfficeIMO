@@ -2092,7 +2092,16 @@ class OpcPackage {
         throw new OfficeIMOError("INVALID_STATE", "OPC package is finalized."); }
     reserve(uri, type) {
         this.open();
+        // OPC part names become ZIP entry names. Reject oversized and deeply nested
+        // names before collecting every ancestor prefix.
+        if (typeof uri === "string" && uri.length > 65536)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "OPC part name exceeds the ZIP entry-name limit.");
         uri = partUri(uri);
+        let depth = 0;
+        for (let index = 0; index < uri.length; index++) {
+            if (uri[index] === "/" && ++depth > 64)
+                throw new OfficeIMOError("RESOURCE_LIMIT", "OPC part name exceeds the directory-depth limit.");
+        }
         if (/\/_rels(?:\/|$)/i.test(uri) || uri.toLowerCase() === "/[content_types].xml")
             throw new TypeError("Package metadata part names are reserved.");
         const key = uri.toLowerCase();
@@ -2771,14 +2780,23 @@ function columnName(index) {
     return name;
 }
 function clipName(text, length) { return text.slice(0, length).replace(/[\ud800-\udbff]$/, ""); }
+function trimSheetNameEdges(text) {
+    let start = 0, end = text.length;
+    const removable = (character) => character === "'" || /\s/u.test(character);
+    while (start < end && removable(text[start]))
+        start++;
+    while (end > start && removable(text[end - 1]))
+        end--;
+    return text.slice(start, end);
+}
 function sheetName(requested, names, policy, register = true) {
     if (typeof requested !== "string")
         throw new TypeError("Sheet name must be a string.");
     // Validate and deduplicate the decoded literal value, before ST_Xstring attribute encoding.
     // A requested _xHHHH_ token is literal text; the serializer protects its leading underscore.
-    let base = cleanXml(requested, policy).replace(/[\[\]:*?/\\]/g, "_").replace(/^[\s']+|[\s']+$/g, "");
+    let base = trimSheetNameEdges(cleanXml(requested, policy).replace(/[\[\]:*?/\\]/g, "_"));
     // Clipping can expose an internal apostrophe or the reserved History name.
-    base = clipName(base, 31).replace(/[\s']+$/g, "");
+    base = trimSheetNameEdges(clipName(base, 31));
     if (!base)
         base = "Sheet";
     if (base.toLowerCase() === "history")
@@ -11642,6 +11660,10 @@ function canopyPivot(request) {
 }
 /** Per-cell formats preserve already-computed fractional percentages, ranks and differences. */
 function pivotNumberFormat(cell) {
+    // Raw-value aggregates need no decimal declaration. Transformed values still
+    // require the producer's frozen format (especially percent scaling).
+    if (cell.mode === "value" && cell.numberFormat === undefined)
+        return undefined;
     if (!["value", "percentGrandTotal", "percentParent", "percentColumn", "percentRow", "runningTotal", "rank", "difference", "percentChange"].includes(cell.mode ?? "") ||
         typeof cell.numberFormat !== "string" || !cell.numberFormat.length)
         throw new TypeError("Numeric pivot cells require a frozen mode and native numberFormat.");
@@ -11753,6 +11775,14 @@ const { canopyDiagnostics } = _m95;
 const { canopyNumberFormat, canopyXlsxWidth } = _m99;
 
 const columnFields = ["width", "format", "wrapText", "alignment", "rowHeader", "groups"];
+const rawIdentities = new WeakMap();
+/** @internal Grouping uses captured identity even when a detail cell displays a relative-link label. */
+function canopyIdentityValue(value) {
+    if (!(value instanceof ExportCell))
+        return value;
+    const original = rawIdentities.get(value);
+    return original === undefined ? value.value : original;
+}
 /** Map an immutable CanopyX record capture to a writer without querying the grid or retaining its body. */
 function createCanopyExport(capture, format, options = {}) {
     return prepareCanopyExport(capture, format, options).source;
@@ -11771,6 +11801,9 @@ function prepareCanopyExport(capture, format, options = {}) {
         (values !== "raw" && values !== "display") || (request.timeZone !== "utc" && request.timeZone !== "local") || typeof request.revision !== "string")
         throw new TypeError("Invalid portable CanopyX capture metadata.");
     const dateMode = options.datetime ?? "preserve", report = canopyDiagnostics(format, options);
+    // These captured presentations have a complete scalar/text projection. Report
+    // their visual loss without treating an ordinary report export as unsupported.
+    const fallback = canopyDiagnostics(format, { ...options, unsupportedPresentation: "text" });
     const clock = options.xlsx?.dateMode ?? request.timeZone;
     if (clock !== "utc" && clock !== "local")
         throw new TypeError("XLSX dateMode must be utc or local.");
@@ -11781,8 +11814,10 @@ function prepareCanopyExport(capture, format, options = {}) {
             return;
         if (!Array.isArray(items) || items.some(item => typeof item !== "string"))
             throw new TypeError("Canopy presentation diagnostics must be strings.");
-        for (const code of items)
-            report({ code, ...(rowId === undefined ? {} : { rowId }), ...(columnId === undefined ? {} : { columnId }) });
+        for (const code of items) {
+            const diagnostic = { code, ...(rowId === undefined ? {} : { rowId }), ...(columnId === undefined ? {} : { columnId }) };
+            (code === "relative-link" || code === "history-series" ? fallback : report)(diagnostic);
+        }
     };
     if (request.presentation !== "text" && request.presentation !== "semantic")
         throw new TypeError("Canopy captures must declare text or semantic presentation.");
@@ -11798,7 +11833,7 @@ function prepareCanopyExport(capture, format, options = {}) {
             throw new TypeError("Canopy tones must be strings.");
         const style = tones.get(name);
         if (!style && name !== "neutral")
-            report({ code: "UNMAPPED_TONE:" + name, rowId, ...(columnId === undefined ? {} : { columnId }) });
+            fallback({ code: "UNMAPPED_TONE:" + name, rowId, ...(columnId === undefined ? {} : { columnId }) });
         return style;
     };
     const ids = new Set();
@@ -11822,15 +11857,19 @@ function prepareCanopyExport(capture, format, options = {}) {
             if (!columnFields.includes(key))
                 throw new TypeError("Unsupported Canopy column option: " + key);
         const override = captureFields(selected, columnFields);
-        const numericFormat = format === "xlsx" && values === "raw" && column.kind === "number" && column.format !== undefined && override.format === undefined
+        const numericFormat = (format === "xlsx" || format === "pdf") && values === "raw" && column.kind === "number" && column.format !== undefined && override.format === undefined
             ? canopyNumberFormat(column.format, report, column.id) : undefined;
         const [captured] = copyColumns([{ ...override, key: column.id, header: column.title,
                 ...(format === "xlsx" && override.width === undefined && column.width !== undefined ? { width: canopyXlsxWidth(column.width.preferred) } : {}),
                 ...(override.format === undefined && numericFormat !== undefined ? { format: numericFormat } : {}),
                 ...(format === "xlsx" && values === "raw" && column.kind === "datetime" && override.format === undefined ? { format: "yyyy-mm-dd hh:mm:ss.000" } : {}),
                 ...(values === "raw" && column.kind === "number" ? { type: "number" } : {}),
-                ...(override.wrapText === undefined && column.wrap === undefined ? {} : { wrapText: override.wrapText ?? column.wrap }),
-                ...(override.alignment === undefined && column.alignment === undefined ? {} : { alignment: override.alignment ?? column.alignment }) }]);
+                // Screen nowrap is not a promise that its CSS width will survive PDF fitting.
+                // PDF defaults to lossless wrapping; an explicit writer override stays strict.
+                ...(format === "pdf" ? { wrapText: override.wrapText ?? true } :
+                    override.wrapText === undefined && column.wrap === undefined ? {} : { wrapText: override.wrapText ?? column.wrap }),
+                ...(override.alignment === undefined && column.alignment === undefined ?
+                    format === "pdf" && column.kind === "number" ? { alignment: "right" } : {} : { alignment: override.alignment ?? column.alignment }) }]);
         return Object.freeze({ id: column.id, kind: column.kind, input: column, nativeFormatOverride: override.format, column: Object.freeze(captured) });
     });
     const rowCount = request.recordCount;
@@ -11853,17 +11892,29 @@ function prepareCanopyExport(capture, format, options = {}) {
                         (typeof cell.value === "number" && (!Number.isFinite(cell.value) || Math.abs(cell.value) > Number.MAX_SAFE_INTEGER)))
                         throw new TypeError("A portable Canopy GridExportCell with scalar value and resolved text is required.");
                     diagnostics(cell.diagnostics, row.id, spec.id);
-                    let value = values === "display" ? cell.text : cell.value;
+                    // A relative destination is navigation metadata, not the visible label.
+                    // History captures already carry their frozen latest scalar (or null).
+                    const relativeLabel = spec.kind === "text" && cell.diagnostics?.includes("relative-link");
+                    let value = values === "display" || relativeLabel ? cell.text : cell.value;
                     if (format === "xlsx" && values === "raw" && spec.kind === "datetime" && typeof value === "string")
                         value = datetime(value, dateMode, clock);
                     const capturedFormat = pivot && spec.kind === "number" && cell.value !== null ? pivotNumberFormat(cell) : undefined;
-                    const nativeFormat = capturedFormat === undefined ? undefined : spec.nativeFormatOverride === "" ? "General" : spec.nativeFormatOverride ?? capturedFormat;
-                    const cellStyle = tone(cell.tone, row.id, spec.id), presentation = rowStyle || cellStyle || nativeFormat ? {
-                        ...rowStyle, ...cellStyle, ...(format === "xlsx" && values === "raw" && nativeFormat !== undefined ? { numberFormat: nativeFormat } : {})
+                    const nativeFormat = spec.nativeFormatOverride === "" ? "General" : spec.nativeFormatOverride ?? capturedFormat;
+                    const summary = format === "pdf" && pivot && (row.summary || row.grandTotal);
+                    const cellStyle = tone(cell.tone, row.id, spec.id), presentation = rowStyle || cellStyle || nativeFormat || summary ? {
+                        ...rowStyle, ...(summary ? { bold: true } : {}), ...cellStyle,
+                        ...((format === "pdf" || (format === "xlsx" && pivot)) && values === "raw" && nativeFormat !== undefined ? { numberFormat: nativeFormat } : {})
                     } : undefined;
                     // CSV has no presentation or link metadata: emit its selected scalar directly.
                     // This also avoids a frozen wrapper for every cell in large CSV captures.
-                    result.push(format === "csv" ? value : new ExportCell(value, { text: cell.text, ...(presentation ? { presentation } : {}), ...(cell.link === undefined ? {} : { link: cell.link }) }));
+                    if (format === "csv")
+                        result.push(value);
+                    else {
+                        const exported = new ExportCell(value, { text: cell.text, ...(presentation ? { presentation } : {}), ...(cell.link === undefined ? {} : { link: cell.link }) });
+                        if (relativeLabel)
+                            rawIdentities.set(exported, cell.value);
+                        result.push(exported);
+                    }
                 }
                 if (rowCount !== null && count >= rowCount)
                     throw new TypeError("Canopy capture exceeded its declared recordCount.");
@@ -11875,7 +11926,7 @@ function prepareCanopyExport(capture, format, options = {}) {
         } });
     return Object.freeze({ source, request: Object.freeze({ ...request, columns: Object.freeze(specs.map(spec => spec.input)) }), report, tones, pivot });
 }
-const _exports = Object.freeze({ createCanopyExport: createCanopyExport, prepareCanopyExport: prepareCanopyExport });
+const _exports = Object.freeze({ canopyIdentityValue: canopyIdentityValue, createCanopyExport: createCanopyExport, prepareCanopyExport: prepareCanopyExport });
 return _exports;
 })();
 
@@ -12183,8 +12234,6 @@ return _exports;
 const _m102 = (() => {
 const { createGroupedReport } = _m8;
 
-const { ExportCell } = _m5;
-
 const { checkAbort } = _m4;
 
 const { createTotals } = _m12;
@@ -12193,8 +12242,10 @@ const { captureFields } = _m10;
 
 const { datetime } = _m98;
 
+const { canopyIdentityValue } = _m96;
+
 const identity = (value) => value instanceof Date ? "date:" + value.getTime() : typeof value + ":" + String(value);
-const scalar = (value) => value instanceof ExportCell ? value.value : value;
+const scalar = canopyIdentityValue;
 /** Validate captured ranges, then use the owned grouping factory and its existing writers.
  * Only ranges, labels and at most four active aggregate vectors are retained; no detail body is buffered. */
 function canopyGrouped(source, request, options, limits, report, format) {
@@ -12361,10 +12412,20 @@ function canopyGrouped(source, request, options, limits, report, format) {
         }
         verify(grand, grandExpected);
     }
+    // The factory's hidden fields keep raw group identity separate from projected
+    // detail labels. Never override a declared output column's value getter.
+    const groupKeys = new Set([...source.columns.map(column => column.key), ...levels.map(level => level.column)]);
     const groupBy = levels.map((level, depth) => {
-        const visible = source.columns.some(column => column.key === level.column);
-        return { key: level.column,
-            ...(visible ? {} : { value: (_row, context) => at(depth, context.rowIndex).value }),
+        const column = source.columns.findIndex(column => column.key === level.column);
+        let key = level.column;
+        if (column >= 0) {
+            do {
+                key += "#raw";
+            } while (groupKeys.has(key));
+            groupKeys.add(key);
+        }
+        return { key,
+            value: (row, context) => column < 0 ? at(depth, context.rowIndex).value : scalar(row[column]),
             label: (value) => labels[depth].get(identity(value)) ?? String(value ?? "") };
     });
     const sourceLimits = limits === undefined ? undefined : {
@@ -12497,6 +12558,237 @@ const _exports = Object.freeze({ writeCanopyWorkbook: writeCanopyWorkbook });
 return _exports;
 })();
 
+const _m106 = (() => {
+const { ExportCell } = _m1;
+
+/** Fixed numeric formats affect PDF text, not the frozen numeric value used by other writers. */
+function numericProfile(format) {
+    // No declared precision: whole values (including counts) stay whole.
+    if (format === undefined || format === "General")
+        return { minimumFractionDigits: 0, maximumFractionDigits: 20,
+            percent: false, grouping: false, prefix: "", suffix: "" };
+    const match = /^((?:"[^"]*"|\\["%])*)(#,##)?0(?:\.([0#]+))?(%)?((?:"[^"]*"|\\["%])*)$/.exec(format);
+    if (!match || (match[3]?.length ?? 0) > 10)
+        return undefined;
+    const literal = (text) => text.replace(/"([^"]*)"|\\(["%])/g, (_, quoted, escaped) => quoted ?? escaped);
+    return { minimumFractionDigits: (match[3]?.match(/0/g) ?? []).length, maximumFractionDigits: match[3]?.length ?? 0,
+        percent: !!match[4], grouping: !!match[2], prefix: literal(match[1]), suffix: literal(match[5]) };
+}
+/** Separate declared literal units before recognizing the captured numeric token. */
+function capturedNumber(text, profile) {
+    let body = text, signBeforePrefix = false;
+    if (profile.prefix && body.startsWith(profile.prefix))
+        body = body.slice(profile.prefix.length);
+    else if (profile.prefix && /^[+-]/.test(body) && body.slice(1).startsWith(profile.prefix)) {
+        signBeforePrefix = true;
+        body = body[0] + body.slice(1 + profile.prefix.length);
+    }
+    if (profile.suffix && body.endsWith(profile.suffix))
+        body = body.slice(0, -profile.suffix.length);
+    const match = /^([^0-9+-]*)([+-]?\d[\d., \u00a0\u202f]*?)([^0-9]*)$/.exec(body);
+    return match ? { prefix: profile.prefix || match[1], number: match[2], suffix: profile.suffix || match[3], signBeforePrefix } : undefined;
+}
+/** Distinguish a captured thousands mark from a decimal, using the raw value. */
+function groupedInteger(numeric, value) {
+    if (!/^[+-]?\d{1,3}(?:,\d{3})+$/.test(numeric) && !/^[+-]?\d{1,3}(?:\.\d{3})+$/.test(numeric))
+        return false;
+    const grouped = Number(numeric.replace(/[.,]/g, ""));
+    return grouped !== 0 && Math.abs(grouped - value) <= .5;
+}
+/** Choose once for the document; percent text is the strongest captured culture signal. */
+function documentDecimal(sample, columns) {
+    let fallback;
+    for (const percent of [true, false]) {
+        for (const row of sample)
+            for (let index = 0; index < columns.length; index++) {
+                const cell = row[index], column = columns[index];
+                if (!(cell instanceof ExportCell) || typeof cell.value !== "number")
+                    continue;
+                const profile = numericProfile(cell.presentation?.numberFormat ?? column.format);
+                if (!profile)
+                    continue;
+                const captured = capturedNumber(cell.text ?? "", profile);
+                if (!captured)
+                    continue;
+                // A literal percent label is a culture signal without requesting numeric scaling.
+                const percentageSignal = profile.percent || profile.prefix.includes("%") || profile.suffix.includes("%") || (cell.text ?? "").includes("%");
+                if (percentageSignal !== percent)
+                    continue;
+                const match = /([.,])(\d+)$/.exec(captured.number.trimEnd());
+                if (match) {
+                    const numeric = captured.number;
+                    // An override changes output scaling/precision, not the captured label.
+                    if (groupedInteger(numeric, cell.value) || (percentageSignal && groupedInteger(numeric, cell.value * 100))) {
+                        fallback = match[1] === "," ? "." : ",";
+                        continue;
+                    }
+                    return match[1];
+                }
+            }
+        if (fallback !== undefined)
+            return fallback;
+    }
+    return ".";
+}
+/** Apply one captured numeric convention to every supported numeric cell, including later streamed rows. */
+function canopyPdfNumbers(sample, columns) {
+    const formatters = new Map(), decimal = documentDecimal(sample, columns);
+    return row => row.map((value, index) => {
+        if (!(value instanceof ExportCell) || typeof value.value !== "number")
+            return value;
+        const format = value.presentation?.numberFormat ?? columns[index].format;
+        let profile = numericProfile(format);
+        if (!profile || value.text === "")
+            return value;
+        const captured = capturedNumber(value.text ?? "", profile);
+        if (value.text && !captured)
+            return value;
+        // Undeclared formats normalize only plain numeric labels; a decoration
+        // alone does not declare how the raw value was transformed for display.
+        if ((format === undefined || format === "General") && captured && (captured.prefix.trim() || captured.suffix.trim()))
+            return value;
+        if (format === undefined || format === "General") {
+            const digits = Number.isInteger(value.value) || (captured && groupedInteger(captured.number, value.value)) ? 0 :
+                captured ? /[.,](\d+)$/.exec(captured.number.trimEnd())?.[1]?.length ?? 0 : undefined;
+            // Retain a fractional value's captured precision, without padding an
+            // undeclared whole aggregate merely because its display text was padded.
+            if (digits !== undefined && digits <= 20)
+                profile = { ...profile, minimumFractionDigits: digits, maximumFractionDigits: digits };
+        }
+        const key = [profile.minimumFractionDigits, profile.maximumFractionDigits, profile.grouping].join(":");
+        let formatter = formatters.get(key);
+        if (!formatter) {
+            formatter = new Intl.NumberFormat(decimal === "," ? "de-DE" : "en-US", {
+                minimumFractionDigits: profile.minimumFractionDigits, maximumFractionDigits: profile.maximumFractionDigits, useGrouping: profile.grouping
+            });
+            formatters.set(key, formatter);
+        }
+        let formatted = formatter.format(value.value * (profile.percent ? 100 : 1));
+        if (captured?.number.startsWith("+") && !formatted.startsWith("-"))
+            formatted = "+" + formatted;
+        const leadingSign = captured?.signBeforePrefix ? /^[+-]/.exec(formatted)?.[0] ?? "" : "";
+        if (leadingSign)
+            formatted = formatted.slice(1);
+        const prefix = captured?.prefix || profile.prefix;
+        let suffix = captured?.suffix || profile.suffix;
+        if (profile.percent && !profile.suffix)
+            suffix = suffix.replace(/%/g, "");
+        return new ExportCell(value.value, { text: leadingSign + prefix + formatted + (profile.percent ? "%" : "") + suffix,
+            ...(value.presentation ? { presentation: value.presentation } : {}), ...(value.link ? { link: value.link } : {}) });
+    });
+}
+const _exports = Object.freeze({ canopyPdfNumbers: canopyPdfNumbers });
+return _exports;
+})();
+
+const _m105 = (() => {
+const { ExportCell, NotSupportedError, OfficeIMOError } = _m1;
+
+const { inputRows, checkAbort, pause, taskYieldDue } = _m4;
+
+const { fontProgram } = _m64;
+
+const { resolveScalar, selectFont, validateFonts } = _m68;
+
+const { settings } = _m17;
+
+const { canopyPdfNumbers } = _m106;
+
+/** A bounded lookahead is replayed once; no second capture, full-dataset copy or smaller font is needed. */
+async function withCanopyPdfLayout(source, captured, options, write) {
+    const prepared = settings({ ...options, columns: source.columns }), { fontSize, padding, page, margins, limits } = prepared;
+    options = prepared.options;
+    validateFonts(options.fonts, limits.maxFontBytes);
+    const available = page.width - margins.left - margins.right;
+    const iterator = inputRows(source.rows(), options.signal)[Symbol.asyncIterator](), sample = [];
+    let done = false, characters = 0;
+    try {
+        while (sample.length < Math.min(128, options.limits?.maxRows ?? 128) && characters < 262144) {
+            const item = await iterator.next();
+            if (item.done) {
+                done = true;
+                break;
+            }
+            sample.push(item.value);
+            characters += item.value.reduce((n, cell) => n + (cell instanceof ExportCell ? cell.text?.length ?? 0 : String(cell ?? "").length), 0);
+        }
+        const format = canopyPdfNumbers(sample, source.columns), rows = sample.map(format);
+        const measure = (text, bold = false, italic = false) => {
+            if (text.length > limits.maxCellCharacters)
+                throw new OfficeIMOError("RESOURCE_LIMIT", "maxCellCharacters exceeded.");
+            const face = selectFont(options.fonts, bold, italic), program = face.font ? fontProgram(face.font) : undefined;
+            let width = 0;
+            for (const character of text.replace(/\t/g, "    ")) {
+                const scalar = resolveScalar(character.codePointAt(0), program, bold);
+                if (!scalar.supported)
+                    throw new NotSupportedError(scalar.message);
+                width += scalar.width * fontSize / 1000;
+            }
+            return width;
+        };
+        const largest = (parts, bold = false, italic = false) => parts.reduce((width, part) => Math.max(width, measure(part, bold, italic)), 0);
+        let layout = {};
+        // Explicit points/bands and shaping providers retain their own layout policy.
+        if (!options.columnWidths && typeof options.wideTable !== "object" && !options.textShaper) {
+            const minimum = source.columns.map(column => Math.min(available, largest(column.header.split(/\s+/), prepared.options.headerPresentation?.bold) + padding * 2 + .01));
+            const natural = source.columns.map((column, index) => Math.min(available, Math.max(minimum[index], largest(column.header.split(/\r\n?|\n/), prepared.options.headerPresentation?.bold) + padding * 2 + .01)));
+            for (const row of rows) {
+                for (let i = 0; i < row.length; i++) {
+                    const cell = row[i], text = cell instanceof ExportCell ? cell.text ?? String(cell.value ?? "") : String(cell ?? "");
+                    const style = cell instanceof ExportCell ? cell.presentation : undefined;
+                    const line = largest(text.split(/\r\n?|\n/), style?.bold, style?.italic) + padding * 2 + .01;
+                    const word = largest(text.split(/\s+/), style?.bold, style?.italic) + padding * 2 + .01;
+                    natural[i] = Math.min(available, Math.max(natural[i], line));
+                    minimum[i] = Math.min(available, Math.max(minimum[i], captured[i].kind === "text" ? word : line));
+                }
+                if (taskYieldDue())
+                    await pause();
+                checkAbort(options.signal);
+            }
+            const sum = minimum.reduce((total, width) => total + width, 0), widths = [...minimum];
+            if (sum > available + .001)
+                layout = { columnWidths: widths, wideTable: options.wideTable === "reject" ? "reject" : {
+                        mode: "bands", repeatColumns: widths[0] + Math.max(...widths.slice(1)) <= available ? [0] : []
+                    } };
+            else {
+                let spare = available - sum;
+                const needs = natural.map((width, index) => Math.max(0, width - widths[index])), total = needs.reduce((n, width) => n + width, 0);
+                for (let i = 0; i < widths.length; i++)
+                    widths[i] += total ? needs[i] * Math.min(1, spare / total) : 0;
+                spare = available - widths.reduce((n, width) => n + width, 0);
+                const text = captured.flatMap((column, index) => column.kind === "text" ? [index] : []);
+                for (const i of text.length ? text : widths.map((_, index) => index))
+                    widths[i] += spare / (text.length || widths.length);
+                layout = { columnWidths: widths };
+            }
+        }
+        const replay = async function* () {
+            for (const row of rows)
+                yield row;
+            while (!done) {
+                const item = await iterator.next();
+                if (item.done) {
+                    done = true;
+                    break;
+                }
+                yield format(item.value);
+            }
+        };
+        return await write(replay(), layout, prepared.options);
+    }
+    finally {
+        if (!done) {
+            try {
+                void iterator.return(undefined).catch(() => { });
+            }
+            catch { /* Keep the writer's original failure. */ }
+        }
+    }
+}
+const _exports = Object.freeze({ withCanopyPdfLayout: withCanopyPdfLayout });
+return _exports;
+})();
+
 const _m0 = (() => {
 const { BlobByteSink, ExportCell } = _m1;
 
@@ -12525,6 +12817,8 @@ const { canopyGrouped } = _m102;
 const { canopyAbout } = _m103;
 
 const { writeCanopyWorkbook } = _m104;
+
+const { withCanopyPdfLayout } = _m105;
 
 
 
@@ -12596,7 +12890,7 @@ async function writeCanopyTo(capture, format, destination, options = {}) {
         // CSS pixels become points before the existing fit/band policy. Explicit PDF point widths win.
         const fitted = request.columns.every(column => column.width !== undefined) ? request.columns.map(column => column.width.preferred * 72 / 96) : undefined;
         const widths = pdf.columnWidths ?? fitted;
-        const settings = { ...(fitted === undefined ? {} : { orientation: "landscape", wideTable: "fit" }), ...pdf, ...stream, limits: formatLimits };
+        const settings = { orientation: "landscape", wideTable: "fit", ...pdf, ...stream, limits: formatLimits };
         if (grouped) {
             if (pdf.headerRows !== undefined || pdf.footer !== undefined)
                 throw new TypeError("Grouped Canopy PDF owns heading and summary rows.");
@@ -12610,7 +12904,13 @@ async function writeCanopyTo(capture, format, destination, options = {}) {
                 ...(capturedLabels?.continuationLabel === undefined ? {} : { continuationLabel: capturedLabels.continuationLabel }),
                 ...(capturedLabels?.groupHeadingLevel === undefined ? {} : { groupHeadingLevel: capturedLabels.groupHeadingLevel }) });
         }
-        return writePdfTo(source.rows(), destination, { ...settings, columns: source.columns, ...(widths === undefined ? {} : { columnWidths: widths }) });
+        return withCanopyPdfLayout(prepared.source, request.columns, settings, async (rows, layout, captured) => {
+            const counted = async function* () { for await (const row of rows) {
+                consumed++;
+                yield row;
+            } };
+            return writePdfTo(counted(), destination, { ...captured, ...layout, columns: source.columns });
+        });
     }
     return writeCsvTo(source.rows(), destination, { ...csv, ...stream, columns: source.columns, valueMode: request.values,
         limits: mergeAdapterLimits(csv.limits, limits) });

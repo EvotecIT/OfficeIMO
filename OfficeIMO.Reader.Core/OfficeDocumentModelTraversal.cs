@@ -36,6 +36,7 @@ internal static partial class OfficeDocumentModelTraversal {
             // Project fallback locations without mutating the aggregate or page model. Aggregate content wins.
             yield return (location != null && !ReferenceEquals(location, block.Location)) || !ReferenceEquals(region, block.Region)
                 ? new OfficeDocumentBlock { Id = block.Id, Kind = block.Kind, Text = block.Text, Level = block.Level,
+                    ChunkProjection = block.ChunkProjection,
                     Marker = block.Marker, ListIndex = block.ListIndex, Recognition = block.Recognition, Region = region, Location = location ?? block.Location }
                 : block;
         }

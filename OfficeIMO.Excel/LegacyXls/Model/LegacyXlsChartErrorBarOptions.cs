@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes decoded SerAuxErrBar chart error-bar options preserved from a BIFF chart stream.
     /// </summary>
-    public sealed class LegacyXlsChartErrorBarOptions {
+    internal sealed class LegacyXlsChartErrorBarOptions {
         internal LegacyXlsChartErrorBarOptions(byte direction, byte valueSource, bool hasTeeTop, byte reserved, double value, ushort customValueCount) {
             Direction = direction;
             DirectionName = GetDirectionName(direction);

@@ -34,15 +34,14 @@ internal static class NativePagesWriterSmoke {
             && runs[1].Style is { Bold: false, Italic: false, Underline: false, Strikethrough: false }
             && runs[1].Style!.FontSizePoints == 12 && runs[2].Style!.FontName == "Times New Roman",
             "Pages Unicode ranges or formatting resets differ.");
-        using var converted = WordIWorkConverter.ConvertPagesToWordResult(new MemoryStream(bytes),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Open(new MemoryStream(bytes), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         converted.RequireCompleteEditableReconstruction();
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
         using var reopened = WordDocument.Load(saved);
         Require(string.Concat(reopened.Paragraphs.Select(paragraph => paragraph.Text)) == string.Concat(projection.Paragraphs),
             "Saved Pages DOCX loses Unicode, body content or text order.");
         try {
-            document.Save(destination, new() { MaximumParagraphs = 82 });
+            document.Save(destination, new() { MaxParagraphs = 82 });
             throw new InvalidOperationException("Pages paragraph limit was not enforced.");
         } catch (InvalidDataException) {
             Require(bytes.SequenceEqual(destination.ToArray()), "Pages budget rejection mutated its destination.");

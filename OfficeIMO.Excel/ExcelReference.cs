@@ -125,8 +125,8 @@ namespace OfficeIMO.Excel {
             int anchorColumn = 1) {
             reference = null;
             if (string.IsNullOrWhiteSpace(text)
-                || anchorRow < 1 || anchorRow > A1.MaxRows
-                || anchorColumn < 1 || anchorColumn > A1.MaxColumns) {
+                || anchorRow < 1 || anchorRow > ExcelA1.MaxRows
+                || anchorColumn < 1 || anchorColumn > ExcelA1.MaxColumns) {
                 return false;
             }
 
@@ -144,8 +144,8 @@ namespace OfficeIMO.Excel {
             ExcelReferenceStyle style,
             int anchorRow = 1,
             int anchorColumn = 1) {
-            if (anchorRow < 1 || anchorRow > A1.MaxRows) throw new ArgumentOutOfRangeException(nameof(anchorRow));
-            if (anchorColumn < 1 || anchorColumn > A1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(anchorColumn));
+            if (anchorRow < 1 || anchorRow > ExcelA1.MaxRows) throw new ArgumentOutOfRangeException(nameof(anchorRow));
+            if (anchorColumn < 1 || anchorColumn > ExcelA1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(anchorColumn));
 
             string start = style == ExcelReferenceStyle.A1
                 ? FormatA1Point(Start, Kind)
@@ -253,9 +253,9 @@ namespace OfficeIMO.Excel {
 
         internal void GetBounds(out int firstRow, out int firstColumn, out int lastRow, out int lastColumn) {
             firstRow = Kind == ExcelReferenceKind.WholeColumn ? 1 : Math.Min(Start.Row, End.Row);
-            lastRow = Kind == ExcelReferenceKind.WholeColumn ? A1.MaxRows : Math.Max(Start.Row, End.Row);
+            lastRow = Kind == ExcelReferenceKind.WholeColumn ? ExcelA1.MaxRows : Math.Max(Start.Row, End.Row);
             firstColumn = Kind == ExcelReferenceKind.WholeRow ? 1 : Math.Min(Start.Column, End.Column);
-            lastColumn = Kind == ExcelReferenceKind.WholeRow ? A1.MaxColumns : Math.Max(Start.Column, End.Column);
+            lastColumn = Kind == ExcelReferenceKind.WholeRow ? ExcelA1.MaxColumns : Math.Max(Start.Column, End.Column);
         }
 
         internal ExcelReference WithCoordinates(
@@ -338,14 +338,14 @@ namespace OfficeIMO.Excel {
         private static ExcelReference FromBounds(int r1, int c1, int r2, int c2, string? qualifier) {
             ValidateCell(r1, c1);
             ValidateCell(r2, c2);
-            if (r1 == 1 && r2 == A1.MaxRows) {
+            if (r1 == 1 && r2 == ExcelA1.MaxRows) {
                 return new ExcelReference(
                     ExcelReferenceKind.WholeColumn,
                     qualifier,
                     new ExcelReferencePoint(0, c1, false, false),
                     new ExcelReferencePoint(0, c2, false, false));
             }
-            if (c1 == 1 && c2 == A1.MaxColumns) {
+            if (c1 == 1 && c2 == ExcelA1.MaxColumns) {
                 return new ExcelReference(
                     ExcelReferenceKind.WholeRow,
                     qualifier,
@@ -398,13 +398,13 @@ namespace OfficeIMO.Excel {
             int columnStart = index;
             while (index < value.Length && IsAsciiLetter(value[index])) index++;
             if (index == columnStart || index - columnStart > 3) return false;
-            int column = A1.ColumnLettersToIndex(value.Substring(columnStart, index - columnStart));
+            int column = ExcelA1.ColumnLettersToIndex(value.Substring(columnStart, index - columnStart));
             bool rowAbsolute = ReadDollar(value, ref index);
             int rowStart = index;
             while (index < value.Length && char.IsDigit(value[index])) index++;
             if (index != value.Length || rowStart == index
                 || !int.TryParse(value.Substring(rowStart), NumberStyles.None, CultureInfo.InvariantCulture, out int row)
-                || row < 1 || row > A1.MaxRows || column < 1 || column > A1.MaxColumns) {
+                || row < 1 || row > ExcelA1.MaxRows || column < 1 || column > ExcelA1.MaxColumns) {
                 return false;
             }
 
@@ -419,8 +419,8 @@ namespace OfficeIMO.Excel {
             int start = index;
             while (index < value.Length && IsAsciiLetter(value[index])) index++;
             if (index != value.Length || start == index || index - start > 3) return false;
-            int column = A1.ColumnLettersToIndex(value.Substring(start));
-            if (column < 1 || column > A1.MaxColumns) return false;
+            int column = ExcelA1.ColumnLettersToIndex(value.Substring(start));
+            if (column < 1 || column > ExcelA1.MaxColumns) return false;
             point = new ExcelReferencePoint(0, column, false, absolute);
             return true;
         }
@@ -430,7 +430,7 @@ namespace OfficeIMO.Excel {
             int index = 0;
             bool absolute = ReadDollar(value, ref index);
             if (!int.TryParse(value.Substring(index), NumberStyles.None, CultureInfo.InvariantCulture, out int row)
-                || row < 1 || row > A1.MaxRows) return false;
+                || row < 1 || row > ExcelA1.MaxRows) return false;
             point = new ExcelReferencePoint(row, 0, absolute, false);
             return true;
         }
@@ -490,8 +490,8 @@ namespace OfficeIMO.Excel {
             }
 
             if (index != value.Length || (!hasRow && !hasColumn)
-                || (hasRow && (row < 1 || row > A1.MaxRows))
-                || (hasColumn && (column < 1 || column > A1.MaxColumns))) {
+                || (hasRow && (row < 1 || row > ExcelA1.MaxRows))
+                || (hasColumn && (column < 1 || column > ExcelA1.MaxColumns))) {
                 return false;
             }
 
@@ -529,7 +529,7 @@ namespace OfficeIMO.Excel {
 
         private static string FormatA1Point(ExcelReferencePoint point, ExcelReferenceKind kind) {
             if (kind == ExcelReferenceKind.WholeRow) return (point.RowAbsolute ? "$" : string.Empty) + point.Row.ToString(CultureInfo.InvariantCulture);
-            string column = (point.ColumnAbsolute ? "$" : string.Empty) + A1.ColumnIndexToLetters(point.Column);
+            string column = (point.ColumnAbsolute ? "$" : string.Empty) + ExcelA1.ColumnIndexToLetters(point.Column);
             if (kind == ExcelReferenceKind.WholeColumn) return column;
             return column + (point.RowAbsolute ? "$" : string.Empty) + point.Row.ToString(CultureInfo.InvariantCulture);
         }
@@ -630,13 +630,13 @@ namespace OfficeIMO.Excel {
             (value >= 'A' && value <= 'Z') || (value >= 'a' && value <= 'z');
 
         private static void ValidateCell(int row, int column) {
-            if (row < 1 || row > A1.MaxRows) throw new ArgumentOutOfRangeException(nameof(row));
-            if (column < 1 || column > A1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(column));
+            if (row < 1 || row > ExcelA1.MaxRows) throw new ArgumentOutOfRangeException(nameof(row));
+            if (column < 1 || column > ExcelA1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(column));
         }
 
         private static void ValidateEndpoint(int row, int column, ExcelReferenceKind kind) {
-            if (kind != ExcelReferenceKind.WholeColumn && (row < 1 || row > A1.MaxRows)) throw new ArgumentOutOfRangeException(nameof(row));
-            if (kind != ExcelReferenceKind.WholeRow && (column < 1 || column > A1.MaxColumns)) throw new ArgumentOutOfRangeException(nameof(column));
+            if (kind != ExcelReferenceKind.WholeColumn && (row < 1 || row > ExcelA1.MaxRows)) throw new ArgumentOutOfRangeException(nameof(row));
+            if (kind != ExcelReferenceKind.WholeRow && (column < 1 || column > ExcelA1.MaxColumns)) throw new ArgumentOutOfRangeException(nameof(column));
         }
     }
 }

@@ -4,7 +4,7 @@ $services = @(
     [pscustomobject]@{ Service = 'Messaging'; Status = 'Watch' }
 )
 
-$document = New-OfficeMarkdown -Path $path -NoSave
+$document = New-OfficeMarkdown -Path $path
 Add-OfficeMarkdownHeading -Document $document -Level 1 -Text 'Service status'
 Add-OfficeMarkdownParagraph -Document $document -Text 'This file was composed through an explicit Markdown document object.'
 $document | Add-OfficeMarkdownTable -InputObject $services

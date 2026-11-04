@@ -8,6 +8,21 @@ namespace OfficeIMO.Shared.Tests;
 public sealed class EpubChapterSplitContracts {
     private static readonly XNamespace Html = "http://www.w3.org/1999/xhtml";
 
+    [Fact]
+    public void DeepSiblingSubtreeIsRejectedBeforeChapterNodesAreCopied() {
+        var book = Book();
+        string document = "<html xmlns='http://www.w3.org/1999/xhtml'><head><title>One</title></head><body>" +
+            "<p>Before</p><h2 id='cut'>Cut</h2>" + string.Concat(Enumerable.Repeat("<div>", 300)) +
+            "<p>Deep</p>" + string.Concat(Enumerable.Repeat("</div>", 300)) + "</body></html>";
+        byte[] original = System.Text.Encoding.UTF8.GetBytes(document);
+        book.UpdateResource("one", original);
+
+        Assert.Throws<InvalidDataException>(() =>
+            book.SplitChapter("one", "cut", "second", "EPUB/parts/second.xhtml", "Second"));
+        Assert.Equal(original, book.GetResourceBytes("one"));
+        Assert.DoesNotContain(book.Manifest, item => item.Id == "second");
+    }
+
     [Theory]
     [InlineData(EpubVersion.Epub2)]
     [InlineData(EpubVersion.Epub3)]

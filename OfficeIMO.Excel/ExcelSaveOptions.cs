@@ -5,6 +5,19 @@ namespace OfficeIMO.Excel {
     /// robustness and CI validation.
     /// </summary>
     public sealed class ExcelSaveOptions {
+        /// <summary>Returns an independent copy, preserving whether an output password was explicitly assigned.</summary>
+        public ExcelSaveOptions Clone() => (ExcelSaveOptions)MemberwiseClone();
+        /// <summary>Native physical format for streams and byte output. File paths select their format by extension.</summary>
+        public ExcelFileFormat Format { get; set; } = ExcelFileFormat.Xlsx;
+        private string? _password;
+        private bool _passwordSpecified;
+        /// <summary>Output password. Assign null explicitly to remove encryption; an unset value preserves loaded encryption.</summary>
+        public string? Password {
+            get => _password;
+            set { _password = value; _passwordSpecified = true; }
+        }
+        internal string? ResolvePassword(string? loadedPassword) => _passwordSpecified ? _password : loadedPassword;
+
         /// <summary>Default maximum package size materialized by save operations: 256 MiB.</summary>
         public const long DefaultMaxInMemoryPackageBytes = 256L * 1024L * 1024L;
 
@@ -82,7 +95,11 @@ namespace OfficeIMO.Excel {
         /// Controls saves of workbooks projected from legacy XLS files when known legacy-only
         /// content cannot be represented by the selected output format. The default blocks the save.
         /// </summary>
-        public OfficeConversionLossPolicy LossPolicy { get; set; } = OfficeConversionLossPolicy.Block;
+        public bool AllowLoss { get; set; }
+        internal OfficeConversionLossPolicy LossPolicy {
+            get => AllowLoss ? OfficeConversionLossPolicy.Allow : OfficeConversionLossPolicy.Block;
+            set => AllowLoss = value == OfficeConversionLossPolicy.Allow;
+        }
 
         /// <summary>
         /// Gets or sets how save operations handle digital-signature metadata. The safe default blocks
@@ -102,6 +119,9 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentOutOfRangeException(nameof(MaxTemporaryPackageBytes));
             }
             return new ExcelSaveOptions {
+                Format = Format,
+                _password = _password,
+                _passwordSpecified = _passwordSpecified,
                 MaxInMemoryPackageBytes = MaxInMemoryPackageBytes,
                 MaxTemporaryPackageBytes = MaxTemporaryPackageBytes,
                 SafeRepairDefinedNames = SafeRepairDefinedNames,

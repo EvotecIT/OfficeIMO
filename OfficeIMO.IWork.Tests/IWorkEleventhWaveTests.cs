@@ -8,7 +8,7 @@ namespace OfficeIMO.IWork.Tests;
 public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Enforces_the_source_wide_projected_image_budget() {
-        var budget = new IWorkProjectionBudget(new IWorkReadOptions { MaximumProjectedImages = 1 });
+        var budget = new IWorkProjectionBudget(new IWorkReadOptions { MaxProjectedImages = 1 });
 
         budget.AddImage();
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => budget.AddImage());
@@ -47,7 +47,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: null,
             includePreview: true, bodyText: "Before\ufffcAfter");
 
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,
@@ -60,7 +60,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Odd offsets", 1, 1, 42d, oddCurrentOffsets: true)
         }, includePreview: true);
 
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,
@@ -72,7 +72,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
             text: "First\u2028Second", slideName: "Named slide", listLabel: "•");
 
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult();
         PowerPointSlide slide = Assert.Single(result.Value.Slides);
         PowerPointParagraph paragraph = Assert.Single(Assert.Single(slide.TextBoxes).Paragraphs);
 
@@ -85,7 +85,7 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream();
         result.Value.Save(saved);
         saved.Position = 0;
-        using PowerPointPresentation reopened = PowerPointPresentation.Load(saved);
+        using PowerPointDocument reopened = PowerPointDocument.Load(saved);
         PowerPointSlide persisted = Assert.Single(reopened.Slides);
         Assert.Equal("Named slide", persisted.Name);
         PowerPointParagraph persistedParagraph = Assert.Single(
@@ -100,7 +100,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: "Accessible box",
             includePreview: false, textBoxDrawable: Message(StringField(8, "Source description")));
 
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult();
         Assert.Equal("Source description", Assert.Single(result.Value.TextBoxes).Description);
         using var saved = new MemoryStream();
         result.Value.Save(saved);

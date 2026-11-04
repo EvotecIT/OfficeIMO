@@ -35,8 +35,8 @@ public enum OfficeImageMetadataPolicy {
 }
 
 /// <summary>Typed evidence describing metadata retained or lost by optimization.</summary>
-public sealed class OfficeImageMetadataReport : IOfficeConversionReport {
-    private readonly IReadOnlyList<OfficeConversionFidelityDiagnostic> _fidelityDiagnostics;
+public sealed class OfficeImageMetadataReport : OfficeConversionReport {
+    private readonly IReadOnlyList<OfficeDiagnostic> _fidelityDiagnostics;
 
     internal OfficeImageMetadataReport(
         OfficeImageMetadataPolicy policy,
@@ -46,19 +46,20 @@ public sealed class OfficeImageMetadataReport : IOfficeConversionReport {
         OfficeImageMetadataKinds normalized,
         bool policyApplied) {
         Policy = policy;
-        Source = source;
+        SourceKinds = source;
         Requested = requested;
         Preserved = preserved;
         Normalized = normalized;
         PolicyApplied = policyApplied;
-        var fidelityDiagnostics = new List<OfficeConversionFidelityDiagnostic>();
+        var fidelityDiagnostics = new List<OfficeDiagnostic>();
         foreach (OfficeImageMetadataKinds kind in EnumerateKinds(Lost)) {
-            fidelityDiagnostics.Add(new OfficeConversionFidelityDiagnostic(
+            fidelityDiagnostics.Add(new global::OfficeIMO.OfficeDiagnostic(
                 "IMAGE_METADATA_" + kind.ToString().ToUpperInvariant() + "_LOST",
+                global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
                 $"The requested {kind} image metadata could not be retained.",
-                OfficeConversionLossKind.Omission,
+                kind.ToString(),
                 "OfficeIMO.Drawing.ImageMetadata",
-                kind.ToString()));
+                OfficeConversionLossKind.Omission));
         }
         _fidelityDiagnostics = fidelityDiagnostics.AsReadOnly();
     }
@@ -66,7 +67,7 @@ public sealed class OfficeImageMetadataReport : IOfficeConversionReport {
     /// <summary>Requested metadata policy.</summary>
     public OfficeImageMetadataPolicy Policy { get; }
     /// <summary>Categories discovered in the source container.</summary>
-    public OfficeImageMetadataKinds Source { get; }
+    public OfficeImageMetadataKinds SourceKinds { get; }
     /// <summary>Source categories selected for copying.</summary>
     public OfficeImageMetadataKinds Requested { get; }
     /// <summary>Selected categories present in the rewritten output.</summary>
@@ -79,19 +80,17 @@ public sealed class OfficeImageMetadataReport : IOfficeConversionReport {
     public OfficeImageMetadataKinds Lost => Requested & ~Preserved;
     /// <summary>Source categories deliberately removed by policy.</summary>
     public OfficeImageMetadataKinds Stripped => PolicyApplied
-        ? Source & ~Requested
+        ? SourceKinds & ~Requested
         : OfficeImageMetadataKinds.None;
     /// <summary>Whether the rewrite lost any selected metadata category.</summary>
-    public bool HasLoss => Lost != OfficeImageMetadataKinds.None;
+    public override bool HasLoss => Lost != OfficeImageMetadataKinds.None;
 
     /// <inheritdoc />
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => _fidelityDiagnostics;
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics => _fidelityDiagnostics;
 
     /// <inheritdoc />
-    public void RequireNoLoss() {
-        if (HasLoss) throw new InvalidOperationException(
-            "Image optimization lost requested metadata. Inspect FidelityDiagnostics for the omitted categories.");
-    }
+    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("Image optimization lost requested metadata. Inspect Diagnostics for the omitted categories.", this);
 
     private static IEnumerable<OfficeImageMetadataKinds> EnumerateKinds(OfficeImageMetadataKinds kinds) {
         foreach (OfficeImageMetadataKinds kind in new[] {

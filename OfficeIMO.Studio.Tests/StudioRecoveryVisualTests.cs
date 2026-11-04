@@ -26,7 +26,7 @@ public sealed class StudioRecoveryVisualTests {
             byte[] bytes = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", "openpreserve-pdfa1b-text.pdf"));
             File.WriteAllBytes(source, bytes);
             string fingerprint = PdfWorkspaceRecoveryStore.Fingerprint(bytes);
-            byte[] edited = PdfDocument.Load(bytes).Pages.Rotate(90, 1).ToBytes();
+            byte[] edited = PdfDocument.Load(new System.IO.MemoryStream(bytes)).Pages.Rotate(90, 1).ToBytes();
             await services.Recovery.WriteAsync(source, fingerprint, edited, 1, CancellationToken.None);
             var window = new MainWindow(services) { Width = width, Height = height };
             try {

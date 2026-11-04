@@ -3,57 +3,47 @@ using OfficeIMO.Pdf;
 namespace OfficeIMO.Xps;
 
 /// <summary>Thin PDF export over the native XPS reader and existing PDF drawing engine.</summary>
-public static class XpsPdfExtensions {
-    /// <summary>Produces vector PDF pages with native semantic structure, retaining the two-parameter conversion entrypoint.</summary>
-    public static byte[] ToPdf(this XpsDocument document, CancellationToken cancellationToken) =>
-        ToPdf(document, cancellationToken, preserveLogicalStructure: true);
-
-    /// <summary>Produces vector PDF pages with searchable native Unicode. Authored native structure supplies semantic tags and logical reading order when present.</summary>
-    /// <param name="document">The native document.</param>
-    /// <param name="cancellationToken">Cancels conversion and PDF serialization.</param>
-    /// <param name="preserveLogicalStructure">Maps native semantics strictly. False exports paint and searchable text in markup order, including documents with unsupported structure extensions.</param>
-    /// <remarks>Page-local fragments use page order when no story addresses were authored. Native figure descriptions and PDF/UA conformance are not inferred.</remarks>
-    public static byte[] ToPdf(this XpsDocument document, CancellationToken cancellationToken = default, bool preserveLogicalStructure = true) {
-        using var output = new MemoryStream();
-        document.SavePdf(output, new XpsToPdfOptions { PreserveLogicalStructure = preserveLogicalStructure }, cancellationToken);
-        return output.ToArray();
-    }
-
-    /// <summary>Writes native vector pages and searchable Unicode directly to a caller-owned PDF stream.</summary>
-    /// <param name="document">The native document.</param>
-    /// <param name="output">Writable destination. Seekable output is replaced and rewound on success; the stream remains open.</param>
-    /// <param name="options">Native semantic preservation and existing PDF serialization settings.</param>
-    /// <param name="cancellationToken">Cancels conversion and serialization.</param>
-    /// <remarks>Validation precedes writing. A serialization failure can leave partial stream output; hosts that publish files should stage and validate it first.</remarks>
-    public static PdfSaveResult SavePdf(this XpsDocument document, Stream output, XpsToPdfOptions? options = null,
-        CancellationToken cancellationToken = default) {
+public static partial class XpsPdfExtensions {
+    internal static PdfDocumentConversionResult ConvertToPdfWithEvidence(this XpsDocument document, XpsPdfExportOptions? options,
+        CancellationToken cancellationToken) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        if (output == null) throw new ArgumentNullException(nameof(output));
-        if (!output.CanWrite) throw new ArgumentException("PDF output must be writable.", nameof(output));
         cancellationToken.ThrowIfCancellationRequested();
-        var snapshot = (options ?? new XpsToPdfOptions()).Clone();
-        return CreatePdf(document, snapshot, cancellationToken).Save(output, cancellationToken);
+        var snapshot = (options ?? new XpsPdfExportOptions()).Clone();
+        if (snapshot.MaximumSvgCharacters < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaximumSvgCharacters must be positive.");
+        if (snapshot.MaximumPathCommands < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaximumPathCommands must be positive.");
+        var report = new PdfConversionReport();
+        PdfCreateOptions pdfOptions = snapshot.PdfOptions?.Clone() ?? new PdfCreateOptions();
+        pdfOptions.ReportDiagnosticsTo(report, "OfficeIMO.Xps.Pdf");
+        snapshot.PdfOptions = pdfOptions;
+        return new PdfDocumentConversionResult(CreatePdf(document, snapshot, cancellationToken), report);
     }
 
-    private static PdfDocument CreatePdf(XpsDocument document, XpsToPdfOptions options, CancellationToken cancellationToken) {
+    private static PdfDocument CreatePdf(XpsDocument document, XpsPdfExportOptions options, CancellationToken cancellationToken) {
         if (document.Pages.Count == 0) throw new InvalidOperationException("PDF export requires at least one page.");
         var navigation = new XpsPdfNavigation(document, cancellationToken);
         var structure = options.PreserveLogicalStructure ? new XpsPdfLogicalStructure(document, cancellationToken) : null;
-        var pdf = PdfDocument.Create(options.PdfOptions);
+        var pdf = PdfDocument.CreateForImportedLayout(options.PdfOptions);
         if (structure?.HasNativeStructure == true) pdf.TaggedStructure(PdfTaggedStructureMode.CatalogMarkers);
+        long projectedSvgCharacters = 0, projectedPathCommands = 0;
         pdf.Compose(builder => {
             for (int pageIndex = 0; pageIndex < document.Pages.Count; pageIndex++) {
                 var page = document.Pages[pageIndex];
                 cancellationToken.ThrowIfCancellationRequested();
                 var projection = new XpsSvgConverter(page, cancellationToken, explicitPageLinks: true, nativeDrawing: true).Convert(false);
+                if (projection.Svg.Length > options.MaximumSvgCharacters - projectedSvgCharacters)
+                    throw new InvalidDataException("XPS PDF projection exceeds MaximumSvgCharacters.");
+                if (projection.PathCommands > options.MaximumPathCommands - projectedPathCommands)
+                    throw new InvalidDataException("XPS PDF projection exceeds MaximumPathCommands.");
+                projectedSvgCharacters += projection.Svg.Length;
+                projectedPathCommands += projection.PathCommands;
                 var drawing = XpsPage.ImportDrawing(navigation.MapLinks(projection.Svg, pageIndex, cancellationToken), cancellationToken, structure?.HasNativeStructure == true);
                 double width = page.Width * 72D / 96D, height = page.Height * 72D / 96D;
-                builder.Page(p => p.Size(width, height).Margin(new PageMargins(0, 0, 0, 0))
+                builder.Page(p => p.Size(global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height)).Margin(new PdfPageMargins(OfficeIMO.OfficeLength.Points(0),OfficeIMO.OfficeLength.Points(0),OfficeIMO.OfficeLength.Points(0),OfficeIMO.OfficeLength.Points(0)))
                     .Canvas(c => {
                         navigation.AddDestinations(c, projection, pageIndex, width, height, cancellationToken);
                         if (drawing.Elements.Count > 0) {
                             if (structure?.HasNativeStructure == true) c.SourceStructuredDrawing(drawing, width, height, structure.Paint(pageIndex));
-                            else c.Drawing(drawing, 0, 0, width, height);
+                            else c.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height));
                         }
                         if (structure?.HasNativeStructure == true) structure.AddText(c, projection.TextSpans, pageIndex);
                         else foreach (var span in projection.TextSpans) {

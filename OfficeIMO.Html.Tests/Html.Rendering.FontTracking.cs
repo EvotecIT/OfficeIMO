@@ -23,10 +23,10 @@ public sealed class HtmlFontTrackingTests {
                 new[] { new short[] { -100, 0 } }));
         HtmlConversionDocument source = HtmlConversionDocument.Parse("<style>@font-face{font-family:Tracked;src:url('data:font/ttf;base64,"
             + Convert.ToBase64String(data) + "')}p{font-family:Tracked;font-size:" + size + "px}</style><p>AB</p>");
-        var options = new HtmlToPdfOptions();
+        var options = new HtmlPdfExportOptions();
         options.PdfOptions.CompressContentStreams = false;
         options.PdfOptions.TextShapingMode = shapingMode;
-        byte[] pdf = source.ToPdfBytes(options);
+        byte[] pdf = (source.ToPdf(options)).ToBytes();
         using var independent = UglyToad.PdfPig.PdfDocument.Open(pdf);
         var letters = independent.GetPage(1).Letters.ToArray();
         Assert.Equal(new[] { "A", "B" }, letters.Select(letter => letter.Value));

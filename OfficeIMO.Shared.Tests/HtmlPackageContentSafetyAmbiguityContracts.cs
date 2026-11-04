@@ -388,7 +388,7 @@ public sealed class HtmlPackageContentSafetyAmbiguityContractTests {
             "<html><body><p style='display:none'>Invalid identifier root.</p></body></html>\r\n" +
             "--outer--\r\n");
 
-        using (EmailReadResult result = new EmailDocumentReader().Read(input)) {
+        using (EmailReadResult result = new EmailDocumentReader().ReadDocument(input)) {
             Assert.Contains(result.Diagnostics, diagnostic =>
                 diagnostic.Code == "EMAIL_MIME_CONTENT_ID_INVALID");
         }

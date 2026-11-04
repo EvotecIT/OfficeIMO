@@ -1,3 +1,4 @@
+using OfficeIMO.Html.Pdf;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.TestAssets;
@@ -14,7 +15,7 @@ public sealed partial class HtmlRenderingTests {
         var provider = new ManagedTextShapingTestAssets.RecordingProvider();
         var options = new HtmlRenderOptions {
             ViewportWidth = 180D,
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss,
             TextShapingProvider = provider,
             TextShapingLanguage = "syr"
         };
@@ -43,7 +44,7 @@ public sealed partial class HtmlRenderingTests {
         var provider = new ManagedTextShapingTestAssets.RecordingProvider();
         var options = new HtmlRenderOptions {
             ViewportWidth = 220D,
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss,
             TextShapingProvider = provider,
             TextShapingLanguage = "syr"
         };
@@ -68,7 +69,7 @@ public sealed partial class HtmlRenderingTests {
         var options = new HtmlRenderOptions {
             ViewportWidth = 20D,
             Margins = HtmlRenderMargins.All(0D),
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss,
             TextShapingProvider = provider,
             TextShapingLanguage = "syr"
         };
@@ -109,19 +110,19 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(paintedText, string.Concat(FirstLetterText(rendered).Select(text => text.Text)));
         if (!expectedLoss) {
             Assert.DoesNotContain(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported);
-            rendered.RequireNoLoss();
-            options.FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss;
-            HtmlRenderTestDriver.Render(document, options).RequireNoLoss();
+            rendered.ThrowIfLoss();
+            options.FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss;
+            HtmlRenderTestDriver.Render(document, options).ThrowIfLoss();
             return;
         }
 
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item =>
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.NativeDiagnostics, item =>
             item.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported);
         Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
         Assert.Equal("provider-declined", diagnostic.Detail);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
 
-        options.FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss;
+        options.FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss;
         HtmlConversionException strict = Assert.Throws<HtmlConversionException>(() =>
             HtmlRenderTestDriver.Render(document, options));
         Assert.Contains(strict.Diagnostics, item =>
@@ -148,7 +149,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Approximation
             && (diagnostic.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported
                 || diagnostic.Code == HtmlRenderDiagnosticCodes.OpenTypeFeatureUnsupported));
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
     }
 
     [Fact]
@@ -157,7 +158,7 @@ public sealed partial class HtmlRenderingTests {
             "<p style=\"font-family:'OfficeIMO Shaping Test'\">e\u0301</p>");
         var options = new HtmlRenderOptions {
             ViewportWidth = 180D,
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss,
             TextShapingProvider = new ManagedTextShapingTestAssets.RecordingProvider()
         };
         options.Fonts.Add(ManagedTextShapingTestAssets.FamilyName, ManagedTextShapingTestAssets.CreateFont('e', 0x0301));
@@ -165,7 +166,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document, options);
 
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -240,11 +241,11 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document, options);
 
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item =>
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.NativeDiagnostics, item =>
             item.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported);
         Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
         Assert.Equal("provider-declined", diagnostic.Detail);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
     }
 
     [Fact]
@@ -255,7 +256,7 @@ public sealed partial class HtmlRenderingTests {
             "<p style=\"font-family:'OfficeIMO Shaping Test'\">" + text + "</p>");
         var options = new HtmlRenderOptions {
             ViewportWidth = 180D,
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss,
             TextShapingProvider = provider
         };
         options.Fonts.Add(ManagedTextShapingTestAssets.FamilyName,
@@ -266,7 +267,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(provider.Requests, request => request.Text == text);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
         // This proves provider acceptance, not actual Arabic glyph/cluster fidelity.
         // Use the already-shipped optional HarfBuzz owner and exact native font for visual qualification.
     }
@@ -277,7 +278,7 @@ public sealed partial class HtmlRenderingTests {
             "<p style=\"font-feature-settings:'rlig' 0;font-family:'OfficeIMO Shaping Test'\">\u0644\u0627</p>");
         var options = new HtmlRenderOptions {
             ViewportWidth = 180D,
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss,
             TextShapingProvider = OfficeManagedTextShapingProvider.Instance
         };
         options.Fonts.Add(ManagedTextShapingTestAssets.FamilyName,
@@ -288,7 +289,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported
             || diagnostic.Code == HtmlRenderDiagnosticCodes.OpenTypeFeatureUnsupported);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     private sealed class FixedAdvanceTextShapingProvider : IOfficeTextShapingProvider {

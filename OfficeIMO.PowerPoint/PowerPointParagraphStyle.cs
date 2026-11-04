@@ -12,22 +12,22 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointParagraphStyle(
             PowerPointTextAlignment? alignment = null,
             int? level = null,
-            double? indentPoints = null,
-            double? leftMarginPoints = null,
-            double? hangingPoints = null,
-            double? lineSpacingPoints = null,
+            global::OfficeIMO.OfficeLength? indent = null,
+            global::OfficeIMO.OfficeLength? leftMargin = null,
+            global::OfficeIMO.OfficeLength? hanging = null,
+            global::OfficeIMO.OfficeLength? lineSpacing = null,
             double? lineSpacingMultiplier = null,
-            double? spaceBeforePoints = null,
-            double? spaceAfterPoints = null) {
+            global::OfficeIMO.OfficeLength? spaceBefore = null,
+            global::OfficeIMO.OfficeLength? spaceAfter = null) {
             Alignment = alignment;
             Level = level;
-            IndentPoints = indentPoints;
-            LeftMarginPoints = leftMarginPoints;
-            HangingPoints = hangingPoints;
-            LineSpacingPoints = lineSpacingPoints;
+            Indent = indent;
+            LeftMargin = leftMargin;
+            Hanging = hanging;
+            LineSpacing = lineSpacing;
             LineSpacingMultiplier = lineSpacingMultiplier;
-            SpaceBeforePoints = spaceBeforePoints;
-            SpaceAfterPoints = spaceAfterPoints;
+            SpaceBefore = spaceBefore;
+            SpaceAfter = spaceAfter;
         }
 
         /// <summary>
@@ -41,24 +41,24 @@ namespace OfficeIMO.PowerPoint {
         public int? Level { get; }
 
         /// <summary>
-        /// Indentation in points.
+        /// Indentation as a physical length.
         /// </summary>
-        public double? IndentPoints { get; }
+        public global::OfficeIMO.OfficeLength? Indent { get; }
 
         /// <summary>
-        /// Left margin in points.
+        /// Left margin as a physical length.
         /// </summary>
-        public double? LeftMarginPoints { get; }
+        public global::OfficeIMO.OfficeLength? LeftMargin { get; }
 
         /// <summary>
-        /// Hanging indent in points.
+        /// Hanging indent as a physical length.
         /// </summary>
-        public double? HangingPoints { get; }
+        public global::OfficeIMO.OfficeLength? Hanging { get; }
 
         /// <summary>
-        /// Line spacing in points.
+        /// Line spacing as a physical length.
         /// </summary>
-        public double? LineSpacingPoints { get; }
+        public global::OfficeIMO.OfficeLength? LineSpacing { get; }
 
         /// <summary>
         /// Line spacing multiplier (1.0 = 100%).
@@ -66,29 +66,29 @@ namespace OfficeIMO.PowerPoint {
         public double? LineSpacingMultiplier { get; }
 
         /// <summary>
-        /// Space before the paragraph in points.
+        /// Space before the paragraph as a physical length.
         /// </summary>
-        public double? SpaceBeforePoints { get; }
+        public global::OfficeIMO.OfficeLength? SpaceBefore { get; }
 
         /// <summary>
-        /// Space after the paragraph in points.
+        /// Space after the paragraph as a physical length.
         /// </summary>
-        public double? SpaceAfterPoints { get; }
+        public global::OfficeIMO.OfficeLength? SpaceAfter { get; }
 
         /// <summary>
         /// A compact paragraph preset.
         /// </summary>
-        public static PowerPointParagraphStyle Compact => new(lineSpacingMultiplier: 1.0, spaceAfterPoints: 0);
+        public static PowerPointParagraphStyle Compact => new(lineSpacingMultiplier: 1.0, spaceAfter: global::OfficeIMO.OfficeLength.Points(0));
 
         /// <summary>
         /// A comfortable paragraph preset.
         /// </summary>
-        public static PowerPointParagraphStyle Comfortable => new(lineSpacingMultiplier: 1.15, spaceAfterPoints: 2);
+        public static PowerPointParagraphStyle Comfortable => new(lineSpacingMultiplier: 1.15, spaceAfter: global::OfficeIMO.OfficeLength.Points(2));
 
         /// <summary>
         /// A spacious paragraph preset.
         /// </summary>
-        public static PowerPointParagraphStyle Spacious => new(lineSpacingMultiplier: 1.3, spaceAfterPoints: 4);
+        public static PowerPointParagraphStyle Spacious => new(lineSpacingMultiplier: 1.3, spaceAfter: global::OfficeIMO.OfficeLength.Points(4));
 
         /// <summary>
         /// Applies the style to a paragraph.
@@ -104,28 +104,28 @@ namespace OfficeIMO.PowerPoint {
             if (Level != null) {
                 paragraph.Level = Level;
             }
-            if (HangingPoints != null) {
-                paragraph.SetHangingPoints(HangingPoints.Value);
+            if (Hanging != null) {
+                paragraph.SetHanging(Hanging.Value);
             } else {
-                if (LeftMarginPoints != null) {
-                    paragraph.LeftMarginPoints = LeftMarginPoints;
+                if (LeftMargin != null) {
+                    paragraph.LeftMargin = LeftMargin;
                 }
-                if (IndentPoints != null) {
-                    paragraph.IndentPoints = IndentPoints;
+                if (Indent != null) {
+                    paragraph.Indent = Indent;
                 }
             }
 
-            if (LineSpacingPoints != null) {
-                paragraph.LineSpacingPoints = LineSpacingPoints;
+            if (LineSpacing != null) {
+                paragraph.LineSpacing = LineSpacing;
             } else if (LineSpacingMultiplier != null) {
                 paragraph.LineSpacingMultiplier = LineSpacingMultiplier;
             }
 
-            if (SpaceBeforePoints != null) {
-                paragraph.SpaceBeforePoints = SpaceBeforePoints;
+            if (SpaceBefore != null) {
+                paragraph.SpaceBefore = SpaceBefore;
             }
-            if (SpaceAfterPoints != null) {
-                paragraph.SpaceAfterPoints = SpaceAfterPoints;
+            if (SpaceAfter != null) {
+                paragraph.SpaceAfter = SpaceAfter;
             }
         }
 
@@ -133,72 +133,72 @@ namespace OfficeIMO.PowerPoint {
         /// Returns a copy with a new alignment.
         /// </summary>
         public PowerPointParagraphStyle WithAlignment(PowerPointTextAlignment alignment) {
-            return new PowerPointParagraphStyle(alignment, Level, IndentPoints, LeftMarginPoints, HangingPoints,
-                LineSpacingPoints, LineSpacingMultiplier, SpaceBeforePoints, SpaceAfterPoints);
+            return new PowerPointParagraphStyle(alignment, Level, Indent, LeftMargin, Hanging,
+                LineSpacing, LineSpacingMultiplier, SpaceBefore, SpaceAfter);
         }
 
         /// <summary>
         /// Returns a copy with a new list level.
         /// </summary>
         public PowerPointParagraphStyle WithLevel(int level) {
-            return new PowerPointParagraphStyle(Alignment, level, IndentPoints, LeftMarginPoints, HangingPoints,
-                LineSpacingPoints, LineSpacingMultiplier, SpaceBeforePoints, SpaceAfterPoints);
+            return new PowerPointParagraphStyle(Alignment, level, Indent, LeftMargin, Hanging,
+                LineSpacing, LineSpacingMultiplier, SpaceBefore, SpaceAfter);
         }
 
         /// <summary>
-        /// Returns a copy with a new indentation value (points).
+        /// Returns a copy with a new indentation physical length.
         /// </summary>
-        public PowerPointParagraphStyle WithIndentPoints(double? indentPoints) {
-            return new PowerPointParagraphStyle(Alignment, Level, indentPoints, LeftMarginPoints, HangingPoints,
-                LineSpacingPoints, LineSpacingMultiplier, SpaceBeforePoints, SpaceAfterPoints);
+        public PowerPointParagraphStyle WithIndent(global::OfficeIMO.OfficeLength? indent) {
+            return new PowerPointParagraphStyle(Alignment, Level, indent, LeftMargin, Hanging,
+                LineSpacing, LineSpacingMultiplier, SpaceBefore, SpaceAfter);
         }
 
         /// <summary>
-        /// Returns a copy with a new left margin value (points).
+        /// Returns a copy with a new left margin physical length.
         /// </summary>
-        public PowerPointParagraphStyle WithLeftMarginPoints(double? leftMarginPoints) {
-            return new PowerPointParagraphStyle(Alignment, Level, IndentPoints, leftMarginPoints, HangingPoints,
-                LineSpacingPoints, LineSpacingMultiplier, SpaceBeforePoints, SpaceAfterPoints);
+        public PowerPointParagraphStyle WithLeftMargin(global::OfficeIMO.OfficeLength? leftMargin) {
+            return new PowerPointParagraphStyle(Alignment, Level, Indent, leftMargin, Hanging,
+                LineSpacing, LineSpacingMultiplier, SpaceBefore, SpaceAfter);
         }
 
         /// <summary>
-        /// Returns a copy with a new hanging indent value (points).
+        /// Returns a copy with a new hanging indent physical length.
         /// </summary>
-        public PowerPointParagraphStyle WithHangingPoints(double? hangingPoints) {
-            return new PowerPointParagraphStyle(Alignment, Level, IndentPoints, LeftMarginPoints, hangingPoints,
-                LineSpacingPoints, LineSpacingMultiplier, SpaceBeforePoints, SpaceAfterPoints);
+        public PowerPointParagraphStyle WithHanging(global::OfficeIMO.OfficeLength? hanging) {
+            return new PowerPointParagraphStyle(Alignment, Level, Indent, LeftMargin, hanging,
+                LineSpacing, LineSpacingMultiplier, SpaceBefore, SpaceAfter);
         }
 
         /// <summary>
-        /// Returns a copy with a new line spacing value (points).
+        /// Returns a copy with a new line spacing physical length.
         /// </summary>
-        public PowerPointParagraphStyle WithLineSpacingPoints(double? lineSpacingPoints) {
-            return new PowerPointParagraphStyle(Alignment, Level, IndentPoints, LeftMarginPoints, HangingPoints,
-                lineSpacingPoints, LineSpacingMultiplier, SpaceBeforePoints, SpaceAfterPoints);
+        public PowerPointParagraphStyle WithLineSpacing(global::OfficeIMO.OfficeLength? lineSpacing) {
+            return new PowerPointParagraphStyle(Alignment, Level, Indent, LeftMargin, Hanging,
+                lineSpacing, LineSpacingMultiplier, SpaceBefore, SpaceAfter);
         }
 
         /// <summary>
         /// Returns a copy with a new line spacing multiplier.
         /// </summary>
         public PowerPointParagraphStyle WithLineSpacingMultiplier(double? lineSpacingMultiplier) {
-            return new PowerPointParagraphStyle(Alignment, Level, IndentPoints, LeftMarginPoints, HangingPoints,
-                LineSpacingPoints, lineSpacingMultiplier, SpaceBeforePoints, SpaceAfterPoints);
+            return new PowerPointParagraphStyle(Alignment, Level, Indent, LeftMargin, Hanging,
+                LineSpacing, lineSpacingMultiplier, SpaceBefore, SpaceAfter);
         }
 
         /// <summary>
-        /// Returns a copy with a new space before value (points).
+        /// Returns a copy with a new space before physical length.
         /// </summary>
-        public PowerPointParagraphStyle WithSpaceBeforePoints(double? spaceBeforePoints) {
-            return new PowerPointParagraphStyle(Alignment, Level, IndentPoints, LeftMarginPoints, HangingPoints,
-                LineSpacingPoints, LineSpacingMultiplier, spaceBeforePoints, SpaceAfterPoints);
+        public PowerPointParagraphStyle WithSpaceBefore(global::OfficeIMO.OfficeLength? spaceBefore) {
+            return new PowerPointParagraphStyle(Alignment, Level, Indent, LeftMargin, Hanging,
+                LineSpacing, LineSpacingMultiplier, spaceBefore, SpaceAfter);
         }
 
         /// <summary>
-        /// Returns a copy with a new space after value (points).
+        /// Returns a copy with a new space after physical length.
         /// </summary>
-        public PowerPointParagraphStyle WithSpaceAfterPoints(double? spaceAfterPoints) {
-            return new PowerPointParagraphStyle(Alignment, Level, IndentPoints, LeftMarginPoints, HangingPoints,
-                LineSpacingPoints, LineSpacingMultiplier, SpaceBeforePoints, spaceAfterPoints);
+        public PowerPointParagraphStyle WithSpaceAfter(global::OfficeIMO.OfficeLength? spaceAfter) {
+            return new PowerPointParagraphStyle(Alignment, Level, Indent, LeftMargin, Hanging,
+                LineSpacing, LineSpacingMultiplier, SpaceBefore, spaceAfter);
         }
     }
 }

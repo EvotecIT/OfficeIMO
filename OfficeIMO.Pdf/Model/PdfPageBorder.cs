@@ -6,27 +6,27 @@ namespace OfficeIMO.Pdf;
 /// Reusable page border rendered as a page decoration.
 /// </summary>
 public sealed class PdfPageBorder {
-    private double _width = 1D;
-    private double _inset = 36D;
+    private global::OfficeIMO.OfficeLength _width = global::OfficeIMO.OfficeLength.Points(1D);
+    private global::OfficeIMO.OfficeLength _inset = global::OfficeIMO.OfficeLength.Points(36D);
     private double _opacity = 1D;
 
     /// <summary>Border stroke color.</summary>
-    public PdfColor Color { get; set; } = PdfColor.FromRgb(203, 213, 225);
+    public global::OfficeIMO.OfficeColor Color { get; set; } = global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225);
 
     /// <summary>Border stroke width in points.</summary>
-    public double Width {
+    public global::OfficeIMO.OfficeLength Width {
         get => _width;
         set {
-            Guard.Positive(value, nameof(Width));
+            Guard.Positive(value.ToPoints(), nameof(Width));
             _width = value;
         }
     }
 
     /// <summary>Distance from the page edge to the border path, in points.</summary>
-    public double Inset {
+    public global::OfficeIMO.OfficeLength Inset {
         get => _inset;
         set {
-            Guard.NonNegative(value, nameof(Inset));
+            Guard.NonNegative(value.ToPoints(), nameof(Inset));
             _inset = value;
         }
     }

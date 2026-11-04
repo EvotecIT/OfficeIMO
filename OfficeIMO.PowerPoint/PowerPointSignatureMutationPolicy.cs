@@ -64,8 +64,8 @@ namespace OfficeIMO.PowerPoint {
     }
 
     /// <summary>Raised when the signature mutation policy blocks a save.</summary>
-    public sealed class PowerPointSignedPresentationMutationException : InvalidOperationException {
-        internal PowerPointSignedPresentationMutationException(PowerPointSignatureReport report)
+    public sealed class PowerPointSignedDocumentMutationException : InvalidOperationException {
+        internal PowerPointSignedDocumentMutationException(PowerPointSignatureReport report)
             : base("Saving would mutate a presentation that contains digital-signature metadata. " +
                    "Choose RemoveInvalidatedSignatures or PreserveSignatureMarkup explicitly to continue.") {
             Report = report;
@@ -75,7 +75,7 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointSignatureReport Report { get; }
     }
 
-    public sealed partial class PowerPointPresentation {
+    public sealed partial class PowerPointDocument {
         /// <summary>
         /// Signature policy applied before save. The safe default blocks mutation of signed packages.
         /// </summary>
@@ -100,7 +100,7 @@ namespace OfficeIMO.PowerPoint {
 
             if (SignatureMutationPolicy == OfficeSignatureMutationPolicy.BlockSave) {
                 LastSignatureReport = CreateSignatureReport(PowerPointSignatureMutationAction.Blocked);
-                throw new PowerPointSignedPresentationMutationException(LastSignatureReport);
+                throw new PowerPointSignedDocumentMutationException(LastSignatureReport);
             }
             if (SignatureMutationPolicy == OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures) {
                 DigitalSignatureOriginPart? origin = _document!.DigitalSignatureOriginPart;

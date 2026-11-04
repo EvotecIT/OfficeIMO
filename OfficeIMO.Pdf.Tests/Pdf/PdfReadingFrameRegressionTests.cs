@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests.Pdf;
 public sealed class PdfReadingFrameRegressionTests {
     [Fact]
     public void ReconstructedPositionedInputHonorsCustomStageBudgetsAndCancellation() {
-        PdfReadPage page = PdfReadDocument.Open(PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes()).Pages[0];
+        PdfReadPage page = PdfReadDocument.Open(PdfDocument.Create().Paragraph(p => p.AddText("placeholder")).ToBytes()).Pages[0];
         var word = new PdfUnderstandingWord("Rotated", 200D, 200D, 300D, 12D, 90D, Array.Empty<PdfTextSpan>(),
             advance: 60D, visualBounds: new PdfLogicalVisualBounds(188D, 482D, 200D, 542D), sourceSequence: 0) { IsSelectionBox = true };
         var line = new PdfUnderstandingLine(new[] { word }, "Rotated", 1D, null, PdfLogicalContentSourceKind.Ocr,
@@ -43,7 +43,7 @@ public sealed class PdfReadingFrameRegressionTests {
     public void ReconstructingMixedPagesRetainsNativeLineSelectionBounds(double angle) {
         var run = new PdfTextSpan("Selection", "F1", 12D, 200D, 300D, 60D, null, false,
             angle, null, null, textRenderingMode: 3, hasActualText: true);
-        PdfReadDocument source = PdfReadDocument.Open(PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes());
+        PdfReadDocument source = PdfReadDocument.Open(PdfDocument.Create().Paragraph(p => p.AddText("placeholder")).ToBytes());
         var options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = new FixedGlyphs(new[] { run });
         var pipeline = new PdfUnderstandingPipeline(new PdfTextLayoutOptions(), options);
@@ -68,7 +68,7 @@ public sealed class PdfReadingFrameRegressionTests {
     public void RestoredSearchableWordAndLineRetainExactSelectionBounds(double angle) {
         var run = new PdfTextSpan("Selection", "F1", 12D, 200D, 300D, 60D, null, false,
             angle, null, null, textRenderingMode: 3, hasActualText: true);
-        PdfReadDocument source = PdfReadDocument.Open(PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes());
+        PdfReadDocument source = PdfReadDocument.Open(PdfDocument.Create().Paragraph(p => p.AddText("placeholder")).ToBytes());
         var options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = new FixedGlyphs(new[] { run });
         PdfUnderstandingPageResult analysis = new PdfUnderstandingPipeline(new PdfTextLayoutOptions(), options)
@@ -89,7 +89,7 @@ public sealed class PdfReadingFrameRegressionTests {
 
     [Fact]
     public void CorrectedFrameDoesNotMakeClippedTextEligibleForCompleteCellRecovery() {
-        PdfReadPage page = PdfReadDocument.Open(PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes()).Pages[0];
+        PdfReadPage page = PdfReadDocument.Open(PdfDocument.Create().Paragraph(p => p.AddText("placeholder")).ToBytes()).Pages[0];
         var context = new PdfUnderstandingPageContext(page, 1, new PdfTextLayoutOptions(), 1000, 100);
         Assert.True(PdfPageClipPathBuilder.TryCreateTransformedRectangle(new Matrix2D(1, 0, 0, 1, 0, 0),
             395D, 40D, 10D, 15D, context.Height, OfficeFillRule.NonZero, out PdfPageClipPath clip));

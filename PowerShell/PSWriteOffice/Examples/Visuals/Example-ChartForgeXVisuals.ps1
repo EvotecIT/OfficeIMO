@@ -20,17 +20,17 @@ $artifact | Export-ImageVisualArtifact -FilePath $svgPath
 $officeVisual = $artifact | ConvertTo-OfficeVisual -Width 420 -SvgPolicy RasterizeWhenNeeded
 
 New-OfficeWord -Path (Join-Path $documents 'service-map.docx') {
-    WordSection { WordParagraph { $officeVisual | Add-OfficeWordVisual  } }
+    WordSection { WordParagraph { $officeVisual | Add-OfficeWordImage  } }
 }
 
 New-OfficeExcel -Path (Join-Path $documents 'service-map.xlsx') {
     Add-OfficeExcelSheet -Name Dashboard -Content {
-        $officeVisual | Add-OfficeExcelVisual -Address B2
+        $officeVisual | Add-OfficeExcelImage -Address B2
     }
 }
 
 New-OfficePowerPoint -Path (Join-Path $documents 'service-map.pptx') {
-    PptSlide { $officeVisual | Add-OfficePowerPointVisual -X 48 -Y 72  }
+    PowerPointSlide { $officeVisual | Add-OfficePowerPointImage -X 48 -Y 72  }
 }
 
 New-OfficePdf -Path (Join-Path $documents 'service-map.pdf') {

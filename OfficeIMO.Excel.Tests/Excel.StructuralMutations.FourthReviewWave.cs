@@ -15,9 +15,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralColumns_RewritesChartsheetAndExtendedChartReferencesAndCaches() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
-            data.CellValue(1, 2, 1);
-            data.CellValue(1, 3, 2);
+            ExcelSheet data = document.AddSheet("Data");
+            data.Cell(1, 2).SetValue(1);
+            data.Cell(1, 3).SetValue(2);
 
             ChartsheetPart chartsheetPart = document.WorkbookPartRoot.AddNewPart<ChartsheetPart>();
             DrawingsPart drawingsPart = chartsheetPart.AddNewPart<DrawingsPart>();
@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests {
             var dimension = new Cx.NumericDimension(extendedFormula, level);
             extendedPart.ChartSpace = new Cx.ChartSpace(dimension);
 
-            data.InsertColumns(2);
+            data.InsertColumnsTransactional(2);
 
             Assert.Equal("Data!$C$1:$D$1", classicFormula.Text);
             Assert.Empty(classicReference.Elements<C.NumberingCache>());
@@ -70,14 +70,14 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralColumns_RemapsConnectionParametersAndRejectsTheirDeletion() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             Parameter parameter = AttachCellBackedConnection(document, sheet, "A5");
 
-            sheet.InsertColumns(1);
+            sheet.InsertColumnsTransactional(1);
             Assert.Equal("B5", parameter.Cell!.Value);
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
-                () => sheet.DeleteColumns(2));
+                () => sheet.DeleteColumnsTransactional(2));
             Assert.Contains("connection parameter", exception.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Equal("B5", parameter.Cell!.Value);
         }
@@ -85,12 +85,12 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralColumns_RemapsCommentsAndVmlAnchors() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.SetComment(1, 2, "Shift me", author: "Tester");
             VmlDrawingPart vmlPart = Assert.Single(sheet.WorksheetPart.VmlDrawingParts);
             int[] before = ReadCommentVmlAnchor(vmlPart);
 
-            sheet.InsertColumns(2);
+            sheet.InsertColumnsTransactional(2);
 
             Assert.True(sheet.HasComment(1, 3));
             Assert.False(sheet.HasComment(1, 2));
@@ -98,7 +98,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(before[0] + 1, after[0]);
             Assert.Equal(before[4] + 1, after[4]);
 
-            sheet.DeleteColumns(3);
+            sheet.DeleteColumnsTransactional(3);
             Assert.False(sheet.HasComment(1, 3));
             Assert.Null(sheet.WorksheetPart.WorksheetCommentsPart);
             Assert.Empty(sheet.WorksheetPart.VmlDrawingParts);
@@ -107,25 +107,25 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralColumns_PreflightsUnsupportedAndOverflowingVmlAnchors() {
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
-                sheet.CellValue(1, 1, "Keep");
+                ExcelSheet sheet = document.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Keep");
                 sheet.WorksheetPart.Worksheet.Append(new Controls());
 
                 InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
-                    () => sheet.InsertColumns(1));
+                    () => sheet.InsertColumnsTransactional(1));
 
                 Assert.Contains("form controls", exception.Message, StringComparison.OrdinalIgnoreCase);
-                Assert.Equal("Keep", sheet.CellAt(1, 1).GetValue<string>());
+                Assert.Equal("Keep", sheet.Cell(1, 1).GetValue<string>());
             }
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.SetComment(1, 2, "Keep", author: "Tester");
                 VmlDrawingPart vmlPart = Assert.Single(sheet.WorksheetPart.VmlDrawingParts);
                 SetCommentVmlAnchor(vmlPart, "16383, 15, 0, 2, 16384, 15, 3, 4");
 
                 InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
-                    () => sheet.InsertColumns(A1.MaxColumns));
+                    () => sheet.InsertColumnsTransactional(ExcelA1.MaxColumns));
 
                 Assert.Contains("comment note anchor", exception.Message, StringComparison.OrdinalIgnoreCase);
                 Assert.True(sheet.HasComment(1, 2));
@@ -137,7 +137,7 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 ExcelSheet sheet = CreateHorizontalSharedFormulaSheet(document);
 
-                sheet.DeleteColumns(2);
+                sheet.DeleteColumnsTransactional(2);
 
                 AssertMaterializedSurvivingFormulas(sheet);
             }
@@ -154,8 +154,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_RangeMutations_RejectR1C1WorkbookMode() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, 1);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue(1);
             document.WorkbookRoot.Append(new CalculationProperties {
                 ReferenceMode = ReferenceModeValues.R1C1
             });
@@ -172,9 +172,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_RangeMutationPlanning_EnforcesScanBudgets() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, 1);
-            sheet.CellValue(2, 1, 2);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue(1);
+            sheet.Cell(2, 1).SetValue(2);
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
                 sheet.PlanInsertCells(
@@ -186,24 +186,24 @@ namespace OfficeIMO.Tests {
                     }));
 
             Assert.Contains("MaximumScannedElements", exception.Message);
-            Assert.Equal(1, sheet.CellAt(1, 1).GetValue<int>());
-            Assert.Equal(2, sheet.CellAt(2, 1).GetValue<int>());
+            Assert.Equal(1, sheet.Cell(1, 1).GetValue<int>());
+            Assert.Equal(2, sheet.Cell(2, 1).GetValue<int>());
         }
 
         [Fact]
         public void Test_CopyRange_EmitsRefWhenRelativeFormulaCrossesWorksheetBoundary() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellFormula(1, 2, "A1");
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 2).SetFormula("A1");
 
-            sheet.CopyRange("B1", "A1");
+            sheet.Range("B1").CopyTo("A1");
 
             Assert.Equal("#REF!", sheet.GetFormulaText(1, 1));
         }
 
         private static ExcelSheet CreateHorizontalSharedFormulaSheet(ExcelDocument document) {
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, 1);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue(1);
             Row row = Assert.Single(sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!.Elements<Row>());
             row.Append(
                 new Cell {

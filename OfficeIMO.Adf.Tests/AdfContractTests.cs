@@ -128,7 +128,7 @@ public sealed class AdfContractTests {
 
         Assert.Empty(result.Value);
         Assert.False(result.Report.IsLossless);
-        AdfConversionDiagnostic diagnostic = Assert.Single(result.Report.Diagnostics, item => item.Code == "ADF_EMPTY_PARAGRAPH_DROPPED");
+        AdfConversionDiagnostic diagnostic = Assert.Single(result.Report.NativeDiagnostics, item => item.Code == "ADF_EMPTY_PARAGRAPH_DROPPED");
         Assert.Equal("$.content[0]", diagnostic.Path);
     }
 
@@ -142,7 +142,7 @@ public sealed class AdfContractTests {
         AdfConversionResult<string> result = AdfConverter.ToMarkdown(document);
 
         Assert.False(result.Report.IsLossless);
-        AdfConversionDiagnostic diagnostic = Assert.Single(result.Report.Diagnostics, item => item.Code == "ADF_HEADING_PROPERTIES_DROPPED");
+        AdfConversionDiagnostic diagnostic = Assert.Single(result.Report.NativeDiagnostics, item => item.Code == "ADF_HEADING_PROPERTIES_DROPPED");
         Assert.Equal("$.content[0]", diagnostic.Path);
     }
 
@@ -251,7 +251,9 @@ public sealed class AdfContractTests {
         var list = new UnorderedListBlock();
         list.Items.Add(task);
 
-        AdfConversionResult<AdfDocument> result = AdfConverter.FromMarkdown(MarkdownDoc.Create().Add(list));
+        using var addedDocument = MarkdownDocument.Create();
+        addedDocument.Add(list);
+        AdfConversionResult<AdfDocument> result = AdfConverter.FromMarkdown(addedDocument);
 
         Assert.Equal("bulletList", Assert.Single(result.Value.Content).Type);
         Assert.Contains(result.Report.Diagnostics, item => item.Code == "MARKDOWN_TASK_LIST_FALLBACK");
@@ -422,10 +424,10 @@ public sealed class AdfContractTests {
 
         Assert.Contains("[details](https://example.com/details 'Ready \"now\"')", result.Value);
         AdfConversionDiagnostic diagnostic = Assert.Single(
-            result.Report.Diagnostics,
+            result.Report.NativeDiagnostics,
             item => item.Code == "ADF_LINK_ATTRIBUTES_DROPPED");
         Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
-        Assert.Equal(OfficeConversionLossKind.Omission, Assert.Single(result.Report.FidelityDiagnostics).LossKind);
+        Assert.Equal(OfficeConversionLossKind.Omission, Assert.Single(result.Report.Diagnostics).LossKind);
     }
 
     [Theory]
@@ -442,10 +444,10 @@ public sealed class AdfContractTests {
         var report = new AdfConversionReport(new[] { diagnostic });
 
         Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
-        Assert.Equal(OfficeConversionLossKind.Failure, Assert.Single(report.FidelityDiagnostics).LossKind);
+        Assert.Equal(OfficeConversionLossKind.Failure, Assert.Single(report.Diagnostics).LossKind);
         Assert.True(report.HasErrors);
         Assert.True(report.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => report.ThrowIfLoss());
     }
 
     [Fact]
@@ -467,8 +469,8 @@ public sealed class AdfContractTests {
 
     [Fact]
     public void MarkdownDocumentSoftBreak_StaysTextInsteadOfBecomingHardBreak() {
-        var markdown = MarkdownDoc.Create()
-            .Add(new ParagraphBlock(new InlineSequence().Text("first").SoftBreak().Text("second")));
+        var markdown = MarkdownDocument.Create();
+        markdown.Add(new ParagraphBlock(new InlineSequence().Text("first").SoftBreak().Text("second")));
 
         AdfConversionResult<AdfDocument> adf = AdfConverter.FromMarkdown(markdown);
         AdfConversionResult<string> roundTrip = AdfConverter.ToMarkdown(adf.Value);
@@ -561,7 +563,7 @@ public sealed class AdfContractTests {
         AdfConversionResult<string> result = AdfConverter.ToMarkdown(document);
 
         Assert.False(result.Report.IsLossless);
-        AdfConversionDiagnostic diagnostic = Assert.Single(result.Report.Diagnostics, item => item.Code == "ADF_CODE_PROPERTIES_DROPPED");
+        AdfConversionDiagnostic diagnostic = Assert.Single(result.Report.NativeDiagnostics, item => item.Code == "ADF_CODE_PROPERTIES_DROPPED");
         Assert.Equal("$.content[0]", diagnostic.Path);
     }
 
@@ -590,7 +592,7 @@ public sealed class AdfContractTests {
         AdfConversionResult<AdfDocument> roundTrip = AdfConverter.FromMarkdown(markdown.Value);
 
         Assert.False(markdown.Report.IsLossless);
-        AdfConversionDiagnostic diagnostic = Assert.Single(markdown.Report.Diagnostics, item => item.Code == "ADF_CODE_LINE_ENDINGS_NORMALIZED");
+        AdfConversionDiagnostic diagnostic = Assert.Single(markdown.Report.NativeDiagnostics, item => item.Code == "ADF_CODE_LINE_ENDINGS_NORMALIZED");
         Assert.Equal("$.content[0]", diagnostic.Path);
         Assert.Equal("first\nsecond", Assert.Single(Assert.Single(roundTrip.Value.Content).Content).Text);
     }
@@ -654,7 +656,7 @@ public sealed class AdfContractTests {
         AdfConversionResult<string> result = AdfConverter.ToMarkdown(document);
 
         Assert.False(result.Report.IsLossless);
-        AdfConversionDiagnostic diagnostic = Assert.Single(result.Report.Diagnostics, item => item.Code == "ADF_HEADING_LINE_BREAK_NORMALIZED");
+        AdfConversionDiagnostic diagnostic = Assert.Single(result.Report.NativeDiagnostics, item => item.Code == "ADF_HEADING_LINE_BREAK_NORMALIZED");
         Assert.Equal("$.content[0].content[0]", diagnostic.Path);
     }
 
@@ -729,7 +731,7 @@ public sealed class AdfContractTests {
         AdfConversionResult<string> result = AdfConverter.ToMarkdown(document);
 
         Assert.False(result.Report.IsLossless);
-        AdfConversionDiagnostic diagnostic = Assert.Single(result.Report.Diagnostics, item => item.Code == "ADF_TABLE_CELL_ATTRIBUTES_DROPPED");
+        AdfConversionDiagnostic diagnostic = Assert.Single(result.Report.NativeDiagnostics, item => item.Code == "ADF_TABLE_CELL_ATTRIBUTES_DROPPED");
         Assert.Equal("$.content[0].content[0].content[0]", diagnostic.Path);
     }
 
@@ -743,7 +745,7 @@ public sealed class AdfContractTests {
         AdfConversionResult<string> result = AdfConverter.ToMarkdown(document);
 
         Assert.False(result.Report.IsLossless);
-        AdfConversionDiagnostic diagnostic = Assert.Single(result.Report.Diagnostics, item => item.Code == "ADF_TABLE_ATTRIBUTES_DROPPED");
+        AdfConversionDiagnostic diagnostic = Assert.Single(result.Report.NativeDiagnostics, item => item.Code == "ADF_TABLE_ATTRIBUTES_DROPPED");
         Assert.Equal("$.content[0]", diagnostic.Path);
     }
 
@@ -773,7 +775,7 @@ public sealed class AdfContractTests {
         AdfConversionResult<string> result = AdfConverter.ToMarkdown(document);
 
         Assert.False(result.Report.IsLossless);
-        AdfConversionDiagnostic diagnostic = Assert.Single(result.Report.Diagnostics, item => item.Code == "ADF_ROOT_PROPERTIES_DROPPED");
+        AdfConversionDiagnostic diagnostic = Assert.Single(result.Report.NativeDiagnostics, item => item.Code == "ADF_ROOT_PROPERTIES_DROPPED");
         Assert.Equal("$", diagnostic.Path);
     }
 
@@ -789,7 +791,7 @@ public sealed class AdfContractTests {
         AdfConversionResult<string> result = AdfConverter.ToMarkdown(document);
 
         Assert.False(result.Report.IsLossless);
-        AdfConversionDiagnostic diagnostic = Assert.Single(result.Report.Diagnostics, item => item.Code == "ADF_TABLE_CELL_BLOCKS_FLATTENED");
+        AdfConversionDiagnostic diagnostic = Assert.Single(result.Report.NativeDiagnostics, item => item.Code == "ADF_TABLE_CELL_BLOCKS_FLATTENED");
         Assert.Equal("$.content[0].content[0].content[0]", diagnostic.Path);
     }
 
@@ -809,7 +811,7 @@ public sealed class AdfContractTests {
         AdfConversionResult<string> result = AdfConverter.ToMarkdown(document);
 
         Assert.False(result.Report.IsLossless);
-        AdfConversionDiagnostic diagnostic = Assert.Single(result.Report.Diagnostics, item => item.Code == "ADF_TABLE_HEADER_LAYOUT_NORMALIZED");
+        AdfConversionDiagnostic diagnostic = Assert.Single(result.Report.NativeDiagnostics, item => item.Code == "ADF_TABLE_HEADER_LAYOUT_NORMALIZED");
         Assert.Equal("$.content[0]", diagnostic.Path);
     }
 

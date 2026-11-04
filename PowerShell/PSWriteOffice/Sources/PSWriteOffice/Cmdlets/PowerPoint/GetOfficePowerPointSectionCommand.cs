@@ -1,54 +1,35 @@
 using System;
 using System.Management.Automation;
 using OfficeIMO.PowerPoint;
-using PSWriteOffice.Services.PowerPoint;
+using PSWriteOffice.Foundation;
 
 namespace PSWriteOffice.Cmdlets.PowerPoint;
 
-/// <summary>Gets PowerPoint sections from a presentation.</summary>
-/// <para>Returns OfficeIMO section metadata so scripts can inspect section names and slide ranges.</para>
-/// <example>
-///   <summary>List all sections in a deck.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$ppt = New-OfficePowerPoint -Path .\Examples\Documents\PowerPointSectionsRead.pptx -NoSave
-/// Add-OfficePowerPointSlide -Presentation $ppt -Layout 1
-/// Add-OfficePowerPointSection -Presentation $ppt -Name 'Appendix' -StartSlideIndex 0
-/// Get-OfficePowerPointSection -Presentation $ppt | Select-Object Name, FirstSlideIndex, SlideCount
-/// $ppt | Close-OfficePowerPoint</code>
-///   <para>Returns section information including section names and slide indexes.</para>
-/// </example>
-[Cmdlet(VerbsCommon.Get, "OfficePowerPointSection")]
+/// <summary>Reads sections from a live presentation, optionally matching a PowerShell wildcard pattern.</summary>
+/// <example><summary>List the sections in a deck.</summary>
+/// <code>$deck = Open-OfficePowerPoint -Path ./Review.pptx
+/// Get-OfficePowerPointSection -Document $deck
+/// Close-OfficePowerPoint -Document $deck</code></example>
+/// <example><summary>Find the appendix section.</summary>
+/// <code>$deck | Get-OfficePowerPointSection -Name Appendix</code></example>
+[Cmdlet(VerbsCommon.Get, "OfficePowerPointSection", DefaultParameterSetName = "Document")]
 [OutputType(typeof(PowerPointSectionInfo))]
-public sealed class GetOfficePowerPointSectionCommand : PSCmdlet {
-    /// <summary>Presentation to inspect (optional inside DSL).</summary>
-    [Parameter(ValueFromPipeline = true)]
-    public PowerPointPresentation? Presentation { get; set; }
-
-    /// <summary>Optional section name filter.</summary>
-    [Parameter]
+public sealed class GetOfficePowerPointSectionCommand : OfficeCmdlet {
+    /// <summary>Gets or sets the live document; omission uses its enclosing content block.</summary>
+    [Parameter(Position = 0, ValueFromPipeline = true)]
+    public PowerPointDocument? Document { get; set; }
+    /// <summary>Gets or sets a section name or PowerShell wildcard pattern.</summary>
+    [Parameter, SupportsWildcards]
     public string? Name { get; set; }
-
-    /// <summary>Use case-sensitive matching for section names.</summary>
+    /// <summary>Gets or sets whether name matching is case-sensitive.</summary>
     [Parameter]
     public SwitchParameter CaseSensitive { get; set; }
-
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        try {
-            var presentation = Presentation ?? PowerPointDslContext.Current?.Presentation
-                ?? throw new InvalidOperationException("Presentation was not provided. Use -Presentation or run inside New-OfficePowerPoint.");
-
-            var comparison = CaseSensitive.IsPresent ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
-            foreach (var section in presentation.GetSections()) {
-                if (!string.IsNullOrWhiteSpace(Name) &&
-                    !string.Equals(section.Name, Name, comparison)) {
-                    continue;
-                }
-
-                WriteObject(section);
-            }
-        } catch (Exception ex) {
-            WriteError(new ErrorRecord(ex, "PowerPointGetSectionFailed", ErrorCategory.InvalidOperation, Presentation));
-        }
+        var document = ResolveDocument(Document);
+        var options = CaseSensitive ? WildcardOptions.None : WildcardOptions.IgnoreCase;
+        var pattern = string.IsNullOrWhiteSpace(Name) ? null : new WildcardPattern(Name!, options);
+        foreach (var section in document.GetSections())
+            if (pattern == null || pattern.IsMatch(section.Name)) WriteObject(section);
     }
 }

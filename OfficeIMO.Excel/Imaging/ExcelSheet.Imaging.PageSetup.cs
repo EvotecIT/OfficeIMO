@@ -9,12 +9,12 @@ namespace OfficeIMO.Excel {
             OfficeImageExportFormat format,
             OfficeImageExportFormat rasterPlanningFormat,
             OfficeImageExportResult content,
-            ExcelWorksheetImageExportOptions options,
+            ExcelImageExportOptions options,
             ref ExcelRasterRenderState rasterState,
             System.Threading.CancellationToken cancellationToken,
             long? maximumSvgUtf8Bytes) {
             cancellationToken.ThrowIfCancellationRequested();
-            ExcelSheetPageSetup pageSetup = GetPageSetup();
+            ExcelSheetPageSetup pageSetup = PageSetup;
             if (!ShouldApplyPageSetupCanvas(pageSetup)) {
                 return content;
             }
@@ -110,8 +110,8 @@ namespace OfficeIMO.Excel {
         }
 
         private bool ShouldApplyPageSetupCanvas(ExcelSheetPageSetup pageSetup) =>
-            GetPrintOptions().HorizontalCentered == true ||
-            GetPrintOptions().VerticalCentered == true ||
+            ReadPrintOptions().HorizontalCentered == true ||
+            ReadPrintOptions().VerticalCentered == true ||
             pageSetup.Orientation.HasValue ||
             pageSetup.Margins != null ||
             pageSetup.PaperSizeCode.HasValue ||
@@ -128,10 +128,10 @@ namespace OfficeIMO.Excel {
 
             int width = pageSize.ToPixelWidth(ImageExportDpi, outputScale);
             int height = pageSize.ToPixelHeight(ImageExportDpi, outputScale);
-            double x = ExcelPageSetupGeometry.ClampMargin((margins?.Left ?? ExcelPageSetupGeometry.DefaultMarginLeftInches) * ImageExportDpi * outputScale, width);
-            double y = ExcelPageSetupGeometry.ClampMargin((margins?.Top ?? ExcelPageSetupGeometry.DefaultMarginTopInches) * ImageExportDpi * outputScale, height);
-            double right = ExcelPageSetupGeometry.ClampMargin((margins?.Right ?? ExcelPageSetupGeometry.DefaultMarginRightInches) * ImageExportDpi * outputScale, width);
-            double bottom = ExcelPageSetupGeometry.ClampMargin((margins?.Bottom ?? ExcelPageSetupGeometry.DefaultMarginBottomInches) * ImageExportDpi * outputScale, height);
+            double x = ExcelPageSetupGeometry.ClampMargin((margins?.Left.ToInches() ?? ExcelPageSetupGeometry.DefaultMarginLeftInches) * ImageExportDpi * outputScale, width);
+            double y = ExcelPageSetupGeometry.ClampMargin((margins?.Top.ToInches() ?? ExcelPageSetupGeometry.DefaultMarginTopInches) * ImageExportDpi * outputScale, height);
+            double right = ExcelPageSetupGeometry.ClampMargin((margins?.Right.ToInches() ?? ExcelPageSetupGeometry.DefaultMarginRightInches) * ImageExportDpi * outputScale, width);
+            double bottom = ExcelPageSetupGeometry.ClampMargin((margins?.Bottom.ToInches() ?? ExcelPageSetupGeometry.DefaultMarginBottomInches) * ImageExportDpi * outputScale, height);
             double printableWidth = Math.Max(1D, width - x - right);
             double printableHeight = Math.Max(1D, height - y - bottom);
             double contentScale = ExcelPageSetupGeometry.ResolveContentScale(
@@ -142,7 +142,7 @@ namespace OfficeIMO.Excel {
                 printableHeight,
                 0.1D,
                 4D);
-            ExcelSheetPrintOptions printOptions = GetPrintOptions();
+            ExcelSheetPrintOptions printOptions = ReadPrintOptions();
             x += ExcelPageSetupGeometry.CenteredOffset(printOptions.HorizontalCentered, printableWidth, contentWidth * contentScale);
             y += ExcelPageSetupGeometry.CenteredOffset(printOptions.VerticalCentered, printableHeight, contentHeight * contentScale);
             return new PageSetupCanvasGeometry(width, height, x, y, contentScale);

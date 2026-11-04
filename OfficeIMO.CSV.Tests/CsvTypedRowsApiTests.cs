@@ -97,8 +97,7 @@ public sealed class CsvTypedRowsApiTests {
 
     [Fact]
     public void ReaderRowsAs_MapsForwardOnlyRowsWithoutMaterializingADocument() {
-        using var reader = CsvDocument.OpenTextDataReader(
-            "Order Id,Sales Channel,Amount\n42,Online,165258.24\n84,Partner,12.50\n");
+        using var reader = CsvDocument.OpenReader(new System.IO.StringReader("Order Id,Sales Channel,Amount\n42,Online,165258.24\n84,Partner,12.50\n"));
 
         SalesRow[] rows = reader.RowsAs<SalesRow>().ToArray();
 
@@ -111,7 +110,7 @@ public sealed class CsvTypedRowsApiTests {
 
     [Fact]
     public void ReaderRowsAs_InvalidAutomaticValueReportsTargetProperty() {
-        using var reader = CsvDocument.OpenTextDataReader("Order Id\nnot-an-integer\n");
+        using var reader = CsvDocument.OpenReader(new System.IO.StringReader("Order Id\nnot-an-integer\n"));
 
         DataMappingException exception = Assert.Throws<DataMappingException>(() =>
             reader.RowsAs<SalesRow>().ToArray());
@@ -122,7 +121,7 @@ public sealed class CsvTypedRowsApiTests {
     [Fact]
     public void ReaderRowsAs_DoesNotRetryAPropertySetterThatThrowsAConversionException() {
         ThrowingSetterRow.SetterCalls = 0;
-        using var reader = CsvDocument.OpenTextDataReader("Value\n42\n");
+        using var reader = CsvDocument.OpenReader(new System.IO.StringReader("Value\n42\n"));
 
         Assert.Throws<FormatException>(() => reader.RowsAs<ThrowingSetterRow>().ToArray());
 
@@ -131,11 +130,11 @@ public sealed class CsvTypedRowsApiTests {
 
     [Fact]
     public void ReaderRowsAs_UsesCsvReaderCulture() {
-        var options = new CsvLoadOptions {
+        var options = new CsvReaderOptions {
             Delimiter = ';',
             Culture = System.Globalization.CultureInfo.GetCultureInfo("pl-PL")
         };
-        using var reader = CsvDocument.OpenTextDataReader("Order Id;Amount\n42;165258,24\n", options);
+        using var reader = CsvDocument.OpenReader(new System.IO.StringReader("Order Id;Amount\n42;165258,24\n"), options: options);
 
         SalesRow row = Assert.Single(reader.RowsAs<SalesRow>());
 
@@ -150,7 +149,7 @@ public sealed class CsvTypedRowsApiTests {
             "Text,Flag,ByteValue,Code,Created,Amount,DoubleValue,FloatValue,BatchId,ShortValue,IntValue,LongValue\n" +
             $"Alpha,true,255,Z,{created},12345.6789,1.25,2.5,{batchId},-1234,123456789,-9876543210\n";
 
-        using var reader = CsvDocument.OpenTextDataReader(csv);
+        using var reader = CsvDocument.OpenReader(new System.IO.StringReader(csv));
         TypedGetterRow row = Assert.Single(reader.RowsAs<TypedGetterRow>());
 
         Assert.Equal("Alpha", row.Text);
@@ -176,7 +175,7 @@ public sealed class CsvTypedRowsApiTests {
         DateTime expected = DateTime.Parse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
 
         DateTimeRow materialized = Assert.Single(CsvDocument.Parse(csv).RowsAs<DateTimeRow>());
-        using var reader = CsvDocument.OpenTextDataReader(csv);
+        using var reader = CsvDocument.OpenReader(new System.IO.StringReader(csv));
         DateTimeRow forwardOnly = Assert.Single(reader.RowsAs<DateTimeRow>());
 
         Assert.Equal(expectedKind, materialized.Created.Kind);
@@ -189,15 +188,15 @@ public sealed class CsvTypedRowsApiTests {
     public void RowsAs_PreservesRoundTripDateTimeWithExactFormat() {
         const string value = "2026-08-07T17:05:04.1234567Z";
         string csv = $"Created\n{value}\n";
-        var options = new CsvLoadOptions { DateTimeFormats = new[] { "O" } };
+        var options = new CsvReaderOptions { DateTimeFormats = new[] { "O" } };
         DateTime expected = DateTime.ParseExact(
             value,
             "O",
             CultureInfo.InvariantCulture,
             DateTimeStyles.RoundtripKind);
 
-        DateTimeRow materialized = Assert.Single(CsvDocument.Parse(csv, options).RowsAs<DateTimeRow>());
-        using var reader = CsvDocument.OpenTextDataReader(csv, options);
+        DateTimeRow materialized = Assert.Single(CsvDocument.Parse(csv, new CsvLoadOptions { DateTimeFormats = new[] { "O" } }).RowsAs<DateTimeRow>());
+        using var reader = CsvDocument.OpenReader(new System.IO.StringReader(csv), options: options);
         DateTimeRow forwardOnly = Assert.Single(reader.RowsAs<DateTimeRow>());
 
         Assert.Equal(DateTimeKind.Utc, materialized.Created.Kind);
@@ -214,7 +213,7 @@ public sealed class CsvTypedRowsApiTests {
             .FromColumn<decimal>("Amount", static (item, value) => { item.Amount = value; return item; });
 
         SalesValue materialized = Assert.Single(CsvDocument.Parse(csv).RowsAs(mapping));
-        using var reader = CsvDocument.OpenTextDataReader(csv);
+        using var reader = CsvDocument.OpenReader(new System.IO.StringReader(csv));
         SalesValue forwardOnly = Assert.Single(reader.RowsAs(mapping));
 
         Assert.Equal(materialized.OrderId, forwardOnly.OrderId);

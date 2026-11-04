@@ -26,7 +26,7 @@ namespace OfficeIMO.PowerPoint {
     public sealed class PowerPointReviewComment {
         internal PowerPointReviewComment(PowerPointCommentKind kind, int slideNumber, string id,
             string? parentId, string? authorId, string? authorName, string text, DateTime? created,
-            string? status, uint? shapeId, double? x, double? y) {
+            string? status, uint? shapeId, long? x, long? y) {
             Kind = kind;
             SlideNumber = slideNumber;
             Id = id;
@@ -37,8 +37,10 @@ namespace OfficeIMO.PowerPoint {
             Created = created;
             Status = status;
             ShapeId = shapeId;
-            X = x;
-            Y = y;
+            X = x.HasValue ? (kind == PowerPointCommentKind.Classic
+                ? PowerPointDocument.ClassicCommentPositionToLength(x.Value) : OfficeLength.Emus(x.Value)) : null;
+            Y = y.HasValue ? (kind == PowerPointCommentKind.Classic
+                ? PowerPointDocument.ClassicCommentPositionToLength(y.Value) : OfficeLength.Emus(y.Value)) : null;
         }
 
         /// <summary>Comment technology.</summary>
@@ -62,9 +64,9 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Anchored shape identifier when present.</summary>
         public uint? ShapeId { get; }
         /// <summary>Classic comment X position when present.</summary>
-        public double? X { get; }
+        public OfficeLength? X { get; }
         /// <summary>Classic comment Y position when present.</summary>
-        public double? Y { get; }
+        public OfficeLength? Y { get; }
     }
 
     /// <summary>Read-only review inspection across classic and modern PowerPoint comments.</summary>
@@ -215,7 +217,7 @@ namespace OfficeIMO.PowerPoint {
         }
     }
 
-    public sealed partial class PowerPointPresentation {
+    public sealed partial class PowerPointDocument {
         /// <summary>Inspects classic and modern comments without mutating review markup.</summary>
         public PowerPointReviewReport InspectReviewComments() => InspectReviewComments(CancellationToken.None);
 

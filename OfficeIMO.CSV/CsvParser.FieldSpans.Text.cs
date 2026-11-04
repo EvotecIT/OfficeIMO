@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Buffers;
 
 namespace OfficeIMO.CSV;
@@ -17,7 +15,7 @@ internal static partial class CsvParser
 
     internal static void ReadFieldSpans<TVisitor>(
         ReadOnlySpan<char> text,
-        CsvLoadOptions options,
+        CsvParsingSettings options,
         int recordsToSkip,
         ref TVisitor fieldVisitor,
         bool? textMayContainQuote = null)

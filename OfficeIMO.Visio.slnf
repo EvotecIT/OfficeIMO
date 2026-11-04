@@ -1,0 +1,14 @@
+{
+  "solution": {
+    "path": "OfficeIMO.slnx",
+    "projects": [
+      "OfficeIMO.Core\\OfficeIMO.Core.csproj",
+      "OfficeIMO.Pdf\\OfficeIMO.Pdf.csproj",
+      "OfficeIMO.Reader.Core\\OfficeIMO.Reader.Core.csproj",
+      "OfficeIMO.Reader.Visio\\OfficeIMO.Reader.Visio.csproj",
+      "OfficeIMO.Visio.Pdf\\OfficeIMO.Visio.Pdf.csproj",
+      "OfficeIMO.Visio.Tests\\OfficeIMO.Visio.Tests.csproj",
+      "OfficeIMO.Visio\\OfficeIMO.Visio.csproj"
+    ]
+  }
+}

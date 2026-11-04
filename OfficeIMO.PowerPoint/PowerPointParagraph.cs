@@ -11,13 +11,16 @@ namespace OfficeIMO.PowerPoint {
     /// Represents a paragraph within a textbox.
     /// </summary>
     public partial class PowerPointParagraph {
-        private readonly SlidePart? _slidePart;
-        private readonly OpenXmlPartContainer? _ownerPart;
+        private readonly SlidePart? _initialSlidePart;
+        private SlidePart? _slidePart => Paragraph.Ancestors<DocumentFormat.OpenXml.Presentation.Slide>().FirstOrDefault()?.SlidePart ?? _initialSlidePart;
+        private readonly OpenXmlPartContainer? _initialOwnerPart;
+        private OpenXmlPartContainer? _ownerPart => Paragraph.Ancestors<DocumentFormat.OpenXml.Presentation.Slide>()
+            .FirstOrDefault()?.SlidePart ?? _initialOwnerPart ?? _initialSlidePart;
 
         internal PowerPointParagraph(A.Paragraph paragraph, SlidePart? slidePart = null, OpenXmlPartContainer? ownerPart = null) {
             Paragraph = paragraph;
-            _slidePart = slidePart;
-            _ownerPart = ownerPart ?? slidePart;
+            _initialSlidePart = slidePart ?? ownerPart as SlidePart;
+            _initialOwnerPart = ownerPart ?? slidePart;
         }
 
         internal A.Paragraph Paragraph { get; }
@@ -45,22 +48,17 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Adds a run to the paragraph and returns the paragraph for chaining.
+        /// Appends text as a new run and returns that run. Formatting the returned run formats only that text;
+        /// line breaks in <paramref name="text"/> stay part of the same run.
         /// </summary>
-        public PowerPointParagraph AddText(string text, Action<PowerPointTextRun>? configure = null) {
-            A.Run run = InsertRun(text);
-            var wrapper = new PowerPointTextRun(run, _slidePart, _ownerPart);
-            configure?.Invoke(wrapper);
-            return this;
-        }
+        public PowerPointTextRun AddText(string text) => InsertRun(text);
 
         /// <summary>
-        /// Adds formatted text to the paragraph and returns the paragraph for chaining.
+        /// Appends text as a new run with basic formatting and returns that run.
         /// </summary>
-        public PowerPointParagraph AddFormattedText(string text, bool bold = false, bool italic = false,
+        public PowerPointTextRun AddFormattedText(string text, bool bold = false, bool italic = false,
             PowerPointUnderlineStyle? underline = null, bool strikethrough = false) {
-            A.Run run = InsertRun(text);
-            var wrapper = new PowerPointTextRun(run, _slidePart, _ownerPart);
+            PowerPointTextRun wrapper = InsertRun(text);
             if (bold) {
                 wrapper.Bold = true;
             }
@@ -73,54 +71,53 @@ namespace OfficeIMO.PowerPoint {
             if (strikethrough) {
                 wrapper.Strikethrough = true;
             }
-            return this;
+            return wrapper;
         }
 
         /// <summary>
-        /// Replaces text within the paragraph runs while preserving formatting.
+        /// Replaces literal text in the paragraph's runs.
         /// </summary>
-        public int ReplaceText(string oldValue, string newValue) {
-            if (oldValue == null) {
-                throw new ArgumentNullException(nameof(oldValue));
-            }
-            if (oldValue.Length == 0) {
-                throw new ArgumentException("Old value cannot be empty.", nameof(oldValue));
-            }
-
-            string replacement = newValue ?? string.Empty;
+        /// <param name="text">Text to find.</param>
+        /// <param name="replacement">Replacement text; <c>null</c> removes each match.</param>
+        /// <param name="options">Comparison settings. <c>null</c> matches ordinally, ignoring case, inside or across words.</param>
+        /// <returns>The number of replaced matches.</returns>
+        /// <remarks>
+        /// Each match lies within one text run; text split across runs with different formatting is not matched. Replacement keeps each run's formatting. Word boundaries for <see cref="OfficeTextSearchOptions.WholeWords"/> take the adjacent runs into account.
+        /// </remarks>
+        public int ReplaceAll(string text, string replacement, OfficeTextSearchOptions? options = null) {
+            OfficeTextSearch.ValidateSearchText(text, nameof(text));
+            StringComparison comparison = OfficeTextSearch.GetComparison(options);
+            bool wholeWords = options?.WholeWords == true;
             int count = 0;
 
-            foreach (A.Run run in Paragraph.Elements<A.Run>()) {
-                foreach (A.Text text in run.Elements<A.Text>()) {
-                    string current = text.Text ?? string.Empty;
-                    int occurrences = CountOccurrences(current, oldValue);
-                    if (occurrences == 0) {
-                        continue;
-                    }
-
-                    text.Text = current.Replace(oldValue, replacement);
-                    count += occurrences;
+            foreach (A.Run run in Paragraph.Elements<A.Run>().ToArray()) {
+                string current = run.Text?.Text ?? string.Empty;
+                string? preceding = wholeWords ? GetAdjacentText(run.PreviousSibling()) : null;
+                string? following = wholeWords ? GetAdjacentText(run.NextSibling()) : null;
+                int occurrences = 0;
+                string updated = OfficeTextSearch.Replace(current, text, replacement, comparison, wholeWords, ref occurrences, preceding, following);
+                if (occurrences == 0) {
+                    continue;
                 }
+
+                new PowerPointTextRun(run, _slidePart, _ownerPart).Text = updated;
+                count += occurrences;
             }
 
             return count;
         }
+
+        private static string? GetAdjacentText(OpenXmlElement? sibling) => sibling switch {
+            A.Run run => run.Text?.Text,
+            A.Field field => field.Text?.Text,
+            _ => null
+        };
 
         /// <summary>
         /// Runs within the paragraph.
         /// </summary>
         public IReadOnlyList<PowerPointTextRun> Runs =>
             Paragraph.Elements<A.Run>().Select(r => new PowerPointTextRun(r, _slidePart, _ownerPart)).ToList();
-
-        /// <summary>
-        /// Adds a run to the paragraph.
-        /// </summary>
-        public PowerPointTextRun AddRun(string text, Action<PowerPointTextRun>? configure = null) {
-            A.Run run = InsertRun(text);
-            var wrapper = new PowerPointTextRun(run, _slidePart, _ownerPart);
-            configure?.Invoke(wrapper);
-            return wrapper;
-        }
 
         /// <summary>
         /// Gets or sets paragraph alignment.
@@ -193,9 +190,9 @@ namespace OfficeIMO.PowerPoint {
         public int? NumberingStartAt => Paragraph.ParagraphProperties?.GetFirstChild<A.AutoNumberedBullet>()?.StartAt?.Value;
 
         /// <summary>
-        /// Gets or sets paragraph indentation in points.
+        /// Gets or sets paragraph indentation as a physical length.
         /// </summary>
-        public double? IndentPoints {
+        public global::OfficeIMO.OfficeLength? Indent {
             get => FromTextCoordinate(Paragraph.ParagraphProperties?.Indent?.Value);
             set {
                 A.ParagraphProperties props = EnsureParagraphProperties();
@@ -204,9 +201,9 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Gets or sets paragraph left margin in points.
+        /// Gets or sets paragraph left margin as a physical length.
         /// </summary>
-        public double? LeftMarginPoints {
+        public global::OfficeIMO.OfficeLength? LeftMargin {
             get => FromTextCoordinate(Paragraph.ParagraphProperties?.LeftMargin?.Value);
             set {
                 A.ParagraphProperties props = EnsureParagraphProperties();
@@ -215,76 +212,37 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Sets indentation in points and returns the paragraph for chaining.
+        /// Sets indentation and returns the paragraph for chaining.
         /// </summary>
-        public PowerPointParagraph SetIndentPoints(double points) {
-            IndentPoints = points;
+        public PowerPointParagraph SetIndent(global::OfficeIMO.OfficeLength value) {
+            Indent = value;
             return this;
         }
 
         /// <summary>
-        /// Sets indentation in centimeters and returns the paragraph for chaining.
+        /// Sets left margin and returns the paragraph for chaining.
         /// </summary>
-        public PowerPointParagraph SetIndentCm(double centimeters) {
-            return SetIndentPoints(PointsFromCentimeters(centimeters));
-        }
-
-        /// <summary>
-        /// Sets indentation in inches and returns the paragraph for chaining.
-        /// </summary>
-        public PowerPointParagraph SetIndentInches(double inches) {
-            return SetIndentPoints(PointsFromInches(inches));
-        }
-
-        /// <summary>
-        /// Sets left margin in points and returns the paragraph for chaining.
-        /// </summary>
-        public PowerPointParagraph SetLeftMarginPoints(double points) {
-            LeftMarginPoints = points;
+        public PowerPointParagraph SetLeftMargin(global::OfficeIMO.OfficeLength value) {
+            LeftMargin = value;
             return this;
         }
 
         /// <summary>
-        /// Sets left margin in centimeters and returns the paragraph for chaining.
+        /// Sets a hanging indent and returns the paragraph for chaining.
         /// </summary>
-        public PowerPointParagraph SetLeftMarginCm(double centimeters) {
-            return SetLeftMarginPoints(PointsFromCentimeters(centimeters));
-        }
-
-        /// <summary>
-        /// Sets left margin in inches and returns the paragraph for chaining.
-        /// </summary>
-        public PowerPointParagraph SetLeftMarginInches(double inches) {
-            return SetLeftMarginPoints(PointsFromInches(inches));
-        }
-
-        /// <summary>
-        /// Sets a hanging indent in points and returns the paragraph for chaining.
-        /// </summary>
-        public PowerPointParagraph SetHangingPoints(double points) {
-            LeftMarginPoints = points;
-            IndentPoints = -points;
+        public PowerPointParagraph SetHanging(global::OfficeIMO.OfficeLength value) {
+            int margin = checked((int)value.ToEmus());
+            int indent = checked(-margin);
+            A.ParagraphProperties props = EnsureParagraphProperties();
+            props.LeftMargin = margin;
+            props.Indent = indent;
             return this;
         }
 
         /// <summary>
-        /// Sets a hanging indent in centimeters and returns the paragraph for chaining.
+        /// Gets or sets line spacing as a physical length.
         /// </summary>
-        public PowerPointParagraph SetHangingCm(double centimeters) {
-            return SetHangingPoints(PointsFromCentimeters(centimeters));
-        }
-
-        /// <summary>
-        /// Sets a hanging indent in inches and returns the paragraph for chaining.
-        /// </summary>
-        public PowerPointParagraph SetHangingInches(double inches) {
-            return SetHangingPoints(PointsFromInches(inches));
-        }
-
-        /// <summary>
-        /// Gets or sets line spacing in points.
-        /// </summary>
-        public double? LineSpacingPoints {
+        public global::OfficeIMO.OfficeLength? LineSpacing {
             get => FromSpacingPoints(Paragraph.ParagraphProperties?.LineSpacing?.SpacingPoints?.Val?.Value);
             set {
                 A.ParagraphProperties props = EnsureParagraphProperties();
@@ -312,10 +270,10 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Sets line spacing in points and returns the paragraph for chaining.
+        /// Sets line spacing and returns the paragraph for chaining.
         /// </summary>
-        public PowerPointParagraph SetLineSpacingPoints(double points) {
-            LineSpacingPoints = points;
+        public PowerPointParagraph SetLineSpacing(global::OfficeIMO.OfficeLength value) {
+            LineSpacing = value;
             return this;
         }
 
@@ -328,9 +286,9 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Gets or sets space before the paragraph in points.
+        /// Gets or sets space before the paragraph as a physical length.
         /// </summary>
-        public double? SpaceBeforePoints {
+        public global::OfficeIMO.OfficeLength? SpaceBefore {
             get => FromSpacingPoints(Paragraph.ParagraphProperties?.SpaceBefore?.SpacingPoints?.Val?.Value);
             set {
                 A.ParagraphProperties props = EnsureParagraphProperties();
@@ -343,17 +301,17 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Sets space before the paragraph in points and returns the paragraph for chaining.
+        /// Sets space before the paragraph and returns the paragraph for chaining.
         /// </summary>
-        public PowerPointParagraph SetSpaceBeforePoints(double points) {
-            SpaceBeforePoints = points;
+        public PowerPointParagraph SetSpaceBefore(global::OfficeIMO.OfficeLength value) {
+            SpaceBefore = value;
             return this;
         }
 
         /// <summary>
-        /// Gets or sets space after the paragraph in points.
+        /// Gets or sets space after the paragraph as a physical length.
         /// </summary>
-        public double? SpaceAfterPoints {
+        public global::OfficeIMO.OfficeLength? SpaceAfter {
             get => FromSpacingPoints(Paragraph.ParagraphProperties?.SpaceAfter?.SpacingPoints?.Val?.Value);
             set {
                 A.ParagraphProperties props = EnsureParagraphProperties();
@@ -366,82 +324,82 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Sets space after the paragraph in points and returns the paragraph for chaining.
+        /// Sets space after the paragraph and returns the paragraph for chaining.
         /// </summary>
-        public PowerPointParagraph SetSpaceAfterPoints(double points) {
-            SpaceAfterPoints = points;
+        public PowerPointParagraph SetSpaceAfter(global::OfficeIMO.OfficeLength value) {
+            SpaceAfter = value;
             return this;
         }
 
         /// <summary>
-        /// Sets the current run bold property and returns the paragraph for chaining.
+        /// Sets the bold property of every run in the paragraph and returns the paragraph for chaining.
+        /// Use the run returned by <see cref="AddText(string)"/> to format a single run.
         /// </summary>
         public PowerPointParagraph SetBold(bool isBold = true) {
-            PowerPointTextRun run = GetDefaultRun();
-            run.Bold = isBold;
+            FormatRuns(run => run.Bold = isBold);
             return this;
         }
 
         /// <summary>
-        /// Sets the current run italic property and returns the paragraph for chaining.
+        /// Sets the italic property of every run in the paragraph and returns the paragraph for chaining.
+        /// Use the run returned by <see cref="AddText(string)"/> to format a single run.
         /// </summary>
         public PowerPointParagraph SetItalic(bool isItalic = true) {
-            PowerPointTextRun run = GetDefaultRun();
-            run.Italic = isItalic;
+            FormatRuns(run => run.Italic = isItalic);
             return this;
         }
 
         /// <summary>
-        /// Sets the current run underline property and returns the paragraph for chaining.
+        /// Sets the underline property of every run in the paragraph and returns the paragraph for chaining.
+        /// Use the run returned by <see cref="AddText(string)"/> to format a single run.
         /// </summary>
         public PowerPointParagraph SetUnderline(bool underline = true) {
-            PowerPointTextRun run = GetDefaultRun();
-            run.Underline = underline;
+            FormatRuns(run => run.Underline = underline);
             return this;
         }
 
         /// <summary>
-        /// Sets the current run strikethrough property and returns the paragraph for chaining.
+        /// Sets the strikethrough property of every run in the paragraph and returns the paragraph for chaining.
+        /// Use the run returned by <see cref="AddText(string)"/> to format a single run.
         /// </summary>
         public PowerPointParagraph SetStrikethrough(bool strikethrough = true) {
-            PowerPointTextRun run = GetDefaultRun();
-            run.Strikethrough = strikethrough;
+            FormatRuns(run => run.Strikethrough = strikethrough);
             return this;
         }
 
         /// <summary>
-        /// Sets the current run font size in points and returns the paragraph for chaining.
+        /// Sets the font size of every run in the paragraph and returns the paragraph for chaining.
+        /// Use the run returned by <see cref="AddText(string)"/> to format a single run.
         /// </summary>
-        public PowerPointParagraph SetFontSize(int size) {
-            PowerPointTextRun run = GetDefaultRun();
-            run.FontSize = size;
+        public PowerPointParagraph SetFontSize(global::OfficeIMO.OfficeLength size) {
+            FormatRuns(run => run.FontSize = size);
             return this;
         }
 
         /// <summary>
-        /// Sets the current run font name and returns the paragraph for chaining.
+        /// Sets the font family of every run in the paragraph and returns the paragraph for chaining.
+        /// Use the run returned by <see cref="AddText(string)"/> to format a single run.
         /// </summary>
-        public PowerPointParagraph SetFontName(string fontName) {
-            PowerPointTextRun run = GetDefaultRun();
-            run.FontName = fontName;
+        public PowerPointParagraph SetFontFamily(string fontFamily) {
+            FormatRuns(run => run.FontFamily = fontFamily);
             return this;
         }
 
         /// <summary>
-        /// Sets the current run color and returns the paragraph for chaining.
+        /// Sets the color of every run in the paragraph and returns the paragraph for chaining.
+        /// Use the run returned by <see cref="AddText(string)"/> to format a single run.
         /// </summary>
-        public PowerPointParagraph SetColor(string color) {
-            PowerPointTextRun run = GetDefaultRun();
-            run.Color = color;
+        public PowerPointParagraph SetColor(global::OfficeIMO.OfficeColor color) {
+            FormatRuns(run => run.Color = color);
             return this;
         }
 
         /// <summary>
-        /// Sets the current run highlight color and returns the paragraph for chaining.
+        /// Sets the background (highlight) color of every run in the paragraph and returns the paragraph for chaining.
+        /// Use the run returned by <see cref="AddText(string)"/> to format a single run.
         /// </summary>
-        public PowerPointParagraph SetHighlightColor(string color) {
-            PowerPointTextRun run = GetDefaultRun();
-            run.HighlightColor = color;
+        public PowerPointParagraph SetBackgroundColor(global::OfficeIMO.OfficeColor color) {
+            FormatRuns(run => run.BackgroundColor = color);
             return this;
         }
 
@@ -468,19 +426,19 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Gets or sets the bullet size in points.
+        /// Gets or sets the bullet size as a physical length.
         /// </summary>
-        public int? BulletSizePoints {
+        public global::OfficeIMO.OfficeLength? BulletSize {
             get {
                 int? size = Paragraph.ParagraphProperties?.GetFirstChild<A.BulletSizePoints>()?.Val?.Value;
-                return size != null ? size / 100 : null;
+                return size.HasValue ? global::OfficeIMO.OfficeLength.Points(size.Value / 100D) : (global::OfficeIMO.OfficeLength?)null;
             }
             set {
                 A.ParagraphProperties props = EnsureParagraphProperties();
                 props.RemoveAllChildren<A.BulletSizePoints>();
                 props.RemoveAllChildren<A.BulletSizePercentage>();
                 if (value != null) {
-                    InsertParagraphPropertyChild(props, new A.BulletSizePoints { Val = value.Value * 100 });
+                    InsertParagraphPropertyChild(props, new A.BulletSizePoints { Val = ToSpacingPoints(value.Value) });
                 }
             }
         }
@@ -512,10 +470,10 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Sets the bullet size in points and returns the paragraph for chaining.
+        /// Sets the bullet size and returns the paragraph for chaining.
         /// </summary>
-        public PowerPointParagraph SetBulletSizePoints(int sizePoints) {
-            BulletSizePoints = sizePoints;
+        public PowerPointParagraph SetBulletSize(global::OfficeIMO.OfficeLength size) {
+            BulletSize = size;
             return this;
         }
 
@@ -570,20 +528,31 @@ namespace OfficeIMO.PowerPoint {
             InsertParagraphPropertyChild(props, new A.NoBullet());
         }
 
-        private PowerPointTextRun GetDefaultRun() {
-            A.Run run = Paragraph.Elements<A.Run>().LastOrDefault() ?? InsertRun(string.Empty);
-            return new PowerPointTextRun(run, _slidePart);
+        /// <summary>
+        /// Applies <paramref name="format"/> to every run in the paragraph. A paragraph without runs gets one empty,
+        /// formatted run, as PowerPoint stores an empty formatted line.
+        /// </summary>
+        internal void FormatRuns(Action<PowerPointTextRun> format) {
+            A.Run[] runs = Paragraph.Elements<A.Run>().ToArray();
+            if (runs.Length == 0) {
+                format(InsertRun(string.Empty));
+                return;
+            }
+            foreach (A.Run run in runs) {
+                format(new PowerPointTextRun(run, _slidePart, _ownerPart));
+            }
         }
 
-        private A.Run InsertRun(string text) {
-            A.Run run = new(new A.Text(text ?? string.Empty));
+        internal PowerPointTextRun InsertRun(string? text, A.RunProperties? properties = null) {
+            A.Run run = new(new A.Text(string.Empty));
+            PowerPointTextContent.ApplyProperties(run, properties);
             A.EndParagraphRunProperties? endProps = Paragraph.GetFirstChild<A.EndParagraphRunProperties>();
             if (endProps != null) {
                 Paragraph.InsertBefore(run, endProps);
             } else {
                 Paragraph.Append(run);
             }
-            return run;
+            return new PowerPointTextRun(run, _slidePart, _ownerPart) { Text = text ?? string.Empty };
         }
 
         private static void ClearBulletInternal(A.ParagraphProperties props) {
@@ -633,36 +602,22 @@ namespace OfficeIMO.PowerPoint {
             return Paragraph.ParagraphProperties ??= new A.ParagraphProperties();
         }
 
-        private static int CountOccurrences(string value, string oldValue) {
-            int count = 0;
-            int index = 0;
-            while (true) {
-                index = value.IndexOf(oldValue, index, StringComparison.Ordinal);
-                if (index < 0) {
-                    break;
-                }
-                count++;
-                index += oldValue.Length;
-            }
-            return count;
-        }
-
-        private static int? ToTextCoordinate(double? points) {
-            return points != null
-                ? checked((int)Math.Round(points.Value * PowerPointUnits.EmusPerPoint))
+        private static int? ToTextCoordinate(global::OfficeIMO.OfficeLength? length) {
+            return length != null
+                ? checked((int)length.Value.ToEmus())
                 : null;
         }
 
-        private static double? FromTextCoordinate(int? value) {
-            return value != null ? value.Value / PowerPointUnits.EmusPerPoint : null;
+        private static global::OfficeIMO.OfficeLength? FromTextCoordinate(int? value) {
+            return value.HasValue ? global::OfficeIMO.OfficeLength.Emus(value.Value) : (global::OfficeIMO.OfficeLength?)null;
         }
 
-        private static int ToSpacingPoints(double points) {
-            return (int)Math.Round(points * 100);
+        private static int ToSpacingPoints(global::OfficeIMO.OfficeLength length) {
+            return (int)Math.Round(length.ToPoints() * 100);
         }
 
-        private static double? FromSpacingPoints(int? value) {
-            return value != null ? value.Value / 100d : null;
+        private static global::OfficeIMO.OfficeLength? FromSpacingPoints(int? value) {
+            return value.HasValue ? global::OfficeIMO.OfficeLength.Points(value.Value / 100D) : (global::OfficeIMO.OfficeLength?)null;
         }
 
         private static int ToSpacingPercent(double multiplier) {
@@ -673,14 +628,5 @@ namespace OfficeIMO.PowerPoint {
             return value != null ? value.Value / 100000d : null;
         }
 
-        private static double PointsFromCentimeters(double centimeters) {
-            long emus = PowerPointUnits.FromCentimeters(centimeters);
-            return PowerPointUnits.ToPoints(emus);
-        }
-
-        private static double PointsFromInches(double inches) {
-            long emus = PowerPointUnits.FromInches(inches);
-            return PowerPointUnits.ToPoints(emus);
-        }
     }
 }

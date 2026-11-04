@@ -12,7 +12,7 @@ public class PdfFormInteractionPermissionTests {
     public void Form_metadata_and_widget_geometry_follow_form_permissions_without_enabling_content_extraction(
         PdfStandardPermissions permissions, bool canRead) {
         var original = PdfDocument.Create(document => document.Content(content => content.Canvas(canvas =>
-            canvas.TextField("Name", "Ada", 72, 72, 200, 24)))).Pages.Rotate(90, 1);
+            canvas.TextField("Name", "Ada", global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(24))))).Pages.Rotate(90, 1);
         byte[] encrypted = original.Security.Encrypt(new PdfStandardEncryptionOptions("reader") {
             OwnerPassword = "owner", AllowedPermissions = permissions
         }).Pdf;
@@ -42,7 +42,7 @@ public class PdfFormInteractionPermissionTests {
     [Fact]
     public void Authorized_form_authoring_does_not_expose_restricted_preservation_inspection() {
         var original = PdfDocument.Create(document => document.Content(content => content.Canvas(canvas =>
-            canvas.TextField("Name", "Ada", 72, 72, 200, 24))));
+            canvas.TextField("Name", "Ada", global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(24)))));
         byte[] encrypted = original.Security.Encrypt(new PdfStandardEncryptionOptions("reader") {
             OwnerPassword = "owner", AllowedPermissions = PdfStandardPermissions.ModifyContents | PdfStandardPermissions.ModifyAnnotations
         }).Pdf;

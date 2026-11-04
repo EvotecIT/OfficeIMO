@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes pie or doughnut chart explosion metadata decoded from a legacy XLS PieFormat record.
     /// </summary>
-    public sealed class LegacyXlsChartPieFormat {
+    internal sealed class LegacyXlsChartPieFormat {
         internal LegacyXlsChartPieFormat(short explosionPercentage) {
             ExplosionPercentage = explosionPercentage;
         }

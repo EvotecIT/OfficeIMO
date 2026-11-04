@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ThreadedComments_BatchPreservesRootReplyOrderPeopleAndSavedContent() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Review");
+            ExcelSheet sheet = document.AddSheet("Review");
             string root = "30000000-0000-0000-0000-000000000001";
             DateTime date = new(2026, 10, 1, 8, 0, 0, DateTimeKind.Utc);
             var results = sheet.AddThreadedComments(new[] {
@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ThreadedComments_BatchRejectsLateDuplicateWithoutAppendingEarlierValidItems() {
             using var document = ExcelDocument.Create();
-            ExcelSheet first = document.AddWorksheet("First"), second = document.AddWorksheet("Second");
+            ExcelSheet first = document.AddSheet("First"), second = document.AddSheet("Second");
             var existing = first.AddThreadedComment("A1", "Existing");
             Assert.Throws<InvalidOperationException>(() => second.AddThreadedComments(new[] {
                 new ExcelThreadedCommentOptions { Address = "B2", Text = "Valid first" },
@@ -46,7 +46,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ThreadedComments_BatchRejectsReplyToAnotherCellBeforePackageMutation() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Review");
+            ExcelSheet sheet = document.AddSheet("Review");
             string root = "30000000-0000-0000-0000-000000000001";
             Assert.Throws<ArgumentException>(() => sheet.AddThreadedComments(new[] {
                 new ExcelThreadedCommentOptions { Address = "A1", Text = "Root", Id = root },
@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ThreadedComments_LargeBatchKeepsDistinctIdsAndAuthorsAfterReopen() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Review");
+            ExcelSheet sheet = document.AddSheet("Review");
             const int count = 10_000;
             sheet.AddThreadedComments(Enumerable.Range(1, count).Select(row => new ExcelThreadedCommentOptions {
                 Address = "A" + row, Text = "Comment " + row, Author = "Reviewer " + row,

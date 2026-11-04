@@ -1,12 +1,12 @@
 namespace OfficeIMO.Markdown;
 
 internal static class UrlOriginPolicy {
-    internal static bool IsAllowedHttpLink(HtmlOptions? o, string? url) {
+    internal static bool IsAllowedHttpLink(MarkdownHtmlExportOptions? o, string? url) {
         if (!IsSafeLinkUrl(o, url)) return false;
         return IsAllowedHttpUrl(o, url, forImages: false);
     }
 
-    internal static bool IsAllowedHttpImage(HtmlOptions? o, string? url) {
+    internal static bool IsAllowedHttpImage(MarkdownHtmlExportOptions? o, string? url) {
         if (!IsSafeImageUrl(url)) return false;
         if (o == null) return true;
         var u = (url ?? string.Empty).Trim();
@@ -28,7 +28,7 @@ internal static class UrlOriginPolicy {
         return IsAllowedHttpUrl(o, u, forImages: true);
     }
 
-    internal static string FilterAllowedImageSrcSet(HtmlOptions? options, string? srcSet) {
+    internal static string FilterAllowedImageSrcSet(MarkdownHtmlExportOptions? options, string? srcSet) {
         if (string.IsNullOrWhiteSpace(srcSet)) return string.Empty;
 
         var allowed = new System.Collections.Generic.List<string>();
@@ -45,7 +45,7 @@ internal static class UrlOriginPolicy {
         return string.Join(", ", allowed);
     }
 
-    private static bool IsAllowedHttpUrl(HtmlOptions? o, string? url, bool forImages) {
+    private static bool IsAllowedHttpUrl(MarkdownHtmlExportOptions? o, string? url, bool forImages) {
         if (o == null) return true;
         var u = (url ?? string.Empty).Trim();
         if (u.Length == 0) return true;
@@ -81,7 +81,7 @@ internal static class UrlOriginPolicy {
         return IsSameOrigin(baseUri, abs);
     }
 
-    private static bool IsSafeLinkUrl(HtmlOptions? options, string? url) {
+    private static bool IsSafeLinkUrl(MarkdownHtmlExportOptions? options, string? url) {
         string value = (url ?? string.Empty).Trim();
         if (value.Length == 0 || value.StartsWith("#", StringComparison.Ordinal)) return true;
         if (!TryGetScheme(value, out string? scheme)) return true;

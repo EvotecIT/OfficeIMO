@@ -34,7 +34,7 @@ internal static class SourceNewsletterLifecycle {
         var cases = new List<object>();
         foreach (string kind in new[] { "linked", "table", "image", "combined" }) {
             PublisherDocument doc = PublisherDocument.Load(source);
-            Require(doc.ToPubBytes().SequenceEqual(source), "Public exact-copy save changed the generated source.");
+            Require(doc.ToBytes().SequenceEqual(source), "Public exact-copy save changed the generated source.");
             string topology = JsonSerializer.Serialize(Topology(doc));
             PublisherTextStory body = doc.TextStories.Single(s => s.Text.Contains("Our community shares practical ideas"));
             PublisherTable table = doc.Pages[0].Tables.Single();
@@ -53,13 +53,13 @@ internal static class SourceNewsletterLifecycle {
             bool strictRefused = false;
             try { doc.Save(path); } catch (OfficeConversionException) { strictRefused = true; }
             Require(strictRefused && !File.Exists(path), "Default strict save did not preserve the destination boundary.");
-            PublisherSaveReport report = doc.Save(path, new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+            PublisherSaveReport report = doc.Save(path, new PublisherSaveOptions { AllowLoss = true });
             Require(!report.HasErrors && report.HasLoss && !report.IsExactSourceCopy, "Public save report lost the current unassessed-edit contract.");
             byte[] saved = File.ReadAllBytes(path);
             PublisherDocument actual = PublisherDocument.Load(saved);
             Require(JsonSerializer.Serialize(Topology(actual)) == topology, "Save changed unaffected frame/table/picture topology.");
             Require(actual.TextStories.Count == requestedStories.Count && actual.TextStories.All(s => requestedStories[s.Id] == s.Text), "Complete edited or neighboring stories changed.");
-            Require(actual.ToPubBytes().SequenceEqual(saved), "Saved source cannot be copied exactly through the default public API.");
+            Require(actual.ToBytes().SequenceEqual(saved), "Saved source cannot be copied exactly through the default public API.");
             Require(actual.Images.Single(i => i.Id == actual.MasterPages.Single().Pictures.Single().ImageId).GetBytes().SequenceEqual(logoBytes), "Replacing a placement also changed the shared master asset.");
             byte[] pageImage = actual.Images.Single(i => i.Id == actual.Pages[1].Pictures.Single().ImageId).GetBytes();
             Require(pageImage.SequenceEqual(image ? replacement : logoBytes), "Saved picture placement has the wrong embedded bytes.");
@@ -68,7 +68,7 @@ internal static class SourceNewsletterLifecycle {
                 : new[] { "Activity", "Date", "Community meeting", "Saturday" }), "Cell CR or text partitions changed.");
             var item = new { kind, sha256 = Hash(saved), bytes = saved.Length, publicSave = true, strictDefaultRefused = strictRefused,
                 expectedBodyText = actual.TextStories.Single(s => s.Id == body.Id).Text, expectedCellText = cells ? "Sunday\n10:00" : "Saturday",
-                replacementJpeg = image, printStateNativeAcceptance = "not-run", fidelity = report.FidelityDiagnostics.Select(d => new { d.Code, d.LossKind, d.Source, d.Location }) };
+                replacementJpeg = image, printStateNativeAcceptance = "not-run", fidelity = report.Diagnostics.Select(d => new { d.Code, d.LossKind, Source = d.Format, d.Location }) };
             cases.Add(item); Console.WriteLine("PASS public source-save " + kind);
         }
         using var proof = new FileStream(Path.Combine(output, "public-save-proof.json"), FileMode.CreateNew, FileAccess.Write);

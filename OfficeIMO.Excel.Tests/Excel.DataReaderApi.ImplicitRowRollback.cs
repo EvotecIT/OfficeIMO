@@ -24,7 +24,7 @@ public partial class Excel {
                 """;
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml));
 
-            using var reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions { HasHeaderRow = false });
+            using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { HasHeaderRow = false });
             Assert.Equal(2, reader.FieldCount);
             Assert.True(reader.Read());
             Assert.Equal(30D, reader.GetValue(0));

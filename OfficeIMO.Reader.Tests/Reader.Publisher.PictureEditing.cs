@@ -44,7 +44,7 @@ public sealed class ReaderPublisherPictureEditingTests {
         Assert.Null(current.Source.SourceHash);
         Assert.Null(current.Source.LengthBytes);
         Assert.Contains(current.Diagnostics, diagnostic => diagnostic.Code == "PUB_READER_LAYOUT_OMITTED");
-        foreach (var finding in document.ReadReport.FidelityDiagnostics)
+        foreach (var finding in document.ReadReport.Diagnostics)
             Assert.Contains(current.Diagnostics, diagnostic => diagnostic.Code == finding.Code && diagnostic.Message == finding.Message);
 
         OfficeDocumentReadResult withoutPayloads = document.ToOfficeDocumentReadResult("logical.pub", hashOptions);

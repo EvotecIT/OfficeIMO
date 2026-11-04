@@ -47,7 +47,7 @@ public sealed class PublisherTextWrapTests {
         int length = document.TextStories.Single(s => s.Id == frame.StoryId).Text.Length;
         Assert.InRange(frame.TextLength!.Value, 1, length);
         Assert.Equal(frame.TextLength < length, frame.HasOverflow);
-        Assert.Equal(source, document.ToPubBytes());
+        Assert.Equal(source, document.ToBytes());
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public sealed class PublisherTextWrapTests {
         var baselines = new List<double>();
         foreach (var alignment in new[] { OfficeTextVerticalAlignment.Top, OfficeTextVerticalAlignment.Center, OfficeTextVerticalAlignment.Bottom }) {
             document.SetTextFrameLayout(frame.Id, 1, 0, frame.Padding, alignment);
-            var pdf = PdfReadDocument.Open(document.ToPdfBytes());
+            using PdfDocument pdf = PublisherNativeTests.ExportAndReloadPdf(document);
             var span = Assert.Single(pdf.Pages[0].GetTextSpans(), s => s.IsVisible && s.Text == "Alignment marker");
             baselines.Add(span.Y);
         }
@@ -109,7 +109,7 @@ public sealed class PublisherTextWrapTests {
         Assert.True(frame.Y < bounds.Y + bounds.Height && frame.Y + frame.Height > bounds.Y);
         Assert.All(regions, region => Assert.False(region.X < bounds.X + bounds.Width - .001 && region.X + region.Width > bounds.X + .001
             && region.Y < bounds.Y + bounds.Height - .001 && region.Y + region.Height > bounds.Y + .001));
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_TEXT_WRAP_APPROXIMATED"
+        Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == "PUB_TEXT_WRAP_APPROXIMATED"
             && item.Location == "Contents/object/327" && item.LossKind == OfficeConversionLossKind.Approximation);
     }
 

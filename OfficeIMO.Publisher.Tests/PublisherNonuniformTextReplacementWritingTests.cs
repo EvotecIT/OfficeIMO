@@ -46,7 +46,7 @@ public sealed class PublisherNonuniformTextReplacementWritingTests {
             }
         } else document.ReplaceStoryParagraphs(story.Id, requested);
 
-        byte[] output = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        byte[] output = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         PublisherDocument saved = PublisherDocument.Load(output);
         Assert.Equal(document.TextStories.Select(s => (s.Id, s.Text)), saved.TextStories.Select(s => (s.Id, s.Text)));
         Assert.Equal(originals.Where(s => s.Id != story.Id).Select(s => (s.Id, s.Text)),
@@ -96,7 +96,7 @@ public sealed class PublisherNonuniformTextReplacementWritingTests {
         var requested = finalOnly ? new[] { replacement } : new[] { replacement, values[2] };
         if (cells) document.ReplaceTableCellParagraphs(table!.Id, 0, 0, requested);
         else document.ReplaceStoryParagraphs(story.Id, requested);
-        var error = Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        var error = Assert.Throws<OfficeConversionException>(() => document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         Assert.True(Assert.IsType<PublisherSaveReport>(error.Report).HasErrors);
     }
 

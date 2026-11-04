@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Globalization;
 
 namespace OfficeIMO.CSV.Benchmarks;
@@ -77,7 +75,7 @@ internal static class CsvBenchmarkOutputValidator
             }
 
             rowIndex++;
-        }, new CsvLoadOptions { DelimiterText = delimiter });
+        }, new CsvReaderOptions { DelimiterText = delimiter });
 
         if (rowIndex != expectedRowCount)
         {

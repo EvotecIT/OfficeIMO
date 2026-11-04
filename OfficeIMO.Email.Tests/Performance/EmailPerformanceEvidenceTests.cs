@@ -24,11 +24,11 @@ public sealed class EmailPerformanceEvidenceTests {
         document.Body.Text = new string('x', 1024 * 1024);
         byte[] source = new EmailDocumentWriter().ToBytes(document);
         var reader = new EmailDocumentReader(new EmailReaderOptions(maxInputBytes: 8L * 1024L * 1024L));
-        reader.Read(Encoding.ASCII.GetBytes("Subject: warmup\r\n\r\nwarmup"));
+        reader.ReadDocument(Encoding.ASCII.GetBytes("Subject: warmup\r\n\r\nwarmup"));
 
         long before = GC.GetAllocatedBytesForCurrentThread();
         var stopwatch = Stopwatch.StartNew();
-        EmailReadResult result = reader.Read(source);
+        EmailReadResult result = reader.ReadDocument(source);
         stopwatch.Stop();
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
 
@@ -92,7 +92,7 @@ public sealed class EmailPerformanceEvidenceTests {
 
         long before = GC.GetAllocatedBytesForCurrentThread();
         var stopwatch = Stopwatch.StartNew();
-        EmailReadResult result = reader.Read(source);
+        EmailReadResult result = reader.ReadDocument(source);
         stopwatch.Stop();
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
 

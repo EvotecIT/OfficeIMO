@@ -135,7 +135,7 @@ internal static partial class PublisherNativeCreationArtwork {
             if (paint.StrokeColor.HasValue || (paint.FillOpacity ?? 1) != 1 || (paint.StrokeOpacity ?? 1) != 1
                 || paint.FillColor is { A: not 255 })
                 throw new NotSupportedException("The model specimen supports opaque solid fills or no fill, without an outline.");
-            OfficeIMO.Drawing.OfficeColor? fill = paint.FillColor;
+            OfficeColor? fill = paint.FillColor;
             properties[0] = (0x181, fill.HasValue ? (uint)(fill.Value.R | fill.Value.G << 8 | fill.Value.B << 16) : 0);
             properties[1] = (0x1BF, fill.HasValue ? 0x00100010U : 0x00100000U);
         }

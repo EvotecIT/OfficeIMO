@@ -12,14 +12,14 @@ namespace OfficeIMO.Examples.Excel {
             string filePath = Path.Combine(folderPath, "FeaturePreflight.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Report");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(1, 2, "Score");
-                sheet.CellValue(2, 1, "Alpha");
-                sheet.CellValue(2, 2, 10d);
-                sheet.CellValue(3, 1, "Beta");
-                sheet.CellValue(3, 2, 20d);
-                sheet.CellFormula(4, 2, "SUM(B2:B3)");
+                ExcelSheet sheet = document.AddSheet("Report");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Score");
+                sheet.Cell(2, 1).SetValue("Alpha");
+                sheet.Cell(2, 2).SetValue(10d);
+                sheet.Cell(3, 1).SetValue("Beta");
+                sheet.Cell(3, 2).SetValue(20d);
+                sheet.Cell(4, 2).SetFormula("SUM(B2:B3)");
                 document.Calculate();
                 document.Save();
                 if (openExcel) document.OpenInApplication();

@@ -16,7 +16,7 @@ public sealed class PublisherKerningProjectionTests {
             .OfType<OfficeDrawingRichText>().SelectMany(frame => frame.Paragraphs).SelectMany(paragraph => paragraph.Runs).ToArray();
         Assert.NotEmpty(painted);
         Assert.All(painted, run => Assert.Equal((double)threshold, run.AutomaticPairKerningThreshold));
-        Assert.Equal(source, document.ToPubBytes());
+        Assert.Equal(source, document.ToBytes());
     }
 
     [Theory]
@@ -36,8 +36,8 @@ public sealed class PublisherKerningProjectionTests {
         var runs = merge ? new[] { Run(source.Runs[0], text.Substring(0, 2), 8), Run(source.Runs[0], text.Substring(2), 18) }
             : new[] { Run(source.Runs[0], text, 8) };
         Replace(document, table, storyId, Paragraph(source, runs));
-        var options = new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow };
-        document = PublisherDocument.Load(document.ToPubBytes(options));
+        var options = new PublisherSaveOptions { AllowLoss = true };
+        document = PublisherDocument.Load(document.ToBytes(options));
         table = cells ? document.Pages[0].Tables.Single() : null;
         OfficeRichTextParagraph retained = cells ? table!.Cells[0].Paragraphs[0]
             : document.TextStories.Single(story => story.Id == storyId).Paragraphs[0];
@@ -52,7 +52,7 @@ public sealed class PublisherKerningProjectionTests {
         Assert.Equal(expectedText, current.Runs[0].Text);
         double?[] expected = merge ? new double?[] { 8, 18 } : new double?[] { 8 };
         Assert.Equal(expected, Painted(document, expectedText).Select(run => run.AutomaticPairKerningThreshold));
-        PublisherDocument saved = PublisherDocument.Load(document.ToPubBytes(options));
+        PublisherDocument saved = PublisherDocument.Load(document.ToBytes(options));
         Assert.Equal(expected, Painted(saved, expectedText).Select(run => run.AutomaticPairKerningThreshold));
         var recovered = cells ? saved.Pages[0].Tables.Single().Cells[0].Paragraphs[0]
             : saved.TextStories.Single(story => story.Id == storyId).Paragraphs[0];

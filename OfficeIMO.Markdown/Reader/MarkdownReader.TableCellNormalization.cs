@@ -1,13 +1,13 @@
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     private enum TableCellHtmlMode { Unrestricted, Parsed, Builder }
 
     /// <summary>Parses builder cell Markdown with the same literal handling as parsed tables.</summary>
-    internal static InlineSequence ParseTableCellInlineText(string markdown, MarkdownReaderOptions? options, MarkdownReaderState? state) {
+    internal static InlineSequence ParseTableCellInlineText(string markdown, MarkdownLoadOptions? options, MarkdownReaderState? state) {
         var cell = new TableCellSourceFragment(markdown, markdown, default);
         var normalized = NormalizeTableCellInlineMarkdownWithSourceMap(cell, state: null, unescapeCodePipes: false).Text;
-        return ParseInlines(normalized, options ?? new MarkdownReaderOptions(), state, tableCellHtmlMode: TableCellHtmlMode.Builder);
+        return ParseInlines(normalized, options ?? new MarkdownLoadOptions(), state, tableCellHtmlMode: TableCellHtmlMode.Builder);
     }
 
     /// <summary>Normalizes cell break markers while preserving code spans and complete HTML tokens.</summary>

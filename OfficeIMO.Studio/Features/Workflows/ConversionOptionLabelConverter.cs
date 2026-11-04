@@ -1,3 +1,5 @@
+using OfficeIMO.Pdf.Word;
+using OfficeIMO.Pdf.PowerPoint;
 using System.Globalization;
 using Avalonia.Data.Converters;
 using OfficeIMO.Excel.Pdf;
@@ -16,10 +18,10 @@ public sealed class ConversionOptionLabelConverter : IValueConverter {
             IWorkConversionMode.Auto => "Editable content with preview fallback",
             IWorkConversionMode.EditableOnly => "Editable content only",
             IWorkConversionMode.VisualOnly => "Embedded visual preview",
-            PdfWordImportMode.EditableContent or PdfPowerPointImportMode.EditableContent => "Editable content",
-            PdfWordImportMode.VisualPages or PdfPowerPointImportMode.VisualPages => "Visual pages",
-            PdfPowerPointImportMode.HybridVisualAndEditableTables => "Visual pages with editable tables",
-            PdfPowerPointImportMode.EditableTables => "Editable tables only",
+            WordPdfImportMode.EditableContent or PowerPointPdfImportMode.EditableContent => "Editable content",
+            WordPdfImportMode.VisualPages or PowerPointPdfImportMode.VisualPages => "Visual pages",
+            PowerPointPdfImportMode.HybridVisualAndEditableTables => "Visual pages with editable tables",
+            PowerPointPdfImportMode.EditableTables => "Editable tables only",
             ExcelPdfWorksheetLayoutMode.WorksheetCanvas => "Worksheet canvas",
             ExcelPdfWorksheetLayoutMode.FlowTable => "Flowing tables",
             PdfHtmlProfile.PositionedReview => "Positioned pages",

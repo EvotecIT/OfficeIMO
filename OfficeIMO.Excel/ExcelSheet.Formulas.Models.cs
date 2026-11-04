@@ -39,6 +39,12 @@ namespace OfficeIMO.Excel {
                 sourceCellKind: IsError ? ExcelCellDataKind.Error : IsBoolean ? ExcelCellDataKind.Boolean : SourceCellKind == ExcelCellDataKind.Text ? ExcelCellDataKind.Text
                     : Number.HasValue ? ExcelCellDataKind.Number
                     : Text != null ? ExcelCellDataKind.Text : ExcelCellDataKind.Blank, isBoolean: IsBoolean, isUnevaluatedFormulaCache: IsUnevaluatedFormulaCache);
+
+            // Value-returning functions keep their typed payload but do not
+            // inherit the source cell's reference-specific aggregate coercion.
+            internal FormulaArgumentValue AsScalarValue() => new FormulaArgumentValue(
+                Number, Text, IsUnresolvedFormula, IsError,
+                isBoolean: IsBoolean, isUnevaluatedFormulaCache: IsUnevaluatedFormulaCache);
             internal bool IsUnevaluatedFormulaCache { get; }
 
             internal FormulaArgumentValue WithUnevaluatedFormulaCache() =>

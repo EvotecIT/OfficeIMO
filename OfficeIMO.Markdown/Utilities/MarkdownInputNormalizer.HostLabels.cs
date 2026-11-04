@@ -4,7 +4,7 @@ using System.Text;
 
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownInputNormalizer {
+internal static partial class MarkdownInputNormalizer {
     private static string NormalizeHostLabelBulletArtifacts(string text) {
         if (string.IsNullOrEmpty(text)) {
             return text ?? string.Empty;

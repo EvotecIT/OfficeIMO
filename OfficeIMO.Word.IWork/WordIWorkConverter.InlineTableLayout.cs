@@ -84,9 +84,8 @@ public static partial class WordIWorkConverter {
             cancellationToken.ThrowIfCancellationRequested();
             widths.Add(ToSignedTwips(source.GetColumnWidth(column)!.Value));
         }
-        target.WidthType = WordTableWidthUnit.Dxa;
-        target.Width = widths.Sum();
+        target.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus((long)widths.Sum() * 635));
         target.LayoutMode = WordTableLayoutMode.Fixed;
-        target.GridColumnWidth = widths;
+        target.GridColumnWidth = widths.Select(width => global::OfficeIMO.OfficeLength.Emus((long)width * 635)).ToList();
     }
 }

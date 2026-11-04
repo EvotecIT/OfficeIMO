@@ -60,7 +60,7 @@ namespace OfficeIMO.Excel {
         /// <param name="includeHeaders">Whether to write column headers.</param>
         /// <param name="mode">Optional execution mode override.</param>
         /// <param name="ct">Cancellation token.</param>
-        public void InsertDataTable(DataTable table, int startRow = 1, int startColumn = 1, bool includeHeaders = true,
+        internal void InsertDataTable(DataTable table, int startRow = 1, int startColumn = 1, bool includeHeaders = true,
             ExcelExecutionMode? mode = null, CancellationToken ct = default) {
             InsertDataTableCore(table, startRow, startColumn, includeHeaders, mode, ct, copyDirectSaveTable: true);
         }
@@ -235,8 +235,8 @@ namespace OfficeIMO.Excel {
                 return string.Empty;
             }
 
-            return A1.CellReference(startRow, startColumn) + ":" +
-                A1.CellReference(startRow + rowsCount - 1, startColumn + table.Columns.Count - 1);
+            return ExcelA1.CellReference(startRow, startColumn) + ":" +
+                ExcelA1.CellReference(startRow + rowsCount - 1, startColumn + table.Columns.Count - 1);
         }
 
         private bool TryInsertDataTableAsDeferredDirectSave(

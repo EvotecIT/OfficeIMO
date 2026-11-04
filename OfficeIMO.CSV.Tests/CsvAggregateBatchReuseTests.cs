@@ -36,8 +36,8 @@ public sealed class CsvAggregateBatchReuseTests {
         var completionOrder = new ConcurrentQueue<int>();
         var created = new ConcurrentBag<BatchState>();
         var merged = new List<BatchState>();
-        BatchState result = await CsvDocument.AggregateRowsAsParallelAsync(
-            input, () => { var state = new BatchState(); created.Add(state); return state; },
+        BatchState result = await CsvDocument.AggregateRowsAsParallelAsync(input,
+            () => { var state = new BatchState(); created.Add(state); return state; },
             header => {
                 Assert.Equal(4, header.Count);
                 return (ref BatchState state, CsvRecord row) => {
@@ -61,17 +61,20 @@ public sealed class CsvAggregateBatchReuseTests {
                     if (id % batchSize == 0) completionOrder.Enqueue(id / batchSize);
                     if (id == 6) secondBatchFinished.Set();
                 };
-            }, (left, right) => {
+            },
+            (left, right) => {
                 Assert.NotSame(left, right);
                 int firstId = merged.Count * batchSize + 1;
                 Assert.Equal(Enumerable.Range(firstId, Math.Min(batchSize, rows - firstId + 1)), right.Rows.Select(row => row.Id));
                 merged.Add(right);
                 left.Rows.AddRange(right.Rows);
                 return left;
-            }, loadOptions: new CsvLoadOptions {
+            },
+            options: new CsvReaderOptions {
                 TrimWhitespace = true, NullValue = "NULL",
                 ColumnCountMismatchPolicy = CsvColumnCountMismatchPolicy.PadMissingFieldsAndIgnoreExtraFields,
-            }, parallelOptions: new ParallelRowMappingOptions { MaxDegreeOfParallelism = 2, BatchSize = batchSize })
+            },
+            parallelOptions: new ParallelRowMappingOptions { MaxDegreeOfParallelism = 2, BatchSize = batchSize })
             .WaitAsync(TimeSpan.FromSeconds(20));
 
         Assert.Equal(new[] { 2, 1 }, completionOrder.Take(2));

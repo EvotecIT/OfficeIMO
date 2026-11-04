@@ -28,11 +28,11 @@ public sealed class PublisherTableBorderImagePreservationTests {
         store.CopyTo(withImage, 8);
         Buffer.BlockCopy(art, 8, withImage, 8 + store.Length, art.Length - 8);
         byte[] input = OfficeCompoundFileWriter.Rewrite(compound, new Dictionary<string, byte[]> { ["Escher/EscherStm"] = withImage });
-        var options = new PublisherReadOptions { MaximumImageBytes = image.Length };
+        var options = new PublisherLoadOptions { MaxImageBytes = image.Length };
         PublisherDocument document = PublisherDocument.Load(input, options);
         Assert.Equal(image, Assert.Single(document.Images).GetBytes());
         PublisherTableBorderTopologyTests.Apply(document, "TableBorderTopology");
-        byte[] saved = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        byte[] saved = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         PublisherDocument reopened = PublisherDocument.Load(saved, options);
         Assert.Equal(image, Assert.Single(reopened.Images).GetBytes());
         Assert.Equal(PublisherTableBorderTopologyTests.Coverage(document.Pages[0].Tables[0]), PublisherTableBorderTopologyTests.Coverage(reopened.Pages[0].Tables[0]));

@@ -5,7 +5,12 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Reading options controlling conversion behavior and execution policy.
     /// </summary>
-    public sealed class ExcelReadOptions {
+    public sealed class ExcelReaderOptions {
+        /// <summary>Password used when opening an encrypted workbook.</summary>
+        public string? Password { get; set; }
+        /// <summary>HTTP admission and transport settings for URI reader sources.</summary>
+        public ExcelLoadOptions? Transport { get; set; }
+
         private int _maxSharedStringItems = 1_000_000;
         private int _maxSharedStringItemCharacters = 32_767;
         private long _maxSharedStringCharacters = 64L * 1024L * 1024L;
@@ -18,7 +23,7 @@ namespace OfficeIMO.Excel {
         private long _maxXmlDataReaderBufferedCharacters = 32L * 1024L * 1024L;
 
         /// <summary>
-        /// Gets or sets the worksheet exposed by <see cref="ExcelDocument.OpenDataReader(string, ExcelReadOptions?)"/>.
+        /// Gets or sets the worksheet exposed by <see cref="ExcelDocument.OpenReader(string, ExcelReaderOptions?)"/>.
         /// When omitted, worksheets are exposed in workbook order through
         /// <see cref="System.Data.Common.DbDataReader.NextResult"/>.
         /// </summary>
@@ -69,7 +74,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>Maximum workbook bytes buffered by the Excel reader APIs. Default: 512 MiB.</summary>
-        /// <remarks>HTTP reader APIs apply the smaller of this value and ExcelHttpLoadOptions.MaxBytes while downloading.
+        /// <remarks>HTTP reader APIs apply the smaller of this value and ExcelLoadOptions.MaxBytes while downloading.
         /// Configured byte admission failures report the binding native limit through OfficeInspectionResourceLimitException.</remarks>
         public long MaxInputBytes {
             get => _maxInputBytes;
@@ -306,7 +311,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Initializes reading defaults and per-operation thresholds.
         /// </summary>
-        public ExcelReadOptions() {
+        public ExcelReaderOptions() {
             Execution.OperationThresholds["ReadRange"] = 100_000;
             Execution.OperationThresholds["ReadRangeAsDataTable"] = 100_000;
             Execution.OperationThresholds["ReadObjects"] = 10_000;
@@ -319,8 +324,9 @@ namespace OfficeIMO.Excel {
         /// Creates an independent options snapshot, including culture and execution thresholds.
         /// Converter and diagnostic delegates retain their caller-owned behavior.
         /// </summary>
-        public ExcelReadOptions Clone() {
-            var clone = (ExcelReadOptions)MemberwiseClone();
+        public ExcelReaderOptions Clone() {
+            var clone = (ExcelReaderOptions)MemberwiseClone();
+            clone.Transport = Transport?.Snapshot();
             clone.Execution = Execution.Clone();
             // The immutable singleton can be shared and retains invariant parsing eligibility.
             clone.Culture = ReferenceEquals(Culture, CultureInfo.InvariantCulture)
@@ -329,14 +335,14 @@ namespace OfficeIMO.Excel {
             return clone;
         }
 
-        internal ExcelReadOptions WithCancellationToken(CancellationToken cancellationToken) {
-            var clone = (ExcelReadOptions)MemberwiseClone();
+        internal ExcelReaderOptions WithCancellationToken(CancellationToken cancellationToken) {
+            var clone = (ExcelReaderOptions)MemberwiseClone();
             clone.CancellationToken = cancellationToken;
             return clone;
         }
 
-        internal ExcelReadOptions ForSheet(string sheetName, string? a1Range, CancellationToken cancellationToken) {
-            var clone = (ExcelReadOptions)MemberwiseClone();
+        internal ExcelReaderOptions ForSheet(string sheetName, string? a1Range, CancellationToken cancellationToken) {
+            var clone = (ExcelReaderOptions)MemberwiseClone();
             clone.SheetName = sheetName;
             clone.SheetIndex = null;
             clone.A1Range = a1Range;
@@ -344,12 +350,12 @@ namespace OfficeIMO.Excel {
             return clone;
         }
 
-        internal ExcelReadOptions ForSheet(
+        internal ExcelReaderOptions ForSheet(
             string sheetName,
             string? a1Range,
             bool hasHeaderRow,
             CancellationToken cancellationToken) {
-            ExcelReadOptions clone = ForSheet(sheetName, a1Range, cancellationToken);
+            ExcelReaderOptions clone = ForSheet(sheetName, a1Range, cancellationToken);
             clone.HasHeaderRow = hasHeaderRow;
             return clone;
         }

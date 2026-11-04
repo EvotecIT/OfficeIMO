@@ -174,7 +174,7 @@ public sealed class CodeBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISy
     private bool ShouldRenderGenericAttributesOnCode() =>
         !Attributes.IsEmpty && (FenceInfo.HasExplicitAttributes || ShouldRenderStandaloneGenericAttributes());
 
-    private string RenderCodeAttributes(HtmlOptions? options) {
+    private string RenderCodeAttributes(MarkdownHtmlExportOptions? options) {
         if (Attributes.IsEmpty && string.IsNullOrEmpty(Language)) {
             return string.Empty;
         }

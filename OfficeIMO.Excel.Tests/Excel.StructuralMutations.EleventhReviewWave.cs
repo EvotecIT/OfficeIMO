@@ -13,8 +13,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ConnectionParameters_FollowTheirQualifiedWorksheetAcrossOwners() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
-            ExcelSheet config = document.AddWorksheet("Config");
+            ExcelSheet data = document.AddSheet("Data");
+            ExcelSheet config = document.AddSheet("Config");
             Parameter parameter = AttachCellBackedConnection(document, data, "Config!A2");
 
             data.InsertRows(2);
@@ -22,16 +22,16 @@ namespace OfficeIMO.Tests {
 
             config.InsertRows(2);
             Assert.Equal("Config!A3", parameter.Cell!.Value);
-            config.InsertColumns(1);
+            config.InsertColumnsTransactional(1);
             Assert.Equal("Config!B3", parameter.Cell!.Value);
-            config.MoveRange("B3", "C4");
+            config.Range("B3").MoveTo("C4");
             Assert.Equal("Config!C4", parameter.Cell!.Value);
         }
 
         [Fact]
         public void Test_RangeMutations_RejectPartialPivotCacheSources() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             PivotTableCacheDefinitionPart cachePart =
                 document.WorkbookPartRoot.AddNewPart<PivotTableCacheDefinitionPart>();
             cachePart.PivotCacheDefinition = new PivotCacheDefinition(
@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
                 });
 
             InvalidOperationException move = Assert.Throws<InvalidOperationException>(() =>
-                sheet.MoveRange("A1:A4", "C1"));
+                sheet.Range("A1:A4").MoveTo("C1"));
             Assert.Contains("pivot cache source", move.Message, StringComparison.OrdinalIgnoreCase);
             InvalidOperationException shift = Assert.Throws<InvalidOperationException>(() =>
                 sheet.InsertCells("A2:A3", ExcelCellShiftDirection.Right));
@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_CellShifts_RejectWorkbookVmlControls() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             DialogsheetPart dialogPart = document.WorkbookPartRoot.AddNewPart<DialogsheetPart>();
             dialogPart.DialogSheet = new DialogSheet();
             VmlDrawingPart vmlPart = dialogPart.AddNewPart<VmlDrawingPart>();
@@ -74,12 +74,12 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_TableResize_RemapSortRangesAndRequestsFullCalculation() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "A");
-            sheet.CellValue(1, 2, "B");
-            sheet.CellValue(2, 1, 1);
-            sheet.CellValue(2, 2, 2);
-            sheet.CellFormula(1, 4, "SUM(Sales[A])");
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("A");
+            sheet.Cell(1, 2).SetValue("B");
+            sheet.Cell(2, 1).SetValue(1);
+            sheet.Cell(2, 2).SetValue(2);
+            sheet.Cell(1, 4).SetFormula("SUM(Sales[A])");
             sheet.AddTable("A1:B2", true, "Sales", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
             Table table = Assert.Single(sheet.WorksheetPart.TableDefinitionParts).Table!;
             var sortState = new SortState(
@@ -103,11 +103,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_RangeMove_ReplacesDestinationHyperlinksAndRelationships() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.SetHyperlink(1, 1, "https://source.example/", display: "Source", style: false);
             sheet.SetHyperlink(1, 2, "https://destination.example/", display: "Destination", style: false);
 
-            sheet.MoveRange("A1", "B1");
+            sheet.Range("A1").MoveTo("B1");
 
             Hyperlink hyperlink = Assert.Single(sheet.WorksheetPart.Worksheet!
                 .GetFirstChild<Hyperlinks>()!.Elements<Hyperlink>());
@@ -122,9 +122,13 @@ namespace OfficeIMO.Tests {
             try {
                 byte[] imageBytes = File.ReadAllBytes(Path.Combine(_directoryWithImages, "EvotecLogo.png"));
                 using (var document = ExcelDocument.Create(path)) {
-                    ExcelSheet sheet = document.AddWorksheet("Data");
-                    sheet.CellValue(1, 1, "Move");
-                    sheet.AddImage(1, 1, imageBytes, "image/png", widthPixels: 16, heightPixels: 16);
+                    ExcelSheet sheet = document.AddSheet("Data");
+                    sheet.Cell(1, 1).SetValue("Move");
+                    sheet.AddImage(1, 1, imageBytes, new OfficeIMO.Excel.ExcelImageOptions {
+                        ContentType = "image/png",
+                        Width = OfficeIMO.OfficeLength.Pixels(16),
+                        Height = OfficeIMO.OfficeLength.Pixels(16)
+                    });
                     document.Save();
                 }
                 using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {
@@ -143,7 +147,7 @@ namespace OfficeIMO.Tests {
                 using (var document = ExcelDocument.Load(path)) {
                     ExcelSheet sheet = document["Data"];
                     Assert.True(Assert.Single(sheet.Images).HasAbsoluteAnchor);
-                    sheet.MoveRange("A1", "B1");
+                    sheet.Range("A1").MoveTo("B1");
                     Assert.True(Assert.Single(sheet.Images).HasAbsoluteAnchor);
                 }
             } finally {

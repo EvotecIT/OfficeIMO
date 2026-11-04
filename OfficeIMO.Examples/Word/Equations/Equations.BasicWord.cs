@@ -29,7 +29,7 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("[*] Creating document with integral equation");
             string filePath = System.IO.Path.Combine(folderPath, "EquationIntegral.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                const string omml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:int><m:intPr/><m:e><m:r><m:t>x</m:t></m:r></m:e></m:int></m:oMath></m:oMathPara>";
+                const string omml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:nary><m:naryPr><m:chr m:val=\"\u222B\"/></m:naryPr><m:sub><m:r><m:t>0</m:t></m:r></m:sub><m:sup><m:r><m:t>1</m:t></m:r></m:sup><m:e><m:r><m:t>x dx</m:t></m:r></m:e></m:nary></m:oMath></m:oMathPara>";
                 document.AddEquation(omml);
                 document.Save();
                 if (openWord) document.OpenInApplication();

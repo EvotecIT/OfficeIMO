@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Access;
 ///   <summary>Adds a table to a newly created native database model.</summary>
 ///   <code>$table = $database | Add-OfficeAccessTable -Name Contacts -PassThru</code>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeAccessTable")]
+[Cmdlet(VerbsCommon.Add, "OfficeAccessTable", DefaultParameterSetName = "Document")]
 [OutputType(typeof(AccessTable))]
 public sealed class AddOfficeAccessTableCommand : PSCmdlet {
     /// <summary>Live database document.</summary>

@@ -18,13 +18,13 @@ public sealed class PublisherTableBorderExtentWritingTests {
         if (existingUtilities) {
             // Exercise a bounds-only save of a previously valid wide edge,
             // independently of the first-utility allocation branch.
-            document = PublisherDocument.Load(document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+            document = PublisherDocument.Load(document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
             table = document.Pages[0].Tables[0];
         }
         document.SetTableBounds(table.Id, table.X, table.Y, vertical ? 15 : table.Width, vertical ? table.Height : 12);
         Assert.Contains(document.Pages[0].Tables[0].BorderSegments, edge => edge.Side.Width == 24);
-        OfficeConversionException error = Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
-        Assert.Contains(error.Report.FidelityDiagnostics, item => item.Code == "PUB_NATIVE_EDIT_UNSUPPORTED" && item.LossKind == OfficeConversionLossKind.Failure);
+        OfficeConversionException error = Assert.Throws<OfficeConversionException>(() => document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
+        Assert.Contains(error.Report.Diagnostics, item => item.Code == "PUB_NATIVE_EDIT_UNSUPPORTED" && item.LossKind == OfficeConversionLossKind.Failure);
     }
 
     [Theory]

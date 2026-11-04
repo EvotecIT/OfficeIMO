@@ -11,40 +11,40 @@ namespace OfficeIMO.Examples.Excel {
             string filePath = System.IO.Path.Combine(folderPath, "Cell Values.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
 
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(1, 2, "Value");
-                sheet.CellValue(2, 1, "Pi");
-                sheet.CellValue(2, 2, Math.PI);
-                sheet.CellValue(3, 1, "Today");
-                sheet.CellValue(3, 2, DateTime.Today);
-                sheet.FormatCell(3, 2, "yyyy-mm-dd");
-                sheet.CellValue(4, 1, "IsCool");
-                sheet.CellValue(4, 2, true);
-                sheet.CellValue(5, 1, "Offset");
-                sheet.CellValue(5, 2, DateTimeOffset.Now);
-                sheet.FormatCell(5, 2, "yyyy-mm-dd hh:mm");
-                sheet.CellValue(6, 1, "Duration");
-                sheet.CellValue(6, 2, TimeSpan.FromHours(1.5));
-                sheet.FormatCell(6, 2, "hh:mm:ss");
-                sheet.CellValue(7, 1, "Unsigned");
-                sheet.CellValue(7, 2, (uint)123);
-                sheet.FormatCell(7, 2, "000000");
-                sheet.CellValue(8, 1, "Nullable");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("Pi");
+                sheet.Cell(2, 2).SetValue(Math.PI);
+                sheet.Cell(3, 1).SetValue("Today");
+                sheet.Cell(3, 2).SetValue(DateTime.Today);
+                sheet.Cell(3, 2).SetNumberFormat("yyyy-mm-dd");
+                sheet.Cell(4, 1).SetValue("IsCool");
+                sheet.Cell(4, 2).SetValue(true);
+                sheet.Cell(5, 1).SetValue("Offset");
+                sheet.Cell(5, 2).SetValue(DateTimeOffset.Now);
+                sheet.Cell(5, 2).SetNumberFormat("yyyy-mm-dd hh:mm");
+                sheet.Cell(6, 1).SetValue("Duration");
+                sheet.Cell(6, 2).SetValue(TimeSpan.FromHours(1.5));
+                sheet.Cell(6, 2).SetNumberFormat("hh:mm:ss");
+                sheet.Cell(7, 1).SetValue("Unsigned");
+                sheet.Cell(7, 2).SetValue((uint)123);
+                sheet.Cell(7, 2).SetNumberFormat("000000");
+                sheet.Cell(8, 1).SetValue("Nullable");
                 int? optional = 42;
-                sheet.CellValue(8, 2, optional);
-                sheet.FormatCell(8, 2, "0");
-                sheet.CellFormula(9, 2, "SUM(B2)");
-                sheet.CellValue(10, 1, "Combined");
-                sheet.Cell(10, 2, 1.23, "B2+1", "0.00");
+                sheet.Cell(8, 2).SetValue(optional);
+                sheet.Cell(8, 2).SetNumberFormat("0");
+                sheet.Cell(9, 2).SetFormula("SUM(B2)");
+                sheet.Cell(10, 1).SetValue("Combined");
+                sheet.Cell(10, 2).SetValue(1.23).SetFormula("B2+1").SetNumberFormat("0.00");
 #if NET6_0_OR_GREATER
-                sheet.CellValue(11, 1, "DateOnly");
-                sheet.CellValue(11, 2, DateOnly.FromDateTime(DateTime.Today));
-                sheet.FormatCell(11, 2, "yyyy-mm-dd");
-                sheet.CellValue(12, 1, "TimeOnly");
-                sheet.CellValue(12, 2, new TimeOnly(1, 2, 3));
-                sheet.FormatCell(12, 2, "hh:mm:ss");
+                sheet.Cell(11, 1).SetValue("DateOnly");
+                sheet.Cell(11, 2).SetValue(DateOnly.FromDateTime(DateTime.Today));
+                sheet.Cell(11, 2).SetNumberFormat("yyyy-mm-dd");
+                sheet.Cell(12, 1).SetValue("TimeOnly");
+                sheet.Cell(12, 2).SetValue(new TimeOnly(1, 2, 3));
+                sheet.Cell(12, 2).SetNumberFormat("hh:mm:ss");
 #endif
 
                 document.Save();

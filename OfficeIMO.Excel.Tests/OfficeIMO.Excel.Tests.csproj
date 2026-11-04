@@ -90,4 +90,7 @@
     <RestoreAdditionalProjectFallbackFolders></RestoreAdditionalProjectFallbackFolders>
   </PropertyGroup>
 
+  <ItemGroup><ProjectReference Include="..\OfficeIMO.Pdf.Excel\OfficeIMO.Pdf.Excel.csproj" /></ItemGroup>
+  <ItemGroup><Using Include="OfficeIMO.Excel.Pdf" /></ItemGroup>
+  <ItemGroup><Using Include="OfficeIMO.Pdf.Excel" /></ItemGroup>
 </Project>

@@ -18,20 +18,20 @@ namespace OfficeIMO.Examples.Excel
             string filePath = Path.Combine(folderPath, "PS-RoundTrip.xlsx");
 
             // 1) Write: create workbook with a simple sheet
-            using (var doc = ExcelDocument.Create(filePath, "Data"))
+            using (var doc = ExcelDocument.Create(filePath, new ExcelCreateOptions { FirstSheetName = "Data" }))
             {
                 var s = doc.Sheets[0];
-                s.CellValue(1, 1, "Name");
-                s.CellValue(1, 2, "Value");
-                s.CellValue(1, 3, "Status");
+                s.Cell(1, 1).SetValue("Name");
+                s.Cell(1, 2).SetValue("Value");
+                s.Cell(1, 3).SetValue("Status");
 
-                s.CellValue(2, 1, "Alpha");
-                s.CellValue(2, 2, 10);
-                s.CellValue(2, 3, "New");
+                s.Cell(2, 1).SetValue("Alpha");
+                s.Cell(2, 2).SetValue(10);
+                s.Cell(2, 3).SetValue("New");
 
-                s.CellValue(3, 1, "Beta");
-                s.CellValue(3, 2, 20);
-                s.CellValue(3, 3, "New");
+                s.Cell(3, 1).SetValue("Beta");
+                s.Cell(3, 2).SetValue(20);
+                s.Cell(3, 3).SetValue("New");
 
                 doc.Save();
                 if (openExcel) doc.OpenInApplication();
@@ -39,9 +39,9 @@ namespace OfficeIMO.Examples.Excel
 
             // 2) Modify: read through the package-owned Excel API, then update and save
             var updates = new List<(int RowNumber, int? Value, string Status)>();
-            using (var reader = ExcelDocument.OpenDataReader(
+            using (var reader = ExcelDocument.OpenReader(
                 filePath,
-                new ExcelReadOptions { SheetName = "Data" }))
+                new ExcelReaderOptions { SheetName = "Data" }))
             {
                 int rowNumber = 2;
                 while (reader.Read())
@@ -69,18 +69,18 @@ namespace OfficeIMO.Examples.Excel
                 {
                     if (update.Value.HasValue)
                     {
-                        s.CellValue(update.RowNumber, 2, update.Value.Value);
+                        s.Cell(update.RowNumber, 2).SetValue(update.Value.Value);
                     }
-                    s.CellValue(update.RowNumber, 3, update.Status);
+                    s.Cell(update.RowNumber, 3).SetValue(update.Status);
                 }
                 doc.Save();
                 if (openExcel) doc.OpenInApplication();
             }
 
             // 3) Read again and emit JSON lines for PowerShell consumption
-            using var finalReader = ExcelDocument.OpenDataReader(
+            using var finalReader = ExcelDocument.OpenReader(
                 filePath,
-                new ExcelReadOptions { SheetName = "Data" });
+                new ExcelReaderOptions { SheetName = "Data" });
             var jsonOptions = new JsonSerializerOptions { WriteIndented = false };
             while (finalReader.Read())
             {

@@ -19,10 +19,10 @@ public partial class Word {
         // Identical geometry with compatible depths must be admitted. In
         // particular, the footer must not fail an unrelated body-paint guard.
         using WordDocument ordered = CreateRunningStoryPaintOrderControl(1U, 10U, footer: footer);
-        var orderedResult = ordered.ToPdfDocumentResult(EmptyRunningOptions());
-        Assert.DoesNotContain(orderedResult.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
+        var orderedResult = ordered.ConvertToPdfWithEvidence(EmptyRunningOptions());
+        Assert.DoesNotContain(orderedResult.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
         using var orderedPdf = PdfPigDocument.Open(orderedResult.Value.ToBytes());
-        Assert.DoesNotContain(orderedResult.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
+        Assert.DoesNotContain(orderedResult.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
         var orderedPage = orderedPdf.GetPage(2);
         var orderedFirst = AnchoredRunningLetters(orderedPage, "FIRSTBOX");
         var orderedSecond = AnchoredRunningLetters(orderedPage, "SECONDBOX");
@@ -32,10 +32,10 @@ public partial class Word {
         if (!footer) foreach (var letters in new[] { orderedFirst, orderedSecond })
             Assert.Equal((612D - 468D * .585D) / 2D + 7.2D, letters[0].StartBaseLine.X, 3);
 
-        var result = document.ToPdfDocumentResult(EmptyRunningOptions());
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
-        using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
+        var result = document.ConvertToPdfWithEvidence(EmptyRunningOptions());
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
+        using var pdf = PdfPigDocument.Open(result.Value.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
         Assert.Equal(3, pdf.NumberOfPages);
         foreach (string marker in new[] { "PREFIX", "FIRSTBOX", "SUFFIX", "NEXT", "SECONDBOX", "END", "S2" })
             AnchoredRunningLetters(pdf.GetPage(2), marker);
@@ -51,8 +51,8 @@ public partial class Word {
         using WordDocument document = CreateRunningStoryPaintOrderControl(firstDepth, secondDepth);
         string[] before = AnchoredRunningStoryXml(document);
 
-        var result = document.ToPdfDocumentResult(EmptyRunningOptions());
-        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
+        var result = document.ConvertToPdfWithEvidence(EmptyRunningOptions());
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
         var page = pdf.GetPage(2);
         string visible = string.Concat(page.Letters.Select(letter => letter.Value));
@@ -68,8 +68,8 @@ public partial class Word {
         using WordDocument document = CreateRunningStoryPaintOrderControl(10U, 1U, sameParagraph: true);
         string[] before = AnchoredRunningStoryXml(document);
 
-        var result = document.ToPdfDocumentResult(EmptyRunningOptions());
-        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
+        var result = document.ConvertToPdfWithEvidence(EmptyRunningOptions());
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
         var page = pdf.GetPage(2);
         string visible = string.Concat(page.Letters.Select(letter => letter.Value));
@@ -81,14 +81,14 @@ public partial class Word {
     [Fact]
     public void SaveAsPdf_HiddenEarlierRunningBoxDoesNotConstrainVisiblePaintOrder() {
         using WordDocument document = CreateRunningStoryPaintOrderControl(10U, 1U);
-        DW.Anchor hidden = document.Sections[1].Header!.First!.TextBoxes.First().Anchor!;
+        DW.Anchor hidden = document.Sections[1].PageSetup.FirstPageHeader.TextBoxes.First().Anchor!;
         W.Run host = hidden.Ancestors<W.Run>().Single();
         host.RunProperties ??= new W.RunProperties();
         host.RunProperties.Vanish = new W.Vanish();
         string[] before = AnchoredRunningStoryXml(document);
 
-        var result = document.ToPdfDocumentResult(EmptyRunningOptions());
-        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
+        var result = document.ConvertToPdfWithEvidence(EmptyRunningOptions());
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
         Assert.DoesNotContain("FIRSTBOX", pdf.GetPage(2).Text);
         Assert.Equal((612D - 468D * .585D) / 2D + 7.2D,
@@ -99,7 +99,7 @@ public partial class Word {
     private static WordDocument CreateRunningStoryPaintOrderControl(uint firstDepth, uint secondDepth,
         bool sameParagraph = false, bool footer = false) {
         WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
-        W.Header header = document.Sections[1].Header!.First!._header!;
+        W.Header header = document.Sections[1].PageSetup.FirstPageHeader._header!;
         W.Paragraph first = header.Elements<W.Paragraph>().Single();
         first.Descendants<W.TextBoxContent>().Single().Descendants<W.Text>().Single().Text = "FIRSTBOX";
         W.Paragraph second = CloneRunningAnchorParagraph(first, "NEXT", "SECONDBOX", "END");
@@ -111,7 +111,7 @@ public partial class Word {
             first.Descendants<DW.Anchor>().Single().Ancestors<W.Run>().Single().Append(drawing);
         } else header.Append(second);
         if (footer) {
-            WordHeaderFooter footerStory = document.Sections[1].Footer!.First!;
+            WordHeaderFooter footerStory = document.Sections[1].PageSetup.FirstPageFooter;
             W.Footer target = footerStory._footer!;
             foreach (var child in target.ChildElements.ToArray()) child.Remove();
             foreach (W.Paragraph source in header.Elements<W.Paragraph>().ToArray()) {

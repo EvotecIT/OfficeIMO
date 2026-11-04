@@ -12,12 +12,12 @@ public partial class PdfPageFootnoteTests {
     [InlineData(true, "Continuation")]
     [InlineData(false, "Notice")]
     public void DefinitionRejectsEffectiveAnchoredParagraphContentWithoutAppendingCapturedBlocks(bool inherited, string location) {
-        PdfOptions options = Options();
+        PdfCreateOptions options = Options();
         if (inherited) options.DefaultParagraphStyle = AnchoredNoteParagraphStyle();
         var document = PdfDocument.Create(options);
-        document.Content.Text("ExistingBody", style: Style());
-        Action<PdfContentBuilder> unsupported = body => body.Text("RejectedConstraint", style: inherited ? null : AnchoredNoteParagraphStyle());
-        Action<PdfContentBuilder> valid = body => body.Text("NoteBody", style: Style());
+        document.Content.AddParagraph("ExistingBody", style: Style());
+        Action<PdfContentBuilder> unsupported = body => body.AddParagraph("RejectedConstraint", style: inherited ? null : AnchoredNoteParagraphStyle());
+        Action<PdfContentBuilder> valid = body => body.AddParagraph("NoteBody", style: Style());
         var noteOptions = new PdfFootnoteOptions {
             Separator = location == "Separator" ? unsupported : null,
             ContinuationSeparator = location == "Continuation" ? unsupported : null,
@@ -33,10 +33,10 @@ public partial class PdfPageFootnoteTests {
     [Fact]
     public void ReferencingPageDefaultsCannotIntroduceAnchoredNoteParagraphContent() {
         var document = PdfDocument.Create(Options());
-        PdfFootnoteDefinition note = document.Content.DefineFootnote(body => body.Text("RejectedConstraint"));
+        PdfFootnoteDefinition note = document.Content.DefineFootnote(body => body.AddParagraph("RejectedConstraint"));
         document.Compose(pages => pages.Page(page => {
             page.DefaultParagraphStyle(AnchoredNoteParagraphStyle());
-            page.Content(body => body.Paragraph(paragraph => paragraph.Runs(new[] {
+            page.Content(body => body.AddParagraph(paragraph => paragraph.AddRuns(new[] {
                 PdfTextRun.Normal("Reference").WithFootnoteReference(note)
             }), style: Style()));
         }));
@@ -46,17 +46,17 @@ public partial class PdfPageFootnoteTests {
 
     [Fact]
     public void ExplicitNoteStylesPreserveTheirOwnConstraintsWhenDefaultsKeepWithNext() {
-        PdfOptions options = Options();
+        PdfCreateOptions options = Options();
         options.DefaultParagraphStyle = new PdfParagraphStyle { KeepWithNext = true };
         options.DefaultImageStyle = new PdfImageStyle { KeepWithNext = true };
         options.DefaultHorizontalRuleStyle = new PdfHorizontalRuleStyle { KeepWithNext = true };
         var document = PdfDocument.Create(options);
         PdfFootnoteDefinition note = document.Content.DefineFootnote(body => {
-            body.Text("SupportedNote", style: Style());
-            body.Image(PdfPngTestImages.Create16BitRgbPng(), 4, 4, style: new PdfImageStyle { SpacingBefore = 0, SpacingAfter = 0 });
-            body.HR(style: new PdfHorizontalRuleStyle { SpacingBefore = 0, SpacingAfter = 0 });
+            body.AddParagraph("SupportedNote", style: Style());
+            body.AddImage(PdfPngTestImages.Create16BitRgbPng(), global::OfficeIMO.OfficeLength.Points(4), global::OfficeIMO.OfficeLength.Points(4), style: new PdfImageStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) });
+            body.HR(style: new PdfHorizontalRuleStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) });
         });
-        document.Content.Paragraph(paragraph => paragraph.Runs(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(note) }), style: Style());
+        document.Content.AddParagraph(paragraph => paragraph.AddRuns(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(note) }), style: Style());
 
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         Assert.Equal(1, pdf.NumberOfPages);

@@ -243,4 +243,6 @@ public enum WordTableStyle {
     ListTable7ColorfulAccent5,
     /// <summary>Colorful list table style 7 accent 6.</summary>
     ListTable7ColorfulAccent6,
+    /// <summary>Native table styling from the document creation theme (Modern by default).</summary>
+    OfficeIMOModern,
 };

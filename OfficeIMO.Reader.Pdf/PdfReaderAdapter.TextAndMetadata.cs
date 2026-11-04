@@ -3,10 +3,10 @@ using OfficeIMO.Pdf;
 namespace OfficeIMO.Reader.Pdf;
 
 internal static partial class PdfReaderAdapter {
-    private static PdfReadOptions GetEffectiveReadOptions(ReaderOptions readerOptions, ReaderPdfOptions pdfOptions) {
-        PdfReadOptions source = (pdfOptions.ReadOptions ?? PdfReadOptions.Default).Clone();
+    private static PdfLoadOptions GetEffectiveReadOptions(ReaderOptions readerOptions, ReaderPdfOptions pdfOptions) {
+        PdfLoadOptions source = (pdfOptions.ReadOptions ?? PdfLoadOptions.Default).Clone();
         if (readerOptions.Projection != ReaderProjection.TextAndMetadata) return source;
-        return new PdfReadOptions {
+        return new PdfLoadOptions {
             Profile = source.Profile, PageSelection = source.PageSelection,
             LayoutOptions = source.LayoutOptions, Pipeline = source.Pipeline,
             IncludeImages = false, IncludeFormWidgets = false

@@ -11,11 +11,11 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void PowerPointSlide_ResolvesFixedThemeReferenceColors() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape source = slide.AddRectanglePoints(
-                20, 20, 80, 40);
+            PowerPointAutoShape source = slide.AddRectangle(
+                OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(40));
             Shape shape = Assert.IsType<Shape>(source.Element);
             ShapeProperties properties = shape.ShapeProperties!;
             properties.RemoveAllChildren<A.SolidFill>();
@@ -57,24 +57,24 @@ namespace OfficeIMO.Tests {
                 OfficePathCommand.LineTo(100, 0),
                 OfficePathCommand.LineTo(100, 100),
                 OfficePathCommand.Close());
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             const long MinimumCoordinate = -27273042329600L;
             const long MaximumCoordinate = 27273042316900L;
 
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 slide.AddCustomGeometry(geometry,
-                    MinimumCoordinate - 1L, 0L, 100L, 100L));
+                    OfficeIMO.OfficeLength.Emus(MinimumCoordinate - 1L), OfficeIMO.OfficeLength.Emus(0L), OfficeIMO.OfficeLength.Emus(100L), OfficeIMO.OfficeLength.Emus(100L)));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 slide.AddCustomGeometry(geometry,
-                    0L, MaximumCoordinate + 1L, 100L, 100L));
+                    OfficeIMO.OfficeLength.Emus(0L), OfficeIMO.OfficeLength.Emus(MaximumCoordinate + 1L), OfficeIMO.OfficeLength.Emus(100L), OfficeIMO.OfficeLength.Emus(100L)));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 slide.AddCustomGeometry(geometry,
-                    0L, 0L, MaximumCoordinate + 1L, 100L));
+                    OfficeIMO.OfficeLength.Emus(0L), OfficeIMO.OfficeLength.Emus(0L), OfficeIMO.OfficeLength.Emus(MaximumCoordinate + 1L), OfficeIMO.OfficeLength.Emus(100L)));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 slide.AddCustomGeometry(geometry,
-                    0L, 0L, 100L, MaximumCoordinate + 1L));
+                    OfficeIMO.OfficeLength.Emus(0L), OfficeIMO.OfficeLength.Emus(0L), OfficeIMO.OfficeLength.Emus(100L), OfficeIMO.OfficeLength.Emus(MaximumCoordinate + 1L)));
             Assert.Empty(slide.Shapes);
         }
     }

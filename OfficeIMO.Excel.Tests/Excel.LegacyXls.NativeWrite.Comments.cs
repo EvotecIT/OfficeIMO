@@ -16,8 +16,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("CommentAnchor");
-                    sheet.CellValue(3, 2, "Anchored note");
+                    ExcelSheet sheet = document.AddSheet("CommentAnchor");
+                    sheet.Cell(3, 2).SetValue("Anchored note");
                     sheet.SetLegacyComment(
                         3,
                         2,
@@ -69,15 +69,15 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create()) {
-                    ExcelSheet first = document.AddWorksheet("First");
-                    first.CellValue(1, 1, "First value");
+                    ExcelSheet first = document.AddSheet("First");
+                    first.Cell(1, 1).SetValue("First value");
                     first.SetLegacyComment(1, 1, "First comment", "Reviewer", visible: false, anchor: null);
 
-                    ExcelSheet middle = document.AddWorksheet("Middle");
-                    middle.CellValue(1, 1, "No comment");
+                    ExcelSheet middle = document.AddSheet("Middle");
+                    middle.Cell(1, 1).SetValue("No comment");
 
-                    ExcelSheet third = document.AddWorksheet("Third");
-                    third.CellValue(2, 2, "Third value");
+                    ExcelSheet third = document.AddSheet("Third");
+                    third.Cell(2, 2).SetValue("Third value");
                     third.SetLegacyComment(2, 2, "Third comment", "Reviewer", visible: true, anchor: null);
 
                     document.Save(xlsOutputPath, new ExcelSaveOptions { DisableFastPackageWriter = true });
@@ -106,8 +106,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("EdgeComment");
-                    sheet.CellValue(65536, 256, "Edge note");
+                    ExcelSheet sheet = document.AddSheet("EdgeComment");
+                    sheet.Cell(65536, 256).SetValue("Edge note");
                     sheet.SetLegacyComment(
                         65536,
                         256,
@@ -143,8 +143,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("CommentFonts");
-                    sheet.CellValue(1, 1, "Comment");
+                    ExcelSheet sheet = document.AddSheet("CommentFonts");
+                    sheet.Cell(1, 1).SetValue("Comment");
                     sheet.SetCommentRichText(
                         1,
                         1,
@@ -189,8 +189,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("CommentEscapement");
-                    sheet.CellValue(1, 1, "Comment");
+                    ExcelSheet sheet = document.AddSheet("CommentEscapement");
+                    sheet.Cell(1, 1).SetValue("Comment");
                     sheet.SetCommentRichText(
                         1,
                         1,
@@ -232,8 +232,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("CommentFontFlags");
-                    sheet.CellValue(1, 1, "Comment");
+                    ExcelSheet sheet = document.AddSheet("CommentFontFlags");
+                    sheet.Cell(1, 1).SetValue("Comment");
                     sheet.SetCommentRichText(
                         1,
                         1,
@@ -284,8 +284,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("CommentUnderline");
-                    sheet.CellValue(1, 1, "Comment");
+                    ExcelSheet sheet = document.AddSheet("CommentUnderline");
+                    sheet.Cell(1, 1).SetValue("Comment");
                     sheet.SetCommentRichText(
                         1,
                         1,
@@ -323,7 +323,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksOversizedCommentTextPayloadsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("comment text payload lengths outside BIFF8 limits", (document, sheet) => {
-                sheet.CellValue(1, 1, "Comment");
+                sheet.Cell(1, 1).SetValue("Comment");
                 sheet.SetLegacyComment(1, 1, new string('C', 9000), "Reviewer", visible: false, anchor: null);
             });
         }
@@ -331,7 +331,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksOversizedCommentAuthorPayloadsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("comment author payload lengths outside BIFF8 limits", (document, sheet) => {
-                sheet.CellValue(1, 1, "Comment");
+                sheet.Cell(1, 1).SetValue("Comment");
                 sheet.SetLegacyComment(1, 1, "Supported text", new string('A', 9000), visible: false, anchor: null);
             });
         }
@@ -354,7 +354,7 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_NativeSave_BlocksCommentCountsBeyondOneOfficeArtClusterBeforeWriting() {
             AssertNativeXlsSaveNotSupported("comment counts outside BIFF8 limits", (document, sheet) => {
                 for (int row = 1; row <= 1024; row++) {
-                    sheet.CellValue(row, 1, row);
+                    sheet.Cell(row, 1).SetValue(row);
                     sheet.SetLegacyComment(row, 1, "Comment " + row, "Reviewer", visible: false, anchor: null);
                 }
             });
@@ -363,7 +363,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksUnsupportedCommentRichTextRunMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("comment rich-text run metadata", (document, sheet) => {
-                sheet.CellValue(1, 1, "Comment");
+                sheet.Cell(1, 1).SetValue("Comment");
                 sheet.SetCommentRichText(
                     1,
                     1,

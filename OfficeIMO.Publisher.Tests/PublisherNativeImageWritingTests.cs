@@ -15,7 +15,7 @@ public sealed class PublisherNativeImageWritingTests {
         byte[] original = document.Images.Single(image => image.Id == first.ImageId).GetBytes();
         byte[] jpeg = File.ReadAllBytes(PublisherNativeTests.Fixture("NativeComparison/ImagePagesJpegReplacement/native-imagepagesjpegreplacement-replacement.jpg"));
         document.ReplacePictureImage(last.Id, jpeg);
-        byte[] output = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        byte[] output = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         PublisherDocument reopened = PublisherDocument.Load(output);
         PublisherPicture unchanged = reopened.Pages[0].Pictures.Single(), replaced = reopened.Pages[2].Pictures.Single();
         Assert.Equal((first.Id, first.ImageId, first.X, first.Y, first.Width, first.Height),
@@ -33,7 +33,7 @@ public sealed class PublisherNativeImageWritingTests {
             Assert.Equal(before.Streams[name], after.Streams[name]);
         // The newly owned filename resource must also support the next save.
         reopened.ReplacePictureImage(replaced.Id, original);
-        PublisherDocument repeated = PublisherDocument.Load(reopened.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        PublisherDocument repeated = PublisherDocument.Load(reopened.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         Assert.Equal(original, repeated.Images.Single(image => image.Id == repeated.Pages[2].Pictures.Single().ImageId).GetBytes());
         Assert.Equal(jpeg, repeated.Images.Single(image => image.Id == 4).GetBytes());
         Assert.Equal(first.ImageId, repeated.Pages[0].Pictures.Single().ImageId);
@@ -71,8 +71,8 @@ public sealed class PublisherNativeImageWritingTests {
             : PublisherPictureEditingFixture.Image(OfficeColor.Blue, 48, 24);
         if (repeat) document.ReplacePictureImage(target.Id, PublisherPictureEditingFixture.Image(OfficeColor.Red, 12, 16));
         document.ReplacePictureImage(target.Id, replacement);
-        Assert.Throws<OfficeConversionException>(() => document.ToPubBytes());
-        byte[] candidate = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        Assert.Throws<OfficeConversionException>(() => document.ToBytes());
+        byte[] candidate = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         PublisherDocument reopened = PublisherDocument.Load(candidate);
         Assert.Equal(original.Select(picture => picture.Id), Pictures(reopened).Select(picture => picture.Id));
         foreach (PublisherPicture before in original) {
@@ -101,7 +101,7 @@ public sealed class PublisherNativeImageWritingTests {
         document.ReplacePictureImage(picture.Id, replacement);
         document.SetPictureBounds(picture.Id, picture.X + 3, picture.Y + 6, picture.Width - 6, picture.Height - 12);
         document.SetTextFrameLayout(frame.Id, 2, 12.1, new OfficeTextPadding(1.21, 2.42, 3.63, 4.84), OfficeTextVerticalAlignment.Center);
-        byte[] candidate = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        byte[] candidate = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         PublisherDocument reopened = PublisherDocument.Load(candidate);
         PublisherPicture edited = Pictures(reopened).Single(item => item.Id == picture.Id);
         Assert.Equal((picture.X + 3, picture.Y + 6, picture.Width - 6, picture.Height - 12), (edited.X, edited.Y, edited.Width, edited.Height));
@@ -124,7 +124,7 @@ public sealed class PublisherNativeImageWritingTests {
             ? PublisherDrawingFixture.Mutate(new Dictionary<ushort, uint> { [0x4104] = 2 }, 1, fixture: fixture, objectId: 300)
             : PublisherInputContractTests.Mutate(invalid == "reference-count" ? "Escher/EscherStm" : "Contents", bytes => {
                 var data = new PublisherBinaryData(bytes, "source");
-                var context = new PublisherParseContext(new PublisherReadOptions(), default);
+                var context = new PublisherParseContext(new PublisherLoadOptions(), default);
                 if (invalid == "reference-count") {
                     var reader = new PublisherEscherReader(data, null, context);
                     PublisherEscherRecord group = reader.Records(0, bytes.Length).Single(record => record.Kind == 0xF000);
@@ -142,13 +142,13 @@ public sealed class PublisherNativeImageWritingTests {
                 }
             }, fixture);
         PublisherDocument document = PublisherDocument.Load(input);
-        Assert.Equal(input, document.ToPubBytes());
+        Assert.Equal(input, document.ToBytes());
         PublisherPicture picture = document.Pages[0].Pictures.Single(item => item.Id == 298);
         Assert.True(picture.CanEdit, picture.EditLimitation);
         document.ReplacePictureImage(picture.Id, PublisherPictureEditingFixture.Image(OfficeColor.Blue));
         PublisherNativePreparation preparation = document.PrepareNativeBytes(64 * 1024 * 1024);
         Assert.False(preparation.IsPrepared);
-        Assert.Contains(preparation.FidelityDiagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Failure
+        Assert.Contains(preparation.Diagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Failure
             && diagnostic.Message.Contains(invalid is "filename-reference" or "allocation-counter" ? "metadata" : "image-store"));
     }
 

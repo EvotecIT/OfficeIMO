@@ -9,9 +9,9 @@ schema: 2.0.0
 Updates the primary title, language or creator through the package model.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
-Set-OfficeEpubMetadata -Publication <EpubPublication> [-Title <string>] [-Language <string>] [-Author <string>] [-PassThru] [<CommonParameters>]
+Set-OfficeEpubMetadata [-Title <string>] [-Language <string>] [-Author <string>] [-PassThru] [-Document <EpubPublication>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -32,7 +32,7 @@ New primary author.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -43,12 +43,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Document
+Gets or sets an explicit live document; omission uses the enclosing content block.
+
+```yaml
+Type: EpubPublication
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
 ### -Language
 New BCP 47 language.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -64,7 +80,7 @@ Return the created or changed object.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -75,28 +91,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Publication
-Live editable publication.
-
-```yaml
-Type: EpubPublication
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: True (ByValue)
-Accept wildcard characters: False
-```
-
 ### -Title
 New primary title.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

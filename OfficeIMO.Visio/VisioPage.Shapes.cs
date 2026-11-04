@@ -266,9 +266,10 @@ namespace OfficeIMO.Visio {
         /// <param name="text">Optional text placed on the shape.</param>
         /// <param name="unit">Measurement unit for the provided values.</param>
         /// <returns>The created rectangle shape.</returns>
-        public VisioShape AddRectangle(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+        /// <param name="id">Explicit identifier, or null to generate the next available identifier.</param>
+        internal VisioShape AddRectangleInches(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches, string? id = null) {
             ApplyUnits(ref x, ref y, ref width, ref height, unit);
-            var s = new VisioShape(NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Rectangle" };
+            var s = new VisioShape(id ?? NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Rectangle" };
             Shapes.Add(s);
             return s;
         }
@@ -282,8 +283,8 @@ namespace OfficeIMO.Visio {
         /// <param name="height">Height of the rectangle.</param>
         /// <param name="text">Optional text.</param>
         /// <returns>The created rectangle shape.</returns>
-        public VisioShape AddRectangle(double x, double y, double width, double height, string? text = null) =>
-            AddRectangle(x, y, width, height, text, DefaultUnit);
+        internal VisioShape AddRectangleInches(double x, double y, double width, double height, string? text = null) =>
+            AddRectangleInches(x, y, width, height, text, DefaultUnit);
 
         /// <summary>
         /// Adds an editable text box without a visible border or fill.
@@ -295,7 +296,7 @@ namespace OfficeIMO.Visio {
         /// <param name="text">Text to place in the box.</param>
         /// <param name="unit">Measurement unit.</param>
         /// <returns>The created text box shape.</returns>
-        public VisioShape AddTextBox(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+        internal VisioShape AddTextBoxInches(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
             VisioShape shape = AddTextBoxCore(NextId(), x, y, width, height, text, unit);
             Shapes.Add(shape);
             return shape;
@@ -312,7 +313,7 @@ namespace OfficeIMO.Visio {
         /// <param name="text">Text to place in the box.</param>
         /// <param name="unit">Measurement unit.</param>
         /// <returns>The created text box shape.</returns>
-        public VisioShape AddTextBox(string id, double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+        internal VisioShape AddTextBoxInches(string id, double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
             if (string.IsNullOrWhiteSpace(id)) {
                 throw new ArgumentException("Shape id cannot be null or whitespace.", nameof(id));
             }
@@ -325,16 +326,16 @@ namespace OfficeIMO.Visio {
         /// <summary>
         /// Adds an editable text box with a caller-provided shape id and without a visible border or fill using the page <see cref="DefaultUnit"/>.
         /// </summary>
-        public VisioShape AddTextBox(string id, double x, double y, double width, double height, string? text = null) =>
-            AddTextBox(id, x, y, width, height, text, DefaultUnit);
+        internal VisioShape AddTextBoxInches(string id, double x, double y, double width, double height, string? text = null) =>
+            AddTextBoxInches(id, x, y, width, height, text, DefaultUnit);
 
         private static VisioShape CreateTextBoxShape(string id, double x, double y, double width, double height, string? text) {
             VisioShape shape = new VisioShape(id, x, y, width, height, text ?? string.Empty);
             shape.NameU = "Text Box";
             shape.LinePattern = 0;
             shape.FillPattern = 0;
-            shape.LineColor = OfficeIMO.Drawing.OfficeColor.Transparent;
-            shape.FillColor = OfficeIMO.Drawing.OfficeColor.Transparent;
+            shape.LineColor = OfficeIMO.OfficeColor.Transparent;
+            shape.FillColor = OfficeIMO.OfficeColor.Transparent;
             shape.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.DiagramAdornmentKind, "STR", prompt: "OfficeIMO semantic kind");
             shape.SetUserCell(VisioSemanticUserCells.DiagramAdornmentRole, VisioSemanticUserCells.UserAdornmentRole, "STR", prompt: "OfficeIMO diagram adornment role");
             return shape;
@@ -359,8 +360,8 @@ namespace OfficeIMO.Visio {
         /// <summary>
         /// Adds an editable text box without a visible border or fill using the page <see cref="DefaultUnit"/>.
         /// </summary>
-        public VisioShape AddTextBox(double x, double y, double width, double height, string? text = null) =>
-            AddTextBox(x, y, width, height, text, DefaultUnit);
+        internal VisioShape AddTextBoxInches(double x, double y, double width, double height, string? text = null) =>
+            AddTextBoxInches(x, y, width, height, text, DefaultUnit);
 
         /// <summary>
         /// Adds a flowchart process shape.
@@ -372,8 +373,9 @@ namespace OfficeIMO.Visio {
         /// <param name="text">Optional text.</param>
         /// <param name="unit">Measurement unit.</param>
         /// <returns>The created process shape.</returns>
-        public VisioShape AddProcess(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
-            var s = AddRectangle(x, y, width, height, text, unit);
+        /// <param name="id">Explicit identifier, or null to generate the next available identifier.</param>
+        internal VisioShape AddProcessInches(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches, string? id = null) {
+            var s = AddRectangleInches(x, y, width, height, text, unit, id);
             s.NameU = "Process";
             return s;
         }
@@ -381,8 +383,8 @@ namespace OfficeIMO.Visio {
         /// <summary>
         /// Adds a flowchart process shape using the page <see cref="DefaultUnit"/>.
         /// </summary>
-        public VisioShape AddProcess(double x, double y, double width, double height, string? text = null) =>
-            AddProcess(x, y, width, height, text, DefaultUnit);
+        internal VisioShape AddProcessInches(double x, double y, double width, double height, string? text = null) =>
+            AddProcessInches(x, y, width, height, text, DefaultUnit);
 
         /// <summary>
         /// Adds a square shape.
@@ -393,8 +395,9 @@ namespace OfficeIMO.Visio {
         /// <param name="text">Optional text.</param>
         /// <param name="unit">Measurement unit.</param>
         /// <returns>The created square shape.</returns>
-        public VisioShape AddSquare(double x, double y, double size, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
-            var s = AddRectangle(x, y, size, size, text, unit);
+        /// <param name="id">Explicit identifier, or null to generate the next available identifier.</param>
+        internal VisioShape AddSquareInches(double x, double y, double size, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches, string? id = null) {
+            var s = AddRectangleInches(x, y, size, size, text, unit, id);
             s.NameU = "Square";
             return s;
         }
@@ -407,8 +410,8 @@ namespace OfficeIMO.Visio {
         /// <param name="size">Width and height of the square.</param>
         /// <param name="text">Optional text.</param>
         /// <returns>The created square shape.</returns>
-        public VisioShape AddSquare(double x, double y, double size, string? text = null) =>
-            AddSquare(x, y, size, text, DefaultUnit);
+        internal VisioShape AddSquareInches(double x, double y, double size, string? text = null) =>
+            AddSquareInches(x, y, size, text, DefaultUnit);
 
         /// <summary>
         /// Adds a circle shape.
@@ -419,11 +422,12 @@ namespace OfficeIMO.Visio {
         /// <param name="text">Optional text.</param>
         /// <param name="unit">Measurement unit.</param>
         /// <returns>The created circle shape.</returns>
-        public VisioShape AddCircle(double x, double y, double diameter, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+        /// <param name="id">Explicit identifier, or null to generate the next available identifier.</param>
+        internal VisioShape AddCircleInches(double x, double y, double diameter, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches, string? id = null) {
             // Avoid double-converting when passing the same variable for width/height
             double w = diameter, h = diameter;
             ApplyUnits(ref x, ref y, ref w, ref h, unit);
-            var s = new VisioShape(NextId(), x, y, w, h, text ?? string.Empty) { NameU = "Circle" };
+            var s = new VisioShape(id ?? NextId(), x, y, w, h, text ?? string.Empty) { NameU = "Circle" };
             Shapes.Add(s);
             return s;
         }
@@ -436,8 +440,8 @@ namespace OfficeIMO.Visio {
         /// <param name="diameter">Diameter of the circle.</param>
         /// <param name="text">Optional text.</param>
         /// <returns>The created circle shape.</returns>
-        public VisioShape AddCircle(double x, double y, double diameter, string? text = null) =>
-            AddCircle(x, y, diameter, text, DefaultUnit);
+        internal VisioShape AddCircleInches(double x, double y, double diameter, string? text = null) =>
+            AddCircleInches(x, y, diameter, text, DefaultUnit);
 
         /// <summary>
         /// Adds an ellipse shape.
@@ -449,9 +453,10 @@ namespace OfficeIMO.Visio {
         /// <param name="text">Optional text.</param>
         /// <param name="unit">Measurement unit.</param>
         /// <returns>The created ellipse shape.</returns>
-        public VisioShape AddEllipse(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+        /// <param name="id">Explicit identifier, or null to generate the next available identifier.</param>
+        internal VisioShape AddEllipseInches(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches, string? id = null) {
             ApplyUnits(ref x, ref y, ref width, ref height, unit);
-            var s = new VisioShape(NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Ellipse" };
+            var s = new VisioShape(id ?? NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Ellipse" };
             Shapes.Add(s);
             return s;
         }
@@ -465,8 +470,8 @@ namespace OfficeIMO.Visio {
         /// <param name="height">Height of the ellipse.</param>
         /// <param name="text">Optional text.</param>
         /// <returns>The created ellipse shape.</returns>
-        public VisioShape AddEllipse(double x, double y, double width, double height, string? text = null) =>
-            AddEllipse(x, y, width, height, text, DefaultUnit);
+        internal VisioShape AddEllipseInches(double x, double y, double width, double height, string? text = null) =>
+            AddEllipseInches(x, y, width, height, text, DefaultUnit);
 
         /// <summary>
         /// Adds a diamond shape.
@@ -478,9 +483,10 @@ namespace OfficeIMO.Visio {
         /// <param name="text">Optional text.</param>
         /// <param name="unit">Measurement unit.</param>
         /// <returns>The created diamond shape.</returns>
-        public VisioShape AddDiamond(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+        /// <param name="id">Explicit identifier, or null to generate the next available identifier.</param>
+        internal VisioShape AddDiamondInches(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches, string? id = null) {
             ApplyUnits(ref x, ref y, ref width, ref height, unit);
-            var s = new VisioShape(NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Diamond" };
+            var s = new VisioShape(id ?? NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Diamond" };
             Shapes.Add(s);
             return s;
         }
@@ -494,8 +500,8 @@ namespace OfficeIMO.Visio {
         /// <param name="height">Height of the diamond.</param>
         /// <param name="text">Optional text.</param>
         /// <returns>The created diamond shape.</returns>
-        public VisioShape AddDiamond(double x, double y, double width, double height, string? text = null) =>
-            AddDiamond(x, y, width, height, text, DefaultUnit);
+        internal VisioShape AddDiamondInches(double x, double y, double width, double height, string? text = null) =>
+            AddDiamondInches(x, y, width, height, text, DefaultUnit);
 
         /// <summary>
         /// Adds a flowchart decision shape.
@@ -507,8 +513,9 @@ namespace OfficeIMO.Visio {
         /// <param name="text">Optional text.</param>
         /// <param name="unit">Measurement unit.</param>
         /// <returns>The created decision shape.</returns>
-        public VisioShape AddDecision(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
-            var s = AddDiamond(x, y, width, height, text, unit);
+        /// <param name="id">Explicit identifier, or null to generate the next available identifier.</param>
+        internal VisioShape AddDecisionInches(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches, string? id = null) {
+            var s = AddDiamondInches(x, y, width, height, text, unit, id);
             s.NameU = "Decision";
             return s;
         }
@@ -516,8 +523,8 @@ namespace OfficeIMO.Visio {
         /// <summary>
         /// Adds a flowchart decision shape using the page <see cref="DefaultUnit"/>.
         /// </summary>
-        public VisioShape AddDecision(double x, double y, double width, double height, string? text = null) =>
-            AddDecision(x, y, width, height, text, DefaultUnit);
+        internal VisioShape AddDecisionInches(double x, double y, double width, double height, string? text = null) =>
+            AddDecisionInches(x, y, width, height, text, DefaultUnit);
 
         /// <summary>
         /// Adds a flowchart data shape.
@@ -529,9 +536,10 @@ namespace OfficeIMO.Visio {
         /// <param name="text">Optional text.</param>
         /// <param name="unit">Measurement unit.</param>
         /// <returns>The created data shape.</returns>
-        public VisioShape AddData(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+        /// <param name="id">Explicit identifier, or null to generate the next available identifier.</param>
+        internal VisioShape AddDataInches(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches, string? id = null) {
             ApplyUnits(ref x, ref y, ref width, ref height, unit);
-            var s = new VisioShape(NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Data" };
+            var s = new VisioShape(id ?? NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Data" };
             Shapes.Add(s);
             return s;
         }
@@ -539,8 +547,8 @@ namespace OfficeIMO.Visio {
         /// <summary>
         /// Adds a flowchart data shape using the page <see cref="DefaultUnit"/>.
         /// </summary>
-        public VisioShape AddData(double x, double y, double width, double height, string? text = null) =>
-            AddData(x, y, width, height, text, DefaultUnit);
+        internal VisioShape AddDataInches(double x, double y, double width, double height, string? text = null) =>
+            AddDataInches(x, y, width, height, text, DefaultUnit);
 
         /// <summary>
         /// Adds a flowchart preparation shape.
@@ -552,9 +560,10 @@ namespace OfficeIMO.Visio {
         /// <param name="text">Optional text.</param>
         /// <param name="unit">Measurement unit.</param>
         /// <returns>The created preparation shape.</returns>
-        public VisioShape AddPreparation(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+        /// <param name="id">Explicit identifier, or null to generate the next available identifier.</param>
+        internal VisioShape AddPreparationInches(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches, string? id = null) {
             ApplyUnits(ref x, ref y, ref width, ref height, unit);
-            var s = new VisioShape(NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Preparation" };
+            var s = new VisioShape(id ?? NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Preparation" };
             Shapes.Add(s);
             return s;
         }
@@ -562,8 +571,8 @@ namespace OfficeIMO.Visio {
         /// <summary>
         /// Adds a flowchart preparation shape using the page <see cref="DefaultUnit"/>.
         /// </summary>
-        public VisioShape AddPreparation(double x, double y, double width, double height, string? text = null) =>
-            AddPreparation(x, y, width, height, text, DefaultUnit);
+        internal VisioShape AddPreparationInches(double x, double y, double width, double height, string? text = null) =>
+            AddPreparationInches(x, y, width, height, text, DefaultUnit);
 
         /// <summary>
         /// Adds a parallelogram shape.
@@ -575,9 +584,10 @@ namespace OfficeIMO.Visio {
         /// <param name="text">Optional text.</param>
         /// <param name="unit">Measurement unit.</param>
         /// <returns>The created parallelogram shape.</returns>
-        public VisioShape AddParallelogram(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+        /// <param name="id">Explicit identifier, or null to generate the next available identifier.</param>
+        internal VisioShape AddParallelogramInches(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches, string? id = null) {
             ApplyUnits(ref x, ref y, ref width, ref height, unit);
-            var s = new VisioShape(NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Parallelogram" };
+            var s = new VisioShape(id ?? NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Parallelogram" };
             Shapes.Add(s);
             return s;
         }
@@ -585,8 +595,8 @@ namespace OfficeIMO.Visio {
         /// <summary>
         /// Adds a parallelogram shape using the page <see cref="DefaultUnit"/>.
         /// </summary>
-        public VisioShape AddParallelogram(double x, double y, double width, double height, string? text = null) =>
-            AddParallelogram(x, y, width, height, text, DefaultUnit);
+        internal VisioShape AddParallelogramInches(double x, double y, double width, double height, string? text = null) =>
+            AddParallelogramInches(x, y, width, height, text, DefaultUnit);
 
         /// <summary>
         /// Adds a hexagon shape.
@@ -598,9 +608,10 @@ namespace OfficeIMO.Visio {
         /// <param name="text">Optional text.</param>
         /// <param name="unit">Measurement unit.</param>
         /// <returns>The created hexagon shape.</returns>
-        public VisioShape AddHexagon(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+        /// <param name="id">Explicit identifier, or null to generate the next available identifier.</param>
+        internal VisioShape AddHexagonInches(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches, string? id = null) {
             ApplyUnits(ref x, ref y, ref width, ref height, unit);
-            var s = new VisioShape(NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Hexagon" };
+            var s = new VisioShape(id ?? NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Hexagon" };
             Shapes.Add(s);
             return s;
         }
@@ -608,8 +619,8 @@ namespace OfficeIMO.Visio {
         /// <summary>
         /// Adds a hexagon shape using the page <see cref="DefaultUnit"/>.
         /// </summary>
-        public VisioShape AddHexagon(double x, double y, double width, double height, string? text = null) =>
-            AddHexagon(x, y, width, height, text, DefaultUnit);
+        internal VisioShape AddHexagonInches(double x, double y, double width, double height, string? text = null) =>
+            AddHexagonInches(x, y, width, height, text, DefaultUnit);
 
         /// <summary>
         /// Adds a trapezoid shape.
@@ -621,9 +632,10 @@ namespace OfficeIMO.Visio {
         /// <param name="text">Optional text.</param>
         /// <param name="unit">Measurement unit.</param>
         /// <returns>The created trapezoid shape.</returns>
-        public VisioShape AddTrapezoid(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+        /// <param name="id">Explicit identifier, or null to generate the next available identifier.</param>
+        internal VisioShape AddTrapezoidInches(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches, string? id = null) {
             ApplyUnits(ref x, ref y, ref width, ref height, unit);
-            var s = new VisioShape(NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Trapezoid" };
+            var s = new VisioShape(id ?? NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Trapezoid" };
             Shapes.Add(s);
             return s;
         }
@@ -631,8 +643,8 @@ namespace OfficeIMO.Visio {
         /// <summary>
         /// Adds a trapezoid shape using the page <see cref="DefaultUnit"/>.
         /// </summary>
-        public VisioShape AddTrapezoid(double x, double y, double width, double height, string? text = null) =>
-            AddTrapezoid(x, y, width, height, text, DefaultUnit);
+        internal VisioShape AddTrapezoidInches(double x, double y, double width, double height, string? text = null) =>
+            AddTrapezoidInches(x, y, width, height, text, DefaultUnit);
 
         /// <summary>
         /// Adds a pentagon shape.
@@ -644,9 +656,10 @@ namespace OfficeIMO.Visio {
         /// <param name="text">Optional text.</param>
         /// <param name="unit">Measurement unit.</param>
         /// <returns>The created pentagon shape.</returns>
-        public VisioShape AddPentagon(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+        /// <param name="id">Explicit identifier, or null to generate the next available identifier.</param>
+        internal VisioShape AddPentagonInches(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches, string? id = null) {
             ApplyUnits(ref x, ref y, ref width, ref height, unit);
-            var s = new VisioShape(NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Pentagon" };
+            var s = new VisioShape(id ?? NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Pentagon" };
             Shapes.Add(s);
             return s;
         }
@@ -654,8 +667,8 @@ namespace OfficeIMO.Visio {
         /// <summary>
         /// Adds a pentagon shape using the page <see cref="DefaultUnit"/>.
         /// </summary>
-        public VisioShape AddPentagon(double x, double y, double width, double height, string? text = null) =>
-            AddPentagon(x, y, width, height, text, DefaultUnit);
+        internal VisioShape AddPentagonInches(double x, double y, double width, double height, string? text = null) =>
+            AddPentagonInches(x, y, width, height, text, DefaultUnit);
 
         /// <summary>
          /// Adds a flowchart manual operation shape.
@@ -667,9 +680,10 @@ namespace OfficeIMO.Visio {
         /// <param name="text">Optional text.</param>
         /// <param name="unit">Measurement unit.</param>
         /// <returns>The created manual operation shape.</returns>
-        public VisioShape AddManualOperation(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+        /// <param name="id">Explicit identifier, or null to generate the next available identifier.</param>
+        internal VisioShape AddManualOperationInches(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches, string? id = null) {
             ApplyUnits(ref x, ref y, ref width, ref height, unit);
-            var s = new VisioShape(NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Manual operation" };
+            var s = new VisioShape(id ?? NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Manual operation" };
             Shapes.Add(s);
             return s;
         }
@@ -677,8 +691,8 @@ namespace OfficeIMO.Visio {
         /// <summary>
         /// Adds a flowchart manual operation shape using the page <see cref="DefaultUnit"/>.
         /// </summary>
-        public VisioShape AddManualOperation(double x, double y, double width, double height, string? text = null) =>
-            AddManualOperation(x, y, width, height, text, DefaultUnit);
+        internal VisioShape AddManualOperationInches(double x, double y, double width, double height, string? text = null) =>
+            AddManualOperationInches(x, y, width, height, text, DefaultUnit);
 
         /// <summary>
         /// Adds a flowchart off-page reference shape.
@@ -690,9 +704,10 @@ namespace OfficeIMO.Visio {
         /// <param name="text">Optional text.</param>
         /// <param name="unit">Measurement unit.</param>
         /// <returns>The created off-page reference shape.</returns>
-        public VisioShape AddOffPageReference(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+        /// <param name="id">Explicit identifier, or null to generate the next available identifier.</param>
+        internal VisioShape AddOffPageReferenceInches(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches, string? id = null) {
             ApplyUnits(ref x, ref y, ref width, ref height, unit);
-            var s = new VisioShape(NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Off-page reference" };
+            var s = new VisioShape(id ?? NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Off-page reference" };
             Shapes.Add(s);
             return s;
         }
@@ -700,8 +715,8 @@ namespace OfficeIMO.Visio {
         /// <summary>
         /// Adds a flowchart off-page reference shape using the page <see cref="DefaultUnit"/>.
         /// </summary>
-        public VisioShape AddOffPageReference(double x, double y, double width, double height, string? text = null) =>
-            AddOffPageReference(x, y, width, height, text, DefaultUnit);
+        internal VisioShape AddOffPageReferenceInches(double x, double y, double width, double height, string? text = null) =>
+            AddOffPageReferenceInches(x, y, width, height, text, DefaultUnit);
 
         /// <summary>
          /// Adds a triangle shape.
@@ -713,9 +728,10 @@ namespace OfficeIMO.Visio {
         /// <param name="text">Optional text.</param>
         /// <param name="unit">Measurement unit.</param>
         /// <returns>The created triangle shape.</returns>
-        public VisioShape AddTriangle(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+        /// <param name="id">Explicit identifier, or null to generate the next available identifier.</param>
+        internal VisioShape AddTriangleInches(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches, string? id = null) {
             ApplyUnits(ref x, ref y, ref width, ref height, unit);
-            var s = new VisioShape(NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Triangle" };
+            var s = new VisioShape(id ?? NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Triangle" };
             Shapes.Add(s);
             return s;
         }
@@ -729,8 +745,8 @@ namespace OfficeIMO.Visio {
         /// <param name="height">Height of the triangle's bounding box.</param>
         /// <param name="text">Optional text.</param>
         /// <returns>The created triangle shape.</returns>
-        public VisioShape AddTriangle(double x, double y, double width, double height, string? text = null) =>
-            AddTriangle(x, y, width, height, text, DefaultUnit);
+        internal VisioShape AddTriangleInches(double x, double y, double width, double height, string? text = null) =>
+            AddTriangleInches(x, y, width, height, text, DefaultUnit);
 
         /// <summary>
         /// Adds a connector between two shapes, optionally specifying side connection points.
@@ -760,9 +776,9 @@ namespace OfficeIMO.Visio {
         /// <param name="h">Height of the page.</param>
         /// <param name="unit">Measurement unit.</param>
         /// <returns>The current page.</returns>
-        public VisioPage Size(double w, double h, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
-            Width = w.ToInches(unit);
-            Height = h.ToInches(unit);
+        internal VisioPage SizeInches(double w, double h, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+            WidthInches = w.ToInches(unit);
+            HeightInches = h.ToInches(unit);
             return this;
         }
 

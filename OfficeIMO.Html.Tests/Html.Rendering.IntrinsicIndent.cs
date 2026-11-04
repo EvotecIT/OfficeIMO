@@ -20,7 +20,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = RenderTableIntrinsic(html, options);
 
         Assert.Equal(textWidth + 20D + contribution, TableGeometryShape(rendered, "div#target").Width, 3);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -37,7 +37,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(IntrinsicIndentTextWidth(options, "AAAA") + 50D,
             TableIntrinsicGroup(rendered, "table#target").Width, 3);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -58,7 +58,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText text = Assert.Single(rendered.Pages.SelectMany(page => page.Visuals)
             .OfType<HtmlRenderText>(), item => item.Text == "AAAA");
         Assert.Equal(40D, text.X, 3);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -77,7 +77,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText text = Assert.Single(rendered.Pages.SelectMany(page => page.Visuals)
             .OfType<HtmlRenderText>(), item => item.Text == "AAAA");
         Assert.Equal(30D, text.X, 3);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -104,7 +104,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText text = Assert.Single(rendered.Pages.SelectMany(page => page.Visuals)
             .OfType<HtmlRenderText>(), item => item.Text == "AAAA");
         Assert.Equal(40D, text.X, 3);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -119,7 +119,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(Math.Max(30D + IntrinsicIndentTextWidth(options, "A"),
             IntrinsicIndentTextWidth(options, "AAAAAAAA")), TableGeometryShape(rendered, "div#target").Width, 3);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -132,7 +132,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(30D + 40D + IntrinsicIndentTextWidth(options, "A"),
             TableGeometryShape(rendered, "div#target").Width, 3);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -144,7 +144,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(10D + IntrinsicIndentTextWidth(options, "AAAA"),
             TableGeometryShape(rendered, "div#target").Width, 3);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -159,7 +159,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(IntrinsicIndentTextWidth(options, "AAAAAAAA"),
             TableGeometryShape(rendered, "div#target").Width, 3);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -172,7 +172,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(30D + IntrinsicIndentTextWidth(options, "AAAA"),
             TableGeometryShape(rendered, "div#target").Width, 3);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -188,7 +188,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(60D + IntrinsicIndentTextWidth(options, "AAAA"),
             TableGeometryShape(rendered, "div#target").Width, 3);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -207,7 +207,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(contribution + IntrinsicIndentTextWidth(options, "AAAA"),
             TableGeometryShape(rendered, "div#target").Width, 3);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -219,7 +219,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(Math.Max(30D + IntrinsicIndentTextWidth(options, "AA-"),
             IntrinsicIndentTextWidth(options, "AAAA")), TableGeometryShape(rendered, "div#target").Width, 3);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -231,7 +231,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(40D + IntrinsicIndentTextWidth(options, "AAAA"),
             TableGeometryShape(rendered, "div#target").Width, 3);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     private static double IntrinsicIndentTextWidth(HtmlRenderOptions options, string text) {

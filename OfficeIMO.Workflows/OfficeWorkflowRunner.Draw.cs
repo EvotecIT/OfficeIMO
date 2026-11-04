@@ -7,7 +7,7 @@ namespace OfficeIMO.Workflows;
 
 public sealed partial class OfficeWorkflowRunner {
     private static (byte[], OfficeWorkflowConversionEvidence) ConvertDraw(ValidatedRequest request, byte[] input,
-        OfficeWorkflowConversionOptions settings, CancellationToken token) {
+        OfficeWorkflowRenderingOptions settings, CancellationToken token) {
         token.ThrowIfCancellationRequested();
         using var stream = new MemoryStream(input, writable: false);
         var loadOptions = new OdfLoadOptions {
@@ -24,9 +24,9 @@ public sealed partial class OfficeWorkflowRunner {
         };
         PdfDocumentConversionResult? conversion = null;
         try {
-            conversion = source.ToPdfDocumentResult(settings.Draw, token);
+            conversion = source.ConvertToPdfWithEvidence(settings.Draw, token);
             var (bytes, evidence) = SerializePdfConversion(conversion, request.Limits.MaximumOutputBytes, token, facts);
-            if (settings.RequireNoLoss) evidence.RequireNoLoss();
+            if (settings.FailOnLoss) evidence.ThrowIfLoss();
             return (bytes, evidence);
         } catch (OdfConversionLossException exception) {
             throw new WorkflowConversionFailureException(exception, new OfficeWorkflowConversionEvidence(exception.Report, facts));

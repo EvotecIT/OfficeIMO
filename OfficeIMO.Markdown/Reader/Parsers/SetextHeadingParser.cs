@@ -1,6 +1,6 @@
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     /// <summary>
     /// Parses Setext headings:
     ///   Title
@@ -10,7 +10,7 @@ public static partial class MarkdownReader {
     /// Requires one or more underline characters and no other content on the underline line.
     /// </summary>
     internal sealed class SetextHeadingParser : IMarkdownBlockParser {
-        public bool TryParse(string[] lines, ref int i, MarkdownReaderOptions options, MarkdownDoc doc, MarkdownReaderState state) {
+        public bool TryParse(string[] lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
             if (!options.Headings) return false;
             if (i + 1 >= lines.Length) return false;
             var line = lines[i];

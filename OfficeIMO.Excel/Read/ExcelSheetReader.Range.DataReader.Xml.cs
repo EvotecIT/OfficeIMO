@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Collections;
 using System.Data;
 using System.Data.Common;
@@ -73,7 +71,7 @@ namespace OfficeIMO.Excel {
                 int lastColumn,
                 int fieldCount,
                 bool headersInFirstRow,
-                ExcelReadOptions options,
+                ExcelReaderOptions options,
                 CancellationToken ct,
                 ExcelUtf8RangeRowSource? preindexedUtf8Source = null,
                 int utf8SourceFirstColumn = 0,
@@ -109,7 +107,7 @@ namespace OfficeIMO.Excel {
                     throw new XlsxTabularFastPathNotSupportedException(
                         $"Worksheet '{owner._sheetName}' requires the Open XML SDK fallback path.");
                 } else {
-                    _stream = owner.OpenDataReaderWorksheetStream(ct);
+                    _stream = owner.OpenReaderWorksheetStream(ct);
                     RewindWorksheetStream(_stream);
                     _reader = OpenWorksheetXmlReader(_stream);
                     _xmlTextBudget = new XmlDataReaderTextBudget(options.MaxXmlDataReaderBufferedCharacters,
@@ -337,7 +335,11 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            private bool ReadCore(CancellationToken cancellationToken) {
+            private bool ReadCore(CancellationToken cancellationToken) => _utf8Source != null
+                ? ReadIndexedCore(cancellationToken)
+                : ReadXmlCore(cancellationToken);
+
+            private bool ReadXmlCore(CancellationToken cancellationToken) {
                 _ct.ThrowIfCancellationRequested();
                 cancellationToken.ThrowIfCancellationRequested();
                 _activeReadCancellationToken = cancellationToken;
@@ -416,17 +418,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 ThrowIfReadCancellationRequested();
-                if (_utf8Source != null) {
-                    bool hasPhysicalRow = _utf8Source.SelectRow(_nextLogicalRow, _ct, _activeReadCancellationToken);
-                    ReleaseCurrentValueReferences();
-                    row = hasPhysicalRow ? _currentValues : _blankRow;
-                    _currentRow = row;
-                    _currentRowIsBlank = !hasPhysicalRow;
-                    _currentRowActive = hasPhysicalRow;
-                    _currentRowFinished = !hasPhysicalRow;
-                    _nextLogicalRow++;
-                    return true;
-                }
+                if (_utf8Source != null) return TryReadIndexedLogicalRow(_activeReadCancellationToken, out row);
 
                 if (_bufferedRows != null) {
                     return TryReadBufferedLogicalRow(out row);
@@ -670,7 +662,7 @@ namespace OfficeIMO.Excel {
 
                 if (!_bufferedRows!.TryGetValue(rowIndex, out object?[]? values)) {
                     if ((long)_bufferedRows.Count + 1L > _maximumBufferedCells / _fieldCount) {
-                        throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxDataReaderBufferedCells), _maximumBufferedCells, $"Range data-reader buffering exceeds {nameof(ExcelReadOptions.MaxDataReaderBufferedCells)}.");
+                        throw ExcelReadLimitFailure.Create(nameof(ExcelReaderOptions.MaxDataReaderBufferedCells), _maximumBufferedCells, $"Range data-reader buffering exceeds {nameof(ExcelReaderOptions.MaxDataReaderBufferedCells)}.");
                     }
                     values = new object?[_fieldCount];
                     _bufferedRows.Add(rowIndex, values);

@@ -39,7 +39,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                             out HashSet<(int Row, int Column)>? dataCells)
                         || target.GetSheet(dataSourceSheet.Name) is not OdsSheet dataSheet
                         || !HasChartSourceCoordinates(range, dataCells)
-                        || !chart.TryGetSnapshot(out ExcelChartSnapshot snapshot)) continue;
+                        || !chart.TryGetSnapshot(out ExcelChartInfo snapshot)) continue;
                     if ((type == OdsChartType.Pie || type == OdsChartType.Doughnut) &&
                         (snapshot.RadialLayout.FirstSliceAngleDegrees != OfficeChartRadialLayout.Default.FirstSliceAngleDegrees ||
                          type == OdsChartType.Doughnut && snapshot.RadialLayout.DoughnutHolePercent !=
@@ -57,9 +57,9 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                             || series.PointExplosions?.Any(offset => offset != 0) == true)
                         || snapshot.RowIndex < 1 || snapshot.ColumnIndex < 1
                         || snapshot.RowIndex > options.MaximumRows || snapshot.ColumnIndex > options.MaximumColumns
-                        || snapshot.OffsetXPixels < 0 || snapshot.OffsetYPixels < 0
-                        || snapshot.WidthPixels < 1 || snapshot.HeightPixels < 1
-                        || snapshot.WidthPixels > 2000 || snapshot.HeightPixels > 2000
+                        || snapshot.OffsetX.ToPixels() < 0 || snapshot.OffsetY.ToPixels() < 0
+                        || snapshot.Width.ToPixels() < 1 || snapshot.Height.ToPixels() < 1
+                        || snapshot.Width.ToPixels() > 2000 || snapshot.Height.ToPixels() > 2000
                         || snapshot.Title?.Length > 32767
                         || !HasAllChartSourceCells(range, dataCells, dataSheet, snapshot.Data)) continue;
                     var series = new OdsChartSeries[range.SeriesCount];
@@ -91,10 +91,10 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                         continue;
                     targetSheet.AddChart(type, categories, series,
                         snapshot.RowIndex - 1L, snapshot.ColumnIndex - 1L,
-                        new OdfRect(OdfLength.Points(snapshot.OffsetXPixels * 0.75D),
-                            OdfLength.Points(snapshot.OffsetYPixels * 0.75D),
-                            OdfLength.Points(snapshot.WidthPixels * 0.75D),
-                            OdfLength.Points(snapshot.HeightPixels * 0.75D)),
+                        new OdfRect(OdfLength.Points(snapshot.OffsetX.ToPoints()),
+                            OdfLength.Points(snapshot.OffsetY.ToPoints()),
+                            OdfLength.Points(snapshot.Width.ToPoints()),
+                            OdfLength.Points(snapshot.Height.ToPoints())),
                         snapshot.Title, snapshot.Name);
                     if (anchorCells.Add(coordinate)) materializedCells++;
                     converted++;
@@ -129,13 +129,13 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         return referenced.Count;
     }
 
-    private static bool TryGetOdsChartType(ExcelChartType source, out OdsChartType type) {
+    private static bool TryGetOdsChartType(OfficeChartType source, out OdsChartType type) {
         switch (source) {
-            case ExcelChartType.ColumnClustered: type = OdsChartType.Column; return true;
-            case ExcelChartType.BarClustered: type = OdsChartType.Bar; return true;
-            case ExcelChartType.Line: type = OdsChartType.Line; return true;
-            case ExcelChartType.Pie: type = OdsChartType.Pie; return true;
-            case ExcelChartType.Doughnut: type = OdsChartType.Doughnut; return true;
+            case OfficeChartType.ColumnClustered: type = OdsChartType.Column; return true;
+            case OfficeChartType.BarClustered: type = OdsChartType.Bar; return true;
+            case OfficeChartType.Line: type = OdsChartType.Line; return true;
+            case OfficeChartType.Pie: type = OdsChartType.Pie; return true;
+            case OfficeChartType.Doughnut: type = OdsChartType.Doughnut; return true;
             default: type = default; return false;
         }
     }

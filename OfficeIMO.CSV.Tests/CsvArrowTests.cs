@@ -23,7 +23,7 @@ public sealed class CsvArrowTests {
             "1,Alpha\n" +
             "2,Beta\n" +
             "3,Gamma\n");
-        using var reader = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true });
+        using var reader = document.CreateDataReader(new CsvReaderOptions { InferSchema = true });
         using IArrowArrayStream stream = reader.OpenArrowStream(
             new ArrowReadOptions { BatchSize = 2 });
 
@@ -44,7 +44,7 @@ public sealed class CsvArrowTests {
             "1,Alpha\n" +
             "2,Beta\n" +
             "3,Gamma\n");
-        using var reader = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true });
+        using var reader = document.CreateDataReader(new CsvReaderOptions { InferSchema = true });
         using ArrowCArrayStreamOwner owner = reader.ExportArrowCStream(
             new ArrowReadOptions { BatchSize = 2 });
 
@@ -65,7 +65,7 @@ public sealed class CsvArrowTests {
     [Fact]
     public async Task ArrowCStreamLeasePinsNativeAllocationAcrossOwnerDisposal() {
         CsvDocument document = CsvDocument.Parse("Id\n1\n");
-        using var reader = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true });
+        using var reader = document.CreateDataReader(new CsvReaderOptions { InferSchema = true });
         using ArrowCArrayStreamOwner owner = reader.ExportArrowCStream(
             new ArrowReadOptions { BatchSize = 1 });
         using ArrowCArrayStreamOwner.ArrowCArrayStreamLease lease = owner.AcquireLease();
@@ -84,7 +84,7 @@ public sealed class CsvArrowTests {
     [Fact]
     public void ArrowCStreamLeaseImportIsOneShotAndConsumesOwner() {
         CsvDocument document = CsvDocument.Parse("Id\n1\n");
-        using var reader = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true });
+        using var reader = document.CreateDataReader(new CsvReaderOptions { InferSchema = true });
         using ArrowCArrayStreamOwner owner = reader.ExportArrowCStream(
             new ArrowReadOptions { BatchSize = 1 });
         using ArrowCArrayStreamOwner.ArrowCArrayStreamLease lease = owner.AcquireLease();
@@ -102,7 +102,7 @@ public sealed class CsvArrowTests {
     [Fact]
     public void ArrowCStreamLeaseDisposalConsumesPotentiallyReleasedNativeStream() {
         CsvDocument document = CsvDocument.Parse("Id\n1\n");
-        using var reader = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true });
+        using var reader = document.CreateDataReader(new CsvReaderOptions { InferSchema = true });
         using ArrowCArrayStreamOwner owner = reader.ExportArrowCStream();
         ArrowCArrayStreamOwner.ArrowCArrayStreamLease lease = owner.AcquireLease();
 
@@ -116,7 +116,7 @@ public sealed class CsvArrowTests {
     [Fact]
     public async Task ArrowCStreamCallbacksObserveCapturedCancellation() {
         CsvDocument document = CsvDocument.Parse("Id\n1\n2\n");
-        using var reader = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true });
+        using var reader = document.CreateDataReader(new CsvReaderOptions { InferSchema = true });
         using var cancellation = new CancellationTokenSource();
         using ArrowCArrayStreamOwner owner = reader.ExportArrowCStream(
             new ArrowReadOptions { BatchSize = 1 },
@@ -132,7 +132,7 @@ public sealed class CsvArrowTests {
     [Fact]
     public async Task ManagedArrowStreamRejectsReadsAfterDisposal() {
         CsvDocument document = CsvDocument.Parse("Id\n1\n");
-        using var reader = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true });
+        using var reader = document.CreateDataReader(new CsvReaderOptions { InferSchema = true });
         IArrowArrayStream stream = reader.OpenArrowStream();
         stream.Dispose();
 
@@ -144,7 +144,7 @@ public sealed class CsvArrowTests {
     [Fact]
     public async Task ManagedArrowStreamRejectsOverlapAfterTerminalStateIsPublished() {
         CsvDocument document = CsvDocument.Parse("Id\n1\n");
-        using var reader = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true });
+        using var reader = document.CreateDataReader(new CsvReaderOptions { InferSchema = true });
         using IArrowArrayStream stream = reader.OpenArrowStream();
         Type streamType = stream.GetType();
         FieldInfo completed = streamType.GetField("_completed", BindingFlags.Instance | BindingFlags.NonPublic)!;
@@ -165,7 +165,7 @@ public sealed class CsvArrowTests {
             "1,12.50,true,2026-08-30,Alpha\n" +
             "2,,false,2026-08-31,Beta\n" +
             "3,99.25,true,2026-09-01,Gamma\n");
-        using var reader = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true });
+        using var reader = document.CreateDataReader(new CsvReaderOptions { InferSchema = true });
         var batches = new List<RecordBatch>();
 
         await foreach (RecordBatch batch in reader.ReadArrowBatchesAsync(

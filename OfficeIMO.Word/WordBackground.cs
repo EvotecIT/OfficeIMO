@@ -9,16 +9,15 @@ namespace OfficeIMO.Word {
         internal WordDocument _document;
 
         /// <summary>
-        /// Gets or sets the background color as a hex string.
+        /// Gets or sets the background color; automatic or missing colours return <see langword="null"/>.
         /// </summary>
-        public string? Color {
+        public OfficeIMO.OfficeColor? Color {
             get {
                 var mainPart = _document._wordprocessingDocument.MainDocumentPart;
-                if (mainPart?.Document?.DocumentBackground != null) {
-                    return mainPart.Document.DocumentBackground.Color;
-                }
-
-                return null;
+                string? value = mainPart?.Document?.DocumentBackground?.Color?.Value;
+                return value != null && OfficeIMO.OfficeColor.TryParseHex(value, out OfficeIMO.OfficeColor color)
+                    ? color
+                    : null;
             }
             set {
                 _ = _document.Settings;
@@ -30,7 +29,7 @@ namespace OfficeIMO.Word {
                 if (mainPart?.Document?.DocumentBackground == null) {
                     mainPart!.Document!.DocumentBackground = new DocumentBackground();
                 }
-                mainPart!.Document!.DocumentBackground!.Color = value;
+                mainPart!.Document!.DocumentBackground!.Color = value?.ToRgbHex();
             }
         }
 
@@ -49,7 +48,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="document">Parent document.</param>
         /// <param name="color">Initial color.</param>
-        public WordBackground(WordDocument document, OfficeIMO.Drawing.OfficeColor color) {
+        public WordBackground(WordDocument document, OfficeIMO.OfficeColor color) {
             _document = document;
 
             DocumentBackground documentBackground = new DocumentBackground() { Color = color.ToRgbHex() };
@@ -59,21 +58,12 @@ namespace OfficeIMO.Word {
             //DocumentBackground documentBackground2 = new DocumentBackground() { Color = "BF8F00", ThemeColor = ThemeColorValues.Accent4, ThemeShade = "BF" };
         }
         /// <summary>
-        /// Sets the background color using a hex value.
-        /// </summary>
-        /// <param name="color">Hex color value.</param>
-        /// <returns>The current instance.</returns>
-        public WordBackground SetColorHex(string color) {
-            this.Color = color.Replace("#", "").ToUpperInvariant();
-            return this;
-        }
-        /// <summary>
-        /// Sets the background color using a <see cref="OfficeIMO.Drawing.OfficeColor"/>.
+        /// Sets the background color using a <see cref="OfficeIMO.OfficeColor"/>.
         /// </summary>
         /// <param name="color">Color value.</param>
         /// <returns>The current instance.</returns>
-        public WordBackground SetColor(OfficeIMO.Drawing.OfficeColor color) {
-            this.Color = color.ToRgbHex();
+        public WordBackground SetColor(OfficeIMO.OfficeColor color) {
+            this.Color = color;
             return this;
         }
 
@@ -81,10 +71,10 @@ namespace OfficeIMO.Word {
         /// Sets the background image for the document.
         /// </summary>
         /// <param name="filePath">Path to the image file.</param>
-        /// <param name="width">Optional width of the image in pixels.</param>
-        /// <param name="height">Optional height of the image in pixels.</param>
+        /// <param name="width">Optional physical width of the image.</param>
+        /// <param name="height">Optional physical height of the image.</param>
         /// <returns>The current instance.</returns>
-        public WordBackground SetImage(string filePath, double? width = null, double? height = null) {
+        public WordBackground SetImage(string filePath, OfficeLength? width = null, OfficeLength? height = null) {
             using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
             return SetImage(stream, System.IO.Path.GetFileName(filePath), width, height);
         }
@@ -94,10 +84,10 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="imageStream">Stream containing image data.</param>
         /// <param name="fileName">Name of the image file.</param>
-        /// <param name="width">Optional width of the image in pixels.</param>
-        /// <param name="height">Optional height of the image in pixels.</param>
+        /// <param name="width">Optional physical width of the image.</param>
+        /// <param name="height">Optional physical height of the image.</param>
         /// <returns>The current instance.</returns>
-        public WordBackground SetImage(Stream imageStream, string fileName, double? width = null, double? height = null) {
+        public WordBackground SetImage(Stream imageStream, string fileName, OfficeLength? width = null, OfficeLength? height = null) {
             if (imageStream == null) throw new ArgumentNullException(nameof(imageStream));
             if (string.IsNullOrEmpty(fileName)) throw new ArgumentNullException(nameof(fileName));
 
@@ -108,7 +98,7 @@ namespace OfficeIMO.Word {
             var paragraph = new DocumentFormat.OpenXml.Wordprocessing.Paragraph();
             _document._document.Body!.Append(paragraph);
             var wordParagraph = new WordParagraph(_document, paragraph);
-            var wordImage = new WordImage(_document, wordParagraph, imageStream, fileName, width, height, WordImageTextWrapping.BehindText);
+            var wordImage = new WordImage(_document, wordParagraph, imageStream, fileName, width?.ToPixels(), height?.ToPixels(), WordImageTextWrapping.BehindText);
             paragraph.Remove();
 
             settings.DisplayBackgroundShape = new DisplayBackgroundShape();

@@ -16,16 +16,16 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var data = document.AddWorksheet("Data", ExcelSheetNameValidationMode.Strict);
-                    var summary = document.AddWorksheet("Summary", ExcelSheetNameValidationMode.Strict);
+                    var data = document.AddSheet("Data", ExcelSheetNameValidationMode.Strict);
+                    var summary = document.AddSheet("Summary", ExcelSheetNameValidationMode.Strict);
 
-                    data.CellValue(1, 1, 42);
-                    summary.CellFormula(1, 1, "SUM(Data!A1)");
+                    data.Cell(1, 1).SetValue(42);
+                    summary.Cell(1, 1).SetFormula("SUM(Data!A1)");
                     summary.SetInternalLink(2, 1, data, "A1", display: "Go");
 
                     document.SetNamedRange("GlobalData", "'Data'!A1:B2", save: false);
-                    document.SetPrintArea(data, "A1:B2", save: false);
-                    document.SetPrintTitles(data, firstRow: 1, lastRow: 1, firstCol: 1, lastCol: 1, save: false);
+                    data.PageSetup.PrintArea = "A1:B2";
+                    data.PageSetup.SetPrintTitles(firstRow: 1, lastRow: 1, firstColumn: 1, lastColumn: 1);
 
                     data.Name = "Renamed";
                     document.Save(filePath);
@@ -66,16 +66,16 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var data = document.AddWorksheet("Data", ExcelSheetNameValidationMode.Strict);
+                    var data = document.AddSheet("Data", ExcelSheetNameValidationMode.Strict);
 
-                    data.CellValue(1, 1, "Month");
-                    data.CellValue(1, 2, "Sales");
-                    data.CellValue(2, 1, "Jan");
-                    data.CellValue(2, 2, 10);
-                    data.CellValue(3, 1, "Feb");
-                    data.CellValue(3, 2, 20);
+                    data.Cell(1, 1).SetValue("Month");
+                    data.Cell(1, 2).SetValue("Sales");
+                    data.Cell(2, 1).SetValue("Jan");
+                    data.Cell(2, 2).SetValue(10);
+                    data.Cell(3, 1).SetValue("Feb");
+                    data.Cell(3, 2).SetValue(20);
 
-                    data.AddChartFromRange("A1:B3", row: 1, column: 4, widthPixels: 320, heightPixels: 220);
+                    data.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(320), Height = OfficeLength.Pixels(220) });
                     data.AddPivotTable("A1:B3", "F1");
                     data.AddSparklines("'Data'!B2:B3", "C2:C3");
 
@@ -124,14 +124,14 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var data = document.AddWorksheet("Data", ExcelSheetNameValidationMode.Strict);
-                    var summary = document.AddWorksheet("Summary", ExcelSheetNameValidationMode.Strict);
+                    var data = document.AddSheet("Data", ExcelSheetNameValidationMode.Strict);
+                    var summary = document.AddSheet("Summary", ExcelSheetNameValidationMode.Strict);
 
-                    data.CellValue(1, 1, 5);
-                    data.CellValue(2, 1, 15);
+                    data.Cell(1, 1).SetValue(5);
+                    data.Cell(2, 1).SetValue(15);
 
-                    summary.ValidationCustomFormula("A1:A2", "COUNTIF(Data!$A$1:$A$2,\">0\")>0");
-                    summary.AddConditionalRule("B1:B2", ExcelConditionalFormattingOperator.GreaterThan, "Data!$A$1");
+                    summary.Range("A1:A2").Validation().CustomFormula("COUNTIF(Data!$A$1:$A$2,\">0\")>0");
+                    summary.Range("B1:B2").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "Data!$A$1");
 
                     data.Name = "Renamed Data";
                     document.Save(filePath);
@@ -164,11 +164,11 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var data = document.AddWorksheet("Data", ExcelSheetNameValidationMode.Strict);
-                    var summary = document.AddWorksheet("Summary", ExcelSheetNameValidationMode.Strict);
+                    var data = document.AddSheet("Data", ExcelSheetNameValidationMode.Strict);
+                    var summary = document.AddSheet("Summary", ExcelSheetNameValidationMode.Strict);
 
-                    data.CellValue(1, 1, "Value");
-                    summary.CellValue(1, 1, "Other");
+                    data.Cell(1, 1).SetValue("Value");
+                    summary.Cell(1, 1).SetValue("Other");
 
                     document.AddTableOfContents();
                     document.AddBackLinksToToc();
@@ -212,12 +212,12 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var data = document.AddWorksheet("Data", ExcelSheetNameValidationMode.Strict);
-                    var summary = document.AddWorksheet("Summary", ExcelSheetNameValidationMode.Strict);
+                    var data = document.AddSheet("Data", ExcelSheetNameValidationMode.Strict);
+                    var summary = document.AddSheet("Summary", ExcelSheetNameValidationMode.Strict);
 
-                    data.CellValue(1, 1, 10);
-                    summary.CellFormula(1, 1, "SUM(Data!A1,'[Other.xlsx]Data'!A1,[Other.xlsx]Data!A1)");
-                    summary.ValidationCustomFormula("A2:A3", "COUNTIF(Data!$A$1:$A$3,\">0\")+COUNTIF('[Other.xlsx]Data'!$A$1:$A$3,\">0\")>0");
+                    data.Cell(1, 1).SetValue(10);
+                    summary.Cell(1, 1).SetFormula("SUM(Data!A1,'[Other.xlsx]Data'!A1,[Other.xlsx]Data!A1)");
+                    summary.Range("A2:A3").Validation().CustomFormula("COUNTIF(Data!$A$1:$A$3,\">0\")+COUNTIF('[Other.xlsx]Data'!$A$1:$A$3,\">0\")>0");
 
                     data.Name = "Renamed Data";
                     document.Save(filePath);
@@ -251,18 +251,18 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var data = document.AddWorksheet("Data", ExcelSheetNameValidationMode.Strict);
-                    var summary = document.AddWorksheet("Summary", ExcelSheetNameValidationMode.Strict);
+                    var data = document.AddSheet("Data", ExcelSheetNameValidationMode.Strict);
+                    var summary = document.AddSheet("Summary", ExcelSheetNameValidationMode.Strict);
 
-                    data.CellValue(1, 1, 10);
-                    data.CellValue(2, 1, 20);
+                    data.Cell(1, 1).SetValue(10);
+                    data.Cell(2, 1).SetValue(20);
 
-                    summary.CellValue(1, 1, "Label");
-                    summary.CellValue(1, 2, "Value");
-                    summary.CellValue(2, 1, "A");
-                    summary.CellValue(2, 2, 1);
-                    summary.CellValue(3, 1, "B");
-                    summary.CellValue(3, 2, 2);
+                    summary.Cell(1, 1).SetValue("Label");
+                    summary.Cell(1, 2).SetValue("Value");
+                    summary.Cell(2, 1).SetValue("A");
+                    summary.Cell(2, 2).SetValue(1);
+                    summary.Cell(3, 1).SetValue("B");
+                    summary.Cell(3, 2).SetValue(2);
                     summary.AddTable("A1:B3", true, "SummaryTable", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9);
 
                     var workbookPart = document._spreadSheetDocument.WorkbookPart!;

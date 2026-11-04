@@ -26,15 +26,14 @@ public sealed class IWorkKeynoteWritingTests {
         Assert.Equal(0, box.Layout!.LeftInsetPoints);
         Assert.Equal(0, box.Layout.TopInsetPoints);
         Assert.Equal("Times New Roman", projection.Slides[0].TextBoxes[1].Content.Paragraphs[0].Runs[0].Style.FontName);
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(path,
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         result.Report.RequireCompleteEditableReconstruction();
         using var saved = new MemoryStream();
         result.Value.Save(saved); saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         Assert.Empty(reopened.ValidateDocument());
         Assert.Contains("Edited in Keynote", reopened.Slides[1].TextBoxes.Single().Text);
-        Assert.Equal("003366", reopened.Slides[1].TextBoxes.Single().Color);
+        Assert.Equal(OfficeColor.Parse("003366"), reopened.Slides[1].TextBoxes.Single().Color);
     }
 
     [Fact]
@@ -69,17 +68,16 @@ public sealed class IWorkKeynoteWritingTests {
         Assert.Equal("Times New Roman", deck.Slides[0].TextBoxes[1].Content.Paragraphs[0].Runs[0].Style!.FontName);
 
         input.Position = 0;
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(input,
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Open(input, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         result.Report.RequireCompleteEditableReconstruction();
         using var saved = new MemoryStream();
         result.Value.Save(saved);
         saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         Assert.Equal(3, reopened.Slides.Count);
         Assert.Empty(reopened.ValidateDocument());
         Assert.Contains("Zażółć gęślą jaźń", reopened.Slides[1].TextBoxes.Single().Text);
-        Assert.Equal("003366", reopened.Slides[1].TextBoxes.Single().Color);
+        Assert.Equal(OfficeColor.Parse("003366"), reopened.Slides[1].TextBoxes.Single().Color);
     }
 
     [Fact]
@@ -97,11 +95,10 @@ public sealed class IWorkKeynoteWritingTests {
         Assert.All(source.Records, record => Assert.All(record.ObjectReferences,
             identifier => Assert.Contains(identifier, identifiers)));
         Assert.Equal(10, Assert.Single(source.ReadKeynote().Slides).TextBoxes.Count);
-        using var converted = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(new MemoryStream(package),
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Open(new MemoryStream(package), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         converted.Report.RequireCompleteEditableReconstruction();
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         Assert.Empty(reopened.ValidateDocument());
         Assert.Equal(Enumerable.Range(0, 10).Select(index => "BOX " + index),
             reopened.Slides[0].TextBoxes.Select(box => box.Text.TrimEnd('\r', '\n')));
@@ -168,10 +165,10 @@ public sealed class IWorkKeynoteWritingTests {
     public void Native_write_limits_reject_before_destination_mutation(string limit) {
         var options = new IWorkKeynoteWriteOptions();
         switch (limit) {
-            case "slides": options.MaximumSlides = 1; break;
-            case "boxes": options.MaximumTextBoxes = 1; break;
-            case "characters": options.MaximumTextCharacters = 1; break;
-            case "bytes": options.MaximumPackageBytes = 128; break;
+            case "slides": options.MaxSlides = 1; break;
+            case "boxes": options.MaxTextBoxes = 1; break;
+            case "characters": options.MaxTextCharacters = 1; break;
+            case "bytes": options.MaxPackageBytes = 128; break;
         }
         var document = Example();
         using var stream = new MemoryStream(new byte[] { 9, 8, 7 });
@@ -221,7 +218,7 @@ public sealed class IWorkKeynoteWritingTests {
         document.AddSlide().AddText(text, 0, 0, 960, 540);
         byte[] bytes = document.SaveBytes();
         IWorkSourceDocument source = IWorkSourceDocument.Open(new MemoryStream(bytes),
-            options: new IWorkReadOptions { MaximumSnappyChunkBytes = 65_536 });
+            options: new IWorkReadOptions { MaxSnappyChunkBytes = 65_536 });
         Assert.Equal(text + "\n", Assert.Single(source.ReadKeynote().Slides[0].TextBoxes).Content.PlainText);
         using var zip = new ZipArchive(new MemoryStream(bytes));
         using Stream entry = zip.GetEntry("Index/Document.iwa")!.Open();

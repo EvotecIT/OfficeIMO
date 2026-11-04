@@ -47,11 +47,26 @@ public class PdfPageImportScalingBenchmarks {
     }
 
     [Benchmark]
-    public byte[] InsertAtStart() => PdfDocument.Load(_target).Pages.Insert(1, _source).ToBytes();
+    public byte[] InsertAtStart() {
+        using var input = new MemoryStream(_target, writable: false);
+        using PdfDocument source = PdfDocument.Load(input);
+        using PdfDocument output = source.Pages.Insert(1, _source);
+        return output.ToBytes();
+    }
 
     [Benchmark]
-    public byte[] InsertAfterFirstPage() => PdfDocument.Load(_target).Pages.Insert(2, _source).ToBytes();
+    public byte[] InsertAfterFirstPage() {
+        using var input = new MemoryStream(_target, writable: false);
+        using PdfDocument source = PdfDocument.Load(input);
+        using PdfDocument output = source.Pages.Insert(2, _source);
+        return output.ToBytes();
+    }
 
     [Benchmark]
-    public byte[] InsertAtEnd() => PdfDocument.Load(_target).Pages.Insert(TargetPageCount + 1, _source).ToBytes();
+    public byte[] InsertAtEnd() {
+        using var input = new MemoryStream(_target, writable: false);
+        using PdfDocument source = PdfDocument.Load(input);
+        using PdfDocument output = source.Pages.Insert(TargetPageCount + 1, _source);
+        return output.ToBytes();
+    }
 }

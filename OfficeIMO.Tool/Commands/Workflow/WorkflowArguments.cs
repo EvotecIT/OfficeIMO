@@ -22,7 +22,7 @@ internal sealed class WorkflowArguments {
     internal int? MaximumDimension { get; private set; }
     internal bool Force { get; private set; }
     internal bool IncludeSubdirectories { get; private set; } = true;
-    internal PageSize PaperSize { get; private set; } = PageSizes.A4;
+    internal PdfPageSize PaperSize { get; private set; } = PdfPageSizes.A4;
     internal PdfPrintOrientation Orientation { get; private set; } = PdfPrintOrientation.Automatic;
     internal int PagesPerSheet { get; private set; } = 1;
     internal PdfPrintScaleMode ScaleMode { get; private set; } = PdfPrintScaleMode.Fit;
@@ -227,11 +227,11 @@ internal sealed class WorkflowArguments {
         _ => throw new WorkflowUsageException("Unknown image format '" + value + "'.")
     };
 
-    private static PageSize ParsePaper(string value) => value.ToLowerInvariant() switch {
-        "a4" => PageSizes.A4,
-        "letter" => PageSizes.Letter,
-        "legal" => PageSizes.Legal,
-        "a3" => PageSizes.A3,
+    private static PdfPageSize ParsePaper(string value) => value.ToLowerInvariant() switch {
+        "a4" => PdfPageSizes.A4,
+        "letter" => PdfPageSizes.Letter,
+        "legal" => PdfPageSizes.Legal,
+        "a3" => PdfPageSizes.A3,
         _ => throw new WorkflowUsageException("Paper must be A4, Letter, Legal, or A3.")
     };
 

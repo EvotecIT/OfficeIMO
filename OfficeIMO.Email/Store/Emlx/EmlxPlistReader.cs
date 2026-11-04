@@ -15,11 +15,16 @@ internal static class EmlxPlistReader {
     }
 
     internal static IReadOnlyDictionary<string, object?> Read(byte[] data, int offset,
-        EmailStoreReaderOptions options, CancellationToken cancellationToken) {
+        EmailStoreReaderOptions options, CancellationToken cancellationToken, long maxDecodedBytes,
+        out long decodedBytes) {
         cancellationToken.ThrowIfCancellationRequested();
         if (LooksLikeBinaryPlist(data, offset)) {
-            return new EmlxBinaryPlistReader(data, offset, options, cancellationToken).Read();
+            var reader = new EmlxBinaryPlistReader(data, offset, options, cancellationToken, maxDecodedBytes);
+            IReadOnlyDictionary<string, object?> binaryValues = reader.Read();
+            decodedBytes = reader.DecodedBytes;
+            return binaryValues;
         }
+        decodedBytes = 0;
         var settings = new XmlReaderSettings {
             DtdProcessing = DtdProcessing.Ignore,
             XmlResolver = null,

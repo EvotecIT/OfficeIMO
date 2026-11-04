@@ -13,12 +13,12 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Reader.ExcelNumericArtifacts.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.CellValue(1, 1, "Amount");
-                sheet.CellValue(1, 2, "TextAmount");
-                sheet.CellValue(2, 1, 1d);
-                sheet.CellValue(2, 2, storedNumber);
-                sheet.CellValue(4098, 1, 1d);
+                var sheet = document.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Amount");
+                sheet.Cell(1, 2).SetValue("TextAmount");
+                sheet.Cell(2, 1).SetValue(1d);
+                sheet.Cell(2, 2).SetValue(storedNumber);
+                sheet.Cell(4098, 1).SetValue(1d);
                 document.Save();
             }
 
@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(expectedTextNumber, row.TextAmount);
             }
 
-            var decimalOptions = new ExcelReadOptions { NumericAsDecimal = true };
+            var decimalOptions = new ExcelReaderOptions { NumericAsDecimal = true };
             using (var reader = ExcelDocumentReader.Open(filePath, decimalOptions)) {
                 object?[,] values = reader.GetSheet("Data").ReadRange("A2:B2", ExcelExecutionMode.Sequential);
                 Assert.Equal(expectedExcelNumber, Assert.IsType<decimal>(values[0, 0]));

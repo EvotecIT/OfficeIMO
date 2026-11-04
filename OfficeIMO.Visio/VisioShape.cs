@@ -1,13 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Xml.Linq;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Visio {
     /// <summary>
     /// Represents a shape on a Visio page.
     /// </summary>
-    public class VisioShape {
+    public partial class VisioShape {
         internal readonly struct PreservedShapeChildEntry {
             public PreservedShapeChildEntry(XElement rawElement) {
                 RawElement = new XElement(rawElement);
@@ -56,13 +56,13 @@ namespace OfficeIMO.Visio {
         /// <param name="width">Width of the shape.</param>
         /// <param name="height">Height of the shape.</param>
         /// <param name="text">Text contained within the shape.</param>
-        public VisioShape(string id, double pinX, double pinY, double width, double height, string text) : this(id) {
-            PinX = pinX;
-            PinY = pinY;
-            Width = width;
-            Height = height;
-            LocPinX = width / 2;
-            LocPinY = height / 2;
+        internal VisioShape(string id, double pinX, double pinY, double width, double height, string text) : this(id) {
+            PinXInches = pinX;
+            PinYInches = pinY;
+            WidthInches = width;
+            HeightInches = height;
+            LocPinXInches = width / 2;
+            LocPinYInches = height / 2;
             Text = text;
         }
 
@@ -127,22 +127,22 @@ namespace OfficeIMO.Visio {
         /// <summary>
         /// Gets or sets the X coordinate of the pin.
         /// </summary>
-        public double PinX { get; set; }
+        internal double PinXInches { get; set; }
 
         /// <summary>
         /// Gets or sets the Y coordinate of the pin.
         /// </summary>
-        public double PinY { get; set; }
+        internal double PinYInches { get; set; }
 
         /// <summary>
         /// Gets or sets the width of the shape.
         /// </summary>
-        public double Width { get; set; }
+        internal double WidthInches { get; set; }
 
         /// <summary>
         /// Gets or sets the height of the shape.
         /// </summary>
-        public double Height { get; set; }
+        internal double HeightInches { get; set; }
 
         /// <summary>
         /// Gets or sets the line weight of the shape.
@@ -152,13 +152,13 @@ namespace OfficeIMO.Visio {
         /// <summary>
         /// Gets or sets the X coordinate of the local pin.
         /// </summary>
-        public double LocPinX { get => _locPinX; set { _locPinX = value; HasExplicitLocPinX = true; } }
+        internal double LocPinXInches { get => _locPinX; set { _locPinX = value; HasExplicitLocPinX = true; } }
         private double _locPinX;
 
         /// <summary>
         /// Gets or sets the Y coordinate of the local pin.
         /// </summary>
-        public double LocPinY { get => _locPinY; set { _locPinY = value; HasExplicitLocPinY = true; } }
+        internal double LocPinYInches { get => _locPinY; set { _locPinY = value; HasExplicitLocPinY = true; } }
         private double _locPinY;
 
         /// <summary>
@@ -618,10 +618,10 @@ namespace OfficeIMO.Visio {
         /// </summary>
         internal void EnsureSideConnectionPoints() {
             if (ConnectionPoints.Count >= 4) return;
-            ConnectionPoints.Add(new VisioConnectionPoint(0,       Height / 2,  1, 0));   // Left
-            ConnectionPoints.Add(new VisioConnectionPoint(Width,   Height / 2, -1, 0));   // Right
-            ConnectionPoints.Add(new VisioConnectionPoint(Width/2, 0,           0, 1));   // Bottom
-            ConnectionPoints.Add(new VisioConnectionPoint(Width/2, Height,      0,-1));   // Top
+            ConnectionPoints.Add(new VisioConnectionPoint(0,       HeightInches / 2,  1, 0));   // Left
+            ConnectionPoints.Add(new VisioConnectionPoint(WidthInches,   HeightInches / 2, -1, 0));   // Right
+            ConnectionPoints.Add(new VisioConnectionPoint(WidthInches/2, 0,           0, 1));   // Bottom
+            ConnectionPoints.Add(new VisioConnectionPoint(WidthInches/2, HeightInches,      0,-1));   // Top
         }
 
         internal VisioConnectionPoint EnsureSideConnectionPoint(VisioSide side) {
@@ -632,10 +632,10 @@ namespace OfficeIMO.Visio {
             }
 
             VisioConnectionPoint created = side switch {
-                VisioSide.Left => new VisioConnectionPoint(0, Height / 2, 1, 0),
-                VisioSide.Right => new VisioConnectionPoint(Width, Height / 2, -1, 0),
-                VisioSide.Bottom => new VisioConnectionPoint(Width / 2, 0, 0, 1),
-                VisioSide.Top => new VisioConnectionPoint(Width / 2, Height, 0, -1),
+                VisioSide.Left => new VisioConnectionPoint(0, HeightInches / 2, 1, 0),
+                VisioSide.Right => new VisioConnectionPoint(WidthInches, HeightInches / 2, -1, 0),
+                VisioSide.Bottom => new VisioConnectionPoint(WidthInches / 2, 0, 0, 1),
+                VisioSide.Top => new VisioConnectionPoint(WidthInches / 2, HeightInches, 0, -1),
                 _ => throw new ArgumentOutOfRangeException(nameof(side))
             };
             ConnectionPoints.Add(created);
@@ -715,22 +715,22 @@ namespace OfficeIMO.Visio {
             return side switch {
                 VisioSide.Left =>
                     Math.Abs(point.X) <= tolerance &&
-                    Math.Abs(point.Y - Height / 2) <= tolerance &&
+                    Math.Abs(point.Y - HeightInches / 2) <= tolerance &&
                     Math.Abs(point.DirX - 1) <= tolerance &&
                     Math.Abs(point.DirY) <= tolerance,
                 VisioSide.Right =>
-                    Math.Abs(point.X - Width) <= tolerance &&
-                    Math.Abs(point.Y - Height / 2) <= tolerance &&
+                    Math.Abs(point.X - WidthInches) <= tolerance &&
+                    Math.Abs(point.Y - HeightInches / 2) <= tolerance &&
                     Math.Abs(point.DirX + 1) <= tolerance &&
                     Math.Abs(point.DirY) <= tolerance,
                 VisioSide.Bottom =>
-                    Math.Abs(point.X - Width / 2) <= tolerance &&
+                    Math.Abs(point.X - WidthInches / 2) <= tolerance &&
                     Math.Abs(point.Y) <= tolerance &&
                     Math.Abs(point.DirX) <= tolerance &&
                     Math.Abs(point.DirY - 1) <= tolerance,
                 VisioSide.Top =>
-                    Math.Abs(point.X - Width / 2) <= tolerance &&
-                    Math.Abs(point.Y - Height) <= tolerance &&
+                    Math.Abs(point.X - WidthInches / 2) <= tolerance &&
+                    Math.Abs(point.Y - HeightInches) <= tolerance &&
                     Math.Abs(point.DirX) <= tolerance &&
                     Math.Abs(point.DirY + 1) <= tolerance,
                 _ => false
@@ -752,8 +752,8 @@ namespace OfficeIMO.Visio {
         /// <summary>
         /// Computes the absolute bounds of the shape on the page.
         /// </summary>
-        public (double Left, double Bottom, double Right, double Top) GetBounds() {
-            var bounds = VisioNativeShapeTransform.Create(this).Matrix.TransformRectangleBounds(0, 0, Width, Height);
+        internal (double Left, double Bottom, double Right, double Top) GetBoundsInches() {
+            var bounds = VisioNativeShapeTransform.Create(this).Matrix.TransformRectangleBounds(0, 0, WidthInches, HeightInches);
             return (bounds.Left, bounds.Top, bounds.Right, bounds.Bottom);
         }
 

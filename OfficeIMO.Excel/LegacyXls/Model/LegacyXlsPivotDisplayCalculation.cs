@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Identifies the display calculation stored in an SXDI PivotTable data item record.
     /// </summary>
-    public enum LegacyXlsPivotDisplayCalculation {
+    internal enum LegacyXlsPivotDisplayCalculation {
         /// <summary>Display the data item value directly.</summary>
         Value = 0,
 

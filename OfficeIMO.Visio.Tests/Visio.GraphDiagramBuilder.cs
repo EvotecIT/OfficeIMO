@@ -6,7 +6,7 @@ using OfficeIMO.Visio;
 using OfficeIMO.Visio.Diagrams;
 using OfficeIMO.Visio.Stencils;
 using Xunit;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Tests {
     public class VisioGraphDiagramBuilderTests {
@@ -42,8 +42,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains(page.Shapes, shape => shape.Id == "web-label" && shape.Text == "Web");
             Assert.True(string.IsNullOrEmpty(page.Shapes.Single(shape => shape.Id == "web").Text));
             Assert.Equal(serverStencil.MasterNameU, page.Shapes.Single(shape => shape.Id == "web").MasterNameU);
-            Assert.True(page.Shapes.Single(shape => shape.Id == "users").PinX < page.Shapes.Single(shape => shape.Id == "web").PinX);
-            Assert.True(page.Shapes.Single(shape => shape.Id == "web").PinX < page.Shapes.Single(shape => shape.Id == "api").PinX);
+            Assert.True(page.Shapes.Single(shape => shape.Id == "users").PinX.ToInches() < page.Shapes.Single(shape => shape.Id == "web").PinX.ToInches());
+            Assert.True(page.Shapes.Single(shape => shape.Id == "web").PinX.ToInches() < page.Shapes.Single(shape => shape.Id == "api").PinX.ToInches());
             Assert.Equal(6, page.Connectors.Count);
             Assert.Contains(page.Connectors, connector => connector.Label == "authorize" && connector.LinePattern == 2);
             Assert.Contains(page.Connectors, connector => connector.Label == "nightly" && connector.EndArrow == EndArrow.None);
@@ -80,7 +80,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(5, page.Shapes.Count);
             Assert.Equal(5, page.Connectors.Count);
             Assert.All(page.Connectors, connector => Assert.Empty(connector.Waypoints));
-            Assert.Contains(page.Shapes.Where(shape => shape.Id != "api"), shape => Math.Abs(shape.PinX - api.PinX) > 0.1D || Math.Abs(shape.PinY - api.PinY) > 0.1D);
+            Assert.Contains(page.Shapes.Where(shape => shape.Id != "api"), shape => Math.Abs(shape.PinX.ToInches() - api.PinX.ToInches()) > 0.1D || Math.Abs(shape.PinY.ToInches() - api.PinY.ToInches()) > 0.1D);
 
             document.Save();
             Assert.Empty(VisioValidator.Validate(filePath));
@@ -99,8 +99,8 @@ namespace OfficeIMO.Tests {
             VisioConnector retry = Assert.Single(page.Connectors, connector => connector.Id == "retry");
             Assert.Same(worker, retry.From);
             Assert.Same(worker, retry.To);
-            Assert.Contains(retry.Waypoints, point => point.X > worker.PinX + (worker.Width / 2D));
-            Assert.Contains(retry.Waypoints, point => point.Y > worker.PinY + (worker.Height / 2D));
+            Assert.Contains(retry.Waypoints, point => point.X > worker.PinX.ToInches() + (worker.Width.ToInches() / 2D));
+            Assert.Contains(retry.Waypoints, point => point.Y > worker.PinY.ToInches() + (worker.Height.ToInches() / 2D));
 
             document.Save();
             Assert.Empty(VisioValidator.Validate(filePath));
@@ -184,7 +184,7 @@ namespace OfficeIMO.Tests {
                     .StencilNode("api", "API", VisioStencils.Flowchart, "process"));
 
             VisioPage page = Assert.Single(document.Pages);
-            Assert.True(page.Height >= 2.94D);
+            Assert.True(page.Height.ToInches() >= 2.94D);
             Assert.Contains(page.Shapes, shape => shape.Id == "api-label" && shape.Text == "API");
 
             document.Save();
@@ -203,8 +203,8 @@ namespace OfficeIMO.Tests {
 
             VisioPage page = Assert.Single(document.Pages);
             VisioShape shape = page.Shapes.Single(current => current.Id == "server");
-            Assert.Equal(ToInches(stencil.DefaultWidth, stencil.DefaultUnit ?? VisioMeasurementUnit.Inches), shape.Width, 3);
-            Assert.Equal(ToInches(stencil.DefaultHeight, stencil.DefaultUnit ?? VisioMeasurementUnit.Inches), shape.Height, 3);
+            Assert.Equal(ToInches(stencil.DefaultWidth, stencil.DefaultUnit ?? VisioMeasurementUnit.Inches), shape.Width.ToInches(), 3);
+            Assert.Equal(ToInches(stencil.DefaultHeight, stencil.DefaultUnit ?? VisioMeasurementUnit.Inches), shape.Height.ToInches(), 3);
 
             document.Save();
             Assert.Empty(VisioValidator.Validate(filePath));
@@ -222,8 +222,8 @@ namespace OfficeIMO.Tests {
 
             VisioPage page = Assert.Single(document.Pages);
             VisioShape shape = page.Shapes.Single(current => current.Id == "device");
-            Assert.Equal(ToInches(2, VisioMeasurementUnit.Centimeters), shape.Width, 3);
-            Assert.Equal(ToInches(1, VisioMeasurementUnit.Centimeters), shape.Height, 3);
+            Assert.Equal(ToInches(2, VisioMeasurementUnit.Centimeters), shape.Width.ToInches(), 3);
+            Assert.Equal(ToInches(1, VisioMeasurementUnit.Centimeters), shape.Height.ToInches(), 3);
 
             document.Save();
             Assert.Empty(VisioValidator.Validate(filePath));
@@ -248,9 +248,9 @@ namespace OfficeIMO.Tests {
             VisioShape runtime = Assert.Single(page.Shapes, shape => shape.Id == "runtime");
             VisioShape legendSample = Assert.Single(page.Shapes, shape => shape.Id == "legend-node-process-sample");
 
-            Assert.InRange(api.PinX, 0D, page.Width);
-            Assert.InRange(database.PinX, 0D, page.Width);
-            Assert.InRange(legendSample.PinX, 0D, page.Width);
+            Assert.InRange(api.PinX.ToInches(), 0D, page.Width.ToInches());
+            Assert.InRange(database.PinX.ToInches(), 0D, page.Width.ToInches());
+            Assert.InRange(legendSample.PinX.ToInches(), 0D, page.Width.ToInches());
             Assert.True(Contains(runtime, api));
             Assert.True(Contains(runtime, database));
         }
@@ -293,8 +293,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = Assert.Single(document.Pages);
             VisioShape left = page.Shapes.Single(shape => shape.Id == "left");
             VisioShape right = page.Shapes.Single(shape => shape.Id == "right");
-            Assert.True(page.Width >= 10D);
-            Assert.True(right.PinX - left.PinX > largeStencil.DefaultWidth);
+            Assert.True(page.Width.ToInches() >= 10D);
+            Assert.True(right.PinX.ToInches() - left.PinX.ToInches() > largeStencil.DefaultWidth);
 
             document.Save();
             Assert.Empty(VisioValidator.Validate(filePath));
@@ -674,9 +674,9 @@ namespace OfficeIMO.Tests {
         }
 
         private static bool Contains(VisioShape outer, VisioShape inner) =>
-            inner.PinX - inner.Width / 2D >= outer.PinX - outer.Width / 2D &&
-            inner.PinX + inner.Width / 2D <= outer.PinX + outer.Width / 2D &&
-            inner.PinY - inner.Height / 2D >= outer.PinY - outer.Height / 2D &&
-            inner.PinY + inner.Height / 2D <= outer.PinY + outer.Height / 2D;
+            inner.PinX.ToInches() - inner.Width.ToInches() / 2D >= outer.PinX.ToInches() - outer.Width.ToInches() / 2D &&
+            inner.PinX.ToInches() + inner.Width.ToInches() / 2D <= outer.PinX.ToInches() + outer.Width.ToInches() / 2D &&
+            inner.PinY.ToInches() - inner.Height.ToInches() / 2D >= outer.PinY.ToInches() - outer.Height.ToInches() / 2D &&
+            inner.PinY.ToInches() + inner.Height.ToInches() / 2D <= outer.PinY.ToInches() + outer.Height.ToInches() / 2D;
     }
 }

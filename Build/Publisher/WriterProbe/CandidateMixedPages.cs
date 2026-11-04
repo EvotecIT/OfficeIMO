@@ -31,8 +31,8 @@ internal static class CandidateMixedPages {
         PublisherPicture Picture(int pageIndex, double x, int? imageId) {
             uint pageId = document.Pages[pageIndex].Id;
             PublisherPicture picture = imageId.HasValue
-                ? document.AddPicture(pageId, imageId.Value, x, 144, 96, 96)
-                : document.AddPicture(pageId, image, x, 144, 96, 96);
+                ? document.AddImage(pageId, imageId.Value, x, 144, 96, 96)
+                : document.AddImage(pageId, image, x, 144, 96, 96);
             return picture;
         }
         void Text(int pageIndex, string text) {

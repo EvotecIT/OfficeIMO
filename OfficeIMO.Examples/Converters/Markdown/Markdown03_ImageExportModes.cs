@@ -15,15 +15,15 @@ namespace OfficeIMO.Examples.Word.Converters {
 
             // Base64 export
             string base64Path = Path.Combine(folderPath, "MarkdownImageBase64.md");
-            doc.SaveAsMarkdown(base64Path, new WordToMarkdownOptions {
-                ImageExportMode = ImageExportMode.Base64
+            doc.SaveAsMarkdown(base64Path, new WordMarkdownExportOptions {
+                ImageExportMode = WordMarkdownImageExportMode.Base64
             });
             Console.WriteLine($"✓ Base64 markdown: {base64Path}");
 
             // File export
             string fileModePath = Path.Combine(folderPath, "MarkdownImageFiles.md");
-            doc.SaveAsMarkdown(fileModePath, new WordToMarkdownOptions {
-                ImageExportMode = ImageExportMode.File,
+            doc.SaveAsMarkdown(fileModePath, new WordMarkdownExportOptions {
+                ImageExportMode = WordMarkdownImageExportMode.File,
                 ImageDirectory = folderPath
             });
             Console.WriteLine($"✓ File markdown: {fileModePath}");

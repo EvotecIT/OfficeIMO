@@ -24,9 +24,9 @@ public sealed class OfficeVbaSignatureCrossHostTests {
             CreateMacroPackage(path, hostRoot);
 
             OfficeVbaSignatureInfo info = extension switch {
-                "docm" => WordDocument.InspectVbaSignatures(path),
-                "xlsm" or "xlsb" => ExcelDocument.InspectVbaSignatures(path),
-                "pptm" or "ppam" => PowerPointPresentation.InspectVbaSignatures(path),
+                "docm" => OfficeIMO.Security.OfficeVbaSignatureService.Inspect(path),
+                "xlsm" or "xlsb" => OfficeIMO.Security.OfficeVbaSignatureService.Inspect(path),
+                "pptm" or "ppam" => OfficeIMO.Security.OfficeVbaSignatureService.Inspect(path),
                 _ => throw new ArgumentOutOfRangeException(nameof(extension))
             };
 
@@ -60,7 +60,7 @@ public sealed class OfficeVbaSignatureCrossHostTests {
             OfficeVbaSigningResult signing = extension switch {
                 "docm" => WordDocument.TrySignVbaProject(path, OfficeSecurityProvider.Default, certificate, options),
                 "xlsm" or "xlsb" => ExcelDocument.TrySignVbaProject(path, OfficeSecurityProvider.Default, certificate, options),
-                "pptm" or "ppam" => PowerPointPresentation.TrySignVbaProject(path, OfficeSecurityProvider.Default, certificate, options),
+                "pptm" or "ppam" => PowerPointDocument.TrySignVbaProject(path, OfficeSecurityProvider.Default, certificate, options),
                 _ => throw new ArgumentOutOfRangeException(nameof(extension))
             };
 
@@ -78,7 +78,7 @@ public sealed class OfficeVbaSignatureCrossHostTests {
             OfficeVbaSignatureValidationResult tampered = extension switch {
                 "docm" => WordDocument.ValidateVbaSignatures(path, OfficeSecurityProvider.Default, options),
                 "xlsm" or "xlsb" => ExcelDocument.ValidateVbaSignatures(path, OfficeSecurityProvider.Default, options),
-                "pptm" or "ppam" => PowerPointPresentation.ValidateVbaSignatures(path, OfficeSecurityProvider.Default, options),
+                "pptm" or "ppam" => PowerPointDocument.ValidateVbaSignatures(path, OfficeSecurityProvider.Default, options),
                 _ => throw new ArgumentOutOfRangeException(nameof(extension))
             };
             Assert.False(tampered.IsValidUnderPolicy);
@@ -280,7 +280,7 @@ public sealed class OfficeVbaSignatureCrossHostTests {
         OfficeVbaSigningOptions options) => Path.GetExtension(path).ToLowerInvariant() switch {
         ".docm" => WordDocument.TrySignVbaProject(path, OfficeSecurityProvider.Default, certificate, options),
         ".xlsm" or ".xlsb" => ExcelDocument.TrySignVbaProject(path, OfficeSecurityProvider.Default, certificate, options),
-        ".pptm" => PowerPointPresentation.TrySignVbaProject(path, OfficeSecurityProvider.Default, certificate, options),
+        ".pptm" => PowerPointDocument.TrySignVbaProject(path, OfficeSecurityProvider.Default, certificate, options),
         _ => throw new ArgumentOutOfRangeException(nameof(path))
     };
 
@@ -288,7 +288,7 @@ public sealed class OfficeVbaSignatureCrossHostTests {
         OfficeVbaSigningOptions options) => Path.GetExtension(path).ToLowerInvariant() switch {
         ".docm" => WordDocument.ValidateVbaSignatures(path, OfficeSecurityProvider.Default, options),
         ".xlsm" or ".xlsb" => ExcelDocument.ValidateVbaSignatures(path, OfficeSecurityProvider.Default, options),
-        ".pptm" => PowerPointPresentation.ValidateVbaSignatures(path, OfficeSecurityProvider.Default, options),
+        ".pptm" => PowerPointDocument.ValidateVbaSignatures(path, OfficeSecurityProvider.Default, options),
         _ => throw new ArgumentOutOfRangeException(nameof(path))
     };
 

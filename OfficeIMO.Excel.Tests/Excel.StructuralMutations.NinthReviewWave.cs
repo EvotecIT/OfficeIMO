@@ -18,9 +18,9 @@ namespace OfficeIMO.Tests {
         [InlineData("ignored-error")]
         public void Test_RangeMove_RejectsPartiallyIntersectingRangeMetadata(string kind) {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, 1);
-            sheet.CellValue(1, 2, 2);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue(1);
+            sheet.Cell(1, 2).SetValue(2);
             switch (kind) {
                 case "validation":
                     sheet.WorksheetPart.Worksheet.Append(new DataValidations(
@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
                         }) { Count = 1U });
                     break;
                 case "conditional-formatting":
-                    sheet.AddConditionalFormulaRule("A1:B1", "A1>0");
+                    sheet.Range("A1:B1").ConditionalFormat().Formula("A1>0");
                     break;
                 case "allowed-edit":
                     sheet.Protect();
@@ -45,27 +45,27 @@ namespace OfficeIMO.Tests {
                 () => sheet.PlanMoveRange("A1", "D1"));
 
             Assert.Contains("range metadata", exception.Message, StringComparison.OrdinalIgnoreCase);
-            Assert.Equal(1, sheet.CellAt(1, 1).GetValue<int>());
-            Assert.Equal(2, sheet.CellAt(1, 2).GetValue<int>());
+            Assert.Equal(1, sheet.Cell(1, 1).GetValue<int>());
+            Assert.Equal(2, sheet.Cell(1, 2).GetValue<int>());
         }
 
         [Fact]
         public void Test_RangeMove_ReplacesDestinationLegacyAndThreadedComments() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Legacy source");
-            sheet.CellValue(1, 2, "Threaded source");
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Legacy source");
+            sheet.Cell(1, 2).SetValue("Threaded source");
             sheet.SetComment("A1", "Keep legacy", "Tester");
             sheet.SetComment("E1", "Replace legacy", "Tester");
             sheet.AddThreadedComment("B1", "Keep threaded", "Tester");
             sheet.AddThreadedComment("F1", "Replace threaded", "Tester");
 
-            sheet.MoveRange("A1:B1", "E1");
+            sheet.Range("A1:B1").MoveTo("E1");
 
             ExcelCommentInfo legacy = Assert.Single(sheet.GetComments());
             Assert.Equal("E1", legacy.CellReference);
             Assert.Equal("Keep legacy", legacy.Text);
-            ExcelThreadedCommentSnapshot threaded = Assert.Single(sheet.GetThreadedComments());
+            ExcelThreadedCommentInfo threaded = Assert.Single(sheet.GetThreadedComments());
             Assert.Equal("F1", threaded.CellReference);
             Assert.Equal("Keep threaded", threaded.Text);
             Assert.Single(sheet.WorksheetPart.VmlDrawingParts);
@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_MutationSnapshot_RestoresNamedSheetViews() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             AddNamedSheetViewFilter(sheet, "A1:B2");
             NamedSheetViewsPart part = Assert.Single(sheet.WorksheetPart.NamedSheetViewsParts);
             using var cancellation = new CancellationTokenSource();
@@ -104,13 +104,13 @@ namespace OfficeIMO.Tests {
                 toRow: 7,
                 toRowOffset: "0",
                 Xdr.EditAsValues.Absolute);
-            absolute.FromMarker!.ColumnId!.Text = (A1.MaxColumns - 1).ToString();
-            absolute.ToMarker!.ColumnId!.Text = (A1.MaxColumns - 1).ToString();
+            absolute.FromMarker!.ColumnId!.Text = (ExcelA1.MaxColumns - 1).ToString();
+            absolute.ToMarker!.ColumnId!.Text = (ExcelA1.MaxColumns - 1).ToString();
 
-            absoluteSheet.InsertColumns(1);
+            absoluteSheet.InsertColumnsTransactional(1);
 
-            Assert.Equal((A1.MaxColumns - 1).ToString(), absolute.FromMarker.ColumnId.Text);
-            Assert.Equal((A1.MaxColumns - 1).ToString(), absolute.ToMarker.ColumnId!.Text);
+            Assert.Equal((ExcelA1.MaxColumns - 1).ToString(), absolute.FromMarker.ColumnId.Text);
+            Assert.Equal((ExcelA1.MaxColumns - 1).ToString(), absolute.ToMarker.ColumnId!.Text);
 
             ExcelSheet columnMoveOnlySheet = CreateDrawingSheet(document);
             Xdr.TwoCellAnchor columnMoveOnly = ReplaceWithTwoCellAnchor(
@@ -122,7 +122,7 @@ namespace OfficeIMO.Tests {
             columnMoveOnly.FromMarker!.ColumnId!.Text = "3";
             columnMoveOnly.ToMarker!.ColumnId!.Text = "8";
 
-            columnMoveOnlySheet.InsertColumns(4);
+            columnMoveOnlySheet.InsertColumnsTransactional(4);
 
             Assert.Equal("4", columnMoveOnly.FromMarker.ColumnId.Text);
             Assert.Equal("9", columnMoveOnly.ToMarker.ColumnId!.Text);
@@ -163,7 +163,7 @@ namespace OfficeIMO.Tests {
         [InlineData(ExcelIgnoredErrorKind.NumberStoredAsText | (ExcelIgnoredErrorKind)512)]
         public void Test_IgnoredErrors_RejectUndefinedFlags(ExcelIgnoredErrorKind errors) {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
 
             Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddIgnoredErrorRegion(new[] { "A1" }, errors));
             Assert.Empty(sheet.GetIgnoredErrorRegions());
@@ -172,9 +172,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaDependencies_FilterWhitespaceSeparatedCellLikeFunctions() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, 10);
-            sheet.CellFormula(1, 2, "LOG10 (A1)");
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue(10);
+            sheet.Cell(1, 2).SetFormula("LOG10 (A1)");
 
             ExcelFormulaDependencyNode node = Assert.IsType<ExcelFormulaDependencyNode>(
                 document.InspectFormulas().DependencyGraph.FindNode("Data", "B1"));
@@ -186,8 +186,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_AutoFilterState_UsesTop10SchemaDefaults() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.AutoFilterAdd("A1:B2");
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Range("A1:B2").AutoFilter();
             AutoFilter filter = sheet.WorksheetPart.Worksheet.GetFirstChild<AutoFilter>()!;
             filter.Append(new FilterColumn(new Top10 { Val = 5D }) { ColumnId = 0U });
 

@@ -464,8 +464,8 @@ namespace OfficeIMO.Excel {
                         ? readOnlyCollection.Count
                         : 0;
 
-            if (entryCount > A1.MaxColumns) {
-                throw new InvalidDataException($"Object insertion exceeds Excel's {A1.MaxColumns}-column limit.");
+            if (entryCount > ExcelA1.MaxColumns) {
+                throw new InvalidDataException($"Object insertion exceeds Excel's {ExcelA1.MaxColumns}-column limit.");
             }
 
             if (existingHeaderCount == 0) {
@@ -645,8 +645,8 @@ namespace OfficeIMO.Excel {
             if (value is IDictionary dictionary) {
                 int itemCount = 0;
                 foreach (DictionaryEntry entry in dictionary) {
-                    if (itemCount++ >= A1.MaxColumns) {
-                        throw new InvalidDataException($"Object insertion exceeds the {A1.MaxColumns}-entry dictionary limit.");
+                    if (itemCount++ >= ExcelA1.MaxColumns) {
+                        throw new InvalidDataException($"Object insertion exceeds the {ExcelA1.MaxColumns}-entry dictionary limit.");
                     }
                     string key = entry.Key?.ToString() ?? string.Empty;
                     string childPrefix = string.IsNullOrEmpty(prefix) ? key : prefix + "." + key;
@@ -683,8 +683,8 @@ namespace OfficeIMO.Excel {
         }
 
         private static void SetFlattenedObjectValue(IDictionary<string, object?> result, string path, object? value) {
-            if (!result.ContainsKey(path) && result.Count >= A1.MaxColumns) {
-                throw new InvalidDataException($"Object insertion exceeds Excel's {A1.MaxColumns}-column limit.");
+            if (!result.ContainsKey(path) && result.Count >= ExcelA1.MaxColumns) {
+                throw new InvalidDataException($"Object insertion exceeds Excel's {ExcelA1.MaxColumns}-column limit.");
             }
             result[path] = value;
         }

@@ -41,19 +41,19 @@ public sealed class PdfTicketComponent : IPdfComponent {
     public void Compose(PdfContentBuilder content) {
         Guard.NotNull(content, nameof(content));
         content.Panel(panel => {
-            panel.H1(Title, PdfAlign.Center);
-            panel.H2(TicketNumber, PdfAlign.Center);
+            panel.H1(Title, OfficeAlignment.Center);
+            panel.H2(TicketNumber, OfficeAlignment.Center);
             var details = new List<string[]>();
             if (StartsAt.HasValue) details.Add(new[] { "Starts", StartsAt.Value.ToString("g", _culture) });
             if (!string.IsNullOrWhiteSpace(Venue)) details.Add(new[] { "Venue", Venue! });
             if (!string.IsNullOrWhiteSpace(Holder)) details.Add(new[] { "Holder", Holder! });
-            if (details.Count > 0) panel.Table(details, style: new PdfTableStyle { HeaderRowCount = 0, RowStripeFill = null });
-            if (!string.IsNullOrWhiteSpace(Instructions)) panel.Paragraph(paragraph => paragraph.Text(Instructions!));
+            if (details.Count > 0) panel.AddTable(details, style: new PdfTableStyle { HeaderRowCount = 0, RowStripeFill = null });
+            if (!string.IsNullOrWhiteSpace(Instructions)) panel.AddParagraph(paragraph => paragraph.AddText(Instructions!));
         }, new PdfPanelStyle {
-            BorderColor = new PdfColor(0.15, 0.15, 0.15),
-            BorderWidth = 1.2,
-            PaddingX = 16,
-            PaddingY = 14,
+            BorderColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.15, 0.15, 0.15),
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(1.2),
+            PaddingX = global::OfficeIMO.OfficeLength.Points(16),
+            PaddingY = global::OfficeIMO.OfficeLength.Points(14),
             KeepTogether = true
         });
     }

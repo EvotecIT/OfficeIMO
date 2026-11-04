@@ -25,8 +25,8 @@ public sealed class PublisherNativeTableTextWritingTests {
             }
         }
         PublisherTable expected = document.Pages[0].Tables.Single();
-        Assert.Throws<OfficeConversionException>(() => document.ToPubBytes());
-        byte[] output = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        Assert.Throws<OfficeConversionException>(() => document.ToBytes());
+        byte[] output = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         PublisherDocument reopened = PublisherDocument.Load(output);
         PublisherTable actual = reopened.Pages[0].Tables.Single();
         Assert.Equal((original.Id, original.StoryId, original.PageId, original.X, original.Y, original.Width, original.Height),
@@ -47,7 +47,7 @@ public sealed class PublisherNativeTableTextWritingTests {
     [InlineData(true)]
     public void Unknown_native_cell_partition_metadata_refuses_edited_output_without_weakening_unchanged_copying(bool descriptor) {
         byte[] source = PublisherInputContractTests.Mutate("Quill/QuillSub/CONTENTS", bytes => {
-            var context = new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None);
+            var context = new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None);
             PublisherQuillChunk chunk = PublisherQuillDirectory.Read(new PublisherBinaryData(bytes, "Quill"), context)
                 .Single(item => item.Tag == "TCD ");
             if (descriptor) {
@@ -57,12 +57,12 @@ public sealed class PublisherNativeTableTextWritingTests {
             } else bytes[chunk.Offset + 8] = 1;
         }, "NativeComparison/TableLabel/native-tablelabel.pub");
         PublisherDocument document = PublisherDocument.Load(source);
-        Assert.Equal(source, document.ToPubBytes());
+        Assert.Equal(source, document.ToBytes());
         PublisherTable table = document.Pages[0].Tables.Single();
         document.ReplaceTableCellParagraphs(table.Id, 0, 0, Replace(table.Cells[0].Paragraphs[0], "Changed item"));
-        OfficeConversionException error = Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(
-            new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
-        Assert.Contains(error.Report.FidelityDiagnostics, item => item.LossKind == OfficeConversionLossKind.Failure);
+        OfficeConversionException error = Assert.Throws<OfficeConversionException>(() => document.ToBytes(
+            new PublisherSaveOptions { AllowLoss = true }));
+        Assert.Contains(error.Report.Diagnostics, item => item.LossKind == OfficeConversionLossKind.Failure);
         Assert.Equal("Changed item", document.Pages[0].Tables[0].Cells[0].Text);
     }
 

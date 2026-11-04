@@ -18,19 +18,19 @@ namespace OfficeIMO.Word {
             if (options.CompareEffectiveFormatting) {
                 AddShapeLimitation(
                     result,
-                    "EffectiveFormatting.ThemeResolution",
+                    "effective-formatting-theme-resolution",
                     "Theme font and theme color tokens are compared as declared tokens; Office theme resolution and layout-dependent appearance are not evaluated.",
                     ContainsThemeFormatting(sourcePart, comparisonWorkBudget),
                     ContainsThemeFormatting(targetPart, comparisonWorkBudget));
                 AddShapeLimitation(
                     result,
-                    "EffectiveFormatting.ConditionalTableStyles",
+                    "effective-formatting-conditional-table-styles",
                     "Conditional table-style regions are compared structurally; the full Word table-style cascade is not folded into effective run or paragraph formatting.",
                     ContainsConditionalTableStyleFormatting(sourcePart, comparisonWorkBudget),
                     ContainsConditionalTableStyleFormatting(targetPart, comparisonWorkBudget));
                 AddShapeLimitation(
                     result,
-                    "EffectiveFormatting.NumberingLevelStyles",
+                    "effective-formatting-numbering-level-styles",
                     "List definitions and paragraph numbering are compared, but numbering-level style inheritance is not folded into effective run or paragraph formatting.",
                     ContainsNumberingFormatting(sourcePart, comparisonWorkBudget, numberingStyleCatalogs),
                     ContainsNumberingFormatting(targetPart, comparisonWorkBudget, numberingStyleCatalogs));
@@ -39,7 +39,7 @@ namespace OfficeIMO.Word {
             if (options.CompareRevisions) {
                 AddShapeLimitation(
                     result,
-                    "MoveSemantics.RevisionMetadataOnly",
+                    "move-semantics-revision-metadata-only",
                     "Existing move-from and move-to markup is compared as review metadata; generated redlines use insert/delete revisions and do not synthesize Word move-range semantics.",
                     ContainsMoveMarkup(sourcePart, comparisonWorkBudget),
                     ContainsMoveMarkup(targetPart, comparisonWorkBudget));

@@ -23,14 +23,14 @@ internal static class IWorkPreservingWireEdit {
 
     private static (int Offset, int Length) FindSpan(byte[] payload, IReadOnlyList<(int Field, int Occurrence)> path,
         int leafWire, IWorkReadOptions limits, CancellationToken token) {
-        if (path.Count == 0 || path.Count > limits.MaximumProtobufDepth)
+        if (path.Count == 0 || path.Count > limits.MaxProtobufDepth)
             throw new NotSupportedException("The edit field path exceeds the supported protobuf depth.");
         int start = 0, end = payload.Length;
         for (int level = 0; level < path.Count; level++) {
             int offset = start, count = 0, matches = 0, selectedOffset = -1, selectedLength = 0, selectedWire = -1;
             while (offset < end) {
                 token.ThrowIfCancellationRequested();
-                if (++count > limits.MaximumProtobufFieldCount) throw IWorkProtobuf.LimitException("Edit field count exceeds the configured limit.");
+                if (++count > limits.MaxProtobufFieldCount) throw IWorkProtobuf.LimitException("Edit field count exceeds the configured limit.");
                 ulong key = IWorkProtobuf.ReadVarint(payload, ref offset);
                 if (offset > end || key >> 3 is 0 or > 536_870_911) throw new InvalidDataException("Invalid edit field key.");
                 int field = (int)(key >> 3), wire = (int)(key & 7), dataOffset = offset, length;

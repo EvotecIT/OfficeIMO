@@ -20,7 +20,14 @@ Describe 'Authenticated PDF automation' {
         Copy-Item -LiteralPath $source -Destination $second
         $xfdf = (Export-OfficePdfXfdf -Path $source) -replace '>Ada<', '>Grace<'
         [IO.File]::WriteAllText($xfdfPath, $xfdf)
-        Get-Item -LiteralPath $source | Import-OfficePdfXfdf -XfdfPath $xfdfPath -OutputPath $output
+        $tooSmall = New-OfficePdfFormFillOptions -MaxFields 1 -MaxValueCharacters 4
+        { Import-OfficePdfXfdf -Path $source -XfdfPath $xfdfPath -OutputPath $output -Options $tooSmall -ErrorAction Stop } |
+            Should -Throw '*value character limit*'
+        Test-Path -LiteralPath $output | Should -BeFalse
+        $fillOptions = New-OfficePdfFormFillOptions -MaxFields 1 -MaxValueCharacters 5 -KeepNeedAppearances
+        Get-Item -LiteralPath $source | Import-OfficePdfXfdf -XfdfPath $xfdfPath -OutputPath $output -Options $fillOptions
+        $filled = [OfficeIMO.Pdf.PdfDocument]::Load($output)
+        try { $filled.Inspect().AcroFormNeedAppearances | Should -BeTrue } finally { $filled.Dispose() }
         (Get-OfficePdfFormField -Path $output | Where-Object Name -eq Name).Value | Should -Be 'Grace'
         $original = [Convert]::ToBase64String([IO.File]::ReadAllBytes($output))
         { Get-Item -LiteralPath $source, $second | Import-OfficePdfXfdf -XfdfPath $xfdfPath -OutputPath $output -ErrorAction Stop } |
@@ -28,6 +35,17 @@ Describe 'Authenticated PDF automation' {
         [Convert]::ToBase64String([IO.File]::ReadAllBytes($output)) | Should -Be $original
         $xfdf -split '\r?\n' | Import-OfficePdfXfdf -Path $source -OutputPath $output
         (Get-OfficePdfFormField -Path $output | Where-Object Name -eq Name).Value | Should -Be 'Grace'
+    }
+
+    It 'uses factory interaction limits when recovering native selection regions' {
+        $source = Join-Path $TestDrive 'interaction-limits.pdf'
+        New-OfficePdf -Path $source { PdfParagraph 'More than one selectable glyph' } | Out-Null
+        $small = New-OfficePdfInteractionOptions -MaxTextRegions 1
+        { Get-OfficePdfInteractionMap -Path $source -Options $small -ErrorAction Stop } | Should -Throw '*limit*'
+        $options = New-OfficePdfInteractionOptions -MaxTextRegions 1000 -MaxImageRegions 10
+        $map = Get-OfficePdfInteractionMap -Path $source -Options $options
+        $map.PageNumber | Should -Be 1
+        $map.TextRegions.Count | Should -BeGreaterThan 1
     }
 
     It 'exposes an explicit authenticated permission override on PDF readers' {
@@ -44,10 +62,9 @@ Describe 'Authenticated PDF automation' {
             'ConvertTo-OfficePdfSanitized',
             'ConvertTo-OfficePdfSearchable',
             'Copy-OfficePdfPage',
-            'Export-OfficePdfImage',
             'Export-OfficePdfLayoutOverlay',
             'Export-OfficePdfXfdf',
-            'Get-OfficePdf',
+            'Open-OfficePdf',
             'Get-OfficePdfAnnotation',
             'Get-OfficePdfAppendOnlyMutation',
             'Get-OfficePdfAttachment',
@@ -74,8 +91,7 @@ Describe 'Authenticated PDF automation' {
             'Set-OfficePdfForm',
             'Set-OfficePdfMetadata',
             'Set-OfficePdfPage',
-            'Set-OfficePdfSignature',
-            'Split-OfficePdf'
+            'Set-OfficePdfSignature'
         )) {
             $parameters = (Get-Command $name).Parameters.Keys
             $parameters | Should -Contain 'Password'
@@ -98,7 +114,7 @@ Describe 'Authenticated PDF automation' {
 
     It 'ignores usage restrictions only after valid password authentication' {
         $path = Join-Path $TestDrive 'restricted.pdf'
-        New-OfficePdf -Path $path -Password 'open' -OwnerPassword 'owner' -Permission -3904 {
+        New-OfficePdf -Path $path -Password 'open' -OwnerPassword 'owner' -Permission None {
             PdfParagraph 'Authenticated restricted text'
         } | Out-Null
 
@@ -108,16 +124,24 @@ Describe 'Authenticated PDF automation' {
             Should -Match 'Authenticated restricted text'
         Get-OfficePdfText -Path $path -Password 'owner' |
             Should -Match 'Authenticated restricted text'
+
+        { ConvertTo-OfficeDocumentImage -LiteralPath $path -Format Svg -Password open -ErrorAction Stop } |
+            Should -Throw
+        { ConvertTo-OfficeDocumentImage -LiteralPath $path -Format Svg -Password wrong -Options @{ PermissionPolicy = 'IgnoreRestrictions' } -ErrorAction Stop } |
+            Should -Throw
+        $image = ConvertTo-OfficeDocumentImage -LiteralPath $path -Format Svg -Password open -Options @{ PermissionPolicy = 'IgnoreRestrictions' } -ErrorAction Stop
+        $image.GetType().FullName | Should -Be 'OfficeIMO.Drawing.OfficeImageExportResult'
+        $image.Bytes.Length | Should -BeGreaterThan 0
     }
 
     It 'merges independently authenticated restricted sources and reports what happened' {
         $first = Join-Path $TestDrive 'restricted-one.pdf'
         $second = Join-Path $TestDrive 'restricted-two.pdf'
         $output = Join-Path $TestDrive 'restricted-merged.pdf'
-        New-OfficePdf -Path $first -Password 'open-one' -OwnerPassword 'owner-one' -Permission -3904 {
+        New-OfficePdf -Path $first -Password 'open-one' -OwnerPassword 'owner-one' -Permission None {
             PdfParagraph 'Restricted source one'
         } | Out-Null
-        New-OfficePdf -Path $second -Password 'open-two' -OwnerPassword 'owner-two' -Permission -3904 {
+        New-OfficePdf -Path $second -Password 'open-two' -OwnerPassword 'owner-two' -Permission None {
             PdfParagraph 'Restricted source two'
         } | Out-Null
 
@@ -148,7 +172,7 @@ Describe 'Authenticated PDF automation' {
         $removed = Join-Path $TestDrive 'restricted-pages-removed.pdf'
         $rotated = Join-Path $TestDrive 'restricted-pages-rotated.pdf'
         $boxed = Join-Path $TestDrive 'restricted-pages-boxed.pdf'
-        New-OfficePdf -Path $source -Password 'open' -OwnerPassword 'owner' -Permission -3904 {
+        New-OfficePdf -Path $source -Password 'open' -OwnerPassword 'owner' -Permission None {
             PdfParagraph 'Restricted page one'
             PdfPageBreak
             PdfParagraph 'Restricted page two'
@@ -158,7 +182,7 @@ Describe 'Authenticated PDF automation' {
 
         Move-OfficePdfPage -Path $source -PageRange 1 -BeforePage 4 -OutputPath $moved `
             -Password 'open' -IgnorePermissionRestrictions -PassThru | Should -BeOfType System.IO.FileInfo
-        Remove-OfficePdfPage -Path $source -PageRange 2 -OutputPath $removed `
+        Remove-OfficePdfPage -Path $source -Page 2 -OutputPath $removed `
             -Password 'open' -IgnorePermissionRestrictions -PassThru | Should -BeOfType System.IO.FileInfo
         Set-OfficePdfPage -Path $source -PageRange 1 -Rotation 90 -OutputPath $rotated `
             -Password 'open' -IgnorePermissionRestrictions -PassThru | Should -BeOfType System.IO.FileInfo
@@ -184,7 +208,7 @@ Describe 'Authenticated PDF automation' {
         $filledAndFlat = Join-Path $TestDrive 'restricted-form-filled-flat.pdf'
         $incremental = Join-Path $TestDrive 'restricted-form-incremental.pdf'
         $imported = Join-Path $TestDrive 'restricted-form-imported.pdf'
-        New-OfficePdf -Path $source -Password 'open' -OwnerPassword 'owner' -Permission -3904 {
+        New-OfficePdf -Path $source -Password 'open' -OwnerPassword 'owner' -Permission None {
             PdfParagraph 'Restricted form'
             PdfFormField -Name Name -Type Text -Value Ada
         } | Out-Null
@@ -217,7 +241,7 @@ Describe 'Authenticated PDF automation' {
         $source = Join-Path $TestDrive 'restricted-rewrite.pdf'
         $metadata = Join-Path $TestDrive 'restricted-metadata.pdf'
         $sanitized = Join-Path $TestDrive 'restricted-sanitized.pdf'
-        New-OfficePdf -Path $source -Password 'open' -OwnerPassword 'owner' -Permission -3904 {
+        New-OfficePdf -Path $source -Password 'open' -OwnerPassword 'owner' -Permission None {
             PdfParagraph 'Restricted rewrite source'
         } | Out-Null
 
@@ -238,10 +262,10 @@ Describe 'Authenticated PDF automation' {
     It 'proves rewrites between independently authenticated document instances' {
         $reference = Join-Path $TestDrive 'restricted-proof-reference.pdf'
         $difference = Join-Path $TestDrive 'restricted-proof-difference.pdf'
-        New-OfficePdf -Path $reference -Password 'reference-open' -OwnerPassword 'reference-owner' -Permission -3904 {
+        New-OfficePdf -Path $reference -Password 'reference-open' -OwnerPassword 'reference-owner' -Permission None {
             PdfParagraph 'Restricted rewrite proof'
         } | Out-Null
-        New-OfficePdf -Path $difference -Password 'difference-open' -OwnerPassword 'difference-owner' -Permission -3904 {
+        New-OfficePdf -Path $difference -Password 'difference-open' -OwnerPassword 'difference-owner' -Permission None {
             PdfParagraph 'Restricted rewrite proof'
         } | Out-Null
 
@@ -284,7 +308,7 @@ Describe 'General existing-page visual stamping' {
             $options.CompressContentStreams = $false
         } -Content {
             param($canvas, $page)
-            $null = $canvas.Text("Canvas overlay $($page.PageNumber)/$($page.PageCount)", 36, 36, $page.Width - 72, 24, 11)
+            $null = $canvas.Text("Canvas overlay $($page.PageNumber)/$($page.PageCount)", [OfficeIMO.OfficeLength]::Points(36), [OfficeIMO.OfficeLength]::Points(36), ($page.Width - [OfficeIMO.OfficeLength]::Points(72)), [OfficeIMO.OfficeLength]::Points(24), [OfficeIMO.OfficeLength]::Points(11))
         } -PassThru | Should -BeOfType System.IO.FileInfo
 
         $configured | Should -HaveCount 1

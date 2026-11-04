@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests {
                 new WordSignatureValidationOptions { MaxPackageBytes = packageLength - 1 });
 
             WordSignatureValidationFinding finding = Assert.Single(validation.Diagnostics,
-                diagnostic => diagnostic.Code == "PackageByteLimitExceeded");
+                diagnostic => diagnostic.Code == "package-byte-limit-exceeded");
             Assert.Contains("exceeds", finding.Message, StringComparison.OrdinalIgnoreCase);
         }
 
@@ -88,7 +88,7 @@ namespace OfficeIMO.Tests {
             Assert.True(result.Succeeded);
             Assert.True(result.CreatedSignatureReadbackSucceeded);
             Assert.DoesNotContain(result.ValidationReport!.Diagnostics, diagnostic =>
-                diagnostic.Code == "SignatureResourceLimitExceeded");
+                diagnostic.Code == "signature-resource-limit-exceeded");
         }
 
         [Fact]
@@ -140,13 +140,13 @@ namespace OfficeIMO.Tests {
             options.CertificateValidation.ExtraCertificates.Add(signer);
             WordSignatureValidationReport supplied = loaded.ValidateSignatures(SecurityProvider, options);
 
-            Assert.Contains(missing.Diagnostics, finding => finding.Code == "SignerCertificateMissing");
-            Assert.Contains(bounded.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
+            Assert.Contains(missing.Diagnostics, finding => finding.Code == "signer-certificate-missing");
+            Assert.Contains(bounded.Diagnostics, finding => finding.Code == "signature-resource-limit-exceeded");
             Assert.True(
                 supplied.CryptographicStatus == WordSignatureValidationState.Passed,
                 string.Join(" | ", supplied.Diagnostics.Select(finding =>
                     finding.Code + ": " + finding.Message)));
-            Assert.DoesNotContain(supplied.Diagnostics, finding => finding.Code == "SignerCertificateMissing");
+            Assert.DoesNotContain(supplied.Diagnostics, finding => finding.Code == "signer-certificate-missing");
         }
 
         [Fact]
@@ -197,8 +197,8 @@ namespace OfficeIMO.Tests {
                 MaxTotalDigestBytes = 4096
             });
 
-            Assert.Contains(bounded.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
-            Assert.DoesNotContain(allowed.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
+            Assert.Contains(bounded.Diagnostics, finding => finding.Code == "signature-resource-limit-exceeded");
+            Assert.DoesNotContain(allowed.Diagnostics, finding => finding.Code == "signature-resource-limit-exceeded");
             Assert.Contains(allowed.Diagnostics, finding => finding.Code == "XmlSignatureInvalid");
         }
 
@@ -230,8 +230,8 @@ namespace OfficeIMO.Tests {
                 MaxTotalDigestBytes = 4096
             });
 
-            Assert.Contains(bounded.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
-            Assert.DoesNotContain(allowed.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
+            Assert.Contains(bounded.Diagnostics, finding => finding.Code == "signature-resource-limit-exceeded");
+            Assert.DoesNotContain(allowed.Diagnostics, finding => finding.Code == "signature-resource-limit-exceeded");
         }
 
         [Fact]
@@ -269,8 +269,8 @@ namespace OfficeIMO.Tests {
                 MaxTotalDigestBytes = checked(documentPartLength + 4096L)
             });
 
-            Assert.Contains(bounded.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
-            Assert.DoesNotContain(allowed.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
+            Assert.Contains(bounded.Diagnostics, finding => finding.Code == "signature-resource-limit-exceeded");
+            Assert.DoesNotContain(allowed.Diagnostics, finding => finding.Code == "signature-resource-limit-exceeded");
         }
 
         [Fact]
@@ -351,8 +351,8 @@ namespace OfficeIMO.Tests {
                 MaxTimestampTokens = 2
             });
 
-            Assert.Contains(bounded.Diagnostics, finding => finding.Code == "TimestampResourceLimitExceeded");
-            Assert.DoesNotContain(allowed.Diagnostics, finding => finding.Code == "TimestampResourceLimitExceeded");
+            Assert.Contains(bounded.Diagnostics, finding => finding.Code == "timestamp-resource-limit-exceeded");
+            Assert.DoesNotContain(allowed.Diagnostics, finding => finding.Code == "timestamp-resource-limit-exceeded");
         }
 
         [Fact]
@@ -396,9 +396,9 @@ namespace OfficeIMO.Tests {
             Assert.Contains(boundedInspection.SignatureParts, part =>
                 part.ParseError?.Contains("aggregate certificate limit", StringComparison.OrdinalIgnoreCase) == true);
             Assert.Contains(Assert.Single(validation).Findings, finding =>
-                finding.Code == "SignatureResourceLimitExceeded");
+                finding.Code == "signature-resource-limit-exceeded");
             Assert.DoesNotContain(Assert.Single(validation).Findings, finding =>
-                finding.Code == "CertificateMalformed");
+                finding.Code == "certificate-malformed");
         }
 
         [Fact]
@@ -454,7 +454,7 @@ namespace OfficeIMO.Tests {
             options.CertificateValidation.ChainEvaluator = static (_, _) => true;
             WordSignatureValidationReport validation = loaded.ValidateSignatures(SecurityProvider, options);
 
-            Assert.DoesNotContain(validation.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
+            Assert.DoesNotContain(validation.Diagnostics, finding => finding.Code == "signature-resource-limit-exceeded");
             Assert.Equal(WordSignatureValidationState.Passed, validation.CryptographicStatus);
             Assert.True(validation.IsValidUnderPolicy, string.Join(Environment.NewLine, validation.Findings));
         }
@@ -487,7 +487,7 @@ namespace OfficeIMO.Tests {
                 MaxTotalDigestBytes = 1024
             });
 
-            Assert.Contains(validation.Diagnostics, finding => finding.Code == "SignatureResourceLimitExceeded");
+            Assert.Contains(validation.Diagnostics, finding => finding.Code == "signature-resource-limit-exceeded");
         }
 
         [Fact]
@@ -509,7 +509,7 @@ namespace OfficeIMO.Tests {
                 });
 
             Assert.Contains(validation.Diagnostics, finding =>
-                finding.Code == "SignatureResourceLimitExceeded" &&
+                finding.Code == "signature-resource-limit-exceeded" &&
                 finding.Message.Contains("pending package part", StringComparison.OrdinalIgnoreCase));
         }
 
@@ -538,7 +538,7 @@ namespace OfficeIMO.Tests {
                 });
 
             Assert.Contains(validation.Diagnostics, finding =>
-                finding.Code == "SignatureResourceLimitExceeded" &&
+                finding.Code == "signature-resource-limit-exceeded" &&
                 finding.Message.Contains("validation-snapshot limit", StringComparison.OrdinalIgnoreCase));
         }
 #endif

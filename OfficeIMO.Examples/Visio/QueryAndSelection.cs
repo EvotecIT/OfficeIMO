@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Stencils;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Examples.Visio {
     public static class QueryAndSelection {
@@ -11,12 +11,12 @@ namespace OfficeIMO.Examples.Visio {
             string filePath = Path.Combine(folderPath, "Query And Selection.vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Ownership", 11, 8.5);
+            VisioPage page = document.AddPage("Ownership", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
 
-            VisioShape intake = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "intake", 2, 6, "Receive request");
-            VisioShape review = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "review", 5, 6, "Review request");
-            VisioShape decision = page.AddStencilShape(VisioStencils.Flowchart.Get("decision"), "approved", 8, 6, "Approved?");
-            VisioShape archive = page.AddStencilShape(VisioStencils.Flowchart.Get("data"), "archive", 8, 3.5, "Archive");
+            VisioShape intake = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "intake", OfficeLength.Inches(2), OfficeLength.Inches(6), "Receive request");
+            VisioShape review = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "review", OfficeLength.Inches(5), OfficeLength.Inches(6), "Review request");
+            VisioShape decision = page.AddStencilShape(VisioStencils.Flowchart.Get("decision"), "approved", OfficeLength.Inches(8), OfficeLength.Inches(6), "Approved?");
+            VisioShape archive = page.AddStencilShape(VisioStencils.Flowchart.Get("data"), "archive", OfficeLength.Inches(8), OfficeLength.Inches(3.5), "Archive");
 
             page.AddConnector(intake, review, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left).EndArrow = EndArrow.Triangle;
             page.AddConnector(review, decision, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left).EndArrow = EndArrow.Triangle;
@@ -41,7 +41,7 @@ namespace OfficeIMO.Examples.Visio {
                 .EndArrow(EndArrow.Triangle)
                 .Label("handoff");
 
-            page.SelectConnectors(connector => connector.To.Data.TryGetValue("Owner", out string? owner) && owner == "Records")
+            page.SelectConnectors(connector => connector.To is { } target && target.Data.TryGetValue("Owner", out string? owner) && owner == "Records")
                 .LinePattern(2)
                 .LineColor(Color.FromRgb(91, 155, 213));
 

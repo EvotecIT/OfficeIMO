@@ -1,7 +1,7 @@
 namespace OfficeIMO.Markdown;
 
 internal static class MarkdownObjectTreeBinder {
-    internal static void BindDocument(MarkdownDoc document, MarkdownSyntaxNode? syntaxTree = null) {
+    internal static void BindDocument(MarkdownDocument document, MarkdownSyntaxNode? syntaxTree = null) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }
@@ -39,7 +39,7 @@ internal static class MarkdownObjectTreeBinder {
     }
 
     private static bool CanContainChildObjects(MarkdownObject parent) =>
-        parent is MarkdownDoc ||
+        parent is MarkdownDocument ||
         parent is HeadingBlock ||
         parent is CalloutBlock ||
         parent is DetailsBlock ||
@@ -60,7 +60,7 @@ internal static class MarkdownObjectTreeBinder {
 
     internal static IEnumerable<MarkdownObject> EnumerateChildObjects(MarkdownObject parent) {
         switch (parent) {
-            case MarkdownDoc document:
+            case MarkdownDocument document:
                 if (document.DocumentHeader is MarkdownObject headerObject) {
                     yield return headerObject;
                 }
@@ -222,7 +222,7 @@ internal static class MarkdownObjectTreeBinder {
 
     private static bool TryBindKnownChildren(MarkdownObject parent) {
         switch (parent) {
-            case MarkdownDoc document when document.DocumentHeader == null:
+            case MarkdownDocument document when document.DocumentHeader == null:
                 BindChildren(parent, document.Blocks);
                 return true;
 

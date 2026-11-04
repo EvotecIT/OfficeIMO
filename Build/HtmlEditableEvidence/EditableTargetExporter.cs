@@ -15,7 +15,7 @@ using OfficeIMO.Word.Html;
 namespace OfficeIMO.Html.EditableEvidence;
 
 internal sealed record EditableExport(
-    HtmlConversionReport Report,
+    OfficeConversionReport Report,
     string Artifact,
     string ReopenedHtml,
     int? MarkdownTableRows = null,
@@ -28,44 +28,40 @@ internal static class EditableTargetExporter {
     internal static EditableExport SaveAndReopen(HtmlConversionDocument source, string target, string output, string documentName) {
         switch (target) {
             case "word": {
-                HtmlToWordResult result = source.ToWordDocumentResult();
                 string artifact = Path.Combine(output, documentName + ".docx");
-                using (WordDocument document = result.RequireValue()) document.Save(artifact);
+                OfficeConversionReport report = source.SaveAsWord(artifact);
                 using WordDocument loaded = WordDocument.Load(artifact);
-                return new EditableExport(result.Report, artifact, loaded.ToHtmlResult().RequireValue(),
+                return new EditableExport(report, artifact, loaded.ToHtml(),
                     NativeTables: EditableNativeTableEvidence.FromWord(loaded));
             }
             case "excel": {
-                HtmlToExcelResult result = source.ToExcelDocumentResult(new HtmlToExcelOptions {
+                string artifact = Path.Combine(output, documentName + ".xlsx");
+                OfficeConversionReport report = source.SaveAsExcel(artifact, new HtmlExcelExportOptions {
                     Mode = HtmlImportMode.Generic,
                     ImportEditableLayoutRegions = true
                 });
-                string artifact = Path.Combine(output, documentName + ".xlsx");
-                using (ExcelDocument workbook = result.RequireValue()) workbook.Save(artifact);
                 using ExcelDocument loaded = ExcelDocument.Load(artifact);
-                return new EditableExport(result.Report, artifact, loaded.ToHtml(),
+                return new EditableExport(report, artifact, loaded.ToHtml(),
                     NativeTables: EditableNativeTableEvidence.FromExcel(loaded));
             }
             case "powerpoint": {
-                HtmlToPowerPointResult result = source.ToPowerPointPresentationResult(new HtmlToPowerPointOptions {
+                string artifact = Path.Combine(output, documentName + ".pptx");
+                OfficeConversionReport report = source.SaveAsPowerPoint(artifact, new HtmlPowerPointExportOptions {
                     Mode = HtmlImportMode.Generic,
                     ImportEditableLayoutRegions = true
                 });
-                string artifact = Path.Combine(output, documentName + ".pptx");
-                using (PowerPointPresentation presentation = result.RequireValue()) presentation.Save(artifact);
-                using PowerPointPresentation loaded = PowerPointPresentation.Load(artifact);
-                return new EditableExport(result.Report, artifact, loaded.ToHtml(),
-                    PictureCount: loaded.Slides.Sum(slide => slide.Pictures.Count()),
-                    LinkedPictureCount: loaded.Slides.Sum(slide => slide.Pictures.Count(picture => picture.Hyperlink != null)),
+                using PowerPointDocument loaded = PowerPointDocument.Load(artifact);
+                return new EditableExport(report, artifact, loaded.ToHtml(),
+                    PictureCount: loaded.Slides.Sum(slide => slide.Images.Count()),
+                    LinkedPictureCount: loaded.Slides.Sum(slide => slide.Images.Count(picture => picture.Hyperlink != null)),
                     NativeTables: EditableNativeTableEvidence.FromPowerPoint(loaded));
             }
             case "onenote": {
-                HtmlToOneNoteSectionResult result = source.ToOneNoteSectionResult();
                 string artifact = Path.Combine(output, documentName + ".one");
-                result.RequireValue().Save(artifact);
+                source.ToOneNoteSection(null, out OfficeConversionReport report).Save(artifact);
                 OneNoteSection loaded = OneNoteSectionReader.Read(artifact);
                 int imageIndex = 0;
-                return new EditableExport(result.Report, artifact, loaded.ToHtmlDocument(new OneNoteMarkdownOptions {
+                return new EditableExport(report, artifact, loaded.ToHtml(new OfficeIMO.OneNote.Html.OneNoteHtmlExportOptions { ProjectionOptions = new OneNoteMarkdownExportOptions {
                     AssetUriResolver = element => {
                         if (element is not OneNoteImage { Payload: not null } image) return null;
                         string? extension = image.MediaType switch {
@@ -83,25 +79,23 @@ internal static class EditableTargetExporter {
                         File.WriteAllBytes(Path.Combine(directory, fileName), bytes);
                         return "assets/" + fileName;
                     }
-                }), NativeTables: EditableNativeTableEvidence.FromOneNote(loaded));
+                } }), NativeTables: EditableNativeTableEvidence.FromOneNote(loaded));
             }
             case "rtf": {
-                HtmlToRtfResult result = source.ToRtfDocumentResult();
                 string artifact = Path.Combine(output, documentName + ".rtf");
-                result.RequireValue().Save(artifact);
+                OfficeConversionReport report = source.SaveAsRtf(artifact);
                 RtfDocument loaded = RtfDocument.Load(artifact);
-                return new EditableExport(result.Report, artifact, loaded.ToHtml(new RtfToHtmlOptions {
+                return new EditableExport(report, artifact, loaded.ToHtml(new RtfHtmlExportOptions {
                     EmbedImagesAsDataUri = true,
                     MaxEmbeddedImageBytes = 16 * 1024 * 1024
                 }), NativeTables: EditableNativeTableEvidence.FromRtf(loaded));
             }
             case "markdown": {
-                HtmlToMarkdownResult result = source.ToMarkdownDocumentResult();
                 string artifact = Path.Combine(output, documentName + ".md");
-                result.RequireValue().Save(artifact);
-                MarkdownDoc loaded = MarkdownDoc.Load(artifact);
+                OfficeConversionReport report = source.SaveAsMarkdown(artifact);
+                using MarkdownDocument loaded = MarkdownDocument.Load(artifact);
                 TableBlock? table = loaded.Blocks.OfType<TableBlock>().FirstOrDefault();
-                return new EditableExport(result.Report, artifact, loaded.ToMarkdown(),
+                return new EditableExport(report, artifact, loaded.ToMarkdown(),
                     MarkdownTableRows: table?.Rows.Count,
                     MarkdownTableColumns: table?.Headers.Count,
                     NativeTables: EditableNativeTableEvidence.FromMarkdown(loaded));

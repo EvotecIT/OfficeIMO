@@ -57,7 +57,7 @@ public sealed class IWorkPagesMixedFontListNativeExportTests {
                 Assert.Equal(runs[run].GetProperty("color").GetString(), style.Color!.RgbHex);
             }
         }
-        using var result = source.ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = source.ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction(); using var output = new MemoryStream(); result.Value.Save(output);
         using (var reopened = WordDocument.Load(new MemoryStream(output.ToArray()))) {
             Assert.Equal(expected.Select(item => item.GetProperty("number").GetInt32()),
@@ -94,7 +94,7 @@ public sealed class IWorkPagesMixedFontListNativeExportTests {
         Check(manifest.RootElement.GetProperty("receivingDocxPdf").GetString()!, manifest.RootElement.GetProperty("cases")[0]);
 
         static void Check(string path, JsonElement scenario) {
-            var pdf = PdfReadDocument.Open(File.ReadAllBytes(Corpus(path))); var page = Assert.Single(pdf.Pages);
+            var pdf = PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(Corpus(path)))); var page = Assert.Single(pdf.Pages);
             string text = Compact(page.ExtractText()); int previous = -1;
             foreach (JsonElement item in scenario.GetProperty("expectedItems").EnumerateArray()) {
                 string wanted = Compact(item.GetProperty("marker").GetString()! + item.GetProperty("text").GetString());

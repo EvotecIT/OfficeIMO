@@ -14,13 +14,13 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Sort");
-                    sheet.CellValue(1, 1, "Region");
-                    sheet.CellValue(1, 2, "Amount");
-                    sheet.CellValue(1, 3, "Date");
-                    sheet.CellValue(2, 1, "West");
-                    sheet.CellValue(2, 2, 20);
-                    sheet.CellValue(2, 3, "2026-01-02");
+                    ExcelSheet sheet = document.AddSheet("Sort");
+                    sheet.Cell(1, 1).SetValue("Region");
+                    sheet.Cell(1, 2).SetValue("Amount");
+                    sheet.Cell(1, 3).SetValue("Date");
+                    sheet.Cell(2, 1).SetValue("West");
+                    sheet.Cell(2, 2).SetValue(20);
+                    sheet.Cell(2, 3).SetValue("2026-01-02");
 
                     Worksheet worksheet = sheet.WorksheetPart.Worksheet;
                     worksheet.RemoveAllChildren<SortState>();
@@ -78,7 +78,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksSortStatesWithMoreThanThreeKeys() {
             AssertNativeXlsSaveNotSupported("sort states with more than three sort keys", (document, sheet) => {
-                sheet.CellValue(1, 1, "Sort");
+                sheet.Cell(1, 1).SetValue("Sort");
                 Worksheet worksheet = sheet.WorksheetPart.Worksheet;
                 worksheet.AppendChild(new SortState(
                     new SortCondition { Reference = "A2:A4" },
@@ -94,7 +94,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksColorIconAndCustomListSortStates() {
             AssertNativeXlsSaveNotSupported("sort states with color or icon sort conditions", (document, sheet) => {
-                sheet.CellValue(1, 1, "Sort");
+                sheet.Cell(1, 1).SetValue("Sort");
                 Worksheet worksheet = sheet.WorksheetPart.Worksheet;
                 worksheet.AppendChild(new SortState(
                     new SortCondition {
@@ -108,7 +108,7 @@ namespace OfficeIMO.Tests {
             });
 
             AssertNativeXlsSaveNotSupported("sort states with custom-list sort conditions", (document, sheet) => {
-                sheet.CellValue(1, 1, "Sort");
+                sheet.Cell(1, 1).SetValue("Sort");
                 Worksheet worksheet = sheet.WorksheetPart.Worksheet;
                 worksheet.AppendChild(new SortState(
                     new SortCondition {
@@ -124,7 +124,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksSortStateUnsupportedMetadata() {
             AssertNativeXlsSaveNotSupported("sort states with unsupported metadata", (document, sheet) => {
-                sheet.CellValue(1, 1, "Sort");
+                sheet.Cell(1, 1).SetValue("Sort");
                 Worksheet worksheet = sheet.WorksheetPart.Worksheet;
                 var sortState = new SortState(
                     new SortCondition { Reference = "A2:A4" }) {
@@ -139,7 +139,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksSortConditionUnsupportedMetadata() {
             AssertNativeXlsSaveNotSupported("sort states with unsupported metadata", (document, sheet) => {
-                sheet.CellValue(1, 1, "Sort");
+                sheet.Cell(1, 1).SetValue("Sort");
                 Worksheet worksheet = sheet.WorksheetPart.Worksheet;
                 var condition = new SortCondition { Reference = "A2:A4" };
                 condition.SetAttribute(new OpenXmlAttribute("customMetadata", string.Empty, "present"));

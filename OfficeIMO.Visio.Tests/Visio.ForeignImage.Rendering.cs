@@ -43,7 +43,7 @@ public partial class VisioForeignImageRenderingTests {
         var raster = Render(document.Pages[0]);
         Assert.Equal(OfficeColor.Red, raster.GetPixel(25, 25));
         Assert.Equal(OfficeColor.Green, raster.GetPixel(55, 25));
-        shape.Width = 1;
+        shape.Width = OfficeLength.Inches(1);
         var diagnostics = new System.Collections.Generic.List<OfficeImageExportDiagnostic>();
         Assert.True(VisioForeignImage.TryGetProjection(shape, document.Pages[0], 20, diagnostics, null, out var projection));
         Assert.Equal(0.5, projection.SourceCrop.Left);
@@ -62,7 +62,7 @@ public partial class VisioForeignImageRenderingTests {
         foreign.Element(Ns + "ImgWidth")!.Value = "4";
         var document = Load(xml); var page = document.Pages[0]; var shape = page.Shapes[0];
         byte[] original = document.ToLegacyXmlResult().Value;
-        page.ResizeShape(shape, 4, 1);
+        page.ResizeShape(shape, OfficeLength.Inches(4), OfficeLength.Inches(1));
         Assert.True(VisioForeignImage.TryGetProjection(shape, page, 20, null, null, out var projection));
         Assert.Equal(.25, projection.SourceCrop.Left); Assert.Equal(.25, projection.SourceCrop.Right);
         foreach (var reopened in new[] { document, VisioDocument.Load(new MemoryStream(document.ToBytes())),
@@ -136,13 +136,13 @@ public partial class VisioForeignImageRenderingTests {
         instance.Element(Ns + "ForeignData")!.Remove();
         var width = instance.Descendants(Ns + "ImgWidth").Single(); width.SetAttributeValue("F", "Inh"); width.Value = "99";
         var document = Load(xml);
-        document.Pages[0].AddShape("2", document.Masters.Single(), 2, 2, 2, 2);
-        document.Pages[0].AddShape("3", "Picture", 2, 2, 2, 2, unit: VisioMeasurementUnit.Inches);
+        document.Pages[0].AddShape("2", document.Masters.Single(), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, document.Pages[0].DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, document.Pages[0].DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, document.Pages[0].DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, document.Pages[0].DefaultUnit)));
+        document.Pages[0].AddShape("3", "Picture", OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2));
         foreach (var candidate in new[] { document, VisioDocument.Load(new MemoryStream(document.ToBytes())) }) {
             Assert.Equal(3, XDocument.Parse(candidate.Pages[0].ToSvg()).Descendants().Count(e => e.Attribute("data-officeimo-foreign-image") != null));
             // Isolate the imported instance for the resize/crop assertions.
             candidate.Pages[0].Shapes.RemoveAt(2); candidate.Pages[0].Shapes.RemoveAt(1);
-            var shape = candidate.Pages[0].Shapes[0]; shape.Width = 1;
+            var shape = candidate.Pages[0].Shapes[0]; shape.Width = OfficeLength.Inches(1);
             Assert.True(VisioForeignImage.TryGetProjection(shape, candidate.Pages[0], 20, null, null, out var projection));
             Assert.Equal(20, projection.Width); Assert.Equal(0, projection.SourceCrop.Right);
             var raster = Render(candidate.Pages[0]);
@@ -169,7 +169,7 @@ public partial class VisioForeignImageRenderingTests {
             for (int y = 0; y < actual.Height; y++)
                 for (int x = 0; x < actual.Width; x++) Assert.Equal(source!.GetPixel(x, y), actual.GetPixel(x, y));
             var shape = candidate.Pages[0].Shapes.Single(s => s.Id == "41");
-            shape.Width *= 1.5; shape.PinX -= 1;
+            shape.Width *= 1.5; shape.PinX -= OfficeLength.Inches(1);
             byte[] saved = candidate.ToLegacyXmlResult().Value;
             Assert.Equal(original, Convert.FromBase64String(XDocument.Load(new MemoryStream(saved)).Descendants(Ns + "ForeignData").Single().Value));
             Assert.Contains("data-officeimo-foreign-image", VisioDocument.LoadLegacyXml(new MemoryStream(saved)).Value.Pages[0].ToSvg());

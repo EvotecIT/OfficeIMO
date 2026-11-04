@@ -34,35 +34,11 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Gets or sets the row height in EMUs.
+        ///     Gets or sets the row height as a physical length.
         /// </summary>
-        public long? HeightEmus {
-            get => Row.Height?.Value;
-            set => Row.Height = value;
-        }
-
-        /// <summary>
-        ///     Gets or sets the row height in points.
-        /// </summary>
-        public double? HeightPoints {
-            get => Row.Height?.Value != null ? PowerPointUnits.ToPoints(Row.Height.Value) : null;
-            set => Row.Height = value != null ? PowerPointUnits.FromPoints(value.Value) : null;
-        }
-
-        /// <summary>
-        ///     Gets or sets the row height in centimeters.
-        /// </summary>
-        public double? HeightCm {
-            get => Row.Height?.Value != null ? PowerPointUnits.ToCentimeters(Row.Height.Value) : null;
-            set => Row.Height = value != null ? PowerPointUnits.FromCentimeters(value.Value) : null;
-        }
-
-        /// <summary>
-        ///     Gets or sets the row height in inches.
-        /// </summary>
-        public double? HeightInches {
-            get => Row.Height?.Value != null ? PowerPointUnits.ToInches(Row.Height.Value) : null;
-            set => Row.Height = value != null ? PowerPointUnits.FromInches(value.Value) : null;
+        public OfficeLength? Height {
+            get => Row.Height?.Value is { } extent ? OfficeLength.Emus(extent) : null;
+            set => Row.Height = value?.ToEmus();
         }
 
         /// <summary>

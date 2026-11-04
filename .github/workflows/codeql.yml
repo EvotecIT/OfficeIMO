@@ -3,17 +3,8 @@ name: "CodeQL Advanced"
 on:
   push:
     branches: [ "master" ]
-    paths-ignore:
-      - '*.md'
-      - 'Docs/**'
-      - 'Examples/**'
-      - '.gitignore'
   pull_request:
-    paths-ignore:
-      - '*.md'
-      - 'Docs/**'
-      - 'Examples/**'
-      - '.gitignore'
+  workflow_dispatch:
   schedule:
     - cron: '23 3 * * 1'
 
@@ -21,8 +12,17 @@ env:
   MSBUILDDISABLENODEREUSE: '1'
   DOTNET_CLI_USE_MSBUILD_SERVER: '0'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
+  coverage:
+    uses: ./.github/workflows/ci-coverage.yml
+
   analyze:
+    needs: coverage
+    if: needs.coverage.outputs.build == 'true'
     name: Analyze (${{ matrix.language }})
     runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
     timeout-minutes: 60
@@ -47,9 +47,8 @@ jobs:
         if: matrix.build-mode == 'manual'
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: |
-            8.0.426
-            10.0.114
+          dotnet-version: 8.0.x
+          global-json-file: global.json
 
       - name: Restore NuGet packages
         if: matrix.build-mode == 'manual'
@@ -72,3 +71,22 @@ jobs:
         uses: github/codeql-action/analyze@v4
         with:
           category: "/language:${{ matrix.language }}"
+
+  ci-validation:
+    name: CI validation
+    if: always()
+    runs-on: ubuntu-latest
+    needs: [coverage, analyze]
+    steps:
+      - name: Require coverage and validation
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+          results = json.loads(os.environ['RESULTS'])
+          failed = [k for k, v in results.items() if v['result'] not in ('success', 'skipped')]
+          failed += ['coverage'] if results['coverage']['result'] != 'success' else []
+          print(json.dumps(results, indent=2))
+          sys.exit(bool(failed))
+          PY

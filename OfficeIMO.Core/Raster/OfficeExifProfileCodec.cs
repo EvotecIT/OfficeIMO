@@ -142,6 +142,21 @@ internal static class OfficeExifProfileCodec {
         if (changedDirectories.Contains(OfficeExifDirectory.Interoperability)) changedDirectories.Add(OfficeExifDirectory.Exif);
         if (changedDirectories.Count > 0) changedDirectories.Add(OfficeExifDirectory.Image);
         if (source != null) ValidateErasedDirectories(source, changedDirectories, cancellationToken);
+        if (source != null) {
+            var erasedExternalRanges = new List<int>();
+            foreach (Directory directory in source.Directories.Values) {
+                foreach (Field field in directory.Fields) {
+                    if (field.ValueLength <= 4 || !removed.Contains(field.Tag) && !changes.ContainsKey(field.Tag)) continue;
+                    erasedExternalRanges.Add(field.ValueOffset);
+                    erasedExternalRanges.Add(field.ValueLength);
+                    erasedExternalRanges.Add(field.EntryOffset);
+                }
+            }
+            if (erasedExternalRanges.Count > 0 &&
+                !OfficeTiffStructureValidator.TryValidateExclusiveExternalWritableRanges(
+                    original, 0, original.Length, cancellationToken, erasedExternalRanges))
+                throw new FormatException("An edited Exif value overlaps another field.");
+        }
         var newOffsets = new Dictionary<OfficeExifDirectory, uint>();
         foreach (OfficeExifDirectory kind in new[] { OfficeExifDirectory.Interoperability, OfficeExifDirectory.Exif, OfficeExifDirectory.Gps, OfficeExifDirectory.Image }) {
             if (!changedDirectories.Contains(kind)) continue;
@@ -161,8 +176,6 @@ internal static class OfficeExifProfileCodec {
                 // Erase obsolete values only when no other reachable field owns those bytes.
                 foreach (Field field in directory.Fields) {
                     if (!removed.Contains(field.Tag) && !changes.ContainsKey(field.Tag)) continue;
-                    if (field.ValueLength > 4 && !OfficeTiffStructureValidator.TryValidateExclusiveWritableRanges(original, 0, original.Length, cancellationToken,
-                            new[] { field.ValueOffset, field.ValueLength, field.EntryOffset })) throw new FormatException("An edited Exif value overlaps another field.");
                     output.Position = field.ValueOffset; output.Write(new byte[field.ValueLength], 0, field.ValueLength);
                     output.Position = field.EntryOffset; output.Write(new byte[12], 0, 12);
                 }

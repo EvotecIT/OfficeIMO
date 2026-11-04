@@ -17,7 +17,7 @@ public sealed class PdfPageDisplayOptions {
 
     internal PdfPageRenderOptions ToRenderOptions() {
         var options = new PdfPageRenderOptions {
-            Format = PdfPageRenderFormat.Png, Scale = Scale, ThumbnailMaxDimension = MaximumDimension,
+            Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png, Scale = Scale, ThumbnailMaxDimension = MaximumDimension,
             MaxPixelsPerPage = MaximumPixels, MaxOutputBytesPerPage = MaximumOutputBytes,
             MaxTotalOutputBytes = MaximumOutputBytes, MaxPages = 1, ContinueOnError = false
         };

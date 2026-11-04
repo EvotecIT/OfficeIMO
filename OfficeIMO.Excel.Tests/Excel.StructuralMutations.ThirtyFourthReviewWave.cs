@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ModernChart_RejectsInvalidXmlTextBeforeAnyMutation() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Dashboard");
+            ExcelSheet sheet = document.AddSheet("Dashboard");
             var validData = new ExcelChartData(
                 new[] { "A" },
                 new[] { new ExcelChartSeries("Value", new[] { 1d }) });
@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests {
                 title: "Original");
             ExcelChartDataRange range = chart.DataRange!;
             double originalValue = document[range.SheetName]
-                .CellAt(range.CategoryStartRow, range.SeriesStartColumn)
+                .Cell(range.CategoryStartRow, range.SeriesStartColumn)
                 .GetValue<double>();
             var invalidUpdate = new ExcelChartData(
                 new[] { "A" },
@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Throws<ArgumentException>(() => chart.UpdateData(invalidUpdate));
             Assert.Equal(originalValue, document[range.SheetName]
-                .CellAt(range.CategoryStartRow, range.SeriesStartColumn)
+                .Cell(range.CategoryStartRow, range.SeriesStartColumn)
                 .GetValue<double>());
             Assert.Throws<ArgumentException>(() => chart.SetTitle("Bad\u0001Title"));
             Assert.Equal("Original", chart.Title);
@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Test_QueryBackedTable_BudgetsDateTimeOffsetFallbackTextBeforeMutation() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             ExcelQueryBackedTableInfo source = document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
                 ConnectionName = "Dates",
                 WorksheetName = sheet.Name,
@@ -82,8 +82,8 @@ namespace OfficeIMO.Tests {
                     AllowExecution = true,
                     MaximumCharacters = "When".Length + fallbackText.Length - 1L
             }));
-            Assert.Equal("When", sheet.CellAt(1, 1).GetValue<string>());
-            Assert.Null(sheet.CellAt(2, 1).GetValue<string>());
+            Assert.Equal("When", sheet.Cell(1, 1).GetValue<string>());
+            Assert.Null(sheet.Cell(2, 1).GetValue<string>());
 
             await document.RefreshQueryAsync(
                 source.TableName,
@@ -92,13 +92,13 @@ namespace OfficeIMO.Tests {
                     AllowExecution = true,
                     MaximumCharacters = "When".Length + fallbackText.Length
                 });
-            Assert.Equal(fallbackText, sheet.CellAt(2, 1).GetValue<string>());
+            Assert.Equal(fallbackText, sheet.Cell(2, 1).GetValue<string>());
         }
 
         [Fact]
         public void Test_FeatureReport_HandlesChartExWithMissingRelationship() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Dashboard");
+            ExcelSheet sheet = document.AddSheet("Dashboard");
             sheet.AddModernChart(
                 new ExcelChartData(
                     new[] { "A" },

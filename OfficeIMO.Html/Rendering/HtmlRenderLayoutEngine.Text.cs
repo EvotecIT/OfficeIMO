@@ -185,7 +185,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (string.IsNullOrWhiteSpace(text) || element == null && source == null
             || element != null && _reportedComplexTextShapingElements.Contains(element)
             || element == null && _reportedComplexTextShapingSources.Contains(source!)) return;
-        bool featureShaping = !style.TextFeatureSettings.IsDefault;
+        bool featureShaping = !style.TextFeatureSettings.IsDefault && FeatureSettingsAffectText(text, style.TextFeatureSettings);
         if (!featureShaping && !RequiresConfiguredTextShaping(text, style.TextFeatureSettings)) return;
         if (featureShaping && _options.TextShapingProvider != null && !RequiresConfiguredTextShaping(text, style.TextFeatureSettings)) return;
         IReadOnlyList<OfficeFontFallbackRun> fallbackRuns = _fonts.PlanFallbackRuns(
@@ -225,6 +225,34 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private bool TryReportComplexTextShapingSource(IElement? element, string? source) =>
         element != null ? _reportedComplexTextShapingElements.Add(element)
             : source == null || _reportedComplexTextShapingSources.Add(source);
+
+    // Scalar glyphs already satisfy requests that switch ligatures off, and numeric-figure features change
+    // nothing in text without digits, such as tabular figures inherited by a code span in a table cell.
+    private static bool FeatureSettingsAffectText(string text, OfficeTextFeatureSettings featureSettings) {
+        bool? hasDigits = null;
+        foreach (KeyValuePair<string, int> feature in featureSettings.Features) {
+            switch (feature.Key) {
+                case "liga":
+                case "clig":
+                case "calt":
+                case "dlig":
+                case "hlig":
+                    if (feature.Value == 0) continue;
+                    return true;
+                case "tnum":
+                case "pnum":
+                case "lnum":
+                case "onum":
+                case "zero":
+                    hasDigits ??= text.Any(char.IsDigit);
+                    if (hasDigits == false) continue;
+                    return true;
+                default:
+                    return true;
+            }
+        }
+        return false;
+    }
 
     private static bool RequiresConfiguredTextShaping(string text, OfficeTextFeatureSettings featureSettings) =>
         OfficeTextElements.ContainsCombiningMark(text)

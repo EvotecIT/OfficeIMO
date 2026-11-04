@@ -11,8 +11,8 @@ internal static partial class PdfWriter {
             bool italic,
             bool underline,
             bool strike,
-            PdfColor? color,
-            PdfColor? backgroundColor,
+            global::OfficeIMO.OfficeColor? color,
+            global::OfficeIMO.OfficeColor? backgroundColor,
             string? uri,
             string? destinationName,
             string? contents,
@@ -30,12 +30,12 @@ internal static partial class PdfWriter {
             PdfNamedFontFace? namedFont = null,
             OfficeIMO.Drawing.OfficeTextDecorationStyle underlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None,
             OfficeIMO.Drawing.OfficeTextDecorationStyle strikeStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None,
-            PdfColor? decorationColor = null,
+            global::OfficeIMO.OfficeColor? decorationColor = null,
             OfficeTextFeatureSettings? featureSettings = null,
             OfficeTextDirection textDirection = OfficeTextDirection.Auto,
             PdfTabStop? leadingTabStop = null,
             OfficeIMO.Drawing.OfficeTextDecorationStyle leadingUnderlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None,
-            PdfColor? leadingDecorationColor = null,
+            global::OfficeIMO.OfficeColor? leadingDecorationColor = null,
             double leadingDecorationFontSize = 0,
             double leadingDecorationTextRise = 0,
             bool leadingIsTab = false,
@@ -112,11 +112,11 @@ internal static partial class PdfWriter {
 
         public OfficeIMO.Drawing.OfficeTextDecorationStyle StrikeStyle { get; }
 
-        public PdfColor? Color { get; }
+        public global::OfficeIMO.OfficeColor? Color { get; }
 
-        public PdfColor? BackgroundColor { get; }
+        public global::OfficeIMO.OfficeColor? BackgroundColor { get; }
 
-        public PdfColor? DecorationColor { get; }
+        public global::OfficeIMO.OfficeColor? DecorationColor { get; }
 
         public string? Uri { get; }
 
@@ -164,7 +164,7 @@ internal static partial class PdfWriter {
         public bool LeadingIsTab { get; }
         public PdfTabAlignment LeadingTabAlignment { get; }
         public OfficeIMO.Drawing.OfficeTextDecorationStyle LeadingUnderlineStyle { get; }
-        public PdfColor? LeadingDecorationColor { get; }
+        public global::OfficeIMO.OfficeColor? LeadingDecorationColor { get; }
         public double LeadingDecorationFontSize { get; }
         public double LeadingDecorationTextRise { get; }
 

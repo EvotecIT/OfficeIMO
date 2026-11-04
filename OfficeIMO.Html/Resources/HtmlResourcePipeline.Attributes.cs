@@ -46,7 +46,7 @@ public static partial class HtmlResourcePipeline {
         }
 
         int? candidateLimit = HtmlConversionLimits.Minimum(options.MaxResponsiveImageCandidates,
-            (options.Limits ?? HtmlConversionLimits.CreateUntrustedProfile()).MaxResponsiveImageCandidates);
+            (options.Limits ?? HtmlConversionLimits.UntrustedDefaults).MaxResponsiveImageCandidates);
         if (options.MediaWidth.HasValue && options.MediaHeight.HasValue) {
             if (TrySelectAllowedSrcSet(kind, element, attributeName, sizesAttributeName, defaultSource, baseUri,
                 options, candidateLimit, out HtmlResponsiveImageSelection selection)) {
@@ -72,7 +72,7 @@ public static partial class HtmlResourcePipeline {
             DefaultFontSize = options.DefaultFontSize,
             MaxCandidates = candidateLimit,
             MaxSizesCharacters = HtmlConversionLimits.Minimum(options.MaxResponsiveImageSizesCharacters,
-                (options.Limits ?? HtmlConversionLimits.CreateUntrustedProfile()).MaxResponsiveImageSizesCharacters)
+                (options.Limits ?? HtmlConversionLimits.UntrustedDefaults).MaxResponsiveImageSizesCharacters)
         };
 
     private static bool TrySelectAllowedSrcSet(HtmlResourceKind kind, IElement element, string attributeName,
@@ -208,9 +208,9 @@ public static partial class HtmlResourcePipeline {
     private static string GetDiagnosticCode(HtmlResourceKind kind) {
         switch (kind) {
             case HtmlResourceKind.Image:
-                return "ImageResourceRejectedByPolicy";
+                return global::OfficeIMO.OfficeDiagnosticCodes.ImageResourceRejectedByPolicy;
             case HtmlResourceKind.Stylesheet:
-                return "StylesheetResourceRejectedByPolicy";
+                return global::OfficeIMO.OfficeDiagnosticCodes.StylesheetResourceRejectedByPolicy;
             case HtmlResourceKind.Hyperlink:
                 return "HyperlinkRejectedByPolicy";
             case HtmlResourceKind.Script:

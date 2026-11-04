@@ -8,8 +8,8 @@ namespace OfficeIMO.Epub;
 
 public sealed partial class EpubPublication {
     /// <summary>Produces a complete bounded ZIP before publication. Unedited imports return their exact original bytes.</summary>
-    public EpubWriteResult Write(EpubWriteOptions? options = null, CancellationToken cancellationToken = default) {
-        options ??= new EpubWriteOptions();
+    public EpubWriteResult Write(EpubSaveOptions? options = null, CancellationToken cancellationToken = default) {
+        options ??= new EpubSaveOptions();
         long maxOutput = options.MaxOutputBytes, maxExpanded = options.MaxExpandedBytes;
         int maxEntries = options.MaxEntries;
         bool removeSignatures = options.RemoveInvalidatedSignatures;
@@ -20,17 +20,15 @@ public sealed partial class EpubPublication {
         var entries = new Dictionary<string, byte[]>(_entries, StringComparer.Ordinal);
         bool changed = _changed || modifiedAt.HasValue;
         bool rewriteArchive = changed || !compress;
-        var diagnostics = new List<OfficeConversionFidelityDiagnostic>();
+        var diagnostics = new List<OfficeDiagnostic>();
         if (rewriteArchive && _originalHasZipSignature) {
             if (!removeSignatures) throw new InvalidOperationException("Edits invalidate the ZIP directory signature. Explicit signature removal is required.");
-            diagnostics.Add(new OfficeConversionFidelityDiagnostic("EPUB_WRITE_ZIP_SIGNATURE_REMOVED",
-                "Invalidated ZIP central-directory signature was removed by explicit policy.", OfficeConversionLossKind.Omission, "OfficeIMO.Epub"));
+            diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic("EPUB_WRITE_ZIP_SIGNATURE_REMOVED", global::OfficeIMO.OfficeDiagnosticSeverity.Warning, "Invalidated ZIP central-directory signature was removed by explicit policy.", null, "OfficeIMO.Epub", OfficeConversionLossKind.Omission));
         }
         if (changed && _originalEntries.ContainsKey("META-INF/signatures.xml")) {
             if (!removeSignatures) throw new InvalidOperationException("Edits invalidate package signatures. Explicit signature removal is required.");
             entries.Remove("META-INF/signatures.xml");
-            diagnostics.Add(new OfficeConversionFidelityDiagnostic("EPUB_WRITE_SIGNATURE_REMOVED",
-                "Invalidated META-INF/signatures.xml was removed by explicit policy.", OfficeConversionLossKind.Omission, "OfficeIMO.Epub", "META-INF/signatures.xml"));
+            diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic("EPUB_WRITE_SIGNATURE_REMOVED", global::OfficeIMO.OfficeDiagnosticSeverity.Warning, "Invalidated META-INF/signatures.xml was removed by explicit policy.", "META-INF/signatures.xml", "OfficeIMO.Epub", OfficeConversionLossKind.Omission));
         }
         if (changed && _encryption.Any(item => item.RequiresDecryption)) throw new NotSupportedException("Editing packages with unsupported resource encryption is unavailable.");
         if (_encryption.Count != 0 && Identifier != _originalIdentifier) throw new NotSupportedException("Encrypted/obfuscated package identity must remain unchanged.");
@@ -99,24 +97,31 @@ public sealed partial class EpubPublication {
             .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
         retainedOrigins.UnionWith(merged.Keys);
         foreach (string path in _originalEntries.Keys.Except(retainedOrigins, StringComparer.Ordinal)
-            .Where(path => path != "META-INF/signatures.xml").OrderBy(path => path, StringComparer.Ordinal)) diagnostics.Add(new OfficeConversionFidelityDiagnostic(
-            "EPUB_WRITE_ENTRY_REMOVED", "Original entry was explicitly removed by editing.", OfficeConversionLossKind.Omission, "OfficeIMO.Epub", path));
+            .Where(path => path != "META-INF/signatures.xml").OrderBy(path => path, StringComparer.Ordinal)) diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic(
+            "EPUB_WRITE_ENTRY_REMOVED",
+            global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
+            "Original entry was explicitly removed by editing.",
+            path,
+            "OfficeIMO.Epub",
+            OfficeConversionLossKind.Omission));
         return new EpubWriteResult(output, new EpubWriteReport(false, preserved, regenerated, removed, diagnostics, renamed, merged));
     }
 
     /// <summary>Atomically saves a completed artifact to a file, preserving an existing destination on validation/cancellation failure.</summary>
-    public EpubWriteReport Save(string path, EpubWriteOptions? options = null, CancellationToken cancellationToken = default) {
+    public EpubWriteReport Save(string path, EpubSaveOptions? options = null, CancellationToken cancellationToken = default) {
+        string fullPath = Path.GetFullPath(path);
         EpubWriteResult result = Write(options, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        string temporary = OfficeFileCommit.StageAllBytes(path, result.Bytes);
+        string temporary = OfficeFileCommit.StageAllBytes(fullPath, result.Bytes);
         try {
             cancellationToken.ThrowIfCancellationRequested();
-            OfficeFileCommit.CommitTemporaryFileAtomically(temporary, path);
+            OfficeFileCommit.CommitTemporaryFileAtomically(temporary, fullPath);
         } finally { OfficeFileCommit.DeleteIfExists(temporary); }
+        FilePath = fullPath;
         return result.Report;
     }
     /// <summary>Writes a staged complete artifact to a caller-owned stream. Seekable streams are replaced and rewound.</summary>
-    public EpubWriteReport Save(Stream stream, EpubWriteOptions? options = null, CancellationToken cancellationToken = default) {
+    public EpubWriteReport Save(Stream stream, EpubSaveOptions? options = null, CancellationToken cancellationToken = default) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         EpubWriteResult result = Write(options, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
@@ -124,17 +129,19 @@ public sealed partial class EpubPublication {
         return result.Report;
     }
     /// <summary>Asynchronously atomically saves a completed artifact to a file.</summary>
-    public async Task<EpubWriteReport> SaveAsync(string path, EpubWriteOptions? options = null, CancellationToken cancellationToken = default) {
+    public async Task<EpubWriteReport> SaveAsync(string path, EpubSaveOptions? options = null, CancellationToken cancellationToken = default) {
+        string fullPath = Path.GetFullPath(path);
         EpubWriteResult result = Write(options, cancellationToken);
-        string temporary = await OfficeFileCommit.StageAllBytesAsync(path, result.Bytes, cancellationToken).ConfigureAwait(false);
+        string temporary = await OfficeFileCommit.StageAllBytesAsync(fullPath, result.Bytes, cancellationToken).ConfigureAwait(false);
         try {
             cancellationToken.ThrowIfCancellationRequested();
-            OfficeFileCommit.CommitTemporaryFileAtomically(temporary, path);
+            OfficeFileCommit.CommitTemporaryFileAtomically(temporary, fullPath);
         } finally { OfficeFileCommit.DeleteIfExists(temporary); }
+        FilePath = fullPath;
         return result.Report;
     }
     /// <summary>Asynchronously writes a staged artifact without closing the destination stream.</summary>
-    public async Task<EpubWriteReport> SaveAsync(Stream stream, EpubWriteOptions? options = null, CancellationToken cancellationToken = default) {
+    public async Task<EpubWriteReport> SaveAsync(Stream stream, EpubSaveOptions? options = null, CancellationToken cancellationToken = default) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         EpubWriteResult result = Write(options, cancellationToken);
         await OfficeStreamWriter.WriteAllBytesAsync(stream, result.Bytes, cancellationToken).ConfigureAwait(false);

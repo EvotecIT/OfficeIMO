@@ -7,7 +7,7 @@ BeforeAll {
 Describe 'Excel worksheet editing' {
     It 'edits worksheet pipelines quietly and persists row and column layout' {
         $path = Join-Path $TestDrive 'WorksheetTargets.xlsx'
-        $workbook = New-OfficeExcel -Path $path -NoSave
+        $workbook = New-OfficeExcel -Path $path
         try {
             $first = $workbook | Add-OfficeExcelSheet -Name 'First' -PassThru
             $second = $workbook | Add-OfficeExcelSheet -Name 'Second' -PassThru
@@ -35,7 +35,7 @@ Describe 'Excel worksheet editing' {
 
     It 'selects named and indexed worksheets through workbook pipelines' {
         $path = Join-Path $TestDrive 'WorkbookTargets.xlsx'
-        $workbook = New-OfficeExcel -Path $path -NoSave
+        $workbook = New-OfficeExcel -Path $path
         try {
             $workbook | Add-OfficeExcelSheet -Name 'Unchanged'
             $workbook | Add-OfficeExcelSheet -Name 'Review'
@@ -63,15 +63,15 @@ Describe 'Excel worksheet editing' {
         @{ Command = 'Set-OfficeExcelRow'; Options = @{ Row = 1; Values = @('Changed') } }
         @{ Command = 'Set-OfficeExcelColumn'; Options = @{ Column = 1; Values = @('Changed') } }
     ) {
-        $workbook = New-OfficeExcel -Path (Join-Path $TestDrive 'Rejected.xlsx') -NoSave
+        $workbook = New-OfficeExcel -Path (Join-Path $TestDrive 'Rejected.xlsx')
         try {
             $sheet = $workbook | Add-OfficeExcelSheet -Name 'Data' -PassThru
-            $usedRange = $sheet.UsedRangeA1
+            $usedRange = $sheet.UsedRange.Address
             { & $Command -Worksheet $sheet -Document $workbook @Options } | Should -Throw '*either -Worksheet or -Document*'
             { & $Command -Document $workbook -Sheet Data -SheetIndex 0 @Options } | Should -Throw '*either -Sheet or -SheetIndex*'
             { & $Command -Sheet Data @Options } | Should -Throw '*together with -Document*'
             { & $Command -Document $workbook -SheetIndex 5 @Options } | Should -Throw '*SheetIndex is out of range*'
-            $sheet.UsedRangeA1 | Should -Be $usedRange
+            $sheet.UsedRange.Address | Should -Be $usedRange
             $text = $null
             $sheet.TryGetCellText(1, 1, [ref] $text) | Should -BeFalse
         } finally {
@@ -84,7 +84,7 @@ Describe 'Excel worksheet editing' {
         @{ Command = 'Set-OfficeExcelRow'; Options = @{ Row = 1; Values = @('Changed') } }
         @{ Command = 'Set-OfficeExcelColumn'; Options = @{ Column = 1; Values = @('Changed') } }
     ) {
-        $workbook = New-OfficeExcel -Path (Join-Path $TestDrive 'BlankSheet.xlsx') -NoSave
+        $workbook = New-OfficeExcel -Path (Join-Path $TestDrive 'BlankSheet.xlsx')
         try {
             $sheet = $workbook | Add-OfficeExcelSheet -Name 'Data' -PassThru
             $workbook | Add-OfficeExcelSheet -Name 'Review'
@@ -110,7 +110,7 @@ Describe 'Excel worksheet editing' {
     ) {
         $path = Join-Path $TestDrive "$Target-Types.xlsx"
         $values = @(123.45, $true, [datetime]'2026-10-16', '00123')
-        $workbook = New-OfficeExcel -Path $path -NoSave
+        $workbook = New-OfficeExcel -Path $path
         try {
             $sheet = $workbook | Add-OfficeExcelSheet -Name 'Data' -PassThru
             if ($Target -eq 'Cell') {

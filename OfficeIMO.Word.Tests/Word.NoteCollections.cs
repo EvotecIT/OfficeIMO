@@ -81,13 +81,13 @@ public sealed class WordNoteCollectionTests {
     [Fact]
     public void FootnoteDefinitionsRemainAvailableOnlyWhenNoBodyReferenceExists() {
         using WordDocument document = WordDocument.Create();
-        WordParagraph removedReference = document.AddParagraph("orphan owner").AddFootNote("orphan definition");
+        WordParagraph removedReference = document.AddParagraph("orphan owner").AddFootNote("orphan definition").Paragraph;
         removedReference.Remove();
         Assert.Empty(document.Sections[0].FootNotes);
         Assert.Equal("orphan definition", NoteText(Assert.Single(document.FootNotes).Paragraphs));
 
         WordParagraph liveReference = document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0]
-            .AddText("live owner").AddFootNote("live definition");
+            .AddText("live owner").AddFootNote("live definition").Paragraph;
         Assert.Equal("live definition", NoteText(Assert.Single(document.FootNotes).Paragraphs));
         Assert.Single(document.Sections[0].FootNotes);
         liveReference.Remove();
@@ -136,7 +136,7 @@ public sealed class WordNoteCollectionTests {
         document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0]
             .AddText("revision owner").AddFootNote("revision definition");
         if (orphanDefinition) {
-            document.AddParagraph("orphan owner").AddFootNote("orphan definition").Remove();
+            document.AddParagraph("orphan owner").AddFootNote("orphan definition").Paragraph.Remove();
         }
 
         using var imported = new MemoryStream();
@@ -290,7 +290,7 @@ public sealed class WordNoteCollectionTests {
 
     private static void AddNotePair(WordParagraph paragraph, string name) {
         paragraph.Text = name;
-        paragraph.AddFootNote(name + " footnote")
+        paragraph.AddFootNote(name + " footnote").Paragraph
             .AddText(name + " endnote owner").AddEndNote(name + " endnote");
     }
 

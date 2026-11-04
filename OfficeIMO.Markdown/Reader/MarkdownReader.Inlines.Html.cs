@@ -1,6 +1,6 @@
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     private static readonly string[] SupportedInlineHtmlWrapperTags = { "u", "sup", "sub", "ins", "q" };
     private const int MaximumInlineHtmlWrapperDepth = 32;
 
@@ -76,7 +76,7 @@ public static partial class MarkdownReader {
     private static bool TryParseSupportedInlineHtmlTag(
         string text,
         int start,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState? state,
         MarkdownInlineSourceMap? sourceMap,
         bool allowLinks,

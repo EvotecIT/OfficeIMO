@@ -39,7 +39,7 @@ public sealed class BibliographyCodecContractTests {
         BibliographyDocument document = BibliographyDocument.Load(Fixture(fileName), format).Document;
         Assert.Single(document.Items);
         document.Items[0].Title = "Edited citation title";
-        var options = new BibliographyWriteOptions { Format = format, Mode = BibliographyWriterMode.Canonical, LineEnding = "\n", RequireNoLoss = true };
+        var options = new BibliographyWriteOptions { Format = format, Mode = BibliographyWriterMode.Canonical, LineEnding = "\n", FailOnLoss = true };
 
         BibliographyWriteResult first = document.Write(options);
         BibliographyWriteResult second = document.Write(options);
@@ -100,12 +100,12 @@ public sealed class BibliographyCodecContractTests {
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions {
             Format = BibliographyFormat.Ris,
             Mode = BibliographyWriterMode.Canonical,
-            RequireNoLoss = true
+            FailOnLoss = true
         }));
 
         Assert.True(exception.Report.HasLoss);
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Action == BibliographyConversionAction.Omitted && diagnostic.Field == "dates.Submitted");
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Field == "x-private");
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Action == BibliographyConversionAction.Omitted && diagnostic.Field == "dates.Submitted");
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Field == "x-private");
     }
 
     [Fact]
@@ -156,7 +156,7 @@ public sealed class BibliographyCodecContractTests {
             document.Items[0].Title = "Changed";
         }
 
-        BibliographyWriteResult result = document.Write(new BibliographyWriteOptions { Format = format, Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult result = document.Write(new BibliographyWriteOptions { Format = format, Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyItem reopened = BibliographyDocument.Parse(result.Content, format).Document.Items[0];
 
         Assert.Equal(BibliographyItemType.Unknown, reopened.Type);
@@ -168,7 +168,7 @@ public sealed class BibliographyCodecContractTests {
         BibliographyDocument document = BibliographyDocument.Parse("[{\"id\":\"range\",\"type\":\"book\",\"issued\":{\"date-parts\":[[2024,1,2],[2025,3,4]]}}]", BibliographyFormat.CslJson).Document;
         document.Items[0].Title = "Edited range";
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Format = BibliographyFormat.CslJson, Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Format = BibliographyFormat.CslJson, Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyDate date = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson).Document.Items[0].Dates);
 
         Assert.Equal(2024, date.Year); Assert.Equal(1, date.Month); Assert.Equal(2, date.Day);
@@ -179,7 +179,7 @@ public sealed class BibliographyCodecContractTests {
     public void Date_range_reports_loss_for_destination_without_exact_range_contract() {
         BibliographyDocument document = BibliographyDocument.Parse("[{\"id\":\"range\",\"type\":\"book\",\"issued\":{\"date-parts\":[[2024],[2025]]}}]", BibliographyFormat.CslJson).Document;
 
-        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Format = BibliographyFormat.BibTex, Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Format = BibliographyFormat.BibTex, Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
         Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV219");
     }
@@ -211,7 +211,7 @@ public sealed class BibliographyCodecContractTests {
         document.Items.Add(new BibliographyItem { Key = "duplicate", Type = BibliographyItemType.Book, Title = "First" });
         document.Items.Add(new BibliographyItem { Key = "duplicate", Type = BibliographyItemType.Book, Title = "Second" });
 
-        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
         Assert.Equal(2, exception.Report.Diagnostics.Count(diagnostic => diagnostic.Code == "BIBCONV216"));
     }
@@ -221,7 +221,7 @@ public sealed class BibliographyCodecContractTests {
         BibliographyDocument document = BibliographyDocument.Parse("PMID- 1\nPT  - Randomized Controlled Trial\nTI  - Original\n", BibliographyFormat.Nbib).Document;
         document.Items[0].Title = "Edited";
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Format = BibliographyFormat.Nbib, Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Format = BibliographyFormat.Nbib, Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.Nbib).Document.Items);
 
         Assert.Contains(reopened.NativeFields, field => field.Name == "PT" && field.Value == "Randomized Controlled Trial");

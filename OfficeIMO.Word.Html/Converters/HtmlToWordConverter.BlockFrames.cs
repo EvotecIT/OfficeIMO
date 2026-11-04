@@ -2,7 +2,7 @@ using AngleSharp.Dom;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Globalization;
-using SixColor = OfficeIMO.Drawing.OfficeColor;
+using SixColor = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
@@ -273,8 +273,8 @@ namespace OfficeIMO.Word.Html {
             ParseElementBlockFrameStyles(element, out string? background, out var sideBorders);
             foreach (WordTableRow row in rows) {
                 foreach (WordTableCell cell in row.Cells) {
-                    if (!string.IsNullOrEmpty(background) && string.IsNullOrEmpty(cell.ShadingFillColorHex)) {
-                        cell.ShadingFillColorHex = background!;
+                    if (!string.IsNullOrEmpty(background) && string.IsNullOrEmpty(cell.ShadingFillValue)) {
+                        cell.ShadingFillValue = background!;
                     }
                 }
             }
@@ -319,23 +319,23 @@ namespace OfficeIMO.Word.Html {
             switch (side) {
                 case BlockBorderSide.Left:
                     cell.Borders.LeftStyle = value.Style.ToOfficeEnum();
-                    cell.Borders.LeftSize = value.Size;
-                    cell.Borders.LeftColorHex = color;
+                    cell.Borders.LeftSize = WordBorderLengths.FromSize(value.Size);
+                    cell.Borders.LeftColorValue = color;
                     break;
                 case BlockBorderSide.Right:
                     cell.Borders.RightStyle = value.Style.ToOfficeEnum();
-                    cell.Borders.RightSize = value.Size;
-                    cell.Borders.RightColorHex = color;
+                    cell.Borders.RightSize = WordBorderLengths.FromSize(value.Size);
+                    cell.Borders.RightColorValue = color;
                     break;
                 case BlockBorderSide.Top:
                     cell.Borders.TopStyle = value.Style.ToOfficeEnum();
-                    cell.Borders.TopSize = value.Size;
-                    cell.Borders.TopColorHex = color;
+                    cell.Borders.TopSize = WordBorderLengths.FromSize(value.Size);
+                    cell.Borders.TopColorValue = color;
                     break;
                 case BlockBorderSide.Bottom:
                     cell.Borders.BottomStyle = value.Style.ToOfficeEnum();
-                    cell.Borders.BottomSize = value.Size;
-                    cell.Borders.BottomColorHex = color;
+                    cell.Borders.BottomSize = WordBorderLengths.FromSize(value.Size);
+                    cell.Borders.BottomColorValue = color;
                     break;
             }
         }
@@ -393,8 +393,8 @@ namespace OfficeIMO.Word.Html {
 
             if (!string.IsNullOrEmpty(background)) {
                 foreach (WordParagraph paragraph in paragraphs) {
-                    if (string.IsNullOrEmpty(paragraph.ShadingFillColorHex)) {
-                        paragraph.ShadingFillColorHex = background!;
+                    if (string.IsNullOrEmpty(paragraph.ShadingFillValue)) {
+                        paragraph.ShadingFillValue = background!;
                     }
                 }
             }
@@ -425,21 +425,21 @@ namespace OfficeIMO.Word.Html {
             int horizontalEnd = (box.MarginRight ?? 0) + (box.PaddingRight ?? 0);
             foreach (WordParagraph paragraph in paragraphs) {
                 if (horizontalStart != 0) {
-                    paragraph.IndentationBefore = (paragraph.IndentationBefore ?? 0) + horizontalStart;
+                    paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(((checked((int?)(paragraph.IndentationBefore?.ToTwips())) ?? 0) + horizontalStart) / 20D);
                 }
                 if (horizontalEnd != 0) {
-                    paragraph.IndentationAfter = (paragraph.IndentationAfter ?? 0) + horizontalEnd;
+                    paragraph.IndentationAfter = global::OfficeIMO.OfficeLength.Points(((checked((int?)(paragraph.IndentationAfter?.ToTwips())) ?? 0) + horizontalEnd) / 20D);
                 }
             }
 
             int verticalStart = (box.MarginTop ?? 0) + (box.PaddingTop ?? 0);
             if (verticalStart != 0) {
-                paragraphs[0].LineSpacingBefore = (paragraphs[0].LineSpacingBefore ?? 0) + verticalStart;
+                paragraphs[0].LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(((checked((int?)(paragraphs[0].LineSpacingBefore?.ToTwips())) ?? 0) + verticalStart) / 20D);
             }
             int verticalEnd = (box.MarginBottom ?? 0) + (box.PaddingBottom ?? 0);
             if (verticalEnd != 0) {
                 WordParagraph last = paragraphs[paragraphs.Count - 1];
-                last.LineSpacingAfter = (last.LineSpacingAfter ?? 0) + verticalEnd;
+                last.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(((checked((int?)(last.LineSpacingAfter?.ToTwips())) ?? 0) + verticalEnd) / 20D);
             }
         }
 
@@ -753,23 +753,23 @@ namespace OfficeIMO.Word.Html {
             switch (side) {
                 case BlockBorderSide.Left:
                     paragraph.Borders.LeftStyle = value.Style.ToOfficeEnum();
-                    paragraph.Borders.LeftSize = value.Size;
-                    paragraph.Borders.LeftColorHex = color;
+                    paragraph.Borders.LeftSize = OfficeLength.Points(value.Size / 8D);
+                    paragraph.Borders.LeftColorValue = color;
                     break;
                 case BlockBorderSide.Right:
                     paragraph.Borders.RightStyle = value.Style.ToOfficeEnum();
-                    paragraph.Borders.RightSize = value.Size;
-                    paragraph.Borders.RightColorHex = color;
+                    paragraph.Borders.RightSize = OfficeLength.Points(value.Size / 8D);
+                    paragraph.Borders.RightColorValue = color;
                     break;
                 case BlockBorderSide.Top:
                     paragraph.Borders.TopStyle = value.Style.ToOfficeEnum();
-                    paragraph.Borders.TopSize = value.Size;
-                    paragraph.Borders.TopColorHex = color;
+                    paragraph.Borders.TopSize = OfficeLength.Points(value.Size / 8D);
+                    paragraph.Borders.TopColorValue = color;
                     break;
                 case BlockBorderSide.Bottom:
                     paragraph.Borders.BottomStyle = value.Style.ToOfficeEnum();
-                    paragraph.Borders.BottomSize = value.Size;
-                    paragraph.Borders.BottomColorHex = color;
+                    paragraph.Borders.BottomSize = OfficeLength.Points(value.Size / 8D);
+                    paragraph.Borders.BottomColorValue = color;
                     break;
             }
         }

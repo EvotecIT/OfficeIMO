@@ -11,15 +11,15 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_TableRename_RewritesStableAndDisplayNameAliases() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Amount");
-            sheet.CellValue(2, 1, 10);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Amount");
+            sheet.Cell(2, 1).SetValue(10);
             sheet.AddTable("A1:A2", true, "Internal", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
             Table table = Assert.Single(sheet.WorksheetPart.TableDefinitionParts).Table!;
             table.DisplayName = "Sales";
             table.Save();
-            sheet.CellFormula(4, 1, "SUM(Internal[Amount])");
-            sheet.CellFormula(5, 1, "SUM(Sales[Amount])");
+            sheet.Cell(4, 1).SetFormula("SUM(Internal[Amount])");
+            sheet.Cell(5, 1).SetFormula("SUM(Sales[Amount])");
 
             Assert.Equal("Orders", sheet.RenameTable("Sales", "Orders"));
 
@@ -33,9 +33,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaSearch_DoesNotTreatStructuredEscapeAsQuotedQualifier() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellFormula(1, 1, "Table1['#Data]+SUM(A2)");
-            sheet.CellFormula(2, 1, "'SUM(A1)'!B2");
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetFormula("Table1['#Data]+SUM(A2)");
+            sheet.Cell(2, 1).SetFormula("'SUM(A1)'!B2");
 
             ExcelFormulaCellInfo match = Assert.Single(sheet.SearchFormulas(
                 new ExcelFormulaSearchOptions { Function = "SUM" }));
@@ -81,12 +81,12 @@ namespace OfficeIMO.Tests {
         }
 
         private static ExcelSheet CreateCellShiftDrawingSheet(ExcelDocument document, string name) {
-            ExcelSheet sheet = document.AddWorksheet(name);
-            sheet.CellValue(1, 1, "Category");
-            sheet.CellValue(1, 2, "Value");
-            sheet.CellValue(2, 1, "One");
-            sheet.CellValue(2, 2, 1);
-            sheet.AddChartFromRange("A1:B2", row: 5, column: 4);
+            ExcelSheet sheet = document.AddSheet(name);
+            sheet.Cell(1, 1).SetValue("Category");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("One");
+            sheet.Cell(2, 2).SetValue(1);
+            sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 5, Column = 4 });
             return sheet;
         }
 

@@ -46,7 +46,7 @@ public class RtfBridgeStreamTests {
         using var stream = new MemoryStream();
         stream.WriteByte(0x2A);
 
-        PdfCore.PdfSaveResult result = document.SaveAsPdfResult(stream);
+        PdfCore.PdfSaveResult result = document.ConvertToPdfWithEvidence().Save(stream);
 
         byte[] bytes = stream.ToArray();
         Assert.True(result.Succeeded, result.Exception?.Message);

@@ -1,42 +1,42 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Builder for footer text segments and tokens.</summary>
-public sealed class FooterTextBuilder {
-    private readonly System.Collections.Generic.List<FooterSegment> _segments;
-    internal FooterTextBuilder(System.Collections.Generic.List<FooterSegment> segs) { _segments = segs; }
+public sealed class PdfFooterTextBuilder {
+    private readonly System.Collections.Generic.List<PdfFooterSegment> _segments;
+    internal PdfFooterTextBuilder(System.Collections.Generic.List<PdfFooterSegment> segs) { _segments = segs; }
     /// <summary>Adds a literal text segment to the footer.</summary>
     /// <param name="s">Text to render.</param>
     /// <returns>The same builder for chaining.</returns>
-    public FooterTextBuilder Text(string s) { Guard.NotNull(s, nameof(s)); _segments.Add(new FooterSegment(FooterSegmentKind.Text, s)); return this; }
+    public PdfFooterTextBuilder Text(string s) { Guard.NotNull(s, nameof(s)); _segments.Add(new PdfFooterSegment(PdfFooterSegmentKind.Text, s)); return this; }
 
     /// <summary>Adds a visually styled text run to the footer.</summary>
     /// <param name="run">Styled text to render. Interactive links, inline visuals, and paragraph tabs are not supported.</param>
     /// <returns>The same builder for chaining.</returns>
-    public FooterTextBuilder Run(PdfTextRun run) { Guard.NotNull(run, nameof(run)); _segments.Add(FooterSegment.RichText(run)); return this; }
+    public PdfFooterTextBuilder Run(PdfTextRun run) { Guard.NotNull(run, nameof(run)); _segments.Add(PdfFooterSegment.RichText(run)); return this; }
 
     /// <summary>Adds a token that renders the current page number.</summary>
     /// <returns>The same builder for chaining.</returns>
-    public FooterTextBuilder CurrentPage() { _segments.Add(new FooterSegment(FooterSegmentKind.PageNumber)); return this; }
+    public PdfFooterTextBuilder CurrentPage() { _segments.Add(new PdfFooterSegment(PdfFooterSegmentKind.PageNumber)); return this; }
 
     /// <summary>Adds a current-page token with the supplied visual text style.</summary>
     /// <param name="style">Text run whose visual styling is applied; its text is ignored.</param>
     /// <returns>The same builder for chaining.</returns>
-    public FooterTextBuilder CurrentPage(PdfTextRun style) { Guard.NotNull(style, nameof(style)); _segments.Add(FooterSegment.PageNumber(style)); return this; }
+    public PdfFooterTextBuilder CurrentPage(PdfTextRun style) { Guard.NotNull(style, nameof(style)); _segments.Add(PdfFooterSegment.PageNumber(style)); return this; }
 
     /// <summary>Adds a token that renders the total number of pages.</summary>
     /// <returns>The same builder for chaining.</returns>
-    public FooterTextBuilder TotalPages() { _segments.Add(new FooterSegment(FooterSegmentKind.TotalPages)); return this; }
+    public PdfFooterTextBuilder TotalPages() { _segments.Add(new PdfFooterSegment(PdfFooterSegmentKind.TotalPages)); return this; }
 
     /// <summary>Adds a total-pages token with the supplied visual text style.</summary>
     /// <param name="style">Text run whose visual styling is applied; its text is ignored.</param>
     /// <returns>The same builder for chaining.</returns>
-    public FooterTextBuilder TotalPages(PdfTextRun style) { Guard.NotNull(style, nameof(style)); _segments.Add(FooterSegment.TotalPages(style)); return this; }
+    public PdfFooterTextBuilder TotalPages(PdfTextRun style) { Guard.NotNull(style, nameof(style)); _segments.Add(PdfFooterSegment.TotalPages(style)); return this; }
     /// <summary>Adds the page count of the complete document, including all sections.</summary>
     /// <returns>The same builder for chaining.</returns>
-    public FooterTextBuilder DocumentPages() { _segments.Add(new FooterSegment(FooterSegmentKind.DocumentPages)); return this; }
+    public PdfFooterTextBuilder DocumentPages() { _segments.Add(new PdfFooterSegment(PdfFooterSegmentKind.DocumentPages)); return this; }
 
     /// <summary>Adds a document-wide page-count token with the supplied visual text style.</summary>
     /// <param name="style">Text run whose visual styling is applied; its text is ignored.</param>
     /// <returns>The same builder for chaining.</returns>
-    public FooterTextBuilder DocumentPages(PdfTextRun style) { Guard.NotNull(style, nameof(style)); _segments.Add(FooterSegment.DocumentPages(style)); return this; }
+    public PdfFooterTextBuilder DocumentPages(PdfTextRun style) { Guard.NotNull(style, nameof(style)); _segments.Add(PdfFooterSegment.DocumentPages(style)); return this; }
 }

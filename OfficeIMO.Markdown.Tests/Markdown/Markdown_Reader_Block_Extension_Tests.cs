@@ -15,7 +15,7 @@ Paragraph line
 :::
 """;
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, CreateOptions());
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, CreateOptions());
 
         var panel = Assert.IsType<PanelBlock>(Assert.Single(document.Blocks));
         Assert.Equal("Ops Notes", panel.Title);
@@ -93,7 +93,7 @@ Paragraph line
         const string markdown = "::claim alpha\r\ncontinued\r\n\r\n";
         MarkdownSourceSlice sourceSlice = default;
         bool sourceSliceOk = false;
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.BlockParserExtensions.Add(new MarkdownBlockParserExtension(
             "source-aware-claim",
             MarkdownBlockParserPlacement.BeforeParagraphs,
@@ -110,7 +110,7 @@ Paragraph line
                 return true;
             })));
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
 
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
         Assert.Equal("claimed", InlinePlainText.Extract(paragraph.Inlines));
@@ -124,7 +124,7 @@ Paragraph line
     public void Block_Parser_Context_Exposes_A_Bound_Document_During_Parsing() {
         const string markdown = "# Existing\n\n::claim";
         bool observedBoundDocument = false;
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.BlockParserExtensions.Add(new MarkdownBlockParserExtension(
             "document-aware-claim",
             MarkdownBlockParserPlacement.BeforeParagraphs,
@@ -134,7 +134,7 @@ Paragraph line
                     return false;
                 }
 
-                MarkdownDoc document = context.Document;
+                MarkdownDocument document = context.Document;
                 var existingHeading = Assert.IsType<HeadingBlock>(Assert.Single(document.Blocks));
                 observedBoundDocument = ReferenceEquals(existingHeading.Parent, document) && existingHeading.IndexInParent == 0;
                 result = new MarkdownBlockParseResult(
@@ -143,7 +143,7 @@ Paragraph line
                 return true;
             })));
 
-        MarkdownDoc parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        MarkdownDocument parsed = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
 
         Assert.True(observedBoundDocument);
         Assert.Equal(2, parsed.Blocks.Count);
@@ -209,9 +209,9 @@ Paragraph line
 ### Deep
 """;
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, CreateOptions());
-        var html = document.ToHtmlFragment(new HtmlOptions {
-            Kind = HtmlKind.Fragment,
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, CreateOptions());
+        var html = document.ToHtml(new MarkdownHtmlExportOptions {
+            Kind = MarkdownHtmlKind.Fragment,
             Title = "panel-title"
         });
 
@@ -234,9 +234,9 @@ Paragraph line
 ## Child
 """;
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, CreateOptions());
-        var htmlOptions = new HtmlOptions {
-            Kind = HtmlKind.Fragment,
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, CreateOptions());
+        var htmlOptions = new MarkdownHtmlExportOptions {
+            Kind = MarkdownHtmlKind.Fragment,
             Title = "override-title"
         };
         htmlOptions.BlockRenderExtensions.Add(MarkdownBlockHtmlRenderExtension.CreateContextual(
@@ -248,8 +248,8 @@ Paragraph line
                 }
 
                 var blockIndex = context.GetBlockIndex(panel);
-                var titleAnchor = context.GetPrecedingHeadingAnchor(blockIndex, new TocOptions {
-                    Scope = TocScope.PreviousHeading,
+                var titleAnchor = context.GetPrecedingHeadingAnchor(blockIndex, new MarkdownTocOptions {
+                    Scope = MarkdownTocScope.PreviousHeading,
                     IncludeTitle = true,
                     MinLevel = 2,
                     MaxLevel = 6
@@ -257,7 +257,7 @@ Paragraph line
                 return $"<aside data-panel-override=\"true\" data-title=\"{System.Net.WebUtility.HtmlEncode(context.Options.Title)}\" data-block-index=\"{blockIndex}\" data-parent-anchor=\"{System.Net.WebUtility.HtmlEncode(titleAnchor)}\">{System.Net.WebUtility.HtmlEncode(panel.Title)}</aside>";
             }));
 
-        var html = document.ToHtmlFragment(htmlOptions);
+        var html = document.ToHtml(htmlOptions);
 
         Assert.Contains("data-panel-override=\"true\"", html, StringComparison.Ordinal);
         Assert.Contains("data-title=\"override-title\"", html, StringComparison.Ordinal);
@@ -278,8 +278,8 @@ Paragraph line
         var normalizedOk = false;
         var originalOk = false;
 
-        var htmlOptions = new HtmlOptions {
-            Kind = HtmlKind.Fragment
+        var htmlOptions = new MarkdownHtmlExportOptions {
+            Kind = MarkdownHtmlKind.Fragment
         };
         htmlOptions.BlockRenderExtensions.Add(MarkdownBlockHtmlRenderExtension.CreateContextual(
             "panel-source-aware",
@@ -297,7 +297,7 @@ Paragraph line
                     + "</aside>";
             }));
 
-        var html = document.ToHtmlFragment(htmlOptions);
+        var html = document.ToHtml(htmlOptions);
 
         Assert.Contains("data-panel-source=\"true\"", html, StringComparison.Ordinal);
         Assert.NotNull(seenSyntax);
@@ -318,9 +318,9 @@ Paragraph line
 :::
 """;
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, CreateOptions());
-        var htmlOptions = new HtmlOptions {
-            Kind = HtmlKind.Fragment,
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, CreateOptions());
+        var htmlOptions = new MarkdownHtmlExportOptions {
+            Kind = MarkdownHtmlKind.Fragment,
             Title = "legacy-title"
         };
         htmlOptions.BlockRenderExtensions.Add(new MarkdownBlockHtmlRenderExtension(
@@ -334,7 +334,7 @@ Paragraph line
                 return $"<aside data-legacy-panel=\"true\" data-title=\"{System.Net.WebUtility.HtmlEncode(options.Title)}\">{System.Net.WebUtility.HtmlEncode(panel.Title)}</aside>";
             }));
 
-        var html = document.ToHtmlFragment(htmlOptions);
+        var html = document.ToHtml(htmlOptions);
 
         Assert.Contains("data-legacy-panel=\"true\"", html, StringComparison.Ordinal);
         Assert.Contains("data-title=\"legacy-title\"", html, StringComparison.Ordinal);
@@ -345,7 +345,7 @@ Paragraph line
         const string markdown = "::claim";
         var firstCalls = 0;
         var secondCalls = 0;
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.BlockParserExtensions.Add(new MarkdownBlockParserExtension(
             "first-claim",
             MarkdownBlockParserPlacement.BeforeParagraphs,
@@ -367,7 +367,7 @@ Paragraph line
                 return true;
             })));
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
 
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
         Assert.Equal("first extension", InlinePlainText.Extract(paragraph.Inlines));
@@ -379,7 +379,7 @@ Paragraph line
     public void Disabled_Block_Parser_Extension_Falls_Back_To_Core_Parsers() {
         const string markdown = "::disabled";
         var calls = 0;
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.BlockParserExtensions.Add(new MarkdownBlockParserExtension(
             "disabled-claim",
             MarkdownBlockParserPlacement.BeforeParagraphs,
@@ -392,7 +392,7 @@ Paragraph line
             }),
             isEnabled: _ => false));
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
 
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
         Assert.Equal("::disabled", InlinePlainText.Extract(paragraph.Inlines));
@@ -403,7 +403,7 @@ Paragraph line
     public void Block_Parser_Extension_Placement_Can_Claim_Input_Before_Later_Core_Parsers() {
         const string markdown = "[hero]: /url\n\n[hero]";
         var calls = 0;
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.BlockParserExtensions.Add(new MarkdownBlockParserExtension(
             "claim-reference-looking-line",
             MarkdownBlockParserPlacement.AfterHtmlBlocks,
@@ -412,7 +412,7 @@ Paragraph line
                 () => calls++,
                 context => context.CurrentLine.StartsWith("[hero]:", StringComparison.Ordinal))));
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
 
         Assert.Equal(2, document.Blocks.Count);
         var claimed = Assert.IsType<ParagraphBlock>(document.Blocks[0]);
@@ -429,13 +429,13 @@ Paragraph line
 | 1 | 2 |
 """;
         var calls = 0;
-        var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        var options = MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile();
         options.BlockParserExtensions.Add(new MarkdownBlockParserExtension(
             "late-claim-anything",
             MarkdownBlockParserPlacement.BeforeParagraphs,
             CreateClaimingParser("late extension", () => calls++)));
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
 
         Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
         Assert.Equal(0, calls);
@@ -448,7 +448,7 @@ Paragraph line
 > Body
 """;
         var calls = 0;
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.BlockParserExtensions.Add(new MarkdownBlockParserExtension(
             "custom-after-default-callout",
             MarkdownBlockParserPlacement.AfterFrontMatter,
@@ -457,7 +457,7 @@ Paragraph line
                 () => calls++,
                 context => context.CurrentLine.StartsWith("> [!", StringComparison.Ordinal))));
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
 
         Assert.IsType<CalloutBlock>(Assert.Single(document.Blocks));
         Assert.Equal(0, calls);
@@ -470,7 +470,7 @@ Paragraph line
 > Body
 """;
         var calls = 0;
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.Callouts = true;
         options.BlockParserExtensions.Add(new MarkdownBlockParserExtension(
             "custom-before-callout",
@@ -482,15 +482,15 @@ Paragraph line
                 consumedLineCount: 2)));
         MarkdownReaderBuiltInExtensions.AddCallouts(options);
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
 
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
         Assert.Equal("custom before callout", InlinePlainText.Extract(paragraph.Inlines));
         Assert.Equal(1, calls);
     }
 
-    private static MarkdownReaderOptions CreateOptions() {
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+    private static MarkdownLoadOptions CreateOptions() {
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.BlockParserExtensions.Add(new MarkdownBlockParserExtension(
             "panel-block",
             MarkdownBlockParserPlacement.BeforeParagraphs,
@@ -607,8 +607,8 @@ Paragraph line
         string IContextualHtmlMarkdownBlock.RenderHtml(MarkdownBodyRenderContext context) {
             var body = string.Concat(ChildBlocks.Select(block => block.RenderHtml()));
             var blockIndex = context.GetBlockIndex(this);
-            var tocOptions = new TocOptions {
-                Scope = TocScope.PreviousHeading,
+            var tocOptions = new MarkdownTocOptions {
+                Scope = MarkdownTocScope.PreviousHeading,
                 IncludeTitle = true,
                 MinLevel = 2,
                 MaxLevel = 6

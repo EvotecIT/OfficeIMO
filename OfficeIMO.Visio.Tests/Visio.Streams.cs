@@ -65,7 +65,7 @@ namespace OfficeIMO.Tests {
                 Assert.Single(VisioDocument.Load(sourcePath).Pages);
                 Assert.Equal(2, VisioDocument.Load(copyPath).Pages.Count);
 
-                using var stream = document.ToStream();
+                using var stream = new System.IO.MemoryStream(document.ToBytes());
                 stream.Position = stream.Length;
                 long originalPosition = stream.Position;
                 VisioDocument loaded = await VisioDocument.LoadAsync(stream);
@@ -82,7 +82,7 @@ namespace OfficeIMO.Tests {
         public async Task LoadAsync_HonorsPreCanceledTokenAndRestoresPosition() {
             VisioDocument source = VisioDocument.Create();
             source.AddPage("Canceled");
-            using var stream = source.ToStream();
+            using var stream = new System.IO.MemoryStream(source.ToBytes());
             stream.Position = 4;
             using var cancellation = new CancellationTokenSource();
             cancellation.Cancel();

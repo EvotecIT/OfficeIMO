@@ -52,7 +52,7 @@ public sealed class IWorkPagesRichNumberedItemNativeExportTests {
                 Assert.Equal(runs[run].GetProperty("color").GetString(), style.Color!.RgbHex);
             }
         }
-        using var result = source.ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = source.ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction(); using var output = new MemoryStream(); result.Value.Save(output);
         using (var reopened = WordDocument.Load(new MemoryStream(output.ToArray())))
             Assert.Equal(items.Select(item => item.ListNumber!.Value),
@@ -90,7 +90,7 @@ public sealed class IWorkPagesRichNumberedItemNativeExportTests {
         foreach (JsonElement scenario in manifest.RootElement.GetProperty("cases").EnumerateArray()) {
             foreach (string producer in new[] { "nativePdf", "officeimoPdf" }) {
                 if (!scenario.TryGetProperty(producer, out JsonElement artifact)) continue;
-                PdfReadDocument pdf = PdfReadDocument.Open(File.ReadAllBytes(Artifact(manifest.RootElement, artifact.GetString()!)));
+                PdfDocument pdf = PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(Artifact(manifest.RootElement, artifact.GetString()!))));
                 var page = Assert.Single(pdf.Pages); string text = Compact(page.ExtractText()); int previous = -1;
                 foreach (JsonElement item in scenario.GetProperty("expectedItems").EnumerateArray()) {
                     string wanted = Compact(item.GetProperty("number").GetInt32().ToString(System.Globalization.CultureInfo.InvariantCulture)

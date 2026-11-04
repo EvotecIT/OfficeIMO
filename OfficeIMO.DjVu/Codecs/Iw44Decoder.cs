@@ -17,7 +17,7 @@ internal sealed partial class Iw44Decoder {
         if (end - position < 2 || data[position++] != _serial++) throw new InvalidDataException("Invalid IW44 progressive chunk sequence.");
         int slices = data[position++];
         if (slices > _budget.Options.MaxIw44Slices - _slices)
-            throw new DjVuResourceLimitException(nameof(DjVuReadOptions.MaxIw44Slices));
+            throw new DjVuResourceLimitException(nameof(DjVuLoadOptions.MaxIw44Slices));
         _slices += slices;
         if (_planes == null) {
             if (end - position < 7) throw new InvalidDataException("Truncated IW44 header.");
@@ -28,7 +28,7 @@ internal sealed partial class Iw44Decoder {
             _delay = chroma & 127;
             _halfChroma = (chroma & 128) == 0;
             if (Width <= 0 || Height <= 0) throw new InvalidDataException("Empty IW44 image.");
-            if ((long)Width * Height > _budget.Options.MaxPagePixels) throw new DjVuResourceLimitException(nameof(DjVuReadOptions.MaxPagePixels));
+            if ((long)Width * Height > _budget.Options.MaxPagePixels) throw new DjVuResourceLimitException(nameof(DjVuLoadOptions.MaxPagePixels));
             int blocks = checked(((Width + 31) / 32) * ((Height + 31) / 32));
             int components = (major & 128) != 0 ? 1 : 3;
             _budget.WorkingBytes(blocks * 1024L * components * 4 + (long)Width * Height * (components * 4 + 4));

@@ -32,7 +32,7 @@ public partial class Excel {
             """;
         try {
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", (utf16 ? Encoding.Unicode : Encoding.UTF8).GetBytes(xml));
-            var options = new ExcelReadOptions { MaxPendingTypedRows = 2 };
+            var options = new ExcelReaderOptions { MaxPendingTypedRows = 2 };
             if (readerPath == "Converter") options.CellValueConverter = static _ => ExcelCellValue.NotHandled;
             if (readerPath == "Dom") options.Culture = CultureInfo.GetCultureInfo("fr-FR");
             using var document = readerPath == "Dom" ? SpreadsheetDocument.Open(path, true) : null;
@@ -110,7 +110,7 @@ public partial class Excel {
         foreach (bool repeatedRow in new[] { false, true }) {
             string path = CreateFinalTypedRowWorkbook(repeatedRow);
             try {
-                var options = new ExcelReadOptions {
+                var options = new ExcelReaderOptions {
                     CellValueConverter = static context => context.RawText == string.Empty
                         ? new ExcelCellValue(null)
                         : ExcelCellValue.NotHandled
@@ -142,7 +142,7 @@ public partial class Excel {
     public void Reader_TypedReadersDoNotConvertSupersededRowValues(bool dom, string api) {
         string path = CreateFinalTypedRowWorkbook(repeatedRow: true);
         try {
-            var options = new ExcelReadOptions {
+            var options = new ExcelReaderOptions {
                 CellValueConverter = static context => context.RawText == "superseded"
                     ? throw new InvalidDataException("The final logical row does not contain this value.")
                     : ExcelCellValue.NotHandled
@@ -216,7 +216,7 @@ public partial class Excel {
                         </sheetData></worksheet>
                         """;
                     ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml));
-                    var options = new ExcelReadOptions {
+                    var options = new ExcelReaderOptions {
                         TreatDatesUsingNumberFormat = treatDates,
                         CellValueConverter = static context => context.TypeHint is ExcelCellValueType.Boolean
                             or ExcelCellValueType.Date || context.RawText == "final"
@@ -307,7 +307,7 @@ public partial class Excel {
                 </sheetData></worksheet>
                 """;
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml));
-            var options = new ExcelReadOptions { FillBlanksInRanges = fillBlanks };
+            var options = new ExcelReaderOptions { FillBlanksInRanges = fillBlanks };
             using var document = dom ? SpreadsheetDocument.Open(path, true) : null;
             using var owner = document == null ? ExcelDocumentReader.Open(path, options) : ExcelDocumentReader.Wrap(document, options);
             var sheet = owner.GetSheet("Data");

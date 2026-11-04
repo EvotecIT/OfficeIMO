@@ -30,7 +30,7 @@ public class PdfPageInteractionMapTests {
     [Fact]
     public void InteractionMap_ProjectsTextLinksAnnotationsAndWidgets() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Selectable text ").Link("project", "https://officeimo.net/"))
+            .Paragraph(paragraph => { paragraph.AddText("Selectable text "); paragraph.AddLink("project", "https://officeimo.net/"); })
             .TextField("Person.Name", value: "Ada")
             .ToBytes();
         source = PdfAnnotationEditor.AddStampAnnotation(
@@ -61,7 +61,7 @@ public class PdfPageInteractionMapTests {
     [Fact]
     public void InteractionMap_AppliesCropAndPageRotationToVisualCoordinates() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Link("rotated link", "https://example.com/rotated"))
+            .Paragraph(paragraph => paragraph.AddLink("rotated link", "https://example.com/rotated"))
             .ToBytes();
         source = PdfPageEditor.SetCropBox(source, 0, 200, 595, 842);
         source = PdfPageEditor.RotatePages(source, 90);
@@ -82,7 +82,7 @@ public class PdfPageInteractionMapTests {
     [Fact]
     public void InteractionMap_ProjectsExactEditableImagePlacement() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Image interaction"))
+            .Paragraph(paragraph => paragraph.AddText("Image interaction"))
             .ToBytes();
         PdfDocument withImage = PdfDocument.Load(source).Images.Add(
             new PdfPageRegion(1, 50D, 60D, 40D, 20D),
@@ -152,7 +152,7 @@ public class PdfPageInteractionMapTests {
     [Fact]
     public void InteractionMap_ProjectsImageThroughCropAndPageRotation() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Rotated image interaction"))
+            .Paragraph(paragraph => paragraph.AddText("Rotated image interaction"))
             .ToBytes();
         byte[] withImage = PdfDocument.Load(source).Images.Add(
             new PdfPageRegion(1, 75D, 90D, 45D, 30D),
@@ -266,7 +266,7 @@ public class PdfPageInteractionMapTests {
     [Fact]
     public void InteractionMap_EnforcesTextRegionBudget() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("More than one glyph"))
+            .Paragraph(paragraph => paragraph.AddText("More than one glyph"))
             .ToBytes();
 
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
@@ -279,7 +279,7 @@ public class PdfPageInteractionMapTests {
     [Fact]
     public void InteractionMap_EnforcesImageRegionBudget() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Image budget"))
+            .Paragraph(paragraph => paragraph.AddText("Image budget"))
             .ToBytes();
         PdfDocument first = PdfDocument.Load(source).Images.Add(
             new PdfPageRegion(1, 20D, 20D, 20D, 20D),
@@ -318,7 +318,7 @@ public class PdfPageInteractionMapTests {
 
     [Fact]
     public void InteractionMap_CountsOnlyImageRegionsThatIntersectThePage() {
-        byte[] source = PdfDocument.Create(compose => compose.Page(page => page.Size(200D, 200D))).ToBytes();
+        byte[] source = PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200D), global::OfficeIMO.OfficeLength.Points(200D)))).ToBytes();
         PdfDocument offPage = PdfDocument.Load(source).Images.Add(
             new PdfPageRegion(1, 10000D, 10000D, 20D, 20D),
             PdfPngTestImages.CreateRgbPng(255, 0, 0)).Document;

@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "DocumentWithPictureControl.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var imagePath = Path.Combine(_directoryWithImages, "Kulek.jpg");
-                var pc = document.AddParagraph().AddPictureControl(imagePath, 100, 100, "PC", "PCTag");
+                var pc = document.AddParagraph().AddPictureControl(imagePath, OfficeLength.Pixels(100), OfficeLength.Pixels(100), "PC", "PCTag");
 
                 Assert.Single(document.PictureControls);
                 Assert.Equal("PC", pc.Alias);

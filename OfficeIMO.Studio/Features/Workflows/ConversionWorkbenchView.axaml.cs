@@ -56,6 +56,7 @@ public sealed partial class ConversionWorkbenchView : UserControl {
                 WorkspaceGrid.Children.Add(DetailsPanel);
             }
         }
+        if (phone && _workbench?.IsFolderJobReviewVisible == true) CompactTabs.SelectedItem = QueueTab;
         CompactTabs.IsVisible = phone;
         IsCompactLayout = width < 1100D;
         WorkspaceGrid.ColumnDefinitions[0].Width = new GridLength(phone ? 0 : IsCompactLayout ? 238D : Math.Clamp(width * .2D, 270D, 360D));

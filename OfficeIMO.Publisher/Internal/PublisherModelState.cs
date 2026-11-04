@@ -24,9 +24,9 @@ internal sealed partial class PublisherModelState {
         _publication = publication; _decoded = context; _sourceReport = sourceReport; _imported = imported;
     }
 
-    internal static PublisherModelState Create(double width, double height, PublisherReadOptions options, CancellationToken token) =>
+    internal static PublisherModelState Create(double width, double height, PublisherLoadOptions options, CancellationToken token) =>
         new(PublisherPublicationState.Create(width, height), new PublisherParseContext(options, token),
-            new PublisherReadReport(Array.Empty<OfficeConversionFidelityDiagnostic>(), 0, 0, 0, 0, 0));
+            new PublisherReadReport(Array.Empty<OfficeDiagnostic>(), 0, 0, 0, 0, 0));
 
     private int SourceObjectCount => _imported?.Contents.Shapes.Count ?? 0;
     internal PublisherQuillStyleCatalog SourceStyleCatalog => _imported?.Styles ?? PublisherQuillStyleCatalog.Empty;

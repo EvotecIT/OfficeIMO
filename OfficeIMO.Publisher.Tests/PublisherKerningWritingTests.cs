@@ -41,7 +41,7 @@ public sealed class PublisherKerningWritingTests {
         // Keep omitted/default metadata distinct from an explicit stored value.
         Assert.All(document.TextStories.SelectMany(story => story.Paragraphs).SelectMany(paragraph => paragraph.Runs),
             run => Assert.Equal(threshold == 14 ? (double?)null : threshold, run.AutomaticPairKerningThreshold));
-        Assert.Equal(source, document.ToPubBytes());
+        Assert.Equal(source, document.ToBytes());
     }
 
     [Theory]
@@ -59,7 +59,7 @@ public sealed class PublisherKerningWritingTests {
             Assert.Equal(selected == 0 ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None, run.UnderlineStyle);
             Assert.Equal(selected == 0 ? OfficeTextBaseline.Superscript : OfficeTextBaseline.Normal, run.Baseline);
         });
-        Assert.Equal(source, document.ToPubBytes());
+        Assert.Equal(source, document.ToBytes());
     }
 
     [Fact]
@@ -72,7 +72,7 @@ public sealed class PublisherKerningWritingTests {
         foreach (double? threshold in new double?[] { 0, null, 8.2, 12.5, 999.5, 14 }) {
             document.ReplaceStoryParagraphs(id, document.TextStories.Single(story => story.Id == id).Paragraphs
                 .Select(paragraph => WithThreshold(paragraph, threshold)).ToArray());
-            byte[] output = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+            byte[] output = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
             PublisherNativeWritingTests.AssertPreservedStorage(source, output, "Quill/QuillSub/CONTENTS");
             Assert.Equal(OpaqueCharacterFields(source), OpaqueCharacterFields(output));
             document = PublisherDocument.Load(output);
@@ -96,7 +96,7 @@ public sealed class PublisherKerningWritingTests {
             .WithAutomaticPairKerningThreshold(8.2);
         document.ReplaceStoryParagraphs(story.Id, new[] { new OfficeRichTextParagraph(new[] { run }, template.Alignment,
             template.LineHeight, template.Margins, template.Indent, template.LineHeightFactor).WithTabStops(template.TabStops) });
-        document = PublisherDocument.Load(document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        document = PublisherDocument.Load(document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         var recovered = Assert.Single(Assert.Single(document.TextStories).Paragraphs).Runs[0];
         Assert.Equal(8.2, recovered.FontSize);
         Assert.Equal(8.2, recovered.AutomaticPairKerningThreshold);
@@ -106,7 +106,7 @@ public sealed class PublisherKerningWritingTests {
             new OfficeRichTextRun("Transferred native points", recovered.FontSize, recovered.Color, fontFamily: recovered.FontFamily)
                 .WithAutomaticPairKerningThreshold(recovered.AutomaticPairKerningThreshold)
         }, template.Alignment, template.LineHeight, template.Margins, template.Indent, template.LineHeightFactor).WithTabStops(template.TabStops) });
-        var saved = PublisherDocument.Load(document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        var saved = PublisherDocument.Load(document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         Assert.Contains("Transferred native points", Assert.Single(saved.TextStories).Text);
         var transferred = Assert.Single(Assert.Single(saved.TextStories).Paragraphs).Runs[0];
         Assert.Equal(8.2, transferred.FontSize);
@@ -128,7 +128,7 @@ public sealed class PublisherKerningWritingTests {
         Assert.NotEmpty(requested);
         if (cells) document.ReplaceTableCellParagraphs(table!.Id, 0, 0, requested);
         else document.ReplaceStoryParagraphs(story.Id, requested);
-        PublisherDocument saved = PublisherDocument.Load(document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        PublisherDocument saved = PublisherDocument.Load(document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         var actual = cells ? saved.Pages[0].Tables.Single().Cells[0].Paragraphs : saved.TextStories[0].Paragraphs;
         Assert.Equal(requested.Select(paragraph => string.Concat(paragraph.Runs.Select(run => run.Text))),
             actual.Select(paragraph => string.Concat(paragraph.Runs.Select(run => run.Text))));
@@ -144,7 +144,7 @@ public sealed class PublisherKerningWritingTests {
         if (!cells) {
             PublisherTextStory source = document.TextStories[0];
             document.ReplaceStoryParagraphs(source.Id, new[] { source.Paragraphs[0] });
-            document = PublisherDocument.Load(document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+            document = PublisherDocument.Load(document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         }
         PublisherTable? table = cells ? document.Pages.SelectMany(page => page.Tables).First(item =>
             item.Cells.Any(cell => cell.Paragraphs.Count == 1 && cell.Paragraphs[0].Runs.All(run => run.Text.Length == 0))) : null;
@@ -155,7 +155,7 @@ public sealed class PublisherKerningWritingTests {
         var typed = WithThreshold(original, 8);
         if (cells) document.ReplaceTableCellParagraphs(table!.Id, cell!.RowIndex, cell.ColumnIndex, new[] { typed, typed });
         else document.ReplaceStoryParagraphs(story.Id, new[] { typed, typed });
-        PublisherDocument saved = PublisherDocument.Load(document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        PublisherDocument saved = PublisherDocument.Load(document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         var actual = cells ? saved.Pages.SelectMany(page => page.Tables).Single(value => value.Id == table!.Id)
             .Cells.Single(value => value.RowIndex == cell!.RowIndex && value.ColumnIndex == cell.ColumnIndex).Paragraphs
             : saved.TextStories.Single(value => value.Id == story.Id).Paragraphs;
@@ -170,7 +170,7 @@ public sealed class PublisherKerningWritingTests {
         PublisherDocument document = PublisherDocument.Load(PublisherNativeTests.Fixture("NativeComparison/Text/native-text.pub"));
         PublisherTextStory story = document.TextStories[0];
         document.ReplaceStoryParagraphs(story.Id, story.Paragraphs.Select(paragraph => WithThreshold(paragraph, threshold)).ToArray());
-        var error = Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        var error = Assert.Throws<OfficeConversionException>(() => document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         Assert.True(Assert.IsType<PublisherSaveReport>(error.Report).HasErrors);
     }
 
@@ -180,7 +180,7 @@ public sealed class PublisherKerningWritingTests {
     public void Unqualified_threshold_source_stays_opaque_and_refuses_explicit_rewriting(bool outOfRange) {
         byte[] source = PublisherInputContractTests.Mutate("Quill/QuillSub/CONTENTS", bytes => {
             var data = new PublisherBinaryData(bytes, "Quill");
-            var context = new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None);
+            var context = new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None);
             PublisherQuillChunk page = PublisherQuillDirectory.Read(data, context).First(chunk => chunk.Tag == "FDPC");
             int count = data.U16(page.Offset);
             int position = page.Offset + data.U16(page.Offset + 8 + count * 4);
@@ -189,15 +189,15 @@ public sealed class PublisherKerningWritingTests {
             else bytes[field.Offset - 1] = 0x20;
         }, "NativeComparison/TextPairKerning/native-threshold-8.pub");
         PublisherDocument document = PublisherDocument.Load(source);
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, diagnostic => diagnostic.Code == "PUB_TEXT_KERNING_UNASSESSED");
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, diagnostic => diagnostic.Code == "PUB_TEXT_KERNING_SOURCE_UNASSESSED");
+        Assert.Contains(document.ReadReport.Diagnostics, diagnostic => diagnostic.Code == "PUB_TEXT_KERNING_UNASSESSED");
+        Assert.Contains(document.ReadReport.Diagnostics, diagnostic => diagnostic.Code == "PUB_TEXT_KERNING_SOURCE_UNASSESSED");
         Assert.All(PublisherNativeTests.Elements(document.Pages[0].CreateDrawing()).OfType<OfficeDrawingRichText>()
             .SelectMany(frame => frame.Paragraphs).SelectMany(paragraph => paragraph.Runs),
             run => Assert.Null(run.AutomaticPairKerningThreshold));
-        Assert.Equal(source, document.ToPubBytes());
+        Assert.Equal(source, document.ToBytes());
         PublisherTextStory story = document.TextStories[0];
         document.ReplaceStoryParagraphs(story.Id, story.Paragraphs.Select(paragraph => WithThreshold(paragraph, 0)).ToArray());
-        Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        Assert.Throws<OfficeConversionException>(() => document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
     }
 
     private static OfficeRichTextParagraph WithThreshold(OfficeRichTextParagraph paragraph, double? threshold, bool replaceText = false) =>
@@ -212,7 +212,7 @@ public sealed class PublisherKerningWritingTests {
     private static string[] OpaqueCharacterFields(byte[] bytes) {
         Assert.True(OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compound, out string? error), error);
         var data = new PublisherBinaryData(compound!.Streams["Quill/QuillSub/CONTENTS"], "Quill");
-        var context = new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None);
+        var context = new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None);
         var blocks = new PublisherBlockReader(data, context);
         return PublisherQuillDirectory.Read(data, context).Where(chunk => chunk.Tag == "FDPC").SelectMany(chunk => {
             int count = data.U16(chunk.Offset);

@@ -11,7 +11,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         double top,
         HtmlToPowerPointResult result,
         HtmlImportBudget budget,
-        HtmlToPowerPointOptions options,
+        HtmlPowerPointExportOptions options,
         HtmlSemanticBlock? semanticBlock = null,
         double? genericWidth = null,
         double? genericHeight = null,
@@ -32,11 +32,11 @@ public static partial class HtmlPowerPointConverterExtensions {
         double fallbackHeight = genericHeight ?? Math.Max(70D, grid.Rows * 34D);
         ReadSemanticShapeGeometry(tableElement, 64D, top, fallbackWidth, fallbackHeight, budget, result,
             out double left, out double tableTop, out double width, out double height);
-        PptCore.PowerPointTable table = slide.AddTablePoints(grid.Rows, grid.Columns, left, tableTop, width, height);
+        PptCore.PowerPointTable table = slide.AddTable(grid.Rows,grid.Columns,global::OfficeIMO.OfficeLength.Points(left),global::OfficeIMO.OfficeLength.Points(tableTop),global::OfficeIMO.OfficeLength.Points(width),global::OfficeIMO.OfficeLength.Points(height));
         if (genericRowHeights?.Count == grid.Rows && !tableElement.HasAttribute("data-officeimo-height")) {
             double remaining = Math.Max(0D, height - genericRowHeights.Sum());
             for (int row = 0; row < grid.Rows; row++) {
-                table.SetRowHeightPoints(row, genericRowHeights[row] + (row == grid.Rows - 1 ? remaining : 0D));
+                table.SetRowHeight(row,global::OfficeIMO.OfficeLength.Points(genericRowHeights[row] + (row == grid.Rows - 1 ? remaining : 0D)));
             }
         }
         foreach (PowerPointHtmlTableCell cell in grid.Cells) {
@@ -90,8 +90,8 @@ public static partial class HtmlPowerPointConverterExtensions {
         string fill = NormalizeSemanticColor(cell.Style?.GetValue("background-color"));
         if (fill.Length > 0) targetCell.FillColor = fill;
         string color = NormalizeSemanticColor(cell.Style?.GetValue("color"));
-        if (color.Length > 0) {
-            foreach (PptCore.PowerPointTextRun run in targetCell.Runs) run.Color = color;
+        if (global::OfficeIMO.OfficeColor.TryParseHex(color, out global::OfficeIMO.OfficeColor textColor)) {
+            foreach (PptCore.PowerPointTextRun run in targetCell.Runs) run.Color = textColor;
         }
         if (cell.IsHeader && useHeaderTextColor) {
             foreach (PptCore.PowerPointTextRun run in targetCell.Runs) {

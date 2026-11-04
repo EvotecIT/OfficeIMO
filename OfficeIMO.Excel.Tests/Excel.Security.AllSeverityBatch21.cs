@@ -8,7 +8,7 @@ public class ExcelAllSeverityBatch21Tests {
     [Fact]
     public void EscapedAmpersandBeforeDigitsRemainsLiteralHeaderText() {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         MethodInfo parser = typeof(ExcelSheet).GetMethod(
             "TryResolveHeaderFooterText",
             BindingFlags.Instance | BindingFlags.NonPublic)!;
@@ -34,11 +34,9 @@ public class ExcelAllSeverityBatch21Tests {
     [Fact]
     public void DirectHeaderStylingHonorsCustomHeaderConversion() {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = document.AddWorksheet("Data");
-        sheet.InsertObjects(
-            new[] { new HeaderRow("Alpha") },
-            ("RawHeader", row => row.Value));
-        ExcelReadOptions options = new() {
+        ExcelSheet sheet = document.AddSheet("Data");
+        sheet.WriteData(new[] { new HeaderRow("Alpha") }, ("RawHeader", row => row.Value));
+        ExcelReaderOptions options = new() {
             CellValueConverter = _ => new ExcelCellValue("ConvertedHeader")
         };
 
@@ -56,8 +54,8 @@ public class ExcelAllSeverityBatch21Tests {
     [Fact]
     public void PendingPreflightSurvivesDirectCellValuePromotion() {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = document.AddWorksheet("Data");
-        sheet.CellValues(Enumerable.Range(1, 160)
+        ExcelSheet sheet = document.AddSheet("Data");
+        sheet.SetValues(Enumerable.Range(1, 160)
             .Select(row => (row, 1, (object)("value-" + row))));
         typeof(ExcelDocument)
             .GetMethod("MarkRequiresSavePreflight", BindingFlags.Instance | BindingFlags.NonPublic)!
@@ -72,8 +70,8 @@ public class ExcelAllSeverityBatch21Tests {
     [Fact]
     public void MaterializingPendingCellsClearsThePromotionOnlyPreflightMarker() {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = document.AddWorksheet("Data");
-        sheet.CellValues(Enumerable.Range(1, 160)
+        ExcelSheet sheet = document.AddSheet("Data");
+        sheet.SetValues(Enumerable.Range(1, 160)
             .Select(row => (row, 1, (object)("value-" + row))));
         typeof(ExcelDocument)
             .GetMethod("MarkRequiresSavePreflight", BindingFlags.Instance | BindingFlags.NonPublic)!

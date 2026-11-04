@@ -7,7 +7,7 @@ internal sealed class RowBlock : IPdfBlock {
     private PdfRowStyle? _style;
 
     public System.Collections.Generic.IReadOnlyList<RowColumn> Columns => _columnsView;
-    public double Gap => _gap ?? _style?.Gap ?? PdfRowStyle.DefaultGap;
+    public double Gap => _gap ?? ((_style?.Gap)?.ToPoints()) ?? PdfRowStyle.DefaultGap.ToPoints();
     public PdfRowStyle? Style => _style?.Clone();
     internal double? GapOverride => _gap;
     internal PdfRowStyle? StyleSnapshot => _style;

@@ -18,13 +18,13 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanIsNonMutatingAndAppliesOnce() {
             using var document = ExcelDocument.Create();
-            ExcelSheet data = document.AddWorksheet("Data");
-            ExcelSheet summary = document.AddWorksheet("Summary");
-            data.CellValue(1, 1, "Header");
-            data.CellValue(2, 1, 10);
-            data.CellValue(3, 1, 20);
-            data.CellFormula(1, 3, "SUM(A2:A3)");
-            summary.CellFormula(1, 1, "'Data'!A3");
+            ExcelSheet data = document.AddSheet("Data");
+            ExcelSheet summary = document.AddSheet("Summary");
+            data.Cell(1, 1).SetValue("Header");
+            data.Cell(2, 1).SetValue(10);
+            data.Cell(3, 1).SetValue(20);
+            data.Cell(1, 3).SetFormula("SUM(A2:A3)");
+            summary.Cell(1, 1).SetFormula("'Data'!A3");
             document.SetNamedRange("DataRows", "'Data'!A2:A3", save: false);
 
             ExcelRowMutationPlan plan = data.PlanInsertRows(2);
@@ -42,14 +42,14 @@ namespace OfficeIMO.Tests {
                 impact.Category == "formula-references" && impact.ItemCount >= 2);
             Assert.Contains(plan.Impacts, impact =>
                 impact.Category == "defined-names" && impact.ItemCount == 1);
-            Assert.Equal(10, data.CellAt(2, 1).GetValue<int>());
+            Assert.Equal(10, data.Cell(2, 1).GetValue<int>());
 
             plan.Apply();
 
             Assert.True(plan.IsApplied);
             Assert.True(plan.IsConsumed);
-            Assert.True(data.CellAt(2, 1).GetValue().IsBlank);
-            Assert.Equal(10, data.CellAt(3, 1).GetValue<int>());
+            Assert.True(data.Cell(2, 1).GetValue().IsBlank);
+            Assert.Equal(10, data.Cell(3, 1).GetValue<int>());
             Assert.Equal("SUM(A3:A4)", data.GetFormulaText(1, 3));
             Assert.Equal("'Data'!A4", summary.GetFormulaText(1, 1));
             Assert.Throws<InvalidOperationException>(() => plan.Apply());
@@ -58,9 +58,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanHonorsInspectionBudgetWithoutMutation() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             for (int row = 1; row <= 10; row++) {
-                sheet.CellValue(row, 1, row);
+                sheet.Cell(row, 1).SetValue(row);
             }
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
@@ -69,8 +69,8 @@ namespace OfficeIMO.Tests {
                     options: new ExcelMutationPlanOptions { MaximumScannedElements = 3 }));
 
             Assert.Contains("exceeded its limit", exception.Message, StringComparison.Ordinal);
-            Assert.Equal(2, sheet.CellAt(2, 1).GetValue<int>());
-            Assert.Equal(10, sheet.CellAt(10, 1).GetValue<int>());
+            Assert.Equal(2, sheet.Cell(2, 1).GetValue<int>());
+            Assert.Equal(10, sheet.Cell(10, 1).GetValue<int>());
         }
 
         [Fact]
@@ -80,11 +80,11 @@ namespace OfficeIMO.Tests {
                 $"OfficeIMO.Excel.MutationBudget.{Guid.NewGuid():N}.xlsx");
             try {
                 using (var source = ExcelDocument.Create(path)) {
-                    ExcelSheet target = source.AddWorksheet("Target");
-                    target.CellValue(1, 1, "Value");
-                    ExcelSheet unrelated = source.AddWorksheet("Unrelated");
+                    ExcelSheet target = source.AddSheet("Target");
+                    target.Cell(1, 1).SetValue("Value");
+                    ExcelSheet unrelated = source.AddSheet("Unrelated");
                     for (int row = 1; row <= 100; row++) {
-                        unrelated.CellValue(row, 1, row);
+                        unrelated.Cell(row, 1).SetValue(row);
                     }
                     source.Save();
                 }
@@ -112,13 +112,13 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanRejectsDeferredWritesWithoutMaterializing() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             var table = new DataTable("Rows");
             table.Columns.Add("Name", typeof(string));
             table.Columns.Add("Score", typeof(int));
             table.Rows.Add("North", 10);
             table.Rows.Add("South", 20);
-            sheet.InsertDataTable(table);
+            sheet.WriteData(table);
             Assert.True(document.HasDeferredDirectDataSetImport);
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
@@ -131,8 +131,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanBudgetsCommentVmlBeforeMaterializingIt() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellAt(2, 1).SetValue("Commented");
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(2, 1).SetValue("Commented");
             sheet.SetComment(2, 1, "Review", author: "Tester");
             int baseline = sheet.PlanInsertRows(2).ScannedElements;
 
@@ -160,7 +160,7 @@ namespace OfficeIMO.Tests {
                     }));
 
             Assert.Contains("exceeded its limit", exception.Message, StringComparison.Ordinal);
-            Assert.Equal("Commented", sheet.CellAt(2, 1).GetValue<string>());
+            Assert.Equal("Commented", sheet.Cell(2, 1).GetValue<string>());
         }
 
         [Fact]
@@ -170,8 +170,8 @@ namespace OfficeIMO.Tests {
                 $"OfficeIMO.Excel.MutationVmlCharacterBudget.{Guid.NewGuid():N}.xlsx");
             try {
                 using (var source = ExcelDocument.Create(path)) {
-                    ExcelSheet sourceSheet = source.AddWorksheet("Data");
-                    sourceSheet.CellAt(2, 1).SetValue("Commented");
+                    ExcelSheet sourceSheet = source.AddSheet("Data");
+                    sourceSheet.Cell(2, 1).SetValue("Commented");
                     sourceSheet.SetComment(2, 1, "Review", author: "Tester");
                     source.Save();
                 }
@@ -205,7 +205,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.Contains("decompressed XML bytes", exception.Message, StringComparison.Ordinal);
                 Assert.False(unloadedVmlPart.IsRootElementLoaded);
-                Assert.Equal("Commented", sheet.CellAt(2, 1).GetValue<string>());
+                Assert.Equal("Commented", sheet.Cell(2, 1).GetValue<string>());
             } finally {
                 File.Delete(path);
             }
@@ -214,10 +214,10 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanPreservesPendingDirectCellBuffer() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, 1);
-            sheet.CellValue(2, 1, 2);
-            sheet.CellValue(3, 1, 3);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue(1);
+            sheet.Cell(2, 1).SetValue(2);
+            sheet.Cell(3, 1).SetValue(3);
             Assert.True(document.HasPendingDirectCellValues);
 
             ExcelRowMutationPlan plan = sheet.PlanInsertRows(2);
@@ -230,7 +230,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanBudgetsMalformedSheetEntriesBeforeRelationshipLookup() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             Sheets sheets = Assert.IsType<Sheets>(document.WorkbookRoot.Sheets);
             for (uint index = 0; index < 10; index++) {
                 sheets.Append(new Sheet {
@@ -250,10 +250,10 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanRevalidatesBeforeApply() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, 1);
-            sheet.CellValue(2, 1, 2);
-            sheet.CellValue(3, 1, 3);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue(1);
+            sheet.Cell(2, 1).SetValue(2);
+            sheet.Cell(3, 1).SetValue(3);
             ExcelRowMutationPlan plan = sheet.PlanInsertRows(2);
             sheet.SetArrayFormula("B1:B3", "A1:A3*2");
 
@@ -262,7 +262,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("array formula", exception.Message, StringComparison.OrdinalIgnoreCase);
             Assert.False(plan.IsApplied);
             Assert.True(plan.IsConsumed);
-            Assert.Equal(2, sheet.CellAt(2, 1).GetValue<int>());
+            Assert.Equal(2, sheet.Cell(2, 1).GetValue<int>());
             InvalidOperationException retry = Assert.Throws<InvalidOperationException>(() => plan.Apply());
             Assert.Contains("previous attempt failed", retry.Message, StringComparison.OrdinalIgnoreCase);
         }
@@ -270,8 +270,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanRespectsDefinedNameScope() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
-            document.AddWorksheet("Other");
+            ExcelSheet data = document.AddSheet("Data");
+            document.AddSheet("Other");
             var globalName = new DefinedName("'Data'!$A$5:$B$7") {
                 Name = "DataRows"
             };
@@ -296,10 +296,10 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanUsesImplicitCellCoordinates() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellAt(1, 1).SetValue("Header");
-            sheet.CellAt(2, 1).SetValue(10);
-            sheet.CellAt(3, 1).SetValue(20);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Header");
+            sheet.Cell(2, 1).SetValue(10);
+            sheet.Cell(3, 1).SetValue(20);
             foreach (Row row in sheet.WorksheetPart.Worksheet.Descendants<Row>()) {
                 row.RowIndex = null;
                 foreach (Cell cell in row.Elements<Cell>()) {
@@ -318,9 +318,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanResolvesSharedFormulaFollowers() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellAt(2, 1).SetValue(1);
-            sheet.CellAt(3, 1).SetValue(2);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(2, 1).SetValue(1);
+            sheet.Cell(3, 1).SetValue(2);
             AppendSharedFormulaGroup(sheet, sharedIndex: 41U, anchorReference: "B2:B3");
 
             ExcelRowMutationPlan plan = sheet.PlanInsertRows(2);
@@ -334,8 +334,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanUsesPendingFormulaAsAuthoritative() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellFormula(1, 1, "A2");
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetFormula("A2");
             Assert.True(document.HasPendingDirectCellValues);
 
             ExcelRowMutationPlan plan = sheet.PlanInsertRows(2);
@@ -349,8 +349,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanIncludesThreadedComments() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellAt(3, 1).SetValue("Value");
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(3, 1).SetValue("Value");
             sheet.AddThreadedComment("A3", "Review");
 
             ExcelRowMutationPlan plan = sheet.PlanInsertRows(2);
@@ -364,7 +364,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanIncludesRepliesRemovedWithDeletedParent() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             ExcelThreadedCommentResult parent =
                 sheet.AddThreadedComment("A3", "Parent");
             sheet.ReplyToThreadedComment(parent.Id, "Reply");
@@ -380,7 +380,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanTraversesReverseOrderedThreadedCommentChain() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             WorksheetThreadedCommentsPart threadedPart =
                 sheet.WorksheetPart.AddNewPart<WorksheetThreadedCommentsPart>();
             var threadedComments = new Threaded.ThreadedComments();
@@ -410,7 +410,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanBudgetsThreadedCommentsBeforeCollectingThem() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             WorksheetThreadedCommentsPart threadedPart =
                 sheet.WorksheetPart.AddNewPart<WorksheetThreadedCommentsPart>();
             var threadedComments = new Threaded.ThreadedComments();
@@ -437,15 +437,15 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanIncludesChartsHostedOnOtherSheets() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
-            ExcelSheet summary = document.AddWorksheet("Summary");
-            data.CellAt(5, 1).SetValue(10);
-            data.CellAt(6, 1).SetValue(20);
-            summary.CellAt(1, 1).SetValue("Label");
-            summary.CellAt(1, 2).SetValue("Value");
-            summary.CellAt(2, 1).SetValue("One");
-            summary.CellAt(2, 2).SetValue(1);
-            summary.AddChartFromRange("A1:B2", row: 5, column: 4);
+            ExcelSheet data = document.AddSheet("Data");
+            ExcelSheet summary = document.AddSheet("Summary");
+            data.Cell(5, 1).SetValue(10);
+            data.Cell(6, 1).SetValue(20);
+            summary.Cell(1, 1).SetValue("Label");
+            summary.Cell(1, 2).SetValue("Value");
+            summary.Cell(2, 1).SetValue("One");
+            summary.Cell(2, 2).SetValue(1);
+            summary.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 5, Column = 4 });
             ChartPart chartPart = Assert.Single(summary.WorksheetPart.DrawingsPart!.ChartParts);
             C.Formula formula = chartPart.ChartSpace.Descendants<C.Formula>().First();
             formula.Text = "Data!A5:A6";
@@ -462,7 +462,7 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_MutationPlanIncludesPivotSourcesHostedOnOtherSheets() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet data = CreatePivotSheet(document);
-            ExcelSheet summary = document.AddWorksheet("Summary");
+            ExcelSheet summary = document.AddSheet("Summary");
             PivotTablePart pivotPart = Assert.Single(data.WorksheetPart.PivotTableParts);
             summary.WorksheetPart.AddPart(pivotPart);
             data.WorksheetPart.DeletePart(pivotPart);
@@ -501,8 +501,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanCountsFormulaCellOnceAcrossReferenceAttributes() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellAt(2, 3).SetValue(0);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(2, 3).SetValue(0);
             Cell cell = sheet.WorksheetPart.Worksheet.Descendants<Cell>()
                 .Single(candidate => candidate.CellReference?.Value == "C2");
             cell.CellFormula = new CellFormula("1") {
@@ -523,9 +523,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanIncludesCrossSheetHyperlinks() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
-            ExcelSheet summary = document.AddWorksheet("Summary");
-            data.CellAt(5, 1).SetValue("Target");
+            ExcelSheet data = document.AddSheet("Data");
+            ExcelSheet summary = document.AddSheet("Summary");
+            data.Cell(5, 1).SetValue("Target");
             summary.SetInternalLink(1, 1, data, "A5", display: "Target");
 
             ExcelRowMutationPlan plan = data.PlanInsertRows(5);
@@ -541,8 +541,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanIncludesOffice2010ValidationAndFormatting() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellAt(2, 1).SetValue(1);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(2, 1).SetValue(1);
             var validation = new X14.DataValidation(
                 new Xm.ReferenceSequence("B2:B3"));
             var formatting = new X14.ConditionalFormatting(
@@ -567,8 +567,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanIncludesQueryConnectionParameters() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellAt(5, 1).SetValue(1);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(5, 1).SetValue(1);
             AttachCellBackedConnection(document, sheet, "A5");
 
             ExcelRowMutationPlan plan = sheet.PlanInsertRows(5);
@@ -582,11 +582,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanPreflightsUnmirroredPendingFormulas() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             for (int column = 1; column <= 128; column++) {
-                sheet.CellValue(1, column, column);
+                sheet.Cell(1, column).SetValue(column);
             }
-            sheet.CellFormula(1, 129, $"A{A1.MaxRows}");
+            sheet.Cell(1, 129).SetFormula($"A{ExcelA1.MaxRows}");
             Assert.True(document.HasPendingDirectCellValues);
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(

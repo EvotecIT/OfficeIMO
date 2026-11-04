@@ -11,7 +11,7 @@ namespace PSWriteOffice.Cmdlets.Visio;
 ///   <code>$options = New-OfficeVisioImageOptions -PageIndex 0 -PageCount 1 -RenderText -RenderConnectorLabels
 /// Export-OfficeVisioImage -Path .\Diagram.vsdx -OutputPath .\Preview -Format Svg -Options $options</code>
 /// </example>
-[Cmdlet(VerbsCommon.New, "OfficeVisioImageOptions")]
+[Cmdlet(VerbsCommon.New, "OfficeVisioImageOptions", DefaultParameterSetName = "Options")]
 [OutputType(typeof(VisioImageExportOptions))]
 public sealed class NewOfficeVisioImageOptionsCommand : OfficeImageOptionsCommandBase<VisioImageExportOptions> {
     /// <summary>Zero-based first page index.</summary>

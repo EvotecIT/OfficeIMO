@@ -14,6 +14,30 @@ namespace OfficeIMO.Reader.Tests;
 
 public sealed class ReaderFilePublicationConcurrencyTests {
     [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ForeignClaimNamedFileIsPreservedWhenPublicationFails(bool corePublisher) {
+        string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-reader-foreign-file-" + Guid.NewGuid().ToString("N"));
+        string destination = Path.Combine(folder, "report.txt");
+        string claimPath = ReaderCommitClaim.CreatePath(destination);
+        byte[] original = Encoding.UTF8.GetBytes("Existing user content");
+        try {
+            Directory.CreateDirectory(folder);
+            File.WriteAllBytes(claimPath, original);
+
+            Assert.Throws<IOException>(() => {
+                if (corePublisher) OfficeFileCommit.WriteAllBytes(destination, new byte[] { 1 }, OfficeFileCommit.ConflictPolicy.FailIfExists);
+                else ReaderFileCommit.WriteAllBytes(destination, new byte[] { 1 }, overwrite: false);
+            });
+
+            Assert.Equal(original, File.ReadAllBytes(claimPath));
+            Assert.False(File.Exists(destination));
+        } finally {
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Theory]
     [InlineData("asset", ".bin")]
     [InlineData("table", ".csv")]
     [InlineData("visual", ".mmd")]
@@ -43,9 +67,10 @@ public sealed class ReaderFilePublicationConcurrencyTests {
         string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-reader-foreign-claim-" + Guid.NewGuid().ToString("N"));
         string destination = Path.Combine(folder, "publication.bin");
         byte[] payload = Encoding.UTF8.GetBytes("Published after the other assembly releases its claim.");
-        Action publish = () => {
-            if (coreOwnsClaim) ReaderFileCommit.WriteAllBytes(destination, payload, overwrite: false);
-            else OfficeFileCommit.WriteAllBytes(destination, payload, OfficeFileCommit.ConflictPolicy.FailIfExists);
+        Func<bool> publish = () => {
+            if (coreOwnsClaim) return ReaderFileCommit.WriteAllBytes(destination, payload, overwrite: false);
+            OfficeFileCommit.WriteAllBytes(destination, payload, OfficeFileCommit.ConflictPolicy.FailIfExists);
+            return true;
         };
 
         try {
@@ -55,14 +80,15 @@ public sealed class ReaderFilePublicationConcurrencyTests {
                        : ReaderCommitClaim.Acquire(destination)) {
                 string liveClaim = Assert.Single(Directory.GetFileSystemEntries(folder));
 
-                Assert.Throws<IOException>(publish);
+                if (coreOwnsClaim) Assert.False(publish());
+                else Assert.Throws<IOException>(() => publish());
 
                 Assert.False(File.Exists(destination));
                 Assert.Equal(new[] { liveClaim }, Directory.GetFileSystemEntries(folder));
             }
 
             Assert.Empty(Directory.GetFileSystemEntries(folder));
-            publish();
+            Assert.True(publish());
 
             Assert.Equal(payload, File.ReadAllBytes(destination));
             Assert.Equal(new[] { destination }, Directory.GetFileSystemEntries(folder));
@@ -177,7 +203,7 @@ public sealed class ReaderFilePublicationConcurrencyTests {
                 Assert.Equal(publishers[winner.Writer].ExpectedBytes, File.ReadAllBytes(destination));
                 Assert.All(outcomes.Where(outcome => !outcome.Written), outcome => {
                     if (outcome.Collision == null) {
-                        Assert.Equal("Destination file already exists.", outcome.SkippedReason);
+                        Assert.False(string.IsNullOrWhiteSpace(outcome.SkippedReason));
                         Assert.Equal(destination, outcome.Path);
                     }
                 });

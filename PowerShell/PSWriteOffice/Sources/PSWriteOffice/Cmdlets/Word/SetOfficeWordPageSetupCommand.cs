@@ -170,40 +170,40 @@ public sealed class SetOfficeWordPageSetupCommand : PSCmdlet
     {
         if (PageSize.HasValue)
         {
-            section.PageSettings.PageSize = PageSize.Value;
+            section.PageSetup.Size.PageSize = PageSize.Value;
         }
-        if (Orientation.HasValue) section.PageOrientation = Orientation.Value;
+        if (Orientation.HasValue) section.PageSetup.Orientation = Orientation.Value;
         if (Margin.HasValue)
         {
-            section.SetMargins(Margin.Value);
+            section.PageSetup.Margins.Type = Margin.Value;
         }
         if (Left.HasValue)
         {
-            section.Margins.Left = (uint)Left.Value;
+            section.PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points(((uint)Left.Value) / 20D);
         }
         if (Right.HasValue)
         {
-            section.Margins.Right = (uint)Right.Value;
+            section.PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(((uint)Right.Value) / 20D);
         }
         if (Top.HasValue)
         {
-            section.Margins.Top = Top.Value;
+            section.PageSetup.Margins.Top = global::OfficeIMO.OfficeLength.Points((Top.Value) / 20D);
         }
         if (Bottom.HasValue)
         {
-            section.Margins.Bottom = Bottom.Value;
+            section.PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points((Bottom.Value) / 20D);
         }
         if (Header.HasValue)
         {
-            section.Margins.HeaderDistance = (uint)Header.Value;
+            section.PageSetup.Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points(((uint)Header.Value) / 20D);
         }
         if (Footer.HasValue)
         {
-            section.Margins.FooterDistance = (uint)Footer.Value;
+            section.PageSetup.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(((uint)Footer.Value) / 20D);
         }
         if (Gutter.HasValue)
         {
-            section.Margins.Gutter = (uint)Gutter.Value;
+            section.PageSetup.Margins.Gutter = global::OfficeIMO.OfficeLength.Points(((uint)Gutter.Value) / 20D);
         }
         if (Columns.HasValue)
         {
@@ -211,7 +211,7 @@ public sealed class SetOfficeWordPageSetupCommand : PSCmdlet
         }
         if (ColumnSpacing.HasValue)
         {
-            section.ColumnsSpace = ColumnSpacing.Value;
+            section.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(ColumnSpacing.Value / 20D);
         }
         if (ColumnSeparator.HasValue)
         {

@@ -8,7 +8,7 @@ namespace OfficeIMO.Html.Pdf;
 
 public static partial class PdfHtmlConverterExtensions {
     private static void AppendPositionedNativeText(StringBuilder builder, PdfCore.PdfLogicalPage page,
-        PositionedPageGeometry geometry, PdfToHtmlOptions options) {
+        PositionedPageGeometry geometry, PdfHtmlExportOptions options) {
         string Number(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);
         IReadOnlyDictionary<PdfCore.PdfLogicalTextBlock, int> headingLevels = BuildPositionedHeadingLevels(page);
         builder.Append("<svg class=\"pdf-native-text\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 ");
@@ -45,13 +45,13 @@ public static partial class PdfHtmlConverterExtensions {
             builder.AppendLine("</g>");
         }
         builder.AppendLine("</svg>");
-        AddWarning(options, "PositionedFontSubstitution",
+        AddWarning(options, OfficeDiagnosticCodes.PositionedFontSubstitution,
             "Positioned HTML preserves source text placement and size using a browser font. Original PDF fonts are not embedded; letter shapes may differ.",
             PdfCore.PdfConversionWarningSeverity.Warning);
     }
 
     private static void AppendPositionedAppearanceTextLayer(StringBuilder builder, PdfCore.PdfLogicalPage page,
-        PositionedPageGeometry geometry, PdfToHtmlOptions options) {
+        PositionedPageGeometry geometry, PdfHtmlExportOptions options) {
         string Number(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);
         IReadOnlyDictionary<PdfCore.PdfLogicalTextBlock, int> headingLevels = BuildPositionedHeadingLevels(page);
         builder.Append("<svg class=\"pdf-text-overlay\" fill=\"transparent\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 ");

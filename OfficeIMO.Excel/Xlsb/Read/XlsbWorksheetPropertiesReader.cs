@@ -34,8 +34,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             bool synchronizeVertical = (flags & 0x002000U) != 0;
             if ((!synchronizeHorizontal && !synchronizeVertical
                     && (synchronizedRow != uint.MaxValue || synchronizedColumn != uint.MaxValue))
-                || (synchronizedRow != uint.MaxValue && synchronizedRow >= A1.MaxRows)
-                || (synchronizedColumn != uint.MaxValue && synchronizedColumn >= A1.MaxColumns)) {
+                || (synchronizedRow != uint.MaxValue && synchronizedRow >= ExcelA1.MaxRows)
+                || (synchronizedColumn != uint.MaxValue && synchronizedColumn >= ExcelA1.MaxColumns)) {
                 throw new InvalidDataException($"The BrtWsProp record at offset {record.Offset} contains invalid synchronized-scroll coordinates.");
             }
 

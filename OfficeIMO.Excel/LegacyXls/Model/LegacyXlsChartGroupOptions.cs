@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes preserve-only ChartFormat chart-group metadata from a BIFF chart stream.
     /// </summary>
-    public sealed class LegacyXlsChartGroupOptions {
+    internal sealed class LegacyXlsChartGroupOptions {
         internal LegacyXlsChartGroupOptions(bool variedDataPointColors, ushort drawingOrder) {
             VariedDataPointColors = variedDataPointColors;
             DrawingOrder = drawingOrder;

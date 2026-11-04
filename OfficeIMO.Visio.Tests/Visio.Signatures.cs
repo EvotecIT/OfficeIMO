@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             try {
                 VisioDocument created = VisioDocument.Create(sourcePath);
-                created.AddPage("Page-1").Shapes.Add(new VisioShape("1", 1, 1, 2, 1, "Signed"));
+                created.AddPage("Page-1").Shapes.Add(new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Signed"));
                 created.Save();
                 AddSignatureCarrier(sourcePath);
 

@@ -73,7 +73,7 @@ public partial class Word {
             document.AddParagraph("Hello World");
             using (var cts = new CancellationTokenSource()) {
                 cts.Cancel();
-                await Assert.ThrowsAsync<OperationCanceledException>(() => document.SaveAsPdfAsync(pdfPath, cancellationToken: cts.Token));
+                await Assert.ThrowsAnyAsync<OperationCanceledException>(() => document.SaveAsPdfAsync(pdfPath, cancellationToken: cts.Token));
             }
         }
     }
@@ -87,7 +87,7 @@ public partial class Word {
             using (var stream = new MemoryStream()) {
                 using (var cts = new CancellationTokenSource()) {
                     cts.Cancel();
-                    await Assert.ThrowsAsync<OperationCanceledException>(() => document.SaveAsPdfAsync(stream, cancellationToken: cts.Token));
+                    await Assert.ThrowsAnyAsync<OperationCanceledException>(() => document.SaveAsPdfAsync(stream, cancellationToken: cts.Token));
                 }
             }
         }
@@ -101,7 +101,8 @@ public partial class Word {
             document.AddParagraph("Hello World");
             document.Save();
 
-            byte[] bytes = document.ToPdfBytes();
+            using var converted = (await document.ToPdfAsync()).Value;
+            byte[] bytes = converted.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
             Assert.True(bytes.Length > 0);
         }
     }
@@ -116,22 +117,22 @@ public partial class Word {
 
             using (var cts = new CancellationTokenSource()) {
                 cts.Cancel();
-                await Assert.ThrowsAsync<OperationCanceledException>(() => document.SaveAsPdfAsync(new MemoryStream(), cancellationToken: cts.Token));
+                await Assert.ThrowsAnyAsync<OperationCanceledException>(() => document.SaveAsPdfAsync(new MemoryStream(), cancellationToken: cts.Token));
             }
         }
     }
 
     [Fact]
-    public async Task SaveAsPdfResult_PropagatesCancellationFromParameter() {
+    public async Task SaveAsPdf_PropagatesCancellationFromParameter() {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("Parameter cancellation");
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
-        var options = new WordToPdfOptions();
+        var options = new WordPdfExportOptions();
 
         Assert.ThrowsAny<OperationCanceledException>(() =>
-            document.SaveAsPdfResult(new MemoryStream(), options, cancellation.Token));
+            document.SaveAsPdf(new MemoryStream(), options, cancellation.Token));
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            document.SaveAsPdfResultAsync(new MemoryStream(), options, cancellation.Token));
+            document.SaveAsPdfAsync(new MemoryStream(), options, cancellation.Token));
     }
 }

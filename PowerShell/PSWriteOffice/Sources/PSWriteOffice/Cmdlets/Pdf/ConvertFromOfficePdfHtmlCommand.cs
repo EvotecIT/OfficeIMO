@@ -3,6 +3,7 @@ using System.IO;
 using System.Management.Automation;
 using System.Text;
 using OfficeIMO.Html;
+using OfficeIMO.Pdf;
 using OfficeIMO.Html.Pdf;
 using PSWriteOffice.Services;
 using PSWriteOffice.Services.Pdf;
@@ -62,7 +63,7 @@ public sealed class ConvertFromOfficePdfHtmlCommand : PSCmdlet {
 
     /// <summary>Optional OfficeIMO HTML to PDF save options.</summary>
     [Parameter]
-    public HtmlToPdfOptions? Options { get; set; }
+    public HtmlPdfExportOptions? Options { get; set; }
 
     /// <summary>Open the PDF after saving.</summary>
     [Parameter]
@@ -121,7 +122,7 @@ public sealed class ConvertFromOfficePdfHtmlCommand : PSCmdlet {
         }
 
         string preparedHtml = ApplyStylesheets(html);
-        HtmlToPdfOptions options = BuildOptions(htmlFileDirectory);
+        HtmlPdfExportOptions options = BuildOptions(htmlFileDirectory);
         HtmlConversionDocument document = HtmlConversionDocument.Parse(preparedHtml, new HtmlConversionDocumentOptions {
             Profile = Profile,
             Trust = TrustedDocumentProfile.IsPresent ? HtmlInputTrust.Trusted : HtmlInputTrust.Untrusted,
@@ -134,7 +135,7 @@ public sealed class ConvertFromOfficePdfHtmlCommand : PSCmdlet {
             }
 
             PdfCommandUtilities.EnsureDirectory(outputPath);
-            document.SaveAsPdf(outputPath, options).RequireSuccess();
+            document.SaveAsPdf(outputPath, options);
             if (Open.IsPresent) {
                 FileOpenService.Open(outputPath);
             }
@@ -146,17 +147,18 @@ public sealed class ConvertFromOfficePdfHtmlCommand : PSCmdlet {
             return;
         }
 
-        WriteObject(document.ToPdfBytes(options), enumerateCollection: false);
+        using var pdf = document.ToPdf(options);
+        WriteObject(pdf.ToBytes(new PdfSaveOptions { AllowLoss = true }), enumerateCollection: false);
     }
 
-    private HtmlToPdfOptions BuildOptions(string? htmlFileDirectory) {
-        HtmlToPdfOptions options = Options?.ClonePdf() ?? new HtmlToPdfOptions();
+    private HtmlPdfExportOptions BuildOptions(string? htmlFileDirectory) {
+        HtmlPdfExportOptions options = Options?.ClonePdf() ?? new HtmlPdfExportOptions();
 
         ApplyResourceOptions(options, htmlFileDirectory);
         return options;
     }
 
-    private void ApplyResourceOptions(HtmlToPdfOptions options, string? htmlFileDirectory) {
+    private void ApplyResourceOptions(HtmlPdfExportOptions options, string? htmlFileDirectory) {
         string? resolvedBasePath = null;
         if (!string.IsNullOrWhiteSpace(BasePath)) {
             resolvedBasePath = PdfCommandUtilities.ResolvePath(this, BasePath!);

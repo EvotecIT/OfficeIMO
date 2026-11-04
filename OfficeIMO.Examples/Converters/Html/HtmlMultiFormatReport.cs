@@ -22,46 +22,46 @@ internal static partial class Html {
         HtmlConversionDocument report = HtmlConversionDocument.Load(sourcePath);
         File.WriteAllText(stem + ".html", report.ExportSourceHtml());
 
-        var pdfOptions = new HtmlToPdfOptions {
+        var pdfOptions = new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = OfficePageSizes.A4,
             Margins = HtmlRenderMargins.All(36D),
             BackgroundColor = OfficeColor.White
         };
-        var pdf = report.SaveAsPdf(stem + ".pdf", pdfOptions).RequireSuccess();
+        var pdf = report.SaveAsPdf(stem + ".pdf", pdfOptions);
 
-        HtmlToWordResult wordResult = report.ToWordDocumentResult(new HtmlToWordOptions {
+        using WordDocument word = report.ToWord(new HtmlWordExportOptions {
             DefaultPageSize = WordPageSize.A4,
-            SectionTagHandling = SectionTagHandling.Block
-        });
-        using WordDocument word = wordResult.Value;
-        word.Margins.Type = WordMargin.Narrow;
-        wordResult.RequireValue().Save(stem + ".docx");
+            SectionTagHandling = WordHtmlSectionTagHandling.Block
+        }, out OfficeConversionReport wordReport);
 
-        HtmlToExcelResult excelResult = report.ToExcelDocumentResult(new HtmlToExcelOptions {
+        word.PageSetup.Margins.Type = WordMargin.Narrow;
+        word.Save(stem + ".docx");
+
+        using ExcelDocument excel = report.ToExcel(new HtmlExcelExportOptions {
             Mode = HtmlImportMode.Generic,
             ImportTypedCellValues = true
-        });
-        using ExcelDocument excel = excelResult.Value;
-        excelResult.RequireValue();
+        }, out OfficeConversionReport excelReport);
         foreach (ExcelSheet sheet in excel.Sheets) {
             sheet.AutoFitColumns();
-            var (firstRow, firstColumn, lastRow, lastColumn) = A1.ParseRange(sheet.UsedRangeA1);
+            var (firstRow, firstColumn, lastRow, lastColumn) = ExcelA1.ParseRange(sheet.UsedRange.Address);
             if (firstColumn == lastColumn) {
-                sheet.WrapCells(firstRow, lastRow, firstColumn, 80D);
-                for (int row = firstRow; row <= lastRow; row++) sheet.CellVerticalAlign(row, firstColumn, ExcelVerticalAlignment.Top);
+                sheet.Range(firstRow, firstColumn, lastRow, firstColumn).SetWrapText(); sheet.SetColumnWidth(firstColumn, ExcelColumnWidth.Characters(80D));
+                for (int row = firstRow; row <= lastRow; row++) sheet.Cell(row, firstColumn).SetVerticalAlignment(ExcelVerticalAlignment.Top);
             }
             sheet.AutoFitRows();
-            sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0, paperSize: ExcelPaperSize.A4);
-            sheet.SetMarginsPreset(ExcelMarginPreset.Narrow);
+            sheet.PageSetup.FitToWidth = 1; sheet.PageSetup.FitToHeight = 0; sheet.PageSetup.PaperSize = ExcelPaperSize.A4;
+            sheet.PageSetup.SetMargins(ExcelMarginPreset.Narrow);
         }
         excel.Save(stem + ".xlsx");
 
         var index = new List<string> { "# " + name, "", "Exported from `" + Path.GetFileName(sourcePath) + "`.", "" };
         var conversionNotes = new SortedSet<string>(StringComparer.Ordinal);
-        foreach (var warning in pdf.Warnings) conversionNotes.Add("PDF: " + warning.Code + ": " + warning.Message);
-        foreach (HtmlDiagnostic diagnostic in wordResult.Report.Diagnostics.Concat(excelResult.Report.Diagnostics))
-            conversionNotes.Add(diagnostic.Component + ": " + diagnostic.Code + ": " + diagnostic.Message);
+        foreach (var warning in pdf.Diagnostics) conversionNotes.Add("PDF: " + warning.Code + ": " + warning.Message);
+        foreach (OfficeDiagnostic diagnostic in wordReport.Diagnostics)
+            conversionNotes.Add(diagnostic.Format + ": " + diagnostic.Code + ": " + diagnostic.Message);
+        foreach (OfficeDiagnostic diagnostic in excelReport.Diagnostics)
+            conversionNotes.Add(diagnostic.Format + ": " + diagnostic.Code + ": " + diagnostic.Message);
         foreach (string extension in new[] { ".html", ".pdf", ".docx", ".xlsx" })
             index.Add("- [" + extension.TrimStart('.').ToUpperInvariant() + "](" + Uri.EscapeDataString(name + extension) + ")");
 
@@ -78,7 +78,16 @@ internal static partial class Html {
             });
         }
         Previews("Saved PDF pages", "pdf", consume => {
-            foreach (var image in PdfDocument.Load(File.ReadAllBytes(stem + ".pdf")).Render.ExportImages(OfficeImageExportFormat.Png)) consume(image);
+            using var pdfDocument = PdfDocument.Load(stem + ".pdf");
+            var pages = pdfDocument.ExportImages(null, out var imageReport);
+            foreach (var diagnostic in imageReport.Diagnostics)
+                conversionNotes.Add("Saved PDF pages: " + diagnostic.Code + ": " + diagnostic.Message);
+            foreach (var image in pages) {
+                byte[] bytes = image.Bytes;
+                if (!OfficeImageReader.TryValidateContent(bytes, ".png", out OfficeImageInfo info))
+                    throw new InvalidDataException("The saved PDF preview is not a valid PNG.");
+                consume(new OfficeImageExportResult(OfficeImageExportFormat.Png, info.Width, info.Height, bytes));
+            }
         });
         Previews("HTML layout pages", "html", consume => {
             foreach (var image in report.ExportImages(OfficeImageExportFormat.Png, pdfOptions)) consume(image);
@@ -93,9 +102,9 @@ internal static partial class Html {
         File.WriteAllLines(Path.Combine(outputFolder, "index.md"), index);
 
         Console.WriteLine($"Report outputs: {outputFolder}");
-        Console.WriteLine($"PDF pages: {pdf.Serialization?.PageCount}; Excel sheets: {excelResult.Sheets}; typed import cells: {excelResult.Cells}");
-        foreach (HtmlDiagnostic diagnostic in wordResult.Report.Diagnostics.Concat(excelResult.Report.Diagnostics)) {
-            Console.WriteLine($"{diagnostic.Component}: {diagnostic.Code}: {diagnostic.Message} [{diagnostic.Source}] {diagnostic.Detail}");
+        Console.WriteLine($"PDF pages: {pdf.ItemsWritten}; Excel sheets: {excel.Sheets.Count}");
+        foreach (OfficeDiagnostic diagnostic in excelReport.Diagnostics) {
+            Console.WriteLine($"{diagnostic.Format}: {diagnostic.Code}: {diagnostic.Message} [{diagnostic.Location}]");
         }
     }
 }

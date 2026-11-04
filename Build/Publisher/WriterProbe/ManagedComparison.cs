@@ -15,8 +15,8 @@ internal static class ManagedComparison {
         PublisherDocument publication = PublisherDocument.Load(source);
         source.Position = 0;
         string sourceHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(source)).ToLowerInvariant();
-        var conversion = publication.ToPdfDocumentResult();
-        byte[] pdf = conversion.ToBytes();
+        using var converted = publication.ToPdf(null, out OfficeConversionReport report);
+        byte[] pdf = converted.ToBytes();
         if (pdf.Length < 5 || Encoding.ASCII.GetString(pdf, 0, 5) != "%PDF-")
             throw new InvalidDataException("Managed PDF output has no PDF header.");
         Directory.CreateDirectory(output);
@@ -35,7 +35,7 @@ internal static class ManagedComparison {
             stories = publication.TextStories.Select(story => new { story.Id, story.Text, story.Paragraphs }).ToArray(),
             images = publication.Images.Select(image => new { image.Id, image.ContentType, image.ByteCount, sha256 = NativeInventory.Hash(image.GetBytes()) }).ToArray(),
             sourceReport = publication.ReadReport,
-            conversionReports = conversion.ConversionReports.Select(report => new { report.HasLoss, report.FidelityDiagnostics }).ToArray(),
+            conversionReports = new[] { new { report.HasLoss, FidelityDiagnostics = report.Diagnostics } },
             artifacts
         };
         string json = JsonSerializer.Serialize(normalized, Program.JsonOptions);

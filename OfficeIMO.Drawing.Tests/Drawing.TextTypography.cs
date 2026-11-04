@@ -1,9 +1,28 @@
+using System;
+using System.IO;
 using OfficeIMO.Drawing;
 using Xunit;
 
 namespace OfficeIMO.Drawing.Tests;
 
 public class DrawingTextTypographyTests {
+    [Fact]
+    public void WrapLinesRejectsQuadraticMeasurementWork() {
+        string title = "a" + string.Concat(System.Linq.Enumerable.Repeat("\u200B\u0085", 10_000));
+        long measuredCharacters = 0;
+
+        Assert.Throws<InvalidDataException>(() => OfficeTextLayoutEngine.WrapLines(
+            title,
+            12D,
+            100D,
+            (value, _) => {
+                measuredCharacters += value?.Length ?? 0;
+                return 0D;
+            }));
+
+        Assert.InRange(measuredCharacters, 1, 20_000_000);
+    }
+
     [Fact]
     public void StackedRichTextFitUsesRenderedScriptSize() {
         var run = new OfficeRichTextRun(

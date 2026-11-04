@@ -7,11 +7,11 @@ using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.OpenDocument;
 using OfficeIMO.OpenDocument;
 
-using PowerPointPresentation presentation = PowerPointPresentation.Load("deck.pptx");
-OdfConversionResult<OdpPresentation> conversion = presentation.ToOpenDocumentResult();
-conversion.Value.Save("deck.odp");
+using PowerPointDocument presentation = PowerPointDocument.Load("deck.pptx");
+using OdpPresentation converted = presentation.ToOpenDocument(null, out OfficeConversionReport report);
+converted.Save("deck.odp");
 
-foreach (var mapping in conversion.Report.Mappings) {
+foreach (var mapping in ((OdfConversionReport)report).Mappings) {
     Console.WriteLine($"{mapping.Feature}: {mapping.Status} ({mapping.Count})");
 }
 ```

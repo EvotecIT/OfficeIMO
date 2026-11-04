@@ -72,21 +72,9 @@ namespace OfficeIMO.PowerPoint {
             return styles?.OtherStyle;
         }
 
-        private static IEnumerable<P.Shape> EnumerateTextColorShapes(PowerPointTextBox textBox) {
-            if (textBox.Element is not P.Shape shape) yield break;
-            yield return shape;
-            P.PlaceholderShape? placeholder = shape.NonVisualShapeProperties?
-                .ApplicationNonVisualDrawingProperties?.GetFirstChild<P.PlaceholderShape>();
-            if (placeholder == null) yield break;
-            SlideLayoutPart? layout = (textBox.OwnerSlide?.SlidePart ?? textBox.SlidePart)?.SlideLayoutPart;
-            P.Shape? layoutShape = FindSpacingPlaceholder(layout?.SlideLayout?.CommonSlideData?.ShapeTree,
-                placeholder, matchIndex: true);
-            if (layoutShape != null && !ReferenceEquals(layoutShape, shape)) yield return layoutShape;
-            P.PlaceholderShape masterPlaceholder = layoutShape?.NonVisualShapeProperties?
-                .ApplicationNonVisualDrawingProperties?.GetFirstChild<P.PlaceholderShape>() ?? placeholder;
-            P.Shape? masterShape = FindSpacingPlaceholder(layout?.SlideMasterPart?.SlideMaster?.CommonSlideData?.ShapeTree,
-                masterPlaceholder, matchIndex: false);
-            if (masterShape != null && !ReferenceEquals(masterShape, shape)) yield return masterShape;
-        }
+        private static IEnumerable<P.Shape> EnumerateTextColorShapes(PowerPointTextBox textBox) =>
+            textBox.Element is P.Shape shape
+                ? EnumeratePlaceholderShapes(shape, (textBox.OwnerSlide?.SlidePart ?? textBox.SlidePart)?.SlideLayoutPart)
+                : Enumerable.Empty<P.Shape>();
     }
 }

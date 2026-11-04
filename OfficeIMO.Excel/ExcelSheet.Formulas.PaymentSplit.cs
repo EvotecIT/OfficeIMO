@@ -13,7 +13,7 @@ namespace OfficeIMO.Excel {
                     if (index < 4) return false;
                     continue;
                 }
-                if (!TryResolveFormulaArgument(tokens[index], out FormulaArgumentValue value) || value.IsUnresolvedFormula) return false;
+                if (!TryResolveFormulaValueArgument(tokens[index], out FormulaArgumentValue value)) return false;
                 if (value.IsError) { if (!firstError.IsError) firstError = value; continue; }
                 if (!IsFiniteFormulaNumber(value)) return false;
                 numbers[index] = value.Number!.Value;

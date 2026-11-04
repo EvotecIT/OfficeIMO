@@ -61,7 +61,7 @@ internal sealed class XpsPdfNavigation {
     }
 
     internal void AddDestinations(PdfPageCanvas canvas, XpsSvgResult projection, int pageIndex, double width, double height, CancellationToken token) {
-        canvas.NamedDestination(Destination(pageIndex, null), 0, 0);
+        canvas.NamedDestination(Destination(pageIndex, null), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0));
         var locations = new Dictionary<string, OfficePoint>(StringComparer.Ordinal);
         foreach (var target in projection.Targets) {
             token.ThrowIfCancellationRequested();
@@ -69,7 +69,7 @@ internal sealed class XpsPdfNavigation {
             var point = target.TopLeft;
             point = new OfficePoint(Math.Max(0, Math.Min(width, point.X * .75)), Math.Max(0, Math.Min(height, point.Y * .75)));
             locations.Add(target.Name, point);
-            canvas.NamedDestination(Destination(pageIndex, target.Name), point.X, point.Y);
+            canvas.NamedDestination(Destination(pageIndex, target.Name), global::OfficeIMO.OfficeLength.Points(point.X), global::OfficeIMO.OfficeLength.Points(point.Y));
         }
         if (!_outlines.TryGetValue(pageIndex, out var outlines)) return;
         foreach (var outline in outlines) {

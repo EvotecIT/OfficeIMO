@@ -1,6 +1,6 @@
 $source = '.\Pdf-Canvas-Source.pdf'
 $positioned = '.\Pdf-Positioned-Canvas.pdf'
-PdfNew -Path $source {
+New-OfficePdf -Path $source {
     PdfHeading 'Fixed-position review copy'
     PdfParagraph 'Normal PdfText and PdfParagraph content remains in document flow.'
     PdfPageBreak

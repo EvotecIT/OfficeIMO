@@ -13,6 +13,10 @@ namespace OfficeIMO.Core.Internal {
             OfficeFileCommitClaim? claim = null;
             for (int attempt = 0; ; attempt++) {
                 try {
+                    if (!waitForClaim) {
+                        if (!OfficeFileCommitClaim.TryAcquire(targetPath, out claim)) return false;
+                        break;
+                    }
                     claim = OfficeFileCommitClaim.Acquire(targetPath);
                     break;
                 } catch (Exception exception) when (OfficeFileCommitClaim.IsContention(exception, targetPath)) {

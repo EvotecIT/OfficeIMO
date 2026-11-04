@@ -6,7 +6,7 @@ public sealed class EmailStorePstWriterOptions {
     public EmailStorePstWriterOptions(
         string? displayName = null,
         bool overwriteExisting = false,
-        bool failOnDataLoss = false,
+        bool failOnLoss = false,
         int maxFolderCount = 100_000,
         int maxItemCount = int.MaxValue,
         int maxNestedMessageDepth = 32,
@@ -24,7 +24,7 @@ public sealed class EmailStorePstWriterOptions {
         if (maxDiagnostics <= 0) throw new ArgumentOutOfRangeException(nameof(maxDiagnostics));
         DisplayName = string.IsNullOrWhiteSpace(displayName) ? "OfficeIMO Personal Folders" : displayName!;
         OverwriteExisting = overwriteExisting;
-        FailOnDataLoss = failOnDataLoss;
+        FailOnLoss = failOnLoss;
         MaxFolderCount = maxFolderCount;
         MaxItemCount = maxItemCount;
         MaxNestedMessageDepth = maxNestedMessageDepth;
@@ -43,7 +43,7 @@ public sealed class EmailStorePstWriterOptions {
     public bool OverwriteExisting { get; }
 
     /// <summary>Whether a fidelity warning prevents completion.</summary>
-    public bool FailOnDataLoss { get; }
+    public bool FailOnLoss { get; }
 
     /// <summary>Maximum folders accepted by one writer.</summary>
     public int MaxFolderCount { get; }

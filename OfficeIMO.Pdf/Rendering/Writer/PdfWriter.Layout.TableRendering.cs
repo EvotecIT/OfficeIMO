@@ -14,13 +14,13 @@ internal static partial class PdfWriter {
         layout.Lines.Count == 1 &&
         layout.Lines[0].Count > 0;
 
-    private static void RenderTableCellInlineCheckBox(LayoutResult.Page page, TableCellLayout cell, PdfColumnAlign align, System.Collections.Generic.IReadOnlyList<RichSeg> line, double textX, double innerWidth, double baselineY) {
+    private static void RenderTableCellInlineCheckBox(LayoutResult.Page page, TableCellLayout cell, OfficeAlignment align, System.Collections.Generic.IReadOnlyList<RichSeg> line, double textX, double innerWidth, double baselineY) {
         PdfTableCellCheckBox checkBox = cell.CheckBoxes[0];
-        double size = checkBox.Size;
+        double size = checkBox.Size.ToPoints();
         double lineWidth = MeasureRichLineWidth(line);
         double lineX = align switch {
-            PdfColumnAlign.Center => textX + System.Math.Max(0D, (innerWidth - lineWidth) / 2D),
-            PdfColumnAlign.Right => textX + System.Math.Max(0D, innerWidth - lineWidth),
+            OfficeAlignment.Center => textX + System.Math.Max(0D, (innerWidth - lineWidth) / 2D),
+            OfficeAlignment.Right => textX + System.Math.Max(0D, innerWidth - lineWidth),
             _ => textX
         };
         double x = System.Math.Min(textX + System.Math.Max(0D, innerWidth - size), lineX + lineWidth + TableCellCheckBoxGap);
@@ -42,7 +42,7 @@ internal static partial class PdfWriter {
     private static void RenderTableCellObjects(
         LayoutResult.Page page,
         TableCellLayout cell,
-        PdfColumnAlign align,
+        OfficeAlignment align,
         double textX,
         double innerWidth,
         double topY,
@@ -56,7 +56,7 @@ internal static partial class PdfWriter {
                 yCursor -= TableCellCheckBoxGap;
             }
 
-            PdfAlign imageAlign = image.Style?.Align ?? MapTableCellAlignment(align);
+            OfficeAlignment imageAlign = image.Style?.Align ?? MapTableCellAlignment(align);
             ImageBlock block = image.ToImageBlock(imageAlign);
             PdfImageStyle imageStyle = block.Style ?? new PdfImageStyle {
                 Align = imageAlign
@@ -65,8 +65,8 @@ internal static partial class PdfWriter {
             PdfDocument.ValidateImageFitDimensions(block.Info, imageStyle.Fit, nameof(image.Style));
             var imageBox = ResolveTableCellImageBox(image, innerWidth);
             double x = imageStyle.Align switch {
-                PdfAlign.Center => textX + System.Math.Max(0D, (innerWidth - imageBox.Width) / 2D),
-                PdfAlign.Right => textX + System.Math.Max(0D, innerWidth - imageBox.Width),
+                OfficeAlignment.Center => textX + System.Math.Max(0D, (innerWidth - imageBox.Width) / 2D),
+                OfficeAlignment.Right => textX + System.Math.Max(0D, innerWidth - imageBox.Width),
                 _ => textX
             };
             PageImage pageImage = CreatePageImage(block, imageStyle, x, yCursor - imageBox.Height, imageBox.Width, imageBox.Height);
@@ -92,10 +92,10 @@ internal static partial class PdfWriter {
                 yCursor -= TableCellCheckBoxGap;
             }
 
-            double size = checkBox.Size;
+            double size = checkBox.Size.ToPoints();
             double x = align switch {
-                PdfColumnAlign.Center => textX + (innerWidth - size) / 2D,
-                PdfColumnAlign.Right => textX + innerWidth - size,
+                OfficeAlignment.Center => textX + (innerWidth - size) / 2D,
+                OfficeAlignment.Right => textX + innerWidth - size,
                 _ => textX
             };
             page.FormFields.Add(new FormFieldAnnotation {
@@ -120,29 +120,29 @@ internal static partial class PdfWriter {
                 yCursor -= TableCellCheckBoxGap;
             }
 
-            double width = System.Math.Min(formField.Width, innerWidth);
+            double width = System.Math.Min(formField.Width.ToPoints(), innerWidth);
             double x = align switch {
-                PdfColumnAlign.Center => textX + (innerWidth - width) / 2D,
-                PdfColumnAlign.Right => textX + innerWidth - width,
+                OfficeAlignment.Center => textX + (innerWidth - width) / 2D,
+                OfficeAlignment.Right => textX + innerWidth - width,
                 _ => textX
             };
 
             page.FormFields.Add(new FormFieldAnnotation {
                 X1 = x,
-                Y1 = yCursor - formField.Height,
+                Y1 = yCursor - formField.Height.ToPoints(),
                 X2 = x + width,
                 Y2 = yCursor,
                 Kind = formField.Kind == PdfTableCellFormFieldKind.Text ? FormFieldAnnotationKind.Text : FormFieldAnnotationKind.Choice,
                 Name = formField.Name,
                 Value = formField.Value,
                 Values = formField.Values,
-                FontSize = formField.FontSize,
+                FontSize = formField.FontSize.ToPoints(),
                 Options = formField.Options,
                 IsComboBox = formField.IsComboBox,
                 AllowsMultipleSelection = false,
                 Style = formField.Style
             });
-            yCursor -= formField.Height;
+            yCursor -= formField.Height.ToPoints();
             objectCount++;
         }
     }
@@ -215,12 +215,12 @@ internal static partial class PdfWriter {
         return heights;
     }
 
-    private static System.Collections.Generic.List<PdfAlign?>? SliceTableCellLineAlignments(TableCellTextLayout layout, int startLine, int lineCount) {
+    private static System.Collections.Generic.List<OfficeAlignment?>? SliceTableCellLineAlignments(TableCellTextLayout layout, int startLine, int lineCount) {
         if (layout.LineAlignments == null) {
             return null;
         }
 
-        var alignments = new System.Collections.Generic.List<PdfAlign?>();
+        var alignments = new System.Collections.Generic.List<OfficeAlignment?>();
         int available = System.Math.Max(0, layout.Lines.Count - startLine);
         int visible = System.Math.Max(0, System.Math.Min(lineCount, available));
         for (int i = 0; i < visible; i++) {
@@ -298,10 +298,10 @@ internal static partial class PdfWriter {
         clipWidth = clipRight - clipX;
     }
 
-    private static PdfAlign MapTableCellAlignment(PdfColumnAlign align) => align switch {
-        PdfColumnAlign.Center => PdfAlign.Center,
-        PdfColumnAlign.Right => PdfAlign.Right,
-        _ => PdfAlign.Left
+    private static OfficeAlignment MapTableCellAlignment(OfficeAlignment align) => align switch {
+        OfficeAlignment.Center => OfficeAlignment.Center,
+        OfficeAlignment.Right => OfficeAlignment.Right,
+        _ => OfficeAlignment.Left
     };
 
     private static bool[] GetRowSpanBoundarySkipColumns(TableBlock table, int boundaryRowIndex, int columnCount) {
@@ -370,7 +370,7 @@ internal static partial class PdfWriter {
         return skipColumns;
     }
 
-    private static void DrawTableHorizontalLine(StringBuilder sb, PdfColor color, double width, double xOrigin, double[] columnWidths, double columnGap, double y, bool[] skipColumns, bool artifact = false) {
+    private static void DrawTableHorizontalLine(StringBuilder sb, global::OfficeIMO.OfficeColor color, double width, double xOrigin, double[] columnWidths, double columnGap, double y, bool[] skipColumns, bool artifact = false) {
         if (columnWidths.Length == 0) {
             return;
         }
@@ -412,7 +412,7 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static void DrawTableRowFill(StringBuilder sb, PdfColor color, double xOrigin, double[] columnWidths, double columnGap, double y, double height, bool[] skipColumns, bool artifact = false) {
+    private static void DrawTableRowFill(StringBuilder sb, global::OfficeIMO.OfficeColor color, double xOrigin, double[] columnWidths, double columnGap, double y, double height, bool[] skipColumns, bool artifact = false) {
         if (columnWidths.Length == 0) {
             return;
         }
@@ -528,7 +528,7 @@ internal static partial class PdfWriter {
                 }
 
                 TableCellContentFrame frame = GetTableCellContentFrame(cell, cellX, cellBottom + cellHeight, cellWidth, cellHeight);
-                double iconSize = Math.Min(icon.Size, Math.Max(1D, Math.Min(frame.Width, frame.Height) - 2D));
+                double iconSize = Math.Min(icon.Size.ToPoints(), Math.Max(1D, Math.Min(frame.Width, frame.Height) - 2D));
                 if (iconSize > 0.001D) {
                     double padLeft = GetTableCellPaddingLeft(style, rowIndex, column);
                     double padRight = GetTableCellPaddingRight(style, rowIndex, column);
@@ -540,11 +540,11 @@ internal static partial class PdfWriter {
                     double contentTop = frame.Top - padTop;
                     double contentWidth = Math.Max(0D, contentRight - contentLeft);
                     double contentHeight = Math.Max(0D, contentTop - contentBottom);
-                    PdfColumnAlign horizontalAlign = icon.HorizontalAlignment ?? GetTableCellAlignment(style, rowIndex, column, cell.Text);
+                    OfficeAlignment horizontalAlign = icon.HorizontalAlignment ?? GetTableCellAlignment(style, rowIndex, column, cell.Text);
                     PdfCellVerticalAlign verticalAlign = GetTableCellVerticalAlignment(style, rowIndex, column);
                     double iconX = horizontalAlign switch {
-                        PdfColumnAlign.Center => contentLeft + Math.Max(0D, (contentWidth - iconSize) / 2D),
-                        PdfColumnAlign.Right => contentRight - iconSize,
+                        OfficeAlignment.Center => contentLeft + Math.Max(0D, (contentWidth - iconSize) / 2D),
+                        OfficeAlignment.Right => contentRight - iconSize,
                         _ => contentLeft
                     };
                     double iconY = verticalAlign switch {
@@ -553,8 +553,8 @@ internal static partial class PdfWriter {
                         _ => contentTop - iconSize
                     };
 
-                    iconX += icon.OffsetX;
-                    iconY += icon.OffsetY;
+                    iconX += icon.OffsetX.ToPoints();
+                    iconY += icon.OffsetY.ToPoints();
                     if (cell.Viewport == null || iconX + iconSize > cellX && iconX < cellX + cellWidth && iconY + iconSize > cellBottom && iconY < cellBottom + cellHeight) {
                         if (cell.Viewport != null) new ContentStreamBuilder(sb).SaveState().Rectangle(cellX, cellBottom, cellWidth, cellHeight).ClipPath().EndPath();
                         DrawTableCellIcon(sb, icon, iconX, iconY, iconSize, artifact);
@@ -608,7 +608,7 @@ internal static partial class PdfWriter {
         AppendArtifactEnd(sb, artifact);
     }
 
-    private static void DrawCheckBoxIcon(ContentStreamBuilder content, PdfColor color, double x, double y, double size, bool selected) {
+    private static void DrawCheckBoxIcon(ContentStreamBuilder content, global::OfficeIMO.OfficeColor color, double x, double y, double size, bool selected) {
         double strokeWidth = Math.Max(0.75D, size * 0.085D);
         double inset = strokeWidth / 2D;
         content.StrokeColor(color)
@@ -667,11 +667,11 @@ internal static partial class PdfWriter {
 
     private static double GetTableRowFontSize(PdfTableStyle style, int rowIndex, int headerRowCount, int footerStartRowIndex, double defaultFontSize) {
         if (rowIndex < headerRowCount) {
-            return style.HeaderFontSize ?? GetTableBodyFontSize(style, defaultFontSize);
+            return style.HeaderFontSize?.ToPoints() ?? GetTableBodyFontSize(style, defaultFontSize);
         }
 
         if (rowIndex >= footerStartRowIndex) {
-            return style.FooterFontSize ?? GetTableBodyFontSize(style, defaultFontSize);
+            return style.FooterFontSize?.ToPoints() ?? GetTableBodyFontSize(style, defaultFontSize);
         }
 
         return GetTableBodyFontSize(style, defaultFontSize);
@@ -681,7 +681,7 @@ internal static partial class PdfWriter {
         return rowIndex < headerRowCount ? style.HeaderBold : rowIndex >= footerStartRowIndex && style.FooterBold;
     }
 
-    private static PdfStandardFont GetTableRowFont(PdfOptions options, bool bold) {
+    private static PdfStandardFont GetTableRowFont(PdfCreateOptions options, bool bold) {
         var normalFont = ChooseNormal(options.DefaultFont);
         return bold ? ChooseBold(normalFont) : normalFont;
     }

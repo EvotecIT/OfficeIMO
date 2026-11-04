@@ -5,13 +5,13 @@ namespace OfficeIMO.Workflows.Tests;
 
 public sealed class OfficeWorkflowPublicationGuardTests {
     [Theory]
-    [InlineData("convert", OfficeWorkflowConflictPolicy.Replace)]
-    [InlineData("assembly", OfficeWorkflowConflictPolicy.Replace)]
-    [InlineData("images", OfficeWorkflowConflictPolicy.Replace)]
-    [InlineData("convert", OfficeWorkflowConflictPolicy.Fail)]
-    [InlineData("assembly", OfficeWorkflowConflictPolicy.Fail)]
-    [InlineData("images", OfficeWorkflowConflictPolicy.Fail)]
-    public async Task DeniedPublicationPreservesExistingOutputAndCleansStaging(string operation, OfficeWorkflowConflictPolicy policy) {
+    [InlineData("convert", OfficePublicationPolicy.Replace)]
+    [InlineData("assembly", OfficePublicationPolicy.Replace)]
+    [InlineData("images", OfficePublicationPolicy.Replace)]
+    [InlineData("convert", OfficePublicationPolicy.Fail)]
+    [InlineData("assembly", OfficePublicationPolicy.Fail)]
+    [InlineData("images", OfficePublicationPolicy.Fail)]
+    public async Task DeniedPublicationPreservesExistingOutputAndCleansStaging(string operation, OfficePublicationPolicy policy) {
         using var scope = new Scope();
         string target = Path.Combine(scope.Root, operation == "images" ? "output" : "output.pdf");
         string sentinel = operation == "images" ? Path.Combine(Directory.CreateDirectory(target).FullName, "previous.txt") : target;
@@ -32,6 +32,40 @@ public sealed class OfficeWorkflowPublicationGuardTests {
         Assert.DoesNotContain(Directory.EnumerateFileSystemEntries(scope.Root), path => path.Contains("officeimo-recovery-"));
     }
 
+    [Fact]
+    public async Task OutputNameAtTheFileNameLimitPublishes() {
+        using var scope = new Scope();
+        string source = Path.Combine(scope.Root, "source.pdf");
+        File.WriteAllBytes(source, PdfDocument.Create(document => document.Page(_ => { })).ToBytes());
+        string output = Path.Combine(scope.Root, new string('a', 251) + ".pdf");
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new() {
+            Operation = OfficeWorkflowOperation.Optimize, InputPath = source, OutputPath = output
+        });
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.Equal(output, result.OutputPath);
+        Assert.True(File.Exists(output));
+    }
+
+    [Theory]
+    [InlineData(OfficeWorkflowOperation.Optimize)]
+    [InlineData(OfficeWorkflowOperation.Sanitize)]
+    public async Task ReplaceCannotOverwriteALocalSourceWithItsOwnResult(OfficeWorkflowOperation operation) {
+        using var scope = new Scope();
+        string source = Path.Combine(scope.Root, "source.pdf");
+        byte[] original = PdfDocument.Create(document => document.Page(_ => { })).ToBytes();
+        File.WriteAllBytes(source, original);
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new() {
+            Operation = operation, InputPath = source, OutputPath = source, ConflictPolicy = OfficePublicationPolicy.Replace
+        });
+
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.Null(result.OutputPath);
+        Assert.Equal(original, File.ReadAllBytes(source));
+    }
+
     [Theory]
     [InlineData("convert")]
     [InlineData("assembly")]
@@ -40,14 +74,14 @@ public sealed class OfficeWorkflowPublicationGuardTests {
         using var scope = new Scope();
         string target = Path.Combine(scope.Root, operation == "images" ? "output" : "output.pdf");
         var guard = new Guard((path, _, _) => ValueTask.FromResult(path != target));
-        var result = await RunAsync(scope, operation, target, OfficeWorkflowConflictPolicy.Rename, guard);
+        var result = await RunAsync(scope, operation, target, OfficePublicationPolicy.Rename, guard);
         Assert.Equal(OfficeWorkflowStatus.Completed, result.Status);
         Assert.Equal(operation == "images" ? Path.Combine(scope.Root, "output (1)") : Path.Combine(scope.Root, "output (1).pdf"), result.Path);
         Assert.False(File.Exists(target));
         Assert.False(Directory.Exists(target));
         Assert.Equal(2, guard.Calls);
         if (operation != "images") {
-            var pdf = PdfDocument.Load(File.ReadAllBytes(result.Path!));
+            var pdf = PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(result.Path!)));
             Assert.True(pdf.Inspect().PageCount > 0);
         } else {
             Assert.NotEmpty(Directory.GetFiles(result.Path!, "*.svg"));
@@ -71,7 +105,7 @@ public sealed class OfficeWorkflowPublicationGuardTests {
             cancellation.Cancel();
             return true;
         });
-        var result = await RunAsync(scope, operation, target, OfficeWorkflowConflictPolicy.Rename, guard, cancellation.Token);
+        var result = await RunAsync(scope, operation, target, OfficePublicationPolicy.Rename, guard, cancellation.Token);
         Assert.Equal(throws ? OfficeWorkflowStatus.Failed : OfficeWorkflowStatus.Cancelled, result.Status);
         Assert.False(File.Exists(target));
         Assert.False(Directory.Exists(target));
@@ -79,7 +113,7 @@ public sealed class OfficeWorkflowPublicationGuardTests {
     }
 
     private static async Task<(OfficeWorkflowStatus Status, string? Path)> RunAsync(Scope scope, string operation,
-        string target, OfficeWorkflowConflictPolicy policy, IOfficeWorkflowPublicationGuard guard, CancellationToken token = default) {
+        string target, OfficePublicationPolicy policy, IOfficePublicationGuard guard, CancellationToken token = default) {
         var runner = new OfficeWorkflowRunner();
         if (operation == "assembly") {
             var result = await runner.AssemblePdfAsync(new PdfAssemblyRequest {
@@ -101,11 +135,11 @@ public sealed class OfficeWorkflowPublicationGuardTests {
         return (conversion.Status, conversion.OutputPath);
     }
 
-    private sealed class Guard(Func<string, bool, CancellationToken, ValueTask<bool>> check) : IOfficeWorkflowPublicationGuard {
+    private sealed class Guard(Func<string, bool, CancellationToken, ValueTask<bool>> check) : IOfficePublicationGuard {
         public int Calls { get; private set; }
-        public ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken cancellationToken) {
+        public Task<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken cancellationToken) {
             Calls++;
-            return check(path, isDirectory, cancellationToken);
+            return check(path, isDirectory, cancellationToken).AsTask();
         }
     }
 
@@ -116,7 +150,7 @@ public sealed class OfficeWorkflowPublicationGuardTests {
         public Scope() {
             Directory.CreateDirectory(Root);
             File.WriteAllText(Html, "<html><body><p>Publication acceptance</p></body></html>");
-            PdfDocument.Create(document => document.Page(page => page.Size(200, 300))).Save(Pdf);
+            PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300)))).Save(Pdf);
         }
         public void Dispose() => Directory.Delete(Root, recursive: true);
     }

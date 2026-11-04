@@ -1,3 +1,4 @@
+using OfficeIMO;
 using System;
 using System.Management.Automation;
 using OfficeIMO.Drawing;
@@ -83,9 +84,9 @@ public sealed class SetOfficeExcelChartSeriesCommand : PSWriteOffice.Cmdlets.Off
             var fillColor = FillColor;
             if (!string.IsNullOrWhiteSpace(fillColor)) {
                 if (ParameterSetName == ParameterSetSeriesName) {
-                    Chart.SetSeriesFillColor(SeriesName, fillColor!, IgnoreCase);
+                    Chart.SetSeriesFillColor(SeriesName, OfficeColor.Parse(fillColor!), IgnoreCase);
                 } else {
-                    Chart.SetSeriesFillColor(SeriesIndex, fillColor!);
+                    Chart.SetSeriesFillColor(SeriesIndex, OfficeColor.Parse(fillColor!));
                 }
             }
 
@@ -96,9 +97,9 @@ public sealed class SetOfficeExcelChartSeriesCommand : PSWriteOffice.Cmdlets.Off
                 }
 
                 if (ParameterSetName == ParameterSetSeriesName) {
-                    Chart.SetSeriesLineColor(SeriesName, lineColor!, LineWidthPoints, IgnoreCase);
+                    Chart.SetSeriesLineColor(SeriesName, OfficeColor.Parse(lineColor!), LineWidthPoints.HasValue ? OfficeLength.Points(LineWidthPoints.Value) : (OfficeLength?)null, IgnoreCase);
                 } else {
-                    Chart.SetSeriesLineColor(SeriesIndex, lineColor!, LineWidthPoints);
+                    Chart.SetSeriesLineColor(SeriesIndex, OfficeColor.Parse(lineColor!), LineWidthPoints.HasValue ? OfficeLength.Points(LineWidthPoints.Value) : (OfficeLength?)null);
                 }
             }
 
@@ -107,9 +108,9 @@ public sealed class SetOfficeExcelChartSeriesCommand : PSWriteOffice.Cmdlets.Off
                 !string.IsNullOrWhiteSpace(MarkerFillColor) || !string.IsNullOrWhiteSpace(MarkerLineColor) || MarkerLineWidthPoints.HasValue;
             if (markerRequested) {
                 if (ParameterSetName == ParameterSetSeriesName) {
-                    Chart.SetSeriesMarker(SeriesName, markerStyle, MarkerSize, MarkerFillColor, MarkerLineColor, MarkerLineWidthPoints, IgnoreCase);
+                    Chart.SetSeriesMarker(SeriesName, markerStyle, MarkerSize.HasValue ? OfficeLength.Points(MarkerSize.Value) : (OfficeLength?)null, MarkerFillColor != null ? OfficeColor.Parse(MarkerFillColor) : (OfficeColor?)null, MarkerLineColor != null ? OfficeColor.Parse(MarkerLineColor) : (OfficeColor?)null, MarkerLineWidthPoints.HasValue ? OfficeLength.Points(MarkerLineWidthPoints.Value) : (OfficeLength?)null, IgnoreCase);
                 } else {
-                    Chart.SetSeriesMarker(SeriesIndex, markerStyle, MarkerSize, MarkerFillColor, MarkerLineColor, MarkerLineWidthPoints);
+                    Chart.SetSeriesMarker(SeriesIndex, markerStyle, MarkerSize.HasValue ? OfficeLength.Points(MarkerSize.Value) : (OfficeLength?)null, MarkerFillColor != null ? OfficeColor.Parse(MarkerFillColor) : (OfficeColor?)null, MarkerLineColor != null ? OfficeColor.Parse(MarkerLineColor) : (OfficeColor?)null, MarkerLineWidthPoints.HasValue ? OfficeLength.Points(MarkerLineWidthPoints.Value) : (OfficeLength?)null);
                 }
             }
 

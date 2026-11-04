@@ -88,7 +88,7 @@ internal static class SourceTableClusterControl {
             AllocationRecord = new(allocation.Offset - 8, allocation.Length + 8, compactAllocation)
         };
         byte[] compact = PublisherEscherSourceWriter.Rewrite(art, new Dictionary<int, IReadOnlyDictionary<ushort, OfficeArtProperty>>(),
-            null, new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None), 64L * 1024 * 1024, edits)
+            null, new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None), 64L * 1024 * 1024, edits)
             ?? throw new InvalidDataException("Synthetic compact allocation replacement failed.");
         var compactReader = Reader(compact);
         var compactTop = compactReader.Records(0, compact.Length);
@@ -284,7 +284,7 @@ internal static class SourceTableClusterControl {
     private static bool Positive(double value) => double.IsFinite(value) && value > 0;
     private static bool Close(double left, double right) => double.IsFinite(left) && Math.Abs(left - right) <= 1D / 12700;
     private static PublisherEscherReader Reader(byte[] bytes) => new(new PublisherBinaryData(bytes, "Escher/EscherStm"), null,
-        new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None));
+        new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None));
     private sealed record AllocationSnapshot(uint DrawingOwner, uint Cursor, uint ActiveDrawingCount, uint ActiveTotal,
         byte[] History, HashSet<int> UtilityBodies);
 }

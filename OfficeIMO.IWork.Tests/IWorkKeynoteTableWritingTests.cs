@@ -66,16 +66,15 @@ public sealed class IWorkKeynoteTableWritingTests {
         Assert.Equal("FFFFFF", table.GetFill(3, 3)!.Color!.RgbHex);
         Assert.Equal("Arial", table.GetParagraphStyle(2, 2)!.TextStyle.FontName);
         Assert.Equal(24, table.GetParagraphStyle(2, 2)!.TextStyle.FontSizePoints);
-        using var conversion = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(new MemoryStream(package),
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var conversion = IWorkSourceDocument.Open(new MemoryStream(package), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         conversion.Report.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); conversion.Value.Save(output); output.Position = 0;
-        using var reopened = PowerPointPresentation.Load(output);
+        using var reopened = PowerPointDocument.Load(output);
         Assert.Empty(reopened.ValidateDocument());
         var shapes = reopened.Slides[0].Shapes.ToArray();
         Assert.IsType<PowerPointTextBox>(shapes[0]); var saved = Assert.IsType<PowerPointTable>(shapes[1]);
         Assert.IsType<PowerPointTextBox>(shapes[2]);
-        Assert.Equal("A😀B\nZażółć", saved.GetCell(0, 0).Text);
+        Assert.Equal("A😀B" + Environment.NewLine + "Zażółć", saved.GetCell(0, 0).Text);
         Assert.Equal("=SUM(A1:A2)", saved.GetCell(0, 1).Text);
         Assert.Equal("-1234.5", saved.GetCell(1, 0).Text);
         Assert.Equal("TRUE", saved.GetCell(1, 1).Text);
@@ -115,10 +114,10 @@ public sealed class IWorkKeynoteTableWritingTests {
         slide.AddTable(IWorkTableData.Create(2, 2), 400, 0, 400, 200);
         var limits = new IWorkKeynoteWriteOptions();
         switch (boundary) {
-            case "count": limits.MaximumTables = 1; break;
-            case "empty-grid": limits.MaximumTableCells = 7; break;
-            case "text": limits.MaximumTextCharacters = 14; break;
-            case "package": limits.MaximumPackageBytes = 200; break;
+            case "count": limits.MaxTables = 1; break;
+            case "empty-grid": limits.MaxTableCells = 7; break;
+            case "text": limits.MaxTextCharacters = 14; break;
+            case "package": limits.MaxPackageBytes = 200; break;
         }
         byte[] sentinel = { 9, 8, 7 }; using var stream = new MemoryStream(); stream.Write(sentinel);
         Assert.Throws<InvalidDataException>(() => document.Save(stream, limits)); Assert.Equal(sentinel, stream.ToArray());

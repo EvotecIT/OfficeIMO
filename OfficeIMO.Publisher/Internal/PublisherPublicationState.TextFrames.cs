@@ -4,7 +4,7 @@ namespace OfficeIMO.Publisher.Internal;
 
 internal sealed partial class PublisherPublicationState {
     internal PublisherPublicationState AddTextFrame(uint pageId, double x, double y, double width, double height,
-        IReadOnlyList<OfficeRichTextParagraph> paragraphs, PublisherReadOptions options, CancellationToken token, out uint frameId) {
+        IReadOnlyList<OfficeRichTextParagraph> paragraphs, PublisherLoadOptions options, CancellationToken token, out uint frameId) {
         PublisherPageState? page = Pages.SingleOrDefault(item => item.Id == pageId);
         if (page == null) throw new ArgumentOutOfRangeException(nameof(pageId), "The publication has no such page.");
         if (!page.SupportsPlacementEditing) throw new NotSupportedException("The page's coordinate registration is not qualified for text creation.");

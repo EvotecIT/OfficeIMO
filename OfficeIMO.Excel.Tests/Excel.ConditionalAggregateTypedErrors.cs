@@ -22,17 +22,17 @@ public sealed class ExcelConditionalAggregateTypedErrorTests {
         Verify(destination);
         Assert.Empty(reopened.ValidateOpenXml());
 
-        destination.CellFormula(2, 2, "5");
+        destination.Cell(2, 2).SetFormula("5");
         Assert.Equal(count, reopened.Calculate());
         for (int row = 2; row <= 7; row++) {
-            for (int column = 7; column <= 9; column++) Assert.Equal(5d, destination.CellAt(row, column).GetValue<double>());
-            Assert.False(destination.CellAt(row, 10).GetValue<bool>());
+            for (int column = 7; column <= 9; column++) Assert.Equal(5d, destination.Cell(row, column).GetValue<double>());
+            Assert.False(destination.Cell(row, 10).GetValue<bool>());
         }
         double[] mixed = { 15d, 15d, 7.5d, 7.5d, 5d, 10d };
-        for (int row = 8; row <= 13; row++) Assert.Equal(mixed[row - 8], destination.CellAt(row, 7).GetValue<double>());
+        for (int row = 8; row <= 13; row++) Assert.Equal(mixed[row - 8], destination.Cell(row, 7).GetValue<double>());
         using var edited = new MemoryStream(); reopened.Save(edited); edited.Position = 0;
         using var final = ExcelDocument.Load(edited);
-        Assert.Equal(5d, final.Sheets[0].CellAt(2, 7).GetValue<double>());
+        Assert.Equal(5d, final.Sheets[0].Cell(2, 7).GetValue<double>());
         Assert.Empty(final.ValidateOpenXml());
 
         void Verify(ExcelSheet sheet) {
@@ -42,7 +42,7 @@ public sealed class ExcelConditionalAggregateTypedErrorTests {
                 Assert.True(sheet.TryGetCachedFormulaValue(row, column, out string? value), cell.GetProperty("address").GetString());
                 Assert.Equal(cell.GetProperty("value").GetString(), value);
                 if (cell.GetProperty("kind").GetString() == "b")
-                    Assert.Equal(value == "1", sheet.CellAt(row, column).GetValue<bool>());
+                    Assert.Equal(value == "1", sheet.Cell(row, column).GetValue<bool>());
             }
         }
     }
@@ -50,9 +50,9 @@ public sealed class ExcelConditionalAggregateTypedErrorTests {
     [Fact]
     public void Conditional_errors_do_not_mask_unqualified_ranges_criteria_or_resource_limits() {
         using var document = ExcelDocument.Create();
-        var sheet = document.AddWorksheet("Qualification");
-        sheet.CellValue(1, 1, "EU"); sheet.CellValue(2, 1, "EU");
-        sheet.CellFormula(1, 2, "NA()"); sheet.CellFormula(2, 2, "UNKNOWN()");
+        var sheet = document.AddSheet("Qualification");
+        sheet.Cell(1, 1).SetValue("EU"); sheet.Cell(2, 1).SetValue("EU");
+        sheet.Cell(1, 2).SetFormula("NA()"); sheet.Cell(2, 2).SetFormula("UNKNOWN()");
         string[] expressions = {
             "SUMIF(A1:A2,\"EU\",B1:B2)", "AVERAGEIF(A1:A2,\"EU\",B1:B2)",
             "SUMIFS(B1:B2,A1:A2,\"EU\")", "AVERAGEIFS(B1:B2,A1:A2,\"EU\")",
@@ -63,8 +63,8 @@ public sealed class ExcelConditionalAggregateTypedErrorTests {
             "AVERAGEIFS(B1,A1,NA(),A1:A100000,\"EU\")", "COUNTIFS(A1,NA(),A1:A100000,\"EU\")"
         };
         for (int index = 0; index < expressions.Length; index++) {
-            sheet.CellValue(index + 1, 4, 42d);
-            sheet.CellFormula(index + 1, 4, "IFERROR(" + expressions[index] + ",99)");
+            sheet.Cell(index + 1, 4).SetValue(42d);
+            sheet.Cell(index + 1, 4).SetFormula("IFERROR(" + expressions[index] + ",99)");
         }
         Assert.Equal(1, document.Calculate()); // Only the independent NA operand is qualified.
         for (int row = 1; row <= expressions.Length; row++) {

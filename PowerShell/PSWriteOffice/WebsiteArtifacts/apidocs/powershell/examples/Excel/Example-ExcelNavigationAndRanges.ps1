@@ -10,7 +10,7 @@ $rows = @(
 
 New-OfficeExcel -Path $path {
     ExcelSheet 'Data' {
-        ExcelTable -Data $rows -TableName 'Sales' -AutoFit
+        ExcelTable -Data $rows -Name 'Sales' -AutoFit
         ExcelNamedRange -Name 'SalesData' -Range 'A1:B4'
     }
     ExcelSheet 'Notes' {

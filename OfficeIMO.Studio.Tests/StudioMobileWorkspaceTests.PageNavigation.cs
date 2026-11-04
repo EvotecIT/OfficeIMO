@@ -168,7 +168,7 @@ public sealed partial class StudioMobileWorkspaceTests {
         File.WriteAllBytes(path, PdfDocument.Create(pdf => {
             for (int page = 1; page <= 3; page++) {
                 string label = "Page " + page;
-                pdf.Page(item => item.Content(content => content.Text(label)));
+                pdf.Page(item => item.Content(content => content.AddParagraph(label)));
             }
         }).ToBytes());
         return path;

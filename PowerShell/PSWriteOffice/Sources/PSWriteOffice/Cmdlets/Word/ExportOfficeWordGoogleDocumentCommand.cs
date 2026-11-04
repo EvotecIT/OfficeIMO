@@ -1,87 +1,79 @@
 using System;
 using System.Management.Automation;
 using System.Threading.Tasks;
-using OfficeIMO.GoogleWorkspace;
+using OfficeIMO;
 using OfficeIMO.Word;
 using OfficeIMO.Word.GoogleDocs;
+using OfficeIMO.GoogleWorkspace;
+using PSWriteOffice.Foundation;
+using PSWriteOffice.Services;
 
 namespace PSWriteOffice.Cmdlets.Word;
 
-/// <summary>Plans, compiles, or exports a Word document to Google Docs.</summary>
-[Cmdlet(VerbsData.Export, "OfficeWordGoogleDocument", DefaultParameterSetName = ParameterSetPath, SupportsShouldProcess = true)]
+/// <summary>Selects a live export, an offline translation plan or a provider-neutral request batch.</summary>
+public enum GoogleDocsExportMode {
+    /// <summary>Export through a supplied Google Workspace session after confirmation.</summary>
+    Export = 0,
+    /// <summary>Return the native translation plan without contacting Google.</summary>
+    Plan = 1,
+    /// <summary>Return the native provider-neutral request batch without contacting Google.</summary>
+    Batch = 2
+}
+
+/// <summary>Plans, compiles or exports Word documents to Google Docs.</summary>
+/// <example><summary>Inspect translation without signing in.</summary>
+/// <code>Export-OfficeWordGoogleDocument -Path .\Report.docx -Mode Plan</code></example>
+[Cmdlet(VerbsData.Export, "OfficeWordGoogleDocument", DefaultParameterSetName = "Document", SupportsShouldProcess = true)]
 [OutputType(typeof(GoogleDocsTranslationPlan), typeof(GoogleDocsBatch), typeof(GoogleDocumentReference))]
-public sealed class ExportOfficeWordGoogleDocumentCommand : AsyncPSCmdlet
-{
-    private const string ParameterSetPath = "Path";
-    private const string ParameterSetDocument = "Document";
-
-    /// <summary>Path to a Word document.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
-    public string Path { get; set; } = string.Empty;
-
-    /// <summary>Word document to export.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public WordDocument Document { get; set; } = null!;
-
-    /// <summary>Google Docs translation and destination settings.</summary>
+public sealed class ExportOfficeWordGoogleDocumentCommand : GoogleExportCmdlet<WordDocument> {
+    /// <summary>One native options object and property hashtables applied to an independent snapshot.</summary>
     [Parameter]
-    public GoogleDocsSaveOptions? Options { get; set; }
+    public object[]? Options { get; set; }
 
-    /// <summary>Configured Google Workspace session used for a live export.</summary>
+    /// <summary>Configured Google Workspace session, required for Export mode.</summary>
     [Parameter]
     public GoogleWorkspaceSession? Session { get; set; }
 
-    /// <summary>Return the translation plan without compiling requests or contacting Google.</summary>
+    /// <summary>Export by default, or return an offline Plan or Batch.</summary>
     [Parameter]
-    public SwitchParameter PlanOnly { get; set; }
+    public GoogleDocsExportMode Mode { get; set; }
 
-    /// <summary>Return the provider-neutral request batch without contacting Google.</summary>
-    [Parameter]
-    public SwitchParameter AsBatch { get; set; }
-
-    /// <summary>Throw when translation reports a warning or error.</summary>
+    /// <summary>Reject translation warnings or errors before returning a result or mutating Google.</summary>
     [Parameter]
     public SwitchParameter FailOnLoss { get; set; }
 
     /// <inheritdoc />
-    protected override async Task ProcessRecordAsync()
-    {
-        if (PlanOnly.IsPresent && AsBatch.IsPresent) throw new ArgumentException("Use either -PlanOnly or -AsBatch, not both.");
-        WordDocument? owned = null;
-        try
-        {
-            var document = ParameterSetName == ParameterSetPath
-                ? owned = WordDocument.Load(SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path))
-                : Document;
-            if (PlanOnly.IsPresent)
-            {
-                var plan = document.BuildGoogleDocsPlan(Options);
-                EnsureNoLoss(plan.Report);
-                WriteObject(plan);
-                return;
-            }
-            if (AsBatch.IsPresent)
-            {
-                var batch = document.BuildGoogleDocsBatch(Options);
-                EnsureNoLoss(batch.Report);
-                WriteObject(batch);
-                return;
-            }
-            if (Session == null) throw new PSInvalidOperationException("Provide -Session for live export, or use -PlanOnly or -AsBatch.");
-            if (FailOnLoss.IsPresent) EnsureNoLoss(document.BuildGoogleDocsPlan(Options).Report);
-            var target = Options?.Title ?? (ParameterSetName == ParameterSetPath ? Path : "Google document");
-            if (!ShouldProcess(target, "Export Word document to Google Docs")) return;
-            var result = await document.ExportToGoogleDocsAsync(Session, Options, CancelToken).ConfigureAwait(false);
-            WriteObject(result);
-        }
-        finally
-        {
-            owned?.Dispose();
-        }
+    protected override Task ProcessRecordAsync() {
+        if (!Enum.IsDefined(typeof(GoogleDocsExportMode), Mode)) throw new PSArgumentException("Choose Export, Plan or Batch.");
+        if (Mode == GoogleDocsExportMode.Export && Session == null)
+            throw new PSArgumentException("Provide -Session for Export mode, or use -Mode Plan or Batch.");
+        var options = GoogleExportOptionBinding.Capture((EngineIntrinsics)SessionState.PSVariable.GetValue("ExecutionContext"), Options,
+            () => new GoogleDocsSaveOptions(), value => value.Clone());
+        return WithInputsAsync(path => WordDocument.Load(path, new WordLoadOptions {
+            AccessMode = DocumentAccessMode.ReadOnly, PersistenceMode = DocumentPersistenceMode.Explicit
+        }), (document, path) => ExportAsync(document, path, options));
     }
 
-    private void EnsureNoLoss(TranslationReport report)
-    {
+    private async Task ExportAsync(WordDocument document, string? path, GoogleDocsSaveOptions options) {
+        CancelToken.ThrowIfCancellationRequested();
+        if (Mode == GoogleDocsExportMode.Plan) {
+            var plan = document.BuildGoogleDocsPlan(options);
+            EnsureNoLoss(plan.Report);
+            WriteObject(plan);
+            return;
+        }
+        if (Mode == GoogleDocsExportMode.Batch) {
+            var batch = document.BuildGoogleDocsBatch(options);
+            EnsureNoLoss(batch.Report);
+            WriteObject(batch);
+            return;
+        }
+        if (FailOnLoss.IsPresent) EnsureNoLoss(document.BuildGoogleDocsPlan(options).Report);
+        if (!ShouldProcess(options.Title ?? path ?? "Google document", "Export Word document to Google Docs")) return;
+        WriteObject(await document.ExportToGoogleDocsAsync(Session!, options, CancelToken).ConfigureAwait(false));
+    }
+
+    private void EnsureNoLoss(TranslationReport report) {
         if (FailOnLoss.IsPresent && (report.HasWarnings || report.HasErrors))
             throw new InvalidOperationException("Word-to-Google Docs translation reported one or more fidelity losses.");
     }

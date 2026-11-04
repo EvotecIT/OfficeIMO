@@ -12,29 +12,29 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("ArrayConstants");
-                    sheet.CellValue(1, 1, 6d);
-                    sheet.CellFormula(1, 1, "SUM({1,2,3})");
-                    sheet.CellValue(2, 1, 2d);
-                    sheet.CellFormula(2, 1, "SUM({TRUE,FALSE,1})");
-                    sheet.CellValue(3, 1, 14d);
-                    sheet.CellFormula(3, 1, "SUM(B1:B3*{1;2;3})");
-                    sheet.CellValue(4, 1, "Blue");
-                    sheet.CellFormula(4, 1, "INDEX({\"Red\",\"Blue\"},2)");
-                    sheet.CellValue(5, 1, "#N/A");
-                    sheet.CellFormula(5, 1, "INDEX({#N/A,5},1)");
+                    ExcelSheet sheet = document.AddSheet("ArrayConstants");
+                    sheet.Cell(1, 1).SetValue(6d);
+                    sheet.Cell(1, 1).SetFormula("SUM({1,2,3})");
+                    sheet.Cell(2, 1).SetValue(2d);
+                    sheet.Cell(2, 1).SetFormula("SUM({TRUE,FALSE,1})");
+                    sheet.Cell(3, 1).SetValue(14d);
+                    sheet.Cell(3, 1).SetFormula("SUM(B1:B3*{1;2;3})");
+                    sheet.Cell(4, 1).SetValue("Blue");
+                    sheet.Cell(4, 1).SetFormula("INDEX({\"Red\",\"Blue\"},2)");
+                    sheet.Cell(5, 1).SetValue("#N/A");
+                    sheet.Cell(5, 1).SetFormula("INDEX({#N/A,5},1)");
                     SetOpenXmlErrorCell(sheet, "A5", "#N/A");
-                    sheet.CellValue(6, 1, 3d);
-                    sheet.CellFormula(6, 1, "IF(B1>0,SUM({1,2}),0)");
-                    sheet.CellValue(7, 1, 0d);
-                    sheet.CellFormula(7, 1, "IF(B1<0,SUM({1,2}))");
-                    sheet.CellValue(8, 1, 3d);
-                    sheet.CellFormula(8, 1, "CHOOSE(B1,SUM({1,2}),0)");
-                    sheet.CellValue(9, 1, 7d);
-                    sheet.CellFormula(9, 1, "CHOOSE(2,SUM({1,2}),SUM({3,4}))");
-                    sheet.CellValue(1, 2, 1d);
-                    sheet.CellValue(2, 2, 2d);
-                    sheet.CellValue(3, 2, 3d);
+                    sheet.Cell(6, 1).SetValue(3d);
+                    sheet.Cell(6, 1).SetFormula("IF(B1>0,SUM({1,2}),0)");
+                    sheet.Cell(7, 1).SetValue(0d);
+                    sheet.Cell(7, 1).SetFormula("IF(B1<0,SUM({1,2}))");
+                    sheet.Cell(8, 1).SetValue(3d);
+                    sheet.Cell(8, 1).SetFormula("CHOOSE(B1,SUM({1,2}),0)");
+                    sheet.Cell(9, 1).SetValue(7d);
+                    sheet.Cell(9, 1).SetFormula("CHOOSE(2,SUM({1,2}),SUM({3,4}))");
+                    sheet.Cell(1, 2).SetValue(1d);
+                    sheet.Cell(2, 2).SetValue(2d);
+                    sheet.Cell(3, 2).SetValue(3d);
 
                     document.Save(xlsOutputPath);
                 }

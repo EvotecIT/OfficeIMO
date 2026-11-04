@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes decoded Bar chart group options preserved from a BIFF chart stream.
     /// </summary>
-    public sealed class LegacyXlsChartBarOptions {
+    internal sealed class LegacyXlsChartBarOptions {
         internal LegacyXlsChartBarOptions(short overlapPercentage, ushort gapWidthPercentage, ushort flags) {
             OverlapPercentage = overlapPercentage;
             GapWidthPercentage = gapWidthPercentage;

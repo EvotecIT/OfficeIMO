@@ -15,8 +15,7 @@ public sealed class IWorkCellCommentCorpusTests {
         using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "native-roots.json")));
         Assert.Equal(manifest.RootElement.GetProperty("sourceSha256").GetString(),
             Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant());
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(path,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
+        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
         Assert.False(result.IsVisualFallback, string.Join("\n", result.Report.Diagnostics.Select(d => d.Code + ": " + d.Message)));
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
@@ -42,7 +41,7 @@ public sealed class IWorkCellCommentCorpusTests {
             Assert.Equal(IWorkCellUnsupportedFeatures.None, cell.UnsupportedFeatures & IWorkCellUnsupportedFeatures.Comment);
             string destinationName = result.WorksheetMappings.Single(m => m.SourceSheetName == sourceSheet && m.SourceTableName == sourceTable).DestinationName;
             var destination = Assert.Single(reopened.Sheets.Single(s => s.Name == destinationName).GetThreadedComments(),
-                c => c.CellReference == A1.CellReference(row, column));
+                c => c.CellReference == ExcelA1.CellReference(row, column));
             Assert.Equal(comment.Text, destination.Text); Assert.Equal(comment.Author, destination.Author);
             Assert.Null(destination.ParentId);
             Assert.Equal(comment.CreationDateUtc, destination.Date);
@@ -50,7 +49,7 @@ public sealed class IWorkCellCommentCorpusTests {
             var metadata = Assert.Single(transported.Metadata, m => m.Category == "table.comment"
                 && m.Location!.Sheet == sourceSheet
                 && transported.Pages.Single(p => p.Location.Sheet == sourceSheet).Tables[m.Location.TableIndex!.Value].Title == sourceTable
-                && m.Location.A1Range == A1.CellReference(row, column));
+                && m.Location.A1Range == ExcelA1.CellReference(row, column));
             Assert.Equal(comment.Text, metadata.Value);
             Assert.Equal(comment.Author, metadata.Attributes["author"]);
             Assert.Equal(comment.CreationDateUtc.ToString("O", System.Globalization.CultureInfo.InvariantCulture),

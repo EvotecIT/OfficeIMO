@@ -5,6 +5,9 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
     /// Encodes the first native XLS writer formula subset into BIFF8 parsed-expression tokens.
     /// </summary>
     internal static partial class LegacyXlsFormulaEncoder {
+        private const int MaximumFormulaCharacters = 131_072;
+        private const int MaximumSyntacticNestingDepth = 64;
+        private const int MaximumSyntacticOperators = 512;
         private const string SupportedSubsetDescription = "Only same-sheet, workbook-internal sheet-qualified, or supported external-workbook sheet-qualified cell references and ranges, supported workbook or current-sheet defined names, numeric constants, string constants, Boolean constants, error constants, array constants in formula records, same-sheet reference range/union/intersection operators, unary +/-, +, -, *, /, ^, &, %, comparisons, explicit parentheses, simple aggregate functions SUM, AVERAGE, MIN, MAX, COUNT, CHOOSE, supported lookup/reference functions, supported variable-arity logical functions, and supported fixed functions are supported by native XLS formula saving.";
 
         internal static bool TryEncode(string formulaText, out byte[] tokens, out string? reason) {
@@ -17,6 +20,11 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             int formulaSheetIndex,
             out byte[] tokens,
             out string? reason) {
+            if (FormulaLimitReason(formulaText) is string limitReason) {
+                tokens = Array.Empty<byte>();
+                reason = limitReason;
+                return false;
+            }
             if (!TryEncodeUntyped(formulaText, nameIndex, formulaSheetIndex, out tokens, out reason)) return false;
             return ExcelNativeFormulaOperandTypes.TryApply(tokens, binary12: false, ExcelNativeFormulaOperandTypes.Value, out reason);
         }
@@ -89,6 +97,11 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             out string? reason) {
             tokens = Array.Empty<byte>();
             reason = null;
+
+            if (FormulaLimitReason(formulaText) is string limitReason) {
+                reason = limitReason;
+                return false;
+            }
 
             string normalized = NormalizeFormula(formulaText);
             if (normalized.Length == 0) {
@@ -300,6 +313,43 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             return normalized.StartsWith("=", StringComparison.Ordinal)
                 ? normalized.Substring(1).Trim()
                 : normalized;
+        }
+
+        private static string? FormulaLimitReason(string formulaText) {
+            if (formulaText.Length > MaximumFormulaCharacters)
+                return $"Formula text exceeds the supported limit of {MaximumFormulaCharacters} characters.";
+            int depth = 0;
+            int operators = 0;
+            bool inString = false;
+            bool inSheetName = false;
+            for (int index = 0; index < formulaText.Length; index++) {
+                char current = formulaText[index];
+                if (inString) {
+                    if (current == '"') {
+                        if (index + 1 < formulaText.Length && formulaText[index + 1] == '"') index++;
+                        else inString = false;
+                    }
+                    continue;
+                }
+                if (inSheetName) {
+                    if (current == '\'') {
+                        if (index + 1 < formulaText.Length && formulaText[index + 1] == '\'') index++;
+                        else inSheetName = false;
+                    }
+                    continue;
+                }
+                if (current == '"') inString = true;
+                else if (current == '\'') inSheetName = true;
+                else if (current == '(' && ++depth > MaximumSyntacticNestingDepth)
+                    return $"Formula syntactic nesting exceeds the supported depth of {MaximumSyntacticNestingDepth}.";
+                else if (current == ')' && depth > 0) depth--;
+                else if (current is '+' or '-' or '*' or '/' or '^' or '&' or '=' or '<' or '>' or '%' or ',' or ':' ||
+                    (char.IsWhiteSpace(current) && index > 0 && !char.IsWhiteSpace(formulaText[index - 1]))) {
+                    if (++operators > MaximumSyntacticOperators)
+                        return $"Formula operators exceed the supported limit of {MaximumSyntacticOperators}.";
+                }
+            }
+            return null;
         }
 
         private static bool ContainsFutureFunctionAlias(string formulaText) {
@@ -983,6 +1033,12 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             out byte[] extraData,
             out string? reason) {
             extraData = Array.Empty<byte>();
+
+            if (FormulaLimitReason(formulaText) is string limitReason) {
+                tokens = Array.Empty<byte>();
+                reason = limitReason;
+                return false;
+            }
 
             string normalized = NormalizeFormula(formulaText);
             if (normalized.IndexOf('{') >= 0

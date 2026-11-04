@@ -25,7 +25,7 @@ public sealed partial class HtmlRenderingTests {
             string.Join(" | ", text.Select(item => "Layout=" + item.TextAdvanceWidth
                 + "; Prepared=" + item.PreparedShaping?.Measure(item.Font.Size))));
         Assert.Equal("AV", rendered.Text.Trim());
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
     }
 
     [Theory]
@@ -42,7 +42,7 @@ public sealed partial class HtmlRenderingTests {
                 new[] { 32, 0x202E, 0x202C });
         string content = cssOverride ? "<bdo dir='rtl'>abc</bdo>" : "\u202Eabc\u202C";
         HtmlConversionDocument document = ResolvedTypographyDocument(content, "ltr", fontDirected);
-        HtmlToPdfOptions options = ResolvedTypographyOptions(data, fontDirected);
+        HtmlPdfExportOptions options = ResolvedTypographyOptions(data, fontDirected);
 
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(document, options);
         HtmlRenderText[] text = rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene))
@@ -57,12 +57,12 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("abc", rendered.Text.Trim());
         if (fontDirected) {
             Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Approximation);
-            Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+            Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
         } else {
-            rendered.RequireNoLoss();
+            rendered.ThrowIfLoss();
             Assert.Contains(text, item => item.PreparedShaping != null);
-            PdfCore.PdfDocumentConversionResult pdf = document.ToPdfDocumentResult(options);
-            pdf.RequireNoLoss();
+            PdfCore.PdfDocumentConversionResult pdf = document.ConvertToPdfWithEvidence(options);
+            pdf.ThrowIfLoss();
             Assert.Equal("abc", PdfCore.PdfReadDocument.Open(pdf.ToBytes()).ExtractText().Trim());
             OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, options);
             OfficeImageExportResult replay = Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(
@@ -92,7 +92,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(expected, ObservePaintedTrueTypeGlyphs(rendered, text).Select(glyph => glyph.GlyphId));
         Assert.Contains(text, item => item.PreparedShaping != null);
         Assert.Equal(expectedPaint, rendered.Text.Trim());
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     private static HtmlConversionDocument ResolvedTypographyDocument(string content, string direction, bool bold = false) =>
@@ -100,8 +100,8 @@ public sealed partial class HtmlRenderingTests {
             + "p{font:" + (bold ? "700 " : string.Empty) + "20px/24px '" + ManagedTextShapingTestAssets.FamilyName + "';font-feature-settings:'kern' 0}</style>"
             + "<p dir='" + direction + "'>" + content + "</p>");
 
-    private static HtmlToPdfOptions ResolvedTypographyOptions(byte[] data, bool bold = false) {
-        var options = new HtmlToPdfOptions {
+    private static HtmlPdfExportOptions ResolvedTypographyOptions(byte[] data, bool bold = false) {
+        var options = new HtmlPdfExportOptions {
             AllowSystemFontFallback = false,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
             FidelityPolicy = HtmlRenderFidelityPolicy.AllowDiagnosedLoss,

@@ -3,7 +3,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word;
 
 // Provides helper methods for working with table styles.
-public static partial class WordTableStyles {
+internal static partial class WordTableStyles {
     /// <summary>
     /// Converts a style name into its corresponding <see cref="WordTableStyle"/> value.
     /// </summary>
@@ -14,6 +14,7 @@ public static partial class WordTableStyles {
             // Grid Tables - Line 1
             case "TableNormal": return WordTableStyle.TableNormal;
             case "TableGrid": return WordTableStyle.TableGrid;
+            case WordThemeDefaults.TableStyleId: return WordTableStyle.OfficeIMOModern;
             case "PlainTable1": return WordTableStyle.PlainTable1;
             case "PlainTable2": return WordTableStyle.PlainTable2;
             case "PlainTable3": return WordTableStyle.PlainTable3;
@@ -149,6 +150,7 @@ public static partial class WordTableStyles {
     internal static TableStyle GetStyle(WordTableStyle style) {
         switch (style) {
             // Grid Tables - Line 1
+            case WordTableStyle.OfficeIMOModern: return new TableStyle { Val = WordThemeDefaults.TableStyleId };
             case WordTableStyle.TableNormal: return new TableStyle() { Val = "TableNormal" };
             case WordTableStyle.TableGrid: return new TableStyle() { Val = "TableGrid" };
             case WordTableStyle.PlainTable1: return new TableStyle() { Val = "PlainTable1" };
@@ -303,6 +305,7 @@ public static partial class WordTableStyles {
     internal static Style GetStyleDefinition(WordTableStyle style) {
         switch (style) {
             // Grid Tables - Line 1
+            case WordTableStyle.OfficeIMOModern: return WordThemeDefaults.CreateTableStyle(OfficeTheme.Default);
             case WordTableStyle.TableNormal: return StyleTableNormal;
             case WordTableStyle.TableGrid: return StyleTableGrid;
             case WordTableStyle.PlainTable1: return StylePlainTable1;

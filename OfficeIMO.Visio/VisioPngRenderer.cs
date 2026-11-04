@@ -5,7 +5,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Text;
 using OfficeIMO.Drawing;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Visio {
     internal static partial class VisioPngRenderer {
@@ -124,13 +124,13 @@ namespace OfficeIMO.Visio {
                     i = end;
                 }
             } else if (kind == "ellipse" || kind == "circle") {
-                (double centerX, double centerY) = GetPagePoint(shape, shape.Width / 2D, shape.Height / 2D);
+                (double centerX, double centerY) = GetPagePoint(shape, shape.WidthInches / 2D, shape.HeightInches / 2D);
                 (double cx, double cy) = ToRaster(page, centerX, centerY, canvas.Projection);
                 canvas.DrawEllipse(
                     cx,
                     cy,
-                    Math.Abs(shape.Width * canvas.Projection.GeometryDensity / 2D),
-                    Math.Abs(shape.Height * canvas.Projection.GeometryDensity / 2D),
+                    Math.Abs(shape.WidthInches * canvas.Projection.GeometryDensity / 2D),
+                    Math.Abs(shape.HeightInches * canvas.Projection.GeometryDensity / 2D),
                     shape.FillPattern == 0 ? Color.Transparent : shape.FillColor,
                     HasVisibleLine(shape) ? shape.LineColor : Color.Transparent,
                     Math.Max(shape.LineWeight * canvas.Projection.PhysicalDensity, canvas.Supersampling),
@@ -212,11 +212,11 @@ namespace OfficeIMO.Visio {
             shape.LinePattern != 0 && shape.LineWeight > 0D && shape.LineColor.A > 0;
 
         private static void DrawDatabaseShape(RasterCanvas canvas, VisioPage page, VisioShape shape) {
-            double capHeight = Math.Min(shape.Height * 0.18D, shape.Width * 0.16D);
-            double midX = shape.Width / 2D;
-            (double topX, double topY) = ToRasterPoint(page, shape, midX, shape.Height - capHeight, canvas.Projection);
+            double capHeight = Math.Min(shape.HeightInches * 0.18D, shape.WidthInches * 0.16D);
+            double midX = shape.WidthInches / 2D;
+            (double topX, double topY) = ToRasterPoint(page, shape, midX, shape.HeightInches - capHeight, canvas.Projection);
             (double bottomX, double bottomY) = ToRasterPoint(page, shape, midX, capHeight, canvas.Projection);
-            double radiusX = Math.Max(0.5D, shape.Width * canvas.Projection.GeometryDensity / 2D);
+            double radiusX = Math.Max(0.5D, shape.WidthInches * canvas.Projection.GeometryDensity / 2D);
             double radiusY = Math.Max(0.5D, capHeight * canvas.Projection.GeometryDensity);
             Color fill = shape.FillPattern == 0 ? Color.Transparent : shape.FillColor;
             Color stroke = HasVisibleLine(shape) ? shape.LineColor : Color.Transparent;
@@ -225,9 +225,9 @@ namespace OfficeIMO.Visio {
 
             List<(double X, double Y)> body = new() {
                 ToRasterPoint(page, shape, 0D, capHeight, canvas.Projection),
-                ToRasterPoint(page, shape, 0D, shape.Height - capHeight, canvas.Projection),
-                ToRasterPoint(page, shape, shape.Width, shape.Height - capHeight, canvas.Projection),
-                ToRasterPoint(page, shape, shape.Width, capHeight, canvas.Projection)
+                ToRasterPoint(page, shape, 0D, shape.HeightInches - capHeight, canvas.Projection),
+                ToRasterPoint(page, shape, shape.WidthInches, shape.HeightInches - capHeight, canvas.Projection),
+                ToRasterPoint(page, shape, shape.WidthInches, capHeight, canvas.Projection)
             };
 
             canvas.FillPolygon(body, fill);
@@ -241,15 +241,15 @@ namespace OfficeIMO.Visio {
             canvas.StrokePolyline(
                 new[] {
                     ToRasterPoint(page, shape, 0D, capHeight, canvas.Projection),
-                    ToRasterPoint(page, shape, 0D, shape.Height - capHeight, canvas.Projection)
+                    ToRasterPoint(page, shape, 0D, shape.HeightInches - capHeight, canvas.Projection)
                 },
                 stroke,
                 strokeWidth,
                 dashStyle);
             canvas.StrokePolyline(
                 new[] {
-                    ToRasterPoint(page, shape, shape.Width, capHeight, canvas.Projection),
-                    ToRasterPoint(page, shape, shape.Width, shape.Height - capHeight, canvas.Projection)
+                    ToRasterPoint(page, shape, shape.WidthInches, capHeight, canvas.Projection),
+                    ToRasterPoint(page, shape, shape.WidthInches, shape.HeightInches - capHeight, canvas.Projection)
                 },
                 stroke,
                 strokeWidth,

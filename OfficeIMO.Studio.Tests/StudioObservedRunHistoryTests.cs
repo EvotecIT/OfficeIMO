@@ -25,8 +25,8 @@ public sealed class StudioObservedRunHistoryTests {
             Directory.CreateDirectory(source);
             File.WriteAllText(Path.Combine(source, "one.txt"), "The owning run finishes independently");
             string jobPath = Path.Combine(services.Paths.Root, "job.json");
-            var definition = new OfficeConversionJob { InputDirectory = "source", OutputDirectory = "output" };
-            OfficeConversionJobSerializer.SaveFile(definition, jobPath);
+            var definition = new OfficeBatchOptions { InputDirectory = "source", OutputDirectory = "output" };
+            (definition).Save(jobPath);
             string recoveryPath = CreateRecoveryFixture(services.Paths);
             byte[] recoveryBytes = File.ReadAllBytes(recoveryPath);
             string reportPath = services.DocumentHistory.ConversionRuns.CreateReportPath()!;
@@ -36,13 +36,14 @@ public sealed class StudioObservedRunHistoryTests {
                 cancelRequests++; cancellation.Cancel();
             }, batch: true);
             owningRecord.OwnRunReportPath(reportPath);
-            var runner = new BlockingRunner(services.ConversionRunner);
-            Task<OfficeConversionJobRunReport> execution = OfficeConversionJobRunner.RunRecordedAsync(definition,
-                jobPath, reportPath, runner, cancellationToken: cancellation.Token);
+            var guard = new PausedPdfPublicationGuard();
+            Task<OfficeBatchReport> execution = OfficeConverter.ConvertAsync(OfficeBatchOptions.Load(jobPath) with {
+                ReportPath = reportPath, PublicationGuard = guard
+            }, progress: null, cancellationToken: cancellation.Token);
             StudioApplicationServices? observingServices = null;
             MainWindow? window = null;
             try {
-                await runner.Started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+                await guard.Started.Task.WaitAsync(TimeSpan.FromSeconds(5));
                 services.Jobs.RefreshRunReports();
                 Assert.Same(owningRecord, Assert.Single(services.Jobs.Entries));
                 Assert.True(owningRecord.IsActive); Assert.True(owningRecord.CanCancel);
@@ -84,7 +85,7 @@ public sealed class StudioObservedRunHistoryTests {
                 Assert.False(cancellation.IsCancellationRequested);
                 Assert.Equal(0, cancelRequests);
                 Assert.True(owningRecord.IsActive);
-                Assert.True(OfficeConversionJobRunReportSerializer.IsActive(reportPath));
+                Assert.True(OfficeBatchReport.IsActive(reportPath));
 
                 using var jobs = new StudioJobsViewModel(observingServices.Jobs, (_, _) => Task.CompletedTask) {
                     ReviewSavedJob = (_, _, _) => Task.CompletedTask,
@@ -92,7 +93,7 @@ public sealed class StudioObservedRunHistoryTests {
                 };
                 var local = observingServices.Jobs.Start("Local inspection", "local.txt", null, () => { });
                 local.Complete(OfficeWorkflowStatus.Completed, null, "The local result stays unchanged");
-                runner.Release.TrySetResult();
+                guard.Release.TrySetResult();
                 var report = await execution.WaitAsync(TimeSpan.FromSeconds(10));
                 owningRecord.CompleteBatch(OfficeWorkflowStatus.Completed, report.OutputDirectory,
                     "Owning conversion completed", [], hasVerifiedOutput: true, isDirectoryOutput: true);
@@ -102,7 +103,7 @@ public sealed class StudioObservedRunHistoryTests {
                 Assert.Same(observed, jobs.SelectedJob);
                 Assert.Same(observed, Assert.Single(observingServices.Jobs.Entries, entry => entry.HasRunReport));
                 Assert.Equal(report.RunId, observed.RunReport!.RunId);
-                Assert.Equal(OfficeConversionJobRunState.Completed, observed.RunReport.State);
+                Assert.Equal(OfficeBatchRunState.Completed, observed.RunReport.State);
                 Assert.False(observed.IsExternalRunning); Assert.False(observed.IsActive);
                 Assert.True(observed.IsSucceeded); Assert.True(observed.CanReviewJob);
                 Assert.True(jobs.ReviewJobCommand.CanExecute(observed));
@@ -118,7 +119,7 @@ public sealed class StudioObservedRunHistoryTests {
                 Assert.Same(observed, jobs.SelectedJob);
                 Assert.Equal(0, cancelRequests);
             } finally {
-                runner.Release.TrySetResult();
+                guard.Release.TrySetResult();
                 await execution.WaitAsync(TimeSpan.FromSeconds(10));
                 if (owningRecord.IsActive) owningRecord.Complete(OfficeWorkflowStatus.Completed, null, "Test run ended");
                 observingServices?.Jobs.RefreshRunReports();
@@ -138,19 +139,19 @@ public sealed class StudioObservedRunHistoryTests {
             var services = ((App)Application.Current!).Services;
             Directory.CreateDirectory(Path.Combine(services.Paths.Root, "source"));
             string jobPath = Path.Combine(services.Paths.Root, "job.json");
-            OfficeConversionJobSerializer.SaveFile(new OfficeConversionJob {
-                InputDirectory = "source", OutputDirectory = "output", CheckpointDirectory = "checkpoints"
-            }, jobPath);
-            _ = OfficeConversionJobSerializer.ReadFile(jobPath, out string jobSha256);
+            (new OfficeBatchOptions {
+                InputDirectory = "source", OutputDirectory = "output", ResumeFrom = "checkpoints/plan.json"
+            }).Save(jobPath);
+            string jobSha256 = OfficeBatchOptions.Load(jobPath).JobSha256!;
             string recoveryPath = CreateRecoveryFixture(services.Paths);
             byte[] recoveryBytes = File.ReadAllBytes(recoveryPath), jobBytes = File.ReadAllBytes(jobPath);
             string reportPath = services.DocumentHistory.ConversionRuns.CreateReportPath()!;
-            var report = new OfficeConversionJobRunReport {
+            var report = new OfficeBatchReport {
                 RunId = Guid.NewGuid().ToString("N"), StartedUtc = DateTimeOffset.UtcNow,
                 JobPath = jobPath, JobSha256 = jobSha256, OutputDirectory = Path.Combine(services.Paths.Root, "output"),
-                CheckpointDirectory = Path.Combine(services.Paths.Root, "checkpoints"), State = OfficeConversionJobRunState.Running
+                ResumeFrom = Path.Combine(services.Paths.Root, "checkpoints", "plan.json"), State = OfficeBatchRunState.Running, Summary = new(0, 0, 0, 0, false)
             };
-            File.WriteAllText(reportPath, OfficeConversionJobRunReportSerializer.Serialize(report));
+            File.WriteAllText(reportPath, OfficeBatchReportSerializer.Serialize(report));
             var lease = new FileStream(reportPath + ".lease", FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None);
             lease.Write(Encoding.ASCII.GetBytes(report.RunId)); lease.Flush(flushToDisk: true);
             StudioJobRecord? local = null;
@@ -175,20 +176,20 @@ public sealed class StudioObservedRunHistoryTests {
 
                 Assert.Equal(3, history.Entries.Count);
                 Assert.Contains(observed, history.Entries); Assert.True(File.Exists(reportPath));
-                Assert.True(OfficeConversionJobRunReportSerializer.IsActive(reportPath));
+                Assert.True(OfficeBatchReport.IsActive(reportPath));
                 observingServices.DocumentHistory.SetRememberHistory(false);
                 var laterReport = report with {
-                    RunId = Guid.NewGuid().ToString("N"), State = OfficeConversionJobRunState.Completed,
+                    RunId = Guid.NewGuid().ToString("N"), State = OfficeBatchRunState.Completed,
                     FinishedUtc = report.StartedUtc.AddSeconds(1),
-                    Batch = new OfficeConversionBatchReportCollector().Complete(new(0, 0, 0, 0, false), allowEmpty: true)
+                    Summary = new(0, 0, 0, 0, false), Succeeded = true
                 };
                 string laterReportPath = Path.Combine(services.Paths.ConversionRunsRoot, Guid.NewGuid().ToString("N") + ".json");
-                File.WriteAllText(laterReportPath, OfficeConversionJobRunReportSerializer.Serialize(laterReport));
+                File.WriteAllText(laterReportPath, OfficeBatchReportSerializer.Serialize(laterReport));
                 lease.Dispose();
                 jobs.RefreshHistoryCommand.Execute(null);
                 Assert.Same(observed, jobs.SelectedJob);
                 Assert.Same(observed, Assert.Single(history.Entries, entry => entry.HasRunReport));
-                Assert.Equal(OfficeConversionJobRunState.Interrupted, observed.RunReport!.State);
+                Assert.Equal(OfficeBatchRunState.Interrupted, observed.RunReport!.State);
                 Assert.False(observed.IsExternalRunning); Assert.False(observed.IsActive);
                 Assert.True(observed.CanReviewJob); Assert.True(jobs.ReviewJobCommand.CanExecute(observed));
                 Assert.False(observed.CanCancel); Assert.Equal(0, history.ExternalRunningCount);
@@ -221,7 +222,7 @@ public sealed class StudioObservedRunHistoryTests {
         string id = Guid.NewGuid().ToString("N"), directory = Path.Combine(paths.WorkflowRecoveryRoot, "output-" + id);
         Directory.CreateDirectory(directory);
         string artifact = Path.Combine(directory, "output.pdf");
-        PdfDocument.Create(document => document.Page(page => page.Size(200, 300))).Save(artifact);
+        PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300)))).Save(artifact);
         byte[] bytes = File.ReadAllBytes(artifact);
         File.WriteAllText(Path.Combine(directory, "record.json"), JsonSerializer.Serialize(new {
             Version = 1, Id = id, Name = "recovered.pdf", Destination = Path.Combine(paths.Root, "recovered.pdf"),
@@ -243,17 +244,5 @@ public sealed class StudioObservedRunHistoryTests {
         frame.Save(Path.Combine(output, name), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
     }
 
-    private sealed class BlockingRunner(IOfficeWorkflowRunner runner) : IOfficeWorkflowRunner {
-        internal TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        internal TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        public async Task<OfficeWorkflowResult> RunAsync(OfficeWorkflowRequest request,
-            IProgress<OfficeWorkflowProgress>? progress = null, CancellationToken cancellationToken = default) {
-            Started.TrySetResult();
-            await Release.Task.WaitAsync(cancellationToken);
-            return await runner.RunAsync(request, progress, cancellationToken);
-        }
-        public Task<IReadOnlyList<OfficeWorkflowResult>> RunBatchAsync(IEnumerable<OfficeWorkflowRequest> requests,
-            IProgress<OfficeWorkflowProgress>? progress = null, CancellationToken cancellationToken = default) =>
-            runner.RunBatchAsync(requests, progress, cancellationToken);
-    }
+
 }

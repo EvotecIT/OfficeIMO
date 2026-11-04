@@ -62,16 +62,18 @@ public sealed partial class PublisherNativeComparisonTests {
         string referencePath = FilePath(caseId, contract.Files.Reference);
         AssertHash(referencePath, contract.Files.Reference.Sha256);
 
-        PdfReadDocument nativePdf = PdfReadDocument.Open(File.ReadAllBytes(referencePath));
-        PdfOptions options = new PdfOptions();
+        using PdfDocument nativePdf = PdfDocument.Load(referencePath);
+        PdfCreateOptions options = new PdfCreateOptions();
         // PDF's standard fonts intentionally use WinAnsi. The multilingual
         // control exercises the public Unicode-font configuration explicitly.
         if (caseId == "TableLabel") options.UseTextFallbacks();
-        PdfDocumentConversionResult conversion = publication.ToPdfDocumentResult(options);
-        PdfReadDocument exported = PdfReadDocument.Open(conversion.ToBytes());
+        using PdfDocument conversion = publication.ToPdf(new PublisherPdfExportOptions { PdfOptions = options }, out OfficeConversionReport report);
+        using var bytes = new MemoryStream(conversion.ToBytes(), writable: false);
+        using PdfDocument exported = PdfDocument.Load(bytes);
         Assert.Equal(contract.Expected.Pages, nativePdf.Pages.Count);
         Assert.Equal(nativePdf.Pages.Count, exported.Pages.Count);
-        Assert.Contains(publication.ReadReport, conversion.SourceConversionReports);
+        Assert.All(publication.ReadReport.Diagnostics, source => Assert.Contains(report.Diagnostics,
+            item => item.Code == source.Code && item.LossKind == source.LossKind));
         if (caseId == "TableLabel")
             Assert.Contains(contract.Expected.Text[0], exported.ExtractText());
     }
@@ -141,8 +143,8 @@ public sealed partial class PublisherNativeComparisonTests {
         PublisherDocument publication = Load(caseId, contract);
         string reference = FilePath(caseId, contract.Files.Reference);
         AssertHash(reference, contract.Files.Reference.Sha256);
-        PdfReadDocument nativePdf = PdfReadDocument.Open(File.ReadAllBytes(reference));
-        PdfReadDocument exported = PdfReadDocument.Open(publication.ToPdfBytes());
+        using PdfDocument nativePdf = PdfDocument.Load(reference);
+        using PdfDocument exported = PublisherNativeTests.ExportAndReloadPdf(publication);
 
         Assert.NotNull(contract.Expected.PanelWidthPoints);
         AssertNear(contract.Expected.WidthPoints / 3, contract.Expected.PanelWidthPoints!.Value);
@@ -183,8 +185,8 @@ public sealed partial class PublisherNativeComparisonTests {
 
         string reference = FilePath(caseId, contract.Files.Reference);
         AssertHash(reference, contract.Files.Reference.Sha256);
-        PdfReadDocument nativePdf = PdfReadDocument.Open(File.ReadAllBytes(reference));
-        PdfReadDocument exported = PdfReadDocument.Open(publication.ToPdfBytes());
+        using PdfDocument nativePdf = PdfDocument.Load(reference);
+        using PdfDocument exported = PublisherNativeTests.ExportAndReloadPdf(publication);
         string[] allMasterMarkers = contract.NativeMasterPages.SelectMany(master => master.Shapes)
             .Where(shape => shape.Type == 17).Select(shape => NormalizeParagraphs(shape.Text!)).ToArray();
         Assert.Equal(contract.Expected.Pages, contract.Expected.MasterAssignments.Length);
@@ -200,7 +202,11 @@ public sealed partial class PublisherNativeComparisonTests {
                 string text = NormalizeParagraphs(marker.Text!);
                 OfficeDrawingRichText projected = Assert.Single(projectedFrames, frame => NormalizeParagraphs(PublisherNativeTests.Text(frame)) == text);
                 PdfTextSpan referenceSpan = Assert.Single(nativePdf.Pages[index].GetTextSpans(), span => span.IsVisible && NormalizeParagraphs(span.Text) == text);
-                PdfTextSpan exportedSpan = Assert.Single(exported.Pages[index].GetTextSpans(), span => span.IsVisible && NormalizeParagraphs(span.Text) == text);
+                // The PDF writer can emit one visible span per glyph in a shaped line.
+                PdfTextSpan[] exportedLine = Assert.Single(exported.Pages[index].GetTextSpans().Where(span => span.IsVisible)
+                    .GroupBy(span => span.Y).Select(line => line.OrderBy(span => span.X).ToArray()),
+                    line => NormalizeParagraphs(string.Concat(line.Select(span => span.Text))) == text);
+                PdfTextSpan exportedSpan = exportedLine[0];
                 _output.WriteLine($"Page {index + 1}, marker {text}, definition X {marker.Left}, native PDF {referenceSpan.X},{referenceSpan.Y}, drawing X {projected.X}, exported PDF {exportedSpan.X},{exportedSpan.Y}");
                 // Applied positions come from the independent native PDF, which
                 // can differ from the master definition's local coordinates.
@@ -210,7 +216,7 @@ public sealed partial class PublisherNativeComparisonTests {
                 Assert.InRange(Math.Abs(referenceSpan.X - exportedSpan.X), 0, 0.1);
                 Assert.InRange(Math.Abs(referenceSpan.Y - exportedSpan.Y), 0, 1);
                 AssertNear(0, referenceSpan.RotationDegrees);
-                AssertNear(0, exportedSpan.RotationDegrees);
+                Assert.All(exportedLine, span => AssertNear(0, span.RotationDegrees));
                 AssertNear(marker.Top, projected.Y);
                 AssertNear(marker.Width, projected.Width);
                 AssertNear(marker.Height, projected.Height);
@@ -295,8 +301,8 @@ public sealed partial class PublisherNativeComparisonTests {
         Assert.All(publication.Pages[0].Pictures, picture => Assert.Equal(publication.Pages[0].Id, picture.PageId));
         string reference = FilePath(caseId, contract.Files.Reference);
         AssertHash(reference, contract.Files.Reference.Sha256);
-        PdfReadDocument native = PdfReadDocument.Open(File.ReadAllBytes(reference));
-        PdfReadDocument exported = PdfReadDocument.Open(publication.ToPdfBytes());
+        using PdfDocument native = PdfDocument.Load(reference);
+        using PdfDocument exported = PublisherNativeTests.ExportAndReloadPdf(publication);
         for (int index = 0; index < publication.Pages.Count; index++) {
             PdfImagePlacement[] expected = native.Pages[index].GetImagePlacements().ToArray();
             PdfImagePlacement[] actual = exported.Pages[index].GetImagePlacements().ToArray();
@@ -376,7 +382,7 @@ public sealed partial class PublisherNativeComparisonTests {
         }
         foreach (PublisherTextStory story in publication.TextStories)
             _output.WriteLine($"Story {story.Id}, complete UTF-16 length {story.Text.Length}");
-        foreach (var diagnostic in publication.ReadReport.FidelityDiagnostics)
+        foreach (var diagnostic in publication.ReadReport.Diagnostics)
             _output.WriteLine($"Recovery {diagnostic.Code}: {diagnostic.Message}");
     }
 

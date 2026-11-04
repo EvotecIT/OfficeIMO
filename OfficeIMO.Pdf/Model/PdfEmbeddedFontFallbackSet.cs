@@ -80,7 +80,7 @@ public sealed class PdfEmbeddedFontFallbackSet {
     /// </summary>
     /// <param name="options">PDF options to configure.</param>
     /// <returns>The supplied options for fluent chaining.</returns>
-    public PdfOptions RegisterFonts(PdfOptions options) {
+    public PdfCreateOptions RegisterFonts(PdfCreateOptions options) {
         Guard.NotNull(options, nameof(options));
         if (UsesNamedFontFamilies) {
             foreach (PdfEmbeddedFontFallbackCandidate candidate in _candidates) {
@@ -98,7 +98,7 @@ public sealed class PdfEmbeddedFontFallbackSet {
     // Registration may fill vacant compatibility slots, but a caller-selected family
     // retains ownership. The writer chooses an available replacement slot for actual
     // fallback segments; explicit RegisterFonts still installs the supplied mapping.
-    internal void RegisterUnoccupiedFontSlots(PdfOptions options) {
+    internal void RegisterUnoccupiedFontSlots(PdfCreateOptions options) {
         for (int index = 0; index < _candidates.Count; index++) {
             PdfStandardFont family = _fontSlots[index];
             bool occupied = options.EmbeddedFonts.Keys.Any(font =>
@@ -110,7 +110,7 @@ public sealed class PdfEmbeddedFontFallbackSet {
         }
     }
 
-    internal PdfOptions RegisterFonts(PdfOptions options, IReadOnlyList<PdfStandardFont> fontSlots) {
+    internal PdfCreateOptions RegisterFonts(PdfCreateOptions options, IReadOnlyList<PdfStandardFont> fontSlots) {
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(fontSlots, nameof(fontSlots));
         if (fontSlots.Count != _candidates.Count) {
@@ -128,7 +128,7 @@ public sealed class PdfEmbeddedFontFallbackSet {
         return options;
     }
 
-    internal PdfOptions RegisterFonts(PdfOptions options, IReadOnlyDictionary<int, PdfStandardFont> fontSlots) {
+    internal PdfCreateOptions RegisterFonts(PdfCreateOptions options, IReadOnlyDictionary<int, PdfStandardFont> fontSlots) {
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(fontSlots, nameof(fontSlots));
 

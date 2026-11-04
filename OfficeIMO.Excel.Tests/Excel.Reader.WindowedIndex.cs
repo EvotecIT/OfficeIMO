@@ -14,7 +14,7 @@ public partial class Excel {
         const int rows = 1001;
         string path = CreateWindowedIndexWorkbook(WindowedIndexLargeWorksheet());
         try {
-            using var reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions { HasHeaderRow = false });
+            using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { HasHeaderRow = false });
             Assert.Equal(columns, reader.FieldCount);
             for (int row = 1; row <= rows; row++) {
                 Assert.True(reader.Read());
@@ -43,10 +43,10 @@ public partial class Excel {
         }
         string path = CreateWindowedIndexWorkbook(xml);
         try {
-            if (malformedXml) Assert.Throws<XmlException>(() => ExcelDocument.OpenDataReader(path,
-                new ExcelReadOptions { HasHeaderRow = false }));
-            else Assert.Throws<InvalidDataException>(() => ExcelDocument.OpenDataReader(path,
-                new ExcelReadOptions { HasHeaderRow = false }));
+            if (malformedXml) Assert.Throws<XmlException>(() => { using var reader = ExcelDocument.OpenReader(path,
+                new ExcelReaderOptions { HasHeaderRow = false }); _ = reader.FieldCount; });
+            else Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(path,
+                new ExcelReaderOptions { HasHeaderRow = false }); _ = reader.FieldCount; });
         } finally {
             File.Delete(path);
         }
@@ -66,7 +66,7 @@ public partial class Excel {
             + "<row><c t=\"inlineStr\"><is><t></t></is></c><c><v>5</v></c><c s=\"1\"><v>45295</v></c><c><v>7.5</v></c></row>";
         string path = CreateWindowedIndexWorkbook(WindowedIndexWorksheet(rows, dimension ? "A1:D6" : null));
         try {
-            using var reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions {
+            using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions {
                 MaxDataReaderBufferedCells = 8, MaxDataReaderChunkRows = 2, NumericAsDecimal = numericAsDecimal,
             });
             string?[] names = { "alpha", "β&Co", "line\nbreak", null, string.Empty };
@@ -110,7 +110,7 @@ public partial class Excel {
             + "<row><c r=\"B8\" t=\"inlineStr\"><is><t>last</t></is></c><c><v>8</v></c><c><v>9</v></c></row>";
         string path = CreateWindowedIndexWorkbook(WindowedIndexWorksheet(rows, "B2:D9"));
         try {
-            using var reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions {
+            using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions {
                 A1Range = selectedRange ? "C3:D8" : null,
                 HasHeaderRow = !selectedRange,
                 MaxDataReaderBufferedCells = selectedRange ? 2 : 3,
@@ -154,10 +154,10 @@ public partial class Excel {
         if (failure == "footer") xml = xml.Replace("</worksheet>", "<broken></worksheet>");
         string path = CreateWindowedIndexWorkbook(xml);
         try {
-            Assert.Throws(error, () => ExcelDocument.OpenDataReader(path, new ExcelReadOptions {
+            Assert.Throws(error, () => { using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions {
                 HasHeaderRow = false, MaxDataReaderBufferedCells = 1, MaxDataReaderChunkRows = 1,
                 UseCachedFormulaResult = false,
-            }));
+            }); _ = reader.FieldCount; });
         } finally {
             File.Delete(path);
         }
@@ -167,10 +167,10 @@ public partial class Excel {
     public void OpenDataReader_WindowRequiresCapacityForOneProjectedRow() {
         string path = CreateWindowedIndexWorkbook(WindowedIndexWorksheet(WindowedIndexHeader, "A1:D1"));
         try {
-            var error = Assert.Throws<OfficeInspectionResourceLimitException>(() => ExcelDocument.OpenDataReader(path,
-                new ExcelReadOptions { MaxDataReaderBufferedCells = 3 }));
+            var error = Assert.Throws<OfficeInspectionResourceLimitException>(() => { using var reader = ExcelDocument.OpenReader(path,
+                new ExcelReaderOptions { MaxDataReaderBufferedCells = 3 }); _ = reader.FieldCount; });
             Assert.Equal("excel", error.Owner); Assert.Equal(3, error.Maximum);
-            Assert.Equal(nameof(ExcelReadOptions.MaxDataReaderBufferedCells), error.LimitName);
+            Assert.Equal(nameof(ExcelReaderOptions.MaxDataReaderBufferedCells), error.LimitName);
         } finally {
             File.Delete(path);
         }
@@ -181,7 +181,7 @@ public partial class Excel {
         string rows = "<row><c t=\"inlineStr\"><is><t>first</t></is></c></row><row><c t=\"inlineStr\"><is><t>second</t></is></c></row>";
         string path = CreateWindowedIndexWorkbook(WindowedIndexWorksheet(rows, "A1:A2"));
         try {
-            using var reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions {
+            using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions {
                 HasHeaderRow = false, MaxDataReaderBufferedCells = 1, MaxDataReaderChunkRows = 1,
             });
             Assert.True(reader.Read());

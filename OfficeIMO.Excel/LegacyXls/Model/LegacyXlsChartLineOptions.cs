@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes decoded Line chart group options preserved from a BIFF chart stream.
     /// </summary>
-    public sealed class LegacyXlsChartLineOptions {
+    internal sealed class LegacyXlsChartLineOptions {
         internal LegacyXlsChartLineOptions(ushort flags) {
             Flags = flags;
         }

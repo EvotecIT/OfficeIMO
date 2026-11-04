@@ -27,7 +27,9 @@ public class PdfTypedInvoiceWorkflowBenchmarks {
     private byte[] Generate() => _scenario.CreateTypedSnapshot().ToPdfBytes(_scenario.PdfOptions);
 
     private static PdfExtractedAttachment AssertSingleAttachment(byte[] pdf) {
-        IReadOnlyList<PdfExtractedAttachment> attachments = PdfDocument.Load(pdf).Attachments.Extract();
+        using var input = new MemoryStream(pdf, writable: false);
+        using PdfDocument document = PdfDocument.Load(input);
+        IReadOnlyList<PdfExtractedAttachment> attachments = document.Attachments.Extract();
         if (attachments.Count != 1) throw new InvalidDataException($"Expected one CII attachment, found {attachments.Count}.");
         return attachments[0];
     }

@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfReadDocument {
+internal sealed partial class PdfReadDocument {
     internal bool HasOnlyFormOwnedActiveContent() {
         if (_acroFormXfa is not null) return false;
 

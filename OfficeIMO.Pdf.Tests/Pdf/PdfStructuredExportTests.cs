@@ -19,7 +19,7 @@ public class PdfStructuredExportTests {
     [Fact]
     public void StructuredExporter_UsesOneLogicalModelAcrossFiveFormats() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Structured <export> & JSON \"proof\""))
+            .Paragraph(paragraph => paragraph.AddText("Structured <export> & JSON \"proof\""))
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 
@@ -44,7 +44,7 @@ public class PdfStructuredExportTests {
     [Fact]
     public void PageXmlExporter_ReturnsOneSchemaRootPerPage() {
         byte[] page = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Page scoped export"))
+            .Paragraph(paragraph => paragraph.AddText("Page scoped export"))
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(PdfMerger.Merge(page, page));
 
@@ -60,7 +60,7 @@ public class PdfStructuredExportTests {
     [Fact]
     public void FluentReader_ExportsStructuredJsonWithoutAnotherExtractionSurface() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Fluent structured output"))
+            .Paragraph(paragraph => paragraph.AddText("Fluent structured output"))
             .ToBytes();
 
         string json = PdfDocument.Load(source).Reader.ExportStructured(PdfStructuredExportFormat.Json);
@@ -70,8 +70,8 @@ public class PdfStructuredExportTests {
 
     [Fact]
     public void FluentReader_UsesStoredCredentialsForStructuredExport() {
-        byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
-            .Paragraph(paragraph => paragraph.Text("Encrypted structured output"))
+        byte[] source = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
+            .Paragraph(paragraph => paragraph.AddText("Encrypted structured output"))
             .ToBytes();
         var readOptions = new PdfLoadOptions { Password = "owner" };
 

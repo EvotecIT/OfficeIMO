@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Provides dependency-free OpenType font inspection for PDF typography preflight.
 /// </summary>
-public static class PdfOpenTypeFontInspector {
+internal static class PdfOpenTypeFontInspector {
     private const uint TrueTypeScalerType = 0x00010000;
     private const uint AppleTrueTypeScalerType = 0x74727565;
     private const uint OpenTypeCffScalerType = 0x4F54544F;

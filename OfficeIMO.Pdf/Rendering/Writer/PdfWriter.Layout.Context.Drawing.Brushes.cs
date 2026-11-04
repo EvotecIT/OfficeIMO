@@ -31,7 +31,7 @@ internal static partial class PdfWriter {
                 // Luminosity colors encode opacity, so all nested mask resources
                 // retain their numeric values instead of following print conversion.
                 _drawingIsOpacityData |= mask.Mode == OfficeSoftMaskMode.Luminosity;
-                _canvasEffectToPage = ConvertTopLeftCanvasTransform(transform, currentOpts.PageHeight).Then(previousEffectToPage);
+                _canvasEffectToPage = ConvertTopLeftCanvasTransform(transform, currentOpts.PageHeight.ToPoints()).Then(previousEffectToPage);
                 try {
                     RenderEffectGroup(OfficeTransform.Identity, 1D, OfficeBlendMode.Normal, () =>
                         RenderEffectGroup(ToTopLeftPageTransform(mask.Transform, originX, originTopY), 1D,

@@ -10,7 +10,7 @@ in the `OfficeIMO.Drawing` namespace.
 using OfficeIMO.Drawing.HarfBuzz;
 using OfficeIMO.Pdf;
 
-PdfOptions options = new PdfOptions()
+PdfCreateOptions options = new PdfCreateOptions()
     .SetTextShapingProvider(OfficeHarfBuzzTextShapingProvider.Instance);
 ```
 

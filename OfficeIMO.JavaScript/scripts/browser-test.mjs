@@ -2,8 +2,9 @@
 import { spawn } from "node:child_process";
 import { createServer } from "node:http";
 import { readFile, mkdir } from "node:fs/promises";
-import { resolve, join, relative } from "node:path";
+import { resolve, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { browserAssetPathIsContained } from "./browser-asset-path.mjs";
 const root = fileURLToPath(new URL("../", import.meta.url)), repository = resolve(root, "..");
 if (!process.argv[2]) throw new Error("Pass a task-owned evidence directory to npm run test:browser -- <directory>.");
 const output = resolve(process.argv[2]); await mkdir(output, { recursive: true });
@@ -29,7 +30,7 @@ const server = createServer(async (request, response) => {
     const base = providerAsset ? shapingRoot : fontAsset ? join(repository, "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts") : root;
     const local = providerAsset ? requested.slice("/__shaping__/".length) : fontAsset ? requested.slice("/__fonts__/".length) : "." + requested;
     const path = resolve(base, local);
-    if (relative(base, path).startsWith("..") || !(providerAsset ? /\.(?:js|mjs|wasm)$/ : fontAsset ? /\.ttf$/ : /\.(?:js|mjs)$/).test(path)) { response.writeHead(404).end(); return; }
+    if (!browserAssetPathIsContained(base, path) || !(providerAsset ? /\.(?:js|mjs|wasm)$/ : fontAsset ? /\.ttf$/ : /\.(?:js|mjs)$/).test(path)) { response.writeHead(404).end(); return; }
     response.setHeader("Content-Type", path.endsWith(".wasm") ? "application/wasm" : fontAsset ? "font/ttf" : "text/javascript; charset=utf-8"); response.setHeader("Access-Control-Allow-Origin", "*");
     response.end(await readFile(path));
   } catch { response.writeHead(404).end(); }

@@ -38,8 +38,8 @@ public partial class ExcelSheet {
     }
 
     private string InsertXmlTable(System.Data.DataTable table, int row, int column, bool headers, ExcelXmlTableOptions options, ExcelExecutionMode? mode) {
-        if (row < 1 || column < 1 || (long)row + table.Rows.Count + (headers ? 1 : 0) - 1 > A1.MaxRows
-            || (long)column + table.Columns.Count - 1 > A1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(row), "XML table does not fit within the destination worksheet.");
+        if (row < 1 || column < 1 || (long)row + table.Rows.Count + (headers ? 1 : 0) - 1 > ExcelA1.MaxRows
+            || (long)column + table.Columns.Count - 1 > ExcelA1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(row), "XML table does not fit within the destination worksheet.");
         options.CancellationToken.ThrowIfCancellationRequested();
         InsertDataTable(table, row, column, headers, mode, options.CancellationToken);
         return BuildInsertedRange(table, row, column, headers);
@@ -55,9 +55,9 @@ public partial class ExcelSheet {
     /// <param name="readOptions">Existing cell value, date and formula-cache read policy.</param>
     /// <param name="mode">Existing worksheet reading execution mode.</param>
     public string ToXml(string a1Range, bool headersInFirstRow = false, ExcelXmlTableOptions? options = null,
-        ExcelReadOptions? readOptions = null, ExcelExecutionMode? mode = null) {
+        ExcelReaderOptions? readOptions = null, ExcelExecutionMode? mode = null) {
         var resolved = (options ?? new ExcelXmlTableOptions()).Snapshot();
-        if (!A1.TryParseRange(a1Range, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)
+        if (!ExcelA1.TryParseRange(a1Range, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)
             || (long)lastRow - firstRow + 1 - (headersInFirstRow ? 1 : 0) > resolved.MaxRows || (long)lastColumn - firstColumn + 1 > resolved.MaxColumns
             || ((long)lastRow - firstRow + 1 - (headersInFirstRow ? 1 : 0)) * ((long)lastColumn - firstColumn + 1) > resolved.MaxCells)
             throw new ArgumentException("Worksheet range is invalid or exceeds XML table limits.", nameof(a1Range));

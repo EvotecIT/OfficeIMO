@@ -3,8 +3,6 @@
 // OfficeIMO adaptation provides bounded byte/stream APIs, cancellation and output preflight.
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
 
 namespace OfficeIMO.Drawing;
 

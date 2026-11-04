@@ -53,14 +53,14 @@ namespace OfficeIMO.Tests {
 
             addShapeLimitation.Invoke(null, new[] {
                 result,
-                "EffectiveFormatting.ThemeResolution",
+                "effective-formatting-theme-resolution",
                 "Theme limitation",
                 Enum.Parse(scanResultType, "ResourceLimitExceeded"),
                 Enum.Parse(scanResultType, "Absent")
             });
 
             WordComparisonLimitation limitation = Assert.Single(result.Limitations);
-            Assert.Equal("EffectiveFormatting.ThemeResolution.ResourceLimit", limitation.Code);
+            Assert.Equal("effective-formatting-theme-resolution.ResourceLimit", limitation.Code);
             Assert.False(limitation.SourceContainsShape);
             Assert.False(limitation.TargetContainsShape);
         }
@@ -82,14 +82,14 @@ namespace OfficeIMO.Tests {
 
             addShapeLimitation.Invoke(null, new[] {
                 result,
-                "EffectiveFormatting.ThemeResolution",
+                "effective-formatting-theme-resolution",
                 "Theme limitation",
                 Enum.Parse(scanResultType, "Present"),
                 Enum.Parse(scanResultType, "ResourceLimitExceeded")
             });
 
             WordComparisonLimitation limitation = Assert.Single(result.Limitations);
-            Assert.Equal("EffectiveFormatting.ThemeResolution.ResourceLimit", limitation.Code);
+            Assert.Equal("effective-formatting-theme-resolution.ResourceLimit", limitation.Code);
             Assert.True(limitation.SourceContainsShape);
             Assert.False(limitation.TargetContainsShape);
         }
@@ -148,7 +148,7 @@ namespace OfficeIMO.Tests {
                 WordDocument.ValidateMacroProjectSignature(filePath, SecurityProvider, options);
 
             Assert.False(result.IsValidUnderPolicy);
-            Assert.Contains(result.Findings, finding => finding.Code == "PackageByteLimitExceeded");
+            Assert.Contains(result.Findings, finding => finding.Code == "package-byte-limit-exceeded");
         }
     }
 }

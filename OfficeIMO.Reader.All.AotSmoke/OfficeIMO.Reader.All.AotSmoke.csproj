@@ -2,6 +2,9 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <!-- Native outputs carry their runtime; service it independently of the installed SDK. -->
+    <RuntimeFrameworkVersion Condition="'$(TargetFramework)' == 'net8.0'">8.0.33</RuntimeFrameworkVersion>
+    <RuntimeFrameworkVersion Condition="'$(TargetFramework)' == 'net10.0'">10.0.14</RuntimeFrameworkVersion>
     <PublishAot>true</PublishAot>
     <IsPackable>false</IsPackable>
     <Nullable>enable</Nullable>
@@ -13,5 +16,15 @@
   <ItemGroup>
     <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\nim-iwork\simple.pages"
           Link="simple.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.Reader.Dbf.Tests\Fixtures\plain.dbf"
+          Link="plain.dbf" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.DjVu.Tests\Fixtures\Authored\reader-book.djvu"
+          Link="reader-book.djvu" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.Publisher.Tests\Fixtures\Simple.pub"
+          Link="Simple.pub" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.Xps.Tests\Fixtures\MicrosoftWpf\Test_Document.xps"
+          Link="Test_Document.xps" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.Chm.Tests\Fixtures\svnbook-ms-htmlhelp.chm"
+          Link="svnbook-ms-htmlhelp.chm" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

@@ -11,22 +11,21 @@ public sealed class IWorkKeynoteImageWritingTests {
     public void Image_creation_matches_the_Apple_qualified_graph_and_exported_PowerPoint() {
         byte[] expected = File.ReadAllBytes(Fixture("keynote-created-images-v15.4.key"));
         Assert.Equal(expected, ImageExample().SaveBytes());
-        using var converted = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(new MemoryStream(expected),
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Open(new MemoryStream(expected), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         converted.Report.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); converted.Value.Save(output); output.Position = 0;
-        using var saved = PowerPointPresentation.Load(output);
-        using var apple = PowerPointPresentation.Load(Fixture("keynote-created-images-v15.4.pptx"));
+        using var saved = PowerPointDocument.Load(output);
+        using var apple = PowerPointDocument.Load(Fixture("keynote-created-images-v15.4.pptx"));
         Assert.Equal(3, saved.Slides.Count); Assert.Empty(saved.ValidateDocument());
         for (int i = 0; i < 3; i++) {
             Assert.Equal(apple.Slides[i].Shapes.Select(shape => shape.GetType()),
                 saved.Slides[i].Shapes.Select(shape => shape.GetType()));
-            PowerPointPicture actual = Assert.Single(saved.Slides[i].Pictures);
-            PowerPointPicture oracle = Assert.Single(apple.Slides[i].Pictures);
+            PowerPointImage actual = Assert.Single(saved.Slides[i].Images);
+            PowerPointImage oracle = Assert.Single(apple.Slides[i].Images);
             Assert.Equal(oracle.GetImageBytes(), actual.GetImageBytes());
             Assert.Equal(oracle.AltText, actual.AltText);
-            Assert.Equal(oracle.Left, actual.Left); Assert.Equal(oracle.Top, actual.Top);
-            Assert.Equal(oracle.Width, actual.Width); Assert.Equal(oracle.Height, actual.Height);
+            Assert.Equal(oracle.Left.ToEmus(), actual.Left.ToEmus()); Assert.Equal(oracle.Top.ToEmus(), actual.Top.ToEmus());
+            Assert.Equal(oracle.Width.ToEmus(), actual.Width.ToEmus()); Assert.Equal(oracle.Height.ToEmus(), actual.Height.ToEmus());
         }
     }
 
@@ -48,13 +47,12 @@ public sealed class IWorkKeynoteImageWritingTests {
             Assert.Equal(expected.Geometry.WidthPoints, actual.Geometry.WidthPoints);
             Assert.Equal(expected.Geometry.HeightPoints, actual.Geometry.HeightPoints);
         }
-        using var converted = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(editedPath,
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Open(editedPath, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         converted.Report.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); converted.Value.Save(output); output.Position = 0;
-        using var reopened = PowerPointPresentation.Load(output);
+        using var reopened = PowerPointDocument.Load(output);
         Assert.Empty(reopened.ValidateDocument());
-        Assert.Equal(80 * 12700, reopened.Slides[2].Pictures.Single().Left);
+        Assert.Equal(80 * 12700, reopened.Slides[2].Images.Single().Left.ToEmus());
     }
 
     [Theory]
@@ -99,16 +97,15 @@ public sealed class IWorkKeynoteImageWritingTests {
         Assert.Equal(20, image.Geometry!.LeftPoints); Assert.Equal(40, image.Geometry.TopPoints);
         Assert.Equal(120, image.Geometry.WidthPoints); Assert.Equal(80, image.Geometry.HeightPoints);
         Assert.False(image.HasMask);
-        using var converted = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(new MemoryStream(package),
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Open(new MemoryStream(package), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         converted.Report.RequireCompleteEditableReconstruction();
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         Assert.Empty(reopened.ValidateDocument());
         PowerPointShape[] shapes = reopened.Slides[0].Shapes.ToArray();
         Assert.Equal(4, shapes.Length);
-        Assert.IsType<PowerPointTextBox>(shapes[0]); Assert.IsType<PowerPointPicture>(shapes[1]);
-        Assert.IsType<PowerPointTextBox>(shapes[2]); Assert.IsType<PowerPointPicture>(shapes[3]);
+        Assert.IsType<PowerPointTextBox>(shapes[0]); Assert.IsType<PowerPointImage>(shapes[1]);
+        Assert.IsType<PowerPointTextBox>(shapes[2]); Assert.IsType<PowerPointImage>(shapes[3]);
         Assert.Equal("Native image 😀", shapes[1].AltText);
         using var zip = new ZipArchive(new MemoryStream(saved.ToArray()));
         Assert.Contains(zip.Entries, entry => entry.FullName.StartsWith("ppt/media/", StringComparison.Ordinal)
@@ -155,10 +152,10 @@ public sealed class IWorkKeynoteImageWritingTests {
         slide.AddImage(payload, 0, 0, 100, 100); slide.AddImage(payload, 100, 0, 100, 100);
         var limits = new IWorkKeynoteWriteOptions();
         switch (boundary) {
-            case "count": limits.MaximumImages = 1; break;
-            case "encoded": limits.MaximumEncodedImageBytes = payload.Length; break;
-            case "decoded": limits.MaximumDecodedImageBytes = 24 * 16 * 4; break;
-            case "package": limits.MaximumPackageBytes = payload.Length; break;
+            case "count": limits.MaxImages = 1; break;
+            case "encoded": limits.MaxEncodedImageBytes = payload.Length; break;
+            case "decoded": limits.MaxDecodedImageBytes = 24 * 16 * 4; break;
+            case "package": limits.MaxPackageBytes = payload.Length; break;
         }
         byte[] sentinel = { 9, 8, 7 };
         using var stream = new MemoryStream(); stream.Write(sentinel);

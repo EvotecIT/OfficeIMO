@@ -74,7 +74,7 @@ internal static partial class PdfTextExtractor {
         return paths;
     }
     
-    private static List<string> WriteTableCsvFiles(string baseName, string fullOutputDirectory, IReadOnlyList<StructuredTablePage> tablePages) {
+    private static List<string> WriteTableCsvFiles(string baseName, string fullOutputDirectory, IReadOnlyList<PdfStructuredTablePage> tablePages) {
         Directory.CreateDirectory(fullOutputDirectory);
         string safeBaseName = GetSafeBaseName(baseName, "table");
     
@@ -117,7 +117,7 @@ internal static partial class PdfTextExtractor {
         return string.IsNullOrWhiteSpace(safeBaseName) ? fallback : safeBaseName;
     }
     
-    private static string BuildCsv(StructuredTable table) {
+    private static string BuildCsv(PdfStructuredTable table) {
         var sb = new StringBuilder();
         for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
             var row = table.Rows[rowIndex];

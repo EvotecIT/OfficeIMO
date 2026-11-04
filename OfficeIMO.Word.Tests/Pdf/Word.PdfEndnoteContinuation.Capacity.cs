@@ -23,8 +23,8 @@ public partial class Word {
         Assert.Equal(tokens, tallTokens);
         string[] shortBefore = CaptureEndnoteContinuationXml(shorter);
         string[] tallBefore = CaptureEndnoteContinuationXml(taller);
-        PdfDocumentConversionResult shortResult = shorter.ToPdfDocumentResult(EndnoteContinuationOptions());
-        PdfDocumentConversionResult tallResult = taller.ToPdfDocumentResult(EndnoteContinuationOptions());
+        PdfDocumentConversionResult shortResult = shorter.ConvertToPdfWithEvidence(EndnoteContinuationOptions());
+        PdfDocumentConversionResult tallResult = taller.ConvertToPdfWithEvidence(EndnoteContinuationOptions());
         string[]? firstShortPages = null, firstTallPages = null;
 
         for (int serialization = 0; serialization < 2; serialization++) {
@@ -66,10 +66,10 @@ public partial class Word {
     private static WordDocument CreateEndnoteCapacityDocument(int continuedSeparatorAdvance, int paragraphCount, out string[] tokens) {
         using WordDocument source = CreateEndnoteContinuationDocument(15);
         WordSection section = source.Sections[0];
-        section.PageSettings.Width = 8000;
-        section.PageSettings.Height = 10000;
-        section.Margins.Top = section.Margins.Bottom = 800;
-        section.Margins.Left = section.Margins.Right = 800U;
+        section.PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points(400D);
+        section.PageSetup.Size.Height = global::OfficeIMO.OfficeLength.Points(500D);
+        section.PageSetup.Margins.Top = section.PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(40D);
+        section.PageSetup.Margins.Left = section.PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(40D);
         WordParagraph reference = source.AddParagraph("CAPACITYBODYREFERENCE");
         tokens = AddEndnoteContinuationBody(reference, "ENCAPACITY", paragraphCount);
         reference._paragraph.ParagraphProperties = (W.ParagraphProperties)EndnoteContinuationParagraph(string.Empty).ParagraphProperties!.CloneNode(true);

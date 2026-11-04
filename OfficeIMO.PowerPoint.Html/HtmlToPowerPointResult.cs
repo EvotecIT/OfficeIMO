@@ -6,8 +6,8 @@ namespace OfficeIMO.PowerPoint.Html;
 /// <summary>
 /// Summary of a semantic PowerPoint HTML import.
 /// </summary>
-public sealed class HtmlToPowerPointResult : HtmlConversionResult<PptCore.PowerPointPresentation> {
-    internal HtmlToPowerPointResult(PptCore.PowerPointPresentation presentation) : base(presentation) { }
+public sealed class HtmlToPowerPointResult : HtmlConversionResult<PptCore.PowerPointDocument> {
+    internal HtmlToPowerPointResult(PptCore.PowerPointDocument presentation) : base(presentation) { }
 
     internal void AddImportDiagnostic(HtmlDiagnostic diagnostic) => AddDiagnostic(diagnostic);
 

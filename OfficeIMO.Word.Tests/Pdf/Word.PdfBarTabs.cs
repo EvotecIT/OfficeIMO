@@ -29,13 +29,13 @@ public sealed class WordPdfBarTabTests {
         string bodyXml = document.OpenXmlDocument.MainDocumentPart!.Document.Body!.OuterXml;
         string stylesXml = document.OpenXmlDocument.MainDocumentPart.StyleDefinitionsPart!.Styles!.OuterXml;
 
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(Options());
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(Options());
         PdfConversionWarning warning = Assert.Single(result.Warnings,
-            item => item.Code == "NativeParagraphBarTabApproximated");
+            item => item.Code == "native-paragraph-bar-tab-approximated");
         Assert.Equal(OfficeIMO.OfficeConversionLossKind.Approximation, warning.LossKind);
-        Assert.DoesNotContain(result.Warnings, item => item.Code == "NativeParagraphBarTabOmitted");
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        Assert.DoesNotContain(result.Warnings, item => item.Code == "native-paragraph-bar-tab-omitted");
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         var bars = BarBounds(pdf);
         Assert.Equal(story == "empty" ? 1 : 2, bars.Length);
@@ -62,8 +62,8 @@ public sealed class WordPdfBarTabTests {
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
         WordListLevel level = list.Numbering.Levels[0];
-        level.IndentationLeft = 1440;
-        level.IndentationHanging = 1080;
+        level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(72D);
+        level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(54D);
         level.OpenXmlElement.PreviousParagraphProperties!.InsertAt(new W.Tabs(Tab(W.TabStopValues.Number)), 0);
         level.OpenXmlElement.NumberingSymbolRunProperties = new W.NumberingSymbolRunProperties(
             new W.RunFonts { Ascii = ManagedTextShapingTestAssets.FamilyName, HighAnsi = ManagedTextShapingTestAssets.FamilyName },
@@ -85,7 +85,7 @@ public sealed class WordPdfBarTabTests {
         } else SetTabs(paragraph, Tab(origin == "cleared" ? W.TabStopValues.Clear : W.TabStopValues.Bar));
         string sourceXml = paragraph._paragraph.OuterXml;
 
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(Options());
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(Options());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         var bars = BarBounds(pdf);
         Assert.Equal(visible ? 2 : 0, bars.Length);
@@ -93,8 +93,8 @@ public sealed class WordPdfBarTabTests {
             // The rule stays at source position36pt even though the numbered
             // continuation text begins72pt from the containing text margin.
             Assert.All(bars, bar => Assert.Equal(108D, bar.Left, 2));
-            Assert.Single(result.Warnings, item => item.Code == "NativeParagraphBarTabApproximated");
-        } else Assert.DoesNotContain(result.Warnings, item => item.Code.StartsWith("NativeParagraphBarTab", StringComparison.Ordinal));
+            Assert.Single(result.Warnings, item => item.Code == "native-paragraph-bar-tab-approximated");
+        } else Assert.DoesNotContain(result.Warnings, item => item.Code.StartsWith("native-paragraph-bar-tab-", StringComparison.Ordinal));
         Assert.Equal(sourceXml, paragraph._paragraph.OuterXml);
     }
 
@@ -109,14 +109,14 @@ public sealed class WordPdfBarTabTests {
         Assert.DoesNotContain(body.ChildElements, element => element is W.Paragraph);
         string bodyXml = body.OuterXml;
 
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(Options());
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(Options());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         var bar = Assert.Single(BarBounds(pdf));
         var cellLetter = pdf.GetPage(1).Letters.First(letter => letter.Value == "C");
         Assert.True(bar.Top < cellLetter.StartBaseLine.Y,
             "The implicit paragraph's rule belongs below the table, not on its cell text line.");
         Assert.Equal(108D, bar.Left, 2);
-        Assert.Single(result.Warnings, item => item.Code == "NativeParagraphBarTabApproximated");
+        Assert.Single(result.Warnings, item => item.Code == "native-paragraph-bar-tab-approximated");
         Assert.Equal(bodyXml, body.OuterXml);
     }
 
@@ -126,21 +126,21 @@ public sealed class WordPdfBarTabTests {
         SetDefaultBar(document);
         WordParagraph body = document.AddParagraph("BODY");
         SetTabs(body, Tab(W.TabStopValues.Clear));
-        W.Footer footer = document.FooterDefaultOrCreate._footer!;
+        W.Footer footer = document.PageSetup.Footer._footer!;
         footer.RemoveAllChildren();
         // Creating the footer also creates an empty default header. Isolate
         // this footer contract by explicitly clearing its inherited header bar.
-        WordHeaderFooter header = document.HeaderDefaultOrCreate;
+        WordHeaderFooter header = document.PageSetup.Header;
         header._header!.RemoveAllChildren();
         SetTabs(header.AddParagraph(), Tab(W.TabStopValues.Clear));
         string sourceXml = footer.OuterXml;
 
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(Options());
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(Options());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         var bar = Assert.Single(BarBounds(pdf));
         Assert.Equal(108D, bar.Left, 2);
         Assert.True(bar.Top < 72D, "The implicit footer line remains inside its physical footer region.");
-        Assert.Single(result.Warnings, item => item.Code == "NativeParagraphBarTabApproximated");
+        Assert.Single(result.Warnings, item => item.Code == "native-paragraph-bar-tab-approximated");
         Assert.Equal(sourceXml, footer.OuterXml);
     }
 
@@ -148,17 +148,17 @@ public sealed class WordPdfBarTabTests {
     public void SaveAsPdf_FlatRunningProjectionReportsOmittedEffectiveBars() {
         using WordDocument document = CreateDocument();
         document.AddParagraph("BODY");
-        WordParagraph paragraph = document.HeaderDefaultOrCreate.AddParagraph("FIRST");
+        WordParagraph paragraph = document.PageSetup.Header.AddParagraph("FIRST");
         ConfigureParagraph(paragraph, "FIRST");
         SetTabs(paragraph, Tab(W.TabStopValues.Bar));
-        WordToPdfOptions options = Options();
-        options.PdfOptions!.HeaderFontSize = 10D;
+        WordPdfExportOptions options = Options();
+        options.PdfOptions!.PageSetup.Header.FontSize = global::OfficeIMO.OfficeLength.Points(10D);
 
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(options);
         PdfConversionWarning warning = Assert.Single(result.Warnings,
-            item => item.Code == "NativeParagraphBarTabOmitted");
+            item => item.Code == "native-paragraph-bar-tab-omitted");
         Assert.Equal(OfficeIMO.OfficeConversionLossKind.Omission, warning.LossKind);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         Assert.Empty(BarBounds(pdf));
         Assert.Contains("FIRST", pdf.GetPage(1).Text, StringComparison.Ordinal);
@@ -170,19 +170,19 @@ public sealed class WordPdfBarTabTests {
     public void SaveAsPdf_ObjectOnlyProjectionReportsOmissionBeforeAnyApproximation(bool header) {
         using WordDocument document = CreateDocument();
         document.AddParagraph("BODY");
-        WordParagraph paragraph = header ? document.HeaderDefaultOrCreate.AddParagraph() : document.AddParagraph();
+        WordParagraph paragraph = header ? document.PageSetup.Header.AddParagraph() : document.AddParagraph();
         ConfigureParagraph(paragraph, string.Empty);
-        paragraph.AddShape(48D, 36D, "#00A060");
+        paragraph.AddShape(OfficeIMO.OfficeLength.Points(48D), OfficeIMO.OfficeLength.Points(36D), OfficeIMO.OfficeColor.Parse("#00A060"));
         SetTabs(paragraph, Tab(W.TabStopValues.Bar));
         string sourceXml = paragraph._paragraph.OuterXml;
 
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(Options());
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(Options());
 
         PdfConversionWarning warning = Assert.Single(result.Warnings,
-            item => item.Code.StartsWith("NativeParagraphBarTab", StringComparison.Ordinal));
-        Assert.Equal("NativeParagraphBarTabOmitted", warning.Code);
+            item => item.Code.StartsWith("native-paragraph-bar-tab-", StringComparison.Ordinal));
+        Assert.Equal("native-paragraph-bar-tab-omitted", warning.Code);
         Assert.Equal(OfficeIMO.OfficeConversionLossKind.Omission, warning.LossKind);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         Assert.Empty(BarBounds(pdf));
         Assert.Contains(pdf.GetPage(1).Paths, path => path.IsFilled);
@@ -195,18 +195,18 @@ public sealed class WordPdfBarTabTests {
     public void SaveAsPdf_ObjectOnlyCellRetainsItsDecoratedMark(bool header) {
         using WordDocument document = CreateDocument();
         document.AddParagraph("BODY");
-        WordTable table = header ? document.HeaderDefaultOrCreate.AddTable(1, 1) : document.AddTable(1, 1);
+        WordTable table = header ? document.PageSetup.Header.AddTable(1, 1) : document.AddTable(1, 1);
         WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
         ConfigureParagraph(paragraph, string.Empty);
-        paragraph.AddShape(48D, 36D, "#00A060");
+        paragraph.AddShape(OfficeIMO.OfficeLength.Points(48D), OfficeIMO.OfficeLength.Points(36D), OfficeIMO.OfficeColor.Parse("#00A060"));
         SetTabs(paragraph, Tab(W.TabStopValues.Bar));
         string sourceXml = paragraph._paragraph.OuterXml;
 
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(Options());
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(Options());
 
         PdfConversionWarning warning = Assert.Single(result.Warnings,
-            item => item.Code.StartsWith("NativeParagraphBarTab", StringComparison.Ordinal));
-        Assert.Equal("NativeParagraphBarTabApproximated", warning.Code);
+            item => item.Code.StartsWith("native-paragraph-bar-tab-", StringComparison.Ordinal));
+        Assert.Equal("native-paragraph-bar-tab-approximated", warning.Code);
         Assert.Equal(OfficeIMO.OfficeConversionLossKind.Approximation, warning.LossKind);
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         Assert.Single(BarBounds(pdf));
@@ -233,9 +233,9 @@ public sealed class WordPdfBarTabTests {
         }
         string tableXml = table._table.OuterXml;
 
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(Options());
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(Options());
 
-        Assert.DoesNotContain(result.Warnings, item => item.Code.StartsWith("NativeParagraphBarTab", StringComparison.Ordinal));
+        Assert.DoesNotContain(result.Warnings, item => item.Code.StartsWith("native-paragraph-bar-tab-", StringComparison.Ordinal));
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         Assert.Empty(BarBounds(pdf));
         Assert.Contains("FIRST", pdf.GetPage(1).Text, StringComparison.Ordinal);
@@ -255,13 +255,13 @@ public sealed class WordPdfBarTabTests {
         paragraph._paragraph.Append(new W.Run(new W.Picture(shape)));
         string sourceXml = paragraph._paragraph.OuterXml;
 
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(Options());
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(Options());
 
         PdfConversionWarning warning = Assert.Single(result.Warnings,
-            item => item.Code.StartsWith("NativeParagraphBarTab", StringComparison.Ordinal));
-        Assert.Equal("NativeParagraphBarTabOmitted", warning.Code);
+            item => item.Code.StartsWith("native-paragraph-bar-tab-", StringComparison.Ordinal));
+        Assert.Equal("native-paragraph-bar-tab-omitted", warning.Code);
         Assert.Equal(OfficeIMO.OfficeConversionLossKind.Omission, warning.LossKind);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         Assert.Empty(BarBounds(pdf));
         Assert.Equal(sourceXml, paragraph._paragraph.OuterXml);
@@ -281,15 +281,15 @@ public sealed class WordPdfBarTabTests {
         string sourceXml = outer._paragraph.OuterXml;
         Assert.Empty(document.ValidateDocument());
 
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(Options());
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(Options());
 
         PdfConversionWarning warning = Assert.Single(result.Warnings,
-            item => item.Code.StartsWith("NativeParagraphBarTab", StringComparison.Ordinal));
-        Assert.Equal(surroundingText ? "NativeParagraphBarTabApproximated" : "NativeParagraphBarTabOmitted", warning.Code);
+            item => item.Code.StartsWith("native-paragraph-bar-tab-", StringComparison.Ordinal));
+        Assert.Equal(surroundingText ? "native-paragraph-bar-tab-approximated" : "native-paragraph-bar-tab-omitted", warning.Code);
         Assert.Equal(surroundingText ? OfficeIMO.OfficeConversionLossKind.Approximation : OfficeIMO.OfficeConversionLossKind.Omission,
             warning.LossKind);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         Assert.Equal(surroundingText ? 2 : 0, BarBounds(pdf).Length);
         string text = string.Concat(pdf.GetPages().SelectMany(page => page.Letters).Select(letter => letter.Value));
@@ -307,7 +307,7 @@ public sealed class WordPdfBarTabTests {
     [InlineData(true)]
     public void SaveAsPdf_NestedRunningBoxOwnerReportsOmissionBeforeDeferredPainting(bool footer) {
         using WordDocument document = CreateDocument();
-        WordHeaderFooter story = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
+        WordHeaderFooter story = footer ? document.PageSetup.Footer : document.PageSetup.Header;
         WordParagraph outer = story.AddParagraph("PREFIX");
         WordParagraph middle = outer.AddTextBox(string.Empty, WordImageTextWrapping.Square).Paragraphs.Single();
         ConfigureParagraph(middle, string.Empty);
@@ -318,14 +318,14 @@ public sealed class WordPdfBarTabTests {
         string sourceXml = outer._paragraph.OuterXml;
         Assert.Empty(document.ValidateDocument());
 
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(Options());
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(Options());
 
         PdfConversionWarning warning = Assert.Single(result.Warnings,
-            item => item.Code.StartsWith("NativeParagraphBarTab", StringComparison.Ordinal));
-        Assert.Equal("NativeParagraphBarTabOmitted", warning.Code);
+            item => item.Code.StartsWith("native-paragraph-bar-tab-", StringComparison.Ordinal));
+        Assert.Equal("native-paragraph-bar-tab-omitted", warning.Code);
         Assert.Equal(OfficeIMO.OfficeConversionLossKind.Omission, warning.LossKind);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         Assert.Empty(BarBounds(pdf));
         string text = string.Concat(pdf.GetPages().SelectMany(page => page.Letters).Select(letter => letter.Value));
@@ -361,13 +361,13 @@ public sealed class WordPdfBarTabTests {
         string sourceXml = outer._paragraph.OuterXml;
         Assert.Empty(document.ValidateDocument());
 
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(Options());
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(Options());
 
         PdfConversionWarning warning = Assert.Single(result.Warnings,
-            item => item.Code.StartsWith("NativeParagraphBarTab", StringComparison.Ordinal));
-        Assert.Equal("NativeParagraphBarTabApproximated", warning.Code);
+            item => item.Code.StartsWith("native-paragraph-bar-tab-", StringComparison.Ordinal));
+        Assert.Equal("native-paragraph-bar-tab-approximated", warning.Code);
         Assert.Equal(OfficeIMO.OfficeConversionLossKind.Approximation, warning.LossKind);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         Assert.Single(BarBounds(pdf));
         string text = string.Concat(pdf.GetPages().SelectMany(page => page.Letters).Select(letter => letter.Value));
@@ -381,15 +381,15 @@ public sealed class WordPdfBarTabTests {
     [InlineData(true)]
     public void SaveAsPdf_RunningMixedGroupBarReportMatchesItsActualOwnerLine(bool anchored) {
         using WordDocument document = CreateDocument();
-        WordHeaderFooter story = document.HeaderDefaultOrCreate;
+        WordHeaderFooter story = document.PageSetup.Header;
         WordParagraph outer = story.AddParagraph("PREFIX");
         WordParagraph middle = outer.AddTextBox(string.Empty, WordImageTextWrapping.Square).Paragraphs.Single();
         ConfigureParagraph(middle, string.Empty);
         middle.AddTextBox("INNER", WordImageTextWrapping.Square);
         middle.AddShapeGroup(new[] {
-            new WordShapeGroupItem(WordShapeType.Rectangle, 0D, 0D, 16D, 8D) { FillColorHex = "00FF00" },
-            new WordShapeGroupItem(WordShapeType.Rectangle, 16D, 0D, 16D, 8D) { FillColorHex = "00FF00" }
-        }, 180D, 30D);
+            new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(0D), OfficeLength.Points(0D), OfficeLength.Points(16D), OfficeLength.Points(8D)) { FillColor = OfficeColor.Parse("00FF00") },
+            new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(16D), OfficeLength.Points(0D), OfficeLength.Points(16D), OfficeLength.Points(8D)) { FillColor = OfficeColor.Parse("00FF00") }
+        }, OfficeLength.Points(180D), OfficeLength.Points(30D));
         if (anchored) {
             var anchor = middle._paragraph.Descendants<DocumentFormat.OpenXml.Drawing.Wordprocessing.Anchor>()
                 .Single(candidate => candidate.Descendants<DocumentFormat.OpenXml.Drawing.GraphicData>()
@@ -406,10 +406,10 @@ public sealed class WordPdfBarTabTests {
         string sourceXml = story._header!.OuterXml;
         Assert.Empty(document.ValidateDocument());
 
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(Options());
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(Options());
         // Capture the report before deferred running content is painted.
         PdfConversionWarning warning = Assert.Single(result.Warnings,
-            item => item.Code.StartsWith("NativeParagraphBarTab", StringComparison.Ordinal));
+            item => item.Code.StartsWith("native-paragraph-bar-tab-", StringComparison.Ordinal));
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         Assert.Equal(anchored ? 1 : 0, BarBounds(pdf).Length);
         Assert.Contains(pdf.GetPage(1).Paths,
@@ -417,11 +417,11 @@ public sealed class WordPdfBarTabTests {
         string text = string.Concat(pdf.GetPages().SelectMany(page => page.Letters).Select(letter => letter.Value));
         Assert.Contains("PREFIX", text, StringComparison.Ordinal);
         Assert.Contains("INNER", text, StringComparison.Ordinal);
-        Assert.Equal(anchored ? "NativeParagraphBarTabApproximated" : "NativeParagraphBarTabOmitted", warning.Code);
+        Assert.Equal(anchored ? "native-paragraph-bar-tab-approximated" : "native-paragraph-bar-tab-omitted", warning.Code);
         Assert.Equal(anchored ? OfficeIMO.OfficeConversionLossKind.Approximation : OfficeIMO.OfficeConversionLossKind.Omission,
             warning.LossKind);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
         Assert.Equal(sourceXml, story._header.OuterXml);
     }
 
@@ -431,11 +431,11 @@ public sealed class WordPdfBarTabTests {
         return document;
     }
 
-    private static WordToPdfOptions Options() {
-        var pdf = new PdfOptions();
+    private static WordPdfExportOptions Options() {
+        var pdf = new PdfCreateOptions();
         pdf.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(ManagedTextShapingTestAssets.FamilyName,
             ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(" ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.i".Select(character => (int)character).Concat(Enumerable.Range(32, 95)).Distinct().ToArray())));
-        return new WordToPdfOptions {
+        return new WordPdfExportOptions {
             IncludePageNumbers = false,
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = pdf
         };
@@ -446,8 +446,8 @@ public sealed class WordPdfBarTabTests {
             case "body":
             case "empty": return document.AddParagraph();
             case "table": return document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
-            case "header": document.AddParagraph("BODY"); return document.HeaderDefaultOrCreate.AddParagraph();
-            case "footer": document.AddParagraph("BODY"); return document.FooterDefaultOrCreate.AddParagraph();
+            case "header": document.AddParagraph("BODY"); return document.PageSetup.Header.AddParagraph();
+            case "footer": document.AddParagraph("BODY"); return document.PageSetup.Footer.AddParagraph();
             case "heading":
                 WordParagraph heading = document.AddParagraph();
                 heading.Style = WordParagraphStyles.Heading1;
@@ -469,7 +469,7 @@ public sealed class WordPdfBarTabTests {
     private static void ConfigureParagraph(WordParagraph paragraph, string text) {
         paragraph.Text = text;
         paragraph.FontFamily = ManagedTextShapingTestAssets.FamilyName;
-        paragraph.FontSize = 12;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         W.ParagraphProperties properties = paragraph._paragraph.ParagraphProperties ??= new W.ParagraphProperties();
         properties.SpacingBetweenLines = new W.SpacingBetweenLines {
             Before = "0", After = "0", Line = "240", LineRule = W.LineSpacingRuleValues.Auto

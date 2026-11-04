@@ -4,7 +4,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes an OfficeArtFOPT property entry discovered in an XLS MsoDrawing payload.
     /// </summary>
-    public sealed class LegacyXlsDrawingShapeProperty {
+    internal sealed class LegacyXlsDrawingShapeProperty {
         private readonly OfficeArtProperty _property;
 
         /// <summary>

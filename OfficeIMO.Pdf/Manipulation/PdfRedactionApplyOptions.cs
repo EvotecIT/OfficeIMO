@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>Additional document-level residue removed by an explicit redaction policy.</summary>
 [Flags]
 public enum PdfRedactionCleanupScope {
-    /// <summary>Only intersecting page content and annotations are changed.</summary>
+    /// <summary>Only intersecting page content and annotations are changed, except that searched text is still removed from metadata, bookmark titles and alternate text.</summary>
     None = 0,
     /// <summary>Clear Info metadata and remove catalog/page XMP streams.</summary>
     Metadata = 1,
@@ -34,14 +34,19 @@ public enum PdfRedactionUnsupportedImagePolicy {
 /// <summary>
 /// Options controlling how planned PDF redaction areas are applied.
 /// </summary>
-public sealed class PdfRedactionApplyOptions {
-    /// <summary>Cooperative cancellation checked between destructive rewrite stages and pages.</summary>
-    public CancellationToken CancellationToken { get; set; }
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
+public sealed class PdfRedactionApplyOptions : IPdfOperationCancellation {
+    // Operation cancellation; public methods take it as a parameter and bind it to a per-call copy.
+    System.Threading.CancellationToken IPdfOperationCancellation.CancellationToken { get => CancellationToken; set => CancellationToken = value; }
+
+    internal System.Threading.CancellationToken CancellationToken { get; set; }
+
+    object IPdfOperationCancellation.CloneForOperation() => MemberwiseClone();
 
     /// <summary>
     /// Fill color used for the visible redaction mark. Defaults to black.
     /// </summary>
-    public PdfColor FillColor { get; set; } = PdfColor.Black;
+    public global::OfficeIMO.OfficeColor FillColor { get; set; } = global::OfficeIMO.OfficeColor.Black;
 
     /// <summary>
     /// When true, redaction areas are painted even when no text or annotation match is found in the area.

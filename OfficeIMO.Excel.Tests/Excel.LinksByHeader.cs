@@ -16,18 +16,18 @@ namespace OfficeIMO.Tests {
 
             using (var doc = ExcelDocument.Create(filePath))
             {
-                var s = doc.AddWorksheet("Summary");
+                var s = doc.AddSheet("Summary");
                 // Header
-                s.Cell(1, 1, "Domain");
+                s.Cell(1, 1).SetValue("Domain");
                 // Two rows
-                s.Cell(2, 1, "domain-001.example");
-                s.Cell(3, 1, "domain-002.example");
+                s.Cell(2, 1).SetValue("domain-001.example");
+                s.Cell(3, 1).SetValue("domain-002.example");
                 // Create destination sheets
-                doc.AddWorksheet("domain-001.example");
-                doc.AddWorksheet("domain-002.example");
+                doc.AddSheet("domain-001.example");
+                doc.AddSheet("domain-002.example");
 
                 // Link by header (styled)
-                s.LinkByHeaderToInternalSheets("Domain", rowFrom: 2, rowTo: 3, targetA1: "A1", styled: true);
+                s.LinkByHeader("Domain", ExcelLinkTarget.Sheet(targetCell: "A1"), new ExcelLinkByHeaderOptions { FirstRow = 2, LastRow = 3 });
                 doc.Save();
             }
 
@@ -74,17 +74,13 @@ namespace OfficeIMO.Tests {
 
             using (var doc = ExcelDocument.Create(filePath))
             {
-                var s = doc.AddWorksheet("Summary");
-                s.Cell(1, 1, "RFC");
-                s.Cell(2, 1, "rfc7208");
+                var s = doc.AddSheet("Summary");
+                s.Cell(1, 1).SetValue("RFC");
+                s.Cell(2, 1).SetValue("rfc7208");
 
-                s.LinkByHeaderToUrls(
-                    header: "RFC",
-                    rowFrom: 2,
-                    rowTo: 2,
-                    urlForCellText: rfc => $"https://datatracker.ietf.org/doc/html/{rfc}",
-                    titleForCellText: null,
-                    styled: true);
+                s.LinkByHeader("RFC",
+                    ExcelLinkTarget.Url(rfc => $"https://datatracker.ietf.org/doc/html/{rfc}"),
+                    new ExcelLinkByHeaderOptions { FirstRow = 2, LastRow = 2 });
 
                 doc.Save();
             }
@@ -127,19 +123,19 @@ namespace OfficeIMO.Tests {
 
             using (var doc = ExcelDocument.Create(filePath))
             {
-                var s = doc.AddWorksheet("Summary");
+                var s = doc.AddSheet("Summary");
                 // Build a 2-column table with headers Domain, RFC and two data rows
-                s.Cell(1, 1, "Domain"); s.Cell(1, 2, "RFC");
-                s.Cell(2, 1, "domain-001.example"); s.Cell(2, 2, "rfc7208");
-                s.Cell(3, 1, "domain-002.example"); s.Cell(3, 2, "rfc6376");
+                s.Cell(1, 1).SetValue("Domain"); s.Cell(1, 2).SetValue("RFC");
+                s.Cell(2, 1).SetValue("domain-001.example"); s.Cell(2, 2).SetValue("rfc7208");
+                s.Cell(3, 1).SetValue("domain-002.example"); s.Cell(3, 2).SetValue("rfc6376");
                 s.AddTable("A1:B3", hasHeader: true, name: "TblSummary", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9, includeAutoFilter: true);
                 // Destination sheets
-                doc.AddWorksheet("domain-001.example");
-                doc.AddWorksheet("domain-002.example");
+                doc.AddSheet("domain-001.example");
+                doc.AddSheet("domain-002.example");
 
                 // Link inside table by header
-                s.LinkByHeaderToInternalSheetsInTable("TblSummary", "Domain", targetA1: "A1", styled: true);
-                s.LinkByHeaderToUrlsInTable("TblSummary", "RFC", urlForCellText: rfc => $"https://datatracker.ietf.org/doc/html/{rfc}", styled: true);
+                Assert.Equal(2, s.LinkByHeader("Domain", ExcelLinkTarget.Sheet(targetCell: "A1"), new ExcelLinkByHeaderOptions { Table = "TblSummary" }).LinkedCount);
+                s.LinkByHeader("RFC", ExcelLinkTarget.Url(rfc => $"https://datatracker.ietf.org/doc/html/{rfc}"), new ExcelLinkByHeaderOptions { Table = "TblSummary" });
                 doc.Save();
             }
 
@@ -170,18 +166,18 @@ namespace OfficeIMO.Tests {
 
             using (var doc = ExcelDocument.Create(filePath))
             {
-                var s = doc.AddWorksheet("Summary");
+                var s = doc.AddSheet("Summary");
                 // Header + rows (no table)
-                s.Cell(1, 1, "Domain"); s.Cell(1, 2, "RFC");
-                s.Cell(2, 1, "domain-001.example"); s.Cell(2, 2, "rfc7208");
-                s.Cell(3, 1, "domain-002.example"); s.Cell(3, 2, "rfc6376");
+                s.Cell(1, 1).SetValue("Domain"); s.Cell(1, 2).SetValue("RFC");
+                s.Cell(2, 1).SetValue("domain-001.example"); s.Cell(2, 2).SetValue("rfc7208");
+                s.Cell(3, 1).SetValue("domain-002.example"); s.Cell(3, 2).SetValue("rfc6376");
                 // Destination sheets
-                doc.AddWorksheet("domain-001.example");
-                doc.AddWorksheet("domain-002.example");
+                doc.AddSheet("domain-001.example");
+                doc.AddSheet("domain-002.example");
 
                 // Link within the rectangular range
-                s.LinkByHeaderToInternalSheetsInRange("A1:B3", "Domain", targetA1: "A1", styled: true);
-                s.LinkByHeaderToUrlsInRange("A1:B3", "RFC", urlForCellText: rfc => $"https://datatracker.ietf.org/doc/html/{rfc}", styled: true);
+                s.LinkByHeader("Domain", ExcelLinkTarget.Sheet(targetCell: "A1"), new ExcelLinkByHeaderOptions { Range = "A1:B3" });
+                s.LinkByHeader("RFC", ExcelLinkTarget.Url(rfc => $"https://datatracker.ietf.org/doc/html/{rfc}"), new ExcelLinkByHeaderOptions { Range = "A1:B3" });
                 doc.Save();
             }
 
@@ -212,13 +208,13 @@ namespace OfficeIMO.Tests {
 
             using (var doc = ExcelDocument.Create(filePath))
             {
-                var s = doc.AddWorksheet("Summary");
-                var target = doc.AddWorksheet("domain-001??");
+                var s = doc.AddSheet("Summary");
+                var target = doc.AddSheet("domain-001??");
 
-                s.Cell(1, 1, "Domain");
-                s.Cell(2, 1, "domain-001??");
+                s.Cell(1, 1).SetValue("Domain");
+                s.Cell(2, 1).SetValue("domain-001??");
 
-                s.LinkByHeaderToInternalSheetsInRange("A1:A2", "Domain", targetA1: "A1", styled: false);
+                s.LinkByHeader("Domain", ExcelLinkTarget.Sheet(targetCell: "A1"), new ExcelLinkByHeaderOptions { Range = "A1:A2", Styled = false });
                 doc.Save();
             }
 
@@ -236,5 +232,24 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("'domain-001'!A1", hyperlink.Location!.Value);
             }
         }
-    }
+
+        [Fact]
+        public void Excel_LinkByHeader_ReportsCellsWhoseTargetMapsToNothing() {
+            using var doc = ExcelDocument.Create(new MemoryStream());
+            var s = doc.AddSheet("Summary");
+            s.Cell(1, 1).SetValue("RFC");
+            s.Cell(2, 1).SetValue("rfc7208");
+            s.Cell(3, 1).SetValue("draft");
+
+            ExcelLinkByHeaderResult result = s.LinkByHeader("RFC",
+                ExcelLinkTarget.Url(text => text.StartsWith("rfc", StringComparison.Ordinal) ? "https://datatracker.ietf.org/doc/html/" + text : string.Empty),
+                new ExcelLinkByHeaderOptions { Range = "A1:A3" });
+
+            Assert.True(result.Succeeded);
+            Assert.Equal(1, result.Column);
+            Assert.Equal(1, result.LinkedCount);
+            Assert.Equal(new[] { "A3" }, result.SkippedCells);
+            Assert.Equal(new[] { "A2" }, s.GetHyperlinks().Keys);
+        }
+}
 }

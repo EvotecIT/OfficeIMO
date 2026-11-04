@@ -5,6 +5,34 @@ generated and real-data workloads. CSV and Arrow comparisons are explicit build
 options. It stays outside the normal solution and adds no runtime dependencies
 to OfficeIMO. BenchmarkDotNet 0.15.8 controls the measurements.
 
+`FormulaCalculationBenchmarks` measures `ExcelDocument.Calculate()` for a
+200-product, 1,000-order report with 2,048 formulas. Four cases cover INDEX/MATCH
+hits, INDEX/MATCH misses, VLOOKUP misses and XLOOKUP misses, including dependent
+COUNTIFS/SUMIFS and grand totals. Each iteration starts with a fresh workbook;
+setup and validation are outside the measurement. Cleanup checks every cached
+value against expected values computed from the input rows. An incomplete
+calculation fails validation. This is an OfficeIMO calculation workload.
+
+Run the four cases with:
+
+```powershell
+dotnet run --project Benchmarks/ExcelReaderTyped -c Release -- --filter '*FormulaCalculationBenchmarks*' --job Short --noOverwrite --artifacts <output-directory>
+```
+
+For a before/after comparison, use the saved-assembly input described below for
+each build, with matching Excel/Core assemblies and separate artifact roots.
+Use the same processor placement and job settings. The
+[formula calculation evidence](../../Docs/performance/excel-formula-calculation.md)
+records the validated workload, baseline and measurement limits. Measurements
+are opt-in and do not impose timing budgets on ordinary correctness CI.
+
+`FormulaLookupScaleBenchmarks` compares 256 linear and binary XLOOKUP calls over
+the same sorted numeric keys, at 512 and 8,192 keys. The selected search mode is
+the only workload difference. Each operation starts from a fresh workbook and
+validates all 256 outputs outside timing. Select it with
+`--filter '*FormulaLookupScaleBenchmarks*'`. Binary mode requires sorted input;
+these measurements do not apply to unsorted data.
+
 The [8 October 2026 report](../../Docs/benchmarks/officeimo.excel-tabular-2026-10-08.md)
 records the captured Windows .NET 10 matrix, artifact and input identities,
 measurement samples, warnings, and first-row versus full-scan boundaries.
@@ -37,7 +65,7 @@ Cold identity logging hashes package bytes alone and does not open ZIP entries.
 The existing cold fixture shape check stays in setup; full field proof runs
 through the separate `--validate-cold` qualification command.
 
-OfficeIMO uses `ExcelDocument.OpenDataReader` and typed getters; ExcelReader uses
+OfficeIMO uses `ExcelDocument.OpenReader` and typed getters; ExcelReader uses
 `ExcelParser.FromAttributes<TypedRecord>().Parse(workbook.FirstSheet)`; Sylvan
 uses `GetRecords<TypedRecord>()`. These reproduce the public API work in the
 [upstream typed comparison](https://github.com/GabrielMarquezMatte/ExcelReader/blob/ca5b50f99e8ef57ab476f0a2bc8043558d58b28d/tests/ExcelReader.Benchmarks/Parse/ParseBenchmark.cs).
@@ -180,7 +208,7 @@ operations from the [upstream writer comparison](https://github.com/GabrielMarqu
 Each timed invocation creates a `MemoryStream` with a 4 MiB capacity, writes the
 four-column header and all prepared records, fully finalizes the package, and
 returns its length. Record preparation is outside measurements. OfficeIMO calls
-its ordinary `ExcelDocument.WriteRows` API with default options; ExcelReader calls
+`ExcelDocument.CreateWriter(...).WriteTable(...)` with default options; ExcelReader calls
 its default `XlsxWorkbookWriter` API and awaits finalization.
 
 The defaults produce different package sizes and metadata. OfficeIMO writes
@@ -204,7 +232,7 @@ loop reports no timing or allocation measurements.
 
 ## Async enumeration
 
-`TypedAsyncReadBenchmarks` uses OfficeIMO.Core's automatic `RowsAsAsync<TypedRecord>`
+`TypedAsyncReadBenchmarks` uses OfficeIMO.Data's automatic `RowsAsAsync<TypedRecord>`
 projection, ExcelReader's async workbook creation and parser enumeration, and
 Sylvan's `CreateAsync` plus `GetRecordsAsync<TypedRecord>`. Each returns the same
 materialized model, and setup validates every field in every async result.
@@ -327,15 +355,14 @@ the original raw API comparisons perform different string-materialization work.
 
 ## Writer options and native binary formats
 
-`SharedStringWriterBenchmarks` selects shared strings in both ordinary XLSX
-writers. `CompactWriterBenchmarks` uses the public `IncludeCellReferences = false`
+`CompactWriterBenchmarks` uses the public `IncludeCellReferences = false`
 option and retains the original inline-string peer writer and its write-prefetch
 variant. The ordinary `WriterBenchmarks` case continues to use default options.
 OfficeIMO's coordinate option omits data-row coordinates; the header retains its
 one row and four cell references. Setup checks the actual selected string and
 coordinate policies, every field, date styles, package CRCs, and relationships.
 
-`NativeWriterBenchmarks` compares XLSB using OfficeIMO's normal `Create`, `AddWorksheet`,
+`NativeWriterBenchmarks` compares XLSB using OfficeIMO's normal `Create`, `AddSheet`,
 `InsertObjects`, and native `Save` APIs. Model construction and saving are both
 inside the measured operation. The list of source records is prepared outside
 measurement for both libraries. XLSB preserves the upstream four-cell row buffer
@@ -385,7 +412,7 @@ cell-value checks through ExcelReader and Sylvan.
 
 ```powershell
 dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -- --validate-write-options
-dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -- --filter '*SharedStringWriterBenchmarks*' '*CompactWriterBenchmarks*' '*NativeWriterBenchmarks*' '*ConfiguredXlsbWriterBenchmarks*' --job Dry --artifacts ./Ignore/Benchmarks/writer-options-dry --noOverwrite
+dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -- --filter '*CompactWriterBenchmarks*' '*NativeWriterBenchmarks*' '*ConfiguredXlsbWriterBenchmarks*' --job Dry --artifacts ./Ignore/Benchmarks/writer-options-dry --noOverwrite
 dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -p:OfficeIMOBenchmarkNewApis=true -- --validate-native-xlsb-controls
 dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -p:OfficeIMOBenchmarkNewApis=true -- --filter '*NativeXlsbWarmSaveControlBenchmarks*' '*NativeXlsbFirstSaveControlBenchmarks*' --artifacts ./Ignore/Benchmarks/native-save-controls --noOverwrite
 ```
@@ -840,7 +867,7 @@ dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.B
 
 `TypedStreamAsyncReadBenchmarks` adds public asynchronous stream opening to the
 existing typed XLSX async comparison. Both peers already open streams
-asynchronously. OfficeIMO now uses `OpenDataReaderAsync(Stream)` and the ordinary
+asynchronously. OfficeIMO now uses `OpenReaderAsync(Stream)` and the ordinary
 async typed projection. The original byte-open OfficeIMO enumeration lane stays
 in `TypedAsyncReadBenchmarks`. The stream-opening companion includes input
 buffering, discovery, mapping, and disposal, and qualifies every record field.

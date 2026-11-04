@@ -2,7 +2,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Represents the SET field code.
     /// </summary>
-    public class SetField : WordFieldCode {
+    public class WordSetField : WordFieldCode {
         /// <summary>
         /// Name of the bookmark or variable to set.
         /// </summary>

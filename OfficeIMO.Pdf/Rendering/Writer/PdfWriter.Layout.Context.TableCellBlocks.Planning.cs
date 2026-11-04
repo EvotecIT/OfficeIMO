@@ -43,12 +43,12 @@ internal static partial class PdfWriter {
         private void RenderContainedCellTable(TableBlock table, PdfTableStyle style, IList<IPdfBlock> blocks, int index, IPdfBlock? nextBlock) {
             if (isRunningContent || activeColumnFlow != null || HasFloatingTables || HasPictureExclusions)
                 throw new NotSupportedException("Ordered table cell content requires an ordinary stable-width single-column frame.");
-            double frameWidth = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
+            double frameWidth = currentOpts.PageWidth.ToPoints() - currentOpts.MarginLeft.ToPoints() - currentOpts.MarginRight.ToPoints();
             PreparedTableGeometry geometry = PrepareTableGeometry(table, PreparePairedTableBorders(table, style), frameWidth);
             if (style.KeepWithNext && nextBlock != null) {
-                double tableHeight = style.SpacingBefore + GetTableRowsHeight(geometry.Rows.Heights, 0, table.Rows.Count, geometry.Gap) + style.SpacingAfter;
-                double next = MeasureKeepWithNextChainHeight(blocks, index + 1, currentOpts.MarginLeft, frameWidth,
-                    currentOpts.DefaultFontSize, tableHeight);
+                double tableHeight = style.SpacingBefore.ToPoints() + GetTableRowsHeight(geometry.Rows.Heights, 0, table.Rows.Count, geometry.Gap) + style.SpacingAfter.ToPoints();
+                double next = MeasureKeepWithNextChainHeight(blocks, index + 1, currentOpts.MarginLeft.ToPoints(), frameWidth,
+                    currentOpts.DefaultFontSize.ToPoints(), tableHeight);
                 double kept = tableHeight + next + GetClosingContainerPadding();
                 if (kept <= GetFullPageContentHeight() + .001D && kept > y - FootnoteBodyBottom + .001D)
                     NewPage();
@@ -56,7 +56,7 @@ internal static partial class PdfWriter {
             TableFlowCursor? cursor = null;
             while (cursor == null || cursor.Row < table.Rows.Count) {
                 cancellationToken.ThrowIfCancellationRequested();
-                double widthNow = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
+                double widthNow = currentOpts.PageWidth.ToPoints() - currentOpts.MarginLeft.ToPoints() - currentOpts.MarginRight.ToPoints();
                 if (Math.Abs(frameWidth - widthNow) > .001D)
                     throw new NotSupportedException("A continued ordered-cell table cannot change its containing frame width.");
                 double closing = GetClosingContainerPadding();

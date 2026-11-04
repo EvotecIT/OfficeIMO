@@ -3,13 +3,13 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfAnnotationEditor {
-    private static byte[] RewriteAllObjects(Dictionary<int, PdfIndirectObject> objects, int catalogObjectNumber, PdfMetadata metadata, byte[] sourcePdf) =>
+    private static byte[] RewriteAllObjects(Dictionary<int, PdfIndirectObject> objects, int catalogObjectNumber, PdfDocumentProperties metadata, byte[] sourcePdf) =>
         RewriteAllObjects(objects, catalogObjectNumber, metadata, sourcePdf, out _);
 
     private static byte[] RewriteAllObjects(
         Dictionary<int, PdfIndirectObject> objects,
         int catalogObjectNumber,
-        PdfMetadata metadata,
+        PdfDocumentProperties metadata,
         byte[] sourcePdf,
         out IReadOnlyDictionary<int, int> rewrittenObjectNumbers, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();

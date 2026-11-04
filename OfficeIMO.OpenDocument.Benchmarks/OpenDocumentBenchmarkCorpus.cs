@@ -17,7 +17,7 @@ internal static class OpenDocumentBenchmarkCorpus {
         format.ToUpperInvariant() switch {
             "ODT" => CreateText(scale),
             "ODS" => CreateSpreadsheet(scale),
-            "ODP" => CreatePresentation(scale),
+            "ODP" => CreateDocument(scale),
             _ => throw new ArgumentException($"Unknown OpenDocument format '{format}'.", nameof(format))
         };
 
@@ -41,7 +41,7 @@ internal static class OpenDocumentBenchmarkCorpus {
         return document.ToBytes();
     }
 
-    private static byte[] CreatePresentation(OpenDocumentBenchmarkScale scale) {
+    private static byte[] CreateDocument(OpenDocumentBenchmarkScale scale) {
         OdpPresentation presentation = OdpPresentation.Create();
         for (var index = 0; index < scale.PresentationSlides; index++) {
             OdpSlide slide = presentation.AddSlide($"Slide {index + 1}");

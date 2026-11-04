@@ -12,8 +12,8 @@ internal static partial class PdfTextDiagnostics {
     private const string ControlCharacterEncodingDescription = "PDF text output";
     private const string ControlCharacterRemediation = "Use paragraphs, line breaks, tables, or spacing primitives for layout instead of literal control characters.";
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<PdfEmbeddedFontFallbackCandidate, EmbeddedFontFallbackProgramBox> FallbackProgramCache = new();
-    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<PdfTrueTypeFontProgram, OpenTypeFontInfoBox> TrueTypeLayoutInfoCache = new();
-    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<PdfOpenTypeCffFontProgram, OpenTypeFontInfoBox> CffLayoutInfoCache = new();
+    // Keyed by the program shared across document forks: inspection reads the whole cmap.
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<object, OpenTypeFontInfoBox> LayoutInfoCache = new();
 
     /// <summary>
     /// Removes automatic embedded-font fallback groups when every generated text
@@ -128,13 +128,13 @@ internal static partial class PdfTextDiagnostics {
     /// <param name="source">Optional caller-provided source label such as a block, field, sheet, slide, or converter area.</param>
     /// <param name="location">Optional generated document location such as a block, table cell, or canvas item path.</param>
     /// <returns>Encoding diagnostics in source order.</returns>
-    public static IReadOnlyList<PdfTextEncodingDiagnostic> AnalyzeGeneratedText(string text, PdfOptions options, PdfStandardFont font, string source = "", string location = "") {
+    public static IReadOnlyList<PdfTextEncodingDiagnostic> AnalyzeGeneratedText(string text, PdfCreateOptions options, PdfStandardFont font, string source = "", string location = "") {
         return AnalyzeGeneratedTextCore(text, options, font, source, location, null);
     }
 
     private static List<PdfTextEncodingDiagnostic> AnalyzeGeneratedTextCore(
         string text,
-        PdfOptions options,
+        PdfCreateOptions options,
         PdfStandardFont font,
         string source,
         string location,
@@ -168,7 +168,7 @@ internal static partial class PdfTextDiagnostics {
 
     private static List<PdfTextEncodingDiagnostic> AnalyzeGeneratedTextCoreSlow(
         string text,
-        PdfOptions options,
+        PdfCreateOptions options,
         PdfStandardFont font,
         string source,
         string location,
@@ -220,7 +220,7 @@ internal static partial class PdfTextDiagnostics {
     /// <param name="source">Optional caller-provided source label such as a block, field, sheet, slide, or converter area.</param>
     /// <param name="location">Optional generated document location such as a block, table cell, or canvas item path.</param>
     /// <returns>Encoding diagnostics in run order.</returns>
-    public static IReadOnlyList<PdfTextEncodingDiagnostic> AnalyzeGeneratedTextRuns(IEnumerable<PdfTextRun> runs, PdfOptions options, PdfStandardFont font, string source = "", string location = "") {
+    public static IReadOnlyList<PdfTextEncodingDiagnostic> AnalyzeGeneratedTextRuns(IEnumerable<PdfTextRun> runs, PdfCreateOptions options, PdfStandardFont font, string source = "", string location = "") {
         Guard.NotNull(runs, nameof(runs));
         Guard.NotNull(options, nameof(options));
         Guard.StandardFont(font, nameof(font), "Generated PDF text diagnostics require a supported PDF font.");
@@ -304,7 +304,7 @@ internal static partial class PdfTextDiagnostics {
     }
 
     private static TryGetSelectedTextLength CreateSelectedCallerCoverage(
-        PdfOptions options,
+        PdfCreateOptions options,
         PdfTextRun run,
         PdfTextShapingMode shapingMode) {
         if (options.ShouldPreferSelectedCallerFamily(run.FontFamily)
@@ -569,18 +569,14 @@ internal static partial class PdfTextDiagnostics {
     internal static IReadOnlyList<PdfTextShapingDiagnostic> AnalyzeAdvancedTextLayout(string text, PdfTrueTypeFontProgram font, string source = "", int indexOffset = 0, OfficeTextFeatureSettings? featureSettings = null) {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(font, nameof(font));
-        PdfOpenTypeFontInfo? info = TrueTypeLayoutInfoCache.GetValue(
-            font,
-            static value => new OpenTypeFontInfoBox(value.FontDataForInspection, value.FontName)).Info;
+        PdfOpenTypeFontInfo? info = GetLayoutInfo(font.SharedIdentity, font.FontDataForInspection, font.FontName);
         return AnalyzeAdvancedTextLayout(text, info, source, indexOffset, featureSettings);
     }
 
     internal static IReadOnlyList<PdfTextShapingDiagnostic> AnalyzeAdvancedTextLayout(string text, PdfOpenTypeCffFontProgram font, string source = "", int indexOffset = 0, OfficeTextFeatureSettings? featureSettings = null) {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(font, nameof(font));
-        PdfOpenTypeFontInfo? info = CffLayoutInfoCache.GetValue(
-            font,
-            static value => new OpenTypeFontInfoBox(value.FontDataForInspection, value.FontName)).Info;
+        PdfOpenTypeFontInfo? info = GetLayoutInfo(font.SharedIdentity, font.FontDataForInspection, font.FontName);
         return AnalyzeAdvancedTextLayout(text, info, source, indexOffset, featureSettings);
     }
 
@@ -723,7 +719,7 @@ internal static partial class PdfTextDiagnostics {
                     index = uncoveredElementEnd;
                     continue;
                 }
-                diagnostics.Add(CreateEmbeddedFallbackDiagnostic(scalarStart, scalar, source, fonts));
+                diagnostics.Add(CreateEmbeddedFallbackElementDiagnostic(text, scalarStart, uncoveredElementEnd, source, fonts));
                 index = uncoveredElementEnd;
                 continue;
             }
@@ -789,8 +785,9 @@ internal static partial class PdfTextDiagnostics {
                 previousFallbackFontIndex);
             if (fallbackFontIndex < 0) {
                 previousFallbackFontIndex = -1;
-                diagnostics.Add(CreateEmbeddedFallbackDiagnostic(scalarStart, scalar, source, fallbackFonts, location, runIndex));
-                index = scalarStart + Math.Max(fallbackCoveredLength, index - scalarStart);
+                int elementEnd = scalarStart + Math.Max(fallbackCoveredLength, index - scalarStart);
+                diagnostics.Add(CreateEmbeddedFallbackElementDiagnostic(text, scalarStart, elementEnd, source, fallbackFonts, location, runIndex));
+                index = elementEnd;
             } else {
                 previousFallbackFontIndex = fallbackFontIndex;
                 index = scalarStart + fallbackCoveredLength;
@@ -1096,7 +1093,7 @@ internal static partial class PdfTextDiagnostics {
     }
 
     private static PdfStandardFont ResolveRunFont(PdfStandardFont baseFont, PdfTextRun run) {
-        PdfStandardFont font = run.Font ?? baseFont;
+        PdfStandardFont font = run.StandardFont ?? baseFont;
         if (run.Bold && run.Italic) {
             return PdfStandardFontMapper.GetStyledFont(font, bold: true, italic: true);
         }
@@ -1178,11 +1175,13 @@ internal static partial class PdfTextDiagnostics {
 
     private static void AddFontLayoutDiagnostics(string text, PdfOpenTypeFontInfo info, List<PdfTextShapingDiagnostic> diagnostics, HashSet<string> reportedCodes, string source, int indexOffset, OfficeTextFeatureSettings? featureSettings = null) {
         // Preflight the same selected language-system lookups used by the shared shaper.
-        // A rejected required feature or custom ligature need not contain ff/fi/fl.
+        // A rejected required feature or custom ligature need not contain ff/fi/fl, but it
+        // only simplifies this run when it could start on one of the run's glyphs.
         int latinInputIndex = OfficeOpenTypeSubstitution.FindLatinDefaultInputIndex(text);
+        OfficeTextFeatureSettings effectiveSettings = featureSettings ?? OfficeTextFeatureSettings.Default;
         if (latinInputIndex >= 0 && info.LatinSubstitution != null &&
-            !info.LatinSubstitution.ApplyLatinDefaults(new List<OfficeOpenTypeSubstitution.GlyphToken>(),
-                featureSettings ?? OfficeTextFeatureSettings.Default, default)) {
+            !info.LatinSubstitution.ApplyLatinDefaults(new List<OfficeOpenTypeSubstitution.GlyphToken>(), effectiveSettings, default) &&
+            info.LatinSubstitution.DeclinedLatinDefaultLookupMayApply(MapRunGlyphs(text, info), effectiveSettings, default)) {
             AddDiagnostic(diagnostics, reportedCodes, source, indexOffset + latinInputIndex, char.ConvertToUtf32(text, latinInputIndex),
                 "OpenType GSUB", "unsupported-font-ligature-substitution",
                 "Embedded font '" + info.FontName + "' selects an OpenType GSUB feature outside the managed shaping subset. Generated output may be visually simplified.");
@@ -1312,18 +1311,46 @@ internal static partial class PdfTextDiagnostics {
         return false;
     }
 
+    private static HashSet<int> MapRunGlyphs(string text, PdfOpenTypeFontInfo info) {
+        var glyphs = new HashSet<int>();
+        for (int index = 0; index < text.Length;) {
+            if (info.UnicodeCMap.TryGetValue(ReadScalar(text, ref index), out int glyphId) && glyphId > 0) glyphs.Add(glyphId);
+        }
+        return glyphs;
+    }
+
     private static bool IsCombiningMarkOrJoiner(int scalar) =>
         scalar == 0x200C || scalar == 0x200D || OfficeTextElements.IsCombiningMark(scalar);
 
     private static bool IsInRange(int scalar, int first, int last) =>
         scalar >= first && scalar <= last;
 
+    private static PdfTextEncodingDiagnostic CreateEmbeddedFallbackElementDiagnostic(string text, int start, int end, string source, IReadOnlyList<EmbeddedFontFallbackProgram> fonts, string location = "", int? runIndex = null) {
+        for (int position = start; position < end;) {
+            int scalarIndex = position;
+            int scalar = ReadScalar(text, ref position);
+            if (FindCoveringFont(fonts, scalar) < 0) {
+                return CreateEmbeddedFallbackDiagnostic(scalarIndex, scalar, source, fonts, location, runIndex);
+            }
+        }
+
+        int firstEnd = start;
+        int firstScalar = ReadScalar(text, ref firstEnd);
+        string codePoint = FormatCodePoint(firstScalar);
+        string display = GetDisplayText(firstScalar);
+        string fontNames = string.Join(", ", fonts.Select(font => "'" + font.FontName + "'"));
+        var diagnostic = new PdfTextEncodingDiagnostic(source, start, codePoint, display, false,
+            "missing-embedded-font-fallback-glyph",
+            diagnosticIndex => "No single embedded font fallback candidate covers the text element at index " + diagnosticIndex.ToString(CultureInfo.InvariantCulture) + ": " + fontNames + ". Add a fallback font that covers the entire text element.");
+        return string.IsNullOrEmpty(location) && !runIndex.HasValue ? diagnostic : diagnostic.WithRunLocation(location, runIndex);
+    }
+
     private static PdfTextEncodingDiagnostic CreateEmbeddedFallbackDiagnostic(int index, int scalar, string source, IReadOnlyList<EmbeddedFontFallbackProgram> fonts, string location = "", int? runIndex = null) {
         string codePoint = FormatCodePoint(scalar);
         string display = GetDisplayText(scalar);
         string rendered = string.IsNullOrEmpty(display) ? string.Empty : " '" + display + "'";
         string fontNames = string.Join(", ", fonts.Select(font => "'" + font.FontName + "'"));
-        return new PdfTextEncodingDiagnostic(
+        var diagnostic = new PdfTextEncodingDiagnostic(
             source,
             index,
             codePoint,
@@ -1331,6 +1358,7 @@ internal static partial class PdfTextDiagnostics {
             isControlCharacter: false,
             code: "missing-embedded-font-fallback-glyph",
             messageFactory: diagnosticIndex => "Text contains character " + codePoint + rendered + " at index " + diagnosticIndex.ToString(CultureInfo.InvariantCulture) + " that is not covered by any embedded font fallback candidate: " + fontNames + ". Add a fallback font that contains this glyph or replace the character before rendering.");
+        return string.IsNullOrEmpty(location) && !runIndex.HasValue ? diagnostic : diagnostic.WithRunLocation(location, runIndex);
     }
 
     private static int ReadScalar(string text, ref int index) {
@@ -1356,6 +1384,18 @@ internal static partial class PdfTextDiagnostics {
         fontData[1] == 0x54 &&
         fontData[2] == 0x54 &&
         fontData[3] == 0x4F;
+
+    private static PdfOpenTypeFontInfo? GetLayoutInfo(object identity, byte[] fontData, string fontName) {
+        if (LayoutInfoCache.TryGetValue(identity, out OpenTypeFontInfoBox? cached)) return cached.Info;
+        var created = new OpenTypeFontInfoBox(fontData, fontName);
+        try {
+            LayoutInfoCache.Add(identity, created);
+        } catch (ArgumentException) {
+            // Another thread inspected the same program first.
+            if (LayoutInfoCache.TryGetValue(identity, out cached)) return cached.Info;
+        }
+        return created.Info;
+    }
 
     private sealed class OpenTypeFontInfoBox {
         public OpenTypeFontInfoBox(byte[] fontData, string fontName) {

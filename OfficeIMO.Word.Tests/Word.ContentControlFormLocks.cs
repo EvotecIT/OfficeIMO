@@ -114,7 +114,7 @@ namespace OfficeIMO.Tests {
             document.AddParagraph().AddDatePicker(new DateTime(2026, 1, 1), "Date", "Date");
             document.AddParagraph().AddDropDownList(new[] { "Low", "High" }, "Dropdown", "Dropdown");
             document.AddParagraph().AddComboBox(new[] { "Email", "Phone" }, "Combo", "Combo", defaultValue: "Email");
-            document.AddParagraph().AddPictureControl(Path.Combine(_directoryWithImages, "Kulek.jpg"), 24, 24, "Picture", "Picture");
+            document.AddParagraph().AddPictureControl(Path.Combine(_directoryWithImages, "Kulek.jpg"), OfficeLength.Pixels(24), OfficeLength.Pixels(24), "Picture", "Picture");
             document.AddParagraph().AddRepeatingSection("Items", "Repeating", "Repeating");
         }
 

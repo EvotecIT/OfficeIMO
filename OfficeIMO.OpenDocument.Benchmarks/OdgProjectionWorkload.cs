@@ -64,7 +64,7 @@ public sealed class OdgProjectionWorkload {
     }
 
     private string[] SourceParts() {
-        using var package = new ZipArchive(_document.ToStream(), ZipArchiveMode.Read);
+        using var package = new ZipArchive(new System.IO.MemoryStream(_document.ToBytes()), ZipArchiveMode.Read);
         return new[] { "content.xml", "styles.xml", "meta.xml" }.Select(part => {
             using var reader = new StreamReader(package.GetEntry(part)!.Open());
             return reader.ReadToEnd();

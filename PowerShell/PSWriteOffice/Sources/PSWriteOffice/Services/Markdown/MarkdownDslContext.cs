@@ -10,15 +10,15 @@ internal sealed class MarkdownDslContext : IDisposable
     private static readonly AsyncLocal<MarkdownDslContext?> CurrentScope = new();
     private readonly MarkdownDslContext? _previousScope;
 
-    private MarkdownDslContext(MarkdownDoc document, MarkdownDslContext? previousScope)
+    private MarkdownDslContext(MarkdownDocument document, MarkdownDslContext? previousScope)
     {
         Document = document ?? throw new ArgumentNullException(nameof(document));
         _previousScope = previousScope;
     }
 
-    public MarkdownDoc Document { get; }
+    public MarkdownDocument Document { get; }
 
-    public static MarkdownDslContext Enter(MarkdownDoc document)
+    public static MarkdownDslContext Enter(MarkdownDocument document)
     {
         if (document == null)
         {
@@ -36,7 +36,7 @@ internal sealed class MarkdownDslContext : IDisposable
         if (scope == null)
         {
             throw new InvalidOperationException(
-                $"'{caller.MyInvocation.InvocationName}' must run inside New-OfficeMarkdown script block.");
+                $"'{caller.MyInvocation.InvocationName}' must run inside a New-/Open-OfficeMarkdown content block.");
         }
 
         return scope;

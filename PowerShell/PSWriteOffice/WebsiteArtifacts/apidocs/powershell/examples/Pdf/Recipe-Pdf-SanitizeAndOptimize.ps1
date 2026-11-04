@@ -1,7 +1,7 @@
 $source = '.\Pdf-Delivery-Source.pdf'
 $sanitized = '.\Pdf-Delivery-Sanitized.pdf'
 $optimized = '.\Pdf-Delivery-Optimized.pdf'
-PdfNew -Path $source {
+New-OfficePdf -Path $source {
     PdfMetadata -Title 'Delivery copy' -Author 'PSWriteOffice'
     PdfHeading 'Delivery copy'
     PdfParagraph ('Repeated delivery evidence. ' * 60)

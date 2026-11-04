@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes a custom client color palette decoded from a legacy XLS chart ClrtClient record.
     /// </summary>
-    public sealed class LegacyXlsChartClientColorPalette {
+    internal sealed class LegacyXlsChartClientColorPalette {
         internal LegacyXlsChartClientColorPalette(short declaredColorCount, IReadOnlyList<string> colors) {
             DeclaredColorCount = declaredColorCount;
             Colors = colors ?? throw new ArgumentNullException(nameof(colors));

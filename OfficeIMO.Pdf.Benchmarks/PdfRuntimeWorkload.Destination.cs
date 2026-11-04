@@ -47,10 +47,10 @@ public sealed partial class PdfRuntimeWorkload {
         PdfSaveResult saved;
         if (operation == "DestinationDirect") {
             using var stream = new FileStream(destination, FileMode.Create, FileAccess.Write, FileShare.None);
-            saved = document.Save(stream, cancellationToken);
+            saved = document.SaveWithEvidence(stream, cancellationToken);
         } else {
             using var stream = new MemoryStream();
-            saved = document.Save(stream, cancellationToken);
+            saved = document.SaveWithEvidence(stream, cancellationToken);
             byte[] bytes = stream.ToArray();
             cancellationToken.ThrowIfCancellationRequested();
             File.WriteAllBytes(destination, bytes);

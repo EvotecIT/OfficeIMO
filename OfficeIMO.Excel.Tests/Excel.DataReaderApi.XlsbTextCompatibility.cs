@@ -19,9 +19,8 @@ public sealed class XlsbTextCompatibilityTests {
         }
         using ExcelDocument document = ExcelDocument.Create();
         document.InsertDataSet(data, createTables: false, includeAutoFilter: false);
-        byte[] package = document.ToBytes(ExcelFileFormat.Xlsb,
-            new ExcelSaveOptions { XlsbUseSharedStrings = sharedStrings });
-        using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(package);
+        byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb,  XlsbUseSharedStrings = sharedStrings });
+        using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(package);
         for (int index = 0; index < values.Length; index++) {
             Assert.True(reader.Read());
             Assert.Equal(index + 1, reader.GetInt32(1));

@@ -1,0 +1,18 @@
+{
+  "package": "OfficeIMO.Email.Image",
+  "changes": [],
+  "extraChanges": [
+    {
+      "old": "EmailImageExportBuilder; EmailImageExportBatchBuilder; fluent ToImage / ToImages",
+      "new": "EmailDocument.ToImage(options), SaveAsImage(pathOrStream, options), SaveAsImages(folder, options); inherited PageIndex and Mode",
+      "action": "consolidate",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Email.Image/EmailImageExportBuilder.cs"
+      ],
+      "reason": "Remove the fluent image surface while retaining format renderers, Core execution/persistence, streaming, deadlines, limits and diagnostic evidence.",
+      "qualification": "Static preparation only. Parent applies and qualifies every maintained target; no build or test was run."
+    }
+  ]
+}

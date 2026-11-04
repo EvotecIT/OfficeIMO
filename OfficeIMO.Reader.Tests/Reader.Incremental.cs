@@ -15,18 +15,18 @@ public sealed class ReaderIncrementalTests {
         string path = Path.Combine(Path.GetTempPath(), "reader-incremental-" + Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (var workbook = ExcelDocument.Create(path)) {
-                var sheet = workbook.AddWorksheet("Data");
-                sheet.Cell(1, 1, "Name");
-                for (int row = 2; row <= 20; row++) sheet.Cell(row, 1, "row " + row);
+                var sheet = workbook.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Name");
+                for (int row = 2; row <= 20; row++) sheet.Cell(row, 1).SetValue("row " + row);
                 workbook.Save();
             }
             var reader = new OfficeDocumentReaderBuilder().AddExcelHandler(new ReaderExcelOptions { ChunkRows = 4 }).Build();
             var options = new ReaderOptions { ComputeHashes = false };
             var rich = reader.ReadDocument(path, options);
-            var incremental = reader.EnumerateChunks(path, options).ToArray();
+            var incremental = reader.Enumerate(path, options).ToArray();
             Assert.Equal(rich.Chunks.Select(c => c.Markdown), incremental.Select(c => c.Markdown));
             Assert.True(incremental.Length > 1);
-            using (var iterator = reader.EnumerateChunks(path, options).GetEnumerator()) Assert.True(iterator.MoveNext());
+            using (var iterator = reader.Enumerate(path, options).GetEnumerator()) Assert.True(iterator.MoveNext());
             using var exclusive = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
         } finally { File.Delete(path); }
     }
@@ -35,7 +35,7 @@ public sealed class ReaderIncrementalTests {
     public void TextStreamProducesFirstChunkBeforeReadingWholeInputAndPreservesOwnership() {
         using var input = new CountingStream(Encoding.UTF8.GetBytes(new string('a', 100_000)));
         var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().Build();
-        using (var iterator = reader.EnumerateChunks(input, "large.txt",
+        using (var iterator = reader.Enumerate(input, "large.txt",
                    new ReaderOptions { ComputeHashes = false, MaxChars = 256 }).GetEnumerator()) {
             Assert.True(iterator.MoveNext());
             Assert.Equal(256, iterator.Current.Text.Length);
@@ -49,7 +49,7 @@ public sealed class ReaderIncrementalTests {
         using var input = new MemoryStream(Encoding.UTF8.GetBytes(new string('a', 10_000)));
         input.Position = 7;
         var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().Build();
-        using (var iterator = reader.EnumerateChunks(input, "large.txt",
+        using (var iterator = reader.Enumerate(input, "large.txt",
                    new ReaderOptions { ComputeHashes = false, MaxChars = 256 }).GetEnumerator()) Assert.True(iterator.MoveNext());
         Assert.Equal(7, input.Position);
         Assert.True(input.CanRead);
@@ -59,7 +59,7 @@ public sealed class ReaderIncrementalTests {
     public void IncrementalInputEnforcesBoundBeforeReadingBeyondLimitPlusOne() {
         using var input = new CountingStream(new byte[100_000]);
         var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().Build();
-        Assert.Throws<IOException>(() => reader.EnumerateChunks(input, "large.txt",
+        Assert.Throws<IOException>(() => reader.Enumerate(input, "large.txt",
             new ReaderOptions { ComputeHashes = false, MaxInputBytes = 128 }).ToArray());
         Assert.InRange(input.BytesRead, 1, 129);
     }
@@ -71,10 +71,10 @@ public sealed class ReaderIncrementalTests {
             .AddProcessor(new DelegateOfficeDocumentProcessor("replace", (document, _) => {
                 document.Chunks[0].Text = "processed"; return document;
             })).Build();
-        Assert.Equal("processed", Assert.Single(reader.EnumerateChunks(input, "sample.txt")).Text);
+        Assert.Equal("processed", Assert.Single(reader.Enumerate(input, "sample.txt")).Text);
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
-        Assert.Throws<OperationCanceledException>(() => reader.EnumerateChunks(input, "sample.txt",
+        Assert.Throws<OperationCanceledException>(() => reader.Enumerate(input, "sample.txt",
             cancellationToken: cancellation.Token).ToArray());
     }
 
@@ -87,7 +87,7 @@ public sealed class ReaderIncrementalTests {
             var capability = Assert.Single(reader.GetCapabilities());
             Assert.True(capability.SupportsIncrementalPath);
             Assert.False(capability.SupportsIncrementalStream);
-            var chunks = reader.EnumerateChunks(path, new ReaderOptions { ComputeHashes = false }).ToArray();
+            var chunks = reader.Enumerate(path, new ReaderOptions { ComputeHashes = false }).ToArray();
             Assert.Equal(2, chunks.Length);
             Assert.Equal("alpha", Assert.Single(Assert.Single(chunks[0].Tables!).Rows)[0]);
             Assert.Equal("beta", Assert.Single(Assert.Single(chunks[1].Tables!).Rows)[0]);
@@ -101,7 +101,7 @@ public sealed class ReaderIncrementalTests {
         using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         for (int attempt = 0; attempt < 2; attempt++) {
             using var input = new CountingStream(Encoding.UTF8.GetBytes(new string('a', 10_000)));
-            await foreach (var chunk in reader.EnumerateChunksAsync(input, "sample.txt",
+            await foreach (var chunk in reader.EnumerateAsync(input, "sample.txt",
                                new ReaderOptions { ComputeHashes = false, MaxChars = 256 }, cancellation.Token)) {
                 Assert.Equal(256, chunk.Text.Length);
                 break;
@@ -120,7 +120,7 @@ public sealed class ReaderIncrementalTests {
         string text = new string('a', 255) + "\U0001F600\r\nsecond\rthird";
         Encoding encoding = Encoding.GetEncoding(encodingName);
         byte[] bytes = encoding.GetPreamble().Concat(encoding.GetBytes(text)).ToArray();
-        var result = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().Build().Read(bytes, "text.txt",
+        var result = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().Build().Enumerate(bytes, "text.txt",
             new ReaderOptions { MaxChars = 256, TextEncoding = Encoding.ASCII, ThrowOnInvalidTextBytes = true });
         Assert.Equal(text.Replace("\r\n", "\n").Replace('\r', '\n'), string.Concat(result.Select(chunk => chunk.Text)));
     }
@@ -128,13 +128,13 @@ public sealed class ReaderIncrementalTests {
     [Fact]
     public void ExplicitEncodingAndInvalidBytePoliciesHaveObservableResults() {
         var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().Build();
-        Assert.Equal("café", Assert.Single(reader.Read(new byte[] { 99, 97, 102, 233 }, "latin.txt",
+        Assert.Equal("café", Assert.Single(reader.Enumerate(new byte[] { 99, 97, 102, 233 }, "latin.txt",
             new ReaderOptions { TextEncoding = Encoding.GetEncoding("iso-8859-1") })).Text);
         byte[] malformed = { 0xef, 0xbb, 0xbf, 0xff };
-        var chunk = Assert.Single(reader.Read(malformed, "invalid.txt"));
+        var chunk = Assert.Single(reader.Enumerate(malformed, "invalid.txt"));
         Assert.Equal("\ufffd", chunk.Text);
         Assert.Contains(chunk.Warnings!, warning => warning.Contains("invalid byte", StringComparison.Ordinal));
-        Assert.Throws<DecoderFallbackException>(() => reader.Read(malformed, "invalid.txt",
+        Assert.Throws<DecoderFallbackException>(() => reader.Enumerate(malformed, "invalid.txt",
             new ReaderOptions { ThrowOnInvalidTextBytes = true }).ToArray());
     }
 
@@ -153,17 +153,17 @@ public sealed class ReaderIncrementalTests {
         byte[] withBom = encoding.GetPreamble().Concat(content).ToArray();
         var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().Build();
         using var input = new CountingStream(withBom, maxRead: 1);
-        var chunks = reader.EnumerateChunks(input, "invalid.txt", new ReaderOptions {
+        var chunks = reader.Enumerate(input, "invalid.txt", new ReaderOptions {
             ComputeHashes = false, MaxChars = 256, TextEncoding = Encoding.ASCII
         }).ToArray();
         Assert.Equal(text + "\ufffd", string.Concat(chunks.Select(chunk => chunk.Text)));
         Assert.Contains(chunks.SelectMany(chunk => chunk.Warnings ?? Array.Empty<string>()),
             warning => warning.Contains("invalid byte", StringComparison.Ordinal));
         Assert.True(input.CanRead);
-        Assert.Throws<DecoderFallbackException>(() => reader.Read(withBom, "invalid.txt",
+        Assert.Throws<DecoderFallbackException>(() => reader.Enumerate(withBom, "invalid.txt",
             new ReaderOptions { ThrowOnInvalidTextBytes = true }).ToArray());
         using var strictInput = new CountingStream(content, maxRead: 1);
-        Assert.Throws<DecoderFallbackException>(() => reader.EnumerateChunks(strictInput, "invalid.txt",
+        Assert.Throws<DecoderFallbackException>(() => reader.Enumerate(strictInput, "invalid.txt",
             new ReaderOptions { ComputeHashes = false, TextEncoding = encoding, ThrowOnInvalidTextBytes = true }).ToArray());
         Assert.True(strictInput.CanRead);
     }

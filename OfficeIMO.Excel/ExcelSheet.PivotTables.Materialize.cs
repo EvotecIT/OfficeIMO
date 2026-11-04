@@ -40,7 +40,7 @@ namespace OfficeIMO.Excel {
                     .ThenBy(view => view.Part.PivotTableDefinition?.Name?.Value, StringComparer.OrdinalIgnoreCase)
                     .ToArray();
                 var source = cachePart.PivotCacheDefinition?.CacheSource?.WorksheetSource;
-                if (views.Length > 1 && A1.TryParseRange(source?.Reference?.Value ?? "",
+                if (views.Length > 1 && ExcelA1.TryParseRange(source?.Reference?.Value ?? "",
                         out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)
                     && (long)views.Length * (lastRow - firstRow) * (lastColumn - firstColumn + 1)
                         > Math.Min(1_000_000, effective.MaximumAffectedCells))
@@ -192,7 +192,7 @@ namespace OfficeIMO.Excel {
             var cache = cachePart.PivotCacheDefinition ?? throw new InvalidOperationException("The pivot cache definition is missing.");
             var source = cache.CacheSource?.WorksheetSource;
             if (cache.CacheSource?.Type?.Value != SourceValues.Worksheet || source == null || source.Id != null || source.Name != null
-                || string.IsNullOrEmpty(source.Sheet?.Value) || !A1.TryParseRange(source.Reference?.Value ?? "", out int r1, out int c1, out int r2, out int c2))
+                || string.IsNullOrEmpty(source.Sheet?.Value) || !ExcelA1.TryParseRange(source.Reference?.Value ?? "", out int r1, out int c1, out int r2, out int c2))
                 throw new NotSupportedException("Materialization requires a local worksheet source range.");
             var sourceSheet = _excelDocument.GetSheetForLockedOperation(source.Sheet!.Value!);
             sourceSheet.MaterializePendingDirectCellValues();
@@ -266,7 +266,7 @@ namespace OfficeIMO.Excel {
             if (_excelDocument.GetWorkbookSlicerCaches().Concat(_excelDocument.GetWorkbookTimelineCaches())
                 .Any(c => string.IsNullOrEmpty(c.PivotTableName) || string.Equals(c.PivotTableName, definition.Name?.Value, StringComparison.OrdinalIgnoreCase)))
                 throw new NotSupportedException("Materialization of pivot interaction caches requires coordinated cache updates.");
-            if (!A1.TryParseRange(definition.Location?.Reference?.Value ?? "", out int top, out int left, out int oldBottom, out int oldRight))
+            if (!ExcelA1.TryParseRange(definition.Location?.Reference?.Value ?? "", out int top, out int left, out int oldBottom, out int oldRight))
                 throw new InvalidOperationException("The pivot output location is invalid.");
             var grouping = groupings.ToDictionary(pair => pair.Key, pair => pair.Value.SourceGrouping);
             foreach (var pair in sourceDateGroupings) grouping.Add(pair.Key, pair.Value);

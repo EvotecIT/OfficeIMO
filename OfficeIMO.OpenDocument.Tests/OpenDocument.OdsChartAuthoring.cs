@@ -135,7 +135,7 @@ public sealed class OpenDocumentOdsChartAuthoringTests {
             new(fillColor: OfficeColor.Parse("#228844")),
             new(fillColor: OfficeColor.Parse("#FFF0DD"), hatch: OfficeChartHatchPattern.WideForwardDiagonal,
                 hatchColor: OfficeColor.Parse("#D97706")),
-            new(noFill: true, outlineColor: OfficeColor.Parse("#445566"), outlineWidth: 2,
+            new(noFill: true, outlineColor: OfficeColor.Parse("#445566"), outlineWidth: global::OfficeIMO.OfficeLength.Points(2),
                 showOutline: true, outlineJoin: OfficeStrokeLineJoin.Round)
         };
         sheet.AddChart(type, "Data.$A$1:.$A$3",
@@ -196,7 +196,7 @@ public sealed class OpenDocumentOdsChartAuthoringTests {
         Assert.Equal(OfficeColor.Parse("#D97706"), styles[1]!.HatchColor);
         Assert.True(styles[2]!.NoFill);
         Assert.Equal(OfficeColor.Parse("#445566"), styles[2]!.OutlineColor);
-        Assert.Equal(0.07 * 72 / 2.54, styles[2]!.OutlineWidth!.Value, 6);
+        Assert.Equal(0.07 * 72 / 2.54, styles[2]!.OutlineWidth!.Value.ToPoints(), 6);
     }
 
     [Fact]
@@ -317,6 +317,23 @@ public sealed class OpenDocumentOdsChartAuthoringTests {
     }
 
     [Fact]
+    public void UnrepresentableProducerPointWidthRetainsChartWithUnprojectedAppearance() {
+        OdsChart chart = ReadProducerChart(content => {
+            XElement series = Assert.Single(content.Descendants(OdfNamespaces.Chart + "series"));
+            string name = (string)series.Element(OdfNamespaces.Chart + "data-point")!
+                .Attribute(OdfNamespaces.Chart + "style-name")!;
+            XElement definition = Assert.Single(content.Descendants(OdfNamespaces.Style + "style"),
+                item => (string?)item.Attribute(OdfNamespaces.Style + "name") == name);
+            definition.Element(OdfNamespaces.Style + "graphic-properties")!
+                .SetAttributeValue(OdfNamespaces.Svg + "stroke-width", "0.00001pt");
+        });
+
+        OdsChartSeries actual = Assert.Single(chart.Series);
+        Assert.Null(actual.PointStyles);
+        Assert.True(actual.HasUnprojectedAppearance);
+    }
+
+    [Fact]
     public void ExplodedProducerSliceWithSupportedFillRemainsUnprojected() {
         OdsChart chart = ReadProducerChart(content => {
             XElement series = Assert.Single(content.Descendants(OdfNamespaces.Chart + "series"));
@@ -431,7 +448,7 @@ public sealed class OpenDocumentOdsChartAuthoringTests {
         Assert.Throws<NotSupportedException>(() => sheet.AddChart(OdsChartType.Pie, "Data.$A$1",
             new[] { new OdsChartSeries("Data.$B$1").WithPointStyles(
                 new OfficeChartPointStyle?[] {
-                    new(outlineColor: OfficeColor.Parse("#445566"), outlineWidth: 0.0004,
+                    new(outlineColor: OfficeColor.Parse("#445566"), outlineWidth: global::OfficeIMO.OfficeLength.Points(0.0004),
                         showOutline: true)
                 }) }, 0, 2, OdfRect.FromCentimeters(0, 0, 10, 6)));
         Assert.Empty(sheet.Charts);

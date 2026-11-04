@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
 namespace OfficeIMO.Reader;
 
@@ -8,6 +9,12 @@ namespace OfficeIMO.Reader;
 public sealed class OfficeDocumentSearchOptions {
     /// <summary>When true, uses case-sensitive ordinal matching.</summary>
     public bool MatchCase { get; set; }
+
+    /// <summary>When true, interprets the query as a .NET regular expression. The default preserves literal search.</summary>
+    public bool UseRegularExpressions { get; set; }
+
+    /// <summary>Maximum time allowed for one regular-expression match attempt. Must be positive and finite; defaults to two seconds.</summary>
+    public TimeSpan RegularExpressionTimeout { get; set; } = TimeSpan.FromSeconds(2);
 
     /// <summary>When true, accepts matches surrounded by non-word characters only.</summary>
     public bool WholeWord { get; set; }
@@ -94,7 +101,8 @@ public static partial class OfficeDocumentReadResultExtensions {
     public static OfficeDocumentSearchResult Search(
         this OfficeDocumentReadResult document,
         string query,
-        OfficeDocumentSearchOptions? options = null) {
+        OfficeDocumentSearchOptions? options = null,
+        CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (string.IsNullOrEmpty(query)) throw new ArgumentException("Search query cannot be empty.", nameof(query));
 
@@ -103,12 +111,16 @@ public static partial class OfficeDocumentReadResultExtensions {
             throw new ArgumentOutOfRangeException(nameof(options), "MaximumResults must be positive.");
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
+        if (effective.UseRegularExpressions) return SearchRegularExpression(document, query, effective, cancellationToken);
+
         StringComparison comparison = effective.MatchCase
             ? StringComparison.Ordinal
             : StringComparison.OrdinalIgnoreCase;
         var hits = new List<OfficeDocumentSearchHit>();
 
         foreach (OfficeDocumentBlock block in document.Blocks ?? Array.Empty<OfficeDocumentBlock>()) {
+            cancellationToken.ThrowIfCancellationRequested();
             string text = block.Text ?? string.Empty;
             int remainingResultCount = effective.MaximumResults - hits.Count;
             IReadOnlyList<int> occurrenceIndexes = FindOccurrences(
@@ -116,7 +128,8 @@ public static partial class OfficeDocumentReadResultExtensions {
                 query,
                 comparison,
                 effective.WholeWord,
-                remainingResultCount);
+                remainingResultCount,
+                cancellationToken);
             if (occurrenceIndexes.Count == 0) {
                 continue;
             }
@@ -157,6 +170,7 @@ public static partial class OfficeDocumentReadResultExtensions {
             }
 
             for (int occurrenceIndex = 0; occurrenceIndex < returnedOccurrenceCount; occurrenceIndex++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 hits.Add(new OfficeDocumentSearchHit(
                     block,
                     occurrenceIndexes[occurrenceIndex],
@@ -408,9 +422,24 @@ public static partial class OfficeDocumentReadResultExtensions {
             int queryLength,
             IReadOnlyList<int> sourceOccurrenceIndexes,
             int occurrenceCount) {
-        var fragmentStarts = new List<int>();
-        var fragmentEnds = new List<int>();
-        var fragmentLocations = new List<OfficeDocumentPageLocation>();
+        if (!TryGetSourceFragmentRanges(locations, blockId, sourceText, out var fragmentStarts,
+                out var fragmentEnds, out var fragmentLocations)) return null;
+
+        return MapOccurrenceRangesToPages(
+            fragmentStarts,
+            fragmentEnds,
+            fragmentLocations,
+            sourceOccurrenceIndexes,
+            queryLength,
+            occurrenceCount);
+    }
+
+    private static bool TryGetSourceFragmentRanges(IReadOnlyList<OfficeDocumentPageLocation> locations,
+        string blockId, string sourceText, out List<int> fragmentStarts, out List<int> fragmentEnds,
+        out List<OfficeDocumentPageLocation> fragmentLocations) {
+        fragmentStarts = new List<int>();
+        fragmentEnds = new List<int>();
+        fragmentLocations = new List<OfficeDocumentPageLocation>();
         int combinedLength = 0;
         bool fragmentsMatchSource = true;
         foreach (OfficeDocumentPageLocation location in locations) {
@@ -437,17 +466,7 @@ public static partial class OfficeDocumentReadResultExtensions {
             }
         }
 
-        if (!fragmentsMatchSource || combinedLength != sourceText.Length) {
-            return null;
-        }
-
-        return MapOccurrenceRangesToPages(
-            fragmentStarts,
-            fragmentEnds,
-            fragmentLocations,
-            sourceOccurrenceIndexes,
-            queryLength,
-            occurrenceCount);
+        return fragmentsMatchSource && combinedLength == sourceText.Length;
     }
 
     private static IReadOnlyList<IReadOnlyList<OfficeDocumentPageLocation>>?
@@ -517,7 +536,8 @@ public static partial class OfficeDocumentReadResultExtensions {
         string query,
         StringComparison comparison,
         bool wholeWord,
-        int maximumOccurrences) {
+        int maximumOccurrences,
+        CancellationToken cancellationToken = default) {
         var occurrences = new List<int>();
         if (maximumOccurrences < 1) {
             return occurrences.AsReadOnly();
@@ -525,6 +545,7 @@ public static partial class OfficeDocumentReadResultExtensions {
 
         int searchFrom = 0;
         while (searchFrom <= text.Length - query.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
             int index = text.IndexOf(query, searchFrom, comparison);
             if (index < 0) {
                 break;

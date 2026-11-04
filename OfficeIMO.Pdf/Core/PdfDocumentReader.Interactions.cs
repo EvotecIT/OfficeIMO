@@ -27,6 +27,12 @@ internal sealed partial class PdfDocumentReader {
             ResolveReadOptions(readOptions));
     }
 
+    /// <summary>Rasterizes a diagnostic overlay through the PDF owner's pixel budget.</summary>
+    internal byte[] LayoutDebugOverlayPng(int pageNumber, double scale,
+        PdfLayoutDebugOverlayOptions? overlayOptions, PdfTextLayoutOptions? layoutOptions, PdfLoadOptions? readOptions) =>
+        PdfLayoutDebugOverlay.ToPng(_document.GetBytesForOperation(), pageNumber, scale,
+            overlayOptions, layoutOptions, ResolveReadOptions(readOptions));
+
     /// <summary>Exports the first-party logical model to JSON, Markdown, ALTO XML, hOCR, or PAGE XML.</summary>
     public string ExportStructured(
         PdfStructuredExportFormat format,

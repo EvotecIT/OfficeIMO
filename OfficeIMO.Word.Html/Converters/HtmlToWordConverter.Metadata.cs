@@ -30,7 +30,7 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static void ApplyBuiltinDocumentProperties(WordDocument document, IDocument htmlDocument) {
-            var props = document.BuiltinDocumentProperties;
+            var props = document.Properties;
             var title = htmlDocument.QuerySelector("title")?.TextContent;
             var normalizedTitle = string.IsNullOrWhiteSpace(title) ? null : title!.Trim();
             if (!string.IsNullOrWhiteSpace(normalizedTitle) && !string.Equals(normalizedTitle, "Document", StringComparison.OrdinalIgnoreCase)) {
@@ -69,7 +69,7 @@ namespace OfficeIMO.Word.Html {
                     continue;
                 }
 
-                document.CustomDocumentProperties[name!.Trim()] = CreateCustomDocumentProperty(
+                document.CustomProperties[name!.Trim()] = CreateCustomDocumentProperty(
                     meta.GetAttribute("content") ?? string.Empty,
                     meta.GetAttribute("data-property-type"));
             }

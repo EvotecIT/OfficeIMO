@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfOptions {
+public sealed partial class PdfCreateOptions {
     private PdfImageOptimizationOptions? _imageOptimization;
 
     /// <summary>

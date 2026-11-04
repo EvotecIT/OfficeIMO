@@ -15,9 +15,9 @@ public sealed class PublisherMasterContentTests {
         PublisherShape background = document.AddShape(master.Id, paint, 36, 72);
         byte[] original = PublisherPictureEditingFixture.Image(OfficeColor.Blue);
         byte[] replacement = PublisherPictureEditingFixture.Image(OfficeColor.White);
-        PublisherPicture logo = document.AddPicture(master.Id, original, 72, 72, 96, 96);
+        PublisherPicture logo = document.AddImage(master.Id, original, 72, 72, 96, 96);
         PublisherTextFrame title = document.AddTextFrame(master.Id, 36, 72, 288, 108, Paragraph("Master content"));
-        PublisherPicture local = document.AddPicture(last.Id, logo.ImageId!.Value, 180, 72, 96, 96);
+        PublisherPicture local = document.AddImage(last.Id, logo.ImageId!.Value, 180, 72, 96, 96);
         var oldPages = document.Pages; var oldMaster = document.MasterPages.Single();
         document.ReplaceStoryParagraphs(title.StoryId, Paragraph("Updated master"));
         document.SetShapeBounds(background.Id, 36, 60, 240, 96);

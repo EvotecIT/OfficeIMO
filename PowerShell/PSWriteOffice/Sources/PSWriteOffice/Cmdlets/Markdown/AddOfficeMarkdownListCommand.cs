@@ -21,7 +21,7 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeMarkdownList", DefaultParameterSetName = ParameterSetContext)]
 [Alias("MarkdownList")]
-[OutputType(typeof(MarkdownDoc))]
+[OutputType(typeof(MarkdownDocument))]
 public sealed class AddOfficeMarkdownListCommand : PSCmdlet
 {
     private const string ParameterSetContext = "Context";
@@ -29,7 +29,7 @@ public sealed class AddOfficeMarkdownListCommand : PSCmdlet
 
     /// <summary>Markdown document to update outside the DSL context.</summary>
     [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public MarkdownDoc Document { get; set; } = null!;
+    public MarkdownDocument Document { get; set; } = null!;
 
     /// <summary>List items to add.</summary>
     [Parameter(Mandatory = true, Position = 0)]
@@ -82,7 +82,7 @@ public sealed class AddOfficeMarkdownListCommand : PSCmdlet
                 .ToList();
     }
 
-    private MarkdownDoc ResolveDocument()
+    private MarkdownDocument ResolveDocument()
     {
         if (ParameterSetName == ParameterSetDocument)
         {

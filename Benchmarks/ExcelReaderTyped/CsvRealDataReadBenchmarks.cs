@@ -3,6 +3,7 @@ using ExcelReader.Core.Reader;
 using ExcelReader.Core.Reader.Csv;
 using OfficeIMO.Benchmarks;
 using OfficeIMO.CSV;
+using CsvReaderOptions = OfficeIMO.CSV.CsvReaderOptions;
 using OfficeIMO.Data;
 using System.Data.Common;
 using System.Globalization;
@@ -68,7 +69,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             using CsvReader streamedPeer = ExcelReaderApi.FromCsv(peerStream);
             using CsvReader.Enumerator streamedPeerRows = streamedPeer.FirstSheet.GetEnumerator();
             using MemoryStream officeStream = new MemoryStream(_bytes, false);
-            using DbDataReader office = CsvDocument.OpenDataReader(officeStream, new CsvLoadOptions { HasHeaderRow = false });
+            using DbDataReader office = CsvDocument.OpenReader(officeStream, options: new CsvReaderOptions { HasHeaderRow = false });
             int rows = 0;
             while (oracle.Read()) {
                 if (!peerRows.MoveNext() || !streamedPeerRows.MoveNext() || !office.Read() || oracle.FieldCount != Columns
@@ -125,7 +126,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         }
         internal long Office(bool materialize) {
             using MemoryStream stream = new MemoryStream(_bytes, false);
-            using DbDataReader reader = CsvDocument.OpenDataReader(stream, new CsvLoadOptions { HasHeaderRow = false });
+            using DbDataReader reader = CsvDocument.OpenReader(stream, options: new CsvReaderOptions { HasHeaderRow = false });
             long sum = 0;
             int rows = 0;
             while (reader.Read()) {

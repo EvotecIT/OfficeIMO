@@ -20,9 +20,9 @@ public sealed class WordPdfTextFormattingTests {
         authored.DoubleStrike = true;
         authored.VerticalTextAlignment = WordVerticalTextPosition.Superscript;
         authored.CapsStyle = WordCapsStyle.Caps;
-        authored.ColorHex = "336699";
+        authored.Color = OfficeColor.Parse("336699");
         authored.FontFamily = "Aptos";
-        authored.FontSizePoints = 14D;
+        authored.FontSize = global::OfficeIMO.OfficeLength.Points(14D);
 
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod(
             "CreateNativeCellParagraphRuns",
@@ -40,10 +40,10 @@ public sealed class WordPdfTextFormattingTests {
         Assert.Equal(OfficeTextDecorationStyle.Dotted, run.UnderlineStyle);
         Assert.Equal(OfficeTextDecorationStyle.Double, run.StrikeStyle);
         Assert.Equal(PdfTextBaseline.Superscript, run.Baseline);
-        Assert.Equal(PdfColor.FromRgb(51, 102, 153), run.Color);
-        Assert.Equal(PdfStandardFont.Helvetica, run.Font);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(51, 102, 153), run.Color);
+        Assert.Equal(PdfStandardFont.Helvetica, run.StandardFont);
         Assert.Null(run.FontFamily);
-        Assert.Equal(14D, run.FontSize);
+        Assert.Equal(14D, (run.FontSize?.ToPoints()));
     }
 
     [Fact]

@@ -20,7 +20,7 @@ final class StudioStoreCaptureTests: XCTestCase {
         #else
         XCUIDevice.shared.orientation = .portrait
         let app = XCUIApplication(bundleIdentifier: "com.evotec.officeimo.studio")
-        app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US", "-OfficeIMOSkipWelcome"]
         app.launch()
         #endif
         defer { app.terminate() }
@@ -59,7 +59,14 @@ final class StudioStoreCaptureTests: XCTestCase {
         // Compact iPhone chrome has its own layout. Its full-page capture is
         // sufficient; search captures use the visible regular-width search UI.
         if role != "iphone" {
+            #if os(iOS)
+            let open = app.buttons["Search"]
+            XCTAssertTrue(open.waitForExistence(timeout: 30), viewport.debugDescription)
+            open.tap()
+            let search = viewport.textFields["Search"]
+            #else
             let search = viewport.searchFields.firstMatch
+            #endif
             XCTAssertTrue(search.waitForExistence(timeout: 30), viewport.debugDescription)
             search.clickOrTap()
             search.typeText("Quarterly\n")
@@ -80,7 +87,7 @@ final class StudioStoreCaptureTests: XCTestCase {
 
     /// Keep sidebar, inspector and search usable after removing nested navigation.
     private func verifyRegularDocumentNavigation(_ app: XCUIApplication, page: XCUIElement) throws {
-        let sidebar = app.segmentedControls.firstMatch
+        let sidebar = app.segmentedControls.containing(.button, identifier: "Thumbnails").firstMatch
         XCTAssertTrue(sidebar.waitForExistence(timeout: 5), app.debugDescription)
         let toggle = app.buttons["Sidebar"]
         toggle.tap()

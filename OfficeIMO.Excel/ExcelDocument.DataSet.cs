@@ -45,7 +45,7 @@ namespace OfficeIMO.Excel {
                 string requestedSheetName = string.IsNullOrWhiteSpace(table.TableName)
                     ? "Table" + tableIndex.ToString(System.Globalization.CultureInfo.InvariantCulture)
                     : table.TableName;
-                ExcelSheet sheet = AddWorksheet(requestedSheetName, ExcelSheetNameValidationMode.Sanitize);
+                ExcelSheet sheet = AddSheet(requestedSheetName, ExcelSheetNameValidationMode.Sanitize);
                 string? requestedTableName = createTables ? requestedSheetName : null;
                 string? actualTableName = null;
                 string range;
@@ -141,7 +141,7 @@ namespace OfficeIMO.Excel {
                 return string.Empty;
             }
 
-            return A1.CellReference(1, 1) + ":" + A1.CellReference(rows, columnCount);
+            return ExcelA1.CellReference(1, 1) + ":" + ExcelA1.CellReference(rows, columnCount);
         }
     }
 }

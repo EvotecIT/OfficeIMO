@@ -36,7 +36,7 @@ public sealed class FootnoteDefinitionBlock : MarkdownBlock, IMarkdownBlock, ICh
     }
     /// <summary>
     /// Structured child blocks that form the canonical footnote body.
-    /// Paragraph-only footnotes keep this aligned with <see cref="ParagraphBlocks"/>, while richer
+    /// MarkdownParagraph-only footnotes keep this aligned with <see cref="ParagraphBlocks"/>, while richer
     /// producers can preserve headings, code blocks, and other block types here.
     /// </summary>
     public IReadOnlyList<IMarkdownBlock> ChildBlocks => _blocks;

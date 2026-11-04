@@ -110,6 +110,23 @@ public sealed class EpubMediaOverlayContracts {
         Assert.Equal(input, book.Write().Bytes);
     }
 
+    [Fact]
+    public void RepeatedLongCueReferencesAreRejectedBeforeOverlayConstructionCompletes() {
+        string chapterPath = "EPUB/text/" + new string('a', 220) + "/" + new string('b', 220) + "/chapter.xhtml";
+        var book = EpubPublication.Create("Narration", "en", "urn:example:smil-references");
+        string paragraphs = string.Concat(Enumerable.Range(0, 24).Select(i => "<p id='p" + i + "'>Text.</p>"));
+        book.AddChapter("chapter", chapterPath, "Chapter", paragraphs);
+        book.AddResource("audio", "EPUB/audio/read.mp3", "audio/mpeg", new byte[] { 1, 2, 3 });
+        byte[] input = book.Write().Bytes;
+        var limited = EpubPublication.Load(new MemoryStream(input), new EpubPublicationLoadOptions { MaxEntryBytes = 4096 });
+        var cues = Enumerable.Range(0, 24).Select(i => Cue("p" + i)).ToArray();
+
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
+            limited.AddMediaOverlay("chapter", "overlay", "EPUB/read.smil", Overlay(cues)));
+        Assert.Contains("references", error.Message);
+        Assert.Equal(input, limited.Write().Bytes);
+    }
+
     [Theory]
     [InlineData("01:02:03.5", 3723.5)]
     [InlineData("0:00:04", 4)]

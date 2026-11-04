@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown.Html;
 /// <summary>
 /// Controls how HTML data-URI images are handled during HTML-to-Markdown conversion.
 /// </summary>
-public enum HtmlBase64ImageHandling {
+public enum MarkdownHtmlBase64ImageHandling {
     /// <summary>Keep base64 data-URI image sources in the generated Markdown image model.</summary>
     Include = 0,
 

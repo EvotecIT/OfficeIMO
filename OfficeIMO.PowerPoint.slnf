@@ -1,0 +1,24 @@
+{
+  "solution": {
+    "path": "OfficeIMO.slnx",
+    "projects": [
+      "OfficeIMO.Core\\OfficeIMO.Core.csproj",
+      "OfficeIMO.GoogleWorkspace.Drive\\OfficeIMO.GoogleWorkspace.Drive.csproj",
+      "OfficeIMO.GoogleWorkspace\\OfficeIMO.GoogleWorkspace.csproj",
+      "OfficeIMO.Html.AngleSharp\\OfficeIMO.Html.AngleSharp.csproj",
+      "OfficeIMO.Html.Core\\OfficeIMO.Html.Core.csproj",
+      "OfficeIMO.Html\\OfficeIMO.Html.csproj",
+      "OfficeIMO.IWork\\OfficeIMO.IWork.csproj",
+      "OfficeIMO.OpenDocument\\OfficeIMO.OpenDocument.csproj",
+      "OfficeIMO.Pdf.PowerPoint\\OfficeIMO.Pdf.PowerPoint.csproj",
+      "OfficeIMO.Pdf\\OfficeIMO.Pdf.csproj",
+      "OfficeIMO.PowerPoint.GoogleSlides\\OfficeIMO.PowerPoint.GoogleSlides.csproj",
+      "OfficeIMO.PowerPoint.Html\\OfficeIMO.PowerPoint.Html.csproj",
+      "OfficeIMO.PowerPoint.IWork\\OfficeIMO.PowerPoint.IWork.csproj",
+      "OfficeIMO.PowerPoint.OpenDocument\\OfficeIMO.PowerPoint.OpenDocument.csproj",
+      "OfficeIMO.PowerPoint.Pdf\\OfficeIMO.PowerPoint.Pdf.csproj",
+      "OfficeIMO.PowerPoint.Tests\\OfficeIMO.PowerPoint.Tests.csproj",
+      "OfficeIMO.PowerPoint\\OfficeIMO.PowerPoint.csproj"
+    ]
+  }
+}

@@ -1,0 +1,331 @@
+{
+  "package": "OfficeIMO.Reader.All",
+  "status": "M0 change map, generated from the OfficeIMO 3.5.3 net8.0 build (b7d2cf5137) by reflection plus source lookup. Signatures are reflection renderings: default values are unquoted and \"CancellationToken cancellationToken = null\" means \"= default\".",
+  "summary": {
+    "changes": 13,
+    "byAction": {
+      "merge": 12,
+      "remove": 1
+    },
+    "byCategory": {
+      "conversion": 13
+    },
+    "packageMoves": 1
+  },
+  "keep": [
+    "OfficeDocumentReaderBuilderAllExtensions.AddAllOfficeIMOHandlers(OfficeDocumentReaderBuilder builder, ReaderAllOptions options = null)",
+    "ReaderAllOptions"
+  ],
+  "projectReferences": {
+    "csproj": "OfficeIMO.Reader.All/OfficeIMO.Reader.All.csproj",
+    "targetFrameworks": [
+      "netstandard2.0;net8.0;net10.0",
+      "$(TargetFrameworks);net472"
+    ],
+    "projectReferences": [
+      "OfficeIMO.Archives",
+      "OfficeIMO.Reader.Chm",
+      "OfficeIMO.Reader.Core",
+      "OfficeIMO.Reader.AsciiDoc",
+      "OfficeIMO.Reader.Csv",
+      "OfficeIMO.Reader.Dbf",
+      "OfficeIMO.Reader.DocBook",
+      "OfficeIMO.Reader.Email",
+      "OfficeIMO.Reader.Epub",
+      "OfficeIMO.Reader.Excel",
+      "OfficeIMO.Reader.Html",
+      "OfficeIMO.Reader.IWork",
+      "OfficeIMO.Reader.Image",
+      "OfficeIMO.Reader.Json",
+      "OfficeIMO.Reader.Latex",
+      "OfficeIMO.Reader.Markdown",
+      "OfficeIMO.Reader.Notebook",
+      "OfficeIMO.Reader.OneNote",
+      "OfficeIMO.Reader.Opml",
+      "OfficeIMO.Reader.OpenDocument",
+      "OfficeIMO.Reader.Pdf",
+      "OfficeIMO.Reader.PowerPoint",
+      "OfficeIMO.Reader.Publisher",
+      "OfficeIMO.Reader.Rtf",
+      "OfficeIMO.Reader.Subtitles",
+      "OfficeIMO.Reader.Visio",
+      "OfficeIMO.Reader.Xps",
+      "OfficeIMO.Reader.DjVu",
+      "OfficeIMO.Reader.Word",
+      "OfficeIMO.Reader.Xml",
+      "OfficeIMO.Reader.Yaml",
+      "OfficeIMO.Reader.Zip"
+    ],
+    "packageReferences": []
+  },
+  "frameworks": {
+    "current": [
+      "netstandard2.0;net8.0;net10.0",
+      "$(TargetFrameworks);net472"
+    ],
+    "target": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0",
+      "net472"
+    ],
+    "change": "Preserve the existing framework reach and the Windows-only net472 condition. The front door and Workflows use the full framework set. net8.0 retirement belongs to a later release.",
+    "windowsAdditionalTarget": [
+      "net472"
+    ],
+    "applied": {
+      "status": "applied",
+      "baseTargets": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0"
+      ],
+      "conditionalTargets": [
+        {
+          "condition": " '$([MSBuild]::IsOsPlatform(`Windows`))' ",
+          "value": "$(TargetFrameworks);net472"
+        }
+      ],
+      "authority": "Approved framework decision in c526a10ad2; no framework is dropped in 3.6."
+    },
+    "supersededM0Target": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0"
+    ]
+  },
+  "notes": [
+    "Reader.All is the Reader bundle (31 reader projects). The PDF facade is the only conversion API; it moves to OfficeConverter and Reader.All becomes reading-only.",
+    "The front door references Reader.All per the design. That pulls every Reader.* handler (CHM, DjVu, OneNote, Publisher, IWork ...) into OfficeIMO; confirm this is intended for \"dotnet add package OfficeIMO\"."
+  ],
+  "openQuestions": [],
+  "changes": [
+    {
+      "old": "OfficeIMO.Reader.All.OfficeDocumentPdfConverter.EmailToPdfDocumentResult(Stream source, string sourceName = message.eml, PdfProjectionOptions pdfOptions = null, ReaderOptions readerOptions = null, ReaderEmailOptions emailOptions = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConverter.Convert(path | Stream source, Stream destination, OfficeDocumentFormat.Pdf, OfficeConversionOptions options = null) : OfficeConversionReport",
+      "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers. One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
+      "file": "OfficeIMO.Reader.All/OfficeDocumentPdfConverter.cs",
+      "category": "conversion",
+      "notes": "Email input; PdfDocumentConversionResult today. In-memory callers use the source adapter (OfficeIMO.Email/Epub/Visio .Pdf) directly.",
+      "phase": "A",
+      "applied": "applied",
+      "supersededM0Target": "OfficeIMO.OfficeConverter.Convert(path | Stream source, Stream destination, OfficeFormat.Pdf, OfficeConversionOptions options = null) : OfficeConversionReport",
+      "note": "The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added."
+    },
+    {
+      "old": "OfficeIMO.Reader.All.OfficeDocumentPdfConverter.EmailToPdfDocumentResult(string path, PdfProjectionOptions pdfOptions = null, ReaderOptions readerOptions = null, ReaderEmailOptions emailOptions = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConverter.Convert(path | Stream source, Stream destination, OfficeDocumentFormat.Pdf, OfficeConversionOptions options = null) : OfficeConversionReport",
+      "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers. One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
+      "file": "OfficeIMO.Reader.All/OfficeDocumentPdfConverter.cs",
+      "category": "conversion",
+      "notes": "Email input; PdfDocumentConversionResult today. In-memory callers use the source adapter (OfficeIMO.Email/Epub/Visio .Pdf) directly.",
+      "phase": "A",
+      "applied": "applied",
+      "supersededM0Target": "OfficeIMO.OfficeConverter.Convert(path | Stream source, Stream destination, OfficeFormat.Pdf, OfficeConversionOptions options = null) : OfficeConversionReport",
+      "note": "The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added."
+    },
+    {
+      "old": "OfficeIMO.Reader.All.OfficeDocumentPdfConverter.EpubToPdfDocumentResult(Stream source, string sourceName = book.epub, PdfProjectionOptions pdfOptions = null, ReaderOptions readerOptions = null, EpubReadOptions epubOptions = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConverter.Convert(path | Stream source, Stream destination, OfficeDocumentFormat.Pdf, OfficeConversionOptions options = null) : OfficeConversionReport",
+      "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers. One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
+      "file": "OfficeIMO.Reader.All/OfficeDocumentPdfConverter.cs",
+      "category": "conversion",
+      "notes": "Epub input; PdfDocumentConversionResult today. In-memory callers use the source adapter (OfficeIMO.Email/Epub/Visio .Pdf) directly.",
+      "phase": "A",
+      "applied": "applied",
+      "supersededM0Target": "OfficeIMO.OfficeConverter.Convert(path | Stream source, Stream destination, OfficeFormat.Pdf, OfficeConversionOptions options = null) : OfficeConversionReport",
+      "note": "The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added."
+    },
+    {
+      "old": "OfficeIMO.Reader.All.OfficeDocumentPdfConverter.EpubToPdfDocumentResult(string path, PdfProjectionOptions pdfOptions = null, ReaderOptions readerOptions = null, EpubReadOptions epubOptions = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConverter.Convert(path | Stream source, Stream destination, OfficeDocumentFormat.Pdf, OfficeConversionOptions options = null) : OfficeConversionReport",
+      "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers. One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
+      "file": "OfficeIMO.Reader.All/OfficeDocumentPdfConverter.cs",
+      "category": "conversion",
+      "notes": "Epub input; PdfDocumentConversionResult today. In-memory callers use the source adapter (OfficeIMO.Email/Epub/Visio .Pdf) directly.",
+      "phase": "A",
+      "applied": "applied",
+      "supersededM0Target": "OfficeIMO.OfficeConverter.Convert(path | Stream source, Stream destination, OfficeFormat.Pdf, OfficeConversionOptions options = null) : OfficeConversionReport",
+      "note": "The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added."
+    },
+    {
+      "old": "OfficeIMO.Reader.All.OfficeDocumentPdfConverter.VisioToPdfDocumentResult(Stream source, string sourceName = diagram.vsdx, PdfProjectionOptions pdfOptions = null, ReaderOptions readerOptions = null, ReaderVisioOptions visioOptions = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConverter.Convert(path | Stream source, Stream destination, OfficeDocumentFormat.Pdf, OfficeConversionOptions options = null) : OfficeConversionReport",
+      "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers. One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
+      "file": "OfficeIMO.Reader.All/OfficeDocumentPdfConverter.cs",
+      "category": "conversion",
+      "notes": "Visio input; PdfDocumentConversionResult today. In-memory callers use the source adapter (OfficeIMO.Email/Epub/Visio .Pdf) directly.",
+      "phase": "A",
+      "applied": "applied",
+      "supersededM0Target": "OfficeIMO.OfficeConverter.Convert(path | Stream source, Stream destination, OfficeFormat.Pdf, OfficeConversionOptions options = null) : OfficeConversionReport",
+      "note": "The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added."
+    },
+    {
+      "old": "OfficeIMO.Reader.All.OfficeDocumentPdfConverter.VisioToPdfDocumentResult(string path, PdfProjectionOptions pdfOptions = null, ReaderOptions readerOptions = null, ReaderVisioOptions visioOptions = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConverter.Convert(path | Stream source, Stream destination, OfficeDocumentFormat.Pdf, OfficeConversionOptions options = null) : OfficeConversionReport",
+      "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers. One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
+      "file": "OfficeIMO.Reader.All/OfficeDocumentPdfConverter.cs",
+      "category": "conversion",
+      "notes": "Visio input; PdfDocumentConversionResult today. In-memory callers use the source adapter (OfficeIMO.Email/Epub/Visio .Pdf) directly.",
+      "phase": "A",
+      "applied": "applied",
+      "supersededM0Target": "OfficeIMO.OfficeConverter.Convert(path | Stream source, Stream destination, OfficeFormat.Pdf, OfficeConversionOptions options = null) : OfficeConversionReport",
+      "note": "The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added."
+    },
+    {
+      "old": "OfficeIMO.Reader.All.OfficeDocumentPdfConverter.EmailToPdfBytes(Stream source, string sourceName = message.eml, PdfProjectionOptions pdfOptions = null, ReaderOptions readerOptions = null, ReaderEmailOptions emailOptions = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConverter.Convert(path | Stream source, Stream destination, OfficeDocumentFormat.Pdf, OfficeConversionOptions options = null) : OfficeConversionReport",
+      "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers.",
+      "file": "OfficeIMO.Reader.All/OfficeDocumentPdfConverter.cs",
+      "category": "conversion",
+      "notes": "Email input; byte[] output becomes a destination stream.",
+      "phase": "A",
+      "applied": "applied",
+      "supersededM0Target": "OfficeIMO.OfficeConverter.Convert(path | Stream source, Stream destination, OfficeFormat.Pdf, OfficeConversionOptions options = null) : OfficeConversionReport",
+      "note": "The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added."
+    },
+    {
+      "old": "OfficeIMO.Reader.All.OfficeDocumentPdfConverter.EmailToPdfBytes(string path, PdfProjectionOptions pdfOptions = null, ReaderOptions readerOptions = null, ReaderEmailOptions emailOptions = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConverter.Convert(path | Stream source, Stream destination, OfficeDocumentFormat.Pdf, OfficeConversionOptions options = null) : OfficeConversionReport",
+      "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers.",
+      "file": "OfficeIMO.Reader.All/OfficeDocumentPdfConverter.cs",
+      "category": "conversion",
+      "notes": "Email input; byte[] output becomes a destination stream.",
+      "phase": "A",
+      "applied": "applied",
+      "supersededM0Target": "OfficeIMO.OfficeConverter.Convert(path | Stream source, Stream destination, OfficeFormat.Pdf, OfficeConversionOptions options = null) : OfficeConversionReport",
+      "note": "The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added."
+    },
+    {
+      "old": "OfficeIMO.Reader.All.OfficeDocumentPdfConverter.EpubToPdfBytes(Stream source, string sourceName = book.epub, PdfProjectionOptions pdfOptions = null, ReaderOptions readerOptions = null, EpubReadOptions epubOptions = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConverter.Convert(path | Stream source, Stream destination, OfficeDocumentFormat.Pdf, OfficeConversionOptions options = null) : OfficeConversionReport",
+      "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers.",
+      "file": "OfficeIMO.Reader.All/OfficeDocumentPdfConverter.cs",
+      "category": "conversion",
+      "notes": "Epub input; byte[] output becomes a destination stream.",
+      "phase": "A",
+      "applied": "applied",
+      "supersededM0Target": "OfficeIMO.OfficeConverter.Convert(path | Stream source, Stream destination, OfficeFormat.Pdf, OfficeConversionOptions options = null) : OfficeConversionReport",
+      "note": "The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added."
+    },
+    {
+      "old": "OfficeIMO.Reader.All.OfficeDocumentPdfConverter.EpubToPdfBytes(string path, PdfProjectionOptions pdfOptions = null, ReaderOptions readerOptions = null, EpubReadOptions epubOptions = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConverter.Convert(path | Stream source, Stream destination, OfficeDocumentFormat.Pdf, OfficeConversionOptions options = null) : OfficeConversionReport",
+      "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers.",
+      "file": "OfficeIMO.Reader.All/OfficeDocumentPdfConverter.cs",
+      "category": "conversion",
+      "notes": "Epub input; byte[] output becomes a destination stream.",
+      "phase": "A",
+      "applied": "applied",
+      "supersededM0Target": "OfficeIMO.OfficeConverter.Convert(path | Stream source, Stream destination, OfficeFormat.Pdf, OfficeConversionOptions options = null) : OfficeConversionReport",
+      "note": "The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added."
+    },
+    {
+      "old": "OfficeIMO.Reader.All.OfficeDocumentPdfConverter.VisioToPdfBytes(Stream source, string sourceName = diagram.vsdx, PdfProjectionOptions pdfOptions = null, ReaderOptions readerOptions = null, ReaderVisioOptions visioOptions = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConverter.Convert(path | Stream source, Stream destination, OfficeDocumentFormat.Pdf, OfficeConversionOptions options = null) : OfficeConversionReport",
+      "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers.",
+      "file": "OfficeIMO.Reader.All/OfficeDocumentPdfConverter.cs",
+      "category": "conversion",
+      "notes": "Visio input; byte[] output becomes a destination stream.",
+      "phase": "A",
+      "applied": "applied",
+      "supersededM0Target": "OfficeIMO.OfficeConverter.Convert(path | Stream source, Stream destination, OfficeFormat.Pdf, OfficeConversionOptions options = null) : OfficeConversionReport",
+      "note": "The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added."
+    },
+    {
+      "old": "OfficeIMO.Reader.All.OfficeDocumentPdfConverter.VisioToPdfBytes(string path, PdfProjectionOptions pdfOptions = null, ReaderOptions readerOptions = null, ReaderVisioOptions visioOptions = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConverter.Convert(path | Stream source, Stream destination, OfficeDocumentFormat.Pdf, OfficeConversionOptions options = null) : OfficeConversionReport",
+      "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers.",
+      "file": "OfficeIMO.Reader.All/OfficeDocumentPdfConverter.cs",
+      "category": "conversion",
+      "notes": "Visio input; byte[] output becomes a destination stream.",
+      "phase": "A",
+      "applied": "applied",
+      "supersededM0Target": "OfficeIMO.OfficeConverter.Convert(path | Stream source, Stream destination, OfficeFormat.Pdf, OfficeConversionOptions options = null) : OfficeConversionReport",
+      "note": "The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added."
+    },
+    {
+      "old": "OfficeIMO.Reader.All.OfficeDocumentPdfConverter",
+      "kind": "type",
+      "action": "remove",
+      "new": null,
+      "replacement": "OfficeIMO.OfficeConverter",
+      "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers.",
+      "file": "OfficeIMO.Reader.All/OfficeDocumentPdfConverter.cs",
+      "category": "conversion",
+      "notes": "Takes PdfProjectionOptions, ReaderOptions and per-format reader options in one signature; OfficeConversionOptions carries per-format option bags.",
+      "phase": "A",
+      "applied": "applied"
+    }
+  ],
+  "packageMoves": [
+    {
+      "from": "OfficeIMO.Reader.All",
+      "to": "OfficeIMO (front door)",
+      "scope": "OfficeDocumentPdfConverter (Email/EPUB/Visio to PDF facades)",
+      "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers."
+    }
+  ],
+  "designResolutions": {
+    "formatEnum": "OfficeDocumentFormat; no OfficeFormat enum is introduced.",
+    "conversionDirection": "Instance extensions on the source document; no static From factories.",
+    "asyncReports": "OfficeConversionResult<T> carries the converted value and OfficeConversionReport.",
+    "frontDoorTarget": "OfficeIMO, its batch engine, OfficeIMO.Workflows and OfficeIMO.Workflows.IWork target netstandard2.0, net8.0 and net10.0, plus net472 through the existing Windows-only project condition (approved c526a10ad2). Modern-only route engines are conditionally referenced and registered.",
+    "frameworks": "Superseded by the approved c526a10ad2 design: retain netstandard2.0, net8.0, net10.0 and the original Windows-only net472 declaration; modern-only packages retain their original targets. Front door and Workflows gain the full set, with explicitly conditional modern engines.",
+    "modernAnalysis": "Directory.Build.targets enables IsAotCompatible, EnableTrimAnalyzer and EnableAotAnalyzer for packable production library builds targeting net8.0/net10.0. Qualification remains in progress; older targets do not enable those analyzers."
+  },
+  "phaseA": {
+    "status": "in-progress",
+    "scope": "Package boundaries, target frameworks, lifecycle, options, conversions and names."
+  },
+  "extraChanges": [
+    {
+      "subject": "Catalog tool package alignment",
+      "note": "The catalog probe already references DBAClientX.Dbf. Its 1.0.11 pin is aligned to the existing Reader dependency 1.0.12 to avoid a restore downgrade; no new dependency or runtime role is introduced.",
+      "status": "applied"
+    },
+    {
+      "category": "consumer",
+      "phase": "A",
+      "applied": "applied",
+      "note": "Reader.Pdf normalized-content examples use the front-door ToPdf/out-report boundary. Its raster animation example uses the existing FrameLossPolicy.RejectMultipleFrames property, correcting an outdated option name without changing the runtime decoder."
+    },
+    {
+      "phase": "A",
+      "applied": "applied",
+      "note": "Package README consumers use the source model conversion grammar, canonical Reader names and the reconstruction package namespaces. The OCR convenience example calls conversions on PdfOcrMergeResult through the front door; source geometry remains in the logical model."
+    }
+  ],
+  "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
+  "authority": "Docs/officeimo.api-design.md, including the c526a10ad2 framework decision; the approved design overrides M0 open questions.",
+  "questionResolutions": {
+    "conversionForms": "Source.ToTarget, source.SaveAsTarget and OfficeConversionReport; async ToTarget returns OfficeConversionResult<T>. ToHtml returns string. No static From factories.",
+    "frameworks": "No framework is dropped in 3.6. Original library TFMs and Windows net472 conditions remain; the front door and both Workflows projects support the full set. Modern-only engines stay conditional.",
+    "packageDirection": "Word.Pdf and PowerPoint.Pdf export native documents. Reverse reconstruction is Pdf.Word and Pdf.PowerPoint; Excel reconstruction is Pdf.Excel. Word page images live in Word.Pdf.",
+    "surface": "Markdown syntax nodes are exempt from the format prefix. OfficeColor/OfficeColorRole use the root OfficeIMO namespace. Authoring, units, image-builder consolidation, visibility baselines and AOT smoke acceptance are Phase B."
+  }
+}

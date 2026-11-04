@@ -3,7 +3,7 @@ using System.Collections.ObjectModel;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Identifies the shape kinds currently projected from binary PowerPoint files.</summary>
-    public enum LegacyPptShapeKind {
+    internal enum LegacyPptShapeKind {
         /// <summary>A text-bearing shape.</summary>
         TextBox,
 
@@ -42,7 +42,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     }
 
     /// <summary>Identifies the relevant legacy placeholder types.</summary>
-    public enum LegacyPptPlaceholderKind : byte {
+    internal enum LegacyPptPlaceholderKind : byte {
         /// <summary>The shape is not a placeholder.</summary>
         None = 0x00,
         /// <summary>Master title placeholder.</summary>
@@ -100,7 +100,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     }
 
     /// <summary>Represents a shape decoded from a binary PowerPoint slide.</summary>
-    public sealed class LegacyPptShape {
+    internal sealed class LegacyPptShape {
         internal LegacyPptShape(LegacyPptShapeKind kind, ushort officeArtShapeType, uint shapeId,
             long recordOffset, LegacyPptBounds bounds, string text, LegacyPptPlaceholder? placeholder,
             OfficeArtShapeStyle style, string? fillColor, string? lineColor,

@@ -17,6 +17,9 @@ public sealed partial class EpubPublication {
         EpubManifestItem source = RequireManifestItem(manifestId);
         XElement position = RequireRestructurablePosition(source);
         string sourcePath = RequireLocalPath(source);
+        using (var depthReader = XmlReader.Create(new MemoryStream(_entries[sourcePath], false),
+            new XmlReaderSettings { DtdProcessing = DtdProcessing.Ignore, XmlResolver = null, MaxCharactersInDocument = _maximumEntryBytes }))
+            RequireAuthoringDepth(depthReader, cancellationToken);
         XDocument first = EditableXhtml(manifestId);
         EpubContentIdentifiers.Collect(first.Root!, sourcePath, true, cancellationToken);
         XElement body = first.Root!.Element(Html + "body") ?? throw new InvalidDataException("Chapter has no XHTML body.");
@@ -82,7 +85,7 @@ public sealed partial class EpubPublication {
         entries.Add(newContainerPath, secondBytes);
         long delta = entries.Values.Sum(value => value.LongLength) - _retainedBytes;
         EnsurePackageBudget(package, delta);
-        ValidatePublication(package, entries, new List<OfficeConversionFidelityDiagnostic>(), cancellationToken, changed: true);
+        ValidatePublication(package, entries, new List<OfficeDiagnostic>(), cancellationToken, changed: true);
         EnsurePackageBudget(package, delta);
         cancellationToken.ThrowIfCancellationRequested();
         foreach (var edit in packageEdits) edit.Attribute.Value = edit.Value;

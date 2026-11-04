@@ -5,13 +5,13 @@ namespace OfficeIMO.Workflows;
 public sealed partial class BookProject {
     private static IReadOnlyList<XElement> BuildOnixAudience(BookOnixAudienceMetadata? audience, CancellationToken cancellationToken) {
         if (audience == null) return [];
-        ArgumentNullException.ThrowIfNull(audience.Categories);
-        ArgumentNullException.ThrowIfNull(audience.Codes);
-        ArgumentNullException.ThrowIfNull(audience.AdultRatings);
-        ArgumentNullException.ThrowIfNull(audience.AgeRanges);
-        ArgumentNullException.ThrowIfNull(audience.GradeRanges);
-        ArgumentNullException.ThrowIfNull(audience.Descriptions);
-        ArgumentNullException.ThrowIfNull(audience.Complexities);
+        if (audience.Categories == null) throw new ArgumentNullException("audience.Categories");
+        if (audience.Codes == null) throw new ArgumentNullException("audience.Codes");
+        if (audience.AdultRatings == null) throw new ArgumentNullException("audience.AdultRatings");
+        if (audience.AgeRanges == null) throw new ArgumentNullException("audience.AgeRanges");
+        if (audience.GradeRanges == null) throw new ArgumentNullException("audience.GradeRanges");
+        if (audience.Descriptions == null) throw new ArgumentNullException("audience.Descriptions");
+        if (audience.Complexities == null) throw new ArgumentNullException("audience.Complexities");
         if (audience.Categories.Count > 13 || audience.Codes.Count > 64 || audience.AdultRatings.Count > 14 || audience.AgeRanges.Count > 3 || audience.GradeRanges.Count > 3 || audience.Descriptions.Count > 16 || audience.Complexities.Count > 64)
             throw new ArgumentException("Audience metadata exceeds its category, code, rating, range, description or complexity limit.", nameof(audience));
         if (audience.Categories.Count == 0 && audience.Codes.Count == 0 && audience.AdultRatings.Count == 0 && audience.AgeRanges.Count == 0 && audience.GradeRanges.Count == 0 && audience.Descriptions.Count == 0 && audience.Complexities.Count == 0)
@@ -22,7 +22,7 @@ public sealed partial class BookProject {
         bool hasMain = false;
         foreach (var category in audience.Categories) {
             cancellationToken.ThrowIfCancellationRequested();
-            ArgumentNullException.ThrowIfNull(category);
+            if (category == null) throw new ArgumentNullException(nameof(category));
             if (!categories.Add(category.Type) || (category.IsMain && hasMain))
                 throw new ArgumentException("Audience categories must be distinct, with at most one main category.", nameof(audience));
             hasMain |= category.IsMain;
@@ -44,7 +44,7 @@ public sealed partial class BookProject {
         var rangeTypes = new HashSet<BookOnixAgeRangeType>();
         foreach (var range in audience.AgeRanges) {
             cancellationToken.ThrowIfCancellationRequested();
-            ArgumentNullException.ThrowIfNull(range);
+            if (range == null) throw new ArgumentNullException(nameof(range));
             if (!rangeTypes.Add(range.Type)) throw new ArgumentException("Age range types must be distinct.", nameof(audience));
             result.Add(BuildOnixAgeRange(range));
         }
@@ -53,14 +53,14 @@ public sealed partial class BookProject {
         var gradeSystems = new HashSet<BookOnixGradeSystem>();
         foreach (var range in audience.GradeRanges) {
             cancellationToken.ThrowIfCancellationRequested();
-            ArgumentNullException.ThrowIfNull(range);
+            if (range == null) throw new ArgumentNullException(nameof(range));
             if (!gradeSystems.Add(range.System)) throw new ArgumentException("Grade systems must be distinct.", nameof(audience));
             result.Add(BuildOnixGradeRange(range));
         }
         var languages = new HashSet<string>(StringComparer.Ordinal);
         foreach (var description in audience.Descriptions) {
             cancellationToken.ThrowIfCancellationRequested();
-            ArgumentNullException.ThrowIfNull(description);
+            if (description == null) throw new ArgumentNullException(nameof(description));
             RequireOnixText(description.Text, nameof(description.Text));
             RequireOnixTranslationLanguage(description.LanguageCode, audience.Descriptions.Count, nameof(audience.Descriptions));
             if (!languages.Add(description.LanguageCode ?? ""))

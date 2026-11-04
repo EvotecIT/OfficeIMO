@@ -110,8 +110,7 @@ public sealed class WordPdfReportedTabTests {
             document.AddParagraph("SEED");
             source = document.OpenXmlDocument.MainDocumentPart!.Document.Body!.Elements<W.Paragraph>().Last();
         } else {
-            document.AddHeadersAndFooters();
-            WordHeaderFooter story = container == "header" ? document.Header.Default! : document.Footer.Default!;
+            WordHeaderFooter story = container == "header" ? document.PageSetup.Header : document.PageSetup.Footer;
             story.AddParagraph("SEED");
             var main = document.OpenXmlDocument.MainDocumentPart!;
             source = container == "header"
@@ -177,10 +176,10 @@ public sealed class WordPdfReportedTabTests {
         roots.AddRange(main.FooterParts.Select(part => Assert.IsType<W.Footer>(part.Footer)));
         string[] before = roots.Select(root => root.OuterXml).ToArray();
         Assert.Empty(document.ValidateDocument());
-        byte[] bytes = document.ToPdfDocumentResult(new WordToPdfOptions {
+        byte[] bytes = document.ConvertToPdfWithEvidence(new WordPdfExportOptions {
             IncludePageNumbers = false,
-            PageSize = new PageSize(612, 792),
-            Margins = PageMargins.Uniform(72),
+            PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(612),OfficeIMO.OfficeLength.Points(792)),
+            Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72)),
             FontFamily = "Helvetica"
         }).ToBytes();
         Assert.Equal("%PDF", System.Text.Encoding.ASCII.GetString(bytes, 0, 4));

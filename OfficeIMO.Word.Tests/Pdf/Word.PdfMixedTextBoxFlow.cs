@@ -21,7 +21,7 @@ public partial class Word {
     public void NativeFlowPreservesTextAroundPeerAndNestedBoxes(string scope, bool nested) {
         using WordDocument document = CreateJoinedParagraphDocument();
         WordHeaderFooter? story = scope == "body" ? null : scope == "header"
-            ? document.HeaderDefaultOrCreate : document.FooterDefaultOrCreate;
+            ? document.PageSetup.Header : document.PageSetup.Footer;
         WordParagraph paragraph = story == null ? document.AddParagraph("PREFIX") : story.AddParagraph("PREFIX");
         WordParagraph first = paragraph.AddTextBox("FIRSTBOX", WordImageTextWrapping.Square).Paragraphs.Single();
         if (nested) {
@@ -40,9 +40,9 @@ public partial class Word {
         }
         string before = paragraph._paragraph.OuterXml;
         Assert.Empty(document.ValidateDocument());
-        var result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false });
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
-        using var pdf = PdfDocument.Open(result.Value.ToBytes());
+        var result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false });
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
+        using var pdf = PdfDocument.Open(result.Value.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         string visible = string.Concat(pdf.GetPage(1).Letters.Select(letter => letter.Value));
         string[] tokens = nested
             ? new[] { "PREFIX", "FIRSTBOX", "INNERBOX", "AFTERINNER", "SUFFIX", "SECONDBOX", "ENDTEXT" }
@@ -68,18 +68,18 @@ public partial class Word {
     public void NativeMixedTextBoxFlowRetainsSiblingInlinePictures(string scope) {
         using WordDocument document = CreateJoinedParagraphDocument();
         WordHeaderFooter? story = scope == "body" ? null : scope == "header"
-            ? document.HeaderDefaultOrCreate : document.FooterDefaultOrCreate;
+            ? document.PageSetup.Header : document.PageSetup.Footer;
         WordParagraph paragraph = story == null ? document.AddParagraph("PREFIX") : story.AddParagraph("PREFIX");
         paragraph.AddTextBox("BOX", WordImageTextWrapping.Square);
         using var image = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(2, 1));
-        paragraph.AddImage(image, "inline.png", 16D, 32D);
+        paragraph.AddImage(image, "inline.png", OfficeIMO.OfficeLength.Pixels(16D), OfficeIMO.OfficeLength.Pixels(32D));
         paragraph.AddText("SUFFIX");
         if (story != null) {
             story.AddParagraph().AddField(WordFieldType.SectionPages);
             document.AddParagraph("BODY");
         }
         Assert.Empty(document.ValidateDocument());
-        using var pdf = PdfDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using var pdf = PdfDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Single(pdf.GetPages().SelectMany(page => page.GetImages()));
         Assert.Contains("PREFIX", pdf.GetPage(1).Text); Assert.Contains("SUFFIX", pdf.GetPage(1).Text);
     }
@@ -93,17 +93,17 @@ public partial class Word {
         using WordDocument document = CreateCellTextBoxDiagnosticControl(scope, includeBox: true, hidden: false,
             out WordParagraph cell);
         string sourceXml = cell._paragraph.OuterXml;
-        var result = document.ToPdfDocumentResult(CellTextBoxDiagnosticOptions());
+        var result = document.ConvertToPdfWithEvidence(CellTextBoxDiagnosticOptions());
         var warning = Assert.Single(result.Report.Warnings,
-            item => item.Code == "NativeMixedTextBoxLayoutApproximated");
+            item => item.Code == "native-mixed-text-box-layout-approximated");
         Assert.Equal(OfficeIMO.OfficeConversionLossKind.Approximation, warning.LossKind);
         Assert.True(result.HasLoss);
         if (scope == "body")
             Assert.Equal(warning.Code, Assert.Single(result.Report.Warnings,
                 item => item.LossKind != OfficeIMO.OfficeConversionLossKind.None).Code);
         // Running-story paint is deferred until ToBytes; the report must be truthful already.
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
         using var pdf = PdfDocument.Open(result.ToBytes());
         string visible = string.Concat(pdf.GetPages().SelectMany(page => page.Letters).Select(letter => letter.Value));
         int previous = -1;
@@ -126,10 +126,10 @@ public partial class Word {
         using WordDocument document = CreateCellTextBoxDiagnosticControl(scope,
             includeBox: hiddenBox, hidden: hiddenBox, out WordParagraph cell);
         string sourceXml = cell._paragraph.OuterXml;
-        var result = document.ToPdfDocumentResult(CellTextBoxDiagnosticOptions());
-        Assert.DoesNotContain(result.Report.Warnings, item => item.Code == "NativeMixedTextBoxLayoutApproximated");
+        var result = document.ConvertToPdfWithEvidence(CellTextBoxDiagnosticOptions());
+        Assert.DoesNotContain(result.Report.Warnings, item => item.Code == "native-mixed-text-box-layout-approximated");
         Assert.False(result.HasLoss);
-        result.RequireNoLoss();
+        result.ThrowIfLoss();
         using var pdf = PdfDocument.Open(result.ToBytes());
         string visible = string.Concat(pdf.GetPages().SelectMany(page => page.Letters).Select(letter => letter.Value));
         Assert.Contains("PREFIXSUFFIX", visible, StringComparison.Ordinal);
@@ -144,8 +144,8 @@ public partial class Word {
         document.Settings.FontFamily = ManagedTextShapingTestAssets.FamilyName;
         document.AddParagraph("BODY").FontFamily = ManagedTextShapingTestAssets.FamilyName;
         WordTable table = scope switch {
-            "header" => document.HeaderDefaultOrCreate.AddTable(1, 1, WordTableStyle.TableNormal),
-            "footer" => document.FooterDefaultOrCreate.AddTable(1, 1, WordTableStyle.TableNormal),
+            "header" => document.PageSetup.Header.AddTable(1, 1, WordTableStyle.TableNormal),
+            "footer" => document.PageSetup.Footer.AddTable(1, 1, WordTableStyle.TableNormal),
             _ => document.AddTable(1, 1, WordTableStyle.TableNormal)
         };
         if (scope == "nested")
@@ -171,11 +171,11 @@ public partial class Word {
         return document;
     }
 
-    private static WordToPdfOptions CellTextBoxDiagnosticOptions() {
-        var pdf = new PdfCore.PdfOptions();
+    private static WordPdfExportOptions CellTextBoxDiagnosticOptions() {
+        var pdf = new PdfCore.PdfCreateOptions();
         pdf.RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily(ManagedTextShapingTestAssets.FamilyName,
             ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(Enumerable.Range(32, 95).ToArray())));
-        return new WordToPdfOptions {
+        return new WordPdfExportOptions {
             IncludePageNumbers = false,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = pdf
         };

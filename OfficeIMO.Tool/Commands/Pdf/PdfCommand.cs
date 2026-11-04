@@ -65,7 +65,7 @@ for non-secret scalar configuration; provider secrets should be referenced throu
                 batch.OcrOptions = ocrOptions;
                 batch.OwnerPassword = ownerPassword;
                 batch.OutputEncryption = outputPassword is null ? null : new PdfStandardEncryptionOptions(outputPassword);
-                if (parsed.Force) batch.ConflictPolicy = OfficeWorkflowConflictPolicy.Replace;
+                if (parsed.Force) batch.ConflictPolicy = OfficePublicationPolicy.Replace;
                 PdfRedactionBatchResult batchResult = await workflowRunner.RunRedactionBatchAsync(batch, cancellationToken: cancellationToken).ConfigureAwait(false);
                 await output.WriteLineAsync(JsonSerializer.Serialize(batchResult, PdfRedactionCliJsonContext.Default.PdfRedactionBatchResult)).ConfigureAwait(false);
                 if (batchResult.Status == OfficeWorkflowStatus.Completed) return (int)OfficeImoToolExitCode.Success;
@@ -91,7 +91,7 @@ for non-secret scalar configuration; provider secrets should be referenced throu
                 OwnerPassword = ownerPassword,
                 OutputEncryption = outputPassword is null ? null : new PdfStandardEncryptionOptions(outputPassword),
                 ExpectedOutputSha256 = parsed.ExpectedOutputSha256,
-                ConflictPolicy = parsed.Force ? OfficeWorkflowConflictPolicy.Replace : OfficeWorkflowConflictPolicy.Fail
+                ConflictPolicy = parsed.Force ? OfficePublicationPolicy.Replace : OfficePublicationPolicy.Fail
             };
             PdfRedactionWorkflowResult result = await workflowRunner.RunRedactionAsync(request, cancellationToken: cancellationToken).ConfigureAwait(false);
             await output.WriteLineAsync(JsonSerializer.Serialize(result, PdfRedactionCliJsonContext.Default.PdfRedactionWorkflowResult)).ConfigureAwait(false);

@@ -13,6 +13,8 @@ namespace OfficeIMO.PowerPoint {
     public sealed class PowerPointAccessibilityOptions {
         private double _minimumTextContrastRatio = 4.5D;
         private double _minimumLargeTextContrastRatio = 3D;
+        private OfficeLength _largeTextThreshold = OfficeLength.Points(18);
+        private OfficeLength _largeBoldTextThreshold = OfficeLength.Points(14);
         private int _maximumShapeCount = 10000;
         private int _maximumGroupDepth = 128;
 
@@ -73,11 +75,17 @@ namespace OfficeIMO.PowerPoint {
             set => _minimumLargeTextContrastRatio = ValidateContrast(value, nameof(MinimumLargeTextContrastRatio));
         }
 
-        /// <summary>Large regular text threshold in points.</summary>
-        public double LargeTextThresholdPoints { get; set; } = 18D;
+        /// <summary>Large regular text threshold.</summary>
+        public OfficeLength LargeTextThreshold {
+            get => _largeTextThreshold;
+            set => _largeTextThreshold = ValidatePositive(value, nameof(LargeTextThreshold));
+        }
 
-        /// <summary>Large bold text threshold in points.</summary>
-        public double LargeBoldTextThresholdPoints { get; set; } = 14D;
+        /// <summary>Large bold text threshold.</summary>
+        public OfficeLength LargeBoldTextThreshold {
+            get => _largeBoldTextThreshold;
+            set => _largeBoldTextThreshold = ValidatePositive(value, nameof(LargeBoldTextThreshold));
+        }
 
         /// <summary>Creates options initialized for a built-in profile.</summary>
         public static PowerPointAccessibilityOptions ForProfile(PowerPointAccessibilityPolicyProfile profile) {
@@ -98,10 +106,6 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal PowerPointAccessibilityOptions CloneValidated() {
-            if (double.IsNaN(LargeTextThresholdPoints) || double.IsInfinity(LargeTextThresholdPoints) ||
-                LargeTextThresholdPoints <= 0D) throw new ArgumentOutOfRangeException(nameof(LargeTextThresholdPoints));
-            if (double.IsNaN(LargeBoldTextThresholdPoints) || double.IsInfinity(LargeBoldTextThresholdPoints) ||
-                LargeBoldTextThresholdPoints <= 0D) throw new ArgumentOutOfRangeException(nameof(LargeBoldTextThresholdPoints));
             return new PowerPointAccessibilityOptions {
                 Profile = Profile,
                 RequireDocumentTitle = RequireDocumentTitle,
@@ -116,11 +120,16 @@ namespace OfficeIMO.PowerPoint {
                 CheckColorOnlyMeaning = CheckColorOnlyMeaning,
                 MinimumTextContrastRatio = MinimumTextContrastRatio,
                 MinimumLargeTextContrastRatio = MinimumLargeTextContrastRatio,
-                LargeTextThresholdPoints = LargeTextThresholdPoints,
-                LargeBoldTextThresholdPoints = LargeBoldTextThresholdPoints,
+                LargeTextThreshold = LargeTextThreshold,
+                LargeBoldTextThreshold = LargeBoldTextThreshold,
                 MaximumShapeCount = MaximumShapeCount,
                 MaximumGroupDepth = MaximumGroupDepth
             };
+        }
+
+        private static OfficeLength ValidatePositive(OfficeLength value, string name) {
+            if (value <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(name, "Length must be positive.");
+            return value;
         }
 
         private static int ValidatePositive(int value, string name) {

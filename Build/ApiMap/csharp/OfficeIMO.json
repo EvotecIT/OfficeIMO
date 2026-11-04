@@ -1,0 +1,625 @@
+{
+  "package": "OfficeIMO",
+  "status": "M0 plan for the new OfficeIMO front-door package (no project exists yet; NuGet ID registered with two unlisted 0.1.x versions from 2022).",
+  "summary": {
+    "changes": 7,
+    "byAction": {
+      "change": 1,
+      "internalize": 1,
+      "merge": 2,
+      "move": 3
+    },
+    "byCategory": {
+      "conversion": 5,
+      "package": 1,
+      "visibility": 1
+    },
+    "packageMoves": 2
+  },
+  "project": {
+    "path": "OfficeIMO/OfficeIMO.csproj (new)",
+    "packageId": "OfficeIMO",
+    "targetFrameworks": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0"
+    ],
+    "projectReferences": [
+      "OfficeIMO.Core",
+      "OfficeIMO.Word",
+      "OfficeIMO.Excel",
+      "OfficeIMO.PowerPoint",
+      "OfficeIMO.Pdf",
+      "OfficeIMO.Markdown",
+      "OfficeIMO.Word.Pdf (Word -> PDF, after the move)",
+      "OfficeIMO.Excel.Pdf",
+      "OfficeIMO.PowerPoint.Pdf (PowerPoint -> PDF, after the move)",
+      "OfficeIMO.PowerPoint.Html",
+      "OfficeIMO.Pdf.Word",
+      "OfficeIMO.Pdf.Excel",
+      "OfficeIMO.Pdf.PowerPoint",
+      "OfficeIMO.Word.Markdown",
+      "OfficeIMO.Word.Html",
+      "OfficeIMO.Markdown.Html",
+      "OfficeIMO.Markdown.Pdf",
+      "OfficeIMO.Reader.All"
+    ],
+    "notes": [
+      "Word.Html and Markdown.Html bring OfficeIMO.Html + AngleSharp; include them so the front door keeps HTML import and Markdown raw-HTML fidelity (Word.Markdown no longer references Word.Html).",
+      "Reader.All brings 31 reader handlers; confirm that is wanted (the design lists \"Reader\" without scope).",
+      "Workflows is not referenced: it brings Invoicing, Project, OCR, Visio, DjVu, CHM, EPUB, Email and is net8/net10 only."
+    ],
+    "windowsAdditionalTargetFrameworks": [
+      "net472"
+    ]
+  },
+  "namespaceOfficeIMO": {
+    "publicTypes": [
+      "OfficeConverter (static): Convert(string source, string destination, OfficeConversionOptions options = null) : OfficeConversionReport; Convert(Stream source, OfficeFormat sourceFormat, Stream destination, OfficeFormat target, OfficeConversionOptions options = null); ConvertAsync(...) twins; ConvertAsync(IEnumerable<string> sources, string outputDirectory, OfficeFormat target, OfficeBatchOptions options = null) : Task<OfficeBatchReport>; Analyze(string source, string destination, OfficeConversionOptions options = null) : OfficeConversionReport (proposed); Register(IOfficeConversionRoute route) (proposed, for Tier 2 routes)",
+      "OfficeFormat (enum): Docx, Doc, Dotx, Docm, Xlsx, Xls, Xlsb, Xlsm, Pptx, Ppt, Pdf, Md, Html, Png, Jpeg, Svg, Tiff, Webp, ... (one value per file format; Core already has OfficeDocumentFormat - see openQuestions)",
+      "OfficeConversionOptions: target-specific option bags (Word = WordPdfExportOptions, ...), FailOnLoss, conflict policy, limits; replaces OfficeWorkflowConversionOptions and Word/Excel/PowerPoint *DocumentConversionOptions",
+      "OfficeBatchOptions: MaxParallelism, ResumeFrom, OutputDirectory, Recursive, Extensions, ConflictPolicy, limits, Load/Save (JSON job file); replaces OfficeConversionJob, OfficeConversionBatchRequest and builder state",
+      "OfficeBatchReport / OfficeBatchItemReport: per-item OfficeConversionReport, totals, elapsed, resume state; replaces OfficeConversionBatchResult/Report and OfficeConversionJobRunReport",
+      "OfficeDocument (static): Inspect(string path, OfficeInspectOptions options = null) for any format (design: Lifecycle)"
+    ],
+    "absorbs": [
+      "OfficeIMO.Workflows.OfficeWorkflow.Convert / ConvertDirectory / ConvertFiles and OfficeConversionBatchBuilder",
+      "OfficeIMO.Workflows Batches/ and ConversionJobs/ (checkpointing, resume, publication guard) - port to netstandard2.0",
+      "OfficeIMO.Reader.All.OfficeDocumentPdfConverter (EmailToPdf*, EpubToPdf*, VisioToPdf*)",
+      "*ToPdfBytes helpers in Word, PowerPoint, Excel.Pdf (and Tier 2 *.Pdf adapters: 400 files call ToPdfBytes, mostly tests)",
+      "WordDocument/ExcelDocument/PowerPointPresentation static Convert/ConvertAsync/AnalyzeConversion(Async) (legacy binary <-> Open XML)"
+    ]
+  },
+  "conflicts": [
+    "OfficeIMO.Core already declares 101 public types in the OfficeIMO namespace (OfficeConversionResult<,>, OfficeOutputResult<>, OfficeDocumentFormat, OfficeDocumentModel, OfficePageOrientation, OfficeConversionLossPolicy, IOfficeConversionReport, ...). The rule \"the OfficeIMO namespace holds only OfficeConverter, OfficeFormat and the batch types\" conflicts with Core unless Core moves to OfficeIMO.Core (a repo-wide break) or the rule is relaxed to \"OfficeIMO namespace = Core shared types + the converter\".",
+    "OfficeColor and the drawing types live in OfficeIMO.Drawing (374 Core types), not OfficeIMO.",
+    "OfficeDocumentFormat (Core) and the planned OfficeFormat overlap; keep one."
+  ],
+  "openQuestions": [
+    "OfficeIMO.Core already places 101 public types in the OfficeIMO namespace; see OfficeIMO.json conflicts.",
+    "Dropping the Windows-only net472 TFM means .NET Framework consumers run the netstandard2.0 build. #if NETFRAMEWORK workarounds (Word Save snapshot, Excel non-seekable stream save, PDF NET472 branches) must become runtime checks, and the netstandard2.0 build must be tested on .NET Framework 4.7.2 (PSWriteOffice on Windows PowerShell 5.1 is the main consumer).",
+    "Static From{Source} on a type owned by another package (WordDocument.FromHtml in OfficeIMO.Word.Html, WordDocument.FromMarkdown, MarkdownDocument.FromHtml, WordDocument.FromPdf) is only possible with C# 14 static extension members. The SDK supports them for netstandard2.0 targets, but callers on older language versions (.NET Framework projects default to C# 7.3, Windows PowerShell) must call the containing static class directly. Alternative: keep instance forms on the source (pdf.ToWord(), html.ToWordDocument()) as the only adapter shape.",
+    "C# forbids out parameters on async methods, so \"To{Target}/From{Source} have an overload with out OfficeConversionReport\" cannot cover the async forms (FromHtmlAsync, LoadResultAsync, ToWordDocumentResultAsync). Choose: async forms return a (TDocument, OfficeConversionReport) result type, or async forms only throw/ignore loss.",
+    "Package IDs OfficeIMO.Word.Pdf and OfficeIMO.PowerPoint.Pdf flip direction (PDF->Word reconstruction today, Word->PDF export after). Same NuGet ID with an unrelated API is a silent break for anyone pinning 3.5.x; MIGRATION.md and the release notes must say so explicitly, or the export adapters take new IDs.",
+    "Word image export is built on the PDF writer+reader+renderer (WordPageImageExport). Keeping image export in OfficeIMO.Word without the PDF engine requires splitting OfficeIMO.Pdf into a composition/pagination core that paints to OfficeIMO.Drawing (Core) and a PDF writer. That is a large engine refactor; the cheaper option is to move Word image export to OfficeIMO.Word.Pdf (or a new OfficeIMO.Word.Imaging that references Pdf) and accept that Word image export needs the PDF engine. PowerPoint does not have this problem (its scene renderer already targets OfficeIMO.Drawing)."
+  ],
+  "changes": [
+    {
+      "old": "OfficeIMO.Workflows.OfficeWorkflow.Convert(string inputPath)",
+      "kind": "method",
+      "action": "move",
+      "new": "OfficeIMO.OfficeConverter.Convert(string source, string destination, OfficeConversionOptions options = null)",
+      "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers.",
+      "file": "OfficeIMO.Workflows/OfficeWorkflow.cs",
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeWorkflow.ConvertDirectory(string inputDirectory)",
+      "kind": "method",
+      "action": "move",
+      "new": "OfficeIMO.OfficeConverter.ConvertAsync(IEnumerable<string> sources, string outputDirectory, OfficeDocumentFormat target, OfficeBatchOptions options = null)",
+      "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers.",
+      "file": "OfficeIMO.Workflows/OfficeWorkflow.cs",
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied",
+      "supersededM0Target": "OfficeIMO.OfficeConverter.ConvertAsync(IEnumerable<string> sources, string outputDirectory, OfficeFormat target, OfficeBatchOptions options = null)",
+      "note": "The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added."
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeWorkflow.ConvertFiles(string[] inputPaths)",
+      "kind": "method",
+      "action": "move",
+      "new": "OfficeIMO.OfficeConverter.ConvertAsync(IEnumerable<string> sources, string outputDirectory, OfficeDocumentFormat target, OfficeBatchOptions options = null)",
+      "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers.",
+      "file": "OfficeIMO.Workflows/OfficeWorkflow.cs",
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied",
+      "supersededM0Target": "OfficeIMO.OfficeConverter.ConvertAsync(IEnumerable<string> sources, string outputDirectory, OfficeFormat target, OfficeBatchOptions options = null)",
+      "note": "The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added."
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeConversionBatchBuilder",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeBatchOptions",
+      "reason": "Studio and the CLI save jobs as the same OfficeBatchOptions.",
+      "file": "OfficeIMO.Workflows/OfficeConversionBatchBuilder.cs",
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Reader.All.OfficeDocumentPdfConverter",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConverter",
+      "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers.",
+      "file": "OfficeIMO.Reader.All/OfficeDocumentPdfConverter.cs",
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO",
+      "kind": "package",
+      "action": "change",
+      "new": "OfficeIMO (front door, references listed in project.projectReferences)",
+      "reason": "The OfficeIMO package is the front door: dotnet add package OfficeIMO is the first README line.",
+      "category": "package",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.OfficeBatchReportSerializer",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO/Batches/OfficeBatchReportSerializer.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "pptx-html is catalogued but is not executable through OfficeConverter",
+      "new": "OfficeConverter converts PowerPoint files or captured streams to semantic or visual-review HTML using OfficeConversionOptions.PowerPointHtml",
+      "kind": "behavior",
+      "action": "change",
+      "reason": "The front door uses the existing OfficeIMO.PowerPoint.Html adapter, retains native load and HTML fidelity diagnostics, snapshots reusable settings, and applies its existing output limits, cancellation and atomic publication. Advanced HTML settings remain execution-only in saved jobs and are rejected explicitly rather than silently discarded.",
+      "file": "OfficeIMO/OfficeConverter.PowerPointHtml.cs",
+      "category": "conversion",
+      "phase": "M4",
+      "applied": "applied"
+    }
+  ],
+  "packageMoves": [
+    {
+      "from": "OfficeIMO.Workflows",
+      "to": "OfficeIMO",
+      "scope": "Conversion/batch core (see OfficeIMO.Workflows.json)",
+      "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers."
+    },
+    {
+      "from": "OfficeIMO.Reader.All",
+      "to": "OfficeIMO",
+      "scope": "OfficeDocumentPdfConverter",
+      "reason": "OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the *ToPdfBytes helpers."
+    }
+  ],
+  "designResolutions": {
+    "formatEnum": "OfficeDocumentFormat; no OfficeFormat enum is introduced.",
+    "conversionDirection": "Instance extensions on the source document; no static From factories.",
+    "asyncReports": "OfficeConversionResult<T> carries the converted value and OfficeConversionReport.",
+    "frontDoorTarget": "OfficeIMO, its batch engine, OfficeIMO.Workflows and OfficeIMO.Workflows.IWork target netstandard2.0, net8.0 and net10.0, plus net472 through the existing Windows-only project condition (approved c526a10ad2). Modern-only route engines are conditionally referenced and registered.",
+    "frameworks": "Superseded by the approved c526a10ad2 design: retain netstandard2.0, net8.0, net10.0 and the original Windows-only net472 declaration; modern-only packages retain their original targets. Front door and Workflows gain the full set, with explicitly conditional modern engines.",
+    "modernAnalysis": "Directory.Build.targets enables IsAotCompatible, EnableTrimAnalyzer and EnableAotAnalyzer for packable production library builds targeting net8.0/net10.0. Qualification remains in progress; older targets do not enable those analyzers."
+  },
+  "phaseA": {
+    "status": "in-progress",
+    "scope": "Package boundaries, target frameworks, lifecycle, options, conversions and names."
+  },
+  "extraChanges": [
+    {
+      "subject": "Front-door native conversion",
+      "note": "File/stream conversion captures bounded input, retains existing native compatibility/carrier/fallback owners and atomically publishes after source verification and host checks. Batch execution and complete consumer migration remain in progress.",
+      "status": "in-progress"
+    },
+    {
+      "subject": "PDF HTML adapter reference",
+      "note": "The front door also references the existing OfficeIMO.Html.Pdf adapter to retain the currently executable PDF-to-HTML route. This is an existing first-party owner, with no new external runtime dependency.",
+      "status": "in-progress"
+    },
+    {
+      "subject": "Shared orchestration policy owners",
+      "note": "OfficePublicationPolicy (Fail/Replace/Rename), OfficeConversionProfile and OfficeOperationLimits move from Workflows into Core/root namespace. The two-value native OfficeConversionFileConflictPolicy keeps its exact-destination role; Rename belongs to orchestration, whose report returns the actual output path.",
+      "status": "applied"
+    },
+    {
+      "subject": "Batch and saved-definition ownership",
+      "note": "The existing durable batch executor, bounded report collection, saved job persistence, runtime secret references, report leases, retention and interrupted-attempt inspection move to the OfficeIMO front door. OfficeBatchOptions and OfficeBatchReport absorb the old public batch/job/run types. Private execution DTOs prevent a dependency on Workflows.",
+      "status": "applied"
+    },
+    {
+      "subject": "ResumeFrom manifest placement",
+      "note": "The approved design uses ResumeFrom as a JSON manifest inside output. Private receipts and a lease live in ResumeFrom + .state; source and output remain separate. Hash-verified pending publication intent is retained before final moves. No old checkpoint is silently replaced.",
+      "status": "applied"
+    },
+    {
+      "subject": "Saved batch schema",
+      "note": "New saved definitions and reports use v2 schemas. Unsupported saved definitions are rejected explicitly. Portable scalar settings and environment-variable secret references are retained; advanced renderer instances and callbacks remain runtime-only and cannot be silently serialized.",
+      "status": "applied"
+    },
+    {
+      "subject": "Checkpoint route qualification",
+      "note": "Existing native renderer routes retain checkpoint support. New callback-rich import/Reader routes currently run ordinary batches; they require deterministic provider/configuration identity before durable reuse can be qualified. Trusted first-party registrations supply a private configuration fingerprint hook; arbitrary external registrations are ordinary-batch only.",
+      "status": "in-progress"
+    },
+    {
+      "subject": "Native route discovery",
+      "note": "Native Word, Excel and PowerPoint variant conversion and XLS/XLSB/PPT-to-PDF routes join the canonical Core catalog. Existing DOCX/XLSX/PPTX routes admit supported template/macro variants. Source codecs retain preservation/carrier/encryption behavior; unsupported destination generations are rejected by their owner.",
+      "status": "applied"
+    },
+    {
+      "subject": "Canonical resource and publication helpers",
+      "note": "HTML resource resolution and guarded file publication move from Workflows to the front door. Resources remain scoped to captured sources, and publication preserves Fail/Replace/Rename race checks and host guards.",
+      "status": "applied"
+    },
+    {
+      "subject": "Reading and validation ownership",
+      "note": "The former Reader.All PDF facade moves into OfficeConverter. Registered artifacts are reopened before publication. PDF input snapshots apply SourcePassword and the operation byte cap as well as PdfLoadOptions.",
+      "status": "applied"
+    },
+    {
+      "subject": "Batch diagnostic codes",
+      "note": "conversion-failed, conversion-input-skipped and recorded-diagnostics-truncated are emitted through the shared M1 catalog. Shared reports use a private source-generated persistence DTO, preserving Core without a JSON dependency.",
+      "status": "applied"
+    },
+    {
+      "subject": "Cross-framework batch execution",
+      "note": "The front door and all its dependencies retain their original framework reach. Internal Core runtime helpers use modern APIs behind framework guards and bounded fallbacks for hashes, relative paths, byte streams and parallel conversion. Compiler markers remain internal to each older-framework assembly.",
+      "status": "applied"
+    },
+    {
+      "subject": "Legacy graph validation",
+      "note": "OfficeIMOCompatibilityTarget=netstandard2.0 selects the entire library dependency graph for runtime tests on a modern host. Normal framework declarations and platform-specific locks are unchanged. This is additional runtime proof; Windows .NET Framework and PowerShell 5.1 execution remain required.",
+      "status": "applied"
+    },
+    {
+      "subject": "Native staging and analysis",
+      "note": "Native Analyze invokes the existing assessment kernels without serializing a target and reports zero written items. Private source and target directories remain separate. Same-format routes remain excluded because the owning native converters require different concrete formats.",
+      "status": "applied"
+    },
+    {
+      "subject": "Format-neutral inspection owner",
+      "note": "OfficeDocument.Inspect returns OfficeDocumentInfo with optional Reader content and selected native security, provenance, signature and PDF preflight reports. Path and bounded caller-owned stream overloads reuse existing inspection kernels; IncludeContent=false skips Reader extraction.",
+      "status": "applied"
+    },
+    {
+      "subject": "Modern analyzer coverage",
+      "note": "Directory.Build.targets enables the existing SDK trimming and NativeAOT analyzers for modern packable library builds, including net8.0. No new runtime dependency is added. Analyzer qualification and AOT smoke execution remain in progress.",
+      "status": "applied"
+    },
+    {
+      "subject": "Theme-role AOT enumeration",
+      "note": "Theme-role parsing in OfficeColor uses the existing internal EnumCompat generic path on modern targets instead of Enum.GetValues(Type), closing IL3050 under the restored net8.0 AOT analyzer. Core net8.0 builds with zero warnings and errors.",
+      "status": "applied"
+    },
+    {
+      "subject": "Retained portable workflow policies",
+      "note": "OfficeConversionOptions retains compression as CompressPdfOutput. WordLoadOptions.FailOnLoss controls legacy Word import loss. OfficeBatchOptions keeps separate native/PDF environment-secret references; format-owned password settings take precedence. PDF compression precedes final encryption. CLI checkpoint-folder flags select plan.json inside that folder. Retry, report delivery and AllowEmpty remain admitted run overrides.",
+      "status": "in-progress"
+    },
+    {
+      "subject": "Completed conversion ownership and consumer grammar",
+      "note": "OfficeConversionOptions exposes Clone for independent public consumer settings. Word source loss acceptance uses WordLoadOptions.FailOnLoss rather than a separate legacy-loss policy. Shared PDF compression staging is reused internally by Workflows. Studio and the CLI persist OfficeBatchOptions and read flattened OfficeBatchReport; PSWriteOffice retains existing command and parameter names while calling those owners.",
+      "status": "applied"
+    },
+    {
+      "change": "Input capture uses a bounded buffer with an input-specific failure. Output limits retain the existing shared marker, so consumers can distinguish source budget rejection from output budget rejection.",
+      "reason": "The common bounded memory buffer otherwise classifies every capacity failure as output, including while capturing an input.",
+      "status": "applied"
+    },
+    {
+      "applied": "applied",
+      "note": "PdfOcrMergeResult source extensions reconstruct Word, Excel and PowerPoint through the existing reverse adapter kernels, preserving recognized words and tables without serializing and re-reading OCR output. The front door references the first-party Pdf.Ocr owner; format and reconstruction adapter dependencies stay isolated."
+    },
+    {
+      "category": "lifecycle",
+      "applied": "applied",
+      "note": "Specialized static content-safety, provenance and signature inspection entry points are internal native kernels. OfficeDocument.Inspect(path, OfficeInspectOptions) returns OfficeDocumentInfo with selectable typed reports and optional native content. IncludeContent=false preserves inspection without content extraction; original package/signature/provenance guards and explicit provider selection remain in their owning libraries. Provenance takes an independent options snapshot with caller cancellation."
+    },
+    {
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied",
+      "note": "Async conversion entry points capture options before deferred work or resource awaits. The same snapshot supplies resource/size limits and final FailOnLoss acceptance; caller-owned template documents and callbacks retain their ownership."
+    },
+    {
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied",
+      "note": "Strict adapter PDF saves use the existing staged writer with shared report acceptance before publication. Source-stage and writer-time losses throw OfficeConversionException carrying OfficeConversionReport; native advanced result policies keep their existing behavior. The same writer and file/stream publication owners are reused. Front-door HTML/TXT saves dispose the generated model."
+    },
+    {
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied",
+      "note": "Normalized Reader content exposes ToPdf/out-report/ToPdfAsync and shared SaveAsPdf forms from the front door. PdfProjectionOptions snapshots FailOnLoss; native Reader-to-neutral projection stays internal. Reader package dependencies remain unchanged. Saved sample jobs and workflow README examples use the shared v2 batch contract."
+    },
+    {
+      "phase": "A",
+      "applied": "applied",
+      "note": "Internal diagnostic comparisons, report counters, typed adapter forwarding, test expectations and machine-generated report/visual fixtures consume the same M1 code values as emission sites. Native feature names, severity, location and loss classifications remain independent. PSWriteOffice retains its command names, concurrency parameters and saved-job error IDs while returning the shared conversion report."
+    },
+    {
+      "phase": "A",
+      "applied": "applied",
+      "note": "Reader Email, Epub and Visio grant the front door internal access to their options snapshot owners. OfficeConversionOptions.Clone stays portable when default Reader settings were never requested, and applies Reader defaults only at the execution boundary. Portable settings validate bounded encoding names before Studio starts a batch."
+    },
+    {
+      "phase": "A",
+      "applied": "applied",
+      "note": "Checkpointed batch item reports identify the final published output path; private staging names do not appear as OfficeConversionReport.OutputPath. Failure and cancellation reports have no published path. The saved report round trip verifies the same contract."
+    },
+    {
+      "phase": "A",
+      "applied": "applied",
+      "note": "PDF reconstruction forwards the captured PDF read settings to each adapter, including selected visual Word pages. HTML file conversion admits local resources only through the bounded, contained resolver. Source import reports survive a later PDF output failure. Checkpoint item reports expose the final output path, including saved report JSON. PDF-to-HTML rendering receives the output character budget before constructing its complete HTML string."
+    },
+    {
+      "phase": "A",
+      "applied": "applied",
+      "note": "Registered route checkpoint fingerprints include XML source acceptance, so lowering the XML budget cannot reuse an earlier accepted artifact. PDF compression evidence is recorded before deferred encryption and retained if encryption exceeds the output budget. HTML rendering shares one input budget with relative resources."
+    },
+    {
+      "phase": "A",
+      "applied": "applied",
+      "note": "Cross-format and registered editable outputs honor native destination save options, including passwords. File and stream publication retain completed reports on failure. Analysis discards staged sidecars; publication guards and conflict policy apply to each sidecar before acceptance."
+    },
+    {
+      "phase": "A",
+      "applied": "applied",
+      "note": "Normal Reader, image and RTF PDF save paths now use the same guarded final-output owner as strict saves. Completed source diagnostics survive file/stream failures; destination arguments are validated before conversion."
+    },
+    {
+      "phase": "A",
+      "applied": "applied",
+      "note": "InternalsVisibleTo grants the existing browser engine and its tests access to detailed conversion and serialization evidence. This preserves browser diagnostics while keeping conversion kernels outside the public API."
+    },
+    {
+      "phase": "A",
+      "applied": "applied",
+      "note": "ConfigureMarkdownHtml is internal and reused by the browser Markdown-to-Word route to preserve the canonical raw-HTML hook without duplicating HTML rendering."
+    },
+    {
+      "change": "1 undocumented static helper types are internal after generated candidate review.",
+      "reason": "These types implement rendering, parsing, package metadata or serialization behind the documented object model. Public models, syntax nodes, exceptions, attributes and virtual contracts remain visible.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO/Batches/OfficeBatchReportSerializer.cs"
+      ]
+    },
+    {
+      "change": "Implementation access to internal helpers uses explicit friend assemblies.",
+      "reason": "Callers were identified from actual C# identifier syntax in existing projects. Public third-party plug-in contracts remain public and receive no friend access.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO/OfficeIMO.csproj"
+      ],
+      "friendAssemblies": [
+        "OfficeIMO.Tool"
+      ]
+    },
+    {
+      "change": "Public API declarations and nullable annotations are enforced against shipped compiler baselines.",
+      "reason": "The private Microsoft.CodeAnalysis.PublicApiAnalyzers build asset rejects unrecorded additions and removals without adding a runtime dependency. Existing framework-specific APIs retain separate shipped baselines where needed; target declarations and restore locks are unchanged.",
+      "applied": "phase-b-applied",
+      "files": [
+        "Build/ApiMap/PublicApi.targets",
+        "Directory.Build.targets",
+        "OfficeIMO/PublicAPI.Shipped.txt",
+        "OfficeIMO/PublicAPI.Unshipped.txt"
+      ]
+    },
+    {
+      "old": "Build/ConversionConsistency legacy conversion/diagnostic/geometry consumers",
+      "new": "Current source conversion, typed geometry and diagnostic APIs",
+      "action": "migrate-consumer",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "reason": "The native conversion corpus uses source.ToPdf(options, out report) for Word/Excel/PowerPoint/HTML and preserves unified diagnostics. The public disposable PDF loader accepts a path; fixture output uses SaveAsPdf. Tier2 adapter result APIs remain until M4."
+    },
+    {
+      "old": "OfficeIMO.Examples/Visio/QueryAndSelection.cs dereferenced VisioConnector.To without checking unresolved endpoints",
+      "new": "The filter skips unresolved target endpoints before inspecting target shape data",
+      "action": "fix-consumer",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "reason": "Normal example compilation exposed a nullable dereference warning while validating migrated consumers. Resolved connectors retain the same selection behavior."
+    },
+    {
+      "change": "Refresh downloadable C# and PowerShell example sources",
+      "reason": "The showcase catalog now copies the current executable example sources and regenerates its source/excerpt projections and raw-byte manifest. This closes stale downloads from preceding public API migrations as well as Word physical geometry.",
+      "applied": "phase-b-applied",
+      "note": "Source synchronization only: existing rendered documents and previews are retained. The generator correctly invalidates the three older PowerShell producer receipts when their source bindings change; final showcase generation and preview qualification must use the final module candidate. No publication or visual acceptance is claimed."
+    },
+    {
+      "change": "Internalize batch report collection plumbing",
+      "reason": "Compiled surface analysis found no documentation reference or exposed model signature for OfficeBatchReportCollector. Its only callers are the owning batch engine and existing friend tests; the shipped baseline records the removal without a replacement public wrapper.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "change": "Reference the framework ZIP assembly for the Visio dependency on net472",
+      "reason": "The front-door net472 dependency build exposed missing ZipArchive and ZipArchiveEntry types in OfficeIMO.Visio. Add the built-in System.IO.Compression reference for net472, matching the existing library framework-reference pattern. No target, Windows condition, package lock mechanism or external runtime dependency changes.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Visio/OfficeIMO.Visio.csproj"
+      ]
+    },
+    {
+      "change": "Retain the unified lifecycle and conversion families during public-surface analysis",
+      "reason": "The required async and out-report overloads remain public even when documentation demonstrates only a synchronous form. Signature closure retains their options and result models. Static file-converter helpers are still reviewed independently.",
+      "files": [
+        "Build/ApiMap/SurfaceAnalysis/SurfaceInventory.cs",
+        "Build/ApiMap/SurfaceAnalysis/README.md"
+      ],
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "validation": "The existing inventory tool builds without warnings and runs against all seven selected packages. The async Analyze contract is retained while the unrelated report-cleanup candidate remains in the review list."
+    },
+    {
+      "change": "Replace the final source extension in batch output names (CSHARP09)",
+      "reason": "Sales.docx produces Sales.pdf. Preflight and execution share the same physical destination calculation. Source-root-relative folders and explicit native target extensions are preserved; ordinary Fail/Replace/Rename publication remains with the canonical publisher. Durable destinations cannot be shared by distinct selected inputs. The naming rule participates in the checkpoint fingerprint, so old append-style plans are rejected without rewriting receipts or artifacts. Duplicate admission uses stable publication-entry identity even when staging creates a previously missing directory or final file.",
+      "files": [
+        "OfficeIMO/Batches/OfficeBatchExecutor.Planning.cs",
+        "OfficeIMO/Batches/OfficeBatchExecutor.cs",
+        "OfficeIMO/Batches/OfficeBatchExecutor.Configuration.cs",
+        "OfficeIMO/Batches/OfficeBatchOptions.cs"
+      ],
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "validation": "Current front-door source compiles against the existing native net10.0 dependency graph;78source-linkedbatch/nativecases pass, including two filesystem-transition regressions. Normal full graph, other frameworks and phase gates remain pending."
+    },
+    {
+      "phase": "B",
+      "action": "internalize",
+      "old": "OfficeBatchReport.TryDeleteFinished(string path)",
+      "new": null,
+      "reason": "Report-store cleanup is cross-assembly plumbing used through existing Studio/test friend access. It is not part of the documented batch result contract.",
+      "files": [
+        "OfficeIMO/Batches/OfficeBatchReport.Persistence.cs",
+        "OfficeIMO/PublicAPI.Shipped.txt"
+      ],
+      "applied": "phase-b-applied"
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "old": "PDF numeric settings serialized into batch and workflow rendering fingerprints",
+      "new": "Physical lengths serialize as exact signed EMUs; colors retain symbolic roles and normalized literal precision in batch and workflow rendering identities",
+      "reason": "Distinct physical settings must reject checkpoint reuse even when their display formatting is equal. Both raw PDF metadata and outer settings use one internal converter.",
+      "files": [
+        "OfficeIMO/Batches/OfficeBatchExecutor.Configuration.cs",
+        "OfficeIMO/Batches/OfficeBatchConfigurationJsonContext.cs",
+        "OfficeIMO.Workflows/OfficeWorkflowCheckpointSettings.cs",
+        "OfficeIMO.Workflows/OfficeWorkflowCheckpointJsonContext.cs",
+        "OfficeIMO.Tests/OfficeConverter.RegistrationTests.cs"
+      ],
+      "applied": "phase-b-applied",
+      "note": "Both raw PDF metadata and outer settings register the shared internal converters. Existing built-in settings-change proof remains; registered RTF covers a theme, one-EMU and sub-byte color changes while preserving saved artifacts. Source-format imports retain neutral defaults."
+    },
+    {
+      "phase": "B",
+      "action": "fix",
+      "old": "Website API source provenance checks only OfficeIMO.* engine folders with ordinary wildcard arguments.",
+      "new": "Include the OfficeIMO front door and use explicit root-anchored Git pathspecs for engine and shared build inputs.",
+      "reason": "Native argument globbing can otherwise expand against an unrelated current directory before Git selects the source checkout, omitting changed inputs.",
+      "applied": "phase-b-applied",
+      "files": [
+        "PowerShell/PSWriteOffice/Build/Export-WebsiteArtifacts.ps1",
+        "PowerShell/PSWriteOffice/Tests/WebsiteArtifactExport.Tests.ps1"
+      ],
+      "note": "Retain the existing unsigned, no-install website build boundary. Extend the existing tracked/untracked engine checks to the front-door package and an unrelated working directory; all four new cases reproduce the omitted-input bug before the fix."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "change": "Add a bounded front-door NativeAOT smoke host using the shared conversion-batch scenario.",
+      "reason": "The fully rooted production host retains a separate .NET10 qualification. The bounded net8/net10 host exercises the front door, registered workflows, seven option bags, encrypted output, verified reuse and exact geometry/color fingerprint rejection without duplicating scenario logic.",
+      "files": [
+        "OfficeIMO.AotSmoke/OfficeIMO.AotSmoke.csproj",
+        "OfficeIMO.AotSmoke/Program.cs",
+        "OfficeIMO.All.AotSmoke/ConversionBatchScenario.cs"
+      ],
+      "note": "Native .NET10 publish/run passes. The macOS .NET8 profile completes native code generation but Apple Xcode27.1 linking fails with too many large addends, including the size-optimization experiment. This is retained as an explicit qualification limit; target frameworks and trimming/AOT analyzers remain enabled. Unique source stems reflect the adopted extension-replacement batch naming contract."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "action": "change",
+      "old": "Workflow batch fixtures expect appended source extensions such as one.txt.pdf.",
+      "new": "Expect one.pdf and use that destination in publication guards and durable-resume fixtures.",
+      "reason": "The adopted extension-replacement naming rule also applies to existing workflow consumers. Preserve receipt, tamper, cancellation, symlink and publication safety assertions.",
+      "files": [
+        "OfficeIMO.Workflows.Tests/BookPublishingBatchTests.cs",
+        "OfficeIMO.Workflows.Tests/DrawBatchWorkflowTests.cs",
+        "OfficeIMO.Workflows.Tests/OfficeConversionBatchExecutorTests.cs",
+        "OfficeIMO.Workflows.Tests/PublisherPdfWorkflowTests.cs",
+        "OfficeIMO.Workflows.Tests/VisioPdfWorkflowTests.cs"
+      ]
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "action": "change",
+      "old": "Consumer batch fixtures expect source.txt.pdf rather than the adopted source.pdf output basename.",
+      "new": "Use source.pdf in saved-job, publication, recovery, history and CLI output assertions.",
+      "reason": "The extension-replacement naming rule applies to every batch consumer; source inputs and all output integrity assertions remain unchanged.",
+      "files": [
+        "OfficeIMO.Studio.Tests/PdfBatchExportVisualTests.cs",
+        "OfficeIMO.Studio.Tests/RedactionReviewTests.cs",
+        "OfficeIMO.Studio.Tests/StudioConversionRunHistoryTests.cs",
+        "OfficeIMO.Studio.Tests/StudioConversionRunStoreTests.cs",
+        "OfficeIMO.Studio.Tests/StudioSavedFolderJobTests.cs",
+        "OfficeIMO.Studio.Tests/StudioWorkflowJobIntegrationTests.cs"
+      ]
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "action": "change",
+      "old": "Studio precise-redaction capacity fixture inherits dense Modern typography and is refused for overlapping glyph geometry before reaching the capacity guard.",
+      "new": "Use explicit standard Courier10pt with2xleading in the existing2000-mark capacity fixture.",
+      "reason": "The fixture proves distinct-mark capacity, idempotent repeated searches and review identity/reason retention. Its exact glyph regions must be disjoint; real safety guards and document defaults are unchanged.",
+      "files": [
+        "OfficeIMO.Studio.Tests/RedactionReviewTests.cs"
+      ]
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "action": "change",
+      "old": "Remaining consumer fixtures depend on appended diagram/iWork output extensions or unrelated body-text snapping/dense line geometry.",
+      "new": "Expect drawing.pdf/layers.pdf/source.xlsx; keep group-move text outside horizontal snap guides and use explicit disjoint-line leading in selection fixtures.",
+      "reason": "Preserve publication/checkpoint assertions, original group translation tolerance, exact group offset/undo and strict interline gap assertions under current defaults. No production behavior or typography default is changed.",
+      "files": [
+        "OfficeIMO.Studio.Tests/StudioAnnotationSelectionTests.cs",
+        "OfficeIMO.Studio.Tests/PdfEditorCommandTests.cs"
+      ]
+    }
+  ],
+  "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
+  "authority": "Docs/officeimo.api-design.md, including the c526a10ad2 framework decision; the approved design overrides M0 open questions.",
+  "questionResolutions": {
+    "conversionForms": "Source.ToTarget, source.SaveAsTarget and OfficeConversionReport; async ToTarget returns OfficeConversionResult<T>. ToHtml returns string. No static From factories.",
+    "frameworks": "No framework is dropped in 3.6. Original library TFMs and Windows net472 conditions remain; the front door and both Workflows projects support the full set. Modern-only engines stay conditional.",
+    "packageDirection": "Word.Pdf and PowerPoint.Pdf export native documents. Reverse reconstruction is Pdf.Word and Pdf.PowerPoint; Excel reconstruction is Pdf.Excel. Word page images live in Word.Pdf.",
+    "surface": "Markdown syntax nodes are exempt from the format prefix. OfficeColor/OfficeColorRole use the root OfficeIMO namespace. Authoring, units, image-builder consolidation, visibility baselines and AOT smoke acceptance are Phase B."
+  },
+  "internalizeCandidates": [
+    {
+      "type": "OfficeIMO.OfficeBatchReportSerializer",
+      "file": [
+        "OfficeIMO/Batches/OfficeBatchReportSerializer.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.OfficeBatchReportSerializer",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 5
+      }
+    },
+    {
+      "type": "OfficeIMO.OfficeBatchReportCollector",
+      "file": [
+        "OfficeIMO/Batches/OfficeBatchReportCollector.cs"
+      ],
+      "why": "Undocumented bounded collection used only by the batch engine and its friend tests. The public observation contract remains IProgress<OfficeBatchItemReport>; consumers receive OfficeBatchReport.",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.OfficeBatchReportCollector",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 5
+      }
+    },
+    {
+      "member": "OfficeIMO.OfficeBatchReport.TryDeleteFinished(string path)",
+      "file": "OfficeIMO/Batches/OfficeBatchReport.Persistence.cs",
+      "analysis": {
+        "id": "M:OfficeIMO.OfficeBatchReport.TryDeleteFinished(System.String)",
+        "source": "Build/ApiMap/SurfaceAnalysis"
+      },
+      "why": "Undocumented report-store cleanup used by Studio and persistence tests through existing friend assemblies; documented report inspection and serialization remain public.",
+      "applied": "phase-b-applied"
+    }
+  ]
+}

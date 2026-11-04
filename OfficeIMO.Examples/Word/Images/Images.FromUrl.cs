@@ -8,7 +8,7 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("[*] Creating document with image downloaded from URL");
             string filePath = System.IO.Path.Combine(folderPath, "DocumentWithImageFromUrl.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                await document.AddImageFromUrlAsync("https://via.placeholder.com/150", 150, 150);
+                await document.AddImageAsync(new Uri("https://via.placeholder.com/150"),OfficeIMO.OfficeLength.Pixels(150),OfficeIMO.OfficeLength.Pixels(150));
                 document.Save();
                 if (openWord) document.OpenInApplication();
             }

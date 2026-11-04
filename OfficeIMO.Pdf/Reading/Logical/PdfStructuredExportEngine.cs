@@ -17,7 +17,7 @@ internal static class PdfStructuredExportEngine {
             case PdfStructuredExportFormat.Json:
                 return ToJson(document);
             case PdfStructuredExportFormat.Markdown:
-                return document.ToMarkdown();
+                return document.ExtractMarkdown();
             case PdfStructuredExportFormat.AltoXml:
                 return ToAltoXml(document);
             case PdfStructuredExportFormat.Hocr:

@@ -490,7 +490,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 throw new InvalidOperationException("A network diagram requires at least one node.");
             }
 
-            VisioPage page = _document.AddPage(_pageName, _pageWidth, _pageHeight, _unit);
+            VisioPage page = _document.AddPageInches(_pageName, _pageWidth, _pageHeight, _unit);
             page.ReserveAutomaticObjectId(_titleId);
             foreach (CalloutItem callout in _callouts) {
                 page.ReserveAutomaticObjectId(callout.Id);
@@ -518,7 +518,7 @@ namespace OfficeIMO.Visio.Diagrams {
             }
 
             double y = _pageHeight - _topMargin - (_titleHeight / 2D);
-            VisioShape title = page.AddTextBox(_titleId, _pageWidth / 2D, y, Math.Max(1D, _pageWidth - 1.6D), _titleHeight, _titleText, _unit);
+            VisioShape title = page.AddTextBoxInches(_titleId, _pageWidth / 2D, y, Math.Max(1D, _pageWidth - 1.6D), _titleHeight, _titleText, _unit);
             title.TextStyle = CreateTitleTextStyle();
             VisioSemanticUserCells.MarkGeneratedAdornment(title);
         }
@@ -557,7 +557,7 @@ namespace OfficeIMO.Visio.Diagrams {
         private void AddNodes(VisioPage page) {
             foreach (NodeItem node in _nodes) {
                 VisioNetworkDiagramVisuals.GetNodeShape(node.Kind, _nodeWidth, _nodeHeight, out string masterNameU, out double width, out double height);
-                VisioShape shape = page.AddStencilShape(
+                VisioShape shape = page.AddStencilShapeInches(
                     VisioStencils.Network,
                     VisioNetworkDiagramVisuals.GetNodeStencilId(node.Kind),
                     node.Id,
@@ -653,9 +653,9 @@ namespace OfficeIMO.Visio.Diagrams {
                 }
 
                 if (callout.UsePlacement) {
-                    page.AddCallout(target.Shape, callout.Id, callout.Text, callout.Placement, callout.Gap, callout.Options);
+                    page.AddCalloutInches(target.Shape, callout.Id, callout.Text, callout.Placement, callout.Gap, callout.Options);
                 } else {
-                    page.AddCallout(target.Shape, callout.Id, callout.Text, callout.PinX, callout.PinY, callout.Options);
+                    page.AddCalloutInches(target.Shape, callout.Id, callout.Text, callout.PinX, callout.PinY, callout.Options);
                 }
             }
         }

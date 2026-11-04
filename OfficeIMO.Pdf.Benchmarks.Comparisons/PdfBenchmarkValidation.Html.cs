@@ -71,7 +71,9 @@ internal static partial class PdfBenchmarkValidation {
     /// <summary>Reuses the multilingual fixture's font-use contract with structured embedded-font inspection.</summary>
     internal static void ValidateSharedFontUse(byte[] bytes, string engine, string familyName, string? requiredText = null, bool requireBold = false) {
         string expected = NormalizeBenchmarkFontName(familyName);
-        PdfFontInventory inventory = PdfDocument.Load(bytes).Resources.Fonts();
+        using var input = new MemoryStream(bytes, writable: false);
+        using PdfDocument pdfDocument = PdfDocument.Load(input);
+        PdfFontInventory inventory = pdfDocument.Resources.Fonts();
         if (!inventory.Fonts.Any(font => font.IsEmbedded && NormalizeBenchmarkFontName(font.FamilyName).Contains(expected, StringComparison.Ordinal))) {
             throw new InvalidDataException($"{engine} did not embed the shared '{familyName}' fixture font.");
         }

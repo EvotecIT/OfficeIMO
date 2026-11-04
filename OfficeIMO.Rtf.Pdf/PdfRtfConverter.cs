@@ -7,12 +7,12 @@ internal static class PdfRtfConverter {
     private const int BulletListId = 1;
     private const int DecimalListId = 2;
 
-    public static RtfDocument Convert(PdfCore.PdfDocumentReadResult source, PdfToRtfOptions? options) {
+    public static RtfDocument Convert(PdfCore.PdfDocumentReadResult source, PdfRtfExportOptions? options) {
         if (source == null) {
             throw new ArgumentNullException(nameof(source));
         }
 
-        PdfToRtfOptions readOptions = options ?? new PdfToRtfOptions();
+        PdfRtfExportOptions readOptions = options ?? new PdfRtfExportOptions();
         readOptions.CancellationToken.ThrowIfCancellationRequested();
         PdfCore.PdfLogicalContentProjection.RequireComplete(source, readOptions.CancellationToken);
         RtfDocument document = RtfDocument.Create();
@@ -20,7 +20,7 @@ internal static class PdfRtfConverter {
         AddUnsupportedContentDiagnostics(source, readOptions);
 
         if (readOptions.IncludeMetadata) {
-            CopyMetadata(source.Metadata, document.Info);
+            CopyMetadata(source.Metadata, document.Properties);
         }
 
         if (source.Pages.Count > 0) {
@@ -41,7 +41,7 @@ internal static class PdfRtfConverter {
 
     private static void AddUnsupportedContentDiagnostics(
         PdfCore.PdfDocumentReadResult source,
-        PdfToRtfOptions options) {
+        PdfRtfExportOptions options) {
         AddOmissionWarning(options, "TABLES_NOT_IMPORTED", "Table", source.Tables.Count,
             "Detected PDF tables are not reconstructed by the semantic RTF importer.");
         AddOmissionWarning(options, "IMAGES_NOT_IMPORTED", "Image", source.Images.Count,
@@ -53,7 +53,7 @@ internal static class PdfRtfConverter {
     }
 
     private static void AddOmissionWarning(
-        PdfToRtfOptions options,
+        PdfRtfExportOptions options,
         string code,
         string source,
         int count,
@@ -77,7 +77,7 @@ internal static class PdfRtfConverter {
     private static void ImportPage(
         PdfCore.PdfLogicalPage page,
         RtfDocument document,
-        PdfToRtfOptions options,
+        PdfRtfExportOptions options,
         RunStyleCatalog runStyles,
         bool pageBreakBeforeFirstParagraph) {
         var consumed = new HashSet<PdfCore.PdfLogicalTextBlock>();
@@ -215,7 +215,7 @@ internal static class PdfRtfConverter {
         }
     }
 
-    private static void CopyMetadata(PdfCore.PdfMetadata source, RtfDocumentInfo target) {
+    private static void CopyMetadata(PdfCore.PdfDocumentProperties source, RtfDocumentInfo target) {
         target.Title = source.Title;
         target.Author = source.Author;
         target.Subject = source.Subject;
@@ -312,14 +312,14 @@ internal static class PdfRtfConverter {
 
     private sealed class RunStyleCatalog {
         private readonly RtfDocument _document;
-        private readonly Dictionary<OfficeIMO.Drawing.OfficeColor, int> _colors =
-            new Dictionary<OfficeIMO.Drawing.OfficeColor, int>();
+        private readonly Dictionary<OfficeIMO.OfficeColor, int> _colors =
+            new Dictionary<OfficeIMO.OfficeColor, int>();
 
         internal RunStyleCatalog(RtfDocument document) {
             _document = document;
         }
 
-        internal int GetColorIndex(OfficeIMO.Drawing.OfficeColor color) {
+        internal int GetColorIndex(OfficeIMO.OfficeColor color) {
             if (_colors.TryGetValue(color, out int index)) {
                 return index;
             }

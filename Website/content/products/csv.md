@@ -63,7 +63,7 @@ foreach (var emp in highEarners)
     Console.WriteLine($"{emp.Name} — {emp.Department} — {emp.Salary:C}");
 }
 
-using var reader = CsvDocument.OpenDataReader("large-dataset.csv", new CsvLoadOptions
+using var reader = CsvDocument.OpenReader("large-dataset.csv", new CsvReaderOptions
 {
     HasHeaderRow = true,
     Culture = CultureInfo.InvariantCulture

@@ -7,7 +7,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Shared dependency-free renderer for annotation/comment-style callouts.
 /// </summary>
-public static class OfficeCalloutRenderer {
+internal static class OfficeCalloutRenderer {
     /// <summary>
     /// Draws a callout to a raster canvas.
     /// </summary>

@@ -28,7 +28,7 @@ namespace OfficeIMO.Excel.Utilities {
                     drawing.TextVerticalAlignment,
                     drawing.TextColorArgb,
                     drawing.TextFontFamily,
-                    drawing.TextFontSize,
+                    drawing.TextFontSize.HasValue ? OfficeLength.Points(drawing.TextFontSize.Value) : null,
                     drawing.TextFontStyle,
                     drawing.TextWrap,
                     drawing.TextShrinkToFit,

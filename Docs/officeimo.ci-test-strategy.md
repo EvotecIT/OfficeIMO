@@ -2,6 +2,40 @@
 
 This note records the current cleanup direction for OfficeIMO tests and build warnings. It is meant for maintainers working on CI, test placement, or warning policy.
 
+## Dependency graph submission
+
+`.github/workflows/dependency-submission.yml` restores explicit project sets
+through PowerForge's shared dependency-submission action. Each native runner
+exports only resolved asset graphs and a project-path index. Linux jobs import
+those run-scoped artifacts, rebasing copied restore paths without changing package
+identities or dependency edges. Read-only Linux jobs run a fixed, SHA-256-verified
+Component Detection release and prepare snapshot JSON from its per-manifest
+edges, preserving intermediate dependencies and manifest-specific scopes.
+
+Pull requests validate restores, artifact import and snapshot generation with
+read-only permissions. A separate write-enabled job uploads the prepared JSON
+only on default-branch pushes and manual runs, with distinct Linux, Windows and
+Apple correlators. The scanner does not run in that job. Submission
+consumes artifacts from the same workflow run, without a cross-run privileged
+handoff.
+
+The Windows profile restores the normal solution, including its Windows-only
+targets. Linux also restores the browser converter after installing `wasm-tools`.
+The Apple profile installs `wasm-tools` and `ios` before restoring the solution and
+the retained `OfficeIMO.Studio.iOS` project. It selects workload set `10.0.112`,
+which supplies the project's iOS `26.5` targeting pack for the SDK's `10.0.100`
+feature band. These are dependency restores, without
+signing, native application launch or package publication. Projects and runtime
+variants outside those explicit sets are not claimed as restored coverage.
+
+Keep GitHub's automatic dependency submission, dependency graph and Dependabot
+enabled. The controlled workflow adds explicit native-platform coverage alongside
+the generated route. Verify all three restore profiles and their default-branch
+snapshots, including Apple and browser dependencies. A successful controlled scan
+does not settle a failed generated `submit-nuget` check. Diagnose that job's
+restore environment separately; do not exclude platform projects or change their
+target frameworks to make its Ubuntu restore succeed.
+
 ## Current Shape
 
 The solution has domain projects such as `OfficeIMO.Word.Tests`, `OfficeIMO.Excel.Tests`, `OfficeIMO.PowerPoint.Tests`, `OfficeIMO.Visio.Tests`, `OfficeIMO.Rtf.Tests`, `OfficeIMO.Html.Tests`, `OfficeIMO.Reader.Tests`, `OfficeIMO.Pdf.Tests`, `OfficeIMO.Markdown.Tests`, `OfficeIMO.Drawing.Tests`, `OfficeIMO.Markup.Tests`, `OfficeIMO.GoogleWorkspace.Tests`, `OfficeIMO.CSV.Tests`, `OfficeIMO.VerifyTests`, and `OfficeIMO.MarkdownRenderer.Wpf.Tests`. Repo-wide contracts that intentionally span product areas live in `OfficeIMO.Shared.Tests`, and shared fixtures/helpers live under `OfficeIMO.TestAssets`.

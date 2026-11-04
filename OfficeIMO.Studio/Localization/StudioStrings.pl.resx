@@ -2971,7 +2971,7 @@
     <value>Wybrane oznaczenia: {0:N0} z {1:N0}. Przed zastosowaniem sprawdź ich skutki.</value>
   </data>
   <data name="Redaction.ReviewedSummary" xml:space="preserve">
-    <value>Sprawdzone obszary: {0:N0}; strony: {1:N0}; dopasowania tekstu: {2:N0}, obrazów: {3:N0}, adnotacji: {4:N0}, wektorów: {5:N0}.</value>
+    <value>Sprawdzone obszary: {0:N0}; strony: {1:N0}; dopasowania tekstu: {2:N0}, obrazów: {3:N0}, adnotacji: {4:N0}, wektorów: {5:N0}, pól formularza: {6:N0}.</value>
   </data>
   <data name="Redaction.SearchText" xml:space="preserve">
     <value>Tekst lub wzorzec do znalezienia</value>

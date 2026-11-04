@@ -7,11 +7,10 @@ namespace OfficeIMO.Word {
         /// Null inherits the threshold; zero disables kerning. Values from zero to 1638
         /// are rounded to Word's half-point precision and are preserved in DOCX and native DOC.
         /// </summary>
-        public double? KerningMinimumFontSizePoints {
-            get => ScopedRunProperties?.Kern?.Val?.Value is uint halfPoints ? halfPoints / 2D : null;
+        public global::OfficeIMO.OfficeLength? KerningMinimumFontSize {
+            get => ScopedRunProperties?.Kern?.Val?.Value is uint halfPoints ? global::OfficeIMO.OfficeLength.Emus((long)halfPoints * 6350) : null;
             set {
-                if (value.HasValue && (double.IsNaN(value.Value) || double.IsInfinity(value.Value) ||
-                    value.Value < 0D || value.Value > 1638D)) {
+                if (value.HasValue && (value.Value < global::OfficeIMO.OfficeLength.Zero || value.Value > global::OfficeIMO.OfficeLength.Points(1638))) {
                     throw new ArgumentOutOfRangeException(nameof(value));
                 }
 
@@ -25,7 +24,7 @@ namespace OfficeIMO.Word {
 
                 if (value.HasValue) {
                     properties.Kern = new Kern {
-                        Val = checked((uint)Math.Round(value.Value * 2D, MidpointRounding.AwayFromZero))
+                        Val = checked((uint)value.Value.ToHalfPoints())
                     };
                 } else {
                     properties.Kern?.Remove();

@@ -10,8 +10,11 @@ namespace OfficeIMO.PowerPoint {
     ///     Represents a textbox shape.
     /// </summary>
     public partial class PowerPointTextBox : PowerPointShape {
-        private readonly SlidePart? _slidePart;
-        private readonly OpenXmlPartContainer? _ownerPart;
+        private readonly SlidePart? _initialSlidePart;
+        private SlidePart? _slidePart => Element.Ancestors<DocumentFormat.OpenXml.Presentation.Slide>().FirstOrDefault()?.SlidePart ?? _initialSlidePart;
+        private readonly OpenXmlPartContainer? _initialOwnerPart;
+        private OpenXmlPartContainer? _ownerPart => Shape.Ancestors<DocumentFormat.OpenXml.Presentation.Slide>()
+            .FirstOrDefault()?.SlidePart ?? _initialOwnerPart ?? _initialSlidePart;
 
         internal PowerPointTextBox(Shape shape, SlidePart? slidePart = null) : this(shape, slidePart, slidePart) {
         }
@@ -19,9 +22,9 @@ namespace OfficeIMO.PowerPoint {
         internal PowerPointTextBox(Shape shape, OpenXmlPartContainer ownerPart) : this(shape, ownerPart as SlidePart, ownerPart) {
         }
 
-        private PowerPointTextBox(Shape shape, SlidePart? slidePart, OpenXmlPartContainer? ownerPart) : base(shape) {
-            _slidePart = slidePart;
-            _ownerPart = ownerPart ?? slidePart;
+        private PowerPointTextBox(Shape shape, SlidePart? slidePart, OpenXmlPartContainer? ownerPart) : base(shape, ownerPart ?? slidePart) {
+            _initialSlidePart = slidePart;
+            _initialOwnerPart = ownerPart ?? slidePart;
         }
 
         private Shape Shape => (Shape)Element;
@@ -66,12 +69,9 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointParagraph AddParagraph(string text = "", Action<PowerPointParagraph>? configure = null,
             Action<PowerPointTextRun>? run = null) {
             TextBody textBody = EnsureTextBody();
-            var wrapper = AppendParagraph(textBody, text ?? string.Empty, textBody.Elements<A.Paragraph>().FirstOrDefault());
+            var wrapper = AppendParagraph(textBody, text ?? string.Empty, textBody.Elements<A.Paragraph>().FirstOrDefault(), out PowerPointTextRun authoredRun);
             configure?.Invoke(wrapper);
-            if (run != null) {
-                var runWrapper = wrapper.Runs.FirstOrDefault() ?? wrapper.AddRun(text ?? string.Empty);
-                run.Invoke(runWrapper);
-            }
+            if (run != null) run(authoredRun.Run.Parent != null ? authoredRun : wrapper.AddText(text ?? string.Empty));
 
             return wrapper;
         }
@@ -120,7 +120,7 @@ namespace OfficeIMO.PowerPoint {
                 if (applyToRuns) {
                     IReadOnlyList<PowerPointTextRun> runs = paragraph.Runs;
                     if (runs.Count == 0) {
-                        runs = new List<PowerPointTextRun> { paragraph.AddRun(string.Empty) };
+                        runs = new List<PowerPointTextRun> { paragraph.AddText(string.Empty) };
                     }
                     foreach (PowerPointTextRun run in runs) {
                         style.Apply(run);
@@ -149,20 +149,26 @@ namespace OfficeIMO.PowerPoint {
         ///     Applies automatic spacing defaults to the textbox paragraphs.
         /// </summary>
         public PowerPointTextBox ApplyAutoSpacing(double lineSpacingMultiplier = 1.2,
-            double? spaceBeforePoints = null, double? spaceAfterPoints = null) {
+            global::OfficeIMO.OfficeLength? spaceBefore = null, global::OfficeIMO.OfficeLength? spaceAfter = null) {
             PowerPointParagraphStyle style = new(lineSpacingMultiplier: lineSpacingMultiplier,
-                spaceBeforePoints: spaceBeforePoints,
-                spaceAfterPoints: spaceAfterPoints);
+                spaceBefore: spaceBefore,
+                spaceAfter: spaceAfter);
             return ApplyParagraphStyle(style);
         }
 
         /// <summary>
-        ///     Replaces text within the textbox while preserving run formatting.
+        ///     Replaces literal text in the textbox paragraphs.
         /// </summary>
-        public int ReplaceText(string oldValue, string newValue) {
+        /// <param name="text">Text to find.</param>
+        /// <param name="replacement">Replacement text; <c>null</c> removes each match.</param>
+        /// <param name="options">Comparison settings. <c>null</c> matches ordinally, ignoring case, inside or across words.</param>
+        /// <returns>The number of replaced matches.</returns>
+        /// <remarks>Each match lies within one text run; text split across runs with different formatting is not matched. Replacement keeps each run's formatting.</remarks>
+        public int ReplaceAll(string text, string replacement, OfficeTextSearchOptions? options = null) {
+            OfficeTextSearch.ValidateSearchText(text, nameof(text));
             int count = 0;
             foreach (PowerPointParagraph paragraph in Paragraphs) {
-                count += paragraph.ReplaceText(oldValue, newValue);
+                count += paragraph.ReplaceAll(text, replacement, options);
             }
             return count;
         }
@@ -186,12 +192,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Text contained in the textbox.
         /// </summary>
         public string Text {
-            get {
-                var paragraphs = EnsureTextBody().Elements<A.Paragraph>()
-                    .Select(p => p.InnerText ?? string.Empty)
-                    .ToList();
-                return paragraphs.Count == 0 ? string.Empty : string.Join(Environment.NewLine, paragraphs);
-            }
+            get => string.Join(Environment.NewLine, Paragraphs.Select(paragraph => paragraph.Text));
             set {
                 string textValue = value ?? string.Empty;
                 TextBody textBody = EnsureTextBody();
@@ -208,21 +209,15 @@ namespace OfficeIMO.PowerPoint {
 
                 textBody.RemoveAllChildren<A.Paragraph>();
 
-                string[] lines = textValue.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
-                foreach (string line in lines) {
+                foreach (string line in PowerPointTextContent.SplitParagraphs(textValue)) {
                     A.Paragraph paragraph = new();
                     if (templateParagraphProperties != null) {
                         paragraph.Append((A.ParagraphProperties)templateParagraphProperties.CloneNode(true));
                     }
 
-                    A.Run run = new();
-                    if (templateRunProperties != null) {
-                        run.RunProperties = CloneRunPropertiesForReplacement(
-                            templateRunProperties);
-                    }
-
-                    run.Append(new A.Text(line));
-                    paragraph.Append(run);
+                    paragraph.Append(PowerPointTextContent.CreateInlineContent(line, templateRunProperties != null
+                        ? CloneRunPropertiesForReplacement(templateRunProperties)
+                        : null));
 
                     if (templateEndParagraphRunProperties != null) {
                         paragraph.Append(
@@ -325,131 +320,45 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Gets or sets the left text margin in points.
+        ///     Gets or sets the left text margin as a physical length.
         /// </summary>
-        public double? TextMarginLeftPoints {
-            get => FromEmusInt(GetBodyProperties()?.LeftInset?.Value, PowerPointUnits.EmusPerPoint);
-            set => EnsureBodyProperties().LeftInset = ToEmusInt(value, PowerPointUnits.EmusPerPoint);
+        public global::OfficeIMO.OfficeLength? TextMarginLeft {
+            get => GetBodyProperties()?.LeftInset?.Value is int value ? global::OfficeIMO.OfficeLength.Emus(value) : (global::OfficeIMO.OfficeLength?)null;
+            set => EnsureBodyProperties().LeftInset = ToEmusInt(value?.ToPoints(), PowerPointUnits.EmusPerPoint);
         }
 
         /// <summary>
-        ///     Gets or sets the right text margin in points.
+        ///     Gets or sets the right text margin as a physical length.
         /// </summary>
-        public double? TextMarginRightPoints {
-            get => FromEmusInt(GetBodyProperties()?.RightInset?.Value, PowerPointUnits.EmusPerPoint);
-            set => EnsureBodyProperties().RightInset = ToEmusInt(value, PowerPointUnits.EmusPerPoint);
+        public global::OfficeIMO.OfficeLength? TextMarginRight {
+            get => GetBodyProperties()?.RightInset?.Value is int value ? global::OfficeIMO.OfficeLength.Emus(value) : (global::OfficeIMO.OfficeLength?)null;
+            set => EnsureBodyProperties().RightInset = ToEmusInt(value?.ToPoints(), PowerPointUnits.EmusPerPoint);
         }
 
         /// <summary>
-        ///     Gets or sets the top text margin in points.
+        ///     Gets or sets the top text margin as a physical length.
         /// </summary>
-        public double? TextMarginTopPoints {
-            get => FromEmusInt(GetBodyProperties()?.TopInset?.Value, PowerPointUnits.EmusPerPoint);
-            set => EnsureBodyProperties().TopInset = ToEmusInt(value, PowerPointUnits.EmusPerPoint);
+        public global::OfficeIMO.OfficeLength? TextMarginTop {
+            get => GetBodyProperties()?.TopInset?.Value is int value ? global::OfficeIMO.OfficeLength.Emus(value) : (global::OfficeIMO.OfficeLength?)null;
+            set => EnsureBodyProperties().TopInset = ToEmusInt(value?.ToPoints(), PowerPointUnits.EmusPerPoint);
         }
 
         /// <summary>
-        ///     Gets or sets the bottom text margin in points.
+        ///     Gets or sets the bottom text margin as a physical length.
         /// </summary>
-        public double? TextMarginBottomPoints {
-            get => FromEmusInt(GetBodyProperties()?.BottomInset?.Value, PowerPointUnits.EmusPerPoint);
-            set => EnsureBodyProperties().BottomInset = ToEmusInt(value, PowerPointUnits.EmusPerPoint);
+        public global::OfficeIMO.OfficeLength? TextMarginBottom {
+            get => GetBodyProperties()?.BottomInset?.Value is int value ? global::OfficeIMO.OfficeLength.Emus(value) : (global::OfficeIMO.OfficeLength?)null;
+            set => EnsureBodyProperties().BottomInset = ToEmusInt(value?.ToPoints(), PowerPointUnits.EmusPerPoint);
         }
 
         /// <summary>
-        ///     Gets or sets the left text margin in centimeters.
+        ///     Sets all text margins as a physical length.
         /// </summary>
-        public double? TextMarginLeftCm {
-            get => FromEmusInt(GetBodyProperties()?.LeftInset?.Value, PowerPointUnits.EmusPerCentimeter);
-            set => EnsureBodyProperties().LeftInset = ToEmusInt(value, PowerPointUnits.EmusPerCentimeter);
-        }
-
-        /// <summary>
-        ///     Gets or sets the right text margin in centimeters.
-        /// </summary>
-        public double? TextMarginRightCm {
-            get => FromEmusInt(GetBodyProperties()?.RightInset?.Value, PowerPointUnits.EmusPerCentimeter);
-            set => EnsureBodyProperties().RightInset = ToEmusInt(value, PowerPointUnits.EmusPerCentimeter);
-        }
-
-        /// <summary>
-        ///     Gets or sets the top text margin in centimeters.
-        /// </summary>
-        public double? TextMarginTopCm {
-            get => FromEmusInt(GetBodyProperties()?.TopInset?.Value, PowerPointUnits.EmusPerCentimeter);
-            set => EnsureBodyProperties().TopInset = ToEmusInt(value, PowerPointUnits.EmusPerCentimeter);
-        }
-
-        /// <summary>
-        ///     Gets or sets the bottom text margin in centimeters.
-        /// </summary>
-        public double? TextMarginBottomCm {
-            get => FromEmusInt(GetBodyProperties()?.BottomInset?.Value, PowerPointUnits.EmusPerCentimeter);
-            set => EnsureBodyProperties().BottomInset = ToEmusInt(value, PowerPointUnits.EmusPerCentimeter);
-        }
-
-        /// <summary>
-        ///     Gets or sets the left text margin in inches.
-        /// </summary>
-        public double? TextMarginLeftInches {
-            get => FromEmusInt(GetBodyProperties()?.LeftInset?.Value, PowerPointUnits.EmusPerInch);
-            set => EnsureBodyProperties().LeftInset = ToEmusInt(value, PowerPointUnits.EmusPerInch);
-        }
-
-        /// <summary>
-        ///     Gets or sets the right text margin in inches.
-        /// </summary>
-        public double? TextMarginRightInches {
-            get => FromEmusInt(GetBodyProperties()?.RightInset?.Value, PowerPointUnits.EmusPerInch);
-            set => EnsureBodyProperties().RightInset = ToEmusInt(value, PowerPointUnits.EmusPerInch);
-        }
-
-        /// <summary>
-        ///     Gets or sets the top text margin in inches.
-        /// </summary>
-        public double? TextMarginTopInches {
-            get => FromEmusInt(GetBodyProperties()?.TopInset?.Value, PowerPointUnits.EmusPerInch);
-            set => EnsureBodyProperties().TopInset = ToEmusInt(value, PowerPointUnits.EmusPerInch);
-        }
-
-        /// <summary>
-        ///     Gets or sets the bottom text margin in inches.
-        /// </summary>
-        public double? TextMarginBottomInches {
-            get => FromEmusInt(GetBodyProperties()?.BottomInset?.Value, PowerPointUnits.EmusPerInch);
-            set => EnsureBodyProperties().BottomInset = ToEmusInt(value, PowerPointUnits.EmusPerInch);
-        }
-
-        /// <summary>
-        ///     Sets all text margins in points.
-        /// </summary>
-        public PowerPointTextBox SetTextMarginsPoints(double left, double top, double right, double bottom) {
-            TextMarginLeftPoints = left;
-            TextMarginTopPoints = top;
-            TextMarginRightPoints = right;
-            TextMarginBottomPoints = bottom;
-            return this;
-        }
-
-        /// <summary>
-        ///     Sets all text margins in centimeters.
-        /// </summary>
-        public PowerPointTextBox SetTextMarginsCm(double leftCm, double topCm, double rightCm, double bottomCm) {
-            TextMarginLeftCm = leftCm;
-            TextMarginTopCm = topCm;
-            TextMarginRightCm = rightCm;
-            TextMarginBottomCm = bottomCm;
-            return this;
-        }
-
-        /// <summary>
-        ///     Sets all text margins in inches.
-        /// </summary>
-        public PowerPointTextBox SetTextMarginsInches(double leftInches, double topInches, double rightInches, double bottomInches) {
-            TextMarginLeftInches = leftInches;
-            TextMarginTopInches = topInches;
-            TextMarginRightInches = rightInches;
-            TextMarginBottomInches = bottomInches;
+        public PowerPointTextBox SetTextMargins(global::OfficeIMO.OfficeLength left, global::OfficeIMO.OfficeLength top, global::OfficeIMO.OfficeLength right, global::OfficeIMO.OfficeLength bottom) {
+            TextMarginLeft = left;
+            TextMarginTop = top;
+            TextMarginRight = right;
+            TextMarginBottom = bottom;
             return this;
         }
 
@@ -564,10 +473,7 @@ namespace OfficeIMO.PowerPoint {
                 return run?.RunProperties?.Bold?.Value == true;
             }
             set {
-                foreach (A.Run run in Runs) {
-                    A.RunProperties runProps = run.RunProperties ??= new A.RunProperties();
-                    runProps.Bold = value;
-                }
+                PowerPointTextContent.FormatRuns(EnsureTextBody(), runProps => runProps.Bold = value);
             }
         }
 
@@ -580,60 +486,48 @@ namespace OfficeIMO.PowerPoint {
                 return run?.RunProperties?.Italic?.Value == true;
             }
             set {
-                foreach (A.Run run in Runs) {
-                    A.RunProperties runProps = run.RunProperties ??= new A.RunProperties();
-                    runProps.Italic = value;
-                }
+                PowerPointTextContent.FormatRuns(EnsureTextBody(), runProps => runProps.Italic = value);
             }
         }
 
         /// <summary>
-        ///     Gets or sets the font size in points.
+        ///     Gets or sets the font size as a physical length.
         /// </summary>
-        public int? FontSize {
+        public global::OfficeIMO.OfficeLength? FontSize {
             get {
                 A.Run? run = Runs.FirstOrDefault();
                 int? size = run?.RunProperties?.FontSize?.Value;
-                return size != null ? size / 100 : null;
+                return size.HasValue ? global::OfficeIMO.OfficeLength.Points(size.Value / 100D) : (global::OfficeIMO.OfficeLength?)null;
             }
             set {
-                int? drawingSize = PowerPointTextDefaults.ToDrawingFontSize(value, nameof(value));
-                foreach (A.Run run in Runs) {
-                    A.RunProperties runProps = run.RunProperties ??= new A.RunProperties();
-                    runProps.FontSize = drawingSize;
-                }
+                int? drawingSize = PowerPointTextDefaults.ToDrawingFontSize(value?.ToPoints(), nameof(value));
+                PowerPointTextContent.FormatRuns(EnsureTextBody(), runProps => runProps.FontSize = drawingSize);
             }
         }
 
         /// <summary>
-        ///     Gets or sets the font name.
+        ///     Gets or sets the font family.
         /// </summary>
-        public string? FontName {
+        public string? FontFamily {
             get {
                 A.Run? run = Runs.FirstOrDefault();
                 return run?.RunProperties?.GetFirstChild<A.LatinFont>()?.Typeface;
             }
             set {
-                foreach (A.Run run in Runs) {
-                    A.RunProperties runProps = run.RunProperties ??= new A.RunProperties();
-                    PowerPointTextPropertyFormatting.SetFontName(runProps, value);
-                }
+                PowerPointTextContent.FormatRuns(EnsureTextBody(), runProps => PowerPointTextPropertyFormatting.SetFontFamily(runProps, value));
             }
         }
 
         /// <summary>
-        ///     Gets or sets the text color in hexadecimal format (e.g. "FF0000").
+        ///     Gets the first run's RGB text color or sets the color of every run. Alpha below 255 is written as native opacity.
         /// </summary>
-        public string? Color {
+        public global::OfficeIMO.OfficeColor? Color {
             get {
                 A.Run? run = Runs.FirstOrDefault();
-                return run?.RunProperties?.GetFirstChild<A.SolidFill>()?.RgbColorModelHex?.Val;
+                return PowerPointTextPropertyFormatting.ReadColor(run?.RunProperties?.GetFirstChild<A.SolidFill>()?.RgbColorModelHex);
             }
             set {
-                foreach (A.Run run in Runs) {
-                    A.RunProperties runProps = run.RunProperties ??= new A.RunProperties();
-                    PowerPointTextPropertyFormatting.SetColor(runProps, value);
-                }
+                PowerPointTextContent.FormatRuns(EnsureTextBody(), runProps => PowerPointTextPropertyFormatting.SetColor(runProps, value));
             }
         }
 
@@ -682,23 +576,19 @@ namespace OfficeIMO.PowerPoint {
             return results;
         }
 
-        private PowerPointParagraph AppendParagraph(TextBody textBody, string text, A.Paragraph? templateParagraph) {
+        private PowerPointParagraph AppendParagraph(TextBody textBody, string text, A.Paragraph? templateParagraph) =>
+            AppendParagraph(textBody, text, templateParagraph, out _);
+
+        private PowerPointParagraph AppendParagraph(TextBody textBody, string text, A.Paragraph? templateParagraph, out PowerPointTextRun authoredRun) {
             A.Paragraph paragraph = new();
             if (templateParagraph?.ParagraphProperties != null) {
                 paragraph.ParagraphProperties = (A.ParagraphProperties)templateParagraph.ParagraphProperties.CloneNode(true);
             }
 
-            A.Run run = new(new A.Text(text));
             A.RunProperties? templateRunProps = templateParagraph?
                 .Elements<A.Run>()
                 .Select(existingRun => existingRun.RunProperties)
                 .FirstOrDefault(runProperties => runProperties != null);
-            if (templateRunProps != null) {
-                run.RunProperties = CloneRunPropertiesForReplacement(
-                    templateRunProps);
-            }
-
-            paragraph.Append(run);
 
             A.EndParagraphRunProperties? templateEnd = templateParagraph?.GetFirstChild<A.EndParagraphRunProperties>();
             if (templateEnd != null) {
@@ -707,7 +597,11 @@ namespace OfficeIMO.PowerPoint {
             }
 
             textBody.Append(paragraph);
-            return new PowerPointParagraph(paragraph, _slidePart ?? OwnerSlide?.SlidePart, _ownerPart);
+            var wrapper = new PowerPointParagraph(paragraph, _slidePart ?? OwnerSlide?.SlidePart, _ownerPart);
+            authoredRun = wrapper.InsertRun(text, templateRunProps != null
+                ? CloneRunPropertiesForReplacement(templateRunProps)
+                : null);
+            return wrapper;
         }
 
         private static A.Paragraph CreateEmptyParagraph(A.Paragraph? templateParagraph) {

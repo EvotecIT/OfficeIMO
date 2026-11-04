@@ -12,13 +12,13 @@ public class PdfFloatingTablePaginationRegressionTests {
     [InlineData(true)]
     public void MinimumHeightClearanceIncludesOffsetFloatAndDynamicContent(bool dynamicContent) {
         var table = Floating(320, 50);
-        table.Position = new PdfTablePosition(verticalOffset: 80);
+        table.Position = new PdfTablePosition(verticalOffset: global::OfficeIMO.OfficeLength.Points(80));
         using var pdf = Pig.Open(PdfDocument.Create(Options(240))
             .Table(new[] { new[] { "floating" } }, style: table)
             .Flow(flow => {
-                if (dynamicContent) flow.Deferred(_ => nested => nested.Paragraph(p => p.Text("first")));
-                else flow.Paragraph(p => p.Text("first"));
-            }, new PdfFlowOptions { MinimumRemainingHeight = 100 }).ToBytes());
+                if (dynamicContent) flow.Deferred(_ => nested => nested.AddParagraph(p => p.AddText("first")));
+                else flow.AddParagraph(p => p.AddText("first"));
+            }, new PdfFlowOptions { MinimumRemainingHeight = global::OfficeIMO.OfficeLength.Points(100) }).ToBytes());
         Assert.DoesNotContain(pdf.GetPage(1).GetWords(), w => w.Text == "first");
         Assert.Contains(pdf.GetPage(2).GetWords(), w => w.Text == "first");
     }
@@ -28,8 +28,8 @@ public class PdfFloatingTablePaginationRegressionTests {
     public void FloatClearanceRechecksFlowMinimumHeight(bool keepTogether) {
         using var pdf = Pig.Open(PdfDocument.Create(Options(240))
             .Table(new[] { new[] { "floating" } }, style: Floating(320, 100))
-            .Flow(flow => flow.Paragraph(p => p.Text("first")),
-                new PdfFlowOptions { KeepTogether = keepTogether, MinimumRemainingHeight = 100 }).ToBytes());
+            .Flow(flow => flow.AddParagraph(p => p.AddText("first")),
+                new PdfFlowOptions { KeepTogether = keepTogether, MinimumRemainingHeight = global::OfficeIMO.OfficeLength.Points(100) }).ToBytes());
         Assert.DoesNotContain(pdf.GetPage(1).GetWords(), w => w.Text == "first");
         Assert.Contains(pdf.GetPage(2).GetWords(), w => w.Text == "first");
     }
@@ -38,11 +38,11 @@ public class PdfFloatingTablePaginationRegressionTests {
         var options = Options(240);
         var table = Floating(120, 100);
         byte[] baseline = PdfDocument.Create(options).Table(new[] { new[] { "floating" } }, style: table)
-            .Paragraph(p => p.Text("following")).ToBytes();
+            .Paragraph(p => p.AddText("following")).ToBytes();
         byte[] actual = PdfDocument.Create(options).Table(new[] { new[] { "floating" } }, style: table)
-            .Flow(flow => flow.Paragraph(p => p.Text("skipped")).Spacer(70),
+            .Flow(flow => flow.AddParagraph(p => p.AddText("skipped")).Spacer(global::OfficeIMO.OfficeLength.Points(70)),
                 new PdfFlowOptions { OverflowBehavior = PdfFlowOverflowBehavior.Skip })
-            .Paragraph(p => p.Text("following")).ToBytes();
+            .Paragraph(p => p.AddText("following")).ToBytes();
         using var expectedPdf = Pig.Open(baseline);
         using var actualPdf = Pig.Open(actual);
         Assert.Equal(expectedPdf.GetPage(1).GetWords().Single(w => w.Text == "following").BoundingBox,
@@ -55,9 +55,9 @@ public class PdfFloatingTablePaginationRegressionTests {
     public void FloatClearancePrecedesNonContinuingOverflowDecision(PdfFlowOverflowBehavior behavior) {
         using var pdf = Pig.Open(PdfDocument.Create(Options(240))
             .Table(new[] { new[] { "floating" } }, style: Floating(320, 100))
-            .Flow(flow => flow.Paragraph(p => p.Text("first")).Spacer(70),
+            .Flow(flow => flow.AddParagraph(p => p.AddText("first")).Spacer(global::OfficeIMO.OfficeLength.Points(70)),
                 new PdfFlowOptions { OverflowBehavior = behavior })
-            .Paragraph(p => p.Text("following")).ToBytes());
+            .Paragraph(p => p.AddText("following")).ToBytes());
         Assert.DoesNotContain(pdf.GetPages().SelectMany(p => p.GetWords()), w => w.Text == "first");
         Assert.Equal(behavior == PdfFlowOverflowBehavior.Skip,
             pdf.GetPages().SelectMany(p => p.GetWords()).Any(w => w.Text == "following"));
@@ -66,8 +66,8 @@ public class PdfFloatingTablePaginationRegressionTests {
     public void StaticConstrainedFlowRemeasuresSpacingAfterFloatClearance() {
         using var pdf = Pig.Open(PdfDocument.Create(Options(240))
             .Table(new[] { new[] { "floating" } }, style: Floating(320, 50))
-            .Flow(flow => flow.Paragraph(p => p.Text("first"), style: new PdfParagraphStyle { LineHeight = 1, SpacingBefore = 50, SpacingAfter = 0 })
-                .Spacer(80).Paragraph(p => p.Text("last"), style: new PdfParagraphStyle { LineHeight = 1, SpacingAfter = 0 }),
+            .Flow(flow => flow.AddParagraph(p => p.AddText("first"), style: new PdfParagraphStyle { LineHeight = 1, SpacingBefore = global::OfficeIMO.OfficeLength.Points(50), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
+                .Spacer(global::OfficeIMO.OfficeLength.Points(80)).AddParagraph(p => p.AddText("last"), style: new PdfParagraphStyle { LineHeight = 1, SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) }),
                 new PdfFlowOptions { KeepTogether = true }).ToBytes());
         Assert.DoesNotContain(pdf.GetPage(1).GetWords(), word => word.Text == "first");
         Assert.Contains(pdf.GetPage(2).GetWords(), word => word.Text == "first");
@@ -76,12 +76,12 @@ public class PdfFloatingTablePaginationRegressionTests {
 
     [Fact]
     public void ReplayedConstrainedFlowClearsLowerFloatWithNewHeight() {
-        var lower = Floating(320, 30); lower.Position = new PdfTablePosition(verticalOffset: 70);
+        var lower = Floating(320, 30); lower.Position = new PdfTablePosition(verticalOffset: global::OfficeIMO.OfficeLength.Points(70));
         using var pdf = Pig.Open(PdfDocument.Create(Options(240))
             .Table(new[] { new[] { "top" } }, style: Floating(320, 30))
             .Table(new[] { new[] { "lower" } }, style: lower)
-            .Deferred(context => flow => flow.Paragraph(p => p.Text(context.IsAtPageTop ? "first" : "first\none\ntwo\nthree\nfour\nfive"))
-                .Spacer(30).Paragraph(p => p.Text("last")), new PdfFlowOptions { KeepTogether = true }).ToBytes());
+            .Deferred(context => flow => flow.AddParagraph(p => p.AddText(context.IsAtPageTop ? "first" : "first\none\ntwo\nthree\nfour\nfive"))
+                .Spacer(global::OfficeIMO.OfficeLength.Points(30)).AddParagraph(p => p.AddText("last")), new PdfFlowOptions { KeepTogether = true }).ToBytes());
         Assert.DoesNotContain(pdf.GetPage(1).GetWords(), word => word.Text == "first");
         Assert.Contains(pdf.GetPage(2).GetWords(), word => word.Text == "first");
         Assert.Contains(pdf.GetPage(2).GetWords(), word => word.Text == "last");
@@ -91,7 +91,7 @@ public class PdfFloatingTablePaginationRegressionTests {
     public void ConstrainedFlowMovesAsAWholePastFloat() {
         using var pdf = Pig.Open(PdfDocument.Create(Options(240))
             .Table(new[] { new[] { "floating" } }, style: Floating(320, 100))
-            .Flow(flow => flow.Paragraph(p => p.Text("first")).Spacer(50).Paragraph(p => p.Text("last")),
+            .Flow(flow => flow.AddParagraph(p => p.AddText("first")).Spacer(global::OfficeIMO.OfficeLength.Points(50)).AddParagraph(p => p.AddText("last")),
                 new PdfFlowOptions { KeepTogether = true }).ToBytes());
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.DoesNotContain(pdf.GetPage(1).GetWords(), word => word.Text == "first" || word.Text == "last");
@@ -103,8 +103,8 @@ public class PdfFloatingTablePaginationRegressionTests {
     public void FloatKeepWithNextIncludesAfterSpacing() {
         using var pdf = Pig.Open(PdfDocument.Create(Options(240))
             .Table(new[] { new[] { "floating" } }, style: Floating(320, 90))
-            .Paragraph(p => p.Text("first"), style: new PdfParagraphStyle { KeepWithNext = true, SpacingAfter = 50 })
-            .Paragraph(p => p.Text("next")).ToBytes());
+            .Paragraph(p => p.AddText("first"), style: new PdfParagraphStyle { KeepWithNext = true, SpacingAfter = global::OfficeIMO.OfficeLength.Points(50) })
+            .Paragraph(p => p.AddText("next")).ToBytes());
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.DoesNotContain(pdf.GetPage(1).GetWords(), word => word.Text == "first");
         Assert.Contains(pdf.GetPage(2).GetWords(), word => word.Text == "first");
@@ -119,7 +119,7 @@ public class PdfFloatingTablePaginationRegressionTests {
         var document = PdfDocument.Create(Options(240));
         if (deferred) document.TableDeferred(() => new[] { new[] { "floating" } }, batchSize: 1, style: style);
         else document.Table(new[] { new[] { "floating" } }, style: style);
-        using var pdf = Pig.Open(document.Paragraph(p => p.Text("following")).ToBytes());
+        using var pdf = Pig.Open(document.Paragraph(p => p.AddText("following")).ToBytes());
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.DoesNotContain(pdf.GetPage(1).GetWords(), word => word.Text == "following");
         Assert.Equal(40, pdf.GetPage(2).GetWords().Single(word => word.Text == "following").BoundingBox.Left, 1);
@@ -132,7 +132,7 @@ public class PdfFloatingTablePaginationRegressionTests {
         for (int index = 0; index < 200; index++)
             document.Bookmark("destination-" + index);
 
-        byte[] bytes = document.Paragraph(paragraph => paragraph.Text("following")).ToBytes();
+        byte[] bytes = document.Paragraph(paragraph => paragraph.AddText("following")).ToBytes();
         var destinations = PdfInspector.Inspect(bytes).NamedDestinations
             .Where(destination => destination.Name.StartsWith("destination-"))
             .ToArray();
@@ -142,11 +142,14 @@ public class PdfFloatingTablePaginationRegressionTests {
     }
 
 
-    private static PdfOptions Options(double height = 500) => new() {
-        PageWidth = 400, PageHeight = height, MarginLeft = 40, MarginRight = 40, MarginTop = 40, MarginBottom = 40
+    private static PdfCreateOptions Options(double height = 500) => new() {
+        PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(height)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(40), Right = global::OfficeIMO.OfficeLength.Points(40), Top = global::OfficeIMO.OfficeLength.Points(40), Bottom = global::OfficeIMO.OfficeLength.Points(40) }
+        }
     };
     private static PdfTableStyle Floating(double width = 120, double height = 80) => new() {
-        HeaderRowCount = 0, ColumnWidthPoints = new List<double?> { width }, MinRowHeight = height,
+        HeaderRowCount = 0, ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(width) }, MinRowHeight = global::OfficeIMO.OfficeLength.Points(height),
         Position = new PdfTablePosition()
     };
 
@@ -157,10 +160,10 @@ public class PdfFloatingTablePaginationRegressionTests {
     [InlineData(true, true)]
     public void PageMovedFloatRestoresDestinationFlow(bool deferred, bool keepTogether) {
         var style = Floating(); style.KeepTogether = keepTogether;
-        var document = PdfDocument.Create(Options()).Paragraph(p => p.Text("intro")).Spacer(350);
+        var document = PdfDocument.Create(Options()).Paragraph(p => p.AddText("intro")).Spacer(350);
         if (deferred) document.TableDeferred(() => new[] { new[] { "floating" } }, batchSize: 1, style: style);
         else document.Table(new[] { new[] { "floating" } }, style: style);
-        using var pdf = Pig.Open(document.Paragraph(p => p.Text("following")).ToBytes());
+        using var pdf = Pig.Open(document.Paragraph(p => p.AddText("following")).ToBytes());
         Assert.Equal(2, pdf.NumberOfPages);
         var following = pdf.GetPage(2).GetWords().Single(w => w.Text == "following");
         Assert.True(following.BoundingBox.Left >= 160);
@@ -171,13 +174,13 @@ public class PdfFloatingTablePaginationRegressionTests {
     [InlineData(false)]
     [InlineData(true)]
     public void LeadingTabIncludesAdvanceWhenAvoidingFloat(bool inline) {
-        var style = Floating(200); style.Position = new PdfTablePosition(horizontalAlignment: PdfAlign.Right);
-        var paragraphStyle = new PdfParagraphStyle { DefaultTabStopWidth = 100 };
+        var style = Floating(200); style.Position = new PdfTablePosition(horizontalAlignment: OfficeAlignment.Right);
+        var paragraphStyle = new PdfParagraphStyle { DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(100) };
         using var pdf = Pig.Open(PdfDocument.Create(Options()).Table(new[] { new[] { "floating" } }, style: style)
             .Paragraph(p => {
-                p.Text("\t");
-                if (inline) p.Inline(new PdfInlineBox(50, 20, background: PdfColor.Black));
-                p.Text("following");
+                p.AddText("\t");
+                if (inline) p.AddInline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(20), background: global::OfficeIMO.OfficeColor.Black));
+                p.AddText("following");
             }, style: paragraphStyle).ToBytes());
         var following = pdf.GetPage(1).GetWords().Single(w => w.Text == "following");
         Assert.True(following.BoundingBox.Top <= 381, following.BoundingBox.ToString());
@@ -185,10 +188,10 @@ public class PdfFloatingTablePaginationRegressionTests {
 
     [Fact]
     public void EntirePanelAvoidsOffsetFloat() {
-        var style = Floating(); style.Position = new PdfTablePosition(verticalOffset: 25);
+        var style = Floating(); style.Position = new PdfTablePosition(verticalOffset: global::OfficeIMO.OfficeLength.Points(25));
         using var pdf = Pig.Open(PdfDocument.Create(Options()).Table(new[] { new[] { "floating" } }, style: style)
-            .Panel(panel => panel.Paragraph(p => p.Text("one\ntwo\nthree\nfour\nfive")),
-                new PdfPanelStyle { Background = PdfColor.Black, KeepTogether = false }).ToBytes());
+            .Panel(panel => panel.AddParagraph(p => p.AddText("one\ntwo\nthree\nfour\nfive")),
+                new PdfPanelStyle { Background = global::OfficeIMO.OfficeColor.Black, KeepTogether = false }).ToBytes());
         Assert.True(pdf.GetPage(1).GetWords().Single(w => w.Text == "one").BoundingBox.Top <= 356);
     }
 
@@ -210,7 +213,7 @@ public class PdfFloatingTablePaginationRegressionTests {
     [Fact]
     public void WidowTransferredLinesDiscardPriorPageFloatOffsets() {
         using var pdf = Pig.Open(PdfDocument.Create(Options(240)).Table(new[] { new[] { "floating" } }, style: Floating(200, 145))
-            .Paragraph(p => p.Text(string.Join("\n", Enumerable.Range(0, 12).Select(i => "word" + i))),
+            .Paragraph(p => p.AddText(string.Join("\n", Enumerable.Range(0, 12).Select(i => "word" + i))),
                 style: new PdfParagraphStyle { WidowControl = true }).ToBytes());
         Assert.Equal(2, pdf.NumberOfPages);
         var words = pdf.GetPage(2).GetWords().Where(w => w.Text.StartsWith("word")).ToList();
@@ -221,9 +224,9 @@ public class PdfFloatingTablePaginationRegressionTests {
     [Fact]
     public void WidowTransferredTabsRetainParagraphStopColumn() {
         var style = new PdfParagraphStyle { WidowControl = true };
-        style.TabStops.Add(new PdfTabStop(240));
+        style.TabStops.Add(new PdfTabStop(global::OfficeIMO.OfficeLength.Points(240)));
         using var pdf = Pig.Open(PdfDocument.Create(Options(240)).Table(new[] { new[] { "floating" } }, style: Floating(200, 145))
-            .Paragraph(p => p.Text(string.Join("\n", Enumerable.Range(0, 12).Select(i => "\tword" + i))), style: style).ToBytes());
+            .Paragraph(p => p.AddText(string.Join("\n", Enumerable.Range(0, 12).Select(i => "\tword" + i))), style: style).ToBytes());
         Assert.Equal(2, pdf.NumberOfPages);
         var words = pdf.GetPage(2).GetWords().Where(w => w.Text.StartsWith("word")).ToList();
         Assert.True(words.Count >= 2);

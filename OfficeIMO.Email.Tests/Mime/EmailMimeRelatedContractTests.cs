@@ -13,7 +13,7 @@ public sealed class EmailMimeRelatedContractTests {
             "Content-Location: https://example.test/page.html\r\n\r\n<img src=\"cid:logo\">\r\n" +
             "--archive--\r\n";
 
-        EmailDocument document = new EmailDocumentReader().Read(Encoding.UTF8.GetBytes(eml)).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(Encoding.UTF8.GetBytes(eml)).Document;
 
         Assert.Equal("<img src=\"cid:logo\">", document.Body.Html);
         Assert.Equal("root", document.Body.HtmlContentId);
@@ -40,7 +40,7 @@ public sealed class EmailMimeRelatedContractTests {
 
         byte[] bytes = new EmailDocumentWriter().ToBytes(document);
         string serialized = Encoding.ASCII.GetString(bytes);
-        EmailDocument roundTrip = new EmailDocumentReader().Read(bytes).Document;
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(bytes).Document;
 
         Assert.Contains("multipart/related", serialized, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("type=\"text/html\"", serialized, StringComparison.OrdinalIgnoreCase);
@@ -62,7 +62,7 @@ public sealed class EmailMimeRelatedContractTests {
         document.Body.IsHtmlRelatedRoot = true;
 
         byte[] bytes = new EmailDocumentWriter().ToBytes(document);
-        EmailDocument roundTrip = new EmailDocumentReader().Read(bytes).Document;
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(bytes).Document;
 
         Assert.True(roundTrip.Body.IsHtmlRelatedRoot);
         Assert.Equal("root", roundTrip.Body.HtmlContentId);
@@ -76,7 +76,7 @@ public sealed class EmailMimeRelatedContractTests {
             "--archive\r\nContent-Type: text/html; charset=utf-8\r\n\r\n" +
             "<html><body>saved</body></html>\r\n--archive--\r\n";
 
-        EmailDocument document = new EmailDocumentReader().Read(Encoding.UTF8.GetBytes(eml)).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(Encoding.UTF8.GetBytes(eml)).Document;
         string serialized = Encoding.ASCII.GetString(new EmailDocumentWriter().ToBytes(document));
 
         Assert.Contains("start-info=\"application/x-test\"", serialized, StringComparison.OrdinalIgnoreCase);

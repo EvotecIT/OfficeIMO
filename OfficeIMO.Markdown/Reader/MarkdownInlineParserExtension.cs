@@ -39,7 +39,7 @@ public sealed class MarkdownInlineParserContext {
     internal MarkdownInlineParserContext(
         string text,
         int position,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState? state,
         bool allowLinks,
         bool allowImages,
@@ -62,7 +62,7 @@ public sealed class MarkdownInlineParserContext {
     public int Position { get; }
 
     /// <summary>Reader options active for the current parse.</summary>
-    public MarkdownReaderOptions Options { get; }
+    public MarkdownLoadOptions Options { get; }
 
     /// <summary>Reader state shared with the current parse, including reference definitions when available.</summary>
     public MarkdownReaderState? State { get; }
@@ -150,7 +150,7 @@ public sealed class MarkdownInlineParserExtension {
     public MarkdownInlineParserExtension(
         string name,
         MarkdownInlineParser parser,
-        Func<MarkdownReaderOptions, bool>? isEnabled = null) {
+        Func<MarkdownLoadOptions, bool>? isEnabled = null) {
         if (string.IsNullOrWhiteSpace(name)) {
             throw new ArgumentException("Extension name cannot be null or whitespace.", nameof(name));
         }
@@ -167,8 +167,8 @@ public sealed class MarkdownInlineParserExtension {
     public MarkdownInlineParser Parser { get; }
 
     /// <summary>Optional predicate that decides whether the extension should apply for a specific options instance.</summary>
-    public Func<MarkdownReaderOptions, bool>? IsEnabled { get; }
+    public Func<MarkdownLoadOptions, bool>? IsEnabled { get; }
 
     /// <summary>Returns <see langword="true"/> when the extension should participate in parsing.</summary>
-    public bool AppliesTo(MarkdownReaderOptions options) => IsEnabled?.Invoke(options) ?? true;
+    public bool AppliesTo(MarkdownLoadOptions options) => IsEnabled?.Invoke(options) ?? true;
 }

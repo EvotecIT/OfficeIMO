@@ -33,21 +33,21 @@ public sealed class PublisherMasterPairAuthoringTests {
         Assert.DoesNotContain("Left definition", document.ToSvg(1));
         Assert.Contains("Left definition", PublisherAuthoringTests.PaintedText(added));
         Assert.Equal(2, document.TextStories.Count);
-        PdfReadDocument pdf = PdfReadDocument.Open(document.ToPdfBytes());
+        using PdfDocument pdf = PublisherNativeTests.ExportAndReloadPdf(document);
         Assert.Contains("Right definition", pdf.Pages[0].ExtractText());
         Assert.DoesNotContain("Left definition", pdf.Pages[1].ExtractText());
     }
 
     [Fact]
     public void Pair_limits_invalid_names_and_cancellation_leave_both_definitions_and_allocator_unchanged() {
-        PublisherDocument limited = PublisherDocument.Create(612, 792, new PublisherReadOptions { MaximumPages = 2 });
+        PublisherDocument limited = PublisherDocument.Create(612, 792, new PublisherLoadOptions { MaxPages = 2 });
         var pages = limited.Pages; var masters = limited.MasterPages; var report = limited.ReadReport;
         Assert.Throws<InvalidDataException>(() => limited.AddMasterPagePair("P"));
         Assert.Same(pages, limited.Pages); Assert.Same(masters, limited.MasterPages); Assert.Same(report, limited.ReadReport);
         Assert.Equal(2U, limited.AddMasterPage("Only free definition").Id);
 
         PublisherDocument nameLimited = PublisherDocument.Create(612, 792,
-            new PublisherReadOptions { Limits = new OfficeLegacyImportLimits { MaxTextCharacters = 3 } });
+            new PublisherLoadOptions { Limits = new OfficeLegacyImportLimits { MaxTextCharacters = 3 } });
         var beforeNames = nameLimited.MasterPages;
         Assert.Throws<ArgumentException>(() => nameLimited.AddMasterPagePair("PP"));
         Assert.Same(beforeNames, nameLimited.MasterPages);
@@ -78,7 +78,7 @@ public sealed class PublisherMasterPairAuthoringTests {
         Assert.Equal(sides, document.MasterPages.Select(page => page.MasterSide));
         PublisherTextFrame frame = document.MasterPages[1].TextFrames[0];
         document.SetTextFrameBounds(frame.Id, frame.X + 6, frame.Y + 12, frame.Width, frame.Height);
-        PublisherDocument reopened = PublisherDocument.Load(document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        PublisherDocument reopened = PublisherDocument.Load(document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         Assert.Equal(sides, reopened.MasterPages.Select(page => page.MasterSide));
         Assert.Equal(document.Pages.Select(page => page.MasterPageId), reopened.Pages.Select(page => page.MasterPageId));
         Assert.Equal(frame.X + 6, reopened.MasterPages[1].TextFrames[0].X);

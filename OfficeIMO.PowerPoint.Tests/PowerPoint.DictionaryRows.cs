@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
                     new GenericOnlyDictionaryRow<int>(("Score", 20), ("Rank", 2))
                 };
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointTable table = presentation.AddSlide().AddTable(rows);
                     Assert.Equal("Score", table.GetCell(0, 0).Text);
                     Assert.Equal("Rank", table.GetCell(0, 1).Text);
@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                     PowerPointTable table = presentation.Slides.Single().Tables.Single();
                     Assert.Equal("Score", table.GetCell(0, 0).Text);
                     Assert.Equal("Rank", table.GetCell(0, 1).Text);

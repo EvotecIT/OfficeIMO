@@ -11,17 +11,17 @@ Creates discoverable renderer and reconstruction settings for general conversion
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-New-OfficeConversionOptions [-WordOptions <WordToPdfOptions>] [-ExcelOptions <ExcelToPdfOptions>] [-PowerPointOptions <PowerPointToPdfOptions>] [-HtmlOptions <HtmlToPdfOptions>] [-MarkdownOptions <MarkdownToPdfOptions>] [-RtfOptions <RtfToPdfOptions>] [-TextOptions <PdfPlainTextOptions>] [-DrawOptions <OdgToPdfOptions>] [-VisioOptions <VisioToPdfOptions>] [-XpsOptions <XpsToPdfOptions>] [-ChmOptions <ChmConversionOptions>] [-DjVuOptions <DjVuToPdfOptions>] [-PublisherReadOptions <PublisherReadOptions>] [-PublisherPdfOptions <PdfOptions>] [-CompressPdfOutput] [-WorksheetLayout <ExcelPdfWorksheetLayoutMode>] [-PdfHtmlProfile <PdfHtmlProfile>] [-RequireNoLoss] [-AllowLegacyImportLoss] [-PageRange <string>] [-PdfWordMode <PdfWordImportMode>] [-PdfPowerPointMode <PdfPowerPointImportMode>] [-RasterDpi <Double>] [<CommonParameters>]
+New-OfficeConversionOptions [-WordOptions <WordPdfExportOptions>] [-ExcelOptions <ExcelPdfExportOptions>] [-PowerPointOptions <PowerPointPdfExportOptions>] [-HtmlOptions <HtmlPdfExportOptions>] [-MarkdownOptions <MarkdownPdfExportOptions>] [-RtfOptions <RtfPdfExportOptions>] [-TextOptions <PdfTextImportOptions>] [-DrawOptions <OdgPdfExportOptions>] [-VisioOptions <VisioPdfExportOptions>] [-XpsOptions <XpsPdfExportOptions>] [-ChmOptions <ChmConversionOptions>] [-DjVuOptions <DjVuPdfExportOptions>] [-PublisherLoadOptions <PublisherLoadOptions>] [-PublisherPdfOptions <PdfCreateOptions>] [-CompressPdfOutput] [-WorksheetLayout <ExcelPdfWorksheetLayoutMode>] [-PdfHtmlProfile <PdfHtmlProfile>] [-FailOnLoss] [-AllowLegacyImportLoss] [-PageRange <string>] [-PdfWordMode <WordPdfImportMode>] [-PdfPowerPointMode <PowerPointPdfImportMode>] [-RasterDpi <Double>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Requires PowerShell 7.4 or newer. Format-specific options apply only to their matching routes.
+Format-specific options apply only to their matching routes.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-$options = New-OfficeConversionOptions -RequireNoLoss -ExcelOptions (New-OfficeExcelPdfOptions -UseWorksheetCharts)
+$options = New-OfficeConversionOptions -FailOnLoss -ExcelOptions (New-OfficeExcelPdfOptions -UseWorksheetCharts)
 ConvertTo-OfficeDocument -InputPath ./report.xlsx -OutputPath ./report.pdf -ConversionOptions $options
 ```
 
@@ -80,7 +80,7 @@ Accept wildcard characters: False
 DjVu scanned-page PDF and stored-text settings.
 
 ```yaml
-Type: DjVuToPdfOptions
+Type: DjVuPdfExportOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -96,7 +96,7 @@ Accept wildcard characters: False
 ODG/FODG drawing projection and PDF options; accepts a property hashtable.
 
 ```yaml
-Type: OdgToPdfOptions
+Type: OdgPdfExportOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -112,7 +112,23 @@ Accept wildcard characters: False
 Excel-to-PDF settings from New-OfficeExcelPdfOptions.
 
 ```yaml
-Type: ExcelToPdfOptions
+Type: ExcelPdfExportOptions
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -FailOnLoss
+Reject any reduction reported by the selected route.
+
+```yaml
+Type: SwitchParameter
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -128,7 +144,7 @@ Accept wildcard characters: False
 HTML-to-PDF settings from New-OfficeHtmlPdfOptions.
 
 ```yaml
-Type: HtmlToPdfOptions
+Type: HtmlPdfExportOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -144,7 +160,7 @@ Accept wildcard characters: False
 Markdown-to-PDF settings from New-OfficeMarkdownPdfOptions.
 
 ```yaml
-Type: MarkdownToPdfOptions
+Type: MarkdownPdfExportOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -192,7 +208,7 @@ Accept wildcard characters: False
 PDF-to-PowerPoint reconstruction or rendered-page strategy.
 
 ```yaml
-Type: PdfPowerPointImportMode
+Type: PowerPointPdfImportMode
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values: VisualPages, EditableTables, HybridVisualAndEditableTables, EditableContent, Auto
@@ -208,7 +224,7 @@ Accept wildcard characters: False
 PDF-to-Word reconstruction or rendered-page strategy.
 
 ```yaml
-Type: PdfWordImportMode
+Type: WordPdfImportMode
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values: EditableContent, VisualPages
@@ -224,7 +240,23 @@ Accept wildcard characters: False
 PowerPoint-to-PDF settings from New-OfficePowerPointPdfOptions.
 
 ```yaml
-Type: PowerPointToPdfOptions
+Type: PowerPointPdfExportOptions
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -PublisherLoadOptions
+Native Publisher decoding and projection limits.
+
+```yaml
+Type: PublisherLoadOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -240,23 +272,7 @@ Accept wildcard characters: False
 Shared PDF settings for recovered Publisher pages.
 
 ```yaml
-Type: PdfOptions
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -PublisherReadOptions
-Native Publisher decoding and projection limits.
-
-```yaml
-Type: PublisherReadOptions
+Type: PdfCreateOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -284,27 +300,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -RequireNoLoss
-Reject any reduction reported by the selected route.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -RtfOptions
 RTF-to-PDF settings from New-OfficeRtfPdfOptions.
 
 ```yaml
-Type: RtfToPdfOptions
+Type: RtfPdfExportOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -320,7 +320,7 @@ Accept wildcard characters: False
 Literal-text settings from New-OfficeTextPdfOptions.
 
 ```yaml
-Type: PdfPlainTextOptions
+Type: PdfTextImportOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -336,7 +336,7 @@ Accept wildcard characters: False
 Visio diagram-page projection settings; accepts a property hashtable.
 
 ```yaml
-Type: VisioToPdfOptions
+Type: VisioPdfExportOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -352,7 +352,7 @@ Accept wildcard characters: False
 Word-to-PDF settings from New-OfficeWordPdfOptions.
 
 ```yaml
-Type: WordToPdfOptions
+Type: WordPdfExportOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -384,7 +384,7 @@ Accept wildcard characters: False
 Native XPS preservation and PDF output settings.
 
 ```yaml
-Type: XpsToPdfOptions
+Type: XpsPdfExportOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

@@ -75,7 +75,7 @@ internal static class NativeInventory {
         if (!compound.Streams.TryGetValue("Contents", out byte[]? bytes)) return new { status = "missing" };
         try {
             var data = new PublisherBinaryData(bytes, "Contents");
-            var context = new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None);
+            var context = new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None);
             var reader = new PublisherBlockReader(data, context);
             int trailer = data.Offset(data.U32(0x1A));
             var trailerFields = reader.Chunk(trailer);
@@ -149,7 +149,7 @@ internal static class NativeInventory {
         if (!compound.Streams.TryGetValue("Quill/QuillSub/CONTENTS", out byte[]? bytes)) return new { status = "missing" };
         try {
             var data = new PublisherBinaryData(bytes, "Quill/QuillSub/CONTENTS");
-            var context = new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None);
+            var context = new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None);
             var chunks = PublisherQuillDirectory.Read(data, context);
             return new {
                 status = "decoded-directory",
@@ -205,7 +205,7 @@ internal static class NativeInventory {
                 stories = document.TextStories.Select(story => new { story.Id, story.Text }).ToArray(),
                 sourceStyles = document.SourceStyleCatalog,
                 images = document.Images.Count,
-                diagnostics = document.ReadReport.FidelityDiagnostics.Select(diagnostic => new { diagnostic.Code, diagnostic.LossKind, diagnostic.Message }).ToArray()
+                diagnostics = document.ReadReport.Diagnostics.Select(diagnostic => new { diagnostic.Code, diagnostic.LossKind, diagnostic.Message }).ToArray()
             };
         } catch (Exception exception) when (exception is InvalidDataException or NotSupportedException or OverflowException) {
             return new { status = "rejected", error = exception.Message };

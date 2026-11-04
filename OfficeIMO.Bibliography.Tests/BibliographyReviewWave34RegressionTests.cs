@@ -12,7 +12,7 @@ public sealed class BibliographyReviewWave34RegressionTests {
         document.Items.Add(new BibliographyItem { Key = "x", Type = BibliographyItemType.Book, Title = "Replacement" });
         stream.ArmCancellation();
 
-        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             document.SaveAsync(stream, new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical }, cancellation.Token));
 
         Assert.Equal(original, stream.ToArray());

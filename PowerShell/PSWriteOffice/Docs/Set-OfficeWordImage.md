@@ -9,9 +9,9 @@ schema: 2.0.0
 Updates OfficeIMO Word image sizing, wrapping, crop, and metadata.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
-Set-OfficeWordImage [-Image] <WordImage> [-Width <Double>] [-Height <Double>] [-Wrap <WordImageTextWrapping>] [-CropTop <Int32>] [-CropBottom <Int32>] [-CropLeft <Int32>] [-CropRight <Int32>] [-Rotation <Int32>] [-Opacity <Int32>] [-HorizontalFlip <Boolean>] [-VerticalFlip <Boolean>] [-Title <string>] [-Description <string>] [-Hidden <Boolean>] [-PassThru] [<CommonParameters>]
+Set-OfficeWordImage [-Image] <WordImage> [-Width <OfficeLength>] [-Height <OfficeLength>] [-Wrap <WordImageTextWrapping>] [-CropTop <Int32>] [-CropBottom <Int32>] [-CropLeft <Int32>] [-CropRight <Int32>] [-Rotation <Int32>] [-Opacity <Int32>] [-HorizontalFlip <Boolean>] [-VerticalFlip <Boolean>] [-Title <string>] [-Description <string>] [-Hidden <Boolean>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -21,7 +21,7 @@ Updates OfficeIMO Word image sizing, wrapping, crop, and metadata.
 
 ### EXAMPLE 1
 ```powershell
-PS> $doc = Get-OfficeWord -Path .\Report.docx
+PS> $doc = Open-OfficeWord -Path .\Report.docx
 $doc |
     Get-OfficeWordImage |
     Set-OfficeWordImage -Width 320 -Wrap Square -Title 'Report image' -Description 'Image used in the report'
@@ -37,7 +37,7 @@ Bottom crop value.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -53,7 +53,7 @@ Left crop value.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -69,7 +69,7 @@ Right crop value.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -85,7 +85,7 @@ Top crop value.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -101,7 +101,7 @@ Image alternate text metadata.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -113,11 +113,11 @@ Accept wildcard characters: False
 ```
 
 ### -Height
-Image height in points.
+Image height; numbers mean points and unit suffixes are accepted.
 
 ```yaml
-Type: Double
-Parameter Sets: __AllParameterSets
+Type: OfficeLength
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -133,7 +133,7 @@ Whether the image is hidden.
 
 ```yaml
 Type: Boolean
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -149,7 +149,7 @@ Horizontally flip the image.
 
 ```yaml
 Type: Boolean
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -165,7 +165,7 @@ Image to update.
 
 ```yaml
 Type: WordImage
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -181,7 +181,7 @@ Fixed opacity percentage.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -197,7 +197,7 @@ Emit the updated image.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -213,7 +213,7 @@ Image rotation in degrees.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -229,7 +229,7 @@ Image title metadata.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -245,7 +245,7 @@ Vertically flip the image.
 
 ```yaml
 Type: Boolean
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -257,11 +257,11 @@ Accept wildcard characters: False
 ```
 
 ### -Width
-Image width in points.
+Image width; numbers mean points and unit suffixes are accepted.
 
 ```yaml
-Type: Double
-Parameter Sets: __AllParameterSets
+Type: OfficeLength
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -277,7 +277,7 @@ Text wrapping mode.
 
 ```yaml
 Type: WordImageTextWrapping
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: InLineWithText, Square, Tight, Through, TopAndBottom, BehindText, InFrontOfText
 

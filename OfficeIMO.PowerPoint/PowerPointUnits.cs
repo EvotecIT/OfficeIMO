@@ -4,7 +4,7 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Provides helpers for converting between EMUs and common units.
     /// </summary>
-    public static class PowerPointUnits {
+    internal static class PowerPointUnits {
         /// <summary>
         ///     EMUs per inch.
         /// </summary>

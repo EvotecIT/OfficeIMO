@@ -37,10 +37,10 @@ public sealed class PublisherParagraphFormatWritingTests {
         var requested = Enumerable.Range(0, count).Select(index => Format(story.Paragraphs[variant is "topology" or "allocation" ? 0 : index],
             variant == "per-paragraph" ? new[] { "center", "exact", "hanging" }[index] : variant, index)).ToArray();
         document.ReplaceStoryParagraphs(id, requested);
-        Assert.Throws<OfficeConversionException>(() => document.ToPubBytes());
-        var result = document.ToPubBytesResult(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
-        Assert.False(result.Report.HasErrors); Assert.True(result.Report.HasLoss);
-        PublisherDocument saved = PublisherDocument.Load(result.Value);
+        Assert.Throws<OfficeConversionException>(() => document.ToBytes());
+        byte[] savedBytes = document.ToBytes(new PublisherSaveOptions { AllowLoss = true }, out PublisherSaveReport saveReport);
+        Assert.False(saveReport.HasErrors); Assert.True(saveReport.HasLoss);
+        PublisherDocument saved = PublisherDocument.Load(savedBytes);
         Assert.Equal(document.TextStories.Select(item => item.Text), saved.TextStories.Select(item => item.Text));
         var actual = saved.TextStories.Single(item => item.Id == id).Paragraphs;
         Assert.Equal(requested.Length, actual.Count);
@@ -54,8 +54,8 @@ public sealed class PublisherParagraphFormatWritingTests {
         }
         Assert.Equal(document.Pages.SelectMany(page => page.TextFrames).Select(frame => (frame.Id, frame.StoryId, frame.PageId, frame.PreviousFrameId, frame.NextFrameId, frame.X, frame.Y, frame.Width, frame.Height)),
             saved.Pages.SelectMany(page => page.TextFrames).Select(frame => (frame.Id, frame.StoryId, frame.PageId, frame.PreviousFrameId, frame.NextFrameId, frame.X, frame.Y, frame.Width, frame.Height)));
-        PublisherNativeWritingTests.AssertPreservedStorage(source, result.Value, "Quill/QuillSub/CONTENTS");
-        Assert.Equal(source, PublisherDocument.Load(source).ToPubBytes());
+        PublisherNativeWritingTests.AssertPreservedStorage(source, savedBytes, "Quill/QuillSub/CONTENTS");
+        Assert.Equal(source, PublisherDocument.Load(source).ToBytes());
     }
 
     [Theory]
@@ -74,7 +74,7 @@ public sealed class PublisherParagraphFormatWritingTests {
             variant == "non-native-unit" ? new OfficeTextPadding(0, 1D / 3, 0, 0) : source.Margins,
             variant == "two-indents" ? new OfficeTextParagraphIndent(12, 18) : source.Indent, source.LineHeightFactor).WithTabStops(stops);
         document.ReplaceStoryParagraphs(2, new[] { paragraph });
-        Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        Assert.Throws<OfficeConversionException>(() => document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         Assert.Equal(paragraph.Margins, document.TextStories[0].Paragraphs[0].Margins);
     }
 

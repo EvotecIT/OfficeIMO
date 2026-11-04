@@ -10,7 +10,7 @@ public sealed class PublisherMixedObjectOrderTests {
         var paint = OfficeShape.Rectangle(240, 120);
         paint.FillColor = OfficeColor.Red; paint.StrokeColor = null;
         PublisherShape background = document.AddShape(pageId, paint, 72, 144);
-        PublisherPicture picture = document.AddPicture(pageId,
+        PublisherPicture picture = document.AddImage(pageId,
             PublisherPictureEditingFixture.Image(OfficeColor.Blue), 108, 144, 96, 96);
         var oldPage = document.Pages[0];
         PublisherTextFrame frame = document.AddTextFrame(pageId, 72, 144, 288, 108,
@@ -52,8 +52,8 @@ public sealed class PublisherMixedObjectOrderTests {
         uint[][] order = document.Pages.Select(Order).ToArray();
         byte[] image = Assert.Single(document.Images).GetBytes();
         document.ReplaceStoryParagraphs(first.Id, new[] { Replacement(first.Paragraphs.Single(), "Edited first: overlap order") });
-        Assert.Throws<OfficeConversionException>(() => document.ToPubBytes());
-        PublisherDocument reopened = PublisherDocument.Load(document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        Assert.Throws<OfficeConversionException>(() => document.ToBytes());
+        PublisherDocument reopened = PublisherDocument.Load(document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         Assert.Equal("Edited first: overlap order\n", reopened.TextStories.Single(story => story.Id == first.Id).Text);
         Assert.Equal(other, reopened.TextStories.Single(story => story.Id == 2).Text);
         Assert.Equal(image, Assert.Single(reopened.Images).GetBytes());
@@ -72,8 +72,8 @@ public sealed class PublisherMixedObjectOrderTests {
         document.ReplaceStoryParagraphs(story.Id, new[] { after });
         using var output = new MemoryStream();
         OfficeConversionException failure = Assert.Throws<OfficeConversionException>(() => document.Save(output,
-            new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
-        Assert.Contains(failure.Report.FidelityDiagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Failure);
+            new PublisherSaveOptions { AllowLoss = true }));
+        Assert.Contains(failure.Report.Diagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Failure);
         Assert.Equal(0, output.Length);
         OfficeRichTextRun retained = document.TextStories.Single(item => item.Id == 1).Paragraphs.Single().Runs.Single();
         Assert.Equal("Edited first: overlap order", retained.Text);
@@ -94,14 +94,14 @@ public sealed class PublisherMixedObjectOrderTests {
         byte[] image = Assert.Single(document.Images).GetBytes();
         uint[][] order = document.Pages.Select(Order).ToArray();
         document.ReplaceStoryParagraphs(1, Content(false));
-        byte[] first = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        byte[] first = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         Assert.True(OfficeIMO.Core.Internal.OfficeCompoundFileReader.TryRead(first,
             out OfficeIMO.Core.Internal.OfficeCompoundFile? compound, out string? error), error);
         byte[] quill = compound!.Streams["Quill/QuillSub/CONTENTS"];
         Assert.True(BitConverter.ToUInt32(quill, 16) >= minimumDirectories * 512U);
         PublisherDocument reopened = PublisherDocument.Load(first);
         reopened.ReplaceStoryParagraphs(1, Content(true));
-        PublisherDocument final = PublisherDocument.Load(reopened.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        PublisherDocument final = PublisherDocument.Load(reopened.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         PublisherTextStory current = final.TextStories.Single(story => story.Id == 1);
         Assert.Equal(paragraphs ? count : 1, current.Paragraphs.Count);
         Assert.Equal(paragraphs ? "B\n" + string.Concat(Enumerable.Repeat("A\n", count - 1)) : "B" + new string('A', count - 1) + "\n", current.Text);

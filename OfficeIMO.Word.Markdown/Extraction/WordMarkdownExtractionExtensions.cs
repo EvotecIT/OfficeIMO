@@ -18,12 +18,12 @@ public static class WordMarkdownExtractionExtensions {
     /// </remarks>
     public static IEnumerable<WordMarkdownChunk> ExtractMarkdownChunks(
         this WordDocument document,
-        WordToMarkdownOptions? markdownOptions = null,
+        WordMarkdownExportOptions? markdownOptions = null,
         WordMarkdownChunkingOptions? chunking = null,
         string? sourcePath = null,
         CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        markdownOptions ??= new WordToMarkdownOptions();
+        markdownOptions ??= new WordMarkdownExportOptions();
         chunking ??= new WordMarkdownChunkingOptions();
 
         if (chunking.MaxChars < 256) chunking.MaxChars = 256;
@@ -245,7 +245,7 @@ public static class WordMarkdownExtractionExtensions {
         stack.Add((level, text.Trim()));
     }
 
-    private static string SafePlainTextFromParagraph(WordParagraph paragraph, WordToMarkdownOptions opt, WordToMarkdownConverter converter) {
+    private static string SafePlainTextFromParagraph(WordParagraph paragraph, WordMarkdownExportOptions opt, WordToMarkdownConverter converter) {
         try {
             // Reuse run rendering (may include basic markup, but is good enough for a heading path label).
             var s = converter.RenderRuns(paragraph, opt);

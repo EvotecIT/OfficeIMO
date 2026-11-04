@@ -4,7 +4,7 @@ using System.Threading;
 namespace OfficeIMO.Excel {
     internal sealed partial class ExcelSheetReader {
         internal uint?[,]? ReadCellStyleIndexes(string a1Range, CancellationToken ct = default) {
-            var (firstRow, firstColumn, lastRow, lastColumn) = A1.ParseRange(a1Range);
+            var (firstRow, firstColumn, lastRow, lastColumn) = ExcelA1.ParseRange(a1Range);
             if (!CanAttemptXmlFastReader()) {
                 return null;
             }

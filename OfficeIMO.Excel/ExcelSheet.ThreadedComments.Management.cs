@@ -27,7 +27,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Gets all threaded comments and replies on this worksheet.
         /// </summary>
-        public IReadOnlyList<ExcelThreadedCommentSnapshot> GetThreadedComments() {
+        public IReadOnlyList<ExcelThreadedCommentInfo> GetThreadedComments() {
             return Locking.ExecuteRead(_excelDocument.EnsureLock(), () => {
                 WorkbookPart workbookPart = _spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("Workbook part is missing.");
                 IReadOnlyDictionary<string, string> people = ExcelWorksheetCommentResolver.BuildThreadedCommentPersonMap(workbookPart);
@@ -41,7 +41,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Gets a threaded comment or reply by id, or null when it is not present on this worksheet.
         /// </summary>
-        public ExcelThreadedCommentSnapshot? GetThreadedComment(string id) {
+        public ExcelThreadedCommentInfo? GetThreadedComment(string id) {
             string normalizedId = NormalizeThreadedId(id, nameof(id), generateIfMissing: false);
             return GetThreadedComments()
                 .FirstOrDefault(comment => string.Equals(comment.Id, normalizedId, StringComparison.OrdinalIgnoreCase));
@@ -56,7 +56,7 @@ namespace OfficeIMO.Excel {
             string author = "OfficeIMO",
             DateTime? date = null,
             string? id = null) {
-            ExcelThreadedCommentSnapshot parent = GetThreadedComment(parentId)
+            ExcelThreadedCommentInfo parent = GetThreadedComment(parentId)
                 ?? throw new KeyNotFoundException($"Threaded comment '{parentId}' was not found on worksheet '{Name}'.");
             if (!string.IsNullOrWhiteSpace(parent.ParentId)) {
                 throw new ArgumentException("A threaded reply must reference the root comment rather than another reply.", nameof(parentId));

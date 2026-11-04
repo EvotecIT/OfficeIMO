@@ -11,10 +11,10 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.Sections[0].AddPageNumbering(1, WordNumberFormat.UpperRoman);
 
-                var para = document.FooterDefaultOrCreate.AddParagraph();
+                var para = document.PageSetup.Footer.AddParagraph();
                 para.ParagraphAlignment = WordParagraphAlignment.Right;
                 para.AddText("Page ");
-                para.AddPageNumber(includeTotalPages: true, format: WordFieldFormat.Roman, separator: " of ");
+                para.AddPageNumber(includeTotalPages: true, format: WordFieldFormat.UpperRoman, separator: " of ");
 
                 document.AddParagraph("First page");
                 document.AddPageBreak();

@@ -18,7 +18,7 @@ namespace OfficeIMO.Core.Internal {
             NotCompound,
             WordDocument,
             ExcelWorkbook,
-            PowerPointPresentation,
+            PowerPointDocument,
             EncryptedOpenXmlPackage,
             Ambiguous,
             UnknownCompound,
@@ -97,7 +97,7 @@ namespace OfficeIMO.Core.Internal {
             bool hasWorkbook = ContainsPayloadStream(entries, "Workbook",
                     cancellationToken)
                 || ContainsPayloadStream(entries, "Book", cancellationToken);
-            bool hasPowerPointPresentation =
+            bool hasPowerPointDocument =
                 ContainsPayloadStream(entries, "PowerPoint Document",
                     cancellationToken)
                 && ContainsPayloadStream(entries, "Current User",
@@ -113,14 +113,14 @@ namespace OfficeIMO.Core.Internal {
 
             int recognizedRootCount = (hasWordDocument ? 1 : 0)
                 + (hasWorkbook ? 1 : 0)
-                + (hasPowerPointPresentation ? 1 : 0)
+                + (hasPowerPointDocument ? 1 : 0)
                 + (hasEncryptedPackage ? 1 : 0)
                 + (hasPublisher ? 1 : 0)
                 + (hasVisio ? 1 : 0);
             if (recognizedRootCount > 1) return DocumentKind.Ambiguous;
             if (hasWordDocument) return DocumentKind.WordDocument;
             if (hasWorkbook) return DocumentKind.ExcelWorkbook;
-            if (hasPowerPointPresentation) return DocumentKind.PowerPointPresentation;
+            if (hasPowerPointDocument) return DocumentKind.PowerPointDocument;
             if (hasEncryptedPackage) return DocumentKind.EncryptedOpenXmlPackage;
             if (hasPublisher) return DocumentKind.PublisherPublication;
             if (hasVisio) return DocumentKind.VisioDrawing;

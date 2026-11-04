@@ -10,8 +10,8 @@ public class Markdown_Reader_OrderedTaskList_Tests {
 1. [ ] Todo
 2. [x] Done
 """;
-        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
-        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
+        var html = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
 
         Assert.Contains("<ol", html, StringComparison.Ordinal);
         Assert.Contains("contains-task-list", html, StringComparison.Ordinal);
@@ -26,7 +26,7 @@ public class Markdown_Reader_OrderedTaskList_Tests {
     public void Ordered_Task_List_Markers_Require_Boundary_Whitespace_And_Support_Uppercase_X() {
         var md = "1. [X]\tUpper\n2. [ ]   Open\n3. [x]tight\n";
 
-        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md, MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile());
         var list = Assert.IsType<OrderedListBlock>(Assert.Single(doc.Blocks));
 
         Assert.Collection(
@@ -56,10 +56,10 @@ public class Markdown_Reader_OrderedTaskList_Tests {
     [Fact]
     public void ListExtras_Ordered_Task_Items_Preserve_Task_Marker_Source() {
         const string md = "a. [x] Alpha\n";
-        var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        var options = MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile();
         options.ListExtras = true;
 
-        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, options);
+        var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md, options);
         var list = Assert.IsType<OrderedListBlock>(Assert.Single(doc.Blocks));
         var item = Assert.Single(list.Items);
 

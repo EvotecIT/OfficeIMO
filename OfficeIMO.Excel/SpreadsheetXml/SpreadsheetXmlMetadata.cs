@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel.SpreadsheetXml;
 
 internal static class SpreadsheetXmlMetadata {
     internal static void ReadCell(XElement source, ExcelSheet sheet, int row, int column, SpreadsheetXmlContext context) {
-        string reference = A1.CellReference(row, column);
+        string reference = ExcelA1.CellReference(row, column);
         if ((string?)source.Attribute(Ss + "HRef") is string link) {
             string? tooltip = (string?)source.Attribute(X + "HRefScreenTip");
             if (link.StartsWith("#", StringComparison.Ordinal)) sheet.AddInternalHyperlinkReference(reference, link.Substring(1), style: false, normalizeLocation: false, tooltip: tooltip);
@@ -40,8 +40,7 @@ internal static class SpreadsheetXmlMetadata {
             context.Inspect(element, Array.Empty<string>(), new[] { "Name", "RefersTo", "Hidden" });
             string name = (string?)element.Attribute(Ss + "Name") ?? throw new InvalidDataException("Missing defined name.");
             name = name is "Print_Area" or "Print_Titles" or "_FilterDatabase" ? "_xlnm." + name : ExcelDocument.NormalizeDefinedName(name, ExcelDefinedNameValidationMode.Strict);
-            if (names.Elements<DefinedName>().Any(item => string.Equals(item.Name?.Value, name, StringComparison.OrdinalIgnoreCase) && item.LocalSheetId?.Value == scope))
-                throw new InvalidDataException("Duplicate XML Spreadsheet defined name.");
+            context.DefinedName(name, scope);
             string formula = (string?)element.Attribute(Ss + "RefersTo") ?? throw new InvalidDataException("Missing defined-name reference.");
             if (formula.Length > 8193 || !formula.StartsWith("=", StringComparison.Ordinal)) throw new InvalidDataException("Invalid defined-name formula.");
             names.Append(new DefinedName {

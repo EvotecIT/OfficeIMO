@@ -15,7 +15,7 @@ public partial class Word {
         list.AddItem("Large Roman start");
         string before = document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!.OuterXml;
 
-        Assert.Contains("list marker", Assert.Throws<InvalidDataException>(() => document.CreateInspectionSnapshot()).Message);
+        Assert.Contains("list marker", Assert.Throws<InvalidDataException>(() => document.Inspect()).Message);
         Assert.Contains("list marker", Assert.Throws<InvalidDataException>(() => WordDocumentTraversal.BuildListMarkers(document)).Message);
         Assert.Equal(before, document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering.OuterXml);
     }
@@ -31,7 +31,7 @@ public partial class Word {
         list.Numbering.Levels[0].LevelText = placeholders ? "%1%1%1%1%1" : new string('x', 4097);
         list.AddItem("Long marker");
 
-        Assert.Throws<InvalidDataException>(() => document.CreateInspectionSnapshot());
+        Assert.Throws<InvalidDataException>(() => document.Inspect());
         list.Numbering.Levels[0].LevelText = new string('x', 4096);
         Assert.Equal(4096, Assert.Single(WordDocumentTraversal.BuildListMarkers(document)).Value.Marker.Length);
     }
@@ -45,6 +45,6 @@ public partial class Word {
         for (int index = 0; index < 1024; index++) list.AddItem("Item " + index);
         Assert.Equal(1024, WordDocumentTraversal.BuildListMarkers(document).Count);
         list.AddItem("Excess item");
-        Assert.Contains("character budget", Assert.Throws<InvalidDataException>(() => document.CreateInspectionSnapshot()).Message);
+        Assert.Contains("character budget", Assert.Throws<InvalidDataException>(() => document.Inspect()).Message);
     }
 }

@@ -18,7 +18,7 @@ public sealed class PdfSearchableWorkflowTests {
         try {
             string source = Path.Combine(root, "source.pdf");
             string output = Path.Combine(root, "output.pdf");
-            PdfDocument.Create(document => document.Page(page => page.Size(300, 300))).Save(source);
+            PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)))).Save(source);
             byte[] original = File.ReadAllBytes(source);
             byte[] previous = [1, 2, 3, 4];
             File.WriteAllBytes(output, previous);
@@ -26,7 +26,7 @@ public sealed class PdfSearchableWorkflowTests {
             bool recognized = false;
             bool guardCalled = false;
             var request = new PdfSearchableWorkflowRequest {
-                InputPath = source, OutputPath = output, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                InputPath = source, OutputPath = output, ConflictPolicy = OfficePublicationPolicy.Replace,
                 InputStream = mode == "stream-source-replaced" ? new("source.pdf", _ => Task.FromResult<Stream>(File.OpenRead(source))) : null,
                 PublicationGuard = new Guard(() => {
                     Assert.True(recognized);
@@ -75,7 +75,7 @@ public sealed class PdfSearchableWorkflowTests {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-ocr-provider-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         try {
-            byte[] bytes = PdfDocument.Create(document => document.Page(page => page.Size(300, 300))).ToBytes();
+            byte[] bytes = PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)))).ToBytes();
             bool recognized = false;
             int reads = 0;
             string output = Path.Combine(root, "searchable.pdf");
@@ -106,11 +106,11 @@ public sealed class PdfSearchableWorkflowTests {
         Directory.CreateDirectory(root);
         try {
             string source = Path.Combine(root, "source.pdf");
-            PdfDocument.Create(document => document.Page(page => page.Size(300, 300))).Save(source);
+            PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)))).Save(source);
             byte[] bytes = [];
             var recoveryStore = new OfficeWorkflowOutputRecoveryStore(Path.Combine(root, "recovery"));
             var request = new PdfSearchableWorkflowRequest {
-                InputPath = source, OutputPath = "content://documents/output", ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                InputPath = source, OutputPath = "content://documents/output", ConflictPolicy = OfficePublicationPolicy.Replace,
                 OutputStream = new("searchable.pdf", _ => Task.FromResult<Stream>(new MemoryStream(bytes)), _ => {
                     if (failWrite) throw new IOException("Provider unavailable during publication.");
                     return Task.FromResult<Stream>(new DestinationStream(result => bytes = result));
@@ -151,7 +151,7 @@ public sealed class PdfSearchableWorkflowTests {
         }]
     };
 
-    private sealed class Guard(Func<bool> check) : IOfficeWorkflowPublicationGuard {
-        public ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken cancellationToken) => new(check());
+    private sealed class Guard(Func<bool> check) : IOfficePublicationGuard {
+        public Task<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken cancellationToken) => Task.FromResult(check());
     }
 }

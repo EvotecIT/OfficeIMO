@@ -12,9 +12,13 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Adds an embedded OLE compound storage to the slide.</summary>
         public PowerPointOleObject AddOleObject(Stream storage, string progId,
-            long left = 0L, long top = 0L, long width = 2743200L,
-            long height = 1828800L,
+            OfficeLength? left = null, OfficeLength? top = null, OfficeLength? width = null,
+            OfficeLength? height = null,
             string contentType = PowerPointOleObject.DefaultContentType) {
+            long nativeLeft = (left ?? OfficeLength.Emus(0L)).ToEmus();
+            long nativeTop = (top ?? OfficeLength.Emus(0L)).ToEmus();
+            long nativeWidth = (width ?? OfficeLength.Emus(2743200L)).ToEmus();
+            long nativeHeight = (height ?? OfficeLength.Emus(1828800L)).ToEmus();
             if (storage == null) throw new ArgumentNullException(nameof(storage));
             if (!storage.CanRead) {
                 throw new ArgumentException(
@@ -24,8 +28,8 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentException(
                     "An OLE ProgID is required.", nameof(progId));
             }
-            if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
-            if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+            if (nativeWidth <= 0) throw new ArgumentOutOfRangeException(nameof(width));
+            if (nativeHeight <= 0) throw new ArgumentOutOfRangeException(nameof(height));
             if (string.IsNullOrWhiteSpace(contentType)) {
                 throw new ArgumentException(
                     "An embedded-part content type is required.",
@@ -62,8 +66,8 @@ namespace OfficeIMO.PowerPoint {
                 new P.BlipFill(),
                 new P.ShapeProperties(
                     new A.Transform2D(
-                        new A.Offset { X = left, Y = top },
-                        new A.Extents { Cx = width, Cy = height }),
+                        new A.Offset { X = nativeLeft, Y = nativeTop },
+                        new A.Extents { Cx = nativeWidth, Cy = nativeHeight }),
                     new A.PresetGeometry(new A.AdjustValueList()) {
                         Preset = A.ShapeTypeValues.Rectangle
                     }));
@@ -77,8 +81,8 @@ namespace OfficeIMO.PowerPoint {
                 Name = name,
                 Id = relationshipId,
                 ProgId = progId,
-                ImageWidth = checked((int)Math.Min(width, int.MaxValue)),
-                ImageHeight = checked((int)Math.Min(height, int.MaxValue))
+                ImageWidth = checked((int)Math.Min(nativeWidth, int.MaxValue)),
+                ImageHeight = checked((int)Math.Min(nativeHeight, int.MaxValue))
             };
             var frame = new P.GraphicFrame(
                 new P.NonVisualGraphicFrameProperties(
@@ -89,8 +93,8 @@ namespace OfficeIMO.PowerPoint {
                     new P.NonVisualGraphicFrameDrawingProperties(),
                     new P.ApplicationNonVisualDrawingProperties()),
                 new P.Transform(
-                    new A.Offset { X = left, Y = top },
-                    new A.Extents { Cx = width, Cy = height }),
+                    new A.Offset { X = nativeLeft, Y = nativeTop },
+                    new A.Extents { Cx = nativeWidth, Cy = nativeHeight }),
                 new A.Graphic(new A.GraphicData(ole) {
                     Uri = OleGraphicDataUri
                 }));
@@ -104,13 +108,17 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Adds a linked OLE object while retaining the external payload URI.</summary>
         public PowerPointOleObject AddLinkedOleObject(Uri source, string progId,
-            bool autoUpdate = false, long left = 0L, long top = 0L,
-            long width = 2743200L, long height = 1828800L) {
+            bool autoUpdate = false, OfficeLength? left = null, OfficeLength? top = null,
+            OfficeLength? width = null, OfficeLength? height = null) {
+            long nativeLeft = (left ?? OfficeLength.Emus(0L)).ToEmus();
+            long nativeTop = (top ?? OfficeLength.Emus(0L)).ToEmus();
+            long nativeWidth = (width ?? OfficeLength.Emus(2743200L)).ToEmus();
+            long nativeHeight = (height ?? OfficeLength.Emus(1828800L)).ToEmus();
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (!source.IsAbsoluteUri) throw new ArgumentException("A linked OLE URI must be absolute.", nameof(source));
             if (string.IsNullOrWhiteSpace(progId)) throw new ArgumentException("An OLE ProgID is required.", nameof(progId));
-            if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
-            if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+            if (nativeWidth <= 0) throw new ArgumentOutOfRangeException(nameof(width));
+            if (nativeHeight <= 0) throw new ArgumentOutOfRangeException(nameof(height));
 
             uint shapeId = AllocateShapeIds(2);
             uint previewShapeId = shapeId + 1U;
@@ -126,24 +134,24 @@ namespace OfficeIMO.PowerPoint {
                     new P.ApplicationNonVisualDrawingProperties()),
                 new P.BlipFill(),
                 new P.ShapeProperties(
-                    new A.Transform2D(new A.Offset { X = left, Y = top },
-                        new A.Extents { Cx = width, Cy = height }),
+                    new A.Transform2D(new A.Offset { X = nativeLeft, Y = nativeTop },
+                        new A.Extents { Cx = nativeWidth, Cy = nativeHeight }),
                     new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle }));
             var ole = new P.OleObject(new P.OleObjectLink { AutoUpdate = autoUpdate }, picture) {
                 ShapeId = "_x0000_s" + shapeId,
                 Name = name,
                 Id = relationshipId,
                 ProgId = progId,
-                ImageWidth = checked((int)Math.Min(width, int.MaxValue)),
-                ImageHeight = checked((int)Math.Min(height, int.MaxValue))
+                ImageWidth = checked((int)Math.Min(nativeWidth, int.MaxValue)),
+                ImageHeight = checked((int)Math.Min(nativeHeight, int.MaxValue))
             };
             var frame = new P.GraphicFrame(
                 new P.NonVisualGraphicFrameProperties(
                     new P.NonVisualDrawingProperties { Id = shapeId, Name = name },
                     new P.NonVisualGraphicFrameDrawingProperties(),
                     new P.ApplicationNonVisualDrawingProperties()),
-                new P.Transform(new A.Offset { X = left, Y = top },
-                    new A.Extents { Cx = width, Cy = height }),
+                new P.Transform(new A.Offset { X = nativeLeft, Y = nativeTop },
+                    new A.Extents { Cx = nativeWidth, Cy = nativeHeight }),
                 new A.Graphic(new A.GraphicData(ole) { Uri = OleGraphicDataUri }));
             P.CommonSlideData data = SlideRoot.CommonSlideData ??= new P.CommonSlideData(new P.ShapeTree());
             (data.ShapeTree ??= new P.ShapeTree()).Append(frame);

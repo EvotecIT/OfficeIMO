@@ -17,35 +17,35 @@ namespace OfficeIMO.Examples.Pdf {
 
             // 1) Plain paragraph
             PdfDocument.Create(pdf => pdf.Content(content => content
-                .H1("Lorem Ipsum — Plain Paragraph", PdfAlign.Center)
-                .Paragraph(p => p.Text(longText))))
+                .H1("Lorem Ipsum — Plain Paragraph", OfficeAlignment.Center)
+                .AddParagraph(p => p.AddText(longText))))
                 .Save(path1);
 
             // 2) Inside panel
             PdfDocument.Create(pdf => pdf.Content(content => content
-                .H1("Lorem Ipsum — Panel Paragraph", PdfAlign.Center)
-                .PanelParagraph(p => p.Text(longText), new PdfPanelStyle {
-                    Background = new PdfColor(0.96, 0.96, 0.98),
-                    BorderColor = PdfColor.FromRgb(210, 210, 210),
-                    BorderWidth = 0.5,
-                    PaddingX = 8,
-                    PaddingY = 6,
-                    MaxWidth = 380,
-                    Align = PdfAlign.Center
+                .H1("Lorem Ipsum — Panel Paragraph", OfficeAlignment.Center)
+                .AddPanelParagraph(p => p.AddText(longText), new PdfPanelStyle {
+                    Background = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.96, 0.96, 0.98),
+                    BorderColor = global::OfficeIMO.OfficeColor.FromRgb(210, 210, 210),
+                    BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5),
+                    PaddingX = global::OfficeIMO.OfficeLength.Points(8),
+                    PaddingY = global::OfficeIMO.OfficeLength.Points(6),
+                    MaxWidth = global::OfficeIMO.OfficeLength.Points(380),
+                    Align = OfficeAlignment.Center
                 })))
                 .Save(path2);
 
             // 3) Two columns via Compose Row
             PdfDocument.Create(d => {
                 d.Page(p => {
-                    p.Size(PageSizes.Letter);
-                    p.Margin(36);
-                    p.DefaultTextStyle(s => s.FontSize(11));
+                    p.Size(PdfPageSizes.Letter);
+                    p.Margin(global::OfficeIMO.OfficeLength.Points(36));
+                    p.DefaultTextStyle(s => s.FontSize(global::OfficeIMO.OfficeLength.Points(11)));
                     p.Content(c => c
                         .Column(col => col.Item().H1("Lorem Ipsum — Two Columns"))
                         .Row(row => {
-                            row.PercentColumn(50, col => col.Paragraph(pr => pr.Text(longText)));
-                            row.PercentColumn(50, col => col.Paragraph(pr => pr.Text(longText)));
+                            row.PercentColumn(50, col => col.AddParagraph(pr => pr.AddText(longText)));
+                            row.PercentColumn(50, col => col.AddParagraph(pr => pr.AddText(longText)));
                         })
                     );
                 });

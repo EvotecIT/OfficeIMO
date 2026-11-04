@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_TransactionRollback_RestoresExclusiveInCellImageGraph() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Images");
+            ExcelSheet sheet = document.AddSheet("Images");
             sheet.SetInCellImage(1, 1, TinyPng, altText: "Rollback image");
             AssertRichImageGraphCounts(document, expected: 1);
             using var cancellation = new CancellationTokenSource();
@@ -53,14 +53,14 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_TableSchema_RewritesUnqualifiedStructuredReferencesOnlyInsideOwnerTable() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Amount");
-            sheet.CellValue(1, 2, "Tax");
-            sheet.CellFormula(2, 1, "=[@Amount]*2");
-            sheet.CellFormula(3, 1, "=[@Tax]+1");
-            sheet.CellValue(2, 2, 1);
-            sheet.CellValue(3, 2, 2);
-            sheet.CellFormula(1, 4, "=[@Amount]");
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Amount");
+            sheet.Cell(1, 2).SetValue("Tax");
+            sheet.Cell(2, 1).SetFormula("=[@Amount]*2");
+            sheet.Cell(3, 1).SetFormula("=[@Tax]+1");
+            sheet.Cell(2, 2).SetValue(1);
+            sheet.Cell(3, 2).SetValue(2);
+            sheet.Cell(1, 4).SetFormula("=[@Amount]");
             sheet.AddTable("A1:B3", true, "Sales", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
             string? FormulaAt(string reference) => sheet.WorksheetPart.Worksheet.Descendants<Cell>()
                 .Single(cell => string.Equals(cell.CellReference?.Value, reference, StringComparison.Ordinal))
@@ -82,7 +82,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FeatureReport_RegistersInCellImagesWithoutReadingPayloads() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Images");
+            ExcelSheet sheet = document.AddSheet("Images");
             sheet.SetInCellImage(2, 2, TinyPng, altText: "Native image");
 
             ExcelFeatureReport report = document.InspectFeatures();

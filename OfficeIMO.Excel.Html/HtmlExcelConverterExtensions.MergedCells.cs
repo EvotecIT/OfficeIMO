@@ -8,7 +8,7 @@ public static partial class HtmlExcelConverterExtensions {
         IElement table,
         ExcelSheet sheet,
         HtmlToExcelResult result,
-        HtmlToExcelOptions options,
+        HtmlExcelExportOptions options,
         HtmlImportBudget budget,
         int firstRow,
         int firstColumn,
@@ -21,10 +21,11 @@ public static partial class HtmlExcelConverterExtensions {
         int rowOffset = 0;
         int semanticRowIndex = 0;
 
-        IReadOnlyDictionary<IElement, int> rowSpans = HtmlAccessibilitySemantics.ResolveTableRowSpans(EnumerateDirectTableRows(table));
-        foreach (IElement row in EnumerateDirectTableRows(table)) {
+        IReadOnlyList<IElement> tableRows = HtmlAccessibilitySemantics.EnumerateTableRows(table);
+        IReadOnlyDictionary<IElement, int> rowSpans = HtmlAccessibilitySemantics.ResolveTableRowSpans(tableRows);
+        foreach (IElement row in tableRows) {
             int rowIndex = firstRow + rowOffset;
-            if (rowIndex > A1.MaxRows) {
+            if (rowIndex > ExcelA1.MaxRows) {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                     "HTML table rows exceeded the Excel worksheet row limit; remaining rows were skipped.", lossKind: OfficeConversionLossKind.Omission);
                 break;
@@ -43,7 +44,7 @@ public static partial class HtmlExcelConverterExtensions {
                     columnIndex++;
                 }
 
-                if (columnIndex > A1.MaxColumns) {
+                if (columnIndex > ExcelA1.MaxColumns) {
                     AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                         "HTML table columns exceeded the Excel worksheet column limit in row " + rowIndex.ToString(CultureInfo.InvariantCulture) + "; remaining cells in the row were skipped.", lossKind: OfficeConversionLossKind.Omission);
                     break;
@@ -53,8 +54,8 @@ public static partial class HtmlExcelConverterExtensions {
                 int cellColumn = columnIndex;
                 string? semanticReference = useSemanticValues ? cell.GetAttribute("data-officeimo-cell") : null;
                 if (TryParseCellReference(semanticReference, out int semanticRow, out int semanticColumn)
-                    && semanticRow <= A1.MaxRows
-                    && semanticColumn <= A1.MaxColumns) {
+                    && semanticRow <= ExcelA1.MaxRows
+                    && semanticColumn <= ExcelA1.MaxColumns) {
                     cellRow = semanticRow;
                     cellColumn = semanticColumn;
                 } else if (!string.IsNullOrWhiteSpace(semanticReference)) {
@@ -71,14 +72,14 @@ public static partial class HtmlExcelConverterExtensions {
 
                 int rowSpan = ReadSpan(cell,
                     HtmlAccessibilitySemantics.GetTableSpanAttributeName(cell, "rowspan"),
-                    cellRow, A1.MaxRows, cellRow, cellColumn, result,
+                    cellRow, ExcelA1.MaxRows, cellRow, cellColumn, result,
                     // The explicit workbook profile preserves worksheet merges even
                     // across its presentation-only header/body split. Generic HTML
                     // follows authored row-group boundaries.
                     !useSemanticValues && rowSpans.TryGetValue(cell, out int remainingRows) ? remainingRows : (int?)null);
                 int columnSpan = ReadSpan(cell,
                     HtmlAccessibilitySemantics.GetTableSpanAttributeName(cell, "colspan"),
-                    cellColumn, A1.MaxColumns, cellRow, cellColumn, result);
+                    cellColumn, ExcelA1.MaxColumns, cellRow, cellColumn, result);
                 long spanArea = (long)rowSpan * columnSpan;
                 if (spanArea > maxTableCells - occupiedCells.Count) {
                     if (occupiedCells.Count >= maxTableCells) {
@@ -102,8 +103,8 @@ public static partial class HtmlExcelConverterExtensions {
 
                 ReserveSpan(occupiedCells, cellRow, cellColumn, rowSpan, columnSpan);
 
-                string text = NormalizeText(cell.TextContent);
-                ExcelCell targetCell = sheet.CellAt(cellRow, cellColumn);
+                string text = semanticCell?.Text ?? NormalizeText(cell.TextContent);
+                ExcelCell targetCell = sheet.Cell(cellRow, cellColumn);
                 bool stored = false;
                 bool preserveValue = false;
                 if (!(useSemanticValues && IsSemanticEmptyCell(cell))
@@ -125,7 +126,7 @@ public static partial class HtmlExcelConverterExtensions {
                 }
 
                 if (rowSpan > 1 || columnSpan > 1) {
-                    sheet.MergeRange(BuildRangeReference(cellRow, cellColumn, cellRow + rowSpan - 1, cellColumn + columnSpan - 1));
+                    sheet.Range(BuildRangeReference(cellRow, cellColumn, cellRow + rowSpan - 1, cellColumn + columnSpan - 1)).Merge();
                     result.MergedRanges++;
                 }
 
@@ -279,7 +280,7 @@ public static partial class HtmlExcelConverterExtensions {
             if (verticalAlign.Equals("baseline", StringComparison.OrdinalIgnoreCase)) target.SetBaseline();
         }
         if (TryGetCss(css, "font-family", out string fontFamily)) target.SetFontName(HtmlRenderCssValues.FirstFontFamily(fontFamily) ?? string.Empty);
-        if (TryGetCssPoints(css, "font-size", out double fontSize)) target.SetFontSize(fontSize);
+        if (TryGetCssPoints(css, "font-size", out double fontSize)) target.SetFontSize(global::OfficeIMO.OfficeLength.Points(fontSize));
         if (TryGetCss(css, "color", out string color) && TryNormalizeCssHex(color, out string fontColor)) target.SetFontColor(fontColor);
     }
 
@@ -306,7 +307,7 @@ public static partial class HtmlExcelConverterExtensions {
         TryGetCss(css, "font-family", out string fontFamily);
         if (!string.IsNullOrEmpty(fontFamily)) run.FontName = HtmlRenderCssValues.FirstFontFamily(fontFamily) ?? string.Empty;
         TryGetCssPoints(css, "font-size", out double fontSize);
-        if (fontSize > 0D) run.FontSize = fontSize;
+        if (fontSize > 0D) run.FontSize = global::OfficeIMO.OfficeLength.Points(fontSize);
         TryGetCss(css, "color", out string color);
         if (!string.IsNullOrEmpty(color) && TryNormalizeCssHex(color, out string fontColor)) run.FontColor = fontColor;
         return run;
@@ -382,26 +383,8 @@ public static partial class HtmlExcelConverterExtensions {
         return color.Length > 0;
     }
 
-    private static IEnumerable<IElement> EnumerateDirectTableRows(IElement table) {
-        foreach (IElement child in table.Children) {
-            if (IsTableRow(child)) {
-                yield return child;
-                continue;
-            }
-
-            if (!IsElement(child, "thead") && !IsElement(child, "tbody") && !IsElement(child, "tfoot")
-                && !HtmlAccessibilitySemantics.HasRole(child, "rowgroup")) {
-                continue;
-            }
-
-            foreach (IElement row in child.Children.Where(IsTableRow)) {
-                yield return row;
-            }
-        }
-    }
-
     private static bool HasDirectTableCells(IElement table) =>
-        EnumerateDirectTableRows(table).Any(row => row.Children.Any(IsTableCell));
+        HtmlAccessibilitySemantics.EnumerateTableRows(table).Any(row => row.Children.Any(IsTableCell));
 
     private static bool IsTableRow(IElement element) =>
         IsElement(element, "tr") || HtmlAccessibilitySemantics.HasRole(element, "row");

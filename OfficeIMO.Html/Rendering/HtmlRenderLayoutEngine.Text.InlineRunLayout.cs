@@ -287,7 +287,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         TrimTrailingWhitespace(line);
-        if (line.Segments.Count > 0 || lines.Count == 0) lineAdmission.Add(line);
+        // A preserved line feed that ends the content (`<pre><code>a\nb\n</code></pre>`) does not open
+        // another line in a browser. Only the closing edge of an enclosing inline remains, so the final
+        // line would otherwise paint as an empty line with a padding stub.
+        bool phantomLineAfterFinalBreak = lines.Count > 0 && lines[lines.Count - 1].HasForcedBreak
+            && line.Segments.Count > 0
+            && line.Segments.All(static segment => segment.Text.Length == 0 && segment.Run.IsEmptyInlineBox
+                && segment.Run.Style.PreserveWhitespace
+                && segment.Run.InlineEdgeScopes.All(static scope => scope.FirstContent != null));
+        if ((line.Segments.Count > 0 || lines.Count == 0) && !phantomLineAfterFinalBreak) lineAdmission.Add(line);
         } catch (InlineLineLimitException) {
             onLineLimitExceeded?.Invoke();
         }

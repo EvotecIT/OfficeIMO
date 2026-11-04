@@ -1,7 +1,7 @@
 namespace OfficeIMO.Drawing.Binary;
 
 /// <summary>Represents one MSOSHADECOLOR entry from an OfficeArt gradient-stop array.</summary>
-public sealed class OfficeArtGradientStop {
+internal sealed class OfficeArtGradientStop {
     internal OfficeArtGradientStop(OfficeArtColorReference color, double position) {
         Color = color;
         Position = position;

@@ -63,8 +63,8 @@ public sealed record BookOnixExportOptions {
     public string? Subtitle { get; init; }
     /// <summary>At most 32 explicit alternative product-level titles, retained in caller order after the distinctive title.</summary>
     public IReadOnlyList<BookOnixAlternativeTitle> AlternativeTitles { get; init; } = [];
-    /// <summary>Explicit publication date, when known.</summary>
-    public DateOnly? PublicationDate { get; init; }
+    /// <summary>Explicit publication date, when known. Time of day is ignored during export.</summary>
+    public DateTime? PublicationDate { get; init; }
     /// <summary>Ordered credits, at most 100. Mutually exclusive with NoContributors.</summary>
     public IReadOnlyList<BookOnixContributor> Contributors { get; init; } = [];
     /// <summary>Explicit assertion that the product has no credited contributors. Missing EPUB credits do not imply this.</summary>

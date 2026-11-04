@@ -4,7 +4,7 @@ using System.Text;
 
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     private readonly struct MarkdownImageSyntaxRanges(
         int? altStart,
         int? altLength,
@@ -39,15 +39,15 @@ public static partial class MarkdownReader {
         return TryParseImage(line, out image, out sizeSpec, out ranges);
     }
     private static bool TryParseImage(string line, out ImageBlock image, out string? sizeSpec) =>
-        TryParseImage(line, new MarkdownReaderOptions(), new MarkdownReaderState(), out image, out sizeSpec, out _);
+        TryParseImage(line, new MarkdownLoadOptions(), new MarkdownReaderState(), out image, out sizeSpec, out _);
 
     private static bool TryParseImage(string line, out ImageBlock image, out string? sizeSpec, out MarkdownImageSyntaxRanges ranges) =>
-        TryParseImage(line, new MarkdownReaderOptions(), new MarkdownReaderState(), out image, out sizeSpec, out ranges);
+        TryParseImage(line, new MarkdownLoadOptions(), new MarkdownReaderState(), out image, out sizeSpec, out ranges);
 
-    private static bool TryParseImage(string line, MarkdownReaderOptions options, MarkdownReaderState state, out ImageBlock image, out string? sizeSpec) =>
+    private static bool TryParseImage(string line, MarkdownLoadOptions options, MarkdownReaderState state, out ImageBlock image, out string? sizeSpec) =>
         TryParseImage(line, options, state, out image, out sizeSpec, out _);
 
-    private static bool TryParseImage(string line, MarkdownReaderOptions options, MarkdownReaderState state, out ImageBlock image, out string? sizeSpec, out MarkdownImageSyntaxRanges ranges) {
+    private static bool TryParseImage(string line, MarkdownLoadOptions options, MarkdownReaderState state, out ImageBlock image, out string? sizeSpec, out MarkdownImageSyntaxRanges ranges) {
         image = null!;
         sizeSpec = null;
         ranges = default;
@@ -100,15 +100,15 @@ public static partial class MarkdownReader {
     }
 
     private static bool TryParseLinkedImageBlock(string line, out ImageBlock image, out string? sizeSpec) =>
-        TryParseLinkedImageBlock(line, new MarkdownReaderOptions(), new MarkdownReaderState(), out image, out sizeSpec, out _);
+        TryParseLinkedImageBlock(line, new MarkdownLoadOptions(), new MarkdownReaderState(), out image, out sizeSpec, out _);
 
     private static bool TryParseLinkedImageBlock(string line, out ImageBlock image, out string? sizeSpec, out MarkdownImageSyntaxRanges ranges) =>
-        TryParseLinkedImageBlock(line, new MarkdownReaderOptions(), new MarkdownReaderState(), out image, out sizeSpec, out ranges);
+        TryParseLinkedImageBlock(line, new MarkdownLoadOptions(), new MarkdownReaderState(), out image, out sizeSpec, out ranges);
 
-    private static bool TryParseLinkedImageBlock(string line, MarkdownReaderOptions options, MarkdownReaderState state, out ImageBlock image, out string? sizeSpec) =>
+    private static bool TryParseLinkedImageBlock(string line, MarkdownLoadOptions options, MarkdownReaderState state, out ImageBlock image, out string? sizeSpec) =>
         TryParseLinkedImageBlock(line, options, state, out image, out sizeSpec, out _);
 
-    private static bool TryParseLinkedImageBlock(string line, MarkdownReaderOptions options, MarkdownReaderState state, out ImageBlock image, out string? sizeSpec, out MarkdownImageSyntaxRanges ranges) {
+    private static bool TryParseLinkedImageBlock(string line, MarkdownLoadOptions options, MarkdownReaderState state, out ImageBlock image, out string? sizeSpec, out MarkdownImageSyntaxRanges ranges) {
         image = null!;
         sizeSpec = null;
         ranges = default;
@@ -181,7 +181,7 @@ public static partial class MarkdownReader {
         string? suffix,
         int suffixStart,
         ImageBlock image,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         ref string? sizeSpec,
         ref int? genericAttributeStart,
         ref int? genericAttributeLength) {
@@ -216,6 +216,10 @@ public static partial class MarkdownReader {
         }
     }
 
+    // OfficeLength's bare numbers are points; Markdown's bare image dimensions are CSS pixels.
+    private static bool TryParseImageLength(string value, out OfficeLength length) =>
+        OfficeLength.TryParse(value + "px", out length) || OfficeLength.TryParse(value, out length);
+
     private static bool TryApplyImageSizeSpec(string? block, ImageBlock image) {
         bool applied = false;
         foreach (var part in (block ?? string.Empty).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
@@ -226,15 +230,15 @@ public static partial class MarkdownReader {
 
             var key = part.Substring(0, eq).Trim();
             var val = part.Substring(eq + 1).Trim();
-            if (!double.TryParse(val, NumberStyles.Number, CultureInfo.InvariantCulture, out var num)) {
+            if (!TryParseImageLength(val, out var length)) {
                 continue;
             }
 
             if (string.Equals(key, "width", StringComparison.OrdinalIgnoreCase)) {
-                image.Width = num;
+                image.Width = length;
                 applied = true;
             } else if (string.Equals(key, "height", StringComparison.OrdinalIgnoreCase)) {
-                image.Height = num;
+                image.Height = length;
                 applied = true;
             }
         }

@@ -21,18 +21,18 @@ public sealed class PublisherTableUtilityCreationTests {
         Assert.All(original.Cells, cell => Assert.Null(cell.FillColor));
         Assert.Empty(original.BorderSegments);
         Apply(document, variant);
-        var result = document.ToPubBytesResult(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
-        PublisherNativeWritingTests.AssertPreservedStorage(source, result.Value, "Escher/EscherStm",
+        byte[] savedBytes = document.ToBytes(new PublisherSaveOptions { AllowLoss = true }, out PublisherSaveReport saveReport);
+        PublisherNativeWritingTests.AssertPreservedStorage(source, savedBytes, "Escher/EscherStm",
             variant.EndsWith("Text", StringComparison.Ordinal) ? new[] { "Quill/QuillSub/CONTENTS" } : Array.Empty<string>());
-        Assert.Equal(OrdinaryDrawing(source), OrdinaryDrawing(result.Value));
-        PublisherDocument reopened = PublisherDocument.Load(result.Value);
+        Assert.Equal(OrdinaryDrawing(source), OrdinaryDrawing(savedBytes));
+        PublisherDocument reopened = PublisherDocument.Load(savedBytes);
         PublisherTable actual = reopened.Pages[0].Tables[0];
         PublisherTable expected = PublisherDocument.Load(Control(variant)).Pages[0].Tables[0];
         Compare(expected, actual);
         Assert.Equal((original.Id, original.StoryId, original.PageId), (actual.Id, actual.StoryId, actual.PageId));
-        Assert.Equal(result.Value, reopened.ToPubBytes());
-        Assert.Contains(result.Report.FidelityDiagnostics, item => item.Code == "PUB_NATIVE_TABLE_UTILITY_CREATION_UNQUALIFIED" && item.LossKind == OfficeConversionLossKind.Unassessed);
-        AssertAllocation(result.Value, variant == "TableFillsOnly" ? 11U : variant == "TableBorderTopology" ? 18U : 17U);
+        Assert.Equal(savedBytes, reopened.ToBytes());
+        Assert.Contains(saveReport.Diagnostics, item => item.Code == "PUB_NATIVE_TABLE_UTILITY_CREATION_UNQUALIFIED" && item.LossKind == OfficeConversionLossKind.Unassessed);
+        AssertAllocation(savedBytes, variant == "TableFillsOnly" ? 11U : variant == "TableBorderTopology" ? 18U : 17U);
     }
 
     [Theory]
@@ -42,13 +42,13 @@ public sealed class PublisherTableUtilityCreationTests {
         byte[] original = File.ReadAllBytes(PublisherNativeTests.Fixture("NativeComparison/GeneratedTable/generated-table.pub"));
         PublisherDocument document = PublisherDocument.Load(original);
         Apply(document, "TableBordersOnly");
-        byte[] first = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        byte[] first = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         document = PublisherDocument.Load(first);
         PublisherTable before = document.Pages[0].Tables[0];
         if (clearBorders) {
             foreach (var edge in before.BorderSegments) document.SetTableBorderStyle(before.Id, edge.FirstRow, edge.FirstColumn, edge.LastRow, edge.LastColumn, null);
         } else Apply(document, "TableDecoration");
-        byte[] saved = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        byte[] saved = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         PublisherTable actual = PublisherDocument.Load(saved).Pages[0].Tables[0];
         PublisherTable expected = PublisherDocument.Load(Control(clearBorders ? "TableBordersOnlyCleared" : "TableDecoration")).Pages[0].Tables[0];
         Compare(expected, actual);
@@ -58,7 +58,7 @@ public sealed class PublisherTableUtilityCreationTests {
         if (clearBorders) {
             document = PublisherDocument.Load(saved);
             Apply(document, "TableBordersOnly");
-            byte[] restored = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+            byte[] restored = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
             Compare(PublisherDocument.Load(Control("TableBordersOnly")).Pages[0].Tables[0], PublisherDocument.Load(restored).Pages[0].Tables[0]);
             AssertAllocation(restored, 17);
             Assert.True(UtilityCursor(restored) > UtilityCursor(first), "Re-added edges must consume fresh identifiers after deletion/reload.");
@@ -80,10 +80,10 @@ public sealed class PublisherTableUtilityCreationTests {
         BitConverter.GetBytes(32768U).CopyTo(art, fopt.Offset + index * 6 + 2);
         byte[] input = OfficeCompoundFileWriter.Rewrite(compound, new Dictionary<string, byte[]> { ["Escher/EscherStm"] = art });
         PublisherDocument document = PublisherDocument.Load(input);
-        Assert.Equal(input, document.ToPubBytes());
+        Assert.Equal(input, document.ToBytes());
         Apply(document, "TableFillsOnly");
-        OfficeConversionException error = Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
-        Assert.Contains(error.Report.FidelityDiagnostics, item => item.Code == "PUB_NATIVE_EDIT_UNSUPPORTED" && item.LossKind == OfficeConversionLossKind.Failure);
+        OfficeConversionException error = Assert.Throws<OfficeConversionException>(() => document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
+        Assert.Contains(error.Report.Diagnostics, item => item.Code == "PUB_NATIVE_EDIT_UNSUPPORTED" && item.LossKind == OfficeConversionLossKind.Failure);
     }
 
     [Theory]
@@ -98,10 +98,10 @@ public sealed class PublisherTableUtilityCreationTests {
         BitConverter.GetBytes(reservedHistory ? 3072U : 4U).CopyTo(art, reservedHistory ? 16 : 24);
         byte[] input = OfficeCompoundFileWriter.Rewrite(compound, new Dictionary<string, byte[]> { ["Escher/EscherStm"] = art });
         PublisherDocument document = PublisherDocument.Load(input);
-        Assert.Equal(input, document.ToPubBytes());
+        Assert.Equal(input, document.ToBytes());
         Apply(document, "TableBordersOnly");
-        OfficeConversionException error = Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
-        Assert.Contains(error.Report.FidelityDiagnostics, item => item.Code == "PUB_NATIVE_EDIT_UNSUPPORTED" && item.LossKind == OfficeConversionLossKind.Failure);
+        OfficeConversionException error = Assert.Throws<OfficeConversionException>(() => document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
+        Assert.Contains(error.Report.Diagnostics, item => item.Code == "PUB_NATIVE_EDIT_UNSUPPORTED" && item.LossKind == OfficeConversionLossKind.Failure);
     }
 
     internal static void Apply(PublisherDocument document, string variant, PublisherTable? selectedTable = null) {
@@ -168,7 +168,7 @@ public sealed class PublisherTableUtilityCreationTests {
         Assert.Equal(expectedCount, count);
     }
     private static PublisherEscherReader Reader(byte[] art) => new(new PublisherBinaryData(art, "Escher/EscherStm"), null,
-        new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None));
+        new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None));
     private static OfficeCompoundFile Compound(byte[] bytes) {
         Assert.True(OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compound, out string? error), error); return compound!;
     }

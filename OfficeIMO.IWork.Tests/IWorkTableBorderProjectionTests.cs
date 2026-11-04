@@ -65,30 +65,30 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream();
         IWorkTable table;
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = source.ToWordDocumentResult(policy); Assert.False(result.IsVisualFallback);
+            using var result = source.ToWordResult(policy); Assert.False(result.IsVisualFallback);
             table = Assert.Single(result.Projection.Tables); result.Value.Save(saved); saved.Position = 0;
             using var reopened = WordDocument.Load(saved);
             var output = Assert.Single(reopened.Tables);
-            Assert.Equal("FF0000", output.Rows[0].Cells[0].Borders.BottomColorHex);
-            Assert.Equal(24U, output.Rows[0].Cells[0].Borders.BottomSize);
+            Assert.Equal(OfficeColor.Parse("FF0000"), output.Rows[0].Cells[0].Borders.BottomColor);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(3), output.Rows[0].Cells[0].Borders.BottomSize);
             Assert.Equal(WordBorderStyle.Nil, output.Rows[0].Cells[1].Borders.BottomStyle);
             Assert.Equal(WordBorderStyle.Nil, output.Rows[1].Cells[1].Borders.TopStyle);
-            Assert.Equal("000000", output.Rows[2].Cells[1].Borders.BottomColorHex);
-            Assert.Equal(8U, output.Rows[2].Cells[1].Borders.BottomSize);
+            Assert.Equal(OfficeColor.Parse("000000"), output.Rows[2].Cells[1].Borders.BottomColor);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(1), output.Rows[2].Cells[1].Borders.BottomSize);
         } else if (kind == IWorkDocumentKind.Numbers) {
-            using var result = source.ToExcelDocumentResult(policy); Assert.False(result.IsVisualFallback);
+            using var result = source.ToExcelResult(policy); Assert.False(result.IsVisualFallback);
             table = Assert.Single(Assert.Single(result.Projection.Sheets).Tables); result.Value.Save(saved); saved.Position = 0;
             using var reopened = ExcelDocument.Load(saved); var output = Assert.Single(reopened.Sheets);
-            Assert.Equal("thick", output.GetCellStyle(1, 1).Border!.Bottom!.Style);
-            Assert.Equal("FFFF0000", output.GetCellStyle(1, 1).Border!.Bottom!.ColorArgb);
-            Assert.Equal("none", output.GetCellStyle(1, 2).Border!.Bottom!.Style);
-            Assert.Equal("none", output.GetCellStyle(2, 2).Border!.Top!.Style);
-            Assert.Equal("thin", output.GetCellStyle(3, 2).Border!.Bottom!.Style);
-            Assert.Equal("FF000000", output.GetCellStyle(3, 2).Border!.Bottom!.ColorArgb);
+            Assert.Equal("thick", output.Cell(1, 1).GetStyle().Border!.Bottom!.Style);
+            Assert.Equal("FFFF0000", output.Cell(1, 1).GetStyle().Border!.Bottom!.ColorArgb);
+            Assert.Equal("none", output.Cell(1, 2).GetStyle().Border!.Bottom!.Style);
+            Assert.Equal("none", output.Cell(2, 2).GetStyle().Border!.Top!.Style);
+            Assert.Equal("thin", output.Cell(3, 2).GetStyle().Border!.Bottom!.Style);
+            Assert.Equal("FF000000", output.Cell(3, 2).GetStyle().Border!.Bottom!.ColorArgb);
         } else {
-            using var result = source.ToPowerPointPresentationResult(policy); Assert.False(result.IsVisualFallback);
+            using var result = source.ToPowerPointResult(policy); Assert.False(result.IsVisualFallback);
             table = Assert.Single(Assert.Single(result.Projection.Slides).Tables); result.Value.Save(saved); saved.Position = 0;
-            using var reopened = PowerPointPresentation.Load(saved); Assert.Empty(reopened.ValidateDocument());
+            using var reopened = PowerPointDocument.Load(saved); Assert.Empty(reopened.ValidateDocument());
             saved.Position = 0; using var zip = new System.IO.Compression.ZipArchive(saved, System.IO.Compression.ZipArchiveMode.Read, true);
             var entry = zip.Entries.Single(item => item.FullName.StartsWith("ppt/slides/", StringComparison.Ordinal) && item.FullName.EndsWith(".xml", StringComparison.Ordinal));
             using var xml = entry.Open(); var document = System.Xml.Linq.XDocument.Load(xml);
@@ -155,10 +155,10 @@ public sealed partial class IWorkBoundaryTests {
         using var package = BorderPackage(kind, width: width, sparse: false); var source = IWorkSourceDocument.Open(package);
         var policy = IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = source.ToWordDocumentResult(policy); Assert.True(result.IsVisualFallback);
+            using var result = source.ToWordResult(policy); Assert.True(result.IsVisualFallback);
             Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Message.Contains("border widths", StringComparison.Ordinal));
         } else {
-            using var result = source.ToPowerPointPresentationResult(policy); Assert.True(result.IsVisualFallback);
+            using var result = source.ToPowerPointResult(policy); Assert.True(result.IsVisualFallback);
             Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Message.Contains("border strokes", StringComparison.Ordinal));
         }
     }
@@ -209,7 +209,7 @@ public sealed partial class IWorkBoundaryTests {
         using var package = DimensionPackage(IWorkDocumentKind.Numbers, modelDeclarations: ReferenceField(86, 70),
             styleRecords: new[] { ArchiveRecord(70, 6372, ReferenceField(1, 71)), ArchiveRecord(71, 6373, VarintField(6, 0)) });
         var error = Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaximumTableDimensionEntries = 1 }).ReadNumbers());
+            new IWorkReadOptions { MaxTableDimensionEntries = 1 }).ReadNumbers());
         Assert.Contains("dimension entries", error.Message);
     }
 
@@ -243,17 +243,17 @@ public sealed partial class IWorkBoundaryTests {
         var strict = IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions());
         var partial = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         if (kind == IWorkDocumentKind.Pages) {
-            using var rejected = source.ToWordDocumentResult(strict); Assert.True(rejected.IsVisualFallback);
-            using var converted = source.ToWordDocumentResult(partial); Assert.False(converted.IsVisualFallback);
+            using var rejected = source.ToWordResult(strict); Assert.True(rejected.IsVisualFallback);
+            using var converted = source.ToWordResult(partial); Assert.False(converted.IsVisualFallback);
             Assert.Contains(converted.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_PAGES_DOCX_PRECISION");
             using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
-            using var reopened = WordDocument.Load(saved); Assert.Equal(2U, reopened.Tables[0].Rows[0].Cells[0].Borders.TopSize);
+            using var reopened = WordDocument.Load(saved); Assert.Equal(global::OfficeIMO.OfficeLength.Points(0.25), reopened.Tables[0].Rows[0].Cells[0].Borders.TopSize);
         } else {
-            using var rejected = source.ToPowerPointPresentationResult(strict); Assert.True(rejected.IsVisualFallback);
-            using var converted = source.ToPowerPointPresentationResult(partial); Assert.False(converted.IsVisualFallback);
+            using var rejected = source.ToPowerPointResult(strict); Assert.True(rejected.IsVisualFallback);
+            using var converted = source.ToPowerPointResult(partial); Assert.False(converted.IsVisualFallback);
             Assert.Contains(converted.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_KEYNOTE_PPTX_PRECISION");
             using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
-            using var reopened = PowerPointPresentation.Load(saved); Assert.Empty(reopened.ValidateDocument());
+            using var reopened = PowerPointDocument.Load(saved); Assert.Empty(reopened.ValidateDocument());
         }
     }
 
@@ -262,12 +262,12 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(0.6f, "hair")]
     public void Numbers_quantized_border_widths_report_approximation_and_preserve_saved_color(float width, string expected) {
         using var package = BorderPackage(IWorkDocumentKind.Numbers, width: width, sparse: false);
-        using var result = IWorkSourceDocument.Open(package).ToExcelDocumentResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(package).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_NUMBERS_BORDER_WIDTH_APPROXIMATED"
             && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
-        using var reopened = ExcelDocument.Load(saved); var side = reopened.Sheets[0].GetCellStyle(3, 2).Border!.Bottom!;
+        using var reopened = ExcelDocument.Load(saved); var side = reopened.Sheets[0].Cell(3, 2).GetStyle().Border!.Bottom!;
         Assert.Equal(expected, side.Style); Assert.Equal("FF000000", side.ColorArgb);
     }
 

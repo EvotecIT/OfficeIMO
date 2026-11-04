@@ -7,65 +7,48 @@ namespace OfficeIMO.Drawing;
 /// </summary>
 public readonly struct OfficePageSize {
     /// <summary>
-    /// Creates a physical page size measured in inches.
+    /// Creates a physical page size from positive document lengths.
     /// </summary>
-    public OfficePageSize(double widthInches, double heightInches) {
-        ValidatePositive(widthInches, nameof(widthInches));
-        ValidatePositive(heightInches, nameof(heightInches));
-        WidthInches = widthInches;
-        HeightInches = heightInches;
+    public OfficePageSize(OfficeLength width, OfficeLength height) {
+        if (width <= OfficeLength.Zero) {
+            throw new ArgumentOutOfRangeException(nameof(width), "Value must be positive.");
+        }
+        if (height <= OfficeLength.Zero) {
+            throw new ArgumentOutOfRangeException(nameof(height), "Value must be positive.");
+        }
+        Width = width;
+        Height = height;
     }
 
-    /// <summary>Page width in inches.</summary>
-    public double WidthInches { get; }
+    /// <summary>Physical page width.</summary>
+    public OfficeLength Width { get; }
 
-    /// <summary>Page height in inches.</summary>
-    public double HeightInches { get; }
-
-    /// <summary>
-    /// Creates a page size from millimeters.
-    /// </summary>
-    public static OfficePageSize FromMillimeters(double widthMillimeters, double heightMillimeters) {
-        ValidatePositive(widthMillimeters, nameof(widthMillimeters));
-        ValidatePositive(heightMillimeters, nameof(heightMillimeters));
-        return new OfficePageSize(widthMillimeters / 25.4D, heightMillimeters / 25.4D);
-    }
+    /// <summary>Physical page height.</summary>
+    public OfficeLength Height { get; }
 
     /// <summary>
     /// Returns this page size in portrait orientation.
     /// </summary>
     public OfficePageSize Portrait() =>
-        WidthInches <= HeightInches ? this : new OfficePageSize(HeightInches, WidthInches);
+        Width <= Height ? this : new OfficePageSize(Height, Width);
 
     /// <summary>
     /// Returns this page size in landscape orientation.
     /// </summary>
     public OfficePageSize Landscape() =>
-        WidthInches >= HeightInches ? this : new OfficePageSize(HeightInches, WidthInches);
+        Width >= Height ? this : new OfficePageSize(Height, Width);
 
     /// <summary>
     /// Converts the page width to pixels for the requested DPI and scale.
     /// </summary>
     public int ToPixelWidth(double dpi, double scale = 1D) =>
-        ToPixels(WidthInches, dpi, scale, nameof(dpi));
+        ToPixels(Width.ToInches(), dpi, scale, nameof(dpi));
 
     /// <summary>
     /// Converts the page height to pixels for the requested DPI and scale.
     /// </summary>
     public int ToPixelHeight(double dpi, double scale = 1D) =>
-        ToPixels(HeightInches, dpi, scale, nameof(dpi));
-
-    /// <summary>
-    /// Converts the page width to points.
-    /// </summary>
-    public double ToPointWidth() => ToPoints(WidthInches);
-
-    /// <summary>
-    /// Converts the page height to points.
-    /// </summary>
-    public double ToPointHeight() => ToPoints(HeightInches);
-
-    private static double ToPoints(double inches) => inches * 72D;
+        ToPixels(Height.ToInches(), dpi, scale, nameof(dpi));
 
     private static int ToPixels(double inches, double dpi, double scale, string dpiParameterName) {
         ValidatePositive(dpi, dpiParameterName);

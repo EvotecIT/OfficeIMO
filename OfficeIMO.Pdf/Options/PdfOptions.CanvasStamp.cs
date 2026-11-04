@@ -1,11 +1,11 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfOptions {
+public sealed partial class PdfCreateOptions {
     /// <summary>
     /// Clones reusable rendering configuration while removing document-level content that must not leak into a canvas stamp.
     /// </summary>
-    internal PdfOptions CloneForCanvasStampRendering() {
-        PdfOptions clone = Clone();
+    internal PdfCreateOptions CloneForCanvasStampRendering() {
+        PdfCreateOptions clone = Clone();
 
         clone.ShowHeader = false;
         clone.ShowPageNumbers = false;

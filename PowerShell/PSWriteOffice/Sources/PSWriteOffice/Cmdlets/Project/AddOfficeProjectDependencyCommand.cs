@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Project;
 ///   <summary>Adds a finish-to-start relationship between two tasks.</summary>
 ///   <code>$project | Add-OfficeProjectDependency -PredecessorUid 1 -SuccessorUid 2</code>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeProjectDependency")]
+[Cmdlet(VerbsCommon.Add, "OfficeProjectDependency", DefaultParameterSetName = "Document")]
 [OutputType(typeof(ProjectDependency))]
 public sealed class AddOfficeProjectDependencyCommand : PSCmdlet {
     /// <summary>Project to inspect or change.</summary>

@@ -10,7 +10,7 @@ public sealed class PdfDocumentCapabilityLifetimeTests {
     [Fact]
     public void LoadedDocumentCapabilitiesKeepStableIdentity() {
         byte[] bytes = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Capability lifetime"))
+            .Paragraph(paragraph => paragraph.AddText("Capability lifetime"))
             .ToBytes();
         PdfDocument document = PdfDocument.Load(bytes);
 
@@ -34,23 +34,24 @@ public sealed class PdfDocumentCapabilityLifetimeTests {
     [Fact]
     public void LoadedDocumentAuthoringDefaultsRemainIsolated() {
         byte[] bytes = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Source-backed option isolation"))
+            .Paragraph(paragraph => paragraph.AddText("Source-backed option isolation"))
             .ToBytes();
         PdfDocument first = PdfDocument.Load(bytes);
         PdfDocument second = PdfDocument.Load(bytes);
 
         Assert.NotSame(first.Options, second.Options);
 
-        first.Options.MarginLeft = 11;
+        double originalMargin = second.Options.PageSetup.Margins.Left.ToPoints();
+        first.Options.PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points(11);
 
-        Assert.Equal(11, first.Options.MarginLeft);
-        Assert.Equal(72, second.Options.MarginLeft);
+        Assert.Equal(11, first.Options.PageSetup.Margins.Left.ToPoints());
+        Assert.Equal(originalMargin, second.Options.PageSetup.Margins.Left.ToPoints());
     }
 
     [Fact]
     public void ConcurrentFirstAccessPublishesOnePagesCapability() {
         byte[] bytes = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Concurrent capability lifetime"))
+            .Paragraph(paragraph => paragraph.AddText("Concurrent capability lifetime"))
             .ToBytes();
         PdfDocument document = PdfDocument.Load(bytes);
         var capabilities = new ConcurrentBag<PdfDocumentPages>();
@@ -64,9 +65,9 @@ public sealed class PdfDocumentCapabilityLifetimeTests {
     [Fact]
     public void SplitReadbackRetainsCanonicalSecurityAndRevisionEvidence() {
         PdfDocument source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("First"))
+            .Paragraph(paragraph => paragraph.AddText("First"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Second"));
+            .Paragraph(paragraph => paragraph.AddText("Second"));
 
         PdfDocument part = source.Pages.Split()[0];
         PdfReadDocument cached = part.GetReadDocument();

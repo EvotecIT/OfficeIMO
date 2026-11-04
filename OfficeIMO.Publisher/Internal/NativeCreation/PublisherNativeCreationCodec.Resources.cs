@@ -6,9 +6,9 @@ internal static partial class PublisherNativeCreationCodec {
     /// <summary>Admits the plan's semantic resources before constructing native streams; source-inspection limits do not count generated records.</summary>
     private static void ValidateResources(PublisherNativeCreationPlan plan, PublisherParseContext context, long maxOutputBytes) {
         context.Token.ThrowIfCancellationRequested();
-        PublisherReadOptions options = context.Options;
+        PublisherLoadOptions options = context.Options;
         int limit = options.Limits.MaxItems;
-        if ((long)plan.PhysicalPageCount + plan.MasterDefinitions.Count > options.MaximumPages)
+        if ((long)plan.PhysicalPageCount + plan.MasterDefinitions.Count > options.MaxPages)
             throw new InvalidDataException("Publisher page limit exceeded.");
         if (plan.Objects.Count > limit) throw new InvalidDataException("Publisher current object limit exceeded.");
         if ((long)plan.Objects.Count + 1 > PublisherNativeCreationArtwork.MaximumOrdinaryShapes)
@@ -51,7 +51,7 @@ internal static partial class PublisherNativeCreationCodec {
                 context.AccountTableModel(checked(1 + table.ColumnWidths.Count + table.RowHeights.Count + table.Cells.Count));
             }
             if (item.Image is { } image) {
-                if (image.Length > options.MaximumImageBytes)
+                if (image.Length > options.MaxImageBytes)
                     throw new InvalidDataException("Publisher encoded image byte limit exceeded.");
                 if (item.ImageId is { } imageId && assets.TryGetValue(imageId, out byte[]? existing)) {
                     if (!PublisherNativeCreationArtwork.ImagePayloadsEqual(existing, image, context.Token))

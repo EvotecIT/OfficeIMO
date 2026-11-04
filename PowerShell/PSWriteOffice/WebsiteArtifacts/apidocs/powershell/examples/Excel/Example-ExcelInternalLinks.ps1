@@ -9,7 +9,7 @@ $rows = @(
 
 New-OfficeExcel -Path $path {
     Add-OfficeExcelSheet -Name 'Summary' -Content {
-        Add-OfficeExcelTable -Data $rows -TableName 'SummaryTable' -AutoFit
+        Add-OfficeExcelTable -Data $rows -Name 'SummaryTable' -AutoFit
         Set-OfficeExcelCell -Address 'D1' -Value 'Sheet'
         Set-OfficeExcelCell -Address 'D2' -Value 'Alpha'
         Set-OfficeExcelCell -Address 'D3' -Value 'Beta'

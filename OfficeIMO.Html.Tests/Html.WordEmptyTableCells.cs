@@ -14,7 +14,7 @@ public sealed class WordEmptyTableCellTests {
     public void EmptyOrTableOnlyHtmlCellSavesAValidNativeCell(string content) {
         using WordDocument document = HtmlConversionDocument.Parse(
             "<p>Before table</p><table><tr><td>" + content + "</td><td>Neighbor</td></tr></table><p>After table</p>")
-            .ToWordDocument();
+            .ToWord();
         using var stream = new MemoryStream();
         document.Save(stream);
         stream.Position = 0;

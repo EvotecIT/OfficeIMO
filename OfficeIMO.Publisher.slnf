@@ -1,0 +1,12 @@
+{
+  "solution": {
+    "path": "OfficeIMO.slnx",
+    "projects": [
+      "OfficeIMO.Core\\OfficeIMO.Core.csproj",
+      "OfficeIMO.Pdf\\OfficeIMO.Pdf.csproj",
+      "OfficeIMO.Publisher.Pdf\\OfficeIMO.Publisher.Pdf.csproj",
+      "OfficeIMO.Publisher.Tests\\OfficeIMO.Publisher.Tests.csproj",
+      "OfficeIMO.Publisher\\OfficeIMO.Publisher.csproj"
+    ]
+  }
+}

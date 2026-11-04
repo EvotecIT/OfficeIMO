@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(3, inventory.SourceSlideCount);
 
                 PowerPointTemplateLayoutInfo layout = inventory.ResolveLayout(master.Layouts[0].Name);
-                Assert.True(layout.SafeArea.Width > 0);
+                Assert.True(layout.SafeArea.Width.ToEmus() > 0);
                 PowerPointTemplatePlaceholderInfo body = layout.ResolvePlaceholder("Executive Summary Body");
                 Assert.Equal(PowerPointTemplatePlaceholderRole.Body, body.Role);
                 Assert.True(body.Bounds.HasValue);
@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Aptos", brief.BodyFontName);
                 Assert.Equal("CONFIDENTIAL", brief.FooterLeft);
 
-                using PowerPointPresentation target = PowerPointPresentation.Create(targetPath);
+                using PowerPointDocument target = PowerPointDocument.Create(targetPath);
                 inventory.ApplyBrandTo(target);
                 Assert.Equal("Corporate Test Theme", target.ThemeName);
                 Assert.Equal("0B7FAB", target.GetThemeColor(PowerPointThemeColor.Accent1));
@@ -99,10 +99,10 @@ namespace OfficeIMO.Tests {
                     candidate => candidate.Name == "Grouped Logo" &&
                                  candidate.Kind == PowerPointTemplateAssetKind.Logo);
                 PowerPointLayoutBox bounds = Assert.IsType<PowerPointLayoutBox>(asset.Bounds);
-                Assert.Equal(2200000L, bounds.Left);
-                Assert.Equal(1100000L, bounds.Top);
-                Assert.Equal(400000L, bounds.Width);
-                Assert.Equal(200000L, bounds.Height);
+                Assert.Equal(2200000L, bounds.Left.ToEmus());
+                Assert.Equal(1100000L, bounds.Top.ToEmus());
+                Assert.Equal(400000L, bounds.Width.ToEmus());
+                Assert.Equal(200000L, bounds.Height.ToEmus());
                 Assert.Null(Assert.Single(
                     inventory.Assets,
                     candidate => candidate.Name == "Long Boundary Logo").Bounds);
@@ -163,7 +163,7 @@ namespace OfficeIMO.Tests {
                 PowerPointTemplateLayoutInfo layout = inventory.Masters[0].Layouts[0];
                 PowerPointTemplatePlaceholderInfo body = layout.ResolvePlaceholder("Executive Summary Body");
 
-                using (PowerPointPresentation presentation = PowerPointTemplate.CreatePresentation(templatePath,
+                using (PowerPointDocument presentation = PowerPointTemplate.CreateDocument(templatePath,
                            outputPath)) {
                     Assert.Empty(presentation.Slides);
                     PowerPointSlide slide = presentation.AddSlide(layout);
@@ -172,7 +172,7 @@ namespace OfficeIMO.Tests {
                     Assert.Empty(presentation.ValidateDocument());
                 }
 
-                using PowerPointPresentation reopened = PowerPointPresentation.Load(outputPath);
+                using PowerPointDocument reopened = PowerPointDocument.Load(outputPath);
                 Assert.Single(reopened.Slides);
                 Assert.Equal("Corporate Test Theme", reopened.ThemeName);
                 Assert.NotEmpty(reopened.GetSlideLayouts());
@@ -195,7 +195,7 @@ namespace OfficeIMO.Tests {
                 };
                 options.SourceSlideIndexes.Add(1);
 
-                using (PowerPointPresentation presentation = PowerPointTemplate.CreatePresentation(templatePath,
+                using (PowerPointDocument presentation = PowerPointTemplate.CreateDocument(templatePath,
                            outputPath, options)) {
                     PowerPointSlide retained = Assert.Single(presentation.Slides);
                     Assert.True(retained.Hidden);
@@ -203,7 +203,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using PowerPointPresentation reopened = PowerPointPresentation.Load(outputPath);
+                using PowerPointDocument reopened = PowerPointDocument.Load(outputPath);
                 Assert.Single(reopened.Slides);
                 Assert.True(reopened.Slides[0].Hidden);
             } finally {
@@ -222,7 +222,7 @@ namespace OfficeIMO.Tests {
                 options.SourceSlideIndexes.Add(99);
 
                 Assert.Throws<ArgumentOutOfRangeException>(() =>
-                    PowerPointTemplate.CreatePresentation(templatePath, outputPath, options));
+                    PowerPointTemplate.CreateDocument(templatePath, outputPath, options));
 
                 Assert.False(File.Exists(outputPath));
                 string directory = Path.GetDirectoryName(outputPath)!;
@@ -246,7 +246,7 @@ namespace OfficeIMO.Tests {
                     template.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointTemplate.CreatePresentation(sourcePotx,
+                using (PowerPointDocument presentation = PowerPointTemplate.CreateDocument(sourcePotx,
                            outputPath)) {
                     Assert.Empty(presentation.Slides);
                     presentation.AddSlide();
@@ -275,7 +275,7 @@ namespace OfficeIMO.Tests {
                     new PowerPointProcessStep("Deliver", "Ship with evidence.")
                 });
 
-                using (PowerPointPresentation presentation = PowerPointTemplate.CreatePresentation(templatePath,
+                using (PowerPointDocument presentation = PowerPointTemplate.CreateDocument(templatePath,
                            outputPath)) {
                     PowerPointDeckComposer deck = presentation.UseTemplateDesigner(inventory, map,
                         "template-render", "delivery plan");
@@ -286,7 +286,7 @@ namespace OfficeIMO.Tests {
                     Assert.Empty(presentation.ValidateDocument());
                 }
 
-                using PowerPointPresentation reopened = PowerPointPresentation.Load(outputPath);
+                using PowerPointDocument reopened = PowerPointDocument.Load(outputPath);
                 PowerPointSlide slide = Assert.Single(reopened.Slides);
                 Assert.Equal(namedLayout.LayoutIndex, slide.LayoutIndex);
                 Assert.Contains(slide.TextBoxes, box => box.Text == "Mapped process");
@@ -306,7 +306,7 @@ namespace OfficeIMO.Tests {
                 var options = new PowerPointTemplateCreationOptions {
                     SlideRetention = PowerPointTemplateSlideRetention.All
                 };
-                using (PowerPointPresentation copied = PowerPointTemplate.CreatePresentation(fixturePath,
+                using (PowerPointDocument copied = PowerPointTemplate.CreateDocument(fixturePath,
                            outputPath, options)) {
                     PowerPointTemplateInventory result = PowerPointTemplate.Inspect(copied);
                     Assert.Equal(source.SourceSlideCount, result.SourceSlideCount);
@@ -323,7 +323,7 @@ namespace OfficeIMO.Tests {
 
         private static string CreateTemplatePresentation() {
             string path = TempPath(".pptx");
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(path);
+            using PowerPointDocument presentation = PowerPointDocument.Create(path);
             presentation.ThemeName = "Corporate Test Theme";
             presentation.SetThemeColor(PowerPointThemeColor.Accent1, "0B7FAB");
             presentation.SetThemeColor(PowerPointThemeColor.Accent2, "7C3AED");
@@ -331,18 +331,18 @@ namespace OfficeIMO.Tests {
             presentation.SetThemeLatinFonts("Aptos Display", "Aptos");
 
             PowerPointTextBox primary = presentation.EnsureLayoutPlaceholderTextBox(0, 0,
-                PowerPointPlaceholderType.Body, 20, PowerPointLayoutBox.FromCentimeters(1.5, 3.0, 18, 7),
+                PowerPointPlaceholderType.Body, 20, new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(1.5),OfficeIMO.OfficeLength.Centimeters(3.0),OfficeIMO.OfficeLength.Centimeters(18),OfficeIMO.OfficeLength.Centimeters(7)),
                 "Executive Summary Body");
             primary.Name = "Executive Summary Body";
             PowerPointTextBox secondary = presentation.EnsureLayoutPlaceholderTextBox(0, 0,
-                PowerPointPlaceholderType.Body, 21, PowerPointLayoutBox.FromCentimeters(20, 3.0, 5, 7),
+                PowerPointPlaceholderType.Body, 21, new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(20),OfficeIMO.OfficeLength.Centimeters(3.0),OfficeIMO.OfficeLength.Centimeters(5),OfficeIMO.OfficeLength.Centimeters(7)),
                 "Supporting Body");
             secondary.Name = "Supporting Body";
             presentation.EnsureLayoutFooterPlaceholderTextBox(0, 0, "CONFIDENTIAL");
 
             for (int index = 1; index <= 3; index++) {
                 PowerPointSlide slide = presentation.AddSlide();
-                slide.AddTextBoxCm("Source slide " + index, 2, 2, 10, 1);
+                slide.AddTextBox("Source slide " + index,global::OfficeIMO.OfficeLength.Centimeters(2),global::OfficeIMO.OfficeLength.Centimeters(2),global::OfficeIMO.OfficeLength.Centimeters(10),global::OfficeIMO.OfficeLength.Centimeters(1));
             }
             presentation.Save();
             return path;

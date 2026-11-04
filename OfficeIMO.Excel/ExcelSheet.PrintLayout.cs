@@ -68,8 +68,8 @@ namespace OfficeIMO.Excel {
         /// <param name="preset">Preset to apply.</param>
         /// <param name="printArea">Optional print area in A1 notation.</param>
         /// <returns>The worksheet for fluent chaining.</returns>
-        public ExcelSheet ApplyPrintLayoutPreset(ExcelPrintLayoutPreset preset, string? printArea = null) {
-            return ApplyPrintLayout(new ExcelPrintLayoutOptions {
+        internal ExcelSheet ApplyPrintLayoutPresetCore(ExcelPrintLayoutPreset preset, string? printArea = null) {
+            return ApplyPrintLayoutCore(new ExcelPrintLayoutOptions {
                 Preset = preset,
                 PrintArea = printArea,
             });
@@ -80,7 +80,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="options">Print layout options.</param>
         /// <returns>The worksheet for fluent chaining.</returns>
-        public ExcelSheet ApplyPrintLayout(ExcelPrintLayoutOptions options) {
+        internal ExcelSheet ApplyPrintLayoutCore(ExcelPrintLayoutOptions options) {
             if (options == null) throw new ArgumentNullException(nameof(options));
 
             var preset = ResolvePrintLayoutPreset(options.Preset);
@@ -97,15 +97,15 @@ namespace OfficeIMO.Excel {
             var repeatLastColumn = options.RepeatLastColumn ?? preset.RepeatLastColumn;
             ValidatePrintLayoutScale(scale);
 
-            SetOrientation(orientation);
-            SetMarginsPreset(margins);
+            SetOrientationCore(orientation);
+            SetMarginsPresetCore(margins);
             SetPageSetupAndClearStaleFit(fitToWidth, fitToHeight, scale, pageOrder, paperSize);
 
             if (!string.IsNullOrWhiteSpace(options.PrintArea)) {
-                _excelDocument.SetPrintArea(this, options.PrintArea!, save: false);
+                _excelDocument.SetPrintAreaCore(this, options.PrintArea!, save: false);
             }
 
-            _excelDocument.SetPrintTitles(
+            _excelDocument.SetPrintTitlesCore(
                 this,
                 repeatFirstRow,
                 repeatLastRow,

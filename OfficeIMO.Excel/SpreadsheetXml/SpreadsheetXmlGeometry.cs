@@ -50,7 +50,7 @@ internal static class SpreadsheetXmlGeometry {
         foreach (Column column in part.Worksheet.GetFirstChild<Columns>()?.Elements<Column>() ?? Enumerable.Empty<Column>()) {
             context.Options.CancellationToken.ThrowIfCancellationRequested();
             uint start = column.Min?.Value ?? 0, end = column.Max?.Value ?? 0;
-            if (start < 1 || end < start || end > A1.MaxColumns || start <= previous) throw new InvalidDataException("XML Spreadsheet requires ordered nonoverlapping columns within 256.");
+            if (start < 1 || end < start || end > ExcelA1.MaxColumns || start <= previous) throw new InvalidDataException("XML Spreadsheet requires ordered nonoverlapping columns within 256.");
             previous = end;
             if (end > 256) { context.Omitted("column formatting beyond XML Spreadsheet column 256"); if (start > 256) continue; end = 256; }
             writer.WriteStartElement("Column", Ss.NamespaceName); Attribute(writer, "Index", start);
@@ -67,7 +67,7 @@ internal static class SpreadsheetXmlGeometry {
     }
 
     private static double DigitWidth(WorksheetPart part, SpreadsheetXmlContext context) {
-        if (context.Options.DefaultFontMaximumDigitWidthPixels is double measured) return measured;
+        if (context.Options.DefaultFontMaximumDigitWidth is OfficeLength measured) return measured.ToPixels();
         double digit = ExcelColumnGeometry.GetMaximumDigitWidth(part, out bool resolved);
         if (!resolved) context.Approximate("Default font metrics are unavailable; column point conversion uses a seven-pixel digit width at 96 DPI.");
         return digit;

@@ -5,7 +5,7 @@ using System.Linq;
 using System.Xml.Linq;
 using OfficeIMO.Visio;
 using Xunit;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Tests {
     public class VisioCalloutTests {
@@ -15,10 +15,10 @@ namespace OfficeIMO.Tests {
             string roundTripPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Annotations", 11, 8.5);
-            VisioShape service = page.AddProcess(4, 4.5, 2, 1, "API");
+            VisioPage page = document.AddPage("Annotations", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
+            VisioShape service = page.AddProcess(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "API");
 
-            VisioShape callout = page.AddCallout(service, "api-note", "Check retry policy", 7.5, 6, new VisioCalloutOptions {
+            VisioShape callout = page.AddCallout(service, "api-note", "Check retry policy", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(7.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, page.DefaultUnit)), new VisioCalloutOptions {
                 Width = 2.4,
                 Height = 0.8,
                 ShapeStyle = new VisioShapeStyle(Color.LightYellow, Color.DarkOrange, 0.02),
@@ -65,9 +65,9 @@ namespace OfficeIMO.Tests {
         public void CalloutsCanUseAutomaticIdsAndStraightLeadersWithoutDefaultLayer() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("Auto");
-            VisioShape target = page.AddRectangle(2, 2, 1.5, 0.8, "Target");
+            VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), "Target");
 
-            VisioShape callout = page.AddCallout(target, "Plain note", 4.5, 2.5, new VisioCalloutOptions {
+            VisioShape callout = page.AddCallout(target, "Plain note", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.5, page.DefaultUnit)), new VisioCalloutOptions {
                 LeaderKind = ConnectorKind.Straight,
                 RouteLeader = false,
                 LayerName = null
@@ -87,22 +87,22 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Placed", 11, 8.5);
-            VisioShape target = page.AddRectangle(4, 4, 2, 1, "Target");
+            VisioPage page = document.AddPage("Placed", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
+            VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Target");
 
-            VisioShape right = page.AddCallout(target, "right-note", "Right note", VisioSide.Right, 0.4D, new VisioCalloutOptions {
+            VisioShape right = page.AddCallout(target, "right-note", "Right note", VisioSide.Right, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.4D, page.DefaultUnit)), new VisioCalloutOptions {
                 Width = 2.4D,
                 Height = 0.8D
             });
-            VisioShape top = page.AddCallout(target, "Top note", VisioSide.Top, 0.2D, new VisioCalloutOptions {
+            VisioShape top = page.AddCallout(target, "Top note", VisioSide.Top, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.2D, page.DefaultUnit)), new VisioCalloutOptions {
                 Width = 1.6D,
                 Height = 0.6D
             });
 
-            Assert.Equal(6.6D, right.PinX, 6);
-            Assert.Equal(target.PinY, right.PinY, 6);
-            Assert.Equal(target.PinX, top.PinX, 6);
-            Assert.Equal(5D, top.PinY, 6);
+            Assert.Equal(6.6D, right.PinX.ToInches(), 6);
+            Assert.Equal(target.PinY.ToInches(), right.PinY.ToInches(), 6);
+            Assert.Equal(target.PinX.ToInches(), top.PinX.ToInches(), 6);
+            Assert.Equal(5D, top.PinY.ToInches(), 6);
             Assert.Equal(target.Id, right.CalloutTargetId);
             Assert.Equal(target.Id, top.CalloutTargetId);
             Assert.Contains("Annotations", right.LayerNames);
@@ -121,35 +121,35 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void CalloutsConvertPinsOptionsAndSidePlacementFromPageUnits() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
-            VisioPage page = document.AddPage("Metric", 20, 12, VisioMeasurementUnit.Centimeters);
-            VisioShape target = page.AddRectangle(4, 5, 2, 1, "Target");
+            VisioPage page = document.AddPage("Metric", OfficeLength.Centimeters(20), OfficeLength.Centimeters(12), scaleUnit: VisioMeasurementUnit.Centimeters);
+            VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Target");
 
-            VisioShape explicitCallout = page.AddCallout(target, "metric-note", "Metric", 7, 6, new VisioCalloutOptions {
+            VisioShape explicitCallout = page.AddCallout(target, "metric-note", "Metric", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(7, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, page.DefaultUnit)), new VisioCalloutOptions {
                 Width = 3,
                 Height = 1.2,
                 RouteOffset = 0.5
             });
-            VisioShape sideCallout = page.AddCallout(target, "side-note", "Side", VisioSide.Right, 0.8, new VisioCalloutOptions {
+            VisioShape sideCallout = page.AddCallout(target, "side-note", "Side", VisioSide.Right, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), new VisioCalloutOptions {
                 Width = 2,
                 Height = 1
             });
 
-            Assert.Equal(7D.ToInches(VisioMeasurementUnit.Centimeters), explicitCallout.PinX, 6);
-            Assert.Equal(6D.ToInches(VisioMeasurementUnit.Centimeters), explicitCallout.PinY, 6);
-            Assert.Equal(3D.ToInches(VisioMeasurementUnit.Centimeters), explicitCallout.Width, 6);
-            Assert.Equal(1.2D.ToInches(VisioMeasurementUnit.Centimeters), explicitCallout.Height, 6);
-            Assert.Equal(target.PinX + (target.Width / 2D) + 0.8D.ToInches(VisioMeasurementUnit.Centimeters) + (sideCallout.Width / 2D), sideCallout.PinX, 6);
-            Assert.Equal(target.PinY, sideCallout.PinY, 6);
+            Assert.Equal(7D.ToInches(VisioMeasurementUnit.Centimeters), explicitCallout.PinX.ToInches(), 6);
+            Assert.Equal(6D.ToInches(VisioMeasurementUnit.Centimeters), explicitCallout.PinY.ToInches(), 6);
+            Assert.Equal(3D.ToInches(VisioMeasurementUnit.Centimeters), explicitCallout.Width.ToInches(), 6);
+            Assert.Equal(1.2D.ToInches(VisioMeasurementUnit.Centimeters), explicitCallout.Height.ToInches(), 6);
+            Assert.Equal(target.PinX.ToInches() + (target.Width.ToInches() / 2D) + 0.8D.ToInches(VisioMeasurementUnit.Centimeters) + (sideCallout.Width.ToInches() / 2D), sideCallout.PinX.ToInches(), 6);
+            Assert.Equal(target.PinY.ToInches(), sideCallout.PinY.ToInches(), 6);
         }
 
         [Fact]
         public void AutoPlacedCalloutsValidatePlacementInputsBeforeMutatingPage() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("Invalid");
-            VisioShape target = page.AddRectangle(2, 2, 1.5, 0.8, "Target");
+            VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), "Target");
 
             Assert.Throws<ArgumentOutOfRangeException>(() =>
-                page.AddCallout(target, "bad-gap", "Invalid", VisioSide.Right, double.NaN));
+                page.AddCallout(target, "bad-gap", "Invalid", VisioSide.Right, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(double.NaN, page.DefaultUnit))));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 page.AddCallout(target, "bad-width", "Invalid", VisioSide.Right, options: new VisioCalloutOptions { Width = 0 }));
 
@@ -162,15 +162,15 @@ namespace OfficeIMO.Tests {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage sourcePage = document.AddPage("Source");
             VisioPage calloutPage = document.AddPage("Callouts");
-            VisioShape target = sourcePage.AddRectangle(2, 2, 1.5, 0.8, "Target");
+            VisioShape target = sourcePage.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, sourcePage.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, sourcePage.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, sourcePage.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, sourcePage.DefaultUnit)), "Target");
 
             Assert.Throws<InvalidOperationException>(() =>
-                calloutPage.AddCallout(target, "Invalid", 4, 4));
+                calloutPage.AddCallout(target, "Invalid", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, calloutPage.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, calloutPage.DefaultUnit))));
             Assert.Empty(calloutPage.Shapes);
             Assert.Empty(calloutPage.Connectors);
 
             Assert.Throws<InvalidOperationException>(() =>
-                calloutPage.AddCallout(target, "bad-callout", "Invalid", 4, 4));
+                calloutPage.AddCallout(target, "bad-callout", "Invalid", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, calloutPage.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, calloutPage.DefaultUnit))));
             Assert.Empty(calloutPage.Shapes);
             Assert.Empty(calloutPage.Connectors);
         }

@@ -11,17 +11,17 @@ Adds a chart to a Word document.
 ## SYNTAX
 ### Context (Default)
 ```powershell
-Add-OfficeWordChart -InputObject <Object[]> -CategoryProperty <string> -SeriesProperty <string[]> [-Type <WordChartType>] [-WidthPixels <int>] [-HeightPixels <int>] [-Title <string>] [-SeriesColor <string[]>] [-Legend] [-LegendPosition <OfficeChartLegendPosition>] [-XAxisTitle <string>] [-YAxisTitle <string>] [-FitToPageWidth] [-WidthFraction <double>] [-PassThru] [<CommonParameters>]
+Add-OfficeWordChart -InputObject <Object[]> -Category <string> -Value <string[]> [-Type <WordChartType>] [-WidthPixels <int>] [-HeightPixels <int>] [-Title <string>] [-SeriesColor <string[]>] [-Legend] [-LegendPosition <OfficeChartLegendPosition>] [-XAxisTitle <string>] [-YAxisTitle <string>] [-FitToPageWidth] [-WidthFraction <double>] [-PassThru] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Add-OfficeWordChart -InputObject <Object[]> -CategoryProperty <string> -SeriesProperty <string[]> [-Document <WordDocument>] [-Type <WordChartType>] [-WidthPixels <int>] [-HeightPixels <int>] [-Title <string>] [-SeriesColor <string[]>] [-Legend] [-LegendPosition <OfficeChartLegendPosition>] [-XAxisTitle <string>] [-YAxisTitle <string>] [-FitToPageWidth] [-WidthFraction <double>] [-PassThru] [<CommonParameters>]
+Add-OfficeWordChart -InputObject <Object[]> -Category <string> -Value <string[]> [-Document <WordDocument>] [-Type <WordChartType>] [-WidthPixels <int>] [-HeightPixels <int>] [-Title <string>] [-SeriesColor <string[]>] [-Legend] [-LegendPosition <OfficeChartLegendPosition>] [-XAxisTitle <string>] [-YAxisTitle <string>] [-FitToPageWidth] [-WidthFraction <double>] [-PassThru] [<CommonParameters>]
 ```
 
 ### Paragraph
 ```powershell
-Add-OfficeWordChart -InputObject <Object[]> -CategoryProperty <string> -SeriesProperty <string[]> [-Paragraph <WordParagraph>] [-Type <WordChartType>] [-WidthPixels <int>] [-HeightPixels <int>] [-Title <string>] [-SeriesColor <string[]>] [-Legend] [-LegendPosition <OfficeChartLegendPosition>] [-XAxisTitle <string>] [-YAxisTitle <string>] [-FitToPageWidth] [-WidthFraction <double>] [-PassThru] [<CommonParameters>]
+Add-OfficeWordChart -InputObject <Object[]> -Category <string> -Value <string[]> [-Paragraph <WordParagraph>] [-Type <WordChartType>] [-WidthPixels <int>] [-HeightPixels <int>] [-Title <string>] [-SeriesColor <string[]>] [-Legend] [-LegendPosition <OfficeChartLegendPosition>] [-XAxisTitle <string>] [-YAxisTitle <string>] [-FitToPageWidth] [-WidthFraction <double>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -38,8 +38,8 @@ PS> $rows = @(
 )
 New-OfficeWord -Path .\RegionalReport.docx {
     Add-OfficeWordParagraph -Text 'Regional revenue'
-    Add-OfficeWordChart -Type Pie -InputObject $rows -CategoryProperty Region -SeriesProperty Revenue -Title 'Revenue mix' -FitToPageWidth -WidthFraction 0.75
-    Add-OfficeWordChart -Type Bar -InputObject $rows -CategoryProperty Region -SeriesProperty Revenue, Profit -Legend -XAxisTitle 'Region' -YAxisTitle 'Amount'
+    Add-OfficeWordChart -Type Pie -InputObject $rows -Category Region -Value Revenue -Title 'Revenue mix' -FitToPageWidth -WidthFraction 0.75
+    Add-OfficeWordChart -Type Bar -InputObject $rows -Category Region -Value Revenue, Profit -Legend -XAxisTitle 'Region' -YAxisTitle 'Amount'
 }
 ```
 
@@ -53,7 +53,7 @@ PS> $trend = @(
     [pscustomobject]@{ Month = 'Mar'; Sales = 15; Profit = 7 }
 )
 $doc = New-OfficeWord -Path .\Trend.docx -NoSave
-Add-OfficeWordChart -Document $doc -Type Line -InputObject $trend -CategoryProperty Month -SeriesProperty Sales, Profit -Legend -Title 'Quarter trend'
+Add-OfficeWordChart -Document $doc -Type Line -InputObject $trend -Category Month -Value Sales, Profit -Legend -Title 'Quarter trend'
 Save-OfficeWord -Document $doc
 ```
 
@@ -61,7 +61,7 @@ Creates a multi-series line chart on the document and shows a legend.
 
 ## PARAMETERS
 
-### -CategoryProperty
+### -Category
 Property name used for category labels.
 
 ```yaml
@@ -221,22 +221,6 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -SeriesProperty
-Property names used as numeric series.
-
-```yaml
-Type: String[]
-Parameter Sets: Context, Document, Paragraph
-Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -Title
 Optional chart title.
 
@@ -263,6 +247,22 @@ Aliases: None
 Possible values: Pie, Bar, Line, Area
 
 Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Value
+Property names used as numeric series.
+
+```yaml
+Type: String[]
+Parameter Sets: Context, Document, Paragraph
+Aliases: None
+Possible values:
+
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: False

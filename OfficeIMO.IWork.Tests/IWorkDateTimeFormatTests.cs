@@ -18,7 +18,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Qualified_source_date_patterns_preserve_typed_values_and_saved_xlsx(string pattern, string code, string expected) {
         DateTime value = new(2026, 1, 5, 13, 4, 9, DateTimeKind.Utc);
         using var package = DateFormatPackage(IWorkDocumentKind.Numbers, pattern, value);
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
         Assert.False(result.IsVisualFallback);
         var cell = result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!;
         Assert.Equal(value, cell.Value);
@@ -30,8 +30,8 @@ public sealed partial class IWorkBoundaryTests {
         Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_AUTOMATIC_DECIMALS_APPROXIMATED");
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
-        Assert.Equal(value.ToOADate(), reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
-        Assert.Equal(code, reopened.Sheets[0].CellAt(1, 1).GetStyle().NumberFormatCode);
+        Assert.Equal(value.ToOADate(), reopened.Sheets[0].Cell(1, 1).GetValue<double>());
+        Assert.Equal(code, reopened.Sheets[0].Cell(1, 1).GetStyle().NumberFormatCode);
         Assert.Equal(expected, Assert.Single(reopened.Sheets[0].Range("A1").CreateVisualSnapshot().Cells).Text);
     }
 
@@ -49,15 +49,15 @@ public sealed partial class IWorkBoundaryTests {
             Assert.True(cell.TryGetFormattedNumber(out string text, out _)); Assert.Equal(expected, text);
             using var saved = new MemoryStream();
             if (kind == IWorkDocumentKind.Pages) {
-                using var result = source.ToWordDocumentResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+                using var result = source.ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
                 result.Value.Save(saved); saved.Position = 0;
                 using var reopened = OfficeIMO.Word.WordDocument.Load(saved);
                 Assert.Equal(expected, reopened.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
                 Assert.Empty(reopened.ValidateDocument());
             } else {
-                using var result = source.ToPowerPointPresentationResult(); Assert.False(result.IsVisualFallback);
+                using var result = source.ToPowerPointResult(); Assert.False(result.IsVisualFallback);
                 result.Value.Save(saved); saved.Position = 0;
-                using var reopened = OfficeIMO.PowerPoint.PowerPointPresentation.Load(saved);
+                using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
                 Assert.Equal(expected, Assert.Single(reopened.Slides[0].Tables).GetCell(0, 0).Text);
                 Assert.Empty(reopened.ValidateDocument());
             }
@@ -76,7 +76,7 @@ public sealed partial class IWorkBoundaryTests {
         var source = IWorkSourceDocument.Open(package);
         var cell = Assert.Single(source.ReadNumbers().Sheets[0].Tables[0].Cells);
         Assert.True(cell.TryGetFormattedNumber(out string text, out _)); Assert.Equal(expected, text);
-        using var result = source.ToExcelDocumentResult(IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }));
+        using var result = source.ToExcelResult(IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }));
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_EXCEL_DESTINATION_UNSUPPORTED");
     }
@@ -84,8 +84,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Qualified_date_patterns_do_not_bypass_xlsx_submillisecond_precision_guards() {
         using var package = DateFormatPackage(IWorkDocumentKind.Numbers, "HH:mm:ss", new DateTime(2001, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddTicks(1));
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
-            conversionOptions: IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }));
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }));
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_EXCEL_DESTINATION_UNSUPPORTED");
     }
@@ -122,15 +121,15 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Qualified_date_patterns_preserve_blank_cells_and_consume_existing_budgets() {
         using var package = DateFormatPackage(IWorkDocumentKind.Numbers, "dd/MM/y", new DateTime(2026, 1, 5), empty: true);
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
         Assert.Single(result.Projection.Sheets[0].Tables[0].Cells);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
-        Assert.Equal("dd/mm/yyyy", reopened.Sheets[0].CellAt(1, 1).GetStyle().NumberFormatCode);
+        Assert.Equal("dd/mm/yyyy", reopened.Sheets[0].Cell(1, 1).GetStyle().NumberFormatCode);
         Assert.Equal("", Assert.Single(reopened.Sheets[0].Range("A1").CreateVisualSnapshot().Cells).Text);
         using var limited = DateFormatPackage(IWorkDocumentKind.Numbers, "dd/MM/y", new DateTime(2026, 1, 5), empty: true, columns: 2);
         Assert.Contains("source-wide limit", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(limited,
-            new IWorkReadOptions { MaximumMaterializedCells = 1 }).ReadNumbers()).Message);
+            new IWorkReadOptions { MaxMaterializedCells = 1 }).ReadNumbers()).Message);
     }
 
     private static byte[] DateFormat(string pattern) => Message(VarintField(1, 261), StringField(14, pattern));
@@ -140,17 +139,17 @@ public sealed partial class IWorkBoundaryTests {
         using var package = DateFormatPackage(IWorkDocumentKind.Numbers, "dd/MM/y", new DateTime(2026, 1, 5),
             empty: true, columns: 2, sheetName: "");
         var projection = IWorkSourceDocument.Open(package, new IWorkReadOptions {
-            MaximumProjectedTextCharacters = 7, MaximumProjectedTextItems = 1
+            MaxProjectedTextCharacters = 7, MaxProjectedTextItems = 1
         }).ReadNumbers();
         Assert.Equal(2, projection.Sheets[0].Tables[0].Cells.Count);
         Assert.Same(projection.Sheets[0].Tables[0].Cells[0].NumberFormat, projection.Sheets[0].Tables[0].Cells[1].NumberFormat);
         package.Position = 0;
         Assert.Contains("Text character", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaximumProjectedTextCharacters = 6 }).ReadNumbers()).Message);
+            new IWorkReadOptions { MaxProjectedTextCharacters = 6 }).ReadNumbers()).Message);
         using var oversized = DateFormatPackage(IWorkDocumentKind.Numbers, "dd/MM/y", new DateTime(2026, 1, 5),
             format: Message(DateFormat("dd/MM/y"), Message(Enumerable.Repeat(VarintField(99, 0), 17).ToArray())));
         Assert.Contains("field", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(oversized,
-            new IWorkReadOptions { MaximumProtobufFieldCount = 16 }).ReadNumbers()).Message, StringComparison.OrdinalIgnoreCase);
+            new IWorkReadOptions { MaxProtobufFieldCount = 16 }).ReadNumbers()).Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

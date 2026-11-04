@@ -1,6 +1,6 @@
 namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Specifies the layout hint stored in a binary PowerPoint SlideAtom.</summary>
-    public enum LegacyPptSlideLayoutType : uint {
+    internal enum LegacyPptSlideLayoutType : uint {
         /// <summary>One centered title and one subtitle placeholder.</summary>
         TitleSlide = 0x00000000,
         /// <summary>One title and one body or content placeholder.</summary>
@@ -32,7 +32,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     }
 
     /// <summary>Specifies a placeholder's preferred size relative to the master body placeholder.</summary>
-    public enum LegacyPptPlaceholderSize : byte {
+    internal enum LegacyPptPlaceholderSize : byte {
         /// <summary>Full master-body size.</summary>
         Full = 0x00,
         /// <summary>Half master-body size.</summary>
@@ -42,7 +42,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     }
 
     /// <summary>Represents the identity, kind, and preferred size from a PlaceholderAtom.</summary>
-    public sealed class LegacyPptPlaceholder {
+    internal sealed class LegacyPptPlaceholder {
         internal LegacyPptPlaceholder(int position, LegacyPptPlaceholderKind kind,
             LegacyPptPlaceholderSize size) {
             Position = position;

@@ -15,7 +15,7 @@ internal static class ProjectConversionProof {
             using (var authored = MpxLifecycleProof.Create()) {
                 // A one-owner resource calendar is supported by every adopted native generation.
                 authored.Resources[0].Calendar = authored.Calendars.Add("Engineer", authored.Calendar);
-                var options = new ProjectSaveOptions { Format = source, LossPolicy = OfficeConversionLossPolicy.Allow };
+                var options = new ProjectSaveOptions { Format = source, AllowLoss = true };
                 authored.AssessSave(options).ThrowIfErrors(); authored.Save(sourcePath, options);
             }
             foreach (var target in formats) {
@@ -26,7 +26,7 @@ internal static class ProjectConversionProof {
                     var names = document.AllTasks.ToDictionary(t => t.Uid, t => t.Name);
                     var parents = document.AllTasks.ToDictionary(t => t.Uid, t => t.Parent?.Uid);
                     var assignments = document.Assignments.ToDictionary(a => (a.Task!.Uid, a.Resource!.Uid), a => (a.Work, a.Cost));
-                    var options = new ProjectSaveOptions { Format = target, LossPolicy = OfficeConversionLossPolicy.Allow };
+                    var options = new ProjectSaveOptions { Format = target, AllowLoss = true };
                     var report = document.AssessSave(path, options); report.ThrowIfErrors(); document.Save(path, options);
                     using var reopened = ProjectDocument.Load(path);
                     var actualTasks = reopened.AllTasks.ToArray();
@@ -38,7 +38,7 @@ internal static class ProjectConversionProof {
                     foreach (var assignment in reopened.Assignments) if (!assignments[(assignment.Task!.Uid, assignment.Resource!.Uid)].Equals((assignment.Work, assignment.Cost))) throw new InvalidDataException("Assignment identity, work, or cost changed.");
                     if (target != ProjectFileFormat.Xml && target != ProjectFileFormat.Mpx4 && reopened.NativeInfo!.Profile.Format(reopened.NativeInfo.IsTemplate) != target)
                         throw new InvalidDataException("The native target generation/template marker is incorrect.");
-                    results.Add(new { source = source.ToString(), target = target.ToString(), passed = true, generatedProjectSummary = generated.Length == 1, losses = report.Diagnostics.Where(d => d.RepresentsLoss).Select(d => new { d.Code, d.Location }) });
+                    results.Add(new { source = source.ToString(), target = target.ToString(), passed = true, generatedProjectSummary = generated.Length == 1, losses = report.NativeDiagnostics.Where(d => d.RepresentsLoss).Select(d => new { d.Code, d.Location }) });
                 } catch (Exception error) { failures++; results.Add(new { source = source.ToString(), target = target.ToString(), passed = false, error = error.Message }); Console.Error.WriteLine(source + " -> " + target + ": " + error.Message); }
             }
         }

@@ -22,13 +22,13 @@ internal sealed class PdfPipelineHashingStream : Stream {
         set => _destination.Position = value;
     }
 
-    internal PdfArtifactSnapshot Complete(int? pageCount) {
+    internal PdfArtifactInfo Complete(int? pageCount) {
         if (!_completed) {
             _sha256.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
             _completed = true;
         }
 
-        return PdfArtifactSnapshot.FromDigest(
+        return PdfArtifactInfo.FromDigest(
             _bytesWritten,
             ToLowerHex(_sha256.Hash ?? Array.Empty<byte>()),
             pageCount);

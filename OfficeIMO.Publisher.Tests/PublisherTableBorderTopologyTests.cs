@@ -16,18 +16,18 @@ public sealed class PublisherTableBorderTopologyTests {
         PublisherDocument document = PublisherDocument.Load(source);
         PublisherTable original = document.Pages[0].Tables[0];
         Apply(document, variant);
-        var result = document.ToPubBytesResult(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
-        PublisherNativeWritingTests.AssertPreservedStorage(source, result.Value, "Escher/EscherStm",
+        byte[] savedBytes = document.ToBytes(new PublisherSaveOptions { AllowLoss = true }, out PublisherSaveReport saveReport);
+        PublisherNativeWritingTests.AssertPreservedStorage(source, savedBytes, "Escher/EscherStm",
             variant == "TableBorderTopologyTextFill" ? new[] { "Quill/QuillSub/CONTENTS" } : Array.Empty<string>());
-        PublisherTable actual = PublisherDocument.Load(result.Value).Pages[0].Tables[0];
+        PublisherTable actual = PublisherDocument.Load(savedBytes).Pages[0].Tables[0];
         PublisherTable expected = PublisherDocument.Load(Fixture(variant)).Pages[0].Tables[0];
         Assert.Equal(Coverage(expected), Coverage(actual));
         Assert.Equal(expected.Cells.Select(cell => cell.FillColor), actual.Cells.Select(cell => cell.FillColor));
         Assert.Equal(expected.Cells.Select(cell => cell.Text), actual.Cells.Select(cell => cell.Text));
         Assert.Equal(original.ColumnWidths, actual.ColumnWidths);
         Assert.Equal(original.RowHeights, actual.RowHeights);
-        Assert.Equal(result.Value, PublisherDocument.Load(result.Value).ToPubBytes());
-        Assert.Contains(result.Report.FidelityDiagnostics, item => item.Code == "PUB_NATIVE_TABLE_BORDER_TOPOLOGY_UNQUALIFIED" && item.LossKind == OfficeConversionLossKind.Unassessed);
+        Assert.Equal(savedBytes, PublisherDocument.Load(savedBytes).ToBytes());
+        Assert.Contains(saveReport.Diagnostics, item => item.Code == "PUB_NATIVE_TABLE_BORDER_TOPOLOGY_UNQUALIFIED" && item.LossKind == OfficeConversionLossKind.Unassessed);
     }
 
     [Fact]
@@ -36,7 +36,7 @@ public sealed class PublisherTableBorderTopologyTests {
         PublisherTable original = PublisherDocument.Load(source).Pages[0].Tables[0];
         PublisherDocument document = PublisherDocument.Load(source);
         Apply(document, "TableBordersCleared");
-        byte[] cleared = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        byte[] cleared = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         var before = Allocation(source); var deleted = Allocation(cleared);
         Assert.Equal(before.Cursor, deleted.Cursor);
         Assert.Equal(before.Used, deleted.Used);
@@ -44,7 +44,7 @@ public sealed class PublisherTableBorderTopologyTests {
         Assert.Equal(before.Count - 6, deleted.Count);
         document = PublisherDocument.Load(cleared);
         foreach (var edge in original.BorderSegments) document.SetTableBorderStyle(original.Id, edge.FirstRow, edge.FirstColumn, edge.LastRow, edge.LastColumn, edge.Side);
-        byte[] restored = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        byte[] restored = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         var added = Allocation(restored);
         Assert.Equal(before.Count, added.Count);
         Assert.Equal(before.Cursor + 6, added.Cursor);
@@ -73,10 +73,10 @@ public sealed class PublisherTableBorderTopologyTests {
         } else Write(global.Offset + 8, BitConverter.ToUInt32(art, global.Offset + 8) + 1);
         byte[] input = OfficeCompoundFileWriter.Rewrite(compound, new Dictionary<string, byte[]> { ["Escher/EscherStm"] = art });
         PublisherDocument document = PublisherDocument.Load(input);
-        Assert.Equal(input, document.ToPubBytes());
+        Assert.Equal(input, document.ToBytes());
         Apply(document, "TableBorderTopology");
-        OfficeConversionException error = Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
-        Assert.Contains(error.Report.FidelityDiagnostics, item => item.Code == "PUB_NATIVE_EDIT_UNSUPPORTED" && item.LossKind == OfficeConversionLossKind.Failure);
+        OfficeConversionException error = Assert.Throws<OfficeConversionException>(() => document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
+        Assert.Contains(error.Report.Diagnostics, item => item.Code == "PUB_NATIVE_EDIT_UNSUPPORTED" && item.LossKind == OfficeConversionLossKind.Failure);
         void Write(int offset, uint value) => Buffer.BlockCopy(BitConverter.GetBytes(value), 0, art, offset, 4);
     }
 
@@ -93,9 +93,9 @@ public sealed class PublisherTableBorderTopologyTests {
         Write(fdgg.Offset, Math.Max(BitConverter.ToUInt32(art, fdgg.Offset), 4096));
         byte[] input = OfficeCompoundFileWriter.Rewrite(compound, new Dictionary<string, byte[]> { ["Escher/EscherStm"] = art });
         PublisherDocument document = PublisherDocument.Load(input);
-        Assert.Equal(input, document.ToPubBytes());
+        Assert.Equal(input, document.ToBytes());
         Apply(document, "TableBorderTopology");
-        byte[] saved = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        byte[] saved = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         var before = Allocation(input); var after = Allocation(saved);
         uint[] added = after.Ids.Except(before.Ids).ToArray();
         Assert.NotEmpty(added); Assert.All(added, id => Assert.Equal(nextCluster, id >> 10));
@@ -114,9 +114,9 @@ public sealed class PublisherTableBorderTopologyTests {
         PublisherTable table = document.Pages[0].Tables[0];
         Assert.Equal(OfficeColor.White, table.Cells[2].FillColor);
         Assert.Contains("#FFFFFF", document.ToSvg());
-        Assert.Equal(source, document.ToPubBytes());
+        Assert.Equal(source, document.ToBytes());
         document.SetTableCellFillColor(table.Id, 1, 0, OfficeColor.FromRgb(224, 192, 255));
-        byte[] saved = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        byte[] saved = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         Assert.Equal(OfficeColor.FromRgb(224, 192, 255), PublisherDocument.Load(saved).Pages[0].Tables[0].Cells[2].FillColor);
         PublisherNativeWritingTests.AssertPreservedStorage(source, saved, "Escher/EscherStm");
     }
@@ -150,7 +150,7 @@ public sealed class PublisherTableBorderTopologyTests {
 
     private static (PublisherEscherReader Reader, PublisherEscherRecord Dgg, PublisherEscherRecord Utility) DrawingRecords(byte[] art) {
         var reader = new PublisherEscherReader(new PublisherBinaryData(art, "Escher/EscherStm"), null,
-            new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None));
+            new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None));
         var top = reader.Records(0, art.Length);
         return (reader, top.Single(item => item.Kind == 0xF000), top.Single(item => item.Kind == 0xF002 && BitConverter.ToUInt32(art, item.Offset - 12) == 2));
     }

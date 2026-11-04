@@ -7,6 +7,10 @@ namespace OfficeIMO.Word {
     /// </summary>
     public class WordBookmark : WordElement {
         private WordDocument _document;
+        private WordParagraph? _authoringParagraph;
+
+        /// <summary>Gets the paragraph containing the bookmark.</summary>
+        public WordParagraph Paragraph => _authoringParagraph ?? new WordParagraph(_document, _paragraph);
         private Paragraph _paragraph;
         private BookmarkStart _bookmarkStart;
 
@@ -74,8 +78,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="paragraph">Paragraph to contain the bookmark.</param>
         /// <param name="bookmarkName">Name of the bookmark.</param>
-        /// <returns>The paragraph with the inserted bookmark.</returns>
-        public static WordParagraph AddBookmark(WordParagraph paragraph, string bookmarkName) {
+        /// <returns>The created bookmark.</returns>
+        public static WordBookmark AddBookmark(WordParagraph paragraph, string bookmarkName) {
             BookmarkStart bms = new BookmarkStart() { Name = bookmarkName, Id = paragraph._document.BookmarkId.ToString() };
             BookmarkEnd bme = new BookmarkEnd() { Id = paragraph._document.BookmarkId.ToString() };
 
@@ -90,7 +94,7 @@ namespace OfficeIMO.Word {
 
 
             paragraph._bookmarkStart = bms;
-            return paragraph;
+            return new WordBookmark(paragraph._document, paragraph._paragraph, bms) { _authoringParagraph = paragraph };
         }
     }
 }

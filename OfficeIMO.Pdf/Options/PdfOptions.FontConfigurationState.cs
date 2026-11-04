@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfOptions {
+public sealed partial class PdfCreateOptions {
     // Header/footer presentation and point sizes do not select the document's
     // body font. Named families are reusable run-level resources rather than
     // a default-font selection; converters retain them for matching source runs.
@@ -52,12 +52,12 @@ public sealed partial class PdfOptions {
                 }
             }
 
-            AddInt64((int)_defaultFont);
+            AddInt64((int)DefaultFont);
             AddInt64((int)_headerFont);
             AddInt64((int)_footerFont);
-            AddInt64(BitConverter.DoubleToInt64Bits(DefaultFontSize));
-            AddInt64(BitConverter.DoubleToInt64Bits(HeaderFontSize));
-            AddInt64(BitConverter.DoubleToInt64Bits(FooterFontSize));
+            AddInt64(BitConverter.DoubleToInt64Bits(DefaultFontSize.ToPoints()));
+            AddInt64(BitConverter.DoubleToInt64Bits(HeaderFontSize.ToPoints()));
+            AddInt64(BitConverter.DoubleToInt64Bits(FooterFontSize.ToPoints()));
             AddByte(_hasExplicitDefaultFont ? (byte)1 : (byte)0);
             AddByte(_hasExplicitHeaderFont ? (byte)1 : (byte)0);
             AddByte(_hasExplicitFooterFont ? (byte)1 : (byte)0);
@@ -73,6 +73,7 @@ public sealed partial class PdfOptions {
                 AddString(entry.Value.FontName);
                 AddBytes(entry.Value.DataSnapshot);
                 AddByte(entry.Value.SyntheticOblique ? (byte)1 : (byte)0);
+                AddByte(entry.Value.SyntheticBold ? (byte)1 : (byte)0);
             }
 
             foreach (KeyValuePair<string, PdfEmbeddedFontFamily> entry in
@@ -82,6 +83,7 @@ public sealed partial class PdfOptions {
                 AddString(entry.Key);
                 AddByte(_automaticFallbackOwnedNamedFamilyKeys?.Contains(entry.Key) == true ? (byte)1 : (byte)0);
                 AddString(entry.Value.FamilyName);
+                AddByte(entry.Value.UsesProgramFontNames ? (byte)1 : (byte)0);
                 AddBytes(entry.Value.RegularSnapshot);
                 AddBytes(entry.Value.BoldSnapshot);
                 AddBytes(entry.Value.ItalicSnapshot);

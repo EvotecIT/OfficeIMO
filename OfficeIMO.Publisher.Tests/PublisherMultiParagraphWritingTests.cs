@@ -13,7 +13,7 @@ public sealed class PublisherMultiParagraphWritingTests {
         Assert.Equal(3, story.Paragraphs.Count);
         OfficeRichTextRun empty = Assert.Single(story.Paragraphs[1].Runs);
         Assert.Equal((string.Empty, 14D, true), (empty.Text, empty.FontSize, empty.Bold));
-        Assert.Equal(source, document.ToPubBytes());
+        Assert.Equal(source, document.ToBytes());
         Compare(PublisherDocument.Load(Fixture("GeneratedMultiParagraph/native-control-edited.pub")), document);
 
         OfficeRichTextParagraph[] paragraphs = story.Paragraphs.ToArray();
@@ -31,13 +31,13 @@ public sealed class PublisherMultiParagraphWritingTests {
             ? replacement.WithAutomaticHyphenationSuppressed(suppressed) : replacement;
         document.ReplaceStoryParagraphs(story.Id, paragraphs);
 
-        byte[] saved = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        byte[] saved = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         PublisherDocument restored = PublisherDocument.Load(saved);
         Assert.Equal(first.Runs.Select(item => item.Text.Length),
             Assert.Single(restored.TextStories).Paragraphs[0].Runs.Select(item => item.Text.Length));
         Compare(PublisherDocument.Load(Fixture("MultiParagraphCreationLinked/native-multiparagraphcreationlinked.pub")), restored);
         PublisherNativeWritingTests.AssertPreservedStorage(source, saved, "Quill/QuillSub/CONTENTS");
-        Assert.Equal(saved, restored.ToPubBytes());
+        Assert.Equal(saved, restored.ToBytes());
     }
 
     private static void Compare(PublisherDocument expected, PublisherDocument actual) {

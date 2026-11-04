@@ -9,7 +9,7 @@ public sealed class ReaderMarkdownOptions {
 
     /// <summary>
     /// Markdown parser configuration. Registration snapshots this object with
-    /// <see cref="MarkdownReaderOptions.Clone"/>.
+    /// <see cref="MarkdownLoadOptions.Clone"/>.
     /// </summary>
-    public MarkdownReaderOptions? ParserOptions { get; set; }
+    public MarkdownLoadOptions? ParserOptions { get; set; }
 }

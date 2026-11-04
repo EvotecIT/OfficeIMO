@@ -139,8 +139,7 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
                         // A bare name resolves against the formula's sheet. Preserve native tokens
                         // when that spelling would select a different scoped binding.
                         if (name.LocalSheetIndex != uint.MaxValue && name.LocalSheetIndex != sheetIndex) return false;
-                        if (name.LocalSheetIndex == uint.MaxValue && workbook.DefinedNames.Any(candidate => candidate.LocalSheetIndex != uint.MaxValue
-                            && (sheetIndex < 0 || candidate.LocalSheetIndex == sheetIndex) && string.Equals(candidate.Name, name.Name, StringComparison.OrdinalIgnoreCase))) return false;
+                        if (name.LocalSheetIndex == uint.MaxValue && workbook.HasLocalNameShadow(name.Name, sheetIndex)) return false;
                         stack.Push(new FormulaExpression(name.Name, AtomPrecedence));
                         break;
                     case 0x3A:

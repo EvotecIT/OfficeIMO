@@ -273,9 +273,10 @@ internal static partial class StreamDecoder {
         out byte[] decoded,
         out PdfReadLimitException? limitException,
         Dictionary<int, PdfIndirectObject>? objects,
-        CancellationToken cancellationToken, int stopBeforeFilter = int.MaxValue) {
+        CancellationToken cancellationToken, int stopBeforeFilter = int.MaxValue,
+        Func<int, byte[]?, byte[], int, int, bool>? beforeFilter = null) {
         stream.GetDataSegment(out byte[] data, out int offset, out int length);
-        return TryDecodeCore(stream.Dictionary, data, offset, length, maxOutputBytes, out decoded, out limitException, objects, cancellationToken, stopBeforeFilter);
+        return TryDecodeCore(stream.Dictionary, data, offset, length, maxOutputBytes, out decoded, out limitException, objects, cancellationToken, stopBeforeFilter, beforeFilter);
     }
 
     private static bool TryDecodeCore(
@@ -287,7 +288,8 @@ internal static partial class StreamDecoder {
         out byte[] decoded,
         out PdfReadLimitException? limitException,
         Dictionary<int, PdfIndirectObject>? objects,
-        CancellationToken cancellationToken, int stopBeforeFilter = int.MaxValue) {
+        CancellationToken cancellationToken, int stopBeforeFilter = int.MaxValue,
+        Func<int, byte[]?, byte[], int, int, bool>? beforeFilter = null) {
         cancellationToken.ThrowIfCancellationRequested();
         decoded = Array.Empty<byte>();
         limitException = null;
@@ -324,6 +326,12 @@ internal static partial class StreamDecoder {
         byte[]? current = null;
         for (int filterIndex = 0; filterIndex < filterNames.Count && filterIndex < stopBeforeFilter; filterIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (beforeFilter != null) {
+                if (!beforeFilter(filterIndex, current, data, dataOffset, dataLength)) {
+                    decoded = current ?? Array.Empty<byte>();
+                    return true;
+                }
+            }
             string filterName = filterNames[filterIndex];
             try {
                 switch (GetFilterKind(filterName)) {

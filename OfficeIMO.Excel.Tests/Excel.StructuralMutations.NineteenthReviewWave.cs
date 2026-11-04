@@ -15,12 +15,12 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_AutoFilterCriteria_PreserveEquivalentImportedRangeState() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.AutoFilterBlanks("A1:C10", 0);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Range("A1:C10").AutoFilter().Column(0).Blanks();
             AutoFilter autoFilter = Assert.Single(sheet.WorksheetPart.Worksheet.Elements<AutoFilter>());
             autoFilter.Reference = "$A$1:$C$10";
 
-            sheet.AutoFilterBlanks("A1:C10", 1);
+            sheet.Range("A1:C10").AutoFilter().Column(1).Blanks();
 
             ExcelAutoFilterInfo state = Assert.Single(sheet.GetAutoFilters());
             Assert.Equal("$A$1:$C$10", state.Range);
@@ -30,14 +30,14 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_TableSchema_NormalizesDisplayAliasWhenStableNameMatchesTarget() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Amount");
-            sheet.CellValue(2, 1, 10);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Amount");
+            sheet.Cell(2, 1).SetValue(10);
             sheet.AddTable("A1:A2", true, "Internal", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
             Table table = Assert.Single(sheet.WorksheetPart.TableDefinitionParts).Table!;
             table.DisplayName = "Sales";
             table.Save();
-            sheet.CellFormula(1, 3, "SUM(Sales[Amount])");
+            sheet.Cell(1, 3).SetFormula("SUM(Sales[Amount])");
 
             Assert.Equal("Internal", sheet.RenameTable("Sales", "Internal"));
 
@@ -49,7 +49,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_InCellImage_ReplacementReusesExclusiveAssetsAndPreservesSharedCopies() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Images");
+            ExcelSheet sheet = document.AddSheet("Images");
             sheet.SetInCellImage(1, 1, TinyPng, altText: "First");
 
             sheet.SetInCellImage(1, 1, TinyPng, altText: "Second");
@@ -84,33 +84,33 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralColumns_HandleImplicitRowsAndHeaderlessTables() {
             using var document = ExcelDocument.Create();
-            ExcelSheet implicitRows = document.AddWorksheet("Implicit");
-            implicitRows.CellValue(2, 2, "B2");
-            implicitRows.CellValue(2, 3, "C2");
+            ExcelSheet implicitRows = document.AddSheet("Implicit");
+            implicitRows.Cell(2, 2).SetValue("B2");
+            implicitRows.Cell(2, 3).SetValue("C2");
             Row implicitRow = Assert.Single(implicitRows.WorksheetPart.Worksheet
                 .GetFirstChild<SheetData>()!.Elements<Row>());
             implicitRow.RowIndex = null;
 
-            implicitRows.DeleteColumns(1);
+            implicitRows.DeleteColumnsTransactional(1);
 
             Assert.Null(implicitRow.RowIndex);
             Assert.Equal(new[] { "A2", "B2" }, implicitRow.Elements<Cell>()
                 .Select(cell => cell.CellReference!.Value).ToArray());
 
-            ExcelSheet headerless = document.AddWorksheet("Headerless");
-            headerless.CellValue(1, 1, "Alpha");
-            headerless.CellValue(1, 2, "Beta");
-            headerless.CellValue(2, 1, "Gamma");
-            headerless.CellValue(2, 2, "Delta");
+            ExcelSheet headerless = document.AddSheet("Headerless");
+            headerless.Cell(1, 1).SetValue("Alpha");
+            headerless.Cell(1, 2).SetValue("Beta");
+            headerless.Cell(2, 1).SetValue("Gamma");
+            headerless.Cell(2, 2).SetValue("Delta");
             headerless.AddTable("A1:B2", false, "Data", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
 
-            headerless.InsertColumns(2);
+            headerless.InsertColumnsTransactional(2);
 
             Cell[] firstRow = headerless.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!
                 .Elements<Row>().First().Elements<Cell>().ToArray();
             Assert.Equal(new[] { "A1", "C1" }, firstRow.Select(cell => cell.CellReference!.Value).ToArray());
-            Assert.True(headerless.TryGetCellValueSnapshot(1, 1, out ExcelCellValueSnapshot? alpha));
-            Assert.True(headerless.TryGetCellValueSnapshot(1, 3, out ExcelCellValueSnapshot? beta));
+            Assert.True(headerless.TryGetCellValueSnapshot(1, 1, out ExcelNativeCellValueInfo? alpha));
+            Assert.True(headerless.TryGetCellValueSnapshot(1, 3, out ExcelNativeCellValueInfo? beta));
             Assert.Equal("Alpha", alpha!.Text);
             Assert.Equal("Beta", beta!.Text);
             Table resized = Assert.Single(headerless.WorksheetPart.TableDefinitionParts).Table!;

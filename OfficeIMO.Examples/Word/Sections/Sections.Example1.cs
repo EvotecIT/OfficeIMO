@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Examples.Word {
     internal partial class Sections {
@@ -15,29 +15,29 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "Basic Document with some sections 1.docx");
 
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.Sections[0].PageOrientation = OfficePageOrientation.Landscape;
+                document.Sections[0].PageSetup.Orientation = OfficePageOrientation.Landscape;
                 document.AddParagraph("Test 1 - Should be before 1st section").SetColor(Color.LightPink);
 
                 var section1 = document.AddSection();
 
-                section1.PageOrientation = OfficePageOrientation.Portrait;
+                section1.PageSetup.Orientation = OfficePageOrientation.Portrait;
 
-                section1.AddParagraph("Test 1 - Should be after 1st section").SetFontFamily("Tahoma").SetFontSize(20);
+                section1.AddParagraph("Test 1 - Should be after 1st section").SetFontFamily("Tahoma").SetFontSize(global::OfficeIMO.OfficeLength.Points(20));
 
                 var section2 = document.AddSection();
 
-                section2.AddParagraph("Test 2 - Should be after 2nd section").SetFontFamily("Tahoma").SetFontSize(20);
+                section2.AddParagraph("Test 2 - Should be after 2nd section").SetFontFamily("Tahoma").SetFontSize(global::OfficeIMO.OfficeLength.Points(20));
 
-                section2.PageOrientation = OfficePageOrientation.Landscape;
+                section2.PageSetup.Orientation = OfficePageOrientation.Landscape;
 
                 //// primary section (for the whole document)
                 Console.WriteLine("+ Paragraphs section 0: " + document.Sections[0].Paragraphs.Count);
                 Console.WriteLine("+ Paragraphs section 1: " + document.Sections[1].Paragraphs.Count);
                 Console.WriteLine("+ Paragraphs section 2: " + document.Sections[2].Paragraphs.Count);
 
-                Console.WriteLine("+ PageOrientation section 0: " + document.Sections[0].PageOrientation);
-                Console.WriteLine("+ PageOrientation section 1: " + document.Sections[1].PageOrientation);
-                Console.WriteLine("+ PageOrientation section 2: " + document.Sections[2].PageOrientation);
+                Console.WriteLine("+ PageOrientation section 0: " + document.Sections[0].PageSetup.Orientation);
+                Console.WriteLine("+ PageOrientation section 1: " + document.Sections[1].PageSetup.Orientation);
+                Console.WriteLine("+ PageOrientation section 2: " + document.Sections[2].PageSetup.Orientation);
 
                 Console.WriteLine("+ Paragraphs section 0 Text: " + document.Sections[0].Paragraphs[0].Text);
                 Console.WriteLine("+ Paragraphs section 2 Text: " + document.Sections[2].Paragraphs[0].Text);
@@ -50,9 +50,9 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("+ Paragraphs section 1: " + document.Sections[1].Paragraphs.Count);
                 Console.WriteLine("+ Paragraphs section 2: " + document.Sections[2].Paragraphs.Count);
 
-                Console.WriteLine("+ PageOrientation section 0: " + document.Sections[0].PageOrientation);
-                Console.WriteLine("+ PageOrientation section 1: " + document.Sections[1].PageOrientation);
-                Console.WriteLine("+ PageOrientation section 2: " + document.Sections[2].PageOrientation);
+                Console.WriteLine("+ PageOrientation section 0: " + document.Sections[0].PageSetup.Orientation);
+                Console.WriteLine("+ PageOrientation section 1: " + document.Sections[1].PageSetup.Orientation);
+                Console.WriteLine("+ PageOrientation section 2: " + document.Sections[2].PageSetup.Orientation);
 
                 Console.WriteLine("+ Paragraphs section 0 Text: " + document.Sections[0].Paragraphs[0].Text);
                 Console.WriteLine("+ Paragraphs section 2 Text: " + document.Sections[2].Paragraphs[0].Text);
@@ -65,7 +65,7 @@ namespace OfficeIMO.Examples.Word {
 
                 var section3 = document.AddSection();
                 section3.AddParagraph("Test Section6");
-                section3.PageOrientation = OfficePageOrientation.Portrait;
+                section3.PageSetup.Orientation = OfficePageOrientation.Portrait;
 
                 Console.WriteLine("Loaded document information:");
                 Console.WriteLine("+ Paragraphs section 0: " + document.Sections[0].Paragraphs.Count);
@@ -75,12 +75,12 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("+ Paragraphs section 4: " + document.Sections[4].Paragraphs.Count);
                 Console.WriteLine("+ Paragraphs section 5: " + document.Sections[5].Paragraphs.Count);
 
-                Console.WriteLine("+ PageOrientation section 0: " + document.Sections[0].PageOrientation);
-                Console.WriteLine("+ PageOrientation section 1: " + document.Sections[1].PageOrientation);
-                Console.WriteLine("+ PageOrientation section 2: " + document.Sections[2].PageOrientation);
-                Console.WriteLine("+ PageOrientation section 3: " + document.Sections[3].PageOrientation);
-                Console.WriteLine("+ PageOrientation section 4: " + document.Sections[4].PageOrientation);
-                Console.WriteLine("+ PageOrientation section 5: " + document.Sections[5].PageOrientation);
+                Console.WriteLine("+ PageOrientation section 0: " + document.Sections[0].PageSetup.Orientation);
+                Console.WriteLine("+ PageOrientation section 1: " + document.Sections[1].PageSetup.Orientation);
+                Console.WriteLine("+ PageOrientation section 2: " + document.Sections[2].PageSetup.Orientation);
+                Console.WriteLine("+ PageOrientation section 3: " + document.Sections[3].PageSetup.Orientation);
+                Console.WriteLine("+ PageOrientation section 4: " + document.Sections[4].PageSetup.Orientation);
+                Console.WriteLine("+ PageOrientation section 5: " + document.Sections[5].PageSetup.Orientation);
 
 
                 section1.AddParagraph("This goes to section 4");

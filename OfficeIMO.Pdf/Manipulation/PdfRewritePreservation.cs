@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Provides reusable preservation checks for PDF rewrite and manipulation operations.
 /// </summary>
-public static partial class PdfRewritePreservation {
+internal static partial class PdfRewritePreservation {
     private const double GeometryTolerance = 0.01d;
 
     /// <summary>
@@ -193,7 +193,7 @@ public static partial class PdfRewritePreservation {
         }
     }
 
-    private static void CompareMetadata(List<PdfRewritePreservationIssue> issues, PdfMetadata original, PdfMetadata rewritten, PdfRewritePreservationOptions options) {
+    private static void CompareMetadata(List<PdfRewritePreservationIssue> issues, PdfDocumentProperties original, PdfDocumentProperties rewritten, PdfRewritePreservationOptions options) {
         if (!options.PreserveMetadata) {
             return;
         }

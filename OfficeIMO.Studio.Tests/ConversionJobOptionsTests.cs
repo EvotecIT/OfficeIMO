@@ -1,3 +1,4 @@
+using OfficeIMO.Pdf.Word;
 using OfficeIMO.Studio.Features.Workflows;
 using OfficeIMO.Word.Pdf;
 using OfficeIMO.Workflows;
@@ -16,23 +17,23 @@ public sealed class ConversionJobOptionsTests {
             var runner = new CapturingRunner();
             using var model = new ConversionWorkbenchViewModel(_ => Task.FromResult(files), _ => Task.FromResult<string?>(root), runner);
             model.SelectedRoute = model.Routes.Single(route => route.Route.Id == "docx-pdf");
-            model.SelectedProfile = model.AvailableProfiles.Single(profile => profile.Value == OfficeWorkflowOutputProfile.PrintReady);
+            model.SelectedProfile = model.AvailableProfiles.Single(profile => profile.Value == OfficeConversionProfile.PrintReady);
             await model.AddFilesCommand.ExecuteAsync(null);
             files = [pdf];
             model.SelectedRoute = model.Routes.Single(route => route.Route.Id == "pdf-docx");
             Assert.Single(model.AvailableProfiles);
             await model.AddFilesCommand.ExecuteAsync(null);
             var pdfJob = model.Jobs[1];
-            pdfJob.PageRanges = "2"; pdfJob.WordMode = PdfWordImportMode.VisualPages; pdfJob.RasterDpi = 72;
+            pdfJob.PageRanges = "2"; pdfJob.WordMode = WordPdfImportMode.VisualPages; pdfJob.RasterDpi = 72;
             Task run = model.RunQueueCommand.ExecuteAsync(null);
             await runner.Started.Task.WaitAsync(TimeSpan.FromSeconds(10));
-            pdfJob.PageRanges = "3"; pdfJob.WordMode = PdfWordImportMode.EditableContent;
-            model.SelectedProfile = model.Profiles.Single(profile => profile.Value == OfficeWorkflowOutputProfile.TextOnly);
-            Assert.Equal(OfficeWorkflowOutputProfile.PrintReady, runner.Requests[0].OutputProfile);
-            Assert.Equal(OfficeWorkflowOutputProfile.Faithful, runner.Requests[1].OutputProfile);
-            Assert.Equal("2", runner.Requests[1].ConversionOptions!.PageRanges);
-            Assert.Equal(PdfWordImportMode.VisualPages, runner.Requests[1].ConversionOptions!.WordMode);
-            Assert.Equal(72, runner.Requests[1].ConversionOptions!.RasterDpi);
+            pdfJob.PageRanges = "3"; pdfJob.WordMode = WordPdfImportMode.EditableContent;
+            model.SelectedProfile = model.Profiles.Single(profile => profile.Value == OfficeConversionProfile.TextOnly);
+            Assert.Equal(OfficeConversionProfile.PrintReady, runner.Requests[0].OutputProfile);
+            Assert.Equal(OfficeConversionProfile.Faithful, runner.Requests[1].OutputProfile);
+            Assert.Equal("2", runner.Requests[1].ConversionOptions!.PdfLoad!.PageSelection!.ToString());
+            Assert.Equal(WordPdfImportMode.VisualPages, runner.Requests[1].ConversionOptions!.PdfWord!.Mode);
+            Assert.Equal(72, runner.Requests[1].ConversionOptions!.PdfWord!.Dpi);
             runner.Completed.SetResult([]);
             await run;
         } finally { Directory.Delete(root, true); }

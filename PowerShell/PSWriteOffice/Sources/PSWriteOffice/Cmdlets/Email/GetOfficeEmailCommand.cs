@@ -64,7 +64,7 @@ public sealed class GetOfficeEmailCommand : PSCmdlet
             throw new PSArgumentException("-StoreOptions is supported only for Apple Mail .emlx artifacts.", nameof(StoreOptions));
         }
 
-        var result = new EmailDocumentReader(Options ?? EmailReaderOptions.Default).Read(input);
+        var result = new EmailDocumentReader(Options ?? EmailReaderOptions.Default).ReadDocument(input);
         WriteObject(AsResult.IsPresent ? result : result.Document);
     }
 

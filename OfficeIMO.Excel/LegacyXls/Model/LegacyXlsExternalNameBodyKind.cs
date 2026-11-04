@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Identifies the BIFF body shape represented by an ExternName record.
     /// </summary>
-    public enum LegacyXlsExternalNameBodyKind {
+    internal enum LegacyXlsExternalNameBodyKind {
         /// <summary>The body shape could not be determined from the supporting link and flags.</summary>
         Unknown,
 

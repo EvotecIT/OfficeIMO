@@ -16,7 +16,7 @@ public sealed class PublisherEmptyTypingWritingTests {
         byte[] source = File.ReadAllBytes(PublisherNativeTests.Fixture($"NativeComparison/{fixture}/{leaf}"));
         PublisherDocument document = PublisherDocument.Load(source);
         PublisherTable original = Tables(document).First();
-        var report = document.SourceReadReport; var diagnostics = report.FidelityDiagnostics.ToArray();
+        var report = document.SourceReadReport; var diagnostics = report.Diagnostics.ToArray();
         PublisherTableCell target = original.Cells[cellIndex];
         if (explicitStyle) {
             OfficeRichTextParagraph p = target.Paragraphs[0];
@@ -30,8 +30,8 @@ public sealed class PublisherEmptyTypingWritingTests {
             Assert.Equal(target.Paragraphs.Last().LineHeightFactor, cleared.LineHeightFactor);
             Assert.Equal(target.Paragraphs.Last().Margins, cleared.Margins);
         }
-        Assert.Throws<OfficeConversionException>(() => document.ToPubBytes());
-        byte[] bytes = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        Assert.Throws<OfficeConversionException>(() => document.ToBytes());
+        byte[] bytes = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         PublisherTable saved = Tables(PublisherDocument.Load(bytes)).Single(table => table.Id == original.Id);
         Assert.Equal("", saved.Cells[cellIndex].Text);
         Assert.Single(saved.Cells[cellIndex].Paragraphs);
@@ -50,7 +50,7 @@ public sealed class PublisherEmptyTypingWritingTests {
             (saved.Id, saved.StoryId, saved.PageId, saved.X, saved.Y, saved.Width, saved.Height));
         for (int i = 0; i < original.Cells.Count; i++) if (i != cellIndex) Assert.Equal(original.Cells[i].Text, saved.Cells[i].Text);
         PublisherNativeWritingTests.AssertPreservedStorage(source, bytes, "Quill/QuillSub/CONTENTS");
-        Assert.Same(report, document.SourceReadReport); Assert.Equal(diagnostics, report.FidelityDiagnostics);
+        Assert.Same(report, document.SourceReadReport); Assert.Equal(diagnostics, report.Diagnostics);
         Assert.Equal("Item", original.Cells[0].Text);
     }
 
@@ -63,7 +63,7 @@ public sealed class PublisherEmptyTypingWritingTests {
         document.ReplaceStoryParagraphs(original.Id, new[] { new OfficeRichTextParagraph(explicitStyle
             ? new[] { new OfficeRichTextRun("", 14, OfficeColor.Blue, italic: true, fontFamily: "Times New Roman") }
             : Array.Empty<OfficeRichTextRun>(), p.Alignment, p.LineHeight, p.Margins, p.Indent, p.LineHeightFactor).WithTabStops(p.TabStops) });
-        PublisherDocument saved = PublisherDocument.Load(document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        PublisherDocument saved = PublisherDocument.Load(document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         PublisherTextStory story = saved.TextStories.Single();
         Assert.Equal(original.Id, story.Id); Assert.Equal("\n", story.Text); Assert.Single(story.Paragraphs);
         if (explicitStyle) {
@@ -86,7 +86,7 @@ public sealed class PublisherEmptyTypingWritingTests {
             ? new[] { new OfficeRichTextRun("", 14, OfficeColor.Blue, italic: true, fontFamily: "Times New Roman") }
             : Array.Empty<OfficeRichTextRun>(), p.Alignment, p.LineHeight, p.Margins, p.Indent, p.LineHeightFactor).WithTabStops(p.TabStops);
         document.ReplaceStoryParagraphs(original.Id, new[] { p, empty });
-        PublisherDocument saved = PublisherDocument.Load(document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        PublisherDocument saved = PublisherDocument.Load(document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         PublisherTextStory story = saved.TextStories.Single();
         Assert.Equal(original.Text + "\n", story.Text); Assert.Equal(2, story.Paragraphs.Count);
         Assert.Equal(p.Runs.Select(run => run.Text), story.Paragraphs[0].Runs.Select(run => run.Text));
@@ -107,19 +107,19 @@ public sealed class PublisherEmptyTypingWritingTests {
             && use.NativeStart + use.NativeLength > cr).DirectDefinition;
         byte[] source = PublisherInputContractTests.Mutate("Quill/QuillSub/CONTENTS", bytes => {
             var data = new PublisherBinaryData(bytes, "Quill");
-            var blocks = new PublisherBlockReader(data, new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None));
+            var blocks = new PublisherBlockReader(data, new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None));
             PublisherBlock field = blocks.Chunk(span.Offset, span.Offset + span.Length).Single(item => item.Id == 0x12);
             bytes[field.Offset - 2] = 0x39;
             BitConverter.GetBytes(127000U).CopyTo(bytes, field.Offset);
         }, fixture);
         PublisherDocument document = PublisherDocument.Load(source);
-        Assert.Equal(source, document.ToPubBytes());
+        Assert.Equal(source, document.ToBytes());
         OfficeRichTextParagraph p = Tables(document).First().Cells[0].Paragraphs[0];
         document.ReplaceTableCellParagraphs(table.Id, 0, 0, new[] { new OfficeRichTextParagraph(new[] {
             new OfficeRichTextRun("", 14, OfficeColor.Blue, italic: true, fontFamily: "Times New Roman")
         }, p.Alignment, p.LineHeight, p.Margins, p.Indent, p.LineHeightFactor).WithTabStops(p.TabStops) });
-        OfficeConversionException error = Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(
-            new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
-        Assert.Contains(error.Report.FidelityDiagnostics, item => item.LossKind == OfficeConversionLossKind.Failure);
+        OfficeConversionException error = Assert.Throws<OfficeConversionException>(() => document.ToBytes(
+            new PublisherSaveOptions { AllowLoss = true }));
+        Assert.Contains(error.Report.Diagnostics, item => item.LossKind == OfficeConversionLossKind.Failure);
     }
 }

@@ -31,9 +31,9 @@ internal static partial class PdfMetadataEditor {
         _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.SynchronizeMetadata, readOptions, cancellationToken: cancellationToken);
 
         PdfDocumentInfo documentInfo = PdfInspector.Inspect(pdf, PdfReadDocument.Open(pdf, readOptions, cancellationToken), cancellationToken);
-        PdfMetadata existing = documentInfo.Metadata;
+        PdfDocumentProperties existing = documentInfo.Metadata;
         PdfXmpMetadataInfo? existingXmp = documentInfo.XmpMetadata;
-        var updated = new PdfMetadata {
+        var updated = new PdfDocumentProperties {
             Title = title ?? existing.Title ?? existingXmp?.Title,
             Author = author ?? existing.Author ?? existingXmp?.Creator,
             Subject = subject ?? existing.Subject ?? existingXmp?.Description,
@@ -119,7 +119,7 @@ internal static partial class PdfMetadataEditor {
         Dictionary<int, PdfIndirectObject> objects,
         PdfDocumentSecurityInfo security,
         PdfXmpMetadataInfo? existingXmp,
-        PdfMetadata updated,
+        PdfDocumentProperties updated,
         bool createXmpMetadata) {
         int infoObjectNumber = ReplaceInfoDictionary(objects, security, updated);
         PdfDictionary catalog = RequireCatalog(objects, security);
@@ -143,7 +143,7 @@ internal static partial class PdfMetadataEditor {
     private static int ReplaceInfoDictionary(
         Dictionary<int, PdfIndirectObject> objects,
         PdfDocumentSecurityInfo security,
-        PdfMetadata updated) {
+        PdfDocumentProperties updated) {
         int objectNumber = security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value)
             ? security.InfoObjectNumber.Value
             : NextObjectNumber(objects);
@@ -171,7 +171,7 @@ internal static partial class PdfMetadataEditor {
         PdfDictionary catalog,
         PdfObject metadataObject,
         PdfXmpMetadataInfo? existingXmp,
-        PdfMetadata updated) {
+        PdfDocumentProperties updated) {
         if (existingXmp is null || existingXmp.RawXml is null || !existingXmp.IsWellFormedXml || existingXmp.HasUnsupportedFilters) {
             throw new InvalidOperationException("The existing XMP metadata stream cannot be decoded and preserved safely.");
         }

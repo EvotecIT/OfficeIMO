@@ -5,7 +5,7 @@ namespace OfficeIMO.Workflows;
 public sealed partial class BookProject {
     private static XElement BuildOnixCollectionTitle(BookOnixCollection collection, CancellationToken cancellationToken,
         out IReadOnlyCollection<BookOnixCollectionLevel> levels) {
-        ArgumentNullException.ThrowIfNull(collection.TitleElements);
+        if (collection.TitleElements == null) throw new ArgumentNullException("collection.TitleElements");
         if (collection.TitleElements.Count > 5)
             throw new ArgumentException("At most five collection title elements are supported.", nameof(collection.TitleElements));
         bool structured = collection.TitleElements.Count != 0;
@@ -21,7 +21,7 @@ public sealed partial class BookProject {
         int sequence = 0;
         foreach (var title in titles) {
             cancellationToken.ThrowIfCancellationRequested();
-            ArgumentNullException.ThrowIfNull(title);
+            if (title == null) throw new ArgumentNullException(nameof(title));
             string level = OnixCollectionLevelCode(title.Level);
             if (!foundLevels.Add(title.Level))
                 throw new ArgumentException("Collection title levels must be distinct.", nameof(collection.TitleElements));

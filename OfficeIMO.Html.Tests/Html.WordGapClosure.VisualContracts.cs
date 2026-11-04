@@ -8,9 +8,10 @@ public partial class HtmlWordGapClosure {
     private static void AssertRenderedWordBackgrounds(WordDocument document, params OfficeColor[] colors) {
         // Background paint is independent of the reader's unsupported embedded @font-face resources.
         var options = new WordImageExportOptions { BackgroundColor = OfficeColor.White };
-        byte[] pngBytes = document.ToPng(options);
+        byte[] pngBytes = document.ToImage(options);
         OfficeRasterImage png = VisualBaselineTestSupport.DecodePng(pngBytes, "Word background proof is not a valid PNG.");
-        string svg = document.ToSvg(options);
+        options.Format = OfficeImageExportFormat.Svg;
+        string svg = System.Text.Encoding.UTF8.GetString(document.ToImage(options));
         bool decoded = OfficeSvgDrawingReader.TryRead(System.Text.Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported);
         string? evidence = Environment.GetEnvironmentVariable("OFFICEIMO_HTML_LAYOUT_EVIDENCE_DIR");
         if (!string.IsNullOrWhiteSpace(evidence)) {

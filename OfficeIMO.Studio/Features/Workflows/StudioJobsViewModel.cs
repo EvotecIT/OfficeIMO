@@ -31,10 +31,10 @@ public sealed partial class StudioJobsViewModel : ObservableObject, IDisposable 
     /// <summary>Returns to the exact saved definition for review; it never starts execution.</summary>
     [RelayCommand(CanExecute = nameof(CanReview))]
     private async Task ReviewJobAsync(StudioJobRecord? job, CancellationToken cancellationToken) {
-        if (!CanReview(job) || job?.RunReport is not { } report) return;
+        if (!CanReview(job) || job?.RunReport is not { JobPath: { } jobPath, JobSha256: { } jobHash } report) return;
         try {
             ActionError = null;
-            await ReviewSavedJob!(report.JobPath, report.JobSha256, cancellationToken);
+            await ReviewSavedJob!(jobPath, jobHash, cancellationToken);
         } catch (Exception error) when (error is not OutOfMemoryException and not StackOverflowException) { ActionError = error.Message; }
     }
 

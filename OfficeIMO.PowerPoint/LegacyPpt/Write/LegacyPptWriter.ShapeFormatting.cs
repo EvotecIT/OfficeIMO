@@ -78,7 +78,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             var result = new List<LegacyPptWriterFoptProperty>(2);
             AddShapeMetadataText(result, 0x0380, shape.Name);
-            AddShapeMetadataText(result, 0x0381, shape.Description);
+            AddShapeMetadataText(result, 0x0381, shape.AltText);
             properties = result;
             reason = null;
             return true;
@@ -738,7 +738,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     0x023F, 0x00020002U);
             }
             if (rewritePictureFormatting) {
-                if (shape is not PowerPointPicture picture
+                if (shape is not PowerPointImage picture
                     || shape is PowerPointMedia) {
                     throw new ArgumentException(
                         "Picture formatting requires a picture shape.",

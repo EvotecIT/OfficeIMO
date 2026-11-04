@@ -6,7 +6,7 @@ using OfficeIMO.Visio.Diagrams;
 using OfficeIMO.Visio.Fluent;
 using OfficeIMO.Visio.Stencils;
 using Xunit;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Tests {
     public class VisioStyleTests {
@@ -15,8 +15,8 @@ namespace OfficeIMO.Tests {
             VisioStyleTheme theme = VisioStyleTheme.Minimal();
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("Styles");
-            VisioShape first = page.AddStencilShape(VisioStencils.BasicShapes.Get("rectangle"), "first", 2, 4, "First");
-            VisioShape second = page.AddStencilShape(VisioStencils.BasicShapes.Get("rectangle"), "second", 5, 4, "Second");
+            VisioShape first = page.AddStencilShape(VisioStencils.BasicShapes.Get("rectangle"), "first", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), "First");
+            VisioShape second = page.AddStencilShape(VisioStencils.BasicShapes.Get("rectangle"), "second", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), "Second");
             first.Data["Style"] = "Primary";
             second.Data["Style"] = "Primary";
             VisioConnector connector = page.AddConnector(first, second, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left);
@@ -36,11 +36,11 @@ namespace OfficeIMO.Tests {
 
             VisioDocument fluentDocument = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             fluentDocument.AsFluent()
-                .Page("Fluent", pageBuilder => pageBuilder
-                    .Rect("a", 1, 1, 2, 1, "A")
-                    .Shape("a", shape => shape.Style(theme.Success))
-                    .Rect("b", 4, 1, 2, 1, "B")
-                    .Connect("a", "b", VisioSide.Right, VisioSide.Left, connection => connection.Style(theme.DataConnector)))
+                .AddPage("Fluent", pageBuilder => pageBuilder
+                    .AddRectangle("a", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "A")
+                    .GetShape("a", shape => shape.ApplyStyle(theme.Success))
+                    .AddRectangle("b", OfficeLength.Inches(4), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "B")
+                    .AddConnector("a", "b", fromSide: VisioSide.Right, toSide: VisioSide.Left, configure: connection => connection.ApplyStyle(theme.DataConnector)))
                 .End();
 
             Assert.Equal(theme.Success.FillColor, fluentDocument.Pages[0].Shapes[0].FillColor);

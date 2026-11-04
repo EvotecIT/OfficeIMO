@@ -10,7 +10,7 @@ public class RtfLosslessEncodingRegressionTests {
     public void Edits_Encode_Unicode_With_Local_Fallback_State_And_Restore_Surrounding_State(int count) {
         string fallback = new string('?', count);
         string input = @"{\rtf1\ansi\uc" + count + @" {\b Target}\u937" + fallback + @"\par}";
-        RtfLosslessEditor editor = RtfDocument.Read(input).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(input).EditLossless();
         editor.ReplaceText("Target", "ż 😀");
         Assert.Equal("ż 😀Ω", editor.ToReadResult().Document.Paragraphs[0].ToPlainText());
         Assert.Contains(@"\u937" + fallback, editor.ToRtf(), StringComparison.Ordinal);
@@ -24,14 +24,14 @@ public class RtfLosslessEncodingRegressionTests {
     [InlineData(0)]
     [InlineData(2)]
     public void Unicode_Metadata_Resource_And_Variable_Edits_Use_Their_Encoded_Fallback_Count(int count) {
-        RtfLosslessEditor editor = RtfDocument.Read(@"{\rtf1\ansi\uc" + count + @" Body\par}").EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(@"{\rtf1\ansi\uc" + count + @" Body\par}").EditLossless();
         editor.SetInfo(RtfDocumentInfoField.Title, "Zażółć");
         editor.SetFont(3, "Czcionka ż");
         editor.SetStyleName(5, "Śródka");
         editor.SetDocumentVariable("żName", "Łódź");
         editor.SetRevisionAuthor(0, "Przemysław");
         RtfDocument document = editor.ToReadResult().Document;
-        Assert.Equal("Zażółć", document.Info.Title);
+        Assert.Equal("Zażółć", document.Properties.Title);
         Assert.Equal("Czcionka ż", document.Fonts.Single(font => font.Id == 3).Name);
         Assert.Equal("Śródka", document.Styles.Single(style => style.Id == 5).Name);
         Assert.Equal("żName", Assert.Single(document.DocumentVariables).Name);

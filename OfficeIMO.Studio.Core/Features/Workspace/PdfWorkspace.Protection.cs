@@ -7,7 +7,7 @@ internal sealed partial class PdfWorkspace {
     internal Task<OfficeWorkflowResult> SaveProtectedCopyAsync(string destinationPath,
         PdfStandardEncryptionOptions encryption, string? currentOwnerPassword, CancellationToken cancellationToken,
         IProgress<PdfWorkspaceProgress>? progress = null, OfficeWorkflowStreamOutput? outputStream = null,
-        IOfficeWorkflowPublicationGuard? publicationGuard = null) {
+        IOfficePublicationGuard? publicationGuard = null) {
         ArgumentNullException.ThrowIfNull(encryption);
         if (encryption.AllowedPermissions != PdfStandardPermissions.All &&
             (string.IsNullOrEmpty(encryption.OwnerPassword) || PdfStandardSecurityWriter.PasswordsAreEquivalent(
@@ -20,13 +20,13 @@ internal sealed partial class PdfWorkspace {
 
     internal Task<OfficeWorkflowResult> SaveDecryptedCopyAsync(string destinationPath,
         string? ownerPassword, CancellationToken cancellationToken, IProgress<PdfWorkspaceProgress>? progress = null,
-        OfficeWorkflowStreamOutput? outputStream = null, IOfficeWorkflowPublicationGuard? publicationGuard = null) =>
+        OfficeWorkflowStreamOutput? outputStream = null, IOfficePublicationGuard? publicationGuard = null) =>
         ChangeProtectionAsync(destinationPath, null, ownerPassword, cancellationToken, progress, outputStream, publicationGuard);
 
     private async Task<OfficeWorkflowResult> ChangeProtectionAsync(string destinationPath,
         PdfStandardEncryptionOptions? encryption, string? ownerPassword, CancellationToken token,
         IProgress<PdfWorkspaceProgress>? progress, OfficeWorkflowStreamOutput? outputStream,
-        IOfficeWorkflowPublicationGuard? publicationGuard) {
+        IOfficePublicationGuard? publicationGuard) {
         ThrowIfDisposed();
         if (encryption is null && !IsEncrypted) throw new InvalidOperationException("This PDF is not password protected.");
         if (!CanChangeEncryption(ownerPassword))
@@ -45,7 +45,7 @@ internal sealed partial class PdfWorkspace {
             InputPath = "urn:officeimo:workspace:" + Guid.NewGuid().ToString("N"),
             InputStream = new("workspace.pdf", _ => Task.FromResult<Stream>(new MemoryStream(snapshot, writable: false))),
             PdfPassword = inputPassword, PdfOwnerPassword = effectiveOwner, OutputEncryption = encryption,
-            OutputPath = destination, OutputStream = outputStream, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+            OutputPath = destination, OutputStream = outputStream, ConflictPolicy = OfficePublicationPolicy.Replace,
             PublicationGuard = new WorkspaceOutputPublicationGuard(this, source, revision, publicationGuard)
         };
         return await RunNonDetachableCpuWorkAsync(() => new OfficeWorkflowRunner()

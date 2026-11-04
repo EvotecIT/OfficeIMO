@@ -15,9 +15,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_InCellImageMutations_InvalidateFormulaAndTextCaches() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Images");
-            sheet.CellValue(1, 1, "Header");
-            sheet.CellFormula(2, 1, "A1");
+            ExcelSheet sheet = document.AddSheet("Images");
+            sheet.Cell(1, 1).SetValue("Header");
+            sheet.Cell(2, 1).SetFormula("A1");
             Cell formulaCell = sheet.WorksheetPart.Worksheet.Descendants<Cell>()
                 .Single(cell => cell.CellReference?.Value == "A2");
             formulaCell.CellValue = new CellValue("Header");
@@ -58,7 +58,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralPlanning_BoundsUnloadedNativeConnectionMetadata() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             ConnectionsPart connectionsPart = document.WorkbookPartRoot.AddNewPart<ConnectionsPart>();
             byte[] payload = Encoding.UTF8.GetBytes(
                 "<connections xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">"
@@ -77,7 +77,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Test_QueryAndSparklineReads_WaitForWorkbookWriter() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
                 ConnectionName = "ReadLockQuery",
                 WorksheetName = sheet.Name,

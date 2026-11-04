@@ -84,10 +84,10 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlMathMl_MathAutoPdfRetainsSearchableLogicalTextAndOriginalSupplement() {
         const string html = "<math xmlns='http://www.w3.org/1998/Math/MathML' aria-label='x over two'>"
             + "<mfrac><mi>x</mi><mn>2</mn></mfrac></math>";
-        var options = new HtmlToPdfOptions { AllowSystemFontFallback = false };
+        var options = new HtmlPdfExportOptions { AllowSystemFontFallback = false };
         options.Fonts.Add("math", ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('x', '2', 0x1D465));
         var document = HtmlConversionDocument.Parse(html);
-        byte[] pdf = document.ToPdfBytes(options);
+        byte[] pdf = (document.ToPdf(options)).ToBytes();
         Assert.Contains("(x)/(2)", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(pdf));
         var rendered = HtmlRenderTestDriver.Render(document, options);

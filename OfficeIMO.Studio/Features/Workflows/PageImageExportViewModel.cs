@@ -15,7 +15,7 @@ public sealed partial class PageImageExportViewModel : ObservableObject, IDispos
     private readonly Func<CancellationToken, Task<string?>> _pickOutputFolder;
     private readonly IOfficeOutputWorkflowRunner _runner;
     private readonly IStudioLocalizer _localizer;
-    private readonly IOfficeWorkflowPublicationGuard? _publicationGuard;
+    private readonly IOfficePublicationGuard? _publicationGuard;
     private readonly StudioJobHistory? _jobHistory;
     private readonly StudioStorageAccess? _storage;
     private CancellationTokenSource? _cancellation;
@@ -30,7 +30,7 @@ public sealed partial class PageImageExportViewModel : ObservableObject, IDispos
         Func<CancellationToken, Task<string?>> pickOutputFolder,
         IOfficeOutputWorkflowRunner? runner,
         IStudioLocalizer? localizer = null,
-        IOfficeWorkflowPublicationGuard? publicationGuard = null,
+        IOfficePublicationGuard? publicationGuard = null,
         StudioJobHistory? jobHistory = null,
         StudioStorageAccess? storage = null) {
         _pickPdf = pickPdf;
@@ -152,7 +152,7 @@ public sealed partial class PageImageExportViewModel : ObservableObject, IDispos
                 TargetDpi = TargetDpi,
                 MaximumDimension = MaximumDimension > 0 ? MaximumDimension : null,
                 PublicationGuard = _publicationGuard,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Rename
+                ConflictPolicy = OfficePublicationPolicy.Rename
             };
             job = _jobHistory?.Start(T("Job.Title", "Page image export"), request.InputPath, request.OutputDirectory, operation.Cancel);
             using IDisposable? execution = _jobHistory is null ? null : await _jobHistory.EnterAsync(operation.Token).ConfigureAwait(true);

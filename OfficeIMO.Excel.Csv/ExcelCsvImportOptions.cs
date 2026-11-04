@@ -5,15 +5,11 @@ namespace OfficeIMO.Excel.Csv;
 
 /// <summary>
 /// Controls how CSV rows are projected into an Excel worksheet. CSV parsing and
-/// schema behavior remain owned by <see cref="CsvLoadOptions"/> and
-/// <see cref="CsvDataReaderOptions"/>.
+/// schema behavior remain owned by <see cref="CsvReaderOptions"/>.
 /// </summary>
 public sealed class ExcelCsvImportOptions {
-    /// <summary>Gets or sets the CSV parsing options.</summary>
-    public CsvLoadOptions LoadOptions { get; set; } = new CsvLoadOptions { DetectDelimiter = true };
-
-    /// <summary>Gets or sets the CSV data-reader projection options.</summary>
-    public CsvDataReaderOptions ReaderOptions { get; set; } = new CsvDataReaderOptions { InferSchema = true };
+    /// <summary>Gets or sets the CSV parsing and data-reader projection options.</summary>
+    public CsvReaderOptions ReaderOptions { get; set; } = new CsvReaderOptions { DetectDelimiter = true, InferSchema = true };
 
     /// <summary>Gets or sets the target worksheet name when importing into a workbook.</summary>
     public string SheetName { get; set; } = "Import";

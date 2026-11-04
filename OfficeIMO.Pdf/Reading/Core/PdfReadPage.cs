@@ -200,10 +200,10 @@ public sealed partial class PdfReadPage {
     }
 
     // Encoded redaction ranges must retain repeated and edge whitespace in glyph arrays.
-    internal IReadOnlyList<PdfTextSpan> GetGlyphTextSpans(bool includeHiddenOptionalContent = false,
+    internal IReadOnlyList<PdfTextSpan> GetGlyphTextSpans(bool includeHiddenOptionalContent = false, bool ignoreActualText = false,
         System.Threading.CancellationToken cancellationToken = default) {
         IReadOnlyList<PdfTextSpan> spans = GetTextSpans(_includeArtifactText, cancellationToken,
-            includeHiddenOptionalContent, preserveGlyphText: true, requireMappedText: true);
+            includeHiddenOptionalContent, preserveGlyphText: true, requireMappedText: true, ignoreActualText: ignoreActualText);
         var runOrdinals = new Dictionary<PdfContentOrderKey, int>();
         foreach (PdfTextSpan span in spans) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -215,12 +215,27 @@ public sealed partial class PdfReadPage {
         return spans;
     }
 
+    /// <summary>
+    /// Counts visible text spans that this read leaves out because they are marked as artifacts (running headers,
+    /// footers and page numbers in tagged PDFs). Returns zero without reparsing when the content has no artifacts.
+    /// </summary>
+    internal int CountOmittedArtifactTextSpans(System.Threading.CancellationToken cancellationToken) {
+        if (_includeArtifactText) return 0;
+        var pageContentBudget = new PageContentBudget(this, cancellationToken);
+        string content = GetContentStreamSequence(pageContentBudget).Content;
+        if (content.IndexOf("/Artifact", StringComparison.Ordinal) < 0) return 0;
+        int withArtifacts = GetTextSpans(includeArtifactText: true, cancellationToken).Count(static span => span.IsVisible && !string.IsNullOrWhiteSpace(span.Text));
+        int withoutArtifacts = GetTextSpans(includeArtifactText: false, cancellationToken).Count(static span => span.IsVisible && !string.IsNullOrWhiteSpace(span.Text));
+        return Math.Max(0, withArtifacts - withoutArtifacts);
+    }
+
     internal IReadOnlyList<PdfTextSpan> GetTextSpans(
         bool includeArtifactText,
         System.Threading.CancellationToken cancellationToken,
         bool includeHiddenOptionalContent = false,
         bool preserveGlyphText = false,
-        bool requireMappedText = false) {
+        bool requireMappedText = false,
+        bool ignoreActualText = false) {
         cancellationToken.ThrowIfCancellationRequested();
         _demandTextExtraction?.Invoke();
         var spans = new List<PdfTextSpan>();
@@ -249,6 +264,7 @@ public sealed partial class PdfReadPage {
                 pageHeight,
                 includeArtifactText: includeArtifactText,
                 preserveGlyphText: preserveGlyphText,
+                ignoreActualText: ignoreActualText,
                 requireMappedText: requireMappedText,
                 includeHiddenOptionalContent: includeHiddenOptionalContent,
                 pageContentBudget: pageContentBudget,
@@ -303,21 +319,21 @@ public sealed partial class PdfReadPage {
                 action.Get<PdfName>("S")?.Name == "URI" &&
                 TryGetString(action.Items.TryGetValue("URI", out var uriObject) ? uriObject : null, out string? uri) &&
                 Guard.IsUriAction(uri, cancellationToken)) {
-                result.Add(new PdfLinkAnnotation(uri!, contents, rect.X1, rect.Y1, rect.X2, rect.Y2));
+                result.Add(new PdfLinkAnnotation(uri!, contents, rect.X1, rect.Y1, rect.X2, rect.Y2) { SourceObjectNumber = (item as PdfReference)?.ObjectNumber });
                 continue;
             }
 
             if (action != null &&
                 action.Get<PdfName>("S")?.Name == "GoTo" &&
                 TryReadLinkDestination(action.Items.TryGetValue("D", out var actionDestination) ? actionDestination : null, out string? actionDestinationName, out int? actionDestinationPageObjectNumber, out double? actionDestinationTop, out PdfOpenActionDestinationMode? actionDestinationMode, out double? actionDestinationLeft, out double? actionDestinationBottom, out double? actionDestinationRight)) {
-                result.Add(new PdfLinkAnnotation(null, actionDestinationName, contents, rect.X1, rect.Y1, rect.X2, rect.Y2, destinationPageObjectNumber: actionDestinationPageObjectNumber, destinationTop: actionDestinationTop, destinationMode: actionDestinationMode, destinationLeft: actionDestinationLeft, destinationBottom: actionDestinationBottom, destinationRight: actionDestinationRight));
+                result.Add(new PdfLinkAnnotation(null, actionDestinationName, contents, rect.X1, rect.Y1, rect.X2, rect.Y2, destinationPageObjectNumber: actionDestinationPageObjectNumber, destinationTop: actionDestinationTop, destinationMode: actionDestinationMode, destinationLeft: actionDestinationLeft, destinationBottom: actionDestinationBottom, destinationRight: actionDestinationRight) { SourceObjectNumber = (item as PdfReference)?.ObjectNumber });
                 continue;
             }
 
             if (action != null &&
                 action.Get<PdfName>("S")?.Name == "Named" &&
                 TryGetNameOrString(action.Items.TryGetValue("N", out var namedActionObject) ? namedActionObject : null, out string? namedAction)) {
-                result.Add(new PdfLinkAnnotation(null, null, contents, rect.X1, rect.Y1, rect.X2, rect.Y2, namedAction: namedAction));
+                result.Add(new PdfLinkAnnotation(null, null, contents, rect.X1, rect.Y1, rect.X2, rect.Y2, namedAction: namedAction) { SourceObjectNumber = (item as PdfReference)?.ObjectNumber });
                 continue;
             }
 
@@ -325,12 +341,12 @@ public sealed partial class PdfReadPage {
                 action.Get<PdfName>("S")?.Name == "GoToR" &&
                 TryReadFileSpecification(action.Items.TryGetValue("F", out var remoteFileObject) ? remoteFileObject : null, out string? remoteFile)) {
                 TryReadRemoteDestination(action.Items.TryGetValue("D", out var remoteDestinationObject) ? remoteDestinationObject : null, out string? remoteDestinationName, out int? remoteDestinationPageNumber, out double? remoteDestinationTop, out PdfOpenActionDestinationMode? remoteDestinationMode, out double? remoteDestinationLeft, out double? remoteDestinationBottom, out double? remoteDestinationRight);
-                result.Add(new PdfLinkAnnotation(null, null, contents, rect.X1, rect.Y1, rect.X2, rect.Y2, remoteFile: remoteFile, remoteDestinationName: remoteDestinationName, remoteDestinationPageNumber: remoteDestinationPageNumber, remoteDestinationTop: remoteDestinationTop, remoteDestinationMode: remoteDestinationMode, remoteDestinationLeft: remoteDestinationLeft, remoteDestinationBottom: remoteDestinationBottom, remoteDestinationRight: remoteDestinationRight));
+                result.Add(new PdfLinkAnnotation(null, null, contents, rect.X1, rect.Y1, rect.X2, rect.Y2, remoteFile: remoteFile, remoteDestinationName: remoteDestinationName, remoteDestinationPageNumber: remoteDestinationPageNumber, remoteDestinationTop: remoteDestinationTop, remoteDestinationMode: remoteDestinationMode, remoteDestinationLeft: remoteDestinationLeft, remoteDestinationBottom: remoteDestinationBottom, remoteDestinationRight: remoteDestinationRight) { SourceObjectNumber = (item as PdfReference)?.ObjectNumber });
                 continue;
             }
 
             if (TryReadLinkDestination(annotation.Items.TryGetValue("Dest", out var directDestination) ? directDestination : null, out string? directDestinationName, out int? directDestinationPageObjectNumber, out double? directDestinationTop, out PdfOpenActionDestinationMode? directDestinationMode, out double? directDestinationLeft, out double? directDestinationBottom, out double? directDestinationRight)) {
-                result.Add(new PdfLinkAnnotation(null, directDestinationName, contents, rect.X1, rect.Y1, rect.X2, rect.Y2, destinationPageObjectNumber: directDestinationPageObjectNumber, destinationTop: directDestinationTop, destinationMode: directDestinationMode, destinationLeft: directDestinationLeft, destinationBottom: directDestinationBottom, destinationRight: directDestinationRight));
+                result.Add(new PdfLinkAnnotation(null, directDestinationName, contents, rect.X1, rect.Y1, rect.X2, rect.Y2, destinationPageObjectNumber: directDestinationPageObjectNumber, destinationTop: directDestinationTop, destinationMode: directDestinationMode, destinationLeft: directDestinationLeft, destinationBottom: directDestinationBottom, destinationRight: directDestinationRight) { SourceObjectNumber = (item as PdfReference)?.ObjectNumber });
             }
         }
 
@@ -398,8 +414,8 @@ public sealed partial class PdfReadPage {
                 out string? richContents,
                 out string? richContentsPlainText,
                 out double? effectiveFontSize,
-                out PdfColor? effectiveTextColor,
-                out PdfAlign? effectiveTextAlign,
+                out global::OfficeIMO.OfficeColor? effectiveTextColor,
+                out OfficeAlignment? effectiveTextAlign,
                 cancellationToken);
             ReadAnnotationVisualStyleMetadata(
                 annotation,
@@ -943,8 +959,10 @@ public sealed partial class PdfReadPage {
         bool initialFillColorResolved = true, bool initialStrokeColorResolved = true, string initialStrokeDashIdentity = "[]:0",
         TextContentParser.MarkedContentState? inheritedActualTextState = null,
         bool preserveGlyphText = false,
+        bool ignoreActualText = false,
         bool requireMappedText = false,
-        Action<TextContentParser.DrawingActualTextScope>? onCompletedDrawingActualText = null) {
+        Action<TextContentParser.DrawingActualTextScope>? onCompletedDrawingActualText = null,
+        int initialStrokeLineCap = 0) {
         cancellationCheck?.Invoke();
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
@@ -1068,6 +1086,7 @@ public sealed partial class PdfReadPage {
             initialClipPath: initialClipPath,
             useLogicalTextFilters: useLogicalTextFilters,
             preserveGlyphText: preserveGlyphText,
+                ignoreActualText: ignoreActualText,
             requireMappedText: requireMappedText,
             includeArtifactText: includeArtifactText,
             maxOperations: _limits.MaxContentOperations,
@@ -1096,7 +1115,7 @@ public sealed partial class PdfReadPage {
             cancellationCheck: cancellationCheck,
             initialTextState: initialTextState,
             onTextSpan: onTextSpan,
-            initialStrokeWidth: initialStrokeWidth, initialStrokeLineJoin: initialStrokeLineJoin, initialMiterLimit: initialMiterLimit,
+            initialStrokeWidth: initialStrokeWidth, initialStrokeLineCap: initialStrokeLineCap, initialStrokeLineJoin: initialStrokeLineJoin, initialMiterLimit: initialMiterLimit,
             initialFillColorResolved: initialFillColorResolved, initialStrokeColorResolved: initialStrokeColorResolved, initialStrokeDashIdentity: initialStrokeDashIdentity,
             inheritedActualTextState: inheritedActualTextState,
             onActualTextForm: (offset, state) => actualTextForms[offset] = state,
@@ -1139,7 +1158,7 @@ public sealed partial class PdfReadPage {
                      inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
                      cancellationCheck: cancellationCheck,
                      initialTextState: initialTextState,
-                     initialStrokeWidth: initialStrokeWidth, initialStrokeLineJoin: initialStrokeLineJoin, initialMiterLimit: initialMiterLimit,
+                     initialStrokeWidth: initialStrokeWidth, initialStrokeLineCap: initialStrokeLineCap, initialStrokeLineJoin: initialStrokeLineJoin, initialMiterLimit: initialMiterLimit,
                      initialFillColorResolved: initialFillColorResolved, initialStrokeColorResolved: initialStrokeColorResolved, initialStrokeDashIdentity: initialStrokeDashIdentity)) {
             if (!TryGetFormStream(resources, invocation.Name, out int? formObjectNumber, out var formStream)) {
                 continue;
@@ -1222,10 +1241,11 @@ public sealed partial class PdfReadPage {
                     includeHiddenOptionalContent: includeHiddenOptionalContent,
                     initialTextState: formInitialTextState,
                     onTextSpan: onTextSpan,
-                    initialStrokeWidth: invocation.StrokeWidth, initialStrokeLineJoin: invocation.StrokeLineJoin, initialMiterLimit: invocation.MiterLimit,
+                    initialStrokeWidth: invocation.StrokeWidth, initialStrokeLineCap: invocation.StrokeLineCap, initialStrokeLineJoin: invocation.StrokeLineJoin, initialMiterLimit: invocation.MiterLimit,
                     initialFillColorResolved: invocation.FillColorResolved, initialStrokeColorResolved: invocation.StrokeColorResolved, initialStrokeDashIdentity: invocation.StrokeDashIdentity,
                     inheritedActualTextState: formActualTextState,
                     preserveGlyphText: preserveGlyphText,
+                ignoreActualText: ignoreActualText,
                     requireMappedText: requireMappedText,
                     onCompletedDrawingActualText: onCompletedDrawingActualText);
             } finally {
@@ -1949,8 +1969,8 @@ public sealed partial class PdfReadPage {
         out string? richContents,
         out string? richContentsPlainText,
         out double? effectiveFontSize,
-        out PdfColor? effectiveTextColor,
-        out PdfAlign? effectiveTextAlign,
+        out global::OfficeIMO.OfficeColor? effectiveTextColor,
+        out OfficeAlignment? effectiveTextAlign,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         defaultAppearance = null;
@@ -1972,23 +1992,23 @@ public sealed partial class PdfReadPage {
         effectiveFontSize = PdfDefaultAppearanceParser.TryReadFontSize(defaultAppearance, out double defaultAppearanceFontSize, cancellationToken)
             ? defaultAppearanceFontSize
             : parsedDefaultStyle.FontSize;
-        effectiveTextColor = PdfDefaultAppearanceParser.TryReadTextColor(defaultAppearance, out PdfColor defaultAppearanceTextColor, cancellationToken)
+        effectiveTextColor = PdfDefaultAppearanceParser.TryReadTextColor(defaultAppearance, out global::OfficeIMO.OfficeColor defaultAppearanceTextColor, cancellationToken)
             ? defaultAppearanceTextColor
             : parsedDefaultStyle.TextColor;
         effectiveTextAlign = TryReadFreeTextAlignment(annotation, parsedDefaultStyle.TextAlign);
     }
 
-    private PdfAlign? TryReadFreeTextAlignment(PdfDictionary annotation, PdfAlign? defaultAlignment) {
+    private OfficeAlignment? TryReadFreeTextAlignment(PdfDictionary annotation, OfficeAlignment? defaultAlignment) {
         int? alignment = TryReadInteger(annotation.Items.TryGetValue("Q", out PdfObject? alignmentObject) ? alignmentObject : null);
         if (!alignment.HasValue) {
             return defaultAlignment;
         }
 
         return alignment.Value == 1
-            ? PdfAlign.Center
+            ? OfficeAlignment.Center
             : alignment.Value == 2
-                ? PdfAlign.Right
-                : PdfAlign.Left;
+                ? OfficeAlignment.Right
+                : OfficeAlignment.Left;
     }
 
     private IReadOnlyList<double> ReadNumberArray(PdfObject? obj, CancellationToken cancellationToken = default) {

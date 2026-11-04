@@ -55,10 +55,10 @@ internal static partial class PdfTextExtractor {
         return pages.AsReadOnly();
     }
     
-    private static System.Collections.ObjectModel.ReadOnlyCollection<StructuredPage> ExtractStructuredByPageRanges(PdfReadDocument document, PdfTextLayoutOptions? options, PdfPageRange[] pageRanges) {
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfStructuredPage> ExtractStructuredByPageRanges(PdfReadDocument document, PdfTextLayoutOptions? options, PdfPageRange[] pageRanges) {
         int[] pageNumbers = PdfPageRange.ExpandMany(pageRanges, document.Pages.Count, nameof(pageRanges));
     
-        var pages = new List<StructuredPage>(pageNumbers.Length);
+        var pages = new List<PdfStructuredPage>(pageNumbers.Length);
         for (int i = 0; i < pageNumbers.Length; i++) {
             pages.Add(document.Pages[pageNumbers[i] - 1].ExtractStructured(options));
         }
@@ -66,53 +66,53 @@ internal static partial class PdfTextExtractor {
         return pages.AsReadOnly();
     }
     
-    private static System.Collections.ObjectModel.ReadOnlyCollection<StructuredParagraphPage> ExtractParagraphsByPageRanges(PdfReadDocument document, PdfTextLayoutOptions? options, PdfPageRange[] pageRanges) {
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfStructuredParagraphPage> ExtractParagraphsByPageRanges(PdfReadDocument document, PdfTextLayoutOptions? options, PdfPageRange[] pageRanges) {
         int[] pageNumbers = PdfPageRange.ExpandMany(pageRanges, document.Pages.Count, nameof(pageRanges));
     
-        var pages = new List<StructuredParagraphPage>(pageNumbers.Length);
+        var pages = new List<PdfStructuredParagraphPage>(pageNumbers.Length);
         for (int i = 0; i < pageNumbers.Length; i++) {
             int pageNumber = pageNumbers[i];
             var structuredPage = document.Pages[pageNumber - 1].ExtractStructured(options);
-            pages.Add(new StructuredParagraphPage(pageNumber, structuredPage.Paragraphs));
+            pages.Add(new PdfStructuredParagraphPage(pageNumber, structuredPage.Paragraphs));
         }
     
         return pages.AsReadOnly();
     }
     
-    private static System.Collections.ObjectModel.ReadOnlyCollection<StructuredHeadingPage> ExtractHeadingsByPageRanges(PdfReadDocument document, PdfTextLayoutOptions? options, PdfPageRange[] pageRanges) {
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfStructuredHeadingPage> ExtractHeadingsByPageRanges(PdfReadDocument document, PdfTextLayoutOptions? options, PdfPageRange[] pageRanges) {
         int[] pageNumbers = PdfPageRange.ExpandMany(pageRanges, document.Pages.Count, nameof(pageRanges));
     
-        var pages = new List<StructuredHeadingPage>(pageNumbers.Length);
+        var pages = new List<PdfStructuredHeadingPage>(pageNumbers.Length);
         for (int i = 0; i < pageNumbers.Length; i++) {
             int pageNumber = pageNumbers[i];
             var structuredPage = document.Pages[pageNumber - 1].ExtractStructured(options);
-            pages.Add(new StructuredHeadingPage(pageNumber, structuredPage.Headings));
+            pages.Add(new PdfStructuredHeadingPage(pageNumber, structuredPage.Headings));
         }
     
         return pages.AsReadOnly();
     }
     
-    private static System.Collections.ObjectModel.ReadOnlyCollection<StructuredListItemPage> ExtractListItemsByPageRanges(PdfReadDocument document, PdfTextLayoutOptions? options, PdfPageRange[] pageRanges) {
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfStructuredListItemPage> ExtractListItemsByPageRanges(PdfReadDocument document, PdfTextLayoutOptions? options, PdfPageRange[] pageRanges) {
         int[] pageNumbers = PdfPageRange.ExpandMany(pageRanges, document.Pages.Count, nameof(pageRanges));
     
-        var pages = new List<StructuredListItemPage>(pageNumbers.Length);
+        var pages = new List<PdfStructuredListItemPage>(pageNumbers.Length);
         for (int i = 0; i < pageNumbers.Length; i++) {
             int pageNumber = pageNumbers[i];
             var structuredPage = document.Pages[pageNumber - 1].ExtractStructured(options);
-            pages.Add(new StructuredListItemPage(pageNumber, structuredPage.ListNodes));
+            pages.Add(new PdfStructuredListItemPage(pageNumber, structuredPage.ListNodes));
         }
     
         return pages.AsReadOnly();
     }
     
-    private static System.Collections.ObjectModel.ReadOnlyCollection<StructuredTablePage> ExtractTablesByPageRanges(PdfReadDocument document, PdfTextLayoutOptions? options, PdfPageRange[] pageRanges) {
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfStructuredTablePage> ExtractTablesByPageRanges(PdfReadDocument document, PdfTextLayoutOptions? options, PdfPageRange[] pageRanges) {
         int[] pageNumbers = PdfPageRange.ExpandMany(pageRanges, document.Pages.Count, nameof(pageRanges));
     
-        var pages = new List<StructuredTablePage>(pageNumbers.Length);
+        var pages = new List<PdfStructuredTablePage>(pageNumbers.Length);
         for (int i = 0; i < pageNumbers.Length; i++) {
             int pageNumber = pageNumbers[i];
             var structuredPage = document.Pages[pageNumber - 1].ExtractStructured(options);
-            pages.Add(new StructuredTablePage(pageNumber, structuredPage.TablesDetailed));
+            pages.Add(new PdfStructuredTablePage(pageNumber, structuredPage.TablesDetailed));
         }
     
         return pages.AsReadOnly();
@@ -121,7 +121,7 @@ internal static partial class PdfTextExtractor {
     private static System.Collections.ObjectModel.ReadOnlyCollection<string> ExtractMarkdownByPage(PdfDocumentReadResult document, PdfLogicalMarkdownOptions? markdownOptions) {
         var pages = new List<string>(document.Pages.Count);
         for (int i = 0; i < document.Pages.Count; i++) {
-            pages.Add(document.Pages[i].ToMarkdown(markdownOptions));
+            pages.Add(document.Pages[i].ExtractMarkdown(markdownOptions));
         }
     
         return pages.AsReadOnly();
@@ -131,7 +131,7 @@ internal static partial class PdfTextExtractor {
         var pages = new List<SelectedTextPage>(document.Pages.Count);
         for (int i = 0; i < document.Pages.Count; i++) {
             PdfLogicalPage page = document.Pages[i];
-            pages.Add(new SelectedTextPage(page.PageNumber, page.ToMarkdown(markdownOptions)));
+            pages.Add(new SelectedTextPage(page.PageNumber, page.ExtractMarkdown(markdownOptions)));
         }
     
         return pages.AsReadOnly();

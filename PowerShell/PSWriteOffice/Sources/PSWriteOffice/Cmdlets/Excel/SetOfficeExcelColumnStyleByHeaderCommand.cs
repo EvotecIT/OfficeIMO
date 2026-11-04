@@ -202,7 +202,7 @@ public sealed class SetOfficeExcelColumnStyleByHeaderCommand : PSWriteOffice.Cmd
         }
 
         if (Width.HasValue) {
-            sheet.SetColumnWidth(columnIndex, Width.Value);
+            sheet.SetColumnWidth(columnIndex, ExcelColumnWidth.Characters(Width.Value));
             hasAction = true;
         }
 

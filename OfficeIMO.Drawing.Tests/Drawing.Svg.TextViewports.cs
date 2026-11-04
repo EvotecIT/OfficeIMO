@@ -7,6 +7,21 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class DrawingSvgTextViewportTests {
+    [Fact]
+    public void OversizedTransformedTextIsRejectedBeforeCreatingLocalEffects() {
+        var options = new OfficeSvgDrawingReaderOptions();
+        options.Fonts.Add("FixtureFont", ManagedTextShapingTestAssets.CreateFont('A'));
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' " +
+            "font-family='FixtureFont' font-size='1e12'>" +
+            "<text x='200' y='0' transform='translate(1 0)'>A</text>" +
+            "<text x='200' y='0' transform='translate(1 0)'>A</text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), options,
+            out OfficeDrawing? drawing, out int unsupported));
+        Assert.Equal(2, unsupported);
+        Assert.Empty(drawing!.Elements);
+    }
+
     [Theory]
     [InlineData(-12, 20, 8, "")]
     [InlineData(100, -92, 8, "")]

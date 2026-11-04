@@ -4,17 +4,19 @@ using OfficeIMO.Excel.GoogleSheets;
 using System.Globalization;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Fact]
         public void Test_GoogleSheetsBatch_SizesGridForDimensionsAndProtectionExceptions() {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsMetadataGridSizing.xlsx");
             try {
                 using var document = ExcelDocument.Create(path);
-                ExcelSheet sheet = document.AddWorksheet("Data");
-                sheet.CellValue(1, 1, "Value");
-                sheet.SetRowHeight(2000, 24);
-                sheet.SetColumnWidth(28, 16);
+                ExcelSheet sheet = document.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Value");
+                sheet.SetRowHeight(2000, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
+                sheet.SetColumnWidth(28, ExcelColumnWidth.Characters(16));
                 sheet.Protect();
                 var options = new GoogleSheetsSaveOptions();
                 options.Protection.UnprotectedRangesBySheet["Data"] = new List<string> { "A1:A2100" };
@@ -36,18 +38,14 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsAdvancedMetadataGridSizing.xlsx");
             try {
                 using var document = ExcelDocument.Create(path);
-                ExcelSheet filters = document.AddWorksheet("Filters");
-                filters.AddAutoFilter("A1:AA2001");
+                ExcelSheet filters = document.AddSheet("Filters");
+                filters.Range("A1:AA2001").AutoFilter();
 
-                ExcelSheet conditional = document.AddWorksheet("Conditional");
-                conditional.AddConditionalRule("B2:AB2002", ExcelConditionalFormattingOperator.GreaterThan, "10");
+                ExcelSheet conditional = document.AddSheet("Conditional");
+                conditional.Range("B2:AB2002").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "10");
 
-                ExcelSheet charts = document.AddWorksheet("Charts");
-                charts.AddChart(
-                    new ExcelChartData(new[] { "A" }, new[] { new ExcelChartSeries("Sales", new[] { 1d }) }),
-                    row: 2003,
-                    column: 29,
-                    type: ExcelChartType.ColumnClustered);
+                ExcelSheet charts = document.AddSheet("Charts");
+                charts.AddChart(OfficeChartType.ColumnClustered, new ExcelChartData(new[] { "A" }, new[] { new ExcelChartSeries("Sales", new[] { 1d }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 2003, Column = 29 });
 
                 GoogleSheetsBatch batch = new GoogleSheetsExporter().BuildBatch(document);
 
@@ -72,9 +70,9 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsCountIfRanges.xlsx");
             try {
                 using var document = ExcelDocument.Create(path);
-                ExcelSheet sheet = document.AddWorksheet("Data");
-                sheet.AddConditionalDuplicateValuesRule("A2:A100");
-                sheet.AddConditionalUniqueValuesRule("B2:B100");
+                ExcelSheet sheet = document.AddSheet("Data");
+                sheet.Range("A2:A100").ConditionalFormat().DuplicateValues();
+                sheet.Range("B2:B100").ConditionalFormat().UniqueValues();
 
                 GoogleSheetsBatch batch = new GoogleSheetsExporter().BuildBatch(document);
                 GoogleSheetsAddConditionalFormatRuleRequest[] rules = batch.Requests
@@ -94,12 +92,8 @@ namespace OfficeIMO.Tests {
             try {
                 using var document = ExcelDocument.Create(path);
                 document.DateSystem = ExcelDateSystem.NineteenFour;
-                ExcelSheet sheet = document.AddWorksheet("Data");
-                sheet.ValidationDate(
-                    "A1:A2",
-                    ExcelDataValidationOperator.Between,
-                    new DateTime(2024, 1, 1),
-                    new DateTime(2024, 12, 31));
+                ExcelSheet sheet = document.AddSheet("Data");
+                sheet.Range("A1:A2").Validation().Date(ExcelDataValidationOperator.Between, new DateTime(2024, 1, 1), new DateTime(2024, 12, 31));
 
                 GoogleSheetsBatch batch = new GoogleSheetsExporter().BuildBatch(document);
 
@@ -116,8 +110,8 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsScopedNameHashes.xlsx");
             try {
                 using var document = ExcelDocument.Create(path);
-                ExcelSheet north = document.AddWorksheet("North");
-                ExcelSheet south = document.AddWorksheet("South");
+                ExcelSheet north = document.AddSheet("North");
+                ExcelSheet south = document.AddSheet("South");
                 north.SetNamedRange("LocalData", "A1:A2", save: false);
                 south.SetNamedRange("LocalData", "B1:B2", save: false);
 
@@ -135,11 +129,11 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsCultureCheckpoint.xlsx");
             try {
                 using var document = ExcelDocument.Create(path);
-                ExcelSheet sheet = document.AddWorksheet("Data");
-                sheet.CellValue(1, 1, 0.1D);
-                sheet.SetRowHeight(1, 1.23D);
-                sheet.SetColumnWidth(1, 16.25D);
-                ExcelCellSnapshot cell = Assert.Single(Assert.Single(document.CreateInspectionSnapshot().Worksheets).Cells);
+                ExcelSheet sheet = document.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue(0.1D);
+                sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(1.23D)));
+                sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(16.25D));
+                ExcelCellInfo cell = Assert.Single(Assert.Single(document.Inspect().Worksheets).Cells);
                 Assert.Equal("0.10000000000000001", Assert.IsType<double>(cell.Value).ToString("G17", CultureInfo.InvariantCulture));
                 CultureInfo previousCulture = CultureInfo.CurrentCulture;
                 try {
@@ -172,8 +166,8 @@ namespace OfficeIMO.Tests {
                 string path = Path.Combine(_directoryWithFiles, $"GoogleSheetsCellHash-{Guid.NewGuid():N}.xlsx");
                 try {
                     using var document = ExcelDocument.Create(path);
-                    ExcelSheet sheet = document.AddWorksheet("Data");
-                    sheet.CellValue(1, 1, "Value");
+                    ExcelSheet sheet = document.AddSheet("Data");
+                    sheet.Cell(1, 1).SetValue("Value");
                     configure?.Invoke(sheet);
                     return GoogleSheetsDiffPlanner.CreateCheckpoint(document).ContentHashes["sheet/Data/cell/1:1"];
                 } finally {
@@ -183,12 +177,12 @@ namespace OfficeIMO.Tests {
 
             string baseline = CellHash();
 
-            Assert.NotEqual(baseline, CellHash(sheet => sheet.CellBold(1, 1)));
-            Assert.NotEqual(baseline, CellHash(sheet => sheet.CellItalic(1, 1)));
-            Assert.NotEqual(baseline, CellHash(sheet => sheet.CellFontSize(1, 1, 18)));
-            Assert.NotEqual(baseline, CellHash(sheet => sheet.CellAlign(1, 1, ExcelHorizontalAlignment.Center)));
-            Assert.NotEqual(baseline, CellHash(sheet => sheet.CellBorder(1, 1, ExcelBorderStyle.Medium, "#FF0000")));
-            Assert.NotEqual(baseline, CellHash(sheet => sheet.WrapCells(1, 1, 1)));
+            Assert.NotEqual(baseline, CellHash(sheet => sheet.Cell(1, 1).SetBold()));
+            Assert.NotEqual(baseline, CellHash(sheet => sheet.Cell(1, 1).SetItalic()));
+            Assert.NotEqual(baseline, CellHash(sheet => sheet.Cell(1, 1).SetFontSize(global::OfficeIMO.OfficeLength.Points(18))));
+            Assert.NotEqual(baseline, CellHash(sheet => sheet.Cell(1, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Center)));
+            Assert.NotEqual(baseline, CellHash(sheet => sheet.Cell(1, 1).SetBorder(ExcelBorderStyle.Medium, "#FF0000")));
+            Assert.NotEqual(baseline, CellHash(sheet => sheet.Range(1, 1, 1, 1).SetWrapText()));
             Assert.NotEqual(baseline, CellHash(sheet => sheet.SetHyperlink(1, 1, "https://example.test/", display: "Value", style: false)));
         }
 
@@ -197,8 +191,8 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsTabColorHash.xlsx");
             try {
                 using var document = ExcelDocument.Create(path);
-                ExcelSheet sheet = document.AddWorksheet("Data");
-                sheet.CellValue(1, 1, "Value");
+                ExcelSheet sheet = document.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Value");
                 GoogleSheetsSyncCheckpoint baseline = GoogleSheetsDiffPlanner.CreateCheckpoint(document);
 
                 sheet.SetTabColor("#336699");
@@ -216,8 +210,8 @@ namespace OfficeIMO.Tests {
                 string path = Path.Combine(_directoryWithFiles, $"GoogleSheetsConditionalHash-{Guid.NewGuid():N}.xlsx");
                 try {
                     using var document = ExcelDocument.Create(path);
-                    ExcelSheet sheet = document.AddWorksheet("Data");
-                    sheet.AddConditionalRule("A1:A10", ExcelConditionalFormattingOperator.GreaterThan, threshold, fillColor: fillColor);
+                    ExcelSheet sheet = document.AddSheet("Data");
+                    sheet.Range("A1:A10").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, threshold, fillColor: fillColor);
                     return GoogleSheetsDiffPlanner.CreateCheckpoint(document).ContentHashes["sheet/Data/conditionalFormat/0"];
                 } finally {
                     if (File.Exists(path)) File.Delete(path);
@@ -235,17 +229,17 @@ namespace OfficeIMO.Tests {
                 string path = Path.Combine(_directoryWithFiles, $"GoogleSheetsFilterHash-{Guid.NewGuid():N}.xlsx");
                 try {
                     using var document = ExcelDocument.Create(path);
-                    ExcelSheet sheet = document.AddWorksheet("Data");
-                    sheet.CellValue(1, 1, "Region");
-                    sheet.CellValue(2, 1, "North");
-                    sheet.CellValue(3, 1, "South");
-                    sheet.CellValue(1, 3, "Name");
-                    sheet.CellValue(1, 4, "Value");
-                    sheet.CellValue(2, 3, "A");
-                    sheet.CellValue(2, 4, 1d);
-                    sheet.CellValue(3, 3, "B");
-                    sheet.CellValue(3, 4, 2d);
-                    sheet.AddAutoFilter(range, new Dictionary<uint, IEnumerable<string>> { [0] = new[] { visibleValue } });
+                    ExcelSheet sheet = document.AddSheet("Data");
+                    sheet.Cell(1, 1).SetValue("Region");
+                    sheet.Cell(2, 1).SetValue("North");
+                    sheet.Cell(3, 1).SetValue("South");
+                    sheet.Cell(1, 3).SetValue("Name");
+                    sheet.Cell(1, 4).SetValue("Value");
+                    sheet.Cell(2, 3).SetValue("A");
+                    sheet.Cell(2, 4).SetValue(1d);
+                    sheet.Cell(3, 3).SetValue("B");
+                    sheet.Cell(3, 4).SetValue(2d);
+                    sheet.Range(range).AutoFilter().Column(0).Equals(new[] { visibleValue });
                     sheet.Range("C1:D3").CreateTable("DataTable", includeAutoFilter: true);
                     return GoogleSheetsDiffPlanner.CreateCheckpoint(document);
                 } finally {
@@ -268,21 +262,17 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsMetadataHashes.xlsx");
             try {
                 using var document = ExcelDocument.Create(path);
-                ExcelSheet sheet = document.AddWorksheet("Data");
-                sheet.SetRowHeight(2, 20);
-                sheet.SetColumnWidth(3, 12);
-                sheet.ValidationDate(
-                    "A1:A2",
-                    ExcelDataValidationOperator.Between,
-                    new DateTime(2024, 1, 1),
-                    new DateTime(2024, 12, 31));
+                ExcelSheet sheet = document.AddSheet("Data");
+                sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(20)));
+                sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(12));
+                sheet.Range("A1:A2").Validation().Date(ExcelDataValidationOperator.Between, new DateTime(2024, 1, 1), new DateTime(2024, 12, 31));
 
                 GoogleSheetsSyncCheckpoint baseline = GoogleSheetsDiffPlanner.CreateCheckpoint(document);
                 string rowPath = "sheet/Data/row/2";
                 string columnPath = "sheet/Data/column/3:3";
                 string validationPath = "sheet/Data/validation/0";
 
-                sheet.SetRowHeight(2, 24);
+                sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
                 GoogleSheetsSyncCheckpoint resizedRow = GoogleSheetsDiffPlanner.CreateCheckpoint(document);
                 Assert.NotEqual(baseline.ContentHashes[rowPath], resizedRow.ContentHashes[rowPath]);
 
@@ -294,7 +284,7 @@ namespace OfficeIMO.Tests {
                 GoogleSheetsSyncCheckpoint outlinedRow = GoogleSheetsDiffPlanner.CreateCheckpoint(document);
                 Assert.NotEqual(hiddenRow.ContentHashes[rowPath], outlinedRow.ContentHashes[rowPath]);
 
-                sheet.SetColumnWidth(3, 18);
+                sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(18));
                 GoogleSheetsSyncCheckpoint resizedColumn = GoogleSheetsDiffPlanner.CreateCheckpoint(document);
                 Assert.NotEqual(baseline.ContentHashes[columnPath], resizedColumn.ContentHashes[columnPath]);
 
@@ -309,14 +299,10 @@ namespace OfficeIMO.Tests {
                 string alternatePath = Path.Combine(_directoryWithFiles, "GoogleSheetsAlternateValidationHash.xlsx");
                 try {
                     using var alternate = ExcelDocument.Create(alternatePath);
-                    ExcelSheet alternateSheet = alternate.AddWorksheet("Data");
-                    alternateSheet.SetRowHeight(2, 20);
-                    alternateSheet.SetColumnWidth(3, 12);
-                    alternateSheet.ValidationDate(
-                        "A1:A2",
-                        ExcelDataValidationOperator.Between,
-                        new DateTime(2024, 1, 1),
-                        new DateTime(2025, 12, 31));
+                    ExcelSheet alternateSheet = alternate.AddSheet("Data");
+                    alternateSheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(20)));
+                    alternateSheet.SetColumnWidth(3, ExcelColumnWidth.Characters(12));
+                    alternateSheet.Range("A1:A2").Validation().Date(ExcelDataValidationOperator.Between, new DateTime(2024, 1, 1), new DateTime(2025, 12, 31));
                     GoogleSheetsSyncCheckpoint alternateValidation = GoogleSheetsDiffPlanner.CreateCheckpoint(alternate);
                     Assert.NotEqual(baseline.ContentHashes[validationPath], alternateValidation.ContentHashes[validationPath]);
                 } finally {
@@ -328,38 +314,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_GoogleSheetsPivot_UsesOnlyHeadersInsideSourceRange() {
+        public void Test_GoogleSheetsPivot_UsesOnlyHeadersInsideSourceRange()
+        {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsPivotSourceHeaders.xlsx");
-            try {
+            try
+            {
                 using var document = ExcelDocument.Create(path);
-                ExcelSheet sheet = document.AddWorksheet("Data");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(1, 3, "Region");
-                sheet.CellValue(1, 4, "Value");
-                sheet.CellValue(2, 3, "North");
-                sheet.CellValue(2, 4, 10d);
-                sheet.CellValue(3, 3, "South");
-                sheet.CellValue(3, 4, 20d);
-                sheet.AddPivotTable(
-                    "C1:D3",
-                    "AA2000",
-                    name: "ScopedHeaders",
-                    rowFields: new[] { "Region" },
-                    dataFields: new[] { new ExcelPivotDataField("Value", ExcelPivotDataFunction.Sum, "Total") });
-
+                ExcelSheet sheet = document.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 3).SetValue("Region");
+                sheet.Cell(1, 4).SetValue("Value");
+                sheet.Cell(2, 3).SetValue("North");
+                sheet.Cell(2, 4).SetValue(10d);
+                sheet.Cell(3, 3).SetValue("South");
+                sheet.Cell(3, 4).SetValue(20d);
+                sheet.AddPivotTable("C1:D3", "AA2000", options: new ExcelPivotTableOptions { Name = "ScopedHeaders", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Value", ExcelPivotDataFunction.Sum, "Total") } });
                 GoogleSheetsBatch batch = document.BuildGoogleSheetsBatch();
-
-                GoogleSheetsAddPivotTableRequest pivot = Assert.Single(
-                    batch.Requests.OfType<GoogleSheetsAddPivotTableRequest>());
+                GoogleSheetsAddPivotTableRequest pivot = Assert.Single(batch.Requests.OfType<GoogleSheetsAddPivotTableRequest>());
                 Assert.Equal(0, Assert.Single(pivot.Rows).SourceColumnOffset);
                 Assert.Equal(1, Assert.Single(pivot.Values).SourceColumnOffset);
-                GoogleSheetsAddSheetRequest addSheet = Assert.Single(
-                    batch.Requests.OfType<GoogleSheetsAddSheetRequest>(),
-                    request => request.SheetName == "Data");
+                GoogleSheetsAddSheetRequest addSheet = Assert.Single(batch.Requests.OfType<GoogleSheetsAddSheetRequest>(), request => request.SheetName == "Data");
                 Assert.True(addSheet.RowCount >= 2000);
                 Assert.True(addSheet.ColumnCount >= 27);
-            } finally {
-                if (File.Exists(path)) File.Delete(path);
+            }
+            finally
+            {
+                if (File.Exists(path))
+                    File.Delete(path);
             }
         }
     }

@@ -4,7 +4,7 @@ using System.Text;
 
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownInputNormalizer {
+internal static partial class MarkdownInputNormalizer {
     private static string NormalizeSignalFlowLabelSpacing(string text) {
         if (string.IsNullOrEmpty(text) || text.IndexOf("->", StringComparison.Ordinal) < 0) {
             return text ?? string.Empty;

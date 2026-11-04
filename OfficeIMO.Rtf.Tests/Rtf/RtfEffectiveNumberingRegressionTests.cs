@@ -16,12 +16,12 @@ public class RtfEffectiveNumberingRegressionTests {
         document.ListDefinitions[0].Levels[0].NumberFormat = 10;
         document.AddParagraph("Numbered").SetList(3);
         Assert.False(new RtfListNumbering(document).Next(document.Paragraphs[0])!.IsNumberFormatSupported);
-        Assert.Contains(document.ToHtmlResult().RtfReport.Diagnostics, item => item.Code == "RtfHtmlListNumberFormatFlattened" && item.Action == RtfConversionAction.Flattened);
-        Assert.Contains(document.ToPdfDocumentResult().Warnings, item => item.Code == "ListNumberFormatFlattened" && item.Details["RtfAction"] == nameof(RtfConversionAction.Flattened));
-        Assert.Contains(document.ToMarkdownResult().Report.Diagnostics, item => item.Code == "RTFMD017" && item.Action == RtfConversionAction.Flattened);
+        Assert.Contains(document.ConvertToHtmlWithEvidence().RtfReport.NativeDiagnostics, item => item.Code == "RtfHtmlListNumberFormatFlattened" && item.Action == RtfConversionAction.Flattened);
+        Assert.Contains(document.ConvertToPdfWithEvidence().Warnings, item => item.Code == "ListNumberFormatFlattened" && item.Details["RtfAction"] == nameof(RtfConversionAction.Flattened));
+        Assert.Contains(document.ConvertToMarkdownTextWithEvidence().Report.NativeDiagnostics, item => item.Code == "RTFMD017" && item.Action == RtfConversionAction.Flattened);
         document.ListDefinitions[0].Levels[0].NumberFormat = 1;
-        Assert.Contains(document.ToMarkdownResult().Report.Diagnostics, item => item.Code == "RTFMD017" && item.Action == RtfConversionAction.Flattened);
-        Assert.DoesNotContain(document.ToHtmlResult().RtfReport.Diagnostics, item => item.Code == "RtfHtmlListNumberFormatFlattened");
+        Assert.Contains(document.ConvertToMarkdownTextWithEvidence().Report.NativeDiagnostics, item => item.Code == "RTFMD017" && item.Action == RtfConversionAction.Flattened);
+        Assert.DoesNotContain(document.ConvertToHtmlWithEvidence().RtfReport.Diagnostics, item => item.Code == "RtfHtmlListNumberFormatFlattened");
     }
 
     [Fact]
@@ -35,10 +35,10 @@ public class RtfEffectiveNumberingRegressionTests {
         paragraph.ListId = 0;
         Assert.Null(document.ResolveListFormatting(paragraph));
         Assert.Equal(RtfListKind.None, document.ResolveParagraphFormatting(paragraph).ListKind);
-        RtfDocument native = RtfDocument.Read(document.ToRtf()).Document;
+        RtfDocument native = RtfDocument.ParseResult(document.ToRtf()).Document;
         Assert.Equal(0, native.Paragraphs[0].ListId);
         Assert.Null(native.ResolveListFormatting(native.Paragraphs[0]));
-        RtfDocument html = HtmlConversionDocument.Parse(document.ToHtml(new RtfToHtmlOptions { IncludeRoundTripMetadata = true })).ToRtfDocument();
+        RtfDocument html = HtmlConversionDocument.Parse(document.ToHtml(new RtfHtmlExportOptions { IncludeRoundTripMetadata = true })).ToRtf();
         Assert.Equal(0, html.Paragraphs[0].ListId);
         Assert.Null(html.ResolveListFormatting(html.Paragraphs[0]));
     }
@@ -54,7 +54,7 @@ public class RtfEffectiveNumberingRegressionTests {
         document.AddParagraph("Changed").SetList(3);
         string source = document.ToRtf();
         Assert.Contains(@"\listoverridestartat1{\listlevel", source, StringComparison.Ordinal);
-        RtfDocument native = RtfDocument.Read(source).Document;
+        RtfDocument native = RtfDocument.ParseResult(source).Document;
         Assert.Equal(11, native.ResolveListFormatting(native.Paragraphs[0])!.Level.StartAt);
         Assert.Equal("xi)", new RtfListNumbering(native).Next(native.Paragraphs[0])!.Text);
     }
@@ -103,7 +103,7 @@ public class RtfEffectiveNumberingRegressionTests {
         item.OverrideStartAt = false;
         Assert.Equal(7, document.ResolveListFormatting(paragraph)!.Level.StartAt);
         item.OverrideStartAt = true;
-        RtfDocument reopened = RtfDocument.Read(document.ToRtf()).Document;
+        RtfDocument reopened = RtfDocument.ParseResult(document.ToRtf()).Document;
         Assert.Equal(9, reopened.ListOverrides[0].LevelOverrides.Count);
         Assert.Equal(9, reopened.ResolveListFormatting(reopened.Paragraphs[0])!.Level.StartAt);
         Assert.Equal(4, reopened.ResolveListFormatting(new RtfParagraph { ListId = 3, ListLevel = 0 })!.Level.StartAt);
@@ -130,19 +130,19 @@ public class RtfEffectiveNumberingRegressionTests {
     [Fact]
     public void Native_Marker_Placeholders_And_Offset_Bytes_Survive_Normalized_Writing() {
         const string input = @"{\rtf1\ansi{\*\listtable{\list{\listlevel\levelnfc0{\leveltext\'06\'00.\'01.\'02.;}{\levelnumbers\'01\'03\'05;}}\listid100}}}";
-        RtfDocument document = RtfDocument.Read(input).Document;
+        RtfDocument document = RtfDocument.ParseResult(input).Document;
         RtfListLevel level = Assert.Single(Assert.Single(document.ListDefinitions).Levels);
         Assert.Equal("%1.%2.%3.", level.Text);
         Assert.Equal("\u0001\u0003\u0005", level.Numbers);
         string output = document.ToRtf();
         Assert.Contains(@"{\leveltext\'06\'00.\'01.\'02.;}", output, StringComparison.Ordinal);
         Assert.Contains(@"{\levelnumbers\'01\'03\'05;}", output, StringComparison.Ordinal);
-        Assert.Equal(level.Text, RtfDocument.Read(output).Document.ListDefinitions[0].Levels[0].Text);
+        Assert.Equal(level.Text, RtfDocument.ParseResult(output).Document.ListDefinitions[0].Levels[0].Text);
     }
 
     [Fact]
     public void Html_Renders_Proper_Nesting_And_Preserves_External_Start_Type_And_Value_Resets() {
-        RtfDocument external = HtmlConversionDocument.Parse("<ol start='5' type='i'><li>First</li><li value='9'>Reset</li><li>Next</li></ol>").ToRtfDocument();
+        RtfDocument external = HtmlConversionDocument.Parse("<ol start='5' type='i'><li>First</li><li value='9'>Reset</li><li>Next</li></ol>").ToRtf();
         var numbering = new RtfListNumbering(external);
         Assert.Equal(new[] { "v.", "ix.", "x." }, external.Paragraphs.Select(paragraph => numbering.Next(paragraph)!.Text));
         RtfDocument document = CreateNestedList();
@@ -151,11 +151,11 @@ public class RtfEffectiveNumberingRegressionTests {
         document.AddParagraph("Second").SetList(3, 0);
         document.AddListOverride(4, 100).AddLevelOverride().OverrideStartAt = true;
         document.AddParagraph("Other").SetList(4, 0);
-        string html = document.ToHtml(new RtfToHtmlOptions { FragmentOnly = false, IncludeRoundTripMetadata = true });
+        string html = document.ToHtml(new RtfHtmlExportOptions { FragmentOnly = false, IncludeRoundTripMetadata = true });
         AngleSharp.Html.Dom.IHtmlDocument dom = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(html);
         Assert.Single(dom.QuerySelectorAll("ol > li > ol > li"));
         Assert.Equal(2, dom.QuerySelectorAll("body > ol").Length);
-        RtfDocument reopened = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument reopened = HtmlConversionDocument.Parse(html).ToRtf();
         Assert.Equal(new[] { "Parent", "Child", "Second", "Other" }, reopened.Paragraphs.Select(paragraph => paragraph.ToPlainText()));
         numbering = new RtfListNumbering(reopened);
         Assert.Equal(new[] { "IV.", "IV.a.", "V.", "IV." }, reopened.Paragraphs.Select(paragraph => numbering.Next(paragraph)!.Text));
@@ -172,12 +172,12 @@ public class RtfEffectiveNumberingRegressionTests {
         start.OverrideStartAt = true;
         start.StartAt = 4;
         foreach (int listId in new[] { 3, 4, 5, 6, 3, 6 }) document.AddParagraph("Item").SetList(listId);
-        foreach (RtfDocument value in new[] { document, RtfDocument.Read(document.ToRtf()).Document }) {
+        foreach (RtfDocument value in new[] { document, RtfDocument.ParseResult(document.ToRtf()).Document }) {
             var numbering = new RtfListNumbering(value);
             Assert.Equal(new[] { "IV.", "V.", "(vi)", "IV.", "V.", "VI." }, value.Paragraphs.Select(paragraph => numbering.Next(paragraph)!.Text));
         }
-        using WordDocument word = document.ToWordDocument();
-        RtfDocument imported = word.ToRtfDocument();
+        using WordDocument word = document.ToWord();
+        RtfDocument imported = word.ToRtf();
         var wordNumbering = new RtfListNumbering(imported);
         Assert.Equal(new[] { "IV.", "V.", "(vi)", "IV.", "V.", "VI." }, imported.Paragraphs.Select(paragraph => wordNumbering.Next(paragraph)!.Text));
     }
@@ -193,9 +193,9 @@ public class RtfEffectiveNumberingRegressionTests {
         document.AddParagraph("Between");
         document.AddParagraph("Continued").SetList(3);
         document.AddParagraph("Other").SetList(4);
-        MarkdownDoc markdown = document.ToMarkdownDocument();
+        MarkdownDocument markdown = document.ToMarkdown();
         Assert.Equal(new[] { 3, 4, 2 }, markdown.Blocks.OfType<OrderedListBlock>().Select(list => list.Start));
-        string text = OfficeIMO.Pdf.PdfReadDocument.Open(document.ToPdfBytes()).ExtractText();
+        string text = OfficeIMO.Pdf.PdfReadDocument.Open((document.ToPdf()).ToBytes()).ExtractText();
         Assert.Contains("3. First", text, StringComparison.Ordinal);
         Assert.Contains("4. Continued", text, StringComparison.Ordinal);
         Assert.Contains("2. Other", text, StringComparison.Ordinal);
@@ -212,13 +212,13 @@ public class RtfEffectiveNumberingRegressionTests {
         style.ListId = 3;
         style.ListLevel = 2;
         document.AddParagraph("Styled").StyleId = 1;
-        using WordDocument word = document.ToWordDocument();
+        using WordDocument word = document.ToWord();
         Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator().Validate(word._wordprocessingDocument));
         using var bytes = new MemoryStream();
         word.Save(bytes);
         bytes.Position = 0;
         using WordDocument opened = WordDocument.Load(bytes);
-        RtfDocument reopened = opened.ToRtfDocument();
+        RtfDocument reopened = opened.ToRtf();
         RtfListFormatting effective = reopened.ResolveListFormatting(reopened.Paragraphs[0])!;
         Assert.Equal(2, effective.Level.NumberFormat);
         Assert.Equal("%3)", effective.Level.Text);

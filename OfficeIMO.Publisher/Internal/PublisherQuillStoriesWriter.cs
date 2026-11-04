@@ -10,7 +10,7 @@ internal static class PublisherQuillStoriesWriter {
         IReadOnlyDictionary<uint, PublisherTableStory> beforeTables, IReadOnlyDictionary<uint, PublisherTableStory> afterTables,
         IReadOnlyList<OfficeColor?> palette,
         OfficeLegacyImportLimits limits, long maximumBytes, CancellationToken token) {
-        var context = new PublisherParseContext(new PublisherReadOptions { Limits = limits }, token);
+        var context = new PublisherParseContext(new PublisherLoadOptions { Limits = limits }, token);
         PublisherQuillSourceLayout? layout = PublisherQuillSourceLayout.TryRead(source, context);
         if (layout == null) return null;
         var resources = new PublisherQuillWriteResources(layout, context);

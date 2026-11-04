@@ -14,7 +14,7 @@ public sealed class StudioLocalDocumentFontTests {
         using var workbench = new ConversionWorkbenchViewModel(
             _ => Task.FromResult<IReadOnlyList<string>>([]), _ => Task.FromResult<string?>(null));
         var job = new ConversionJobViewModel("local-document", workbench.Routes.Single(route => route.Route.Id == routeId));
-        OfficeWorkflowConversionOptions conversion = job.CreateConversionOptions();
+        OfficeConversionOptions conversion = job.CreateConversionOptions();
         PdfResourcePolicy policy = conversion.Word?.ResourcePolicy ?? conversion.Excel?.ResourcePolicy ?? conversion.PowerPoint!.ResourcePolicy;
         Assert.True(policy.AllowSystemFontEmbedding);
         Assert.True(policy.AllowDocumentFontEmbedding);
@@ -23,16 +23,16 @@ public sealed class StudioLocalDocumentFontTests {
         // Mutating one job must not change another job or the shared default.
         policy.AllowDocumentFontEmbedding = false;
         Assert.True(PdfResourcePolicy.CreateDefault().AllowDocumentFontEmbedding);
-        OfficeWorkflowConversionOptions another = job.CreateConversionOptions();
+        OfficeConversionOptions another = job.CreateConversionOptions();
         Assert.True((another.Word?.ResourcePolicy ?? another.Excel?.ResourcePolicy ?? another.PowerPoint!.ResourcePolicy).AllowDocumentFontEmbedding);
     }
 
     [Theory]
-    [InlineData(OfficeWorkflowOutputProfile.Faithful, false)]
-    [InlineData(OfficeWorkflowOutputProfile.Lightweight, false)]
-    [InlineData(OfficeWorkflowOutputProfile.PrintReady, true)]
-    [InlineData(OfficeWorkflowOutputProfile.TextOnly, false)]
-    public void FontSelectionPreservesTheSelectedWordExportProfile(OfficeWorkflowOutputProfile profile, bool borders) {
+    [InlineData(OfficeConversionProfile.Faithful, false)]
+    [InlineData(OfficeConversionProfile.Lightweight, false)]
+    [InlineData(OfficeConversionProfile.PrintReady, true)]
+    [InlineData(OfficeConversionProfile.TextOnly, false)]
+    public void FontSelectionPreservesTheSelectedWordExportProfile(OfficeConversionProfile profile, bool borders) {
         using var workbench = new ConversionWorkbenchViewModel(
             _ => Task.FromResult<IReadOnlyList<string>>([]), _ => Task.FromResult<string?>(null));
         var job = new ConversionJobViewModel("local.docx", workbench.Routes.Single(route => route.Route.Id == "docx-pdf")) {

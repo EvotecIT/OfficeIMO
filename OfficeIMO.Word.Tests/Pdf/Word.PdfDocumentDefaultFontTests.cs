@@ -22,7 +22,7 @@ public partial class Word {
         defaults.RunPropertiesDefault.RunPropertiesBaseStyle.RunFonts = new RunFonts { Ascii = family, HighAnsi = family };
         document.AddParagraph("Default");
 
-        var options = new PdfOptions();
+        var options = new PdfCreateOptions();
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family, ManagedTextShapingTestAssets.CreateFont('D', 'e', 'f', 'a', 'u', 'l', 't')));
         if (withFallbacks) {
             options.RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(new[] {
@@ -31,9 +31,9 @@ public partial class Word {
         }
         if (explicitBody) options.DefaultFont = PdfStandardFont.Courier;
 
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = options
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToList();
         Assert.Equal("Default", string.Concat(letters.Select(letter => letter.Value)));
         // An explicit PDF body font still wins over the document default; otherwise the registered family draws it.

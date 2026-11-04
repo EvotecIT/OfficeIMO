@@ -36,7 +36,7 @@ public sealed class HtmlBodyBoxTests {
     [Fact]
     public void BodyBoxKeepsForcedPageBreaksAndContentOrder() {
         var result = HtmlRenderEngine.Render(HtmlConversionDocument.Parse("<style>*{margin:0}body{padding:5px;border:2px solid blue}p{font-size:16px;line-height:20px}</style><p>First</p><p style='break-before:page'>Second</p>"), new HtmlRenderOptions { AllowSystemFontFallback = false,
-            Mode = HtmlRenderMode.Paged, PageSize = new OfficePageSize(200D / 96D, 100D / 96D), Margins = HtmlRenderMargins.All(0D)
+            Mode = HtmlRenderMode.Paged, PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(200D / 96D), global::OfficeIMO.OfficeLength.Inches(100D / 96D)), Margins = HtmlRenderMargins.All(0D)
         });
         Assert.Equal(2, result.Pages.Count);
         Assert.Contains(result.Pages[0].Visuals.OfType<HtmlRenderText>(), x => x.Text == "First");

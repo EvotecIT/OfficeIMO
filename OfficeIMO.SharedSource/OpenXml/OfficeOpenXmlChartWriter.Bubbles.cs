@@ -51,7 +51,7 @@ namespace OfficeIMO.OpenXml.Internal {
                     Spans = new ListValue<StringValue> { InnerText = $"1:{totalColumns}" }
                 };
                 for (int seriesIndex = 0; seriesIndex < seriesCount; seriesIndex++) {
-                    OfficeChartSeries series = data.Series[seriesIndex];
+                    OfficeSeries series = data.Series[seriesIndex];
                     int xColumn = seriesIndex * 3 + 1;
                     header.Append(CreateSharedStringCell($"{ColumnLetter(xColumn)}1",
                         GetStringIndex($"{series.Name} X")));
@@ -67,7 +67,7 @@ namespace OfficeIMO.OpenXml.Internal {
                     : Array.Empty<double>();
                 var rows = new S.Row[maxPoints];
                 for (int seriesIndex = 0; seriesIndex < seriesCount; seriesIndex++) {
-                    OfficeChartSeries series = data.Series[seriesIndex];
+                    OfficeSeries series = data.Series[seriesIndex];
                     IReadOnlyList<double> xValues = series.XValues ?? sharedX;
                     int xColumn = seriesIndex * 3 + 1;
                     for (int pointIndex = 0;
@@ -127,7 +127,7 @@ namespace OfficeIMO.OpenXml.Internal {
 
         private static C.BubbleChartSeries CreateSharedBubbleSeries(OfficeChartData data,
             int seriesIndex) {
-            OfficeChartSeries series = data.Series[seriesIndex];
+            OfficeSeries series = data.Series[seriesIndex];
             IReadOnlyList<double> xValues = series.XValues ?? ParseScatterCategories(data.Categories);
             int firstColumn = seriesIndex * 3 + 1;
             int lastRow = series.Values.Count + 1;

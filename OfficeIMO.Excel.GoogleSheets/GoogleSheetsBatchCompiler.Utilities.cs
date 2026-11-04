@@ -4,7 +4,7 @@ using System.IO;
 
 namespace OfficeIMO.Excel.GoogleSheets {
     internal static partial class GoogleSheetsBatchCompiler {
-        private static string ConvertCellToFilterText(ExcelCellSnapshot cell) {
+        private static string ConvertCellToFilterText(ExcelCellInfo cell) {
             if (cell.Value == null) {
                 return string.Empty;
             }

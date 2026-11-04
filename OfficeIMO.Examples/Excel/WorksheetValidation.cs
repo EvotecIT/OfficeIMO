@@ -18,17 +18,17 @@ namespace OfficeIMO.Examples.Excel {
             document.Execution.DiagnosticsRequested = true;
             document.Execution.OnInfo = message => Console.WriteLine($"[diagnostic] {message}");
 
-            var sheet = document.AddWorksheet("Telemetry");
+            var sheet = document.AddSheet("Telemetry");
             var cells = Enumerable.Range(1, 20)
                 .SelectMany(row => Enumerable.Range(1, 3).Select(col => (row, col, (object)$"R{row}C{col}")))
                 .ToList();
 
-            sheet.CellValues(cells, ExcelExecutionMode.Parallel);
+            sheet.SetValues(cells, ExcelExecutionMode.Parallel);
 
             // Switch to disabled mode for throughput-sensitive sections.
             document.Execution.WorksheetValidation = ExcelWorksheetValidationMode.Disabled;
             var fastCells = Enumerable.Range(21, 20).Select(i => (i, 1, (object)$"Fast {i}"));
-            sheet.CellValues(fastCells, ExcelExecutionMode.Parallel);
+            sheet.SetValues(fastCells, ExcelExecutionMode.Parallel);
 
             document.Save();
             if (openExcel) document.OpenInApplication();

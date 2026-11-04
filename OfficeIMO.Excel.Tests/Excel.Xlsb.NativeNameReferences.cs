@@ -1,6 +1,7 @@
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Xlsb;
 using OfficeIMO.Excel.Xlsb.Biff12;
+using OfficeIMO.Excel.Xlsb.Model;
 using System.IO.Compression;
 using Xunit;
 
@@ -8,13 +9,30 @@ namespace OfficeIMO.Tests;
 
 public sealed class ExcelXlsbNativeNameReferencesTests {
     [Fact]
+    public void Global_name_token_respects_later_local_shadow_on_its_sheet() {
+        var workbook = new XlsbWorkbook(Array.Empty<byte>(), 1024, 1024);
+        workbook.AddDefinedName(new XlsbDefinedName(0, 0, uint.MaxValue, "Rate", Array.Empty<byte>(),
+            Array.Empty<byte>(), null, 0, 0));
+        byte[] token = { 0x43, 1, 0, 0, 0 };
+
+        Assert.True(XlsbFormulaTextReader.TryRead(token, out string? first, workbook, sheetIndex: 0));
+        Assert.Equal("Rate", first);
+
+        workbook.AddDefinedName(new XlsbDefinedName(0, 0, 1, "RATE", Array.Empty<byte>(),
+            Array.Empty<byte>(), null, 0, 0));
+        Assert.True(XlsbFormulaTextReader.TryRead(token, out string? otherSheet, workbook, sheetIndex: 0));
+        Assert.Equal("Rate", otherSheet);
+        Assert.False(XlsbFormulaTextReader.TryRead(token, out _, workbook, sheetIndex: 1));
+    }
+
+    [Fact]
     public void Deleting_local_names_does_not_retarget_validation_condition_or_unknown_future_formulas() {
         using var seed = ExcelDocument.Create();
-        var first = seed.AddWorksheet("First"); first.CellValue(1, 1, 10);
-        var retained = seed.AddWorksheet("Retained"); retained.CellValue(1, 1, 20);
+        var first = seed.AddSheet("First"); first.Cell(1, 1).SetValue(10);
+        var retained = seed.AddSheet("Retained"); retained.Cell(1, 1).SetValue(20);
         seed.SetNamedRange("RemovedLocal", "A1", first, save: false);
         seed.SetNamedRange("RetainedValue", "'Retained'!A1", save: false);
-        byte[] original = seed.ToBytes(ExcelFileFormat.Xlsb);
+        byte[] original = seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
         var source = XlsbWorkbookReader.Load(original);
         uint nameId = checked((uint)source.DefinedNames.ToList().FindIndex(name => name.Name == "RetainedValue") + 1);
         byte[] expression = new byte[] { 0x43 }.Concat(BitConverter.GetBytes(nameId)).Concat(new byte[] { 0x1E, 0, 0, 0x0D }).ToArray();
@@ -49,7 +67,7 @@ public sealed class ExcelXlsbNativeNameReferencesTests {
         }
         using var document = ExcelDocument.Load(new MemoryStream(modified));
         document.RemoveWorksheet("First");
-        byte[] saved = document.ToBytes(ExcelFileFormat.Xlsb);
+        byte[] saved = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
         var loaded = XlsbWorkbookReader.Load(saved);
         Assert.Single(loaded.DefinedNames);
         using var result = new ZipArchive(new MemoryStream(saved), ZipArchiveMode.Read);

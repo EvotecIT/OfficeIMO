@@ -11,7 +11,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <code>Add-OfficeWordParagraph { Add-OfficeWordRepeatingSection -SectionTitle 'Items' -Alias 'LineItems' }</code>
 ///   <para>Creates a repeating section control.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeWordRepeatingSection")]
+[Cmdlet(VerbsCommon.Add, "OfficeWordRepeatingSection", DefaultParameterSetName = "Default")]
 [Alias("WordRepeatingSection")]
 [OutputType(typeof(WordRepeatingSection))]
 public sealed class AddOfficeWordRepeatingSectionCommand : PSCmdlet

@@ -13,11 +13,11 @@ public sealed class ImageOcrWorkflowRequest {
     /// <summary>Optional provider output, requiring explicit direct-write consent.</summary>
     public OfficeWorkflowStreamOutput? OutputStream { get; set; }
     /// <summary>Existing destination policy.</summary>
-    public OfficeWorkflowConflictPolicy ConflictPolicy { get; set; }
+    public OfficePublicationPolicy ConflictPolicy { get; set; }
     /// <summary>Host authorization checked immediately before publication.</summary>
-    public IOfficeWorkflowPublicationGuard? PublicationGuard { get; set; }
+    public IOfficePublicationGuard? PublicationGuard { get; set; }
     /// <summary>Input and output byte limits.</summary>
-    public OfficeWorkflowLimits Limits { get; set; } = new();
+    public OfficeOperationLimits Limits { get; set; } = new();
     /// <summary>Bounded Reader OCR configuration, captured before asynchronous work.</summary>
     public OfficeDocumentOcrExecutionOptions Ocr { get; set; } = new();
     /// <summary>Optional review and correction of recognized text before publication.

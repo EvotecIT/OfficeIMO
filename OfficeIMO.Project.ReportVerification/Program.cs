@@ -42,7 +42,7 @@ foreach (var kind in nativeOnly ? Array.Empty<ProjectViewKind>() : Enum.GetValue
     var svgs = ProjectReportWorkflow.ToSvg(view, typography); var pngs = ProjectReportWorkflow.ToPng(view, typography: typography);
     for (int i = 0; i < svgs.Count; i++) { File.WriteAllText(stem + "-" + (i + 1) + ".svg", svgs[i]); File.WriteAllBytes(stem + "-" + (i + 1) + ".png", pngs[i]); }
     byte[] pdf = ProjectReportWorkflow.ToPdf(view, typography: typography); File.WriteAllBytes(stem + ".pdf", pdf);
-    int pdfPages = PdfDocument.Load(pdf).Read().PageCount;
+    int pdfPages = PdfDocument.Load(new MemoryStream(pdf, writable: false)).Read().PageCount;
     if (pdfPages != svgs.Count) throw new InvalidDataException("PDF page count differs for " + kind);
     evidence.Add(new { kind = kind.ToString(), rows = view.Rows.Count, buckets = view.Buckets.Count, pages = svgs.Count, pdfPages, pngPages = pngs.Count });
 }
@@ -54,7 +54,7 @@ using (var word = ProjectReportWorkflow.CreateWord(usageView)) {
 }
 using (var presentation = ProjectReportWorkflow.CreatePowerPoint(usageView)) {
     presentation.Save(Path.Combine(output, "report.pptx"));
-    using var copy = PowerPointPresentation.Load(Path.Combine(output, "report.pptx"));
+    using var copy = PowerPointDocument.Load(Path.Combine(output, "report.pptx"));
     if (copy.ValidateDocument().Count != 0) throw new InvalidDataException("PowerPoint report failed package validation.");
 }
 using (var workbook = ProjectReportWorkflow.CreateExcel(usageView)) {
@@ -91,7 +91,7 @@ foreach (var kind in nativeOnly ? Array.Empty<ProjectViewKind>() : new[] { Proje
     var images = ProjectReportWorkflow.ToPng(view, typography: typography);
     foreach (int index in new[] { 0, images.Count / 2, images.Count - 1 }.Distinct()) File.WriteAllBytes(stem + "-" + (index + 1) + ".png", images[index]);
     byte[] pdf = ProjectReportWorkflow.ToPdf(view, typography: typography); File.WriteAllBytes(stem + ".pdf", pdf);
-    int pdfPages = PdfDocument.Load(pdf).Read().PageCount;
+    int pdfPages = PdfDocument.Load(new MemoryStream(pdf, writable: false)).Read().PageCount;
     if (pdfPages != images.Count) throw new InvalidDataException("Large report pagination differs for " + kind);
     evidence.Add(new { kind = "large-" + kind, rows = view.Rows.Count, buckets = view.Buckets.Count, pages = images.Count, pdfPages, pngPages = images.Count });
 }

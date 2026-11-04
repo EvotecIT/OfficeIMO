@@ -25,8 +25,8 @@ public sealed partial class HtmlRenderingTests {
         options.AllowSystemFontFallback = false;
         options.ViewportWidth = 320D;
         options.ViewportHeight = 100D;
-        options.PageSize = new OfficePageSize(320D / HtmlRenderOptions.CssPixelsPerInch,
-            100D / HtmlRenderOptions.CssPixelsPerInch);
+        options.PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(320D / HtmlRenderOptions.CssPixelsPerInch),
+            global::OfficeIMO.OfficeLength.Inches(100D / HtmlRenderOptions.CssPixelsPerInch));
         options.HonorCssPageRules = false;
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
 
@@ -50,7 +50,7 @@ public sealed partial class HtmlRenderingTests {
             "Retained earlier text must paint visible red glyph ink within the later block's green background.");
         Assert.Equal(green, raster.GetPixel((int)(background.X + background.Width - 2D),
             (int)(background.Y + 2D)));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     private static bool NegativeFlowContainsRedInk(OfficeRasterImage raster, HtmlRenderText text,

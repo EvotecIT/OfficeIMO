@@ -6,20 +6,20 @@ namespace OfficeIMO.Pdf;
 /// Reusable image placement and rhythm style.
 /// </summary>
 public sealed class PdfImageStyle {
-    private PdfAlign _align = PdfAlign.Left;
+    private OfficeAlignment _align = OfficeAlignment.Left;
     private OfficeImageFit _fit = OfficeImageFit.Stretch;
     private OfficeClipPath? _clipPath;
     private PdfImageSourceCrop? _sourceCrop;
-    private double _spacingBefore;
-    private double _spacingAfter;
+    private global::OfficeIMO.OfficeLength _spacingBefore;
+    private global::OfficeIMO.OfficeLength _spacingAfter;
     private double _rotationAngle;
     private string? _alternativeText;
 
     /// <summary>Image alignment within the current content frame.</summary>
-    public PdfAlign Align {
+    public OfficeAlignment Align {
         get => _align;
         set {
-            Guard.LeftCenterRightAlign(value, nameof(Align), "Image");
+            value = Guard.LeftCenterRightAlign(value, nameof(Align), "Image");
             _align = value;
         }
     }
@@ -46,19 +46,19 @@ public sealed class PdfImageStyle {
     }
 
     /// <summary>Vertical space before the image in the surrounding document flow, in points.</summary>
-    public double SpacingBefore {
+    public global::OfficeIMO.OfficeLength SpacingBefore {
         get => _spacingBefore;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(SpacingBefore), "Image spacing before must be a non-negative finite value.");
+            ValidateNonNegativeFiniteValue(value.ToPoints(), nameof(SpacingBefore), "Image spacing before must be a non-negative finite value.");
             _spacingBefore = value;
         }
     }
 
     /// <summary>Vertical space after the image in the surrounding document flow, in points.</summary>
-    public double SpacingAfter {
+    public global::OfficeIMO.OfficeLength SpacingAfter {
         get => _spacingAfter;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(SpacingAfter), "Image spacing after must be a non-negative finite value.");
+            ValidateNonNegativeFiniteValue(value.ToPoints(), nameof(SpacingAfter), "Image spacing after must be a non-negative finite value.");
             _spacingAfter = value;
         }
     }
@@ -88,11 +88,11 @@ public sealed class PdfImageStyle {
     public bool VerticalFlip { get; set; }
 
     /// <summary>Optional alternate text for meaningful generated images.</summary>
-    public string? AlternativeText {
+    public string? AltText {
         get => _alternativeText;
         set {
             if (value != null) {
-                Guard.NotNullOrWhiteSpace(value, nameof(AlternativeText));
+                Guard.NotNullOrWhiteSpace(value, nameof(AltText));
             }
 
             _alternativeText = value;
@@ -113,7 +113,7 @@ public sealed class PdfImageStyle {
             RotationAngle = RotationAngle,
             HorizontalFlip = HorizontalFlip,
             VerticalFlip = VerticalFlip,
-            AlternativeText = AlternativeText
+            AltText = AltText
         };
     }
 

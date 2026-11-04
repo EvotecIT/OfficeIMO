@@ -1,1 +1,1 @@
-Warning|ExcelCellTextOccludedByDrawing|ImageClip!B2|Cell text was suppressed because its text anchor is covered by a later drawing layer in the exported range.
+Warning|excel-cell-text-occluded-by-drawing|ImageClip!B2|Cell text was suppressed because its text anchor is covered by a later drawing layer in the exported range.

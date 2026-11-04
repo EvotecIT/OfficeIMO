@@ -2,13 +2,13 @@ using System.Text;
 using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Word {
-    public static partial class WordDocumentTraversal {
+    internal static partial class WordDocumentTraversal {
         private const int MaximumListMarkerLength = 4096;
         private const int MaximumDocumentListMarkerCharacters = 4 * 1024 * 1024;
 
-        private static string BuildMarker(int level, int index, Dictionary<int, long> indices, Dictionary<int, WordNumberFormat?> formats, string? pattern) {
+        private static string BuildMarker(int level, int index, Dictionary<int, long> indices, Dictionary<int, WordNumberFormat?> formats, string? pattern, bool legalNumbering) {
             if (string.IsNullOrEmpty(pattern)) {
-                string formatted = FormatNumber(index, formats[level]);
+                string formatted = FormatNumber(index, EffectiveFormat(formats[level]));
                 return formatted + ".";
             }
 
@@ -17,17 +17,23 @@ namespace OfficeIMO.Word {
             int consumed = 0;
             foreach (Match match in Regex.Matches(pattern, "%CurrentLevel|%([0-9]+)")) {
                 Append(pattern.Substring(consumed, match.Index - consumed));
-                if (match.Value == "%CurrentLevel") Append(FormatNumber(index, formats[level]));
+                if (match.Value == "%CurrentLevel") Append(FormatNumber(index, EffectiveFormat(formats[level])));
                 else if (int.TryParse(match.Groups[1].Value, out int placeholderLevel) && placeholderLevel > 0) {
                     int lvl = placeholderLevel - 1;
                     int value = lvl == level ? index : indices.TryGetValue(lvl, out long val) ? checked((int)(val - 1)) : 0;
                     formats.TryGetValue(lvl, out WordNumberFormat? fmt);
-                    Append(FormatNumber(value, fmt));
+                    Append(FormatNumber(value, EffectiveFormat(fmt)));
                 } else Append(match.Value);
                 consumed = match.Index + match.Length;
             }
             Append(pattern.Substring(consumed));
             return marker.ToString();
+
+            // Legal labels use Arabic references; decimalZero retains its existing Arabic padding.
+            // The none format keeps its own visibility semantics rather than becoming a number.
+            WordNumberFormat? EffectiveFormat(WordNumberFormat? format) =>
+                legalNumbering && format != WordNumberFormat.DecimalZero && format != WordNumberFormat.None
+                    ? WordNumberFormat.Decimal : format;
 
             void Append(string value) {
                 if (value.Length > MaximumListMarkerLength - marker.Length) throw ListMarkerLengthExceeded();
@@ -39,6 +45,9 @@ namespace OfficeIMO.Word {
             new("Word list marker exceeds the supported length of 4096 characters.");
 
         private static string FormatNumber(int number, WordNumberFormat? format) {
+            if (format == WordNumberFormat.DecimalZero && number >= 1 && number <= 9) {
+                return number.ToString("D2", System.Globalization.CultureInfo.InvariantCulture);
+            }
             if (format == WordNumberFormat.LowerRoman) {
                 return ToRoman(number).ToLowerInvariant();
             }

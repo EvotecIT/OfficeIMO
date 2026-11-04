@@ -24,9 +24,9 @@ public sealed class OneNotePdfVisualScenarioTests {
         });
         section.Pages.Add(page);
 
-        PdfCore.PdfDocumentConversionResult result = section.ToPdfDocumentResult();
+        var result = section.ConvertToPdfWithEvidence(null, default);
         byte[] pdf = result.ToBytes();
-        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
+        string text = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText();
         OneNoteMarkdownConversionReport projection = Assert.IsType<OneNoteMarkdownConversionReport>(
             Assert.Single(result.SourceConversionReports));
 

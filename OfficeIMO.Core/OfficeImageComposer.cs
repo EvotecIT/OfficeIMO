@@ -8,7 +8,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Shared dependency-free image page composer for raster and SVG layer output.
 /// </summary>
-public static class OfficeImageComposer {
+internal static class OfficeImageComposer {
     /// <summary>
     /// Composes raster layers onto a new image and returns encoded PNG bytes.
     /// </summary>

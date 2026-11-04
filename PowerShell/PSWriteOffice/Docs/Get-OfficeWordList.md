@@ -33,7 +33,7 @@ the script needs to work with list objects directly instead of using a text sear
 
 ### EXAMPLE 1
 ```powershell
-PS> $doc = Get-OfficeWord -Path .\Report.docx
+PS> $doc = Open-OfficeWord -Path .\Report.docx
 $list = $doc | Get-OfficeWordList | Select-Object -First 1
 $list.ListItems | Select-Object -Property Text
 ```
@@ -42,7 +42,7 @@ Returns OfficeIMO list objects so existing list items can be reviewed or appende
 
 ### EXAMPLE 2
 ```powershell
-PS> $doc = Get-OfficeWord -Path .\Report.docx
+PS> $doc = Open-OfficeWord -Path .\Report.docx
 Get-OfficeWordList -Document $doc |
     Where-Object { $_.ListItems.Text -contains 'Initial review' } |
     Add-OfficeWordListItem -Text 'Final approval'

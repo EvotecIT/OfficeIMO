@@ -12,6 +12,19 @@ namespace OfficeIMO.Access {
             if (data.Length < 4 || data[0] != 'M' || data[1] != 'R' || data[2] != '2' || data[3] != 0) {
                 table.Diagnostics = Array.AsReadOnly(new[] { new AccessDiagnostic("access.properties.opaque", "Unqualified property-map signature is retained exactly.", table.Id) }); return;
             }
+            const int maximumPropertyDiagnostics = 4096;
+            List<AccessDiagnostic>? diagnostics = null;
+            int addedDiagnostics = 0;
+            void AddDiagnostic(string code, string message) {
+                diagnostics ??= new List<AccessDiagnostic>(table.Diagnostics);
+                if (addedDiagnostics < maximumPropertyDiagnostics) {
+                    diagnostics.Add(new AccessDiagnostic(code, message, table.Id));
+                    addedDiagnostics++;
+                } else if (addedDiagnostics == maximumPropertyDiagnostics) {
+                    diagnostics.Add(new AccessDiagnostic("access.properties.diagnostics-truncated", "Additional property diagnostics were omitted; exact native property bytes remain available.", table.Id));
+                    addedDiagnostics++;
+                }
+            }
             List<string> names = new List<string>(); int position = 4;
             while (position < data.Length) {
                 cancellation.ThrowIfCancellationRequested(); int length = I32(data, position); int type = U16(data, position + 4);
@@ -23,7 +36,7 @@ namespace OfficeIMO.Access {
                     continue;
                 }
                 if (type != 0 && type != 1 && type != 2 && !(macroMap && type == 3)) {
-                    table.Diagnostics = table.Diagnostics.Concat(new[] { new AccessDiagnostic("access.properties.unknown-chunk", "Unknown property chunk is retained in NativeProperties.", table.Id) }).ToArray(); continue;
+                    AddDiagnostic("access.properties.unknown-chunk", "Unknown property chunk is retained in NativeProperties."); continue;
                 }
                 if (block.Length == 0) continue;
                 int nameLength = I32(block, 0);
@@ -45,7 +58,7 @@ namespace OfficeIMO.Access {
                     object? decoded;
                     if (scalarWidth >= 0 && payload.Length != scalarWidth) {
                         decoded = new AccessOpaqueValue(nativeType, payload.ToArray(), "This property uses an unqualified width for its nominal native type; the exact payload is retained.");
-                        table.Diagnostics = table.Diagnostics.Concat(new[] { new AccessDiagnostic("access.properties.opaque-value", "An unqualified property value representation is retained without coercion.", table.Id) }).ToArray();
+                        AddDiagnostic("access.properties.opaque-value", "An unqualified property value representation is retained without coercion.");
                     } else decoded = nativeType == 10 || nativeType == 12 ? Text(payload) : nativeType == 9 || nativeType == 11 ? payload.ToArray() : DecodeScalar(new AccessNativeColumn { Type = nativeType }, payload, cancellation);
                     if (values.ContainsKey(name)) throw new InvalidDataException("Native Access property names are ambiguous.");
                     values.Add(name, decoded);
@@ -62,6 +75,7 @@ namespace OfficeIMO.Access {
                     }
                 }
             }
+            if (diagnostics != null) table.Diagnostics = diagnostics.AsReadOnly();
         }
         private string PropertyName(OfficeByteView block, ref int position) {
             int length = U16(block, position); position = checked(position + 2);

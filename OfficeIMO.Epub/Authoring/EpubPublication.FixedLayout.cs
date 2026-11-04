@@ -31,7 +31,9 @@ public sealed partial class EpubPublication {
             EpubPageSide.Auto => null, EpubPageSide.Left => "page-spread-left", EpubPageSide.Right => "page-spread-right",
             EpubPageSide.Center => "rendition:page-spread-center", _ => throw new ArgumentOutOfRangeException(nameof(page))
         };
-        if (EpubVocabulary.Expand(Root, "rendition:layout") != RenditionVocabulary + "layout")
+        Dictionary<string, string> prefixes = EpubVocabulary.ReadPrefixes((string?)Root.Attribute("prefix") ?? string.Empty,
+            cancellationToken: cancellationToken);
+        if (EpubVocabulary.Expand(prefixes, "rendition:layout") != RenditionVocabulary + "layout")
             throw new InvalidDataException("The rendition prefix is mapped to a different vocabulary.");
         XElement[] positions = RequireSection("spine").Elements(Opf + "itemref").Where(item => (string?)item.Attribute("idref") == manifestId).ToArray();
         if (positions.Length != 1) throw new InvalidDataException("Fixed-layout page authoring requires exactly one spine position for the resource.");
@@ -51,9 +53,15 @@ public sealed partial class EpubPublication {
             document = EditableXhtml(manifestId);
             ConfigureXhtmlCanvas(document, page, cancellationToken);
         }
-        string[] properties = Tokens((string?)positions[0].Attribute("properties")).Where(token => !IsFixedLayoutOverride(token)).Concat(new[] {
-            "rendition:layout-pre-paginated", "rendition:orientation-" + orientation, "rendition:spread-" + spread
-        }).Concat(side == null ? Array.Empty<string>() : new[] { side }).ToArray();
+        var properties = new List<string>();
+        foreach (string token in Tokens((string?)positions[0].Attribute("properties"))) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!IsFixedLayoutOverride(token, prefixes)) properties.Add(token);
+        }
+        properties.Add("rendition:layout-pre-paginated");
+        properties.Add("rendition:orientation-" + orientation);
+        properties.Add("rendition:spread-" + spread);
+        if (side != null) properties.Add(side);
         CommitContentEdits(new Dictionary<string, XDocument>(StringComparer.Ordinal) { [manifestId] = document }, cancellationToken,
             validatePublication: true, packageEdit: root => root.Element(Opf + "spine")!.Elements(Opf + "itemref")
                 .Single(item => (string?)item.Attribute("idref") == manifestId).SetAttributeValue("properties", string.Join(" ", properties)));
@@ -80,11 +88,13 @@ public sealed partial class EpubPublication {
         head.Add(style);
     }
 
-    private bool IsFixedLayoutOverride(string token) {
+    private static bool IsFixedLayoutOverride(string token, IReadOnlyDictionary<string, string> prefixes) {
         if (token == "page-spread-left" || token == "page-spread-right") return true;
-        string expanded = EpubVocabulary.Expand(Root, token);
-        return new[] { "layout-pre-paginated", "layout-reflowable", "orientation-auto", "orientation-landscape", "orientation-portrait",
-            "spread-auto", "spread-none", "spread-landscape", "spread-portrait", "spread-both", "page-spread-left", "page-spread-right", "page-spread-center" }
-            .Any(property => expanded == RenditionVocabulary + property);
+        string expanded = EpubVocabulary.Expand(prefixes, token);
+        if (!expanded.StartsWith(RenditionVocabulary, StringComparison.Ordinal)) return false;
+        return expanded.Substring(RenditionVocabulary.Length) is
+            "layout-pre-paginated" or "layout-reflowable" or "orientation-auto" or "orientation-landscape" or "orientation-portrait" or
+            "spread-auto" or "spread-none" or "spread-landscape" or "spread-portrait" or "spread-both" or
+            "page-spread-left" or "page-spread-right" or "page-spread-center";
     }
 }

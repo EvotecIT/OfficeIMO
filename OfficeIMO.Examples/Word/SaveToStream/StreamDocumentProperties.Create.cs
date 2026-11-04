@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 using OfficeIMO.Word;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Examples.Word {
     /// <summary>
@@ -19,13 +19,13 @@ namespace OfficeIMO.Examples.Word {
 
             var document = WordDocument.Create();
 
-            document.BuiltinDocumentProperties.Title = "Cover Page Templates";
-            document.BuiltinDocumentProperties.Subject = "How to use Cover Pages with TOC";
-            document.BuiltinDocumentProperties.Creator = "foo";
-            document.BuiltinDocumentProperties.Description = "foo";
-            document.BuiltinDocumentProperties.Title = "foo";
-            document.BuiltinDocumentProperties.Creator = "foo";
-            document.BuiltinDocumentProperties.Keywords = "foo";
+            document.Properties.Title = "Cover Page Templates";
+            document.Properties.Subject = "How to use Cover Pages with TOC";
+            document.Properties.Creator = "foo";
+            document.Properties.Description = "foo";
+            document.Properties.Title = "foo";
+            document.Properties.Creator = "foo";
+            document.Properties.Keywords = "foo";
 
             var stream = new MemoryStream();
             document.Save(stream);

@@ -31,11 +31,11 @@ namespace OfficeIMO.Tests {
             }
 
             using WordDocument loaded = WordDocument.Load(filePath);
-            WordDocumentSnapshot snapshot = loaded.CreateInspectionSnapshot();
+            WordDocumentInfo snapshot = loaded.Inspect();
 
             Assert.Single(snapshot.Sections);
             var runs = snapshot.Sections[0].Elements
-                .OfType<WordParagraphSnapshot>()
+                .OfType<WordParagraphInfo>()
                 .SelectMany(paragraph => paragraph.Runs)
                 .ToList();
             Assert.Contains(runs, run => run.Footnote != null);

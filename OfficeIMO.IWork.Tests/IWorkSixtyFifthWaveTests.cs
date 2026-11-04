@@ -21,7 +21,7 @@ public sealed partial class IWorkBoundaryTests {
         });
         IWorkSourceDocument source = IWorkSourceDocument.Open(package,
             IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaximumTableCatalogEntries = 1 });
+            new IWorkReadOptions { MaxTableCatalogEntries = 1 });
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
             source.ReadNumbers());
@@ -44,7 +44,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Keynote_internal_slide_links_round_trip_for_shapes_runs_and_notes() {
         using MemoryStream package = CreateKeynotePackageWithInternalSlideLinks();
 
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult();
 
         Assert.False(result.IsVisualFallback);
         Assert.Equal(2, result.Value.Slides.Count);
@@ -54,11 +54,11 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream();
         result.Value.Save(saved);
         saved.Position = 0;
-        using PowerPointPresentation reopened = PowerPointPresentation.Load(saved);
+        using PowerPointDocument reopened = PowerPointDocument.Load(saved);
         AssertInternalLinks(reopened);
     }
 
-    private static void AssertInternalLinks(PowerPointPresentation presentation) {
+    private static void AssertInternalLinks(PowerPointDocument presentation) {
         PowerPointSlide first = presentation.Slides[0];
         PowerPointTextBox textBox = Assert.Single(first.TextBoxes);
         Assert.Equal("#slide-2", textBox.Hyperlink!.OriginalString);

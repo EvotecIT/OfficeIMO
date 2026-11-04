@@ -54,7 +54,8 @@ public static partial class HtmlComputedStyleEngine {
         internal ComputedStyleReuseKey? CreateKey(IElement element,
             IReadOnlyDictionary<string, CascadedProperty> properties,
             IReadOnlyDictionary<string, string>? parentProperties, bool includeCascadeTraces) {
-            if (includeCascadeTraces || _styles.Count >= MaximumEntries || properties.Count > MaximumDeclarations) return null;
+            if (includeCascadeTraces || _styles.Count >= MaximumEntries || properties.Count > MaximumDeclarations
+                || element.HasAttribute("align")) return null;
             long characters = 0;
             int nodes = 0;
             int hash = 17;
@@ -162,8 +163,12 @@ public static partial class HtmlComputedStyleEngine {
                 || ReferenceEquals(left.Specificity, Specificity.Inline) != ReferenceEquals(right.Specificity, Specificity.Inline)
                 || ReferenceEquals(left.Specificity, Specificity.PresentationalHint) != ReferenceEquals(right.Specificity, Specificity.PresentationalHint)
                 || left.Alternatives.Count != right.Alternatives.Count) return false;
-            for (int index = 0; index < left.Alternatives.Count; index++)
-                if (!SameDeclaration(left.Alternatives[index], right.Alternatives[index])) return false;
+            using IEnumerator<CascadedProperty> leftCandidates = left.Alternatives.GetEnumerator();
+            using IEnumerator<CascadedProperty> rightCandidates = right.Alternatives.GetEnumerator();
+            while (leftCandidates.MoveNext()) {
+                rightCandidates.MoveNext();
+                if (!SameDeclaration(leftCandidates.Current, rightCandidates.Current)) return false;
+            }
             return true;
         }
 

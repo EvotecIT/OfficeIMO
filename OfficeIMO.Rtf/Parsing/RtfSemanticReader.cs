@@ -4,9 +4,9 @@ using OfficeIMO.Rtf.Syntax;
 namespace OfficeIMO.Rtf;
 
 internal static partial class RtfSemanticReader {
-    public static RtfReadResult Read(RtfSyntaxTree tree, RtfReadOptions options, CancellationToken cancellationToken = default) {
+    public static RtfReadResult Read(RtfSyntaxTree tree, RtfLoadOptions options, CancellationToken cancellationToken = default) {
         if (tree == null) throw new ArgumentNullException(nameof(tree));
-        options ??= new RtfReadOptions();
+        options ??= new RtfLoadOptions();
         if (options.DeferBinaryPayloads && tree.Root.Children.OfType<RtfControlWord>().Any(control => control.Name == "fromhtml")
             && HasBinaryDestinations(tree.Root, cancellationToken))
             throw new NotSupportedException("Deferred RTF binary payloads do not support fromhtml sources with pict or objdata destinations; the ordinary profile preserves their HTML baseline eagerly.");
@@ -30,7 +30,7 @@ internal static partial class RtfSemanticReader {
     }
 
     private sealed partial class Binder {
-        private readonly RtfReadOptions _options;
+        private readonly RtfLoadOptions _options;
         private readonly List<RtfDiagnostic> _diagnostics;
         private readonly RtfReadLimitGuard _limits;
         private RtfDocument _document = null!;
@@ -57,7 +57,7 @@ internal static partial class RtfSemanticReader {
         private readonly List<NestedTableContext> _nestedTableContexts = new List<NestedTableContext>();
         private readonly HashSet<int> _nestedTableBoundaryLevels = new HashSet<int>();
 
-        public Binder(RtfReadOptions options, List<RtfDiagnostic> diagnostics, CancellationToken cancellationToken) {
+        public Binder(RtfLoadOptions options, List<RtfDiagnostic> diagnostics, CancellationToken cancellationToken) {
             _options = options;
             _diagnostics = diagnostics;
             _limits = new RtfReadLimitGuard(options, cancellationToken);
@@ -96,7 +96,7 @@ internal static partial class RtfSemanticReader {
             ReadPageSetup(root, _document.PageSetup);
             ReadNoteSettings(root, _document.NoteSettings);
             ReadDocumentSettings(root, _document.Settings);
-            ReadInfo(root, _document.Info, ansiCodePage, unicodeSkipCount);
+            ReadInfo(root, _document.Properties, ansiCodePage, unicodeSkipCount);
             _document.ReplaceUserProperties(ReadUserProperties(root, ansiCodePage, unicodeSkipCount));
             _document.ReplaceDocumentVariables(ReadDocumentVariables(root, ansiCodePage, unicodeSkipCount));
             RtfHtmlEncapsulation? htmlEncapsulation = ReadHtmlEncapsulation(root, ansiCodePage, unicodeSkipCount: 1);
@@ -133,7 +133,7 @@ internal static partial class RtfSemanticReader {
 
         private void WalkGroup(RtfGroup group, CharacterState state, int depth, bool allowDestinationSkip) {
             _limits.CheckCancellation();
-            if (depth > _options.MaxDepth) {
+            if (depth > _options.Limits.MaxDepth) {
                 _diagnostics.Add(new RtfDiagnostic(RtfDiagnosticSeverity.Error, "RTF100", "Maximum RTF group depth was exceeded.", group.Position));
                 return;
             }
@@ -160,7 +160,7 @@ internal static partial class RtfSemanticReader {
             if (destination == "pict") {
                 RtfImage? image = ReadPicture(group);
                 if (image != null) {
-                    AddPicture(image);
+                    AddImage(image);
                 }
 
                 return;
@@ -270,6 +270,10 @@ internal static partial class RtfSemanticReader {
 
         private void ApplyControlSymbol(RtfControlSymbol symbol, CharacterState state) {
             if (symbol.Symbol != '\'' && RtfTextDecoder.ConsumeFallback(state)) return;
+            if (symbol.IsParagraphBreak) {
+                FlushParagraphIfNeeded(force: true, state);
+                return;
+            }
             switch (symbol.Symbol) {
                 case '\\':
                 case '{':

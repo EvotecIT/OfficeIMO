@@ -9,7 +9,7 @@ schema: 2.0.0
 Saves an OfficeIMO.Visio document.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
 Save-OfficeVisio [-Document] <VisioDocument> [[-Path] <string>] [-Open] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
@@ -34,7 +34,7 @@ Visio document to save.
 
 ```yaml
 Type: VisioDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -50,7 +50,7 @@ Open the document after saving.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: Show
 Possible values:
 
@@ -66,7 +66,7 @@ Emit the document object for further processing.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -82,7 +82,7 @@ Optional save-as path.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: FilePath
 Possible values:
 

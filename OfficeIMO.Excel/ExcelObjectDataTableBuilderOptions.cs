@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Controls how object values are projected into cells when building a <see cref="System.Data.DataTable"/>.
     /// </summary>
-    public sealed class ExcelObjectDataTableBuilderOptions {
+    internal sealed class ExcelObjectDataTableBuilderOptions {
         /// <summary>
         /// Gets or sets whether non-string enumerable property values are joined into one display string.
         /// </summary>

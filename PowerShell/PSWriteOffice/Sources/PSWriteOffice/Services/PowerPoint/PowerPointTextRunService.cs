@@ -10,15 +10,6 @@ internal static class PowerPointTextRunService
     internal static void ValidateRuns(object[] runs, bool allowHyperlinks)
         => ValidateRuns(OfficeTextRunParser.ParseMany(runs), allowHyperlinks);
 
-    internal static void ApplyRuns(PowerPointTextBox textBox, object[] runs)
-    {
-        var parsedRuns = OfficeTextRunParser.ParseMany(runs);
-        ValidateRuns(parsedRuns, allowHyperlinks: true);
-        textBox.Text = string.Empty;
-        var paragraph = textBox.Paragraphs.Count > 0 ? textBox.Paragraphs[0] : textBox.AddParagraph();
-        ApplyRuns(paragraph, parsedRuns, allowHyperlinks: true);
-    }
-
     internal static void ApplyRuns(PowerPointTableCell cell, object[] runs)
     {
         var parsedRuns = OfficeTextRunParser.ParseMany(runs);
@@ -29,31 +20,13 @@ internal static class PowerPointTextRunService
         {
             var run = first && cell.Runs.Count > 0 && string.IsNullOrEmpty(cell.Runs[0].Text)
                 ? cell.Runs[0]
-                : cell.AddRun(ToPowerPointText(spec));
+                : cell.AddText(ToPowerPointText(spec));
             if (first && string.IsNullOrEmpty(run.Text))
             {
                 run.Text = ToPowerPointText(spec);
             }
 
             ApplyStyle(run, spec, allowHyperlinks: false);
-            first = false;
-        }
-    }
-
-    private static void ApplyRuns(PowerPointParagraph paragraph, OfficeTextRunSpec[] runs, bool allowHyperlinks)
-    {
-        var first = true;
-        foreach (var spec in runs)
-        {
-            var run = first && paragraph.Runs.Count > 0 && string.IsNullOrEmpty(paragraph.Runs[0].Text)
-                ? paragraph.Runs[0]
-                : paragraph.AddRun(ToPowerPointText(spec));
-            if (first && string.IsNullOrEmpty(run.Text))
-            {
-                run.Text = ToPowerPointText(spec);
-            }
-
-            ApplyStyle(run, spec, allowHyperlinks);
             first = false;
         }
     }
@@ -68,15 +41,16 @@ internal static class PowerPointTextRunService
         run.Underline = spec.Underline;
         run.Strikethrough = spec.Strike;
         run.FontSize = spec.FontSize.HasValue
-            ? (int)Math.Round(spec.FontSize.Value)
+            ? global::OfficeIMO.OfficeLength.Points((int)Math.Round(spec.FontSize.Value))
             : null;
-        run.FontName = !string.IsNullOrWhiteSpace(spec.FontName)
+        run.FontFamily = !string.IsNullOrWhiteSpace(spec.FontName)
             ? spec.FontName
             : null;
-        run.Color = OfficeColorUtilities.ToRgbHex(spec.Color);
-        run.HighlightColor = OfficeColorUtilities.IsNone(spec.BackgroundColor)
-            ? null
-            : OfficeColorUtilities.ToRgbHex(spec.BackgroundColor);
+        run.Color = OfficeColorUtilities.ToRgbHex(spec.Color) is string rgb ? OfficeIMO.OfficeColor.Parse(rgb) : null;
+        run.BackgroundColor = !OfficeColorUtilities.IsNone(spec.BackgroundColor)
+            && OfficeColorUtilities.ToRgbHex(spec.BackgroundColor) is string background
+            ? OfficeIMO.OfficeColor.Parse(background)
+            : null;
         ApplyBaseline(run, spec.Baseline);
         run.ClearHyperlink();
 

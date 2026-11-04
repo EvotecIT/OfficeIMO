@@ -25,8 +25,8 @@ internal static partial class PdfWriter {
         double paragraphTop, double pageWidth) {
         if (element is not PdfInlineImage image || !(image.AllowFrameOverflow || image.ClipToParagraphFragment) ||
             spacing?.IsExact != true) return null;
-        double bottom = baseline + element.BaselineOffset;
-        double left = Math.Max(0D, x), right = Math.Min(pageWidth, x + element.Width);
+        double bottom = baseline + element.BaselineOffset.ToPoints();
+        double left = Math.Max(0D, x), right = Math.Min(pageWidth, x + element.Width.ToPoints());
         return (left, bottom, Math.Max(0D, right - left), Math.Max(0D, paragraphTop - bottom));
     }
 

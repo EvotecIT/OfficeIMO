@@ -19,9 +19,15 @@ public sealed class DocumentPdfWorkflowTests {
                 word.AddParagraph("ArchiveContentMarker");
                 word.Save(input);
             }
-            var result = await OfficeWorkflow.Convert(input).To(Path.Combine(directory, "output.pdf")).RunAsync();
+            var result = await OfficeWorkflow.RunAsync((new OfficeWorkflowRequest {
+                Operation = OfficeWorkflowOperation.Convert,
+                InputPath = input,
+                OutputPath = Path.Combine(directory, "output.pdf")
+,
+                ConversionRouteId = OfficeWorkflowCatalog.Find(Path.GetExtension(input), Path.GetExtension(Path.Combine(directory, "output.pdf")), executableOnly: true)?.Id
+            }));
             Assert.True(result.Succeeded, result.Summary);
-            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "OutputReopened");
+            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "conversion-output-reopened");
             Assert.Equal(route, OfficeWorkflowCatalog.Find(extension, ".pdf")?.Id);
             var pdf = PdfDocument.Load(result.OutputPath!);
             Assert.Single(pdf.Read().Pages);

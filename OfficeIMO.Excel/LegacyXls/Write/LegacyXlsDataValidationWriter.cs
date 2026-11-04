@@ -354,10 +354,10 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             var parsed = new List<CellRange>(parts.Length);
             foreach (string part in parts) {
                 string rangeText = part.Replace("$", string.Empty);
-                if (!A1.TryParseRangeCoordinates(rangeText,
+                if (!ExcelA1.TryParseRangeCoordinates(rangeText,
                         out int firstRow, out int firstColumn,
                         out int lastRow, out int lastColumn)) {
-                    if (!A1.TryParseCellReferenceCoordinates(rangeText,
+                    if (!ExcelA1.TryParseCellReferenceCoordinates(rangeText,
                             out firstRow, out firstColumn)) {
                         reason = "data validation ranges";
                         return false;

@@ -161,7 +161,7 @@ public sealed class EpubFixedLayoutInspectionTests {
         var xml = book.GetContentXml("page"); xml.Root!.Element(XName.Get("body", "http://www.w3.org/1999/xhtml"))!.Add(
             new XElement(XName.Get("img", "http://www.w3.org/1999/xhtml"), new XAttribute("src", "image.png"), new XAttribute("alt", "Pixel")));
         book.SetContentXml("page", xml);
-        var source = EpubDocument.Load(new MemoryStream(book.Write().Bytes), new EpubReadOptions { IncludeRawHtml = true, IncludeResourceData = false });
+        var source = EpubDocument.Load(new MemoryStream(book.Write().Bytes), new EpubLoadOptions { IncludeRawHtml = true, IncludeResourceData = false });
         var result = source.InspectFixedLayoutPage(0);
         Assert.True(result.HasRenderingWarnings);
         Assert.Contains(result.Rendering.Diagnostics, d => d.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
@@ -209,5 +209,5 @@ public sealed class EpubFixedLayoutInspectionTests {
         return book;
     }
     private static EpubDocument Read(EpubPublication book) => EpubDocument.Load(new MemoryStream(book.Write().Bytes),
-        new EpubReadOptions { IncludeRawHtml = true, IncludeResourceData = true });
+        new EpubLoadOptions { IncludeRawHtml = true, IncludeResourceData = true });
 }

@@ -26,8 +26,8 @@ public sealed class PublisherHyphenationRenderingTests {
         if (cells) document.ReplaceTableCellParagraphs(table!.Id, cell!.RowIndex, cell.ColumnIndex, requested);
         else document.ReplaceStoryParagraphs(storyId, requested);
         Assert.All(requested.SelectMany(p => p.Runs), r => Assert.Null(r.LanguageId));
-        foreach (PublisherDocument current in new[] { document, PublisherDocument.Load(document.ToPubBytes(
-            new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow })) }) {
+        foreach (PublisherDocument current in new[] { document, PublisherDocument.Load(document.ToBytes(
+            new PublisherSaveOptions { AllowLoss = true })) }) {
             OfficeRichTextParagraph painted = Assert.Single(current.Pages.Where(page => table == null || page.Id == table.PageId)
                 .SelectMany(page => PublisherNativeTests.Elements(page.CreateDrawing()))
                 .OfType<OfficeDrawingRichText>().SelectMany(frame => frame.Paragraphs), p => string.Concat(p.Runs.Select(r => r.Text)) == text);
@@ -48,7 +48,7 @@ public sealed class PublisherHyphenationRenderingTests {
         Assert.All(document.TextStories.Single(s => s.Id == id).Paragraphs.SelectMany(p => p.Runs),
             run => Assert.Equal(language, run.LanguageId));
         Assert.Equal(hyphenates, DisplayText(document).Contains("cre-"));
-        byte[] saved = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        byte[] saved = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         PublisherDocument reloaded = PublisherDocument.Load(saved);
         Assert.Equal(hyphenates, DisplayText(reloaded).Contains("cre-"));
         Assert.Equal(story.Text, reloaded.TextStories.Single(s => s.Id == id).Text);
@@ -68,8 +68,9 @@ public sealed class PublisherHyphenationRenderingTests {
         string assigned = story.Text.Substring(ending.TextStart!.Value, ending.TextLength!.Value);
         Assert.DoesNotContain("-", assigned);
         Assert.Equal(assigned + "-", DisplayText(document, 14));
-        Assert.Equal(assigned + "-", PdfReadDocument.Open(document.ToPdfBytes()).Pages[14].ExtractText().Trim());
-        Assert.Equal(source, document.ToPubBytes());
+        using PdfDocument linkedPdf = PublisherNativeTests.ExportAndReloadPdf(document);
+        Assert.Equal(assigned + "-", linkedPdf.Pages[14].ExtractText().Trim());
+        Assert.Equal(source, document.ToBytes());
         Assert.DoesNotContain("-", story.Text);
     }
 
@@ -81,17 +82,20 @@ public sealed class PublisherHyphenationRenderingTests {
         PublisherTextStory story = document.TextStories.Single(s => s.Id == id);
         Assert.DoesNotContain("-", story.Text);
         Assert.Contains("cre-", DisplayText(document));
-        Assert.Contains("cre-", PdfReadDocument.Open(document.ToPdfBytes()).Pages[0].ExtractText());
-        Assert.Equal(source, document.ToPubBytes());
+        using PdfDocument enabledPdf = PublisherNativeTests.ExportAndReloadPdf(document);
+        Assert.Contains("cre-", enabledPdf.Pages[0].ExtractText());
+        Assert.Equal(source, document.ToBytes());
         Assert.Equal(story.Text, document.TextStories.Single(s => s.Id == id).Text);
 
         document.SetStoryAutomaticHyphenation(id, false);
         Assert.DoesNotContain("-", DisplayText(document));
-        Assert.DoesNotContain("-", PdfReadDocument.Open(document.ToPdfBytes()).Pages[0].ExtractText());
+        using PdfDocument suppressedPdf = PublisherNativeTests.ExportAndReloadPdf(document);
+        Assert.DoesNotContain("-", suppressedPdf.Pages[0].ExtractText());
         document.SetStoryAutomaticHyphenation(id, true);
         document.ReplaceStoryParagraphs(id, story.Paragraphs.Select(p => p.WithAutomaticHyphenationSuppressed(true)).ToArray());
         Assert.DoesNotContain("-", DisplayText(document));
-        Assert.DoesNotContain("-", PdfReadDocument.Open(document.ToPdfBytes()).Pages[0].ExtractText());
+        using PdfDocument disabledPdf = PublisherNativeTests.ExportAndReloadPdf(document);
+        Assert.DoesNotContain("-", disabledPdf.Pages[0].ExtractText());
         Assert.Equal(story.Text, document.TextStories.Single(s => s.Id == id).Text);
     }
 

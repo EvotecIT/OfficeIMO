@@ -17,11 +17,11 @@ public sealed class LatexTokenInspectionProjectionTests {
         Assert.Equal(expected.Value.ToMarkdown(), actual.Value.ToMarkdown());
         Assert.Equal(expected.Report.Diagnostics.Select(diagnostic => diagnostic.Code),
             actual.Report.Diagnostics.Select(diagnostic => diagnostic.Code));
-        Assert.DoesNotContain("hidden", actual.Value.ToMarkdown());
-        Assert.Contains("Note body.", actual.Value.ToMarkdown());
+        Assert.DoesNotContain("hidden", ((actual.Value.ToMarkdown())));
+        Assert.Contains("Note body.", ((actual.Value.ToMarkdown())));
         Assert.Equal(source, document.ToLatex());
         document.Headings.Single().Title = "Edited";
-        Assert.Contains("Edited", document.ToMarkdownDocument().ToMarkdown());
+        Assert.Contains("Edited", ((document.ToMarkdownDocument().ToMarkdown())));
         Assert.Equal(source.Replace("{Title}", "{Edited}"), document.ToLatex());
     }
 }

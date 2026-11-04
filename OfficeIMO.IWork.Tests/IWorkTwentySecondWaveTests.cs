@@ -26,7 +26,7 @@ public sealed partial class IWorkBoundaryTests {
             ("Index/Document.iwa", FrameIwa(records)),
             ("preview.png", ValidPreviewPng()));
 
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.False(result.Projection.Body.IsComplete);
@@ -38,7 +38,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Invalid_declared_table_default_sizes_use_visual_fallback(int field, double value) {
         using MemoryStream package = CreateNumbersPackageWithDeclaredTableSize(field, value);
 
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -51,12 +51,12 @@ public sealed partial class IWorkBoundaryTests {
             0f, 0f, 0f, 0f, 0f, includePreview: false,
             defaultRowHeight: 20d, defaultColumnWidth: 40d);
 
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult();
         WordTable table = Assert.Single(result.Value.Tables);
 
         Assert.False(result.IsVisualFallback);
-        Assert.Equal(400, Assert.Single(table.RowHeight));
-        Assert.Equal(800, Assert.Single(table.ColumnWidth));
+        Assert.Equal(400, Assert.Single(table.RowHeight.Select(height => checked((int)(height?.ToTwips() ?? 0)))));
+        Assert.Equal<WordTableWidth?>(WordTableWidth.Length(OfficeLength.Points(40)), Assert.Single(table.ColumnWidth));
     }
 
     [Fact]
@@ -64,21 +64,21 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithTableDefaults(
             rows: 2, columns: 2, defaultRowHeight: 10d, defaultColumnWidth: 30d);
 
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult();
         PowerPointTable table = Assert.Single(Assert.Single(result.Value.Slides).Tables);
 
         Assert.False(result.IsVisualFallback);
-        Assert.Equal(60d, table.WidthPoints, 5);
-        Assert.Equal(20d, table.HeightPoints, 5);
-        Assert.Equal(30d, table.GetColumnWidthPoints(0), 5);
-        Assert.Equal(10d, table.GetRowHeightPoints(0), 5);
+        Assert.Equal(60d, table.Width.ToPoints(), 5);
+        Assert.Equal(20d, table.Height.ToPoints(), 5);
+        Assert.Equal(30d, (table.GetColumnWidth(0)).ToPoints(), 5);
+        Assert.Equal(10d, (table.GetRowHeight(0)).ToPoints(), 5);
     }
 
     [Fact]
     public void Keynote_list_levels_above_eight_use_visual_fallback() {
         using MemoryStream package = CreateKeynotePackageWithListLevel(9);
 
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Equal(9, Assert.Single(Assert.Single(

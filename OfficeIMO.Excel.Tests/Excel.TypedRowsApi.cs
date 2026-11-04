@@ -10,7 +10,7 @@ public partial class Excel {
     [Fact]
     public void Sheets_ExposesAReadOnlyCollectionContract() {
         using ExcelDocument document = ExcelDocument.Create();
-        document.AddWorksheet("Data");
+        document.AddSheet("Data");
 
         IReadOnlyList<ExcelSheet> sheets = document.Sheets;
 
@@ -18,21 +18,25 @@ public partial class Excel {
         Assert.Equal("Data", sheets[0].Name);
     }
 
-    [Fact]
-    public void RowsAs_UsesThePopulatedRangeWhenNoRangeIsSpecified() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RowsAs_UsesThePopulatedRangeWhenNoRangeIsSpecified(bool wholeDocument) {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO-RowsAs-{Guid.NewGuid():N}.xlsx");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
-                sheet.CellValue(1, 1, "OrderId");
-                sheet.CellValue(1, 2, "Amount");
-                sheet.CellValue(2, 1, 42);
-                sheet.CellValue(2, 2, 165258.24m);
+                ExcelSheet sheet = document.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("OrderId");
+                sheet.Cell(1, 2).SetValue("Amount");
+                sheet.Cell(2, 1).SetValue(42);
+                sheet.Cell(2, 2).SetValue(165258.24m);
                 document.Save();
             }
 
             using ExcelDocument loaded = ExcelDocument.Load(path);
-            TypedSalesRow row = Assert.Single(loaded.GetSheet("Data").RowsAs<TypedSalesRow>());
+            TypedSalesRow row = Assert.Single(wholeDocument
+                ? loaded.RowsAs<TypedSalesRow>(new ExcelReaderOptions { SheetName = "Data" })
+                : loaded.GetSheet("Data").RowsAs<TypedSalesRow>());
 
             Assert.Equal(42, row.OrderId);
             Assert.Equal(165258.24m, row.Amount);
@@ -44,8 +48,8 @@ public partial class Excel {
     [Fact]
     public void RangeLessTypedRowsObserveCancellationDuringUsedRangeDiscovery() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
-        sheet.CellValue(1, 1, "OrderId");
+        ExcelSheet sheet = document.AddSheet("Data");
+        sheet.Cell(1, 1).SetValue("OrderId");
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
@@ -56,7 +60,7 @@ public partial class Excel {
 
         using var optionsCancellation = new CancellationTokenSource();
         optionsCancellation.Cancel();
-        var options = new ExcelReadOptions { CancellationToken = optionsCancellation.Token };
+        var options = new ExcelReaderOptions { CancellationToken = optionsCancellation.Token };
         Assert.Throws<OperationCanceledException>(() =>
             sheet.RowsAs<TypedSalesRow>(options).ToArray());
     }
@@ -64,7 +68,7 @@ public partial class Excel {
     [Fact]
     public void RowsAs_ReturnsAnEmptySequenceForAnEmptyWorksheet() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Empty");
+        ExcelSheet sheet = document.AddSheet("Empty");
 
         Assert.Empty(sheet.RowsAs<TypedSalesRow>());
     }
@@ -72,12 +76,12 @@ public partial class Excel {
     [Fact]
     public void RowsAs_PreservesExcelAliasesAndTypeConverter() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
-        sheet.CellValue(1, 1, "Order Number");
-        sheet.CellValue(1, 2, "Amount");
-        sheet.CellValue(2, 1, "custom-value");
-        sheet.CellValue(2, 2, 12.5m);
-        var options = new ExcelReadOptions {
+        ExcelSheet sheet = document.AddSheet("Data");
+        sheet.Cell(1, 1).SetValue("Order Number");
+        sheet.Cell(1, 2).SetValue("Amount");
+        sheet.Cell(2, 1).SetValue("custom-value");
+        sheet.Cell(2, 2).SetValue(12.5m);
+        var options = new ExcelReaderOptions {
             TypeConverter = static (value, targetType, _) =>
                 targetType == typeof(int) && Equals(value, "custom-value")
                     ? (true, 42)
@@ -94,11 +98,11 @@ public partial class Excel {
     [Fact]
     public void RowsAs_MapsDateOnlyAndTimeOnlyFromExcelDateCells() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
-        sheet.CellValue(1, 1, "Date");
-        sheet.CellValue(1, 2, "Time");
-        sheet.CellValue(2, 1, new DateOnly(2026, 8, 6));
-        sheet.CellValue(2, 2, new TimeOnly(14, 35, 12));
+        ExcelSheet sheet = document.AddSheet("Data");
+        sheet.Cell(1, 1).SetValue("Date");
+        sheet.Cell(1, 2).SetValue("Time");
+        sheet.Cell(2, 1).SetValue(new DateOnly(2026, 8, 6));
+        sheet.Cell(2, 2).SetValue(new TimeOnly(14, 35, 12));
 
         DateAndTimeRow row = Assert.Single(sheet.RowsAs<DateAndTimeRow>());
 
@@ -111,10 +115,10 @@ public partial class Excel {
     public void RowsAs_RedactsTypeConverterFailuresWhenRequested() {
         const string secret = "customer-secret-value";
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
-        sheet.CellValue(1, 1, "OrderId");
-        sheet.CellValue(2, 1, secret);
-        var options = new ExcelReadOptions {
+        ExcelSheet sheet = document.AddSheet("Data");
+        sheet.Cell(1, 1).SetValue("OrderId");
+        sheet.Cell(2, 1).SetValue(secret);
+        var options = new ExcelReaderOptions {
             MappingErrorValuePolicy = DataMappingErrorValuePolicy.Redact,
             TypeConverter = (_, _, _) => throw new InvalidOperationException($"failed for {secret}")
         };
@@ -129,14 +133,14 @@ public partial class Excel {
     [Fact]
     public void RowsAs_StrictMappingRejectsUnmappedHeaders() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
-        sheet.CellValue(1, 1, "OrderId");
-        sheet.CellValue(1, 2, "Unexpected");
-        sheet.CellValue(2, 1, 42);
-        sheet.CellValue(2, 2, "value");
+        ExcelSheet sheet = document.AddSheet("Data");
+        sheet.Cell(1, 1).SetValue("OrderId");
+        sheet.Cell(1, 2).SetValue("Unexpected");
+        sheet.Cell(2, 1).SetValue(42);
+        sheet.Cell(2, 2).SetValue("value");
 
         DataMappingException exception = Assert.Throws<DataMappingException>(() =>
-            sheet.RowsAs<TypedSalesRow>(new ExcelReadOptions { StrictTypedMapping = true }).ToArray());
+            sheet.RowsAs<TypedSalesRow>(new ExcelReaderOptions { StrictTypedMapping = true }).ToArray());
 
         Assert.Contains("Unexpected", exception.Message);
     }
@@ -144,11 +148,11 @@ public partial class Excel {
     [Fact]
     public void RowsAs_ExplicitMapperSupportsUsedAndSpecifiedRanges() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
-        sheet.CellValue(1, 1, "Order Number");
-        sheet.CellValue(1, 2, "Amount");
-        sheet.CellValue(2, 1, 42);
-        sheet.CellValue(2, 2, 12.5m);
+        ExcelSheet sheet = document.AddSheet("Data");
+        sheet.Cell(1, 1).SetValue("Order Number");
+        sheet.Cell(1, 2).SetValue("Amount");
+        sheet.Cell(2, 1).SetValue(42);
+        sheet.Cell(2, 2).SetValue(12.5m);
 
         TypedSalesRow usedRangeRow = Assert.Single(sheet.RowsAs<TypedSalesRow>(map => map
             .FromColumn<int>("Order Number", static (row, value) => { row.OrderId = value; return row; })
@@ -163,19 +167,22 @@ public partial class Excel {
         Assert.Equal(usedRangeRow.Amount, specifiedRangeRow.Amount);
     }
 
-    [Fact]
-    public void RowsAs_FactorySupportsPositionalRecordsForUsedAndSpecifiedRanges() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RowsAs_FactorySupportsPositionalRecordsForUsedAndSpecifiedRanges(bool wholeDocument) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
-        sheet.CellValue(1, 1, "Order Number");
-        sheet.CellValue(1, 2, "Amount");
-        sheet.CellValue(2, 1, 42);
-        sheet.CellValue(2, 2, 12.5m);
+        ExcelSheet sheet = document.AddSheet("Data");
+        sheet.Cell(1, 1).SetValue("Order Number");
+        sheet.Cell(1, 2).SetValue("Amount");
+        sheet.Cell(2, 1).SetValue(42);
+        sheet.Cell(2, 2).SetValue(12.5m);
 
-        PositionalSalesRow usedRangeRow = Assert.Single(sheet.RowsAs(factory: row =>
-            new PositionalSalesRow(
-                row.GetInt32(row.GetOrdinal("Order Number")),
-                row.GetDecimal(row.GetOrdinal("Amount")))));
+        Func<System.Data.IDataRecord, PositionalSalesRow> factory = row => new PositionalSalesRow(
+            row.GetInt32(row.GetOrdinal("Order Number")), row.GetDecimal(row.GetOrdinal("Amount")));
+        PositionalSalesRow usedRangeRow = Assert.Single(wholeDocument
+            ? document.RowsAs(factory: factory, options: new ExcelReaderOptions { SheetName = "Data" })
+            : sheet.RowsAs(factory: factory));
         PositionalSalesRow specifiedRangeRow = Assert.Single(sheet.RowsAs("A1:B2", factory: row =>
             new PositionalSalesRow(
                 row.GetInt32(row.GetOrdinal("Order Number")),
@@ -185,16 +192,18 @@ public partial class Excel {
         Assert.Equal(usedRangeRow, specifiedRangeRow);
     }
 
-    [Fact]
-    public void RowsAsParallel_PreservesOrderAcrossAutomaticExplicitAndFactoryMappings() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RowsAsParallel_PreservesOrderAcrossAutomaticExplicitAndFactoryMappings(bool wholeDocument) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
-        sheet.CellValue(1, 1, "OrderId");
-        sheet.CellValue(1, 2, "Amount");
+        ExcelSheet sheet = document.AddSheet("Data");
+        sheet.Cell(1, 1).SetValue("OrderId");
+        sheet.Cell(1, 2).SetValue("Amount");
         const int rowCount = 1_025;
         for (int index = 0; index < rowCount; index++) {
-            sheet.CellValue(index + 2, 1, index);
-            sheet.CellValue(index + 2, 2, index + 0.25m);
+            sheet.Cell(index + 2, 1).SetValue(index);
+            sheet.Cell(index + 2, 2).SetValue(index + 0.25m);
         }
 
         var parallel = new ParallelRowMappingOptions {
@@ -203,7 +212,9 @@ public partial class Excel {
         };
         const string range = "A1:B1026";
 
-        TypedSalesRow[] automatic = sheet.RowsAsParallel<TypedSalesRow>(range, parallel).ToArray();
+        TypedSalesRow[] automatic = (wholeDocument
+            ? document.RowsAsParallel<TypedSalesRow>(parallel, new ExcelReaderOptions { SheetName = "Data", A1Range = range })
+            : sheet.RowsAsParallel<TypedSalesRow>(range, parallel)).ToArray();
         TypedSalesRow[] explicitRows = sheet.RowsAsParallel<TypedSalesRow>(range, map => map
             .FromColumn<int>("OrderId", static (row, value) => { row.OrderId = value; return row; })
             .FromColumn<decimal>("Amount", static (row, value) => { row.Amount = value; return row; }), parallel).ToArray();
@@ -233,19 +244,19 @@ public partial class Excel {
         const int rowCount = 257;
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
-                sheet.CellValue(1, 1, "OrderId");
-                sheet.CellValue(1, 2, "Amount");
+                ExcelSheet sheet = document.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("OrderId");
+                sheet.Cell(1, 2).SetValue("Amount");
                 for (int index = 0; index < rowCount; index++) {
-                    sheet.CellValue(index + 2, 1, index);
-                    sheet.CellValue(index + 2, 2, index + 0.25m);
+                    sheet.Cell(index + 2, 1).SetValue(index);
+                    sheet.Cell(index + 2, 2).SetValue(index + 0.25m);
                 }
                 document.Save();
             }
 
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(
                 path,
-                new ExcelReadOptions {
+                new ExcelReaderOptions {
                     SheetName = "Data",
                     InferSchema = true
                 });
@@ -265,9 +276,9 @@ public partial class Excel {
     [Fact]
     public void RowsAsParallel_ObservesCancellationBeforeReading() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
-        sheet.CellValue(1, 1, "OrderId");
-        sheet.CellValue(2, 1, 42);
+        ExcelSheet sheet = document.AddSheet("Data");
+        sheet.Cell(1, 1).SetValue("OrderId");
+        sheet.Cell(2, 1).SetValue(42);
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
@@ -283,22 +294,22 @@ public partial class Excel {
         DateTime date = new(2026, 8, 8, 12, 30, 0, DateTimeKind.Unspecified);
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
-                sheet.CellValue(1, 1, "Order Number");
-                sheet.CellValue(1, 2, " Amount ");
-                sheet.CellValue(1, 3, "When");
-                sheet.CellValue(1, 4, "Unexpected");
+                ExcelSheet sheet = document.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Order Number");
+                sheet.Cell(1, 2).SetValue(" Amount ");
+                sheet.Cell(1, 3).SetValue("When");
+                sheet.Cell(1, 4).SetValue("Unexpected");
                 for (int index = 0; index < dataRows; index++) {
                     int row = index + 2;
-                    sheet.CellValue(row, 1, index + 1);
-                    if (index != 0) sheet.CellValue(row, 2, index + 0.25m);
-                    sheet.CellValue(row, 3, date.AddDays(index));
-                    sheet.CellValue(row, 4, index == 0 ? "customer-secret-value" : index);
+                    sheet.Cell(row, 1).SetValue(index + 1);
+                    if (index != 0) sheet.Cell(row, 2).SetValue(index + 0.25m);
+                    sheet.Cell(row, 3).SetValue(date.AddDays(index));
+                    sheet.Cell(row, 4).SetValue(index == 0 ? "customer-secret-value" : index);
                 }
                 document.Save();
             }
 
-            var options = new ExcelReadOptions {
+            var options = new ExcelReaderOptions {
                 NormalizeHeaders = true,
                 TreatDatesUsingNumberFormat = true
             };
@@ -320,7 +331,7 @@ public partial class Excel {
 
             using (ExcelDocumentReader strictReader = ExcelDocumentReader.Open(
                        path,
-                       new ExcelReadOptions { StrictTypedMapping = true })) {
+                       new ExcelReaderOptions { StrictTypedMapping = true })) {
                 InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => strictReader
                     .GetSheet("Data")
                     .ReadObjects<LargeParallelMappedRow>(

@@ -8,12 +8,13 @@ internal static class PdfRedactionAnnotationIdentity {
     internal static string Compute(
         PdfDictionary annotation,
         Dictionary<int, PdfIndirectObject> objects,
-        IReadOnlyDictionary<int, string> stableReferenceLabels) {
+        IReadOnlyDictionary<int, string> stableReferenceLabels,
+        Func<PdfDictionary, string, bool>? includeEntry = null) {
         using var fingerprint = new PdfObjectGraphFingerprint(
             objects,
             MaximumDepth,
             MaximumNodes,
-            stableReferenceLabels: stableReferenceLabels);
+            stableReferenceLabels: stableReferenceLabels, includeDictionaryEntry: includeEntry);
         fingerprint.AppendRoot(annotation);
         return Convert.ToBase64String(fingerprint.Complete());
     }

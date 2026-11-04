@@ -24,16 +24,15 @@ public sealed partial class IWorkBoundaryTests {
             VarintField(3, (ulong)operands.Length))));
         using var package = CreateNumbersPackage(new[] { new TableSpec("Integers", 1, 1, 42d,
             hasFormula: true, formulaPayload: BytesField(1, Message(nodes.ToArray()))) });
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.Equal(qualified, result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!.FormulaIsComplete);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         var sheet = Assert.Single(reopened.Sheets);
-        Assert.Equal(42d, sheet.CellAt(1, 1).GetValue<double>());
+        Assert.Equal(42d, sheet.Cell(1, 1).GetValue<double>());
         Assert.Equal(qualified, sheet.GetFormulaText(1, 1) != null);
         Assert.Equal(qualified ? 1 : 0, reopened.Calculate());
-        Assert.Equal(expected, sheet.CellAt(1, 1).GetValue<double>());
+        Assert.Equal(expected, sheet.Cell(1, 1).GetValue<double>());
         Assert.Empty(reopened.ValidateOpenXml());
     }
 
@@ -45,8 +44,7 @@ public sealed partial class IWorkBoundaryTests {
             "G12", "H12", "G15", "G16", "H16", "G17", "H17", "G18", "H18", "B13", "B14",
             "E2", "F2", "E3", "F3", "E4", "F4", "E5", "F5", "E6", "F6", "E15", "F15", "E16", "F16",
             "E17", "F17", "E18", "F18" });
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(CorpusFixture("native-exports/" + evidence.GetProperty("source").GetString()),
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(CorpusFixture("native-exports/" + evidence.GetProperty("source").GetString()), IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         IWorkTable table = Assert.Single(Assert.Single(result.Projection.Sheets).Tables);
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_TABLE_FORMULA_PARTIAL");
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
@@ -63,26 +61,26 @@ public sealed partial class IWorkBoundaryTests {
             JsonElement native = expected.GetProperty("nativeValue");
             if (native.ValueKind == JsonValueKind.Number) {
                 Assert.Equal(native.GetDouble(), Assert.IsType<double>(source.Value));
-                Assert.Equal(native.GetDouble(), destination.CellAt(row, column).GetValue<double>());
+                Assert.Equal(native.GetDouble(), destination.Cell(row, column).GetValue<double>());
             } else {
                 Assert.Equal(IWorkCellKind.Error, source.ValueKind);
                 Assert.Equal("#ERROR", source.Value);
-                Assert.Equal("#ERROR", destination.CellAt(row, column).GetValue<string>());
+                Assert.Equal("#ERROR", destination.Cell(row, column).GetValue<string>());
             }
         }
         Assert.Equal(qualified.Count, reopened.Calculate());
         foreach (JsonElement expected in evidence.GetProperty("cells").EnumerateArray()
             .Where(c => qualified.Contains(c.GetProperty("address").GetString()!) && c.GetProperty("column").GetInt32() >= 5)) {
-            Assert.Equal(expected.GetProperty("nativeValue").GetDouble(), destination.CellAt(
+            Assert.Equal(expected.GetProperty("nativeValue").GetDouble(), destination.Cell(
                 expected.GetProperty("row").GetInt32(), expected.GetProperty("column").GetInt32()).GetValue<double>());
         }
-        destination.CellValue(2, 2, 30d);
-        reopened.Calculate(); Assert.Equal(6d, destination.CellAt(2, 5).GetValue<double>());
-        Assert.Equal(180d, destination.CellAt(2, 6).GetValue<double>());
+        destination.Cell(2, 2).SetValue(30d);
+        reopened.Calculate(); Assert.Equal(6d, destination.Cell(2, 5).GetValue<double>());
+        Assert.Equal(180d, destination.Cell(2, 6).GetValue<double>());
         using var edited = new MemoryStream(); reopened.Save(edited); edited.Position = 0;
         using var final = ExcelDocument.Load(edited);
-        Assert.Equal(6d, final.Sheets[0].CellAt(2, 5).GetValue<double>());
-        Assert.Equal(180d, final.Sheets[0].CellAt(2, 6).GetValue<double>());
+        Assert.Equal(6d, final.Sheets[0].Cell(2, 5).GetValue<double>());
+        Assert.Equal(180d, final.Sheets[0].Cell(2, 6).GetValue<double>());
         Assert.Empty(final.ValidateOpenXml());
     }
 
@@ -104,10 +102,10 @@ public sealed partial class IWorkBoundaryTests {
             else Assert.Equal(double.Parse(expected.GetProperty("value").GetString()!, CultureInfo.InvariantCulture),
                 double.Parse(actual!, CultureInfo.InvariantCulture));
         }
-        Assert.Equal(360d, sheet.CellAt(10, 6).GetValue<double>()); // Native Numbers cached zero for this numeric-text range.
+        Assert.Equal(360d, sheet.Cell(10, 6).GetValue<double>()); // Native Numbers cached zero for this numeric-text range.
         using var saved = new MemoryStream(); document.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
-        Assert.Equal(360d, reopened.Sheets[0].CellAt(10, 6).GetValue<double>());
+        Assert.Equal(360d, reopened.Sheets[0].Cell(10, 6).GetValue<double>());
         Assert.Empty(reopened.ValidateOpenXml());
     }
 

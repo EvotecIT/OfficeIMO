@@ -1,0 +1,25 @@
+{
+  "solution": {
+    "path": "OfficeIMO.slnx",
+    "projects": [
+      "OfficeIMO.Core\\OfficeIMO.Core.csproj",
+      "OfficeIMO.Html.AngleSharp\\OfficeIMO.Html.AngleSharp.csproj",
+      "OfficeIMO.Html.Core\\OfficeIMO.Html.Core.csproj",
+      "OfficeIMO.Html\\OfficeIMO.Html.csproj",
+      "OfficeIMO.Markdown.Html\\OfficeIMO.Markdown.Html.csproj",
+      "OfficeIMO.Markdown.Pdf\\OfficeIMO.Markdown.Pdf.csproj",
+      "OfficeIMO.Markdown.Tests\\OfficeIMO.Markdown.Tests.csproj",
+      "OfficeIMO.Markdown\\OfficeIMO.Markdown.csproj",
+      "OfficeIMO.MarkdownRenderer.IntelligenceX\\OfficeIMO.MarkdownRenderer.IntelligenceX.csproj",
+      "OfficeIMO.MarkdownRenderer.SamplePlugin\\OfficeIMO.MarkdownRenderer.SamplePlugin.csproj",
+      "OfficeIMO.MarkdownRenderer.Wpf.Tests\\OfficeIMO.MarkdownRenderer.Wpf.Tests.csproj",
+      "OfficeIMO.MarkdownRenderer.Wpf\\OfficeIMO.MarkdownRenderer.Wpf.csproj",
+      "OfficeIMO.MarkdownRenderer\\OfficeIMO.MarkdownRenderer.csproj",
+      "OfficeIMO.Pdf\\OfficeIMO.Pdf.csproj",
+      "OfficeIMO.Rtf.Markdown\\OfficeIMO.Rtf.Markdown.csproj",
+      "OfficeIMO.Rtf\\OfficeIMO.Rtf.csproj",
+      "OfficeIMO.Word.Markdown\\OfficeIMO.Word.Markdown.csproj",
+      "OfficeIMO.Word\\OfficeIMO.Word.csproj"
+    ]
+  }
+}

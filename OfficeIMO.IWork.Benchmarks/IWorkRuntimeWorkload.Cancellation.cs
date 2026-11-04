@@ -44,9 +44,9 @@ public sealed partial class IWorkRuntimeWorkload {
                     break;
                 case "CancelDuringConvert":
                     using (IDisposable result = _kind switch {
-                        IWorkDocumentKind.Pages => WordIWorkConverter.ConvertPagesToWordResult(stream, null, null, cancellation.Token),
-                        IWorkDocumentKind.Numbers => ExcelIWorkConverter.ConvertNumbersToExcelResult(stream, null, null, cancellation.Token),
-                        IWorkDocumentKind.Keynote => PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(stream, null, null, cancellation.Token),
+                        IWorkDocumentKind.Pages => IWorkSourceDocument.Open(stream, IWorkDocumentKind.Pages, null, cancellation.Token).ToWordResult(cancellationToken: cancellation.Token),
+                        IWorkDocumentKind.Numbers => IWorkSourceDocument.Open(stream, IWorkDocumentKind.Numbers, null, cancellation.Token).ToExcelResult(cancellationToken: cancellation.Token),
+                        IWorkDocumentKind.Keynote => IWorkSourceDocument.Open(stream, IWorkDocumentKind.Keynote, null, cancellation.Token).ToPowerPointResult(cancellationToken: cancellation.Token),
                         _ => throw new InvalidOperationException()
                     }) { }
                     break;

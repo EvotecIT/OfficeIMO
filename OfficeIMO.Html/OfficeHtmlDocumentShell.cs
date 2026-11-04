@@ -24,7 +24,7 @@ public static class OfficeHtmlDocumentShell {
         builder.Append("<title>").Append(OfficeHtmlText.Escape(string.IsNullOrWhiteSpace(options.Title) ? "OfficeIMO HTML" : options.Title!)).Append("</title>").Append(nl);
         if (options.IncludeDefaultStyles) {
             builder.Append("<style>").Append(nl);
-            builder.Append(GetThemeCss(options.Theme, nl)).Append(nl);
+            builder.Append(options.DocumentTheme == null ? GetThemeCss(options.Theme, nl) : GetThemeCss(options.DocumentTheme, nl)).Append(nl);
             builder.Append("</style>").Append(nl);
         }
 
@@ -45,11 +45,26 @@ public static class OfficeHtmlDocumentShell {
     /// </summary>
     public static string GetThemeCss(OfficeVisualThemeKind theme, string newLine = "\n") {
         if (!Enum.IsDefined(typeof(OfficeVisualThemeKind), theme)) throw new ArgumentOutOfRangeException(nameof(theme));
+        return GetThemeCss(OfficeHtmlThemePalette.Create(theme), newLine);
+    }
+
+    /// <summary>Gets shared shell CSS from a document theme's colors and font choices.</summary>
+    public static string GetThemeCss(OfficeTheme theme, string newLine = "\n") {
+        if (theme == null) throw new ArgumentNullException(nameof(theme));
+        return GetThemeCss(OfficeHtmlThemePalette.Create(theme), newLine);
+    }
+
+    private static string GetThemeCss(OfficeHtmlThemePalette palette, string newLine) {
         string nl = string.IsNullOrEmpty(newLine) ? "\n" : newLine;
-        OfficeHtmlThemePalette palette = OfficeHtmlThemePalette.Create(theme);
+        return ":root{" + GetThemeProperties(palette) + "}" + nl + NormalizeNewLines(SharedStyles.Value, nl);
+    }
+
+    /// <summary>Scopes the shared theme tokens to a native-format review panel without duplicating their serialization.</summary>
+    internal static string GetThemeProperties(OfficeTheme theme) => GetThemeProperties(OfficeHtmlThemePalette.Create(theme));
+
+    private static string GetThemeProperties(OfficeHtmlThemePalette palette) {
         var builder = new StringBuilder();
-        builder.Append(":root{")
-            .Append("--officeimo-accent:").Append(palette.Accent).Append(';')
+        builder.Append("--officeimo-accent:").Append(palette.Accent).Append(';')
             .Append("--officeimo-accent-dark:").Append(palette.AccentDark).Append(';')
             .Append("--officeimo-accent-soft:").Append(palette.AccentSoft).Append(';')
             .Append("--officeimo-page-background:").Append(palette.PageBackground).Append(';')
@@ -61,6 +76,7 @@ public static class OfficeHtmlDocumentShell {
             .Append("--officeimo-heading:").Append(palette.Heading).Append(';')
             .Append("--officeimo-muted:").Append(palette.Muted).Append(';')
             .Append("--officeimo-table-header:").Append(palette.TableHeader).Append(';')
+            .Append("--officeimo-table-header-text:").Append(palette.TableHeaderText).Append(';')
             .Append("--officeimo-table-stripe:").Append(palette.TableStripe).Append(';')
             .Append("--officeimo-code-background:").Append(palette.CodeBackground).Append(';')
             .Append("--officeimo-control-disabled:").Append(palette.ControlDisabled).Append(';')
@@ -69,9 +85,8 @@ public static class OfficeHtmlDocumentShell {
             .Append("--officeimo-font-body:").Append(palette.FontBody).Append(';')
             .Append("--officeimo-font-heading:").Append(palette.FontHeading).Append(';')
             .Append("--officeimo-font-mono:").Append(palette.FontMono).Append(';')
-            .Append("--officeimo-font-size:").Append(palette.FontSize).Append(";}")
-            .Append(nl)
-            .Append(NormalizeNewLines(SharedStyles.Value, nl));
+            .Append("--officeimo-color-scheme:").Append(palette.ColorScheme).Append(';')
+            .Append("--officeimo-font-size:").Append(palette.FontSize).Append(';');
         return builder.ToString();
     }
 

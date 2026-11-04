@@ -68,7 +68,7 @@ public sealed class StudioApplicationScreensTests {
     private static string CreateDocument(string root, string name) {
         Directory.CreateDirectory(root);
         string path = Path.Combine(root, name);
-        PdfDocument.Create(document => document.Page(page => page.Size(200, 300))).Save(path);
+        PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300)))).Save(path);
         return path;
     }
 }

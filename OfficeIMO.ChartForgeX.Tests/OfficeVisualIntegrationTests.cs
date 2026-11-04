@@ -37,13 +37,13 @@ public sealed partial class OfficeVisualIntegrationTests {
         Assert.NotNull(result.Regions[0].Width);
         Assert.True(result.Report.IsVector || result.Report.UnsupportedSvgFeatureCount > 0);
         Assert.Equal(OfficeVisualMediaFormat.Svg, result.PlacementFormat);
-        IOfficeConversionReport common = result.Report;
-        OfficeConversionFidelityDiagnostic regionDiagnostic = Assert.Single(common.FidelityDiagnostics,
+        OfficeConversionReport common = result.Report;
+        OfficeDiagnostic regionDiagnostic = Assert.Single(common.Diagnostics,
             diagnostic => diagnostic.Code == "VISUAL_REGION_LINKS_NOT_PROJECTED");
         Assert.Equal(OfficeConversionLossKind.Omission, regionDiagnostic.LossKind);
         Assert.Equal("regions", regionDiagnostic.Location);
         Assert.True(common.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => common.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => common.ThrowIfLoss());
     }
 
     [Fact]
@@ -172,10 +172,10 @@ public sealed partial class OfficeVisualIntegrationTests {
 
         Assert.True(result.Report.UsedRasterFallback);
         Assert.Equal(OfficeVisualMediaFormat.Png, result.PlacementFormat);
-        OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(result.Report.FidelityDiagnostics);
+        OfficeDiagnostic diagnostic = Assert.Single(result.Report.Diagnostics);
         Assert.Equal("SVG_RASTER_FALLBACK", diagnostic.Code);
         Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
     }
 
     [Fact]
@@ -267,12 +267,12 @@ public sealed partial class OfficeVisualIntegrationTests {
             }
 
             using (ExcelDocument workbook = ExcelDocument.Create(excelPath)) {
-                ExcelSheet sheet = workbook.AddWorksheet("Dashboard");
+                ExcelSheet sheet = workbook.AddSheet("Dashboard");
                 sheet.AddVisualArtifact(2, 2, visual);
                 workbook.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(powerPointPath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(powerPointPath)) {
                 presentation.AddSlide().AddVisualArtifact(visual, 36D, 54D);
                 presentation.Save();
             }
@@ -286,13 +286,13 @@ public sealed partial class OfficeVisualIntegrationTests {
             using (ExcelDocument workbook = ExcelDocument.Load(excelPath)) {
                 Assert.Single(workbook.Sheets[0].Images);
             }
-            using (PowerPointPresentation presentation = PowerPointPresentation.Load(powerPointPath)) {
-                Assert.Single(presentation.Slides[0].Pictures);
+            using (PowerPointDocument presentation = PowerPointDocument.Load(powerPointPath)) {
+                Assert.Single(presentation.Slides[0].Images);
             }
             byte[] pdf = File.ReadAllBytes(pdfPath);
             Assert.True(pdf.Length > 100);
             Assert.Equal("%PDF", System.Text.Encoding.ASCII.GetString(pdf, 0, 4));
-            Assert.Single(PdfReadDocument.Open(pdf).Pages);
+            Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(pdf)).Pages);
         } finally {
             if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
         }
@@ -303,11 +303,11 @@ public sealed partial class OfficeVisualIntegrationTests {
         OfficeVisualConversionResult visual = CreateArtifact().ToOfficeVisual(new OfficeVisualConversionOptions {
             WidthPoints = 300D
         });
-        var style = new PdfDrawingStyle { SpacingBefore = 6D };
+        var style = new PdfDrawingStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(6D) };
 
         byte[] pdf = PdfDocument.Create(
                 _ => { },
-                new PdfOptions { CompressContentStreams = false }.EnableTaggedPdfCatalogMarkers())
+                new PdfCreateOptions { CompressContentStreams = false }.EnableTaggedPdfCatalogMarkers())
             .AddVisualArtifact(visual, style: style)
             .ToBytes();
         string content = Encoding.ASCII.GetString(pdf);
@@ -327,8 +327,8 @@ public sealed partial class OfficeVisualIntegrationTests {
 
         byte[] pdf = PdfDocument.Create(
                 _ => { },
-                new PdfOptions { CompressContentStreams = false }.EnableTaggedPdfCatalogMarkers())
-            .AddVisualArtifact(visual, style: new PdfDrawingStyle { SpacingBefore = 6D })
+                new PdfCreateOptions { CompressContentStreams = false }.EnableTaggedPdfCatalogMarkers())
+            .AddVisualArtifact(visual, style: new PdfDrawingStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(6D) })
             .ToBytes();
         string content = Encoding.ASCII.GetString(pdf);
 
@@ -339,24 +339,24 @@ public sealed partial class OfficeVisualIntegrationTests {
     }
 
     [Fact]
-    public void DecorativeArtifactMarksPowerPointPictureWithoutInformativeMetadata() {
+    public void DecorativeArtifactMarksPowerPointImageWithoutInformativeMetadata() {
         VisualArtifact artifact = CreateArtifact();
         artifact.Accessibility.AsDecorative();
         OfficeVisualConversionResult visual = artifact.ToOfficeVisual(new OfficeVisualConversionOptions { WidthPoints = 300D });
         string path = Path.Combine(Path.GetTempPath(), "OfficeIMO-ChartForgeX-decorative-" + Guid.NewGuid().ToString("N") + ".pptx");
         string wordPath = Path.ChangeExtension(path, ".docx");
         try {
-            using var presentation = PowerPointPresentation.Create(path);
-            PowerPointPicture picture = presentation.AddSlide().AddVisualArtifact(visual, 36D, 54D);
+            using var presentation = PowerPointDocument.Create(path);
+            PowerPointImage picture = presentation.AddSlide().AddVisualArtifact(visual, 36D, 54D);
 
             Assert.True(picture.Decorative);
             Assert.Null(picture.Title);
-            Assert.Null(picture.Description);
+            Assert.Null(picture.AltText);
 
             using var document = WordDocument.Create(wordPath);
             WordImage image = document.AddParagraph().AddVisualArtifact(visual);
             Assert.Null(image.Title);
-            Assert.True(string.IsNullOrEmpty(image.Description));
+            Assert.True(string.IsNullOrEmpty(image.AltText));
         } finally {
             if (File.Exists(path)) File.Delete(path);
             if (File.Exists(wordPath)) File.Delete(wordPath);
@@ -368,21 +368,21 @@ public sealed partial class OfficeVisualIntegrationTests {
         OfficeVisualConversionResult visual = CreateArtifact().ToOfficeVisual(new OfficeVisualConversionOptions { WidthPoints = 300D });
         string path = Path.Combine(Path.GetTempPath(), "OfficeIMO-ChartForgeX-placement-" + Guid.NewGuid().ToString("N") + ".pptx");
         try {
-            using (var presentation = PowerPointPresentation.Create(path)) {
+            using (var presentation = PowerPointDocument.Create(path)) {
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointPicture first = slide.AddVisualArtifact(visual, -24D, -12D);
-                PowerPointPicture second = slide.AddVisualArtifact(visual, 36D, 54D);
+                PowerPointImage first = slide.AddVisualArtifact(visual, -24D, -12D);
+                PowerPointImage second = slide.AddVisualArtifact(visual, 36D, 54D);
 
                 Assert.NotEqual(first.Name, second.Name);
                 Assert.Throws<ArgumentOutOfRangeException>(() => slide.AddVisualArtifact(visual, double.NaN, 0D));
                 presentation.Save();
             }
 
-            using PowerPointPresentation loaded = PowerPointPresentation.Load(path);
-            PowerPointPicture[] pictures = loaded.Slides[0].Pictures.ToArray();
+            using PowerPointDocument loaded = PowerPointDocument.Load(path);
+            PowerPointImage[] pictures = loaded.Slides[0].Images.ToArray();
             Assert.Equal(2, pictures.Length);
-            Assert.Equal(-24D, pictures[0].LeftPoints, 6);
-            Assert.Equal(-12D, pictures[0].TopPoints, 6);
+            Assert.Equal(-24D, pictures[0].Left.ToPoints(), 6);
+            Assert.Equal(-12D, pictures[0].Top.ToPoints(), 6);
             Assert.False(string.IsNullOrWhiteSpace(pictures[0].Name));
             Assert.False(string.IsNullOrWhiteSpace(pictures[1].Name));
             Assert.NotEqual(pictures[0].Name, pictures[1].Name);
@@ -397,7 +397,7 @@ public sealed partial class OfficeVisualIntegrationTests {
         string path = Path.Combine(Path.GetTempPath(), "OfficeIMO-ChartForgeX-excel-placement-" + Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (var workbook = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = workbook.AddWorksheet("Dashboard");
+                ExcelSheet sheet = workbook.AddSheet("Dashboard");
                 ExcelImage first = sheet.AddVisualArtifact(2, 2, visual);
                 ExcelImage second = sheet.AddVisualArtifact(20, 2, visual);
 
@@ -427,12 +427,12 @@ public sealed partial class OfficeVisualIntegrationTests {
             Assert.Contains(preserved.Drawing.Elements, element => element is OfficeDrawingEffectGroup);
             OfficeRasterImage expected = OfficeDrawingRasterRenderer.Render(preserved.Drawing, scale: 96D / 72D);
 
-            byte[] pdf = PdfDocument.Create(_ => { }, new PdfOptions { CompressContentStreams = false })
+            byte[] pdf = PdfDocument.Create(_ => { }, new PdfCreateOptions { CompressContentStreams = false })
                 .AddVisualArtifact(preserved)
                 .ToBytes();
             Assert.Equal("%PDF", Encoding.ASCII.GetString(pdf, 0, 4));
             Assert.Contains("/Subtype /Image", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
-            PdfExtractedImage embedded = Assert.Single(PdfDocument.Load(pdf).Images.Extract());
+            PdfExtractedImage embedded = Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(pdf)).Images.Extract());
             Assert.True(OfficeRasterImageDecoder.TryDecode(embedded.Bytes, out OfficeRasterImage? actual));
             Assert.NotNull(actual);
             Assert.Equal(expected.Width, actual!.Width);
@@ -459,7 +459,7 @@ public sealed partial class OfficeVisualIntegrationTests {
         Assert.Contains(
             visual.Drawing.Elements,
             element => element is OfficeDrawingGroup || element is OfficeDrawingEffectGroup);
-        byte[] pdf = PdfDocument.Create(_ => { }, new PdfOptions { CompressContentStreams = false })
+        byte[] pdf = PdfDocument.Create(_ => { }, new PdfCreateOptions { CompressContentStreams = false })
             .AddVisualArtifact(visual)
             .ToBytes();
         Assert.Equal("%PDF", Encoding.ASCII.GetString(pdf, 0, 4));

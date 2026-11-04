@@ -17,8 +17,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Independent_Pages_sizing_declarations_become_minimum_DOCX_heights() {
         using var manifest = JsonDocument.Parse(File.ReadAllText(CorpusFixture("pages-table-sizing.json")));
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(CorpusFixture("picodocs/sample-v14.4.pages"),
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(CorpusFixture("picodocs/sample-v14.4.pages"), IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
         var expected = manifest.RootElement.GetProperty("tables").EnumerateArray().ToArray();
         Assert.Equal(expected.Length, result.Projection.Tables.Count);
@@ -34,7 +33,7 @@ public sealed partial class IWorkBoundaryTests {
                 int number = row.GetProperty("row").GetInt32();
                 double height = row.GetProperty("heightPoints").GetDouble();
                 Assert.Equal(height, table.GetRowHeight(number));
-                Assert.Equal((int)Math.Round(height * 20), reopened.Tables[position].Rows[number - 1].MinimumHeight);
+                Assert.Equal((int)Math.Round(height * 20), checked((int?)(reopened.Tables[position].Rows[number - 1].MinimumHeight?.ToTwips())));
             }
         }
         Assert.DoesNotContain(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_ROW_SIZING_UNSUPPORTED");
@@ -57,14 +56,14 @@ public sealed partial class IWorkBoundaryTests {
         };
         Assert.Equal(autoResize, table.AutoResizeRows);
         if (kind != IWorkDocumentKind.Pages) return;
-        using var result = source.ToWordDocumentResult();
+        using var result = source.ToWordResult();
         Assert.False(result.IsVisualFallback);
         using var saved = new MemoryStream();
         result.Value.Save(saved);
         saved.Position = 0;
         using var reopened = OfficeIMO.Word.WordDocument.Load(saved);
-        Assert.Equal(new[] { 405, 200, 600 }, reopened.Tables[0].RowHeight);
-        Assert.Equal(autoResize ? 405 : (int?)null, reopened.Tables[0].Rows[0].MinimumHeight);
+        Assert.Equal(new[] { 405, 200, 600 }, reopened.Tables[0].RowHeight.Select(height => checked((int)(height?.ToTwips() ?? 0))));
+        Assert.Equal(autoResize ? 405 : (int?)null, checked((int?)(reopened.Tables[0].Rows[0].MinimumHeight?.ToTwips())));
         saved.Position = 0;
         using var zip = new ZipArchive(saved, ZipArchiveMode.Read, leaveOpen: true);
         using Stream xml = zip.GetEntry("word/document.xml")!.Open();
@@ -114,8 +113,8 @@ public sealed partial class IWorkBoundaryTests {
                 ? Message(ReferenceField(3, 30), ReferenceField(3, 31)) : ReferenceField(3, 30),
             styleRecords: defect == "missing" ? Array.Empty<byte[]>() : new[] { style, TableSizingStyle(31, false) });
         IWorkSourceDocument source = IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaximumTextStyleInheritanceDepth = defect == "depth" ? 1 : 128 });
-        using var result = source.ToWordDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            new IWorkReadOptions { MaxTextStyleInheritanceDepth = defect == "depth" ? 1 : 128 });
+        using var result = source.ToWordResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.IsVisualFallback);
         Assert.Null(result.Projection.Tables[0].AutoResizeRows);
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_ROW_SIZING_UNSUPPORTED");

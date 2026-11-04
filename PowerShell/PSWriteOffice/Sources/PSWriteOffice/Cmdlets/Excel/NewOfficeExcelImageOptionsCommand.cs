@@ -17,7 +17,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 ///   <code>$options = New-OfficeExcelImageOptions -TargetDpi 144 -MaximumOutputWidth 1600
 /// Export-OfficeExcelChartImage -Path .\Workbook.xlsx -Worksheet Summary -ChartName Revenue -OutputPath .\Revenue.svg -Options $options</code>
 /// </example>
-[Cmdlet(VerbsCommon.New, "OfficeExcelImageOptions")]
+[Cmdlet(VerbsCommon.New, "OfficeExcelImageOptions", DefaultParameterSetName = "Default")]
 [OutputType(typeof(ExcelImageExportOptions))]
 public sealed class NewOfficeExcelImageOptionsCommand : OfficeImageOptionsCommandBase<ExcelImageExportOptions> {
     /// <summary>Show worksheet gridlines.</summary>

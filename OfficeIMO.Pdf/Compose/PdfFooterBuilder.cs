@@ -2,211 +2,106 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
-/// <summary>Footer builder (alignment, text, page number tokens).</summary>
+/// <summary>Footer builder. Forwards to the footer slots of <see cref="PdfPageSetup"/>.</summary>
 public sealed partial class PdfFooterBuilder {
-    private readonly PdfOptions _opts;
+    private readonly PdfCreateOptions _opts;
     private readonly PdfDocument _doc;
-    internal PdfFooterBuilder(PdfDocument doc, PdfOptions opts) { _doc = doc; _opts = opts; }
-    /// <summary>Sets footer alignment to the left.</summary>
-    public PdfFooterBuilder AlignLeft() { _opts.FooterAlign = PdfAlign.Left; return this; }
-    /// <summary>Sets footer alignment to the center.</summary>
-    public PdfFooterBuilder AlignCenter() { _opts.FooterAlign = PdfAlign.Center; return this; }
-    /// <summary>Sets footer alignment to the right.</summary>
-    public PdfFooterBuilder AlignRight() { _opts.FooterAlign = PdfAlign.Right; return this; }
-    /// <summary>Sets footer text color.</summary>
-    public PdfFooterBuilder Color(PdfColor color) { _opts.FooterTextColor = color; return this; }
-    /// <summary>Sets footer font.</summary>
-    public PdfFooterBuilder Font(PdfStandardFont font) { _opts.FooterFont = font; _opts.FooterFontFamily = null; return this; }
-    /// <summary>Uses a registered named font family for footer text.</summary>
-    public PdfFooterBuilder FontFamily(string familyName) { _opts.FooterFontFamily = familyName; return this; }
-    /// <summary>Sets footer font size in points.</summary>
-    public PdfFooterBuilder FontSize(double size) { Guard.Positive(size, nameof(size)); _opts.FooterFontSize = size; return this; }
-    /// <summary>Sets footer baseline offset below the bottom margin in points.</summary>
-    public PdfFooterBuilder Offset(double points) { Guard.NonNegative(points, nameof(points)); _opts.FooterOffsetY = points; return this; }
+    internal PdfFooterBuilder(PdfDocument doc, PdfCreateOptions opts) { _doc = doc; _opts = opts; }
+    private PdfHeaderFooter Running => _opts.PageSetup.Footer;
+    private PdfHeaderFooter FirstPage => _opts.PageSetup.FirstPageFooter;
+    private PdfHeaderFooter EvenPages => _opts.PageSetup.EvenPageFooter;
+
+    /// <summary>Sets <see cref="PdfHeaderFooter.Alignment"/> of the footer text.</summary>
+    public PdfFooterBuilder Alignment(OfficeAlignment alignment) { Running.Alignment = alignment; return this; }
+    /// <summary>Sets <see cref="PdfHeaderFooter.Color"/> of the footer text.</summary>
+    public PdfFooterBuilder Color(global::OfficeIMO.OfficeColor color) { Running.Color = color; return this; }
+    /// <summary>Sets <see cref="PdfHeaderFooter.StandardFont"/> and clears <see cref="PdfHeaderFooter.FontFamily"/>.</summary>
+    public PdfFooterBuilder StandardFont(PdfStandardFont font) { Running.StandardFont = font; Running.FontFamily = null; return this; }
+    /// <summary>Sets <see cref="PdfHeaderFooter.FontFamily"/> to a registered named font family.</summary>
+    public PdfFooterBuilder FontFamily(string familyName) { Running.FontFamily = familyName; return this; }
+    /// <summary>Sets <see cref="PdfHeaderFooter.FontSize"/>.</summary>
+    public PdfFooterBuilder FontSize(global::OfficeIMO.OfficeLength size) { Guard.Positive(size.ToPoints(), nameof(size)); Running.FontSize = size; return this; }
+    /// <summary>Sets <see cref="PdfHeaderFooter.Offset"/>, the baseline distance below the bottom margin.</summary>
+    public PdfFooterBuilder Offset(global::OfficeIMO.OfficeLength offset) { Guard.NonNegative(offset.ToPoints(), nameof(offset)); Running.Offset = offset; return this; }
     /// <summary>Renders the current page number in the footer.</summary>
-    public PdfFooterBuilder PageNumber() { _opts.ClearFooterSegmentsForCompose(); _opts.ClearFooterZonesForCompose(); _opts.ShowPageNumbers = true; _opts.FooterFormat = "{page}"; return this; }
+    public PdfFooterBuilder PageNumber() => Text("{page}");
     /// <summary>Renders the current page number and total pages in the footer.</summary>
-    public PdfFooterBuilder PageNumberWithTotal() { _opts.ClearFooterSegmentsForCompose(); _opts.ClearFooterZonesForCompose(); _opts.ShowPageNumbers = true; _opts.FooterFormat = "{page}/{pages}"; return this; }
+    public PdfFooterBuilder PageNumberWithTotal() => Text("{page}/{pages}");
     /// <summary>Renders left, center, and right footer zones on one line. Supports {page} and {pages}.</summary>
-    public PdfFooterBuilder Zones(string? left, string? center, string? right) {
-        _opts.SetFooterZonesForCompose(left, center, right);
-        return this;
-    }
+    public PdfFooterBuilder Zones(string? left, string? center, string? right) { Running.SetZones(left, center, right); return this; }
     /// <summary>Renders independently styled left, center, and right footer zones on one line.</summary>
-    public PdfFooterBuilder StyledZones(System.Action<FooterTextBuilder>? left, System.Action<FooterTextBuilder>? center, System.Action<FooterTextBuilder>? right) {
-        _opts.SetFooterZoneSegmentsForCompose(BuildZone(left), BuildZone(center), BuildZone(right));
+    public PdfFooterBuilder StyledZones(System.Action<PdfFooterTextBuilder>? left, System.Action<PdfFooterTextBuilder>? center, System.Action<PdfFooterTextBuilder>? right) {
+        Running.SetStyledZones(BuildSegments(left), BuildSegments(center), BuildSegments(right));
         return this;
     }
     /// <summary>Renders page-1-only left, center, and right footer zones. Supports {page} and {pages}.</summary>
-    public PdfFooterBuilder FirstPageZones(string? left, string? center, string? right) {
-        _opts.SetFirstPageFooterZonesForCompose(left, center, right);
-        return this;
-    }
+    public PdfFooterBuilder FirstPageZones(string? left, string? center, string? right) { FirstPage.SetZones(left, center, right); return this; }
     /// <summary>Renders independently styled page-1-only footer zones.</summary>
-    public PdfFooterBuilder FirstPageStyledZones(System.Action<FooterTextBuilder>? left, System.Action<FooterTextBuilder>? center, System.Action<FooterTextBuilder>? right) {
-        _opts.SetFirstPageFooterZoneSegmentsForCompose(BuildZone(left), BuildZone(center), BuildZone(right));
+    public PdfFooterBuilder FirstPageStyledZones(System.Action<PdfFooterTextBuilder>? left, System.Action<PdfFooterTextBuilder>? center, System.Action<PdfFooterTextBuilder>? right) {
+        FirstPage.SetStyledZones(BuildSegments(left), BuildSegments(center), BuildSegments(right));
         return this;
     }
     /// <summary>Renders even-page-only left, center, and right footer zones. Supports {page} and {pages}.</summary>
-    public PdfFooterBuilder EvenPagesZones(string? left, string? center, string? right) {
-        _opts.SetEvenPageFooterZonesForCompose(left, center, right);
-        return this;
-    }
+    public PdfFooterBuilder EvenPagesZones(string? left, string? center, string? right) { EvenPages.SetZones(left, center, right); return this; }
     /// <summary>Renders independently styled even-page-only footer zones.</summary>
-    public PdfFooterBuilder EvenPagesStyledZones(System.Action<FooterTextBuilder>? left, System.Action<FooterTextBuilder>? center, System.Action<FooterTextBuilder>? right) {
-        _opts.SetEvenPageFooterZoneSegmentsForCompose(BuildZone(left), BuildZone(center), BuildZone(right));
+    public PdfFooterBuilder EvenPagesStyledZones(System.Action<PdfFooterTextBuilder>? left, System.Action<PdfFooterTextBuilder>? center, System.Action<PdfFooterTextBuilder>? right) {
+        EvenPages.SetStyledZones(BuildSegments(left), BuildSegments(center), BuildSegments(right));
         return this;
     }
 
-    private static System.Collections.Generic.List<FooterSegment>? BuildZone(System.Action<FooterTextBuilder>? build) {
+    private static System.Collections.Generic.List<PdfFooterSegment>? BuildSegments(System.Action<PdfFooterTextBuilder>? build) {
         if (build == null) return null;
-        var segments = new System.Collections.Generic.List<FooterSegment>();
-        build(new FooterTextBuilder(segments));
+        var segments = new System.Collections.Generic.List<PdfFooterSegment>();
+        build(new PdfFooterTextBuilder(segments));
         return segments;
     }
 
     /// <summary>Adds an image to the running footer.</summary>
-    public PdfFooterBuilder Image(PdfHeaderFooterImage image) {
-        Guard.NotNull(image, nameof(image));
-        _opts.AddFooterImageForCompose(image);
-        return this;
-    }
-
+    public PdfFooterBuilder Image(PdfHeaderFooterImage image) { Running.AddImage(image); return this; }
     /// <summary>Adds an image with its reusable style to the page-1-only footer.</summary>
-    public PdfFooterBuilder FirstPageImage(PdfHeaderFooterImage image) {
-        Guard.NotNull(image, nameof(image));
-        _opts.AddFirstPageFooterImageForCompose(image);
-        return this;
-    }
-
+    public PdfFooterBuilder FirstPageImage(PdfHeaderFooterImage image) { FirstPage.AddImage(image); return this; }
     /// <summary>Adds an image with its reusable style to the even-page-only footer.</summary>
-    public PdfFooterBuilder EvenPagesImage(PdfHeaderFooterImage image) {
-        Guard.NotNull(image, nameof(image));
-        _opts.AddEvenPageFooterImageForCompose(image);
-        return this;
-    }
-
-    /// <summary>Adds an image to the running footer.</summary>
-    public PdfFooterBuilder Image(byte[] data, double width, double height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch) =>
-        Image(data, width, height, align, fit, alternativeText: null);
+    public PdfFooterBuilder EvenPagesImage(PdfHeaderFooterImage image) { EvenPages.AddImage(image); return this; }
 
     /// <summary>Adds a meaningful image to the running footer with alternate text.</summary>
-    public PdfFooterBuilder Image(byte[] data, double width, double height, string? alternativeText) =>
-        Image(data, width, height, PdfAlign.Left, OfficeImageFit.Stretch, alternativeText);
-
+    public PdfFooterBuilder Image(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, string? alternativeText) =>
+        Image(data, width, height, OfficeAlignment.Left, OfficeImageFit.Stretch, alternativeText);
     /// <summary>Adds an image to the running footer.</summary>
-    public PdfFooterBuilder Image(byte[] data, double width, double height, PdfAlign align, OfficeImageFit fit, string? alternativeText) {
-        _opts.AddFooterImageForCompose(new PdfHeaderFooterImage(data, width, height, align, fit, alternativeText));
-        return this;
-    }
-
-    /// <summary>Adds an image to the page-1-only footer.</summary>
-    public PdfFooterBuilder FirstPageImage(byte[] data, double width, double height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch) =>
-        FirstPageImage(data, width, height, align, fit, alternativeText: null);
-
+    public PdfFooterBuilder Image(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, OfficeAlignment align = OfficeAlignment.Left, OfficeImageFit fit = OfficeImageFit.Stretch, string? alternativeText = null) =>
+        Image(new PdfHeaderFooterImage(data, width, height, align, fit, alternativeText));
     /// <summary>Adds a meaningful image to the page-1-only footer with alternate text.</summary>
-    public PdfFooterBuilder FirstPageImage(byte[] data, double width, double height, string? alternativeText) =>
-        FirstPageImage(data, width, height, PdfAlign.Left, OfficeImageFit.Stretch, alternativeText);
-
+    public PdfFooterBuilder FirstPageImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, string? alternativeText) =>
+        FirstPageImage(data, width, height, OfficeAlignment.Left, OfficeImageFit.Stretch, alternativeText);
     /// <summary>Adds an image to the page-1-only footer.</summary>
-    public PdfFooterBuilder FirstPageImage(byte[] data, double width, double height, PdfAlign align, OfficeImageFit fit, string? alternativeText) {
-        _opts.AddFirstPageFooterImageForCompose(new PdfHeaderFooterImage(data, width, height, align, fit, alternativeText));
-        return this;
-    }
-
-    /// <summary>Adds an image to the even-page-only footer.</summary>
-    public PdfFooterBuilder EvenPagesImage(byte[] data, double width, double height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch) =>
-        EvenPagesImage(data, width, height, align, fit, alternativeText: null);
-
+    public PdfFooterBuilder FirstPageImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, OfficeAlignment align = OfficeAlignment.Left, OfficeImageFit fit = OfficeImageFit.Stretch, string? alternativeText = null) =>
+        FirstPageImage(new PdfHeaderFooterImage(data, width, height, align, fit, alternativeText));
     /// <summary>Adds a meaningful image to the even-page-only footer with alternate text.</summary>
-    public PdfFooterBuilder EvenPagesImage(byte[] data, double width, double height, string? alternativeText) =>
-        EvenPagesImage(data, width, height, PdfAlign.Left, OfficeImageFit.Stretch, alternativeText);
-
+    public PdfFooterBuilder EvenPagesImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, string? alternativeText) =>
+        EvenPagesImage(data, width, height, OfficeAlignment.Left, OfficeImageFit.Stretch, alternativeText);
     /// <summary>Adds an image to the even-page-only footer.</summary>
-    public PdfFooterBuilder EvenPagesImage(byte[] data, double width, double height, PdfAlign align, OfficeImageFit fit, string? alternativeText) {
-        _opts.AddEvenPageFooterImageForCompose(new PdfHeaderFooterImage(data, width, height, align, fit, alternativeText));
-        return this;
-    }
+    public PdfFooterBuilder EvenPagesImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, OfficeAlignment align = OfficeAlignment.Left, OfficeImageFit fit = OfficeImageFit.Stretch, string? alternativeText = null) =>
+        EvenPagesImage(new PdfHeaderFooterImage(data, width, height, align, fit, alternativeText));
 
     /// <summary>Adds a shape to the running footer.</summary>
-    public PdfFooterBuilder Shape(OfficeShape shape, PdfAlign align = PdfAlign.Left) {
-        _opts.AddFooterShapeForCompose(new PdfHeaderFooterShape(shape, align));
-        return this;
-    }
-
+    public PdfFooterBuilder Shape(OfficeShape shape, OfficeAlignment align = OfficeAlignment.Left) { Running.AddShape(new PdfHeaderFooterShape(shape, align)); return this; }
     /// <summary>Adds a shape to the page-1-only footer.</summary>
-    public PdfFooterBuilder FirstPageShape(OfficeShape shape, PdfAlign align = PdfAlign.Left) {
-        _opts.AddFirstPageFooterShapeForCompose(new PdfHeaderFooterShape(shape, align));
-        return this;
-    }
-
+    public PdfFooterBuilder FirstPageShape(OfficeShape shape, OfficeAlignment align = OfficeAlignment.Left) { FirstPage.AddShape(new PdfHeaderFooterShape(shape, align)); return this; }
     /// <summary>Adds a shape to the even-page-only footer.</summary>
-    public PdfFooterBuilder EvenPagesShape(OfficeShape shape, PdfAlign align = PdfAlign.Left) {
-        _opts.AddEvenPageFooterShapeForCompose(new PdfHeaderFooterShape(shape, align));
-        return this;
-    }
+    public PdfFooterBuilder EvenPagesShape(OfficeShape shape, OfficeAlignment align = OfficeAlignment.Left) { EvenPages.AddShape(new PdfHeaderFooterShape(shape, align)); return this; }
 
     /// <summary>Renders a literal footer text format. Supports {page} and {pages}.</summary>
-    public PdfFooterBuilder Text(string format) {
-        Guard.NotNull(format, nameof(format));
-        _opts.ClearFooterSegmentsForCompose();
-        _opts.ClearFooterZonesForCompose();
-        _opts.ShowPageNumbers = true;
-        _opts.FooterFormat = format;
-        return this;
-    }
-
-    /// <summary>Builds a custom footer from text and tokens.</summary>
+    public PdfFooterBuilder Text(string format) { Running.SetText(format); return this; }
+    /// <summary>Builds a custom footer from text and page tokens.</summary>
     /// <param name="build">Delegate to compose footer segments.</param>
-    public PdfFooterBuilder Text(System.Action<FooterTextBuilder> build) {
-        Guard.NotNull(build, nameof(build));
-        var segments = _opts.ResetFooterSegmentsForCompose();
-        _opts.ClearFooterZonesForCompose();
-        var b = new FooterTextBuilder(segments);
-        build(b);
-        _opts.ShowPageNumbers = true; // might be needed when builder inserts tokens
-        return this;
-    }
-
+    public PdfFooterBuilder Text(System.Action<PdfFooterTextBuilder> build) { Guard.NotNull(build, nameof(build)); Running.SetText(BuildSegments(build)!); return this; }
     /// <summary>Renders a page-1-only footer text format. Supports {page} and {pages}.</summary>
-    public PdfFooterBuilder FirstPageText(string format) {
-        Guard.NotNull(format, nameof(format));
-        _opts.ClearFirstPageFooterSegmentsForCompose();
-        _opts.ClearFirstPageFooterZonesForCompose();
-        _opts.DifferentFirstPageHeaderFooter = true;
-        _opts.FirstPageFooterFormat = format;
-        return this;
-    }
-
-    /// <summary>Builds a page-1-only footer from text and tokens.</summary>
+    public PdfFooterBuilder FirstPageText(string format) { FirstPage.SetText(format); return this; }
+    /// <summary>Builds a page-1-only footer from text and page tokens.</summary>
     /// <param name="build">Delegate to compose first-page footer segments.</param>
-    public PdfFooterBuilder FirstPageText(System.Action<FooterTextBuilder> build) {
-        Guard.NotNull(build, nameof(build));
-        var segments = _opts.ResetFirstPageFooterSegmentsForCompose();
-        _opts.ClearFirstPageFooterZonesForCompose();
-        var b = new FooterTextBuilder(segments);
-        build(b);
-        return this;
-    }
-
+    public PdfFooterBuilder FirstPageText(System.Action<PdfFooterTextBuilder> build) { Guard.NotNull(build, nameof(build)); FirstPage.SetText(BuildSegments(build)!); return this; }
     /// <summary>Renders an even-page-only footer text format. Supports {page} and {pages}.</summary>
-    public PdfFooterBuilder EvenPagesText(string format) {
-        Guard.NotNull(format, nameof(format));
-        _opts.ClearEvenPageFooterSegmentsForCompose();
-        _opts.ClearEvenPageFooterZonesForCompose();
-        _opts.DifferentOddAndEvenPagesHeaderFooter = true;
-        _opts.EvenPageFooterFormat = format;
-        return this;
-    }
-
-    /// <summary>Builds an even-page-only footer from text and tokens.</summary>
+    public PdfFooterBuilder EvenPagesText(string format) { EvenPages.SetText(format); return this; }
+    /// <summary>Builds an even-page-only footer from text and page tokens.</summary>
     /// <param name="build">Delegate to compose even-page footer segments.</param>
-    public PdfFooterBuilder EvenPagesText(System.Action<FooterTextBuilder> build) {
-        Guard.NotNull(build, nameof(build));
-        var segments = _opts.ResetEvenPageFooterSegmentsForCompose();
-        _opts.ClearEvenPageFooterZonesForCompose();
-        var b = new FooterTextBuilder(segments);
-        build(b);
-        return this;
-    }
+    public PdfFooterBuilder EvenPagesText(System.Action<PdfFooterTextBuilder> build) { Guard.NotNull(build, nameof(build)); EvenPages.SetText(BuildSegments(build)!); return this; }
 }

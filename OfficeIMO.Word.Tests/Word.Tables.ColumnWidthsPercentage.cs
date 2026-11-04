@@ -18,16 +18,16 @@ namespace OfficeIMO.Tests {
 
             using (var document = WordDocument.Load(filePath)) {
                 var table = document.Tables[0];
-                Assert.Equal(5000, table.Width);
-                Assert.Equal(WordTableWidthUnit.Pct, table.WidthType);
+                Assert.Equal(5000, table.Width?.ToNativeValue());
+                Assert.Equal(WordTableWidthKind.Percent, table.Width?.Kind);
 
-                Assert.Equal(500, table.Rows[0].Cells[0].Width);
-                Assert.Equal(1500, table.Rows[0].Cells[1].Width);
-                Assert.Equal(3000, table.Rows[0].Cells[2].Width);
+                Assert.Equal(500, table.Rows[0].Cells[0].Width?.ToNativeValue());
+                Assert.Equal(1500, table.Rows[0].Cells[1].Width?.ToNativeValue());
+                Assert.Equal(3000, table.Rows[0].Cells[2].Width?.ToNativeValue());
 
-                Assert.Equal(WordTableWidthUnit.Pct, table.Rows[0].Cells[0].WidthType);
-                Assert.Equal(WordTableWidthUnit.Pct, table.Rows[0].Cells[1].WidthType);
-                Assert.Equal(WordTableWidthUnit.Pct, table.Rows[0].Cells[2].WidthType);
+                Assert.Equal(WordTableWidthKind.Percent, table.Rows[0].Cells[0].Width?.Kind);
+                Assert.Equal(WordTableWidthKind.Percent, table.Rows[0].Cells[1].Width?.Kind);
+                Assert.Equal(WordTableWidthKind.Percent, table.Rows[0].Cells[2].Width?.Kind);
             }
         }
 
@@ -43,9 +43,9 @@ namespace OfficeIMO.Tests {
 
             using (var document = WordDocument.Load(filePath)) {
                 var table = document.Tables[0];
-                Assert.Equal(500, table.Rows[0].Cells[0].Width);
-                Assert.Equal(500, table.Rows[0].Cells[1].Width);
-                Assert.Equal(4000, table.Rows[0].Cells[2].Width);
+                Assert.Equal(500, table.Rows[0].Cells[0].Width?.ToNativeValue());
+                Assert.Equal(500, table.Rows[0].Cells[1].Width?.ToNativeValue());
+                Assert.Equal(4000, table.Rows[0].Cells[2].Width?.ToNativeValue());
             }
         }
 
@@ -74,9 +74,9 @@ namespace OfficeIMO.Tests {
             using (var document = WordDocument.Load(filePath)) {
                 var table = document.Tables[0];
 
-                Assert.Equal(1000, table.Rows[0].Cells[0].Width);
-                Assert.Equal(1500, table.Rows[0].Cells[1].Width);
-                Assert.Equal(2500, table.Rows[0].Cells[2].Width);
+                Assert.Equal(1000, table.Rows[0].Cells[0].Width?.ToNativeValue());
+                Assert.Equal(1500, table.Rows[0].Cells[1].Width?.ToNativeValue());
+                Assert.Equal(2500, table.Rows[0].Cells[2].Width?.ToNativeValue());
 
                 Assert.Equal(2, table.Rows[1].Cells.Count);
             }

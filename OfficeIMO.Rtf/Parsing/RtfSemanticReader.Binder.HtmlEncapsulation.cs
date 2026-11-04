@@ -99,6 +99,7 @@ internal static partial class RtfSemanticReader {
                             '~' => RtfTextDecoder.DecodeLiteral("\u00A0", state),
                             '_' => RtfTextDecoder.DecodeLiteral("\u2011", state),
                             '-' => RtfTextDecoder.DecodeLiteral("\u00AD", state),
+                            '\r' or '\n' => RtfTextDecoder.DecodeLiteral("\r\n", state),
                             _ => string.Empty
                         };
                     }

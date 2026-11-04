@@ -2,8 +2,6 @@
   <PropertyGroup>
     <Description>HTML converter for OfficeIMO.Excel - Export Excel workbooks and worksheets to semantic or visual review HTML.</Description>
     <PackageId>OfficeIMO.Excel.Html</PackageId>
-    <AssemblyName>OfficeIMO.Excel.Html</AssemblyName>
-    <AssemblyTitle>OfficeIMO.Excel.Html</AssemblyTitle>
     <VersionPrefix>3.5.3</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
@@ -50,5 +48,17 @@
   </ItemGroup>
 
   <ItemGroup>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\OfficeIMO.SharedSource\Charts\OfficeChartTypeName.cs" Link="SharedSource\Charts\OfficeChartTypeName.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Html.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Excel.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Workflows" />
+    <InternalsVisibleTo Include="OfficeIMO" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Html.EditableEvidence" />
   </ItemGroup>
 </Project>

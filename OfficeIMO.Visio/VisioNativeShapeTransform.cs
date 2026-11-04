@@ -26,13 +26,13 @@ internal readonly struct VisioNativeShapeTransform {
     internal OfficePoint LocalPoint(OfficePoint pagePoint) => Matrix.Invert().TransformPoint(pagePoint);
 
     internal static void MoveInPage(VisioShape shape, double deltaX, double deltaY) {
-        OfficePoint pin = new(shape.PinX, shape.PinY);
+        OfficePoint pin = new(shape.PinXInches, shape.PinYInches);
         if (shape.Parent != null) {
             VisioNativeShapeTransform parent = Create(shape.Parent);
             OfficePoint pagePin = parent.PagePoint(pin.X, pin.Y);
             pin = parent.LocalPoint(new OfficePoint(pagePin.X + deltaX, pagePin.Y + deltaY));
         } else pin = new OfficePoint(pin.X + deltaX, pin.Y + deltaY);
-        shape.PinX = pin.X; shape.PinY = pin.Y;
+        shape.PinXInches = pin.X; shape.PinYInches = pin.Y;
     }
 
     // Text remains readable when a shape or containing group is reflected. Each odd
@@ -51,10 +51,10 @@ internal readonly struct VisioNativeShapeTransform {
             reflected |= flipX || flipY;
             if (flipX != flipY) { textSign = -textSign; textRotation = -textRotation; }
             textRotation += current.Angle;
-            matrix = matrix.Then(OfficeTransform.Translate(-current.LocPinX, -current.LocPinY))
+            matrix = matrix.Then(OfficeTransform.Translate(-current.LocPinXInches, -current.LocPinYInches))
                 .Then(OfficeTransform.Scale(flipX ? -1 : 1, flipY ? -1 : 1))
                 .Then(OfficeTransform.RotateDegrees(OfficeGeometry.RadiansToDegrees(current.Angle)))
-                .Then(OfficeTransform.Translate(current.PinX, current.PinY));
+                .Then(OfficeTransform.Translate(current.PinXInches, current.PinYInches));
         }
         return new VisioNativeShapeTransform(matrix, ownX, ownY, reflected, textSign, textRotation);
     }

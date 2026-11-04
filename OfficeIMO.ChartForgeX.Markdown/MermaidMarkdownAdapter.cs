@@ -14,12 +14,12 @@ namespace OfficeIMO.ChartForgeX.Markdown;
 public static class MermaidMarkdownAdapter {
     /// <summary>Replaces successfully rendered Mermaid fences in place with embedded PNG images.</summary>
     /// <remarks>Nested fences and captions are preserved. Unsupported or invalid fences remain source blocks and report diagnostics.</remarks>
-    public static MarkdownDoc Materialize(MarkdownDoc document, Action<MarkupDiagnostic>? diagnostic = null) {
+    public static MarkdownDocument Materialize(MarkdownDocument document, Action<MarkupDiagnostic>? diagnostic = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         return document.Rewrite(new ImageRewriter(diagnostic));
     }
 
-    /// <summary>Creates a reusable reader transform for converters that accept MarkdownReaderOptions.</summary>
+    /// <summary>Creates a reusable reader transform for converters that accept MarkdownLoadOptions.</summary>
     public static IMarkdownDocumentTransform CreateTransform(Action<MarkupDiagnostic>? diagnostic = null) =>
         new ImageTransform(diagnostic);
 
@@ -77,7 +77,7 @@ public static class MermaidMarkdownAdapter {
         });
 
     private sealed class ImageTransform(Action<MarkupDiagnostic>? diagnostic) : IMarkdownDocumentTransform {
-        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) =>
+        public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) =>
             Materialize(document, diagnostic);
     }
 

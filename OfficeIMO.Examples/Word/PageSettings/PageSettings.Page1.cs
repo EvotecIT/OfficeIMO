@@ -13,19 +13,19 @@ internal static partial class PageSettings {
         string filePath = System.IO.Path.Combine(folderPath, "Document with PageSettings.docx");
         using (WordDocument document = WordDocument.Create(filePath)) {
             // this isn't really set - it just assumes the default is Portrait
-            Console.WriteLine("Default page orientation: " + document.PageSettings.Orientation);
-            Console.WriteLine("Default page orientation: " + document.PageOrientation);
+            Console.WriteLine("Default page orientation: " + document.PageSetup.Size.Orientation);
+            Console.WriteLine("Default page orientation: " + document.PageSetup.Orientation);
             // this sets the page orientation to proper value
-            document.PageOrientation = OfficePageOrientation.Portrait;
+            document.PageSetup.Orientation = OfficePageOrientation.Portrait;
 
-            Console.WriteLine("Page orientation 1: " + document.PageSettings.Orientation);
-            Console.WriteLine("Page orientation 1: " + document.PageOrientation);
+            Console.WriteLine("Page orientation 1: " + document.PageSetup.Size.Orientation);
+            Console.WriteLine("Page orientation 1: " + document.PageSetup.Orientation);
 
             // this sets the page orientation to proper value, using PageSettings
-            document.PageSettings.Orientation = OfficePageOrientation.Landscape;
+            document.PageSetup.Size.Orientation = OfficePageOrientation.Landscape;
 
-            Console.WriteLine("Page orientation 2: " + document.PageSettings.Orientation);
-            Console.WriteLine("Page orientation 2: " + document.PageOrientation);
+            Console.WriteLine("Page orientation 2: " + document.PageSetup.Size.Orientation);
+            Console.WriteLine("Page orientation 2: " + document.PageSetup.Orientation);
 
             document.Save();
             if (openWord) document.OpenInApplication();

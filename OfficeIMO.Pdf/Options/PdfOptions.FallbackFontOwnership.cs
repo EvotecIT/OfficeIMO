@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfOptions {
+public sealed partial class PdfCreateOptions {
     private HashSet<PdfStandardFont>? _fallbackOwnedFontFamilies;
     private HashSet<string>? _automaticFallbackOwnedNamedFamilyKeys;
 
@@ -10,7 +10,7 @@ public sealed partial class PdfOptions {
             _embeddedFonts?.Keys.Any(font => PdfStandardFontMapper.GetFontFamily(font) == normalized) == true;
     }
 
-    private void MergeResolvedFallbackFontMappingsFrom(PdfOptions nested) {
+    private void MergeResolvedFallbackFontMappingsFrom(PdfCreateOptions nested) {
         MergeResolvedNamedFallbackFontMappingsFrom(nested);
         if (nested._usedEmbeddedFallbackFontSlots == null || nested._fallbackOwnedFontFamilies == null) return;
         foreach (PdfStandardFont family in nested._usedEmbeddedFallbackFontSlots.OrderBy(value => value)) {
@@ -25,12 +25,13 @@ public sealed partial class PdfOptions {
                 if (IsEmbeddedFallbackFontFamilySlotUsed(family)
                     && TryGetEmbeddedStandardFont(font, out PdfEmbeddedFont? existing) && existing != null
                     && (!EmbeddedFontMatches(existing, embedded.DataSnapshot, embedded.FontName)
-                        || existing.SyntheticOblique != embedded.SyntheticOblique))
+                        || existing.SyntheticOblique != embedded.SyntheticOblique
+                        || existing.SyntheticBold != embedded.SyntheticBold))
                     throw new InvalidOperationException("Nested fallback fonts cannot replace a font family already used by the page.");
 
                 // The page resource owner needs the mapping, not only the child
                 // program's glyph usage. Immutable snapshots can be shared safely.
-                EmbedStandardFontSnapshot(font, embedded.DataSnapshot, embedded.FontName, embedded.SyntheticOblique);
+                EmbedStandardFontSnapshot(font, embedded.DataSnapshot, embedded.FontName, embedded.SyntheticOblique, embedded.SyntheticBold);
             }
             (_fallbackOwnedFontFamilies ??= new HashSet<PdfStandardFont>()).Add(family);
             MarkEmbeddedFallbackFontFamilySlotUsed(family);

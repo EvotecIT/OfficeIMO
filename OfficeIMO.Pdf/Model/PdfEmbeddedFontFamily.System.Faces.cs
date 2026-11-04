@@ -20,6 +20,7 @@ public sealed partial class PdfEmbeddedFontFamily {
         selected = null;
         if (string.IsNullOrWhiteSpace(familyName) || string.IsNullOrEmpty(text)) return false;
         string normalizedFamily = NormalizeFamilyKey(familyName);
+        if (normalizedFamily.Length == 0) return false;
         System.Lazy<OfficeFontFaceCollection?> collection;
         lock (SystemFaceCollectionsLock) {
             if (!SystemFaceCollections.TryGetValue(normalizedFamily, out collection!)) {
@@ -78,7 +79,8 @@ public sealed partial class PdfEmbeddedFontFamily {
 #endif
         string boundedFaceName = faceName.Length <= 32 ? faceName : faceName.Substring(0, 32);
         selected = new PdfEmbeddedFontFamily("OfficeIMO-SystemFace-" + boundedFaceName + "-" + programId, data,
-            hasPhysicalSlant: face.Descriptor.Slant != OfficeFontSlant.Normal);
+            hasPhysicalSlant: face.Descriptor.Slant != OfficeFontSlant.Normal,
+            hasPhysicalWeight: face.Descriptor.Weight >= 600).WithProgramFontNames();
         lock (SelectedSystemFacesLock) {
             if (SelectedSystemFaces.Count < MaxSelectedSystemFaces) SelectedSystemFaces[face] = selected;
         }
@@ -87,8 +89,10 @@ public sealed partial class PdfEmbeddedFontFamily {
 
     private static OfficeFontFaceCollection? LoadSystemFaceCollection(string familyName) {
         foreach (string candidate in OfficeSystemFontFamilyAliases.Expand(familyName)) {
+            string normalizedCandidate = NormalizeFamilyKey(candidate);
+            if (normalizedCandidate.Length == 0) continue;
             OfficeFontFaceCollection? faces = LoadSystemFaceCollection(candidate,
-                SystemFontIndex.Value.Find(NormalizeFamilyKey(candidate)));
+                SystemFontIndex.Value.Find(normalizedCandidate));
             if (faces == null) continue;
             if (!string.Equals(candidate, familyName, System.StringComparison.OrdinalIgnoreCase))
                 faces.AddAlias(familyName, candidate);
@@ -101,6 +105,7 @@ public sealed partial class PdfEmbeddedFontFamily {
         string familyName,
         System.Collections.Generic.IEnumerable<string> fontFiles) {
         string normalizedFamily = NormalizeFamilyKey(familyName);
+        if (normalizedFamily.Length == 0) return null;
         string[] acceptedPrefixes = BuildAcceptedFileNamePrefixes(normalizedFamily);
         var collection = new OfficeFontFaceCollection();
         var scores = new System.Collections.Generic.Dictionary<OfficeFontFaceDescriptor, int>();
@@ -111,6 +116,7 @@ public sealed partial class PdfEmbeddedFontFamily {
                     out System.Collections.Generic.List<SystemFontFaceCandidate>? candidates)
                 || candidates == null) continue;
             foreach (SystemFontFaceCandidate candidate in candidates) {
+                if (!HasUsableProgram(candidate.Data)) continue;
                 OfficeFontFaceDescriptor descriptor = ReadSystemFaceDescriptor(candidate);
                 if (scores.TryGetValue(descriptor, out int score) && score >= candidate.Score) continue;
                 if (collection.TryAdd(familyName, candidate.Data, descriptor)) scores[descriptor] = candidate.Score;

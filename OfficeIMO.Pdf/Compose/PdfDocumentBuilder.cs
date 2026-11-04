@@ -21,7 +21,7 @@ public sealed class PdfDocumentBuilder {
     /// Updates document-wide rendering, catalog, security, compliance, and attachment settings.
     /// This is primarily useful to adapters that compose a document incrementally after creation.
     /// </summary>
-    public PdfDocumentBuilder Settings(System.Action<PdfOptions> configure) {
+    public PdfDocumentBuilder Settings(System.Action<PdfCreateOptions> configure) {
         _doc.ConfigureSettings(configure);
         return this;
     }

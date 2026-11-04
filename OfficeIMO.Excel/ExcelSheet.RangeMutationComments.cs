@@ -111,10 +111,10 @@ namespace OfficeIMO.Excel {
                     || (long)values[4] + columnDelta < 0
                     || (long)values[2] + rowDelta < 0
                     || (long)values[6] + rowDelta < 0
-                    || (long)values[0] + columnDelta >= A1.MaxColumns
-                    || (long)values[4] + columnDelta >= A1.MaxColumns
-                    || (long)values[2] + rowDelta >= A1.MaxRows
-                    || (long)values[6] + rowDelta >= A1.MaxRows) {
+                    || (long)values[0] + columnDelta >= ExcelA1.MaxColumns
+                    || (long)values[4] + columnDelta >= ExcelA1.MaxColumns
+                    || (long)values[2] + rowDelta >= ExcelA1.MaxRows
+                    || (long)values[6] + rowDelta >= ExcelA1.MaxRows) {
                     throw new InvalidOperationException(
                         "Range move would place a legacy comment VML anchor outside worksheet limits.");
                 }

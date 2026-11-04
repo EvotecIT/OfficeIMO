@@ -3,6 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Simple link annotation read from a PDF page.
 /// </summary>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfLinkAnnotation {
     internal PdfLinkAnnotation(string uri, string? contents, double x1, double y1, double x2, double y2, int? pageNumber = null) {
         Guard.UriAction(uri, nameof(uri));
@@ -204,27 +205,30 @@ public sealed class PdfLinkAnnotation {
     /// <summary>Optional annotation contents metadata.</summary>
     public string? Contents { get; }
 
-    /// <summary>Left edge of the annotation rectangle in PDF points.</summary>
+    /// <summary>Left edge of the annotation rectangle in page user-space units.</summary>
     public double X1 { get; }
 
-    /// <summary>Bottom edge of the annotation rectangle in PDF points.</summary>
+    /// <summary>Bottom edge of the annotation rectangle in page user-space units.</summary>
     public double Y1 { get; }
 
-    /// <summary>Right edge of the annotation rectangle in PDF points.</summary>
+    /// <summary>Right edge of the annotation rectangle in page user-space units.</summary>
     public double X2 { get; }
 
-    /// <summary>Top edge of the annotation rectangle in PDF points.</summary>
+    /// <summary>Top edge of the annotation rectangle in page user-space units.</summary>
     public double Y2 { get; }
 
-    /// <summary>Rectangle width in PDF points.</summary>
+    /// <summary>Rectangle width in page user-space units.</summary>
     public double Width => X2 - X1;
 
-    /// <summary>Rectangle height in PDF points.</summary>
+    /// <summary>Rectangle height in page user-space units.</summary>
     public double Height => Y2 - Y1;
 
+    /// <summary>Source identity used to exclude a reviewed annotation removal from preservation checks.</summary>
+    internal int? SourceObjectNumber { get; init; }
+
     internal PdfLinkAnnotation WithPageNumber(int pageNumber) =>
-        new PdfLinkAnnotation(Uri, DestinationName, Contents, X1, Y1, X2, Y2, pageNumber, DestinationPageNumber, DestinationPageObjectNumber, DestinationTop, DestinationMode, DestinationLeft, DestinationBottom, DestinationRight, NamedAction, RemoteFile, RemoteDestinationName, RemoteDestinationPageNumber, RemoteDestinationTop, RemoteDestinationMode, RemoteDestinationLeft, RemoteDestinationBottom, RemoteDestinationRight);
+        new PdfLinkAnnotation(Uri, DestinationName, Contents, X1, Y1, X2, Y2, pageNumber, DestinationPageNumber, DestinationPageObjectNumber, DestinationTop, DestinationMode, DestinationLeft, DestinationBottom, DestinationRight, NamedAction, RemoteFile, RemoteDestinationName, RemoteDestinationPageNumber, RemoteDestinationTop, RemoteDestinationMode, RemoteDestinationLeft, RemoteDestinationBottom, RemoteDestinationRight) { SourceObjectNumber = SourceObjectNumber };
 
     internal PdfLinkAnnotation WithDestinationPageNumber(int? destinationPageNumber) =>
-        new PdfLinkAnnotation(Uri, DestinationName, Contents, X1, Y1, X2, Y2, PageNumber, destinationPageNumber, DestinationPageObjectNumber, DestinationTop, DestinationMode, DestinationLeft, DestinationBottom, DestinationRight, NamedAction, RemoteFile, RemoteDestinationName, RemoteDestinationPageNumber, RemoteDestinationTop, RemoteDestinationMode, RemoteDestinationLeft, RemoteDestinationBottom, RemoteDestinationRight);
+        new PdfLinkAnnotation(Uri, DestinationName, Contents, X1, Y1, X2, Y2, PageNumber, destinationPageNumber, DestinationPageObjectNumber, DestinationTop, DestinationMode, DestinationLeft, DestinationBottom, DestinationRight, NamedAction, RemoteFile, RemoteDestinationName, RemoteDestinationPageNumber, RemoteDestinationTop, RemoteDestinationMode, RemoteDestinationLeft, RemoteDestinationBottom, RemoteDestinationRight) { SourceObjectNumber = SourceObjectNumber };
 }

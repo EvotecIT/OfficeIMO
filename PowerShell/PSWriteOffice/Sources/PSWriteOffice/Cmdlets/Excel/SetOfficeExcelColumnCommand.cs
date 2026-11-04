@@ -96,12 +96,12 @@ public sealed class SetOfficeExcelColumnCommand : PSWriteOffice.Cmdlets.OfficeMu
                 var value = PowerShellObjectNormalizer.NormalizeCellValueForTable(Values[i]) ?? string.Empty;
                 cells.Add((StartRow + i, columnIndex, value));
             }
-            sheet.CellValues(cells);
+            sheet.SetValues(cells);
             hasAction = true;
         }
 
         if (Width.HasValue) {
-            sheet.SetColumnWidth(columnIndex, Width.Value);
+            sheet.SetColumnWidth(columnIndex, ExcelColumnWidth.Characters(Width.Value));
             hasAction = true;
         }
 

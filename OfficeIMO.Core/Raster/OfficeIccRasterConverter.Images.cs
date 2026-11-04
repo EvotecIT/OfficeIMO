@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeIccRasterConverter {
@@ -23,6 +21,10 @@ public static partial class OfficeIccRasterConverter {
             return OfficeJpegXrDecoder.TryDecode(encoded, effective, out image, profile);
         }
         if (info.Format == OfficeImageFormat.Jpeg) {
+            // Identification accepts more SOF markers than this decoder. Reject multiple or
+            // unsupported frames before allocating from a different frame than the one admitted.
+            if (!OfficeImageReader.HasCompleteJpegPayload(encoded, effective.CancellationToken,
+                    requireManagedFrame: true, validateMetadata: false)) return false;
             // Reserve RGBA plus a possible oriented copy while JPEG budgets coefficients and samples.
             if (!OfficeJpegCodec.TryDecodeColorComponents(encoded, null, false, out var samples,
                     out int width, out int height, out int channels, cancellationToken: effective.CancellationToken,

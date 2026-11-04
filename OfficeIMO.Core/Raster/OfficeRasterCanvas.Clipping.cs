@@ -1,10 +1,23 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace OfficeIMO.Drawing;
 
 public sealed partial class OfficeRasterCanvas {
     private OfficeRasterClipRegion? _clipRegion;
+    private ClipWorkBudget _clipWorkBudget = new ClipWorkBudget();
+
+    private sealed class ClipWorkBudget {
+        internal long Maximum = 100_000_000L;
+        internal long Consumed;
+        internal void Charge(long edges) {
+            if (edges > Maximum - Consumed) throw new InvalidDataException("Raster clip edge work budget exceeded.");
+            Consumed += edges;
+        }
+    }
+
+    internal long MaximumClipEdgeChecks { get => _clipWorkBudget.Maximum; set => _clipWorkBudget.Maximum = value; }
 
     /// <summary>Whether the current clip can be applied per source-over child without repeating fractional coverage.</summary>
     internal bool HasBinaryClipCoverage =>
@@ -104,7 +117,9 @@ public sealed partial class OfficeRasterCanvas {
     /// <summary>Returns the clip coverage of a pixel in [0, 1].</summary>
     private double GetClipCoverage(int x, int y) {
         if (_clipRegion == null) return 1D;
-        return AntialiasedClipping ? _clipRegion.Coverage(this, x, y) : _clipRegion.Contains(x, y) ? 1D : 0D;
+        if (AntialiasedClipping) return _clipRegion.Coverage(this, x, y);
+        if (_clipRegion.EdgeCount > 0) _clipWorkBudget.Charge(_clipRegion.EdgeCount);
+        return _clipRegion.Contains(x, y) ? 1D : 0D;
     }
 
     /// <summary>
@@ -201,12 +216,17 @@ public sealed partial class OfficeRasterCanvas {
         private readonly IReadOnlyList<IReadOnlyList<OfficePoint>>? _contours;
         private readonly OfficeFillRule _fillRule;
         private readonly OfficeRasterClipRegion? _previous;
+        internal long EdgeCount { get; }
 
         private OfficeRasterClipRegion(OfficeRasterClipRectangle? rectangle, IReadOnlyList<IReadOnlyList<OfficePoint>>? contours, OfficeFillRule fillRule, OfficeRasterClipRegion? previous) {
             _rectangle = rectangle;
             _contours = contours;
             _fillRule = fillRule;
             _previous = previous;
+            long edges = previous?.EdgeCount ?? 0;
+            if (contours != null) foreach (IReadOnlyList<OfficePoint> contour in contours)
+                if (contour.Count >= 3) edges = checked(edges + contour.Count);
+            EdgeCount = edges;
         }
 
         internal static OfficeRasterClipRegion Rectangle(OfficeRasterClipRectangle rectangle, OfficeRasterClipRegion? previous) {

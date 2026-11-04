@@ -37,7 +37,7 @@ public sealed class AsciiDocDependencyGuardrailTests {
             if (start.Length == 0) continue;
             DirectoryInfo? directory = new DirectoryInfo(start);
             while (directory != null) {
-                if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.sln"))) return directory.FullName;
+                if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.slnx"))) return directory.FullName;
                 directory = directory.Parent;
             }
         }

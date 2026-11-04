@@ -8,23 +8,23 @@ internal sealed partial class PublisherNativeWriter {
     private readonly PublisherImportedResidue _imported;
     private readonly IReadOnlyDictionary<uint, PublisherEscherShape> _artwork;
     private readonly CancellationToken _token;
-    private readonly List<OfficeConversionFidelityDiagnostic> _diagnostics = new();
+    private readonly List<OfficeDiagnostic> _diagnostics = new();
     private readonly List<PublisherQuillStoryStyles> _styleDependencies = new();
     private readonly Dictionary<int, (uint Original, uint Replacement)> _patches = new();
     private byte[]? _quillBytes;
     private readonly OfficeLegacyImportLimits _sourceLimits;
-    private readonly PublisherReadOptions _sourceOptions;
+    private readonly PublisherLoadOptions _sourceOptions;
     private readonly long _maximumBytes;
 
     private PublisherNativeWriter(PublisherPublicationState current, PublisherImportedResidue imported,
-        PublisherReadOptions sourceOptions, long maximumBytes, CancellationToken token) {
+        PublisherLoadOptions sourceOptions, long maximumBytes, CancellationToken token) {
         _current = current; _baseline = imported.Baseline!; _imported = imported; _token = token;
         _sourceOptions = sourceOptions; _sourceLimits = sourceOptions.Limits; _maximumBytes = maximumBytes;
         _artwork = imported.Artwork.Shapes.ToDictionary(shape => shape.Id);
     }
 
     internal static PublisherNativePreparation Prepare(PublisherPublicationState current, PublisherImportedResidue? imported,
-        PublisherReadOptions sourceOptions, long maximumBytes, CancellationToken token) {
+        PublisherLoadOptions sourceOptions, long maximumBytes, CancellationToken token) {
         if (maximumBytes < 1 || maximumBytes > int.MaxValue) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
         token.ThrowIfCancellationRequested();
         if (imported?.NativeSource == null || imported.Baseline == null)
@@ -73,7 +73,7 @@ internal sealed partial class PublisherNativeWriter {
         }
         byte[] output = source.Rewrite(streams, maximumBytes, token);
         token.ThrowIfCancellationRequested();
-        var diagnostics = new List<OfficeConversionFidelityDiagnostic>(normalizations);
+        var diagnostics = new List<OfficeDiagnostic>(normalizations);
         if (writer._objectOrders.Count > 0) diagnostics.Add(Finding("PUB_NATIVE_OBJECT_ORDER_UNQUALIFIED",
             "Existing page objects were reordered as complete sibling OfficeArt records. Object identifiers, ownership, stories, image assets and unrelated records are retained. Grouped artwork remains outside this profile; native repair-free opening and broader rendering fidelity remain unassessed.",
             OfficeConversionLossKind.Unassessed, "Escher/EscherStm"));
@@ -131,8 +131,12 @@ internal sealed partial class PublisherNativeWriter {
         return new PublisherNativePreparation(output, diagnostics, writer._styleDependencies);
     }
 
-    private static OfficeConversionFidelityDiagnostic Finding(string code, string message, OfficeConversionLossKind kind, string location) =>
-        new(code, message, kind, "OfficeIMO.Publisher", location);
+    private static OfficeDiagnostic Finding(string code, string message, OfficeConversionLossKind kind, string location) =>
+        new(code, kind switch {
+            OfficeConversionLossKind.None => OfficeDiagnosticSeverity.Information,
+            OfficeConversionLossKind.Failure => OfficeDiagnosticSeverity.Error,
+            _ => OfficeDiagnosticSeverity.Warning
+        }, message, location, "OfficeIMO.Publisher", kind);
     private void Reject(string location, string message) =>
         _diagnostics.Add(Finding("PUB_NATIVE_EDIT_UNSUPPORTED", message, OfficeConversionLossKind.Failure, location));
 

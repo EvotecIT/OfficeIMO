@@ -30,18 +30,24 @@ public sealed partial class EpubPublication {
             if (section == null) throw new InvalidDataException("A subentry list requires an existing semantic index section.");
         } else throw new InvalidDataException("An index list must be directly inside a section or an index entry.");
         RequireCompatibleRole(section, "doc-index");
-        string owner = HtmlContentLinkOwner(content, RequireLocalPath(RequireManifestItem(manifestId)));
-        var documents = new Dictionary<string, XDocument>(StringComparer.Ordinal) { [manifestId] = content };
+        string contentPath = RequireLocalPath(RequireManifestItem(manifestId));
+        string owner = HtmlContentLinkOwner(content, contentPath);
+        var targetsByPath = new Dictionary<string, XDocument>(StringComparer.Ordinal) { [contentPath] = content };
         var entry = new XElement(Html + "li", new XAttribute("id", entryId), new XElement(Html + "span", term));
         for (int index = 0; index < locators.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             EpubIndexLocator locator = locators[index] ?? throw new ArgumentException("Index locators cannot contain null.", nameof(locators));
             RequireText(locator.ManifestId, nameof(locator.ManifestId)); RequireText(locator.Label, nameof(locator.Label));
             if (!Spine.Any(item => item.ManifestId == locator.ManifestId)) throw new InvalidDataException("Index locators must target spine documents.");
-            if (!documents.TryGetValue(locator.ManifestId, out XDocument? target)) {
-                target = EditableXhtml(locator.ManifestId); documents.Add(locator.ManifestId, target);
+            EpubManifestItem targetItem = RequireManifestItem(locator.ManifestId);
+            if (!HasMediaType(targetItem.MediaType, "application/xhtml+xml"))
+                throw new NotSupportedException("Semantic authoring requires XHTML content.");
+            string path = RequireLocalPath(targetItem);
+            if (_encryption.Any(encryption => encryption.Path == path))
+                throw new NotSupportedException("Encrypted content cannot be edited.");
+            if (!targetsByPath.TryGetValue(path, out XDocument? target)) {
+                target = EditableXhtml(locator.ManifestId); targetsByPath.Add(path, target);
             }
-            string path = RequireLocalPath(RequireManifestItem(locator.ManifestId));
             string href = RelativeHref(owner, path);
             if (locator.FragmentId != null) {
                 RequireText(locator.FragmentId, nameof(locator.FragmentId));

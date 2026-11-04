@@ -121,6 +121,7 @@ namespace OfficeIMO.Word {
                     TrySetSimpleRunText(run, value ?? string.Empty)) {
                     _visibleRun = null;
                     _visibleRunSourceChildren = null;
+                    ApplyDefaultTableNumberAlignment();
                     return;
                 }
 
@@ -258,6 +259,7 @@ namespace OfficeIMO.Word {
                 }
                 _visibleRun = null;
                 _visibleRunSourceChildren = null;
+                ApplyDefaultTableNumberAlignment();
             }
         }
 

@@ -39,7 +39,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(5, text.Length);
         Assert.Equal(10D, Assert.Single(text, item => item.Text == "Floating").Y, 3);
         Assert.Equal(110D, Assert.Single(text, item => item.Text == "Four").Y, 3);
-        Assert.DoesNotContain(rendered.Diagnostics, item => item.Severity == HtmlDiagnosticSeverity.Error);
+        Assert.DoesNotContain(rendered.NativeDiagnostics, item => item.Severity == HtmlDiagnosticSeverity.Error);
     }
 
     [Fact]
@@ -53,7 +53,7 @@ public sealed partial class HtmlRenderingTests {
         foreach (string marker in new[] { "Prelude", "One", "Floating", "Two", "Three", "Four" }) Assert.Single(all, item => item.Text == marker);
         Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), item => item.Text == "Floating");
         Assert.Equal(10D, Assert.Single(rendered.Pages[1].Visuals.OfType<HtmlRenderText>(), item => item.Text == "Floating").Y, 3);
-        Assert.DoesNotContain(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.ForcedFragment || item.Severity == HtmlDiagnosticSeverity.Error);
+        Assert.DoesNotContain(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.ForcedFragment || item.Severity == HtmlDiagnosticSeverity.Error);
         Assert.All(rendered.Pages, page => Assert.All(page.Visuals.OfType<HtmlRenderText>(), item => {
             Assert.True(item.Y >= 10D - 0.0001D);
             Assert.True(item.Y + item.Height <= 110D + 0.0001D);
@@ -78,7 +78,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(bottom.Y >= body.Y + body.Height);
         Assert.True(note.Y >= bottom.Y + bottom.Height);
         Assert.True(note.Y + note.Height <= 170D);
-        Assert.DoesNotContain(rendered.Diagnostics, item => item.Severity == HtmlDiagnosticSeverity.Error);
+        Assert.DoesNotContain(rendered.NativeDiagnostics, item => item.Severity == HtmlDiagnosticSeverity.Error);
     }
 
     [Fact]
@@ -108,7 +108,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderText>(), item => item.Text == "Floating" && item.Y == 10D);
         HtmlRenderText[] all = rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene)).OfType<HtmlRenderText>().ToArray();
         foreach (string marker in Enumerable.Range(1, 6).Select(i => "Line" + i).Append("Floating")) Assert.Single(all, item => item.Text == marker);
-        Assert.DoesNotContain(rendered.Diagnostics, item => item.Severity == HtmlDiagnosticSeverity.Error);
+        Assert.DoesNotContain(rendered.NativeDiagnostics, item => item.Severity == HtmlDiagnosticSeverity.Error);
     }
 
     [Fact]
@@ -122,7 +122,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(rendered.Pages[2].Visuals.OfType<HtmlRenderText>(), item => item.Text == "SecondFloat" && item.Y == 50D);
         HtmlRenderText[] all = rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().ToArray();
         foreach (string marker in new[] { "FirstFloat", "SecondFloat", "Body" }) Assert.Single(all, item => item.Text == marker);
-        Assert.DoesNotContain(rendered.Diagnostics, item => item.Severity == HtmlDiagnosticSeverity.Error);
+        Assert.DoesNotContain(rendered.NativeDiagnostics, item => item.Severity == HtmlDiagnosticSeverity.Error);
     }
 
     [Fact]
@@ -136,7 +136,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderText>(), item => item.Text == "Note");
         HtmlRenderText[] all = rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().ToArray();
         foreach (string marker in new[] { "Floating", "Note", "Body" }) Assert.Single(all, item => item.Text == marker);
-        Assert.DoesNotContain(rendered.Diagnostics, item => item.Severity == HtmlDiagnosticSeverity.Error);
+        Assert.DoesNotContain(rendered.NativeDiagnostics, item => item.Severity == HtmlDiagnosticSeverity.Error);
         Assert.All(rendered.Pages, page => Assert.All(page.Visuals.OfType<HtmlRenderText>(), item => Assert.True(item.Y + item.Height <= 110D + 0.0001D)));
     }
 
@@ -149,8 +149,8 @@ public sealed partial class HtmlRenderingTests {
             + "<p>Before <span style='float:" + side + ";float-reference:page;height:20px'>Floating </span>After</p>";
         HtmlRenderDocument rendered = RenderPageFloatFixture(html);
         Assert.Equal("Before Floating After", string.Join(" ", rendered.Text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)));
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new OfficeIMO.Html.Pdf.HtmlToPdfOptions { AutoFitWidePrintContent = false });
-        string text = OfficeIMO.Pdf.PdfReadDocument.Open(pdf).ExtractText();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new OfficeIMO.Html.Pdf.HtmlPdfExportOptions { AutoFitWidePrintContent = false })).ToBytes();
+        string text = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText();
         Assert.Equal("Before Floating After", string.Join(" ", text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)));
     }
 
@@ -162,8 +162,8 @@ public sealed partial class HtmlRenderingTests {
             + "<span style='-officeimo-pdf-tag-type:artifact'>Hidden </span>After</p><p>Last</p></section>";
         HtmlRenderDocument rendered = RenderPageFloatFixture(html);
         Assert.Equal("First Before Floating After Last", string.Join(" ", rendered.Text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)));
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions { AutoFitWidePrintContent = false });
-        string text = OfficeIMO.Pdf.PdfReadDocument.Open(pdf).ExtractText();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions { AutoFitWidePrintContent = false })).ToBytes();
+        string text = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText();
         Assert.Equal("First Before Floating After Last", string.Join(" ", text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)));
         var info = OfficeIMO.Pdf.PdfInspector.Inspect(pdf);
         Assert.Contains("https://example.test/before", info.LinkUris);
@@ -177,8 +177,8 @@ public sealed partial class HtmlRenderingTests {
             + "<span style='float:bottom;float-reference:page;height:20px'>Bottom </span>After</p>";
         HtmlRenderDocument rendered = RenderPageFloatFixture(html);
         Assert.Equal("Before Top Between Bottom After", string.Join(" ", rendered.Text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)));
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions { AutoFitWidePrintContent = false });
-        string text = OfficeIMO.Pdf.PdfReadDocument.Open(pdf).ExtractText();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions { AutoFitWidePrintContent = false })).ToBytes();
+        string text = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText();
         Assert.Equal("Before Top Between Bottom After", string.Join(" ", text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)));
     }
 
@@ -194,7 +194,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderText>(), item => item.Text == "SecondFloat" && item.Y == 50D);
         HtmlRenderText[] text = rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().ToArray();
         foreach (string marker in new[] { "FirstFloat", "SecondFloat", "Body", "End" }) Assert.Single(text, item => item.Text == marker);
-        Assert.DoesNotContain(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.ForcedFragment || item.Severity == HtmlDiagnosticSeverity.Error);
+        Assert.DoesNotContain(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.ForcedFragment || item.Severity == HtmlDiagnosticSeverity.Error);
     }
 
     [Fact]
@@ -219,6 +219,6 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText[] text = rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().ToArray();
         foreach (string marker in new[] { "Outer", "Inner", "End" }) Assert.Single(text, item => item.Text == marker);
         Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.FloatValueUnsupported);
-        Assert.DoesNotContain(rendered.Diagnostics, item => item.Severity == HtmlDiagnosticSeverity.Error);
+        Assert.DoesNotContain(rendered.NativeDiagnostics, item => item.Severity == HtmlDiagnosticSeverity.Error);
     }
 }

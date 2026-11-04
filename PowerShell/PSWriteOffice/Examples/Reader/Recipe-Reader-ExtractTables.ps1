@@ -5,11 +5,11 @@ $scores = @(
     [pscustomobject]@{ Service = 'Messaging'; Score = 94 }
 )
 
-MarkdownNew -Path $path {
+New-OfficeMarkdown -Path $path {
     MarkdownHeading -Level 1 -Text 'Service scores'
     MarkdownTable -InputObject $scores
 }
 
-Get-OfficeDocumentTable -Path $path
-Get-OfficeDocumentTable -Path $path -OutputDirectory $sidecars
-Get-OfficeDocumentChunk -Path $path
+Read-OfficeDocument -As Tables -Path $path
+Export-OfficeDocumentAsset -Type Table -Path $path -OutputDirectory $sidecars
+Read-OfficeDocument -As Chunks -Path $path

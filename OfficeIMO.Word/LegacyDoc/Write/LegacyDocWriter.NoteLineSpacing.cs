@@ -12,9 +12,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             if (styles == null) return properties;
             string? styleId = properties?.ParagraphStyleId?.Val?.Value ?? (noteKind == "footnote" ? "FootnoteText" : "EndnoteText");
             var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            Dictionary<string, Style> definitions = IndexStyles(styles);
             SpacingBetweenLines? inherited = null;
             while (!string.IsNullOrWhiteSpace(styleId) && visited.Add(styleId!)) {
-                Style? style = styles.Elements<Style>().FirstOrDefault(style => string.Equals(style.StyleId?.Value, styleId, StringComparison.OrdinalIgnoreCase));
+                if (visited.Count > MaxInheritedStyleDepth) throw new NotSupportedException("Native DOC saving does not support note paragraph style chains beyond 256 levels.");
+                definitions.TryGetValue(styleId!, out Style? style);
                 inherited = style?.StyleParagraphProperties?.SpacingBetweenLines;
                 if (!string.IsNullOrWhiteSpace(inherited?.Line?.Value)) break;
                 styleId = style?.BasedOn?.Val?.Value;

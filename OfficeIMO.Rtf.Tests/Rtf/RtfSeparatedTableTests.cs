@@ -15,7 +15,7 @@ public sealed class RtfSeparatedTableTests {
 \trowd\cellx2000\pard\intbl Outer second\cell\row
 \pard After planets\par}";
 
-        RtfDocument document = RtfDocument.Read(rtf).Document;
+        RtfDocument document = RtfDocument.ParseResult(rtf).Document;
 
         Assert.Equal(hasParagraph ? 4 : 3, document.Blocks.Count);
         AssertRows(Assert.IsType<RtfTable>(document.Blocks[0]), "Inner first", "Inner second");
@@ -23,7 +23,7 @@ public sealed class RtfSeparatedTableTests {
         if (hasParagraph) Assert.Equal("Between planets", Assert.IsType<RtfParagraph>(document.Blocks[1]).ToPlainText());
         AssertRows(Assert.IsType<RtfTable>(document.Blocks[secondTable]), "Outer first", "Outer second");
         Assert.Equal("After planets", Assert.IsType<RtfParagraph>(document.Blocks[secondTable + 1]).ToPlainText());
-        RtfDocument reopened = RtfDocument.Read(document.ToRtf()).Document;
+        RtfDocument reopened = RtfDocument.ParseResult(document.ToRtf()).Document;
         Assert.Equal(2, reopened.Blocks.OfType<RtfTable>().Count());
         if (hasParagraph) Assert.Equal("Between planets", Assert.IsType<RtfParagraph>(reopened.Blocks[1]).ToPlainText());
     }

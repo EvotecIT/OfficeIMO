@@ -60,7 +60,7 @@ internal static class RtfBenchmarkCorpus {
             if (index % 200 == 0) AddImage(document);
         }
 
-        return new RtfBenchmarkFixture(scale, document.ToRtf(new RtfWriteOptions { IncludeGenerator = false }), paragraphCount);
+        return new RtfBenchmarkFixture(scale, document.ToRtf(new RtfSaveOptions { IncludeGenerator = false }), paragraphCount);
     }
 
     private static void AddTable(RtfDocument document, int index) {

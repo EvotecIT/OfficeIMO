@@ -1,71 +1,17 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
-using OfficeColor = OfficeIMO.Drawing.OfficeColor;
+using OfficeColor = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
-        /// <summary>
-        /// Adds a conditional formatting rule to the specified range.
-        /// </summary>
-        /// <param name="range">A1-style range to apply the rule to.</param>
-        /// <param name="operator">Comparison operator for the rule.</param>
-        /// <param name="formula1">Primary formula or value.</param>
-        public void AddConditionalRule(string range, ExcelConditionalFormattingOperator @operator, string formula1) {
-            AddConditionalRule(range, @operator, formula1, null, null);
-        }
-
-        /// <summary>
-        /// Adds a conditional formatting rule to the specified range.
-        /// </summary>
-        /// <param name="range">A1-style range to apply the rule to.</param>
-        /// <param name="operator">Comparison operator for the rule.</param>
-        /// <param name="formula1">Primary formula or value.</param>
-        /// <param name="formula2">Optional secondary formula or value.</param>
-        public void AddConditionalRule(string range, ExcelConditionalFormattingOperator @operator, string formula1, string? formula2) {
-            AddConditionalRule(range, @operator, formula1, formula2, null);
-        }
-
-        /// <summary>
-        /// Adds a conditional formatting rule to the specified range.
-        /// </summary>
-        /// <param name="range">A1-style range to apply the rule to.</param>
-        /// <param name="operator">Comparison operator for the rule.</param>
-        /// <param name="formula1">Primary formula or value.</param>
-        /// <param name="formula2">Optional secondary formula or value.</param>
-        /// <param name="fillColor">Optional fill color applied when the condition is true.</param>
-        public void AddConditionalRule(string range, ExcelConditionalFormattingOperator @operator, string formula1, string? formula2 = null, string? fillColor = null) {
-            AddConditionalRule(range, @operator, formula1, formula2, fillColor, stopIfTrue: false, priority: null);
-        }
-
-        /// <summary>
-        /// Adds a conditional formatting rule to the specified range.
-        /// </summary>
-        /// <param name="range">A1-style range to apply the rule to.</param>
-        /// <param name="operator">Comparison operator for the rule.</param>
-        /// <param name="formula1">Primary formula or value.</param>
-        /// <param name="formula2">Optional secondary formula or value.</param>
-        /// <param name="stopIfTrue">Whether lower-priority rules should stop when this rule evaluates to true.</param>
-        /// <param name="priority">Optional explicit rule priority.</param>
-        public void AddConditionalRule(string range, ExcelConditionalFormattingOperator @operator, string formula1, string? formula2, bool stopIfTrue, int? priority = null) {
-            AddConditionalRule(range, @operator, formula1, formula2, fillColor: null, stopIfTrue, priority);
-        }
-
-        /// <summary>
-        /// Adds a conditional formatting rule to the specified range.
-        /// </summary>
-        /// <param name="range">A1-style range to apply the rule to.</param>
-        /// <param name="operator">Comparison operator for the rule.</param>
-        /// <param name="formula1">Primary formula or value.</param>
-        /// <param name="formula2">Optional secondary formula or value.</param>
-        /// <param name="fillColor">Optional fill color applied when the condition is true.</param>
-        /// <param name="stopIfTrue">Whether lower-priority rules should stop when this rule evaluates to true.</param>
-        /// <param name="priority">Optional explicit rule priority.</param>
-        public void AddConditionalRule(string range, ExcelConditionalFormattingOperator @operator, string formula1, string? formula2, string? fillColor, bool stopIfTrue = false, int? priority = null) {
+        /// <summary>Adds a cell-value comparison rule; authored through <see cref="ExcelRangeConditionalFormattingBuilder.CellIs"/>.</summary>
+        internal ExcelConditionalFormattingInfo CreateConditionalCellIsRule(string range, ExcelConditionalFormattingOperator @operator, string formula1, string? formula2, string? fillColor, bool stopIfTrue, int? priority) {
             if (string.IsNullOrEmpty(range)) {
                 throw new ArgumentNullException(nameof(range));
             }
 
             using var preserveDirectDataSet = _excelDocument.PreserveDirectDataSetSaveCandidateDuringDirtyMarks();
+            ExcelConditionalFormattingInfo? createdRule = null;
             WriteLockWorksheetPreparationOnly(() => {
                 _excelDocument.EnsureWorkbookThemeAndStyles();
                 Worksheet worksheet = WorksheetRoot;
@@ -92,36 +38,35 @@ namespace OfficeIMO.Excel {
 
                 conditionalFormatting.Append(rule);
                 InsertConditionalFormatting(conditionalFormatting);
+                createdRule = ReadConditionalFormattingInfo(rule, range,
+                    _excelDocument.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet, _excelDocument.WorkbookPartRoot);
 
             });
+            return createdRule!;
         }
 
-        private static string ConvertColor(OfficeColor color) {
-            return "FF" + color.ToRgbHex();
+        internal ExcelConditionalFormattingInfo CreateConditionalColorScale(string range, OfficeColor startColor, OfficeColor endColor) {
+            return CreateConditionalColorScaleCore(range, ExcelColor.ToSpreadsheetColor(startColor), ExcelColor.ToSpreadsheetColor(endColor));
         }
 
-        /// <summary>
-        /// Adds a two-color scale conditional format to a range.
-        /// </summary>
-        /// <param name="range">A1-style range to format.</param>
-        /// <param name="startColor">Starting color of the scale.</param>
-        /// <param name="endColor">Ending color of the scale.</param>
-        public void AddConditionalColorScale(string range, OfficeColor startColor, OfficeColor endColor) {
-            AddConditionalColorScale(range, ConvertColor(startColor), ConvertColor(endColor));
+        internal ExcelConditionalFormattingInfo CreateConditionalColorScale(string range, string startColor, string endColor) {
+            if (string.IsNullOrEmpty(range)) {
+                throw new ArgumentNullException(nameof(range));
+            }
+            return CreateConditionalColorScaleCore(range,
+                new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = NormalizeHexColor(startColor) },
+                new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = NormalizeHexColor(endColor) });
         }
 
-        /// <summary>
-        /// Adds a two-color scale conditional format to a range using hex colors.
-        /// </summary>
-        /// <param name="range">A1-style range to format.</param>
-        /// <param name="startColor">Starting color in hex (e.g. FF0000).</param>
-        /// <param name="endColor">Ending color in hex.</param>
-        public void AddConditionalColorScale(string range, string startColor, string endColor) {
+        /// <summary>Adds the native color-scale rule through the existing worksheet mutation path.</summary>
+        private ExcelConditionalFormattingInfo CreateConditionalColorScaleCore(string range,
+            DocumentFormat.OpenXml.Spreadsheet.Color startColor, DocumentFormat.OpenXml.Spreadsheet.Color endColor) {
             if (string.IsNullOrEmpty(range)) {
                 throw new ArgumentNullException(nameof(range));
             }
 
             using var preserveDirectDataSet = _excelDocument.PreserveDirectDataSetSaveCandidateDuringDirtyMarks();
+            ExcelConditionalFormattingInfo? createdRule = null;
             WriteLockWorksheetPreparationOnly(() => {
                 Worksheet worksheet = WorksheetRoot;
 
@@ -137,36 +82,40 @@ namespace OfficeIMO.Excel {
                 ColorScale colorScale = new ColorScale();
                 colorScale.Append(new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Min });
                 colorScale.Append(new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Max });
-                colorScale.Append(new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = startColor });
-                colorScale.Append(new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = endColor });
+                colorScale.Append(startColor);
+                colorScale.Append(endColor);
                 rule.Append(colorScale);
 
                 conditionalFormatting.Append(rule);
                 InsertConditionalFormatting(conditionalFormatting);
+                createdRule = ReadConditionalFormattingInfo(rule, range,
+                    _excelDocument.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet, _excelDocument.WorkbookPartRoot);
 
             });
+            return createdRule!;
         }
 
-        /// <summary>
-        /// Adds a data bar conditional format to a range.
-        /// </summary>
-        /// <param name="range">A1-style range to format.</param>
-        /// <param name="color">Bar color.</param>
-        public void AddConditionalDataBar(string range, OfficeColor color) {
-            AddConditionalDataBar(range, ConvertColor(color));
+        internal ExcelConditionalFormattingInfo CreateConditionalDataBar(string range, OfficeColor color) {
+            return CreateConditionalDataBarCore(range, ExcelColor.ToSpreadsheetColor(color));
         }
 
-        /// <summary>
-        /// Adds a data bar conditional format to a range using a hex color.
-        /// </summary>
-        /// <param name="range">A1-style range to format.</param>
-        /// <param name="color">Bar color in hex (e.g. FF0000).</param>
-        public void AddConditionalDataBar(string range, string color) {
+        internal ExcelConditionalFormattingInfo CreateConditionalDataBar(string range, string color) {
+            if (string.IsNullOrEmpty(range)) {
+                throw new ArgumentNullException(nameof(range));
+            }
+            return CreateConditionalDataBarCore(range,
+                new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = NormalizeHexColor(color) });
+        }
+
+        /// <summary>Adds the native data-bar rule through the existing worksheet mutation path.</summary>
+        private ExcelConditionalFormattingInfo CreateConditionalDataBarCore(string range,
+            DocumentFormat.OpenXml.Spreadsheet.Color color) {
             if (string.IsNullOrEmpty(range)) {
                 throw new ArgumentNullException(nameof(range));
             }
 
             using var preserveDirectDataSet = _excelDocument.PreserveDirectDataSetSaveCandidateDuringDirtyMarks();
+            ExcelConditionalFormattingInfo? createdRule = null;
             WriteLockWorksheetPreparationOnly(() => {
                 Worksheet worksheet = WorksheetRoot;
 
@@ -182,35 +131,27 @@ namespace OfficeIMO.Excel {
                 DataBar dataBar = new DataBar { ShowValue = true };
                 dataBar.Append(new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Min });
                 dataBar.Append(new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Max });
-                dataBar.Append(new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = color });
+                dataBar.Append(color);
                 rule.Append(dataBar);
 
                 conditionalFormatting.Append(rule);
                 InsertConditionalFormatting(conditionalFormatting);
+                createdRule = ReadConditionalFormattingInfo(rule, range,
+                    _excelDocument.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet, _excelDocument.WorkbookPartRoot);
 
             });
+            return createdRule!;
         }
 
         /// <summary>
-        /// Adds an icon set conditional format to a range.
+        /// Adds an icon set with optional explicit thresholds. Provide either percent thresholds (0..100) or number
+        /// thresholds; the count must match the icon count for the selected icon set (3/4/5).
         /// </summary>
-        /// <param name="range">A1-style range to format.</param>
-        /// <param name="iconSet">Icon set type (e.g., ThreeTrafficLights1, ThreeSymbols, FourArrows, FiveRatings).</param>
-        /// <param name="showValue">Whether to display the underlying cell values.</param>
-        /// <param name="reverseIconOrder">Reverse icon order.</param>
-        public void AddConditionalIconSet(string range, ExcelIconSet iconSet, bool showValue, bool reverseIconOrder) {
-            AddConditionalIconSet(range, iconSet, showValue, reverseIconOrder, percentThresholds: null, numberThresholds: null);
-        }
-
-        /// <summary>
-        /// Adds an icon set conditional format to a range with optional explicit thresholds.
-        /// Provide either <paramref name="percentThresholds"/> (0..100) or <paramref name="numberThresholds"/> as absolute values.
-        /// The number of thresholds must match the icon count for the selected icon set (3/4/5).
-        /// </summary>
-        public void AddConditionalIconSet(string range, ExcelIconSet iconSet, bool showValue, bool reverseIconOrder, double[]? percentThresholds, double[]? numberThresholds) {
+        internal ExcelConditionalFormattingInfo CreateConditionalIconSet(string range, ExcelIconSet iconSet, bool showValue, bool reverseIconOrder, double[]? percentThresholds, double[]? numberThresholds) {
             if (string.IsNullOrEmpty(range)) throw new ArgumentNullException(nameof(range));
 
             using var preserveDirectDataSet = _excelDocument.PreserveDirectDataSetSaveCandidateDuringDirtyMarks();
+            ExcelConditionalFormattingInfo? createdRule = null;
             WriteLockWorksheetPreparationOnly(() => {
                 Worksheet worksheet = WorksheetRoot;
 
@@ -250,15 +191,12 @@ namespace OfficeIMO.Excel {
                 rule.Append(icon);
                 conditionalFormatting.Append(rule);
                 InsertConditionalFormatting(conditionalFormatting);
+                createdRule = ReadConditionalFormattingInfo(rule, range,
+                    _excelDocument.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet, _excelDocument.WorkbookPartRoot);
 
             });
+            return createdRule!;
         }
-
-        /// <summary>
-        /// Overload with common defaults for convenience.
-        /// </summary>
-        public void AddConditionalIconSet(string range)
-            => AddConditionalIconSet(range, ExcelIconSet.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
 
         private static int ResolveIconSetThresholdCount(ExcelIconSet iconSet) {
             if (iconSet == ExcelIconSet.ThreeArrows ||

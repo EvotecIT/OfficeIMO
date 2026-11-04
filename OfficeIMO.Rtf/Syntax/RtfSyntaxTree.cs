@@ -57,7 +57,7 @@ public sealed class RtfSyntaxTree {
     /// <summary>
     /// Parses RTF content using configured resource limits and cancellation.
     /// </summary>
-    public static RtfSyntaxTree Parse(string rtf, RtfReadOptions? options, CancellationToken cancellationToken = default) =>
+    public static RtfSyntaxTree Parse(string rtf, RtfLoadOptions? options, CancellationToken cancellationToken = default) =>
         RtfSyntaxParser.Parse(rtf, options, cancellationToken);
 
     /// <summary>

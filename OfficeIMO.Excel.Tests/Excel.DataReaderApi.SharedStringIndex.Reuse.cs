@@ -17,14 +17,14 @@ public partial class Excel {
                 includeLastRow: true, stored: stored, lastIndex: firstFillers + 2, fillerCount: firstFillers);
             secondPath = CreateIndexedSharedStringWorkbook("<si><t>second longer tail</t></si>",
                 includeLastRow: true, stored: stored, lastIndex: secondFillers + 2, fillerCount: secondFillers);
-            using ExcelWorkbookDataReader seed = ExcelDocument.OpenDataReader(seedPath);
+            using ExcelWorkbookDataReader seed = ExcelDocument.OpenReader(seedPath);
             AssertIndexedWorkbookFields(seed, "seed");
             seed.Dispose();
             Assert.True(seed.IsClosed);
             File.Delete(seedPath);
             Assert.False(File.Exists(seedPath));
 
-            using ExcelWorkbookDataReader first = ExcelDocument.OpenDataReader(firstPath);
+            using ExcelWorkbookDataReader first = ExcelDocument.OpenReader(firstPath);
             Assert.Equal("Header", first.GetName(0));
             Assert.True(first.Read());
             Assert.Equal("Ready", first.GetString(0));
@@ -33,7 +33,7 @@ public partial class Excel {
             Assert.True(first.TryGetUtf8Text(0, out ReadOnlySpan<byte> borrowedFirst));
 #endif
             seed.Dispose();
-            using (ExcelWorkbookDataReader second = ExcelDocument.OpenDataReader(secondPath)) {
+            using (ExcelWorkbookDataReader second = ExcelDocument.OpenReader(secondPath)) {
                 AssertIndexedWorkbookFields(second, "second longer tail");
                 second.Dispose();
                 second.Dispose();

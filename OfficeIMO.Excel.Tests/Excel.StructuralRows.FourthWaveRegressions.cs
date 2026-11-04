@@ -12,10 +12,10 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RejectsPartialDeletionOfDataTableOwner() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellAt(2, 3).SetValue(10);
-            sheet.CellAt(3, 3).SetValue(20);
-            sheet.CellAt(4, 3).SetValue(30);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(2, 3).SetValue(10);
+            sheet.Cell(3, 3).SetValue(20);
+            sheet.Cell(4, 3).SetValue(30);
 
             Cell owner = sheet.WorksheetPart.Worksheet.Descendants<Cell>()
                 .Single(cell => cell.CellReference?.Value == "C2");
@@ -30,15 +30,15 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("data-table", exception.Message);
             Assert.Equal("C2:C4", owner.CellFormula.Reference!.Value);
-            Assert.Equal(20, sheet.CellAt(3, 3).GetValue<int>());
+            Assert.Equal(20, sheet.Cell(3, 3).GetValue<int>());
         }
 
         [Fact]
         public void Test_StructuralRows_RewritesCrossSheetOffice2010ConditionalFormattingFormulas() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
-            ExcelSheet summary = document.AddWorksheet("Summary");
-            data.CellAt(3, 1).SetValue(1);
+            ExcelSheet data = document.AddSheet("Data");
+            ExcelSheet summary = document.AddSheet("Summary");
+            data.Cell(3, 1).SetValue(1);
 
             var formula = new Xm.Formula("Data!A3>0");
             var rule = new X14.ConditionalFormattingRule(formula) {
@@ -64,11 +64,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RebasesCalculatedTableFormulaWithItsDataAnchor() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellAt(1, 1).SetValue("Value");
-            sheet.CellAt(1, 2).SetValue("Result");
-            sheet.CellAt(2, 1).SetValue(10);
-            sheet.CellAt(3, 1).SetValue(20);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Value");
+            sheet.Cell(1, 2).SetValue("Result");
+            sheet.Cell(2, 1).SetValue(10);
+            sheet.Cell(3, 1).SetValue(20);
             sheet.AddTable(
                 "A1:B3",
                 hasHeader: true,
@@ -90,8 +90,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_NormalizesImplicitRowIndicesForShiftAndOverflow() {
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
-                sheet.CellAt(1, 1).SetValue("Move");
+                ExcelSheet sheet = document.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Move");
                 Row row = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<Row>());
                 row.RowIndex = null;
 
@@ -99,27 +99,27 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal(2U, row.RowIndex!.Value);
                 Assert.Equal("A2", Assert.Single(row.Elements<Cell>()).CellReference!.Value);
-                Assert.Equal("Move", sheet.CellAt(2, 1).GetValue<string>());
+                Assert.Equal("Move", sheet.Cell(2, 1).GetValue<string>());
             }
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
-                sheet.CellAt(A1.MaxRows, 1).SetValue("Boundary");
+                ExcelSheet sheet = document.AddSheet("Data");
+                sheet.Cell(ExcelA1.MaxRows, 1).SetValue("Boundary");
                 Row row = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<Row>());
                 row.RowIndex = null;
 
                 Assert.Throws<InvalidOperationException>(() => sheet.InsertRows(1));
 
                 Assert.Null(row.RowIndex);
-                Assert.Equal($"A{A1.MaxRows}", Assert.Single(row.Elements<Cell>()).CellReference!.Value);
+                Assert.Equal($"A{ExcelA1.MaxRows}", Assert.Single(row.Elements<Cell>()).CellReference!.Value);
             }
         }
 
         [Fact]
         public void Test_StructuralRows_RejectsR1C1ReferenceModeBeforeMutation() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellAt(3, 1).SetValue("Keep");
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(3, 1).SetValue("Keep");
             document.WorkbookRoot.Append(new CalculationProperties {
                 ReferenceMode = ReferenceModeValues.R1C1
             });
@@ -131,15 +131,15 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("R1C1", insert.Message);
             Assert.Contains("R1C1", delete.Message);
-            Assert.Equal("Keep", sheet.CellAt(3, 1).GetValue<string>());
+            Assert.Equal("Keep", sheet.Cell(3, 1).GetValue<string>());
         }
 
         [Fact]
         public void Test_StructuralRows_RemapsScenarioResultAndInputReferences() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellAt(5, 1).SetValue(1);
-            sheet.CellAt(6, 1).SetValue(2);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(5, 1).SetValue(1);
+            sheet.Cell(6, 1).SetValue(2);
 
             var input = new InputCells { CellReference = "A5", Val = "10" };
             var scenario = new Scenario(input) { Name = "Best", Count = 1U };
@@ -163,9 +163,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RemapsCustomSheetViewAutoFilters() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellAt(5, 1).SetValue("Header");
-            sheet.CellAt(6, 1).SetValue("Value");
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(5, 1).SetValue("Header");
+            sheet.Cell(6, 1).SetValue("Value");
 
             var filter = new AutoFilter { Reference = "A5:B6" };
             var view = new CustomSheetView(filter) {

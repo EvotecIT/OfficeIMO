@@ -204,8 +204,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 masterPart.Uri.ToString(), out projection);
         }
 
-        internal static LegacyPptProjectionMap Create(PowerPointPresentation presentation,
-            LegacyPptPresentation legacy) {
+        internal static LegacyPptProjectionMap Create(PowerPointDocument presentation,
+            LegacyPptDocument legacy) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
             if (legacy == null) throw new ArgumentNullException(nameof(legacy));
             if (presentation.Slides.Count != legacy.Slides.Count) {
@@ -409,7 +409,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     throw new InvalidDataException(childReason);
                 }
                 LegacyPptShape[] sourceChildren = sourceShape.Children
-                    .Where(PowerPointPresentation
+                    .Where(PowerPointDocument
                         .CanCreateLegacyOpenXmlShape)
                     .ToArray();
                 AddShapeProjectionTree(result, sourceChildren,
@@ -432,7 +432,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         }
 
         private static IReadOnlyList<LegacyPptMasterProjection> CreateMasterProjections(
-            PowerPointPresentation presentation, LegacyPptPresentation legacy) {
+            PowerPointDocument presentation, LegacyPptDocument legacy) {
             SlideMasterPart[] masterParts = presentation.OpenXmlDocument.PresentationPart?
                 .SlideMasterParts.ToArray() ?? Array.Empty<SlideMasterPart>();
             LegacyPptMaster[] sourceMasters = legacy.Masters
@@ -485,8 +485,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         }
 
         private static IReadOnlyList<LegacyPptMasterProjection>
-            CreateTitleMasterProjections(PowerPointPresentation presentation,
-                LegacyPptPresentation legacy) {
+            CreateTitleMasterProjections(PowerPointDocument presentation,
+                LegacyPptDocument legacy) {
             SlideLayoutPart[] layouts = presentation.OpenXmlDocument
                 .PresentationPart?.SlideMasterParts
                 .SelectMany(master => master.SlideLayoutParts).ToArray()
@@ -516,8 +516,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         }
 
         private static IReadOnlyList<LegacyPptMasterProjection>
-            CreateSpecialMasterProjections(PowerPointPresentation presentation,
-                LegacyPptPresentation legacy) {
+            CreateSpecialMasterProjections(PowerPointDocument presentation,
+                LegacyPptDocument legacy) {
             PresentationPart? presentationPart = presentation.OpenXmlDocument
                 .PresentationPart;
             var result = new List<LegacyPptMasterProjection>(2);
@@ -565,7 +565,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 IReadOnlyList<PowerPointShape> projected, string ownerName,
                 OpenXmlPart ownerPart) {
             LegacyPptShape[] sourceShapes = source.Where(shape =>
-                PowerPointPresentation.CanCreateLegacyOpenXmlShape(shape))
+                PowerPointDocument.CanCreateLegacyOpenXmlShape(shape))
                 .ToArray();
             var result = new List<LegacyPptShapeProjection>();
             AddShapeProjectionTree(result, sourceShapes, projected,
@@ -574,7 +574,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         }
 
         private static IReadOnlyDictionary<string, uint> CreateLayoutMasterMap(
-            PowerPointPresentation presentation, LegacyPptPresentation legacy) {
+            PowerPointDocument presentation, LegacyPptDocument legacy) {
             SlideMasterPart[] masterParts = presentation.OpenXmlDocument.PresentationPart?
                 .SlideMasterParts.ToArray() ?? Array.Empty<SlideMasterPart>();
             var result = new Dictionary<string, uint>(StringComparer.Ordinal);

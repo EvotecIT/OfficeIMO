@@ -6,7 +6,7 @@ using P = DocumentFormat.OpenXml.Presentation;
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
         private static bool TryValidateMaterializedLayoutPictures(
-            PowerPointPresentation presentation,
+            PowerPointDocument presentation,
             ISet<OpenXmlElement> materializedPictures,
             out string? reason) {
             IEnumerable<SlideLayoutPart> layoutParts = presentation
@@ -49,7 +49,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             foreach (PowerPointShape shape in flattened) {
                 byte[] imageBytes;
                 string contentType;
-                if (shape is PowerPointPicture picture) {
+                if (shape is PowerPointImage picture) {
                     if (!TryReadPicture(picture, out imageBytes,
                             out string? pictureContentType, out reason)) {
                         failureFeature = LegacyPptFeature.RasterPictures;

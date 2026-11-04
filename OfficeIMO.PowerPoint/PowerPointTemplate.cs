@@ -7,11 +7,11 @@ namespace OfficeIMO.PowerPoint {
     public static class PowerPointTemplate {
         /// <summary>Inspects masters, layouts, placeholders, theme tokens, and reusable assets in a template file.</summary>
         public static PowerPointTemplateInventory Inspect(string templatePath) {
-            return PowerPointPresentation.InspectTemplate(templatePath);
+            return PowerPointDocument.InspectTemplate(templatePath);
         }
 
         /// <summary>Inspects the template-capable structure already loaded by a presentation.</summary>
-        public static PowerPointTemplateInventory Inspect(PowerPointPresentation presentation) {
+        public static PowerPointTemplateInventory Inspect(PowerPointDocument presentation) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
             return presentation.InspectTemplate();
         }
@@ -20,9 +20,9 @@ namespace OfficeIMO.PowerPoint {
         ///     Copies a `.pptx` or `.potx` template into a new editable presentation while preserving native
         ///     masters, layouts, themes, relationships, and assets.
         /// </summary>
-        public static PowerPointPresentation CreatePresentation(string templatePath, string outputPath,
+        public static PowerPointDocument CreateDocument(string templatePath, string outputPath,
             PowerPointTemplateCreationOptions? options = null) {
-            return PowerPointPresentation.CreateFromTemplate(templatePath, outputPath, options);
+            return PowerPointDocument.CreateFromTemplate(templatePath, outputPath, options);
         }
     }
 }

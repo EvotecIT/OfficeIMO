@@ -18,7 +18,7 @@
       "id": "powerpoint",
       "label": "Design PowerPoint (C#)",
       "language": "csharp",
-      "code": "PowerPointDesignBrief brief = PowerPointDesignBrief\n    .FromBrand(\"#008C95\", \"client-demo\", \"technical rollout proposal\")\n    .WithIdentity(\"Client Theme\", footerLeft: \"CLIENT\", footerRight: \"Service deck\")\n    .WithVariety(PowerPointDesignVariety.Exploratory);\n\nvar plan = new PowerPointDeckPlan()\n    .AddSection(\"Service proposal\", \"Generated from a semantic plan.\")\n    .AddProcess(\"Implementation path\", \"The selected design handles layout.\", new[] {\n        new PowerPointProcessStep(\"Discover\", \"Collect constraints.\"),\n        new PowerPointProcessStep(\"Design\", \"Choose the target model.\"),\n        new PowerPointProcessStep(\"Roll out\", \"Deliver in waves.\")\n    });\n\nvar best = brief.DescribeDeckPlanAlternatives(plan, 3)\n    .OrderByDescending(alternative => alternative.ContentFitScore)\n    .First();\n\nusing var ppt = PowerPointPresentation.Create(\"proposal.pptx\");\nppt.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);\nppt.UseDesigner(brief, best.Index).AddSlides(plan);\nppt.Save();"
+      "code": "PowerPointDesignBrief brief = PowerPointDesignBrief\n    .FromBrand(\"#008C95\", \"client-demo\", \"technical rollout proposal\")\n    .WithIdentity(\"Client Theme\", footerLeft: \"CLIENT\", footerRight: \"Service deck\")\n    .WithVariety(PowerPointDesignVariety.Exploratory);\n\nvar plan = new PowerPointDeckPlan()\n    .AddSection(\"Service proposal\", \"Generated from a semantic plan.\")\n    .AddProcess(\"Implementation path\", \"The selected design handles layout.\", new[] {\n        new PowerPointProcessStep(\"Discover\", \"Collect constraints.\"),\n        new PowerPointProcessStep(\"Design\", \"Choose the target model.\"),\n        new PowerPointProcessStep(\"Roll out\", \"Deliver in waves.\")\n    });\n\nvar best = brief.DescribeDeckPlanAlternatives(plan, 3)\n    .OrderByDescending(alternative => alternative.ContentFitScore)\n    .First();\n\nusing var ppt = PowerPointDocument.Create(\"proposal.pptx\");\nppt.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);\nppt.UseDesigner(brief, best.Index).AddSlides(plan);\nppt.Save();"
     },
     {
       "id": "markdown",
@@ -30,7 +30,7 @@
       "id": "powershell",
       "label": "PowerShell",
       "language": "powershell",
-      "code": "New-OfficeWord -FilePath 'Report.docx' {\n    WordSection {\n        WordParagraph -Text 'Monthly Report' -Style Heading1\n        WordParagraph -Text 'Generated with PSWriteOffice'\n\n        WordTable -InputObject $SalesData -Style LightGrid\n    }\n}\n\nNew-OfficeExcel -FilePath 'Data.xlsx' {\n    ExcelSheet -Name 'Sales' {\n        ExcelTable -InputObject $Records -TableName 'SalesTable' -AutoFit\n        ExcelChart -TableName 'SalesTable' -Row 2 -Column 8 -Type ColumnClustered -Title 'Revenue'\n    }\n}"
+      "code": "$sales = @(\n    [pscustomobject]@{ Region = 'North'; Revenue = 12400 }\n    [pscustomobject]@{ Region = 'South'; Revenue = 8900 }\n)\n\nNew-OfficeWord -Path 'Report.docx' {\n    WordHeading -Text 'Monthly Report'\n    WordParagraph 'Generated with PSWriteOffice'\n    WordTable -InputObject $sales\n}\n\nNew-OfficeExcel -Path 'Data.xlsx' {\n    ExcelSheet -Name 'Sales' {\n        ExcelTable -InputObject $sales -Name 'SalesTable' -AutoFit\n        ExcelChart -Table 'SalesTable' -Category Region -Value Revenue -Address H2 -Type ColumnClustered -Title 'Revenue'\n    }\n}"
     }
   ]
 }

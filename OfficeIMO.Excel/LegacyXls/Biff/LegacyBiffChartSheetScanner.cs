@@ -52,7 +52,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (sheet.StreamOffset >= workbookStream.Length) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-CHART-SHEET-OFFSET-INVALID",
+                    "xls-biff-chart-sheet-offset-invalid",
                     $"Chart sheet stream offset {sheet.StreamOffset} is outside the BIFF stream.",
                     sheetName: sheet.Name,
                     recordOffset: sheet.StreamOffset,
@@ -67,7 +67,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 if (offset + 4 > workbookStream.Length) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Warning,
-                        "XLS-BIFF-CHART-SHEET-TRUNCATED-HEADER",
+                        "xls-biff-chart-sheet-truncated-header",
                         "A chart-sheet substream ended inside a record header.",
                         sheetName: sheet.Name,
                         recordOffset: offset,
@@ -81,7 +81,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 if (payloadOffset + length > workbookStream.Length) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Warning,
-                        "XLS-BIFF-CHART-SHEET-TRUNCATED-PAYLOAD",
+                        "xls-biff-chart-sheet-truncated-payload",
                         $"BIFF record 0x{type:X4} declares {length} payload bytes, but the chart-sheet substream ends early.",
                         sheetName: sheet.Name,
                         recordOffset: offset,
@@ -197,7 +197,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (payloadLength < 2) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-CHART-METADATA-SHORT",
+                    "xls-biff-chart-metadata-short",
                     "The chart sheet PrintSize record is shorter than expected.",
                     sheetName: sheet.Name,
                     recordOffset: recordOffset,
@@ -207,7 +207,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 if (printSize > 3) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Warning,
-                        "XLS-BIFF-CHART-PRINTSIZE-UNEXPECTED",
+                        "xls-biff-chart-printsize-unexpected",
                         $"The chart sheet PrintSize record contains unexpected value {printSize}.",
                         sheetName: sheet.Name,
                         recordOffset: recordOffset,

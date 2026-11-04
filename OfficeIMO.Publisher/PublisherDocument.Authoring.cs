@@ -6,12 +6,12 @@ namespace OfficeIMO.Publisher;
 public sealed partial class PublisherDocument {
     /// <summary>Creates an in-memory publication with one empty document page, no applied master and no native source. Dimensions use points and must be positive and finite.</summary>
     /// <remarks>Options are copied and bound current pages, objects, stories, assets and projection work. Source evidence starts at zero. This provides SVG/PDF rendering and supported semantic editing; it does not provide native PUB saving.</remarks>
-    public static PublisherDocument Create(double width, double height, PublisherReadOptions? options = null,
+    public static PublisherDocument Create(double width, double height, PublisherLoadOptions? options = null,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (!Finite(width) || width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
         if (!Finite(height) || height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
-        PublisherReadOptions operation = (options ?? new PublisherReadOptions()).Clone();
+        PublisherLoadOptions operation = (options ?? new PublisherLoadOptions()).Clone();
         return PublisherModelState.Create(width, height, operation, cancellationToken).Project(cancellationToken);
     }
 

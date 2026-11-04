@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes the common future-record header used by preserve-only drawing stream records.
     /// </summary>
-    public sealed class LegacyXlsDrawingFutureRecordHeader {
+    internal sealed class LegacyXlsDrawingFutureRecordHeader {
         /// <summary>
         /// Creates future-record header metadata.
         /// </summary>

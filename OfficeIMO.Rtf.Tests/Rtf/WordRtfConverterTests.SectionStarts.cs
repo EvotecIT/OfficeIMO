@@ -33,15 +33,15 @@ public partial class WordRtfConverterTests {
         AssertStarts(reopened);
 
         void AssertStarts(WordDocument source) {
-            RtfDocument direct = source.ToRtfDocument();
+            RtfDocument direct = source.ToRtf();
             Assert.Equal(firstExpected, direct.Sections[0].BreakKind);
             Assert.Equal(expected, direct.Sections[1].BreakKind);
             Assert.Equal(lastExpected, direct.Sections[2].BreakKind);
-            RtfDocument parsed = RtfDocument.Parse(source.ToRtf(new RtfWriteOptions { IncludeGenerator = false }));
+            RtfDocument parsed = RtfDocument.Parse(source.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false }));
             Assert.Equal(firstExpected, parsed.Sections[0].BreakKind);
             Assert.Equal(expected, parsed.Sections[1].BreakKind);
             Assert.Equal(lastExpected, parsed.Sections[2].BreakKind);
-            using WordDocument roundTrip = parsed.ToWordDocument();
+            using WordDocument roundTrip = parsed.ToWord();
             Assert.Equal(firstStart, roundTrip.Sections[0].BreakType);
             Assert.Equal(start, roundTrip.Sections[1].BreakType);
             Assert.Equal(last, roundTrip.Sections[2].BreakType);

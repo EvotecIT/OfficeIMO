@@ -1,3 +1,4 @@
+using OfficeIMO.Internal;
 using OfficeIMO.Email;
 using OfficeIMO.Email.Store;
 using System.Security.Cryptography;
@@ -9,14 +10,14 @@ public static partial class EmailEvidenceWorkflow {
     /// <summary>Creates an evidence bundle from one persisted EML/MSG/OFT/TNEF message, with a SHA-256 over the same open source.</summary>
     public static EmailEvidenceResult Create(string sourcePath, EmailEvidenceOptions? options = null,
         CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(sourcePath);
+        if (sourcePath == null) throw new ArgumentNullException(nameof(sourcePath));
         var effective = options ?? new EmailEvidenceOptions(); effective.Validate();
         using var stream = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read);
         if (stream.Length > effective.ReaderOptions.MaxInputBytes)
             throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxInputBytes), stream.Length, effective.ReaderOptions.MaxInputBytes);
         string fingerprint = HashSource(stream, cancellationToken);
         stream.Position = 0;
-        using var read = new EmailDocumentReader(effective.ReaderOptions).Read(stream, Path.GetFileName(sourcePath), cancellationToken);
+        using var read = new EmailDocumentReader(effective.ReaderOptions).ReadDocument(stream, Path.GetFileName(sourcePath), cancellationToken);
         if (read.Document.Format == EmailFileFormat.Unknown) throw new InvalidDataException("The source is not a supported email message.");
         if (HashSource(stream, cancellationToken) != fingerprint) throw new IOException("The email source changed during evidence projection.");
         return Build(fingerprint, "SourceFileSha256", read.Document.Format.ToString(), true,
@@ -28,7 +29,7 @@ public static partial class EmailEvidenceWorkflow {
     /// <remarks>Uses the store's durable fingerprint and reports graph truncation and unresolved parent identities. No payload is extracted to disk.</remarks>
     public static EmailEvidenceResult CreateConversation(EmailStoreSession session, EmailStoreItemId selectedItem,
         EmailEvidenceOptions? options = null, CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(session);
+        if (session == null) throw new ArgumentNullException(nameof(session));
         var effective = options ?? new EmailEvidenceOptions(); effective.Validate();
         string fingerprint = session.GetDurableSourceFingerprint(cancellationToken);
         var graph = session.BuildConversationGraph(new EmailConversationGraphOptions(maxItems: effective.MaxItemsScanned,
@@ -70,7 +71,7 @@ public static partial class EmailEvidenceWorkflow {
         int read;
         while ((read = stream.Read(buffer, 0, buffer.Length)) > 0) { token.ThrowIfCancellationRequested(); hash.AppendData(buffer, 0, read); }
         token.ThrowIfCancellationRequested();
-        return Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant();
+        return OfficeRuntimeCompatibility.ToHexString(hash.GetHashAndReset()).ToLowerInvariant();
     }
     private static EmailEvidenceDiagnostic MapDiagnostic(EmailDiagnostic value) =>
         new(Clip(value.Code), value.Severity.ToString(), Clip(value.Message), ClipNullable(value.Location));

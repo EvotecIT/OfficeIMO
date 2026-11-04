@@ -14,8 +14,8 @@ public sealed class StudioFormPreviewTests {
             Directory.CreateDirectory(services.Paths.Root);
             string first = Path.Combine(services.Paths.Root, "first.pdf");
             string second = Path.Combine(services.Paths.Root, "second.pdf");
-            PdfDocument.Create(compose => compose.Page(page => page.Size(300, 400))).Save(first);
-            PdfDocument.Create(compose => compose.Page(page => page.Size(400, 500))).Save(second);
+            PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)))).Save(first);
+            PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(500)))).Save(second);
             using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
             await model.OpenDocumentAsync(first);
             await model.PreviewNewFormFieldCommand.ExecuteAsync(null);
@@ -39,7 +39,7 @@ public sealed class StudioFormPreviewTests {
             var services = ((App)Application.Current!).Services;
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "empty.pdf");
-            PdfDocument.Create(compose => compose.Page(page => page.Size(300, 400))).Save(source);
+            PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)))).Save(source);
             using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
             await model.OpenDocumentAsync(source);
             model.NewFormFieldName = "Created";
@@ -59,7 +59,7 @@ public sealed class StudioFormPreviewTests {
             Assert.False(model.HasFormPreview);
             Assert.Equal("Created", Assert.Single(model.FormFields).Name);
             await model.SaveCommand.ExecuteAsync(null);
-            var rendered = PdfDocument.Load(source).Render.Pages("1", new PdfPageRenderOptions { Format = PdfPageRenderFormat.Png, Scale = 1D }).Single();
+            var rendered = PdfDocument.Load(source).Render.Pages("1", new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png, Scale = 1D }).Single();
             using var stream = new MemoryStream(rendered.Bytes!);
             using var bitmap = new Bitmap(stream);
             Assert.Equal(preview, Encode(bitmap));
@@ -75,7 +75,7 @@ public sealed class StudioFormPreviewTests {
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "preview.pdf");
             string output = Path.Combine(services.Paths.Root, "applied.pdf");
-            byte[] original = PdfDocument.Create(compose => compose.Page(page => page.Size(300, 400)))
+            byte[] original = PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400))))
                 .Forms.Edit(edit => edit.Create(new() { Name = "Reference", Value = "Original", X = 30, Y = 300 })).ToBytes();
             File.WriteAllBytes(source, original);
             using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services,
@@ -90,7 +90,7 @@ public sealed class StudioFormPreviewTests {
             Assert.Equal(original, File.ReadAllBytes(source));
             await model.SaveAsCommand.ExecuteAsync(null);
             Assert.False(model.HasFormPreview);
-            var rendered = PdfDocument.Load(output).Render.Pages("1", new PdfPageRenderOptions { Format = PdfPageRenderFormat.Png, Scale = 1D }).Single();
+            var rendered = PdfDocument.Load(output).Render.Pages("1", new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png, Scale = 1D }).Single();
             Assert.True(rendered.Succeeded);
             using (var stream = new MemoryStream(rendered.Bytes!))
             using (var bitmap = new Bitmap(stream)) Assert.Equal(preview, Encode(bitmap));

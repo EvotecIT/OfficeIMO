@@ -43,6 +43,43 @@ PSWriteOffice to that package version. The module uses the same versioned engine
 source. `Build/project.build.json` owns package selection, version bindings,
 and NuGet configuration.
 
+## README examples
+
+The Word and Excel quick starts are generated from the executable programs under
+`Build/DocumentationExamples`. Edit those source files, then refresh the marked
+README blocks with PowerForge:
+
+The standalone CLI comes from the `PowerForge.Build` .NET tool, separately from
+the PSPublishModule PowerShell module. To use the same implementation as CI,
+check out the PowerForge revision pinned in
+`.github/workflows/documentation-examples.yml`, then run from its checkout:
+
+```powershell
+dotnet build PowerForge.Cli/PowerForge.Cli.csproj -c Release -f net10.0
+```
+
+From the OfficeIMO repository root, invoke that built CLI with
+`dotnet <PowerForge checkout>/PowerForge.Cli/bin/Release/net10.0/PowerForge.Cli.dll`
+followed by `docs sync --config Build/docs-sync.json`, adding `--apply` to refresh.
+When using an installed CLI with this command, the equivalent calls are:
+
+```powershell
+powerforge docs sync --config Build/docs-sync.json --apply
+powerforge docs sync --config Build/docs-sync.json
+```
+
+The check command returns a nonzero exit code when a block is stale. The
+documentation examples workflow runs the same check and executes both programs
+against their pinned published NuGet packages. Update
+`OfficeIMODocumentationPackageVersion` in the example projects when qualifying a
+new public version. Source synchronization and published-package compatibility
+are checked separately.
+
+To run an example locally from the repository root, use `dotnet run --project
+Build/DocumentationExamples/Word/Word.csproj -c Release -f net8.0` or the matching
+Excel project. The programs write `report.docx` and `report.xlsx` into the current
+directory. From a scratch working directory, pass an absolute project path.
+
 ## Coordinated publication
 
 Publication uses the local credential files configured in

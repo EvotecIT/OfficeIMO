@@ -86,7 +86,7 @@ public sealed class VisioConnectorTextFrameTests {
     [InlineData("vdx")]
     [InlineData("vsdx")]
     public void PathPositionAndPageOffsetsRemainEditableAfterReopening(string format) {
-        var document = VisioDocument.Create(); var page = document.AddPage("Path", 8, 8);
+        var document = VisioDocument.Create(); var page = document.AddPage("Path", OfficeLength.Inches(8), OfficeLength.Inches(8));
         var connector = page.AddConnector("c", new OfficePoint(1, 2), new OfficePoint(5, 2));
         connector.Label = "Review"; connector.PlaceLabel(.25, .1, .2, 1, .3);
         document = Reopen(document, format); connector = document.Pages[0].Connectors[0];
@@ -96,7 +96,7 @@ public sealed class VisioConnectorTextFrameTests {
             var saved = candidate.Pages[0].Connectors[0];
             var point = VisioConnectorLabelFrame.ResolvePlacement(saved)!;
             Assert.Null(point.PinX); Assert.Null(point.PinY);
-            var snapshot = candidate.CreateInspectionSnapshot().Pages[0].Connectors[0];
+            var snapshot = candidate.Inspect().Pages[0].Connectors[0];
             Assert.Equal(2.1, snapshot.LabelResolvedPinX!.Value, 8); Assert.Equal(3.2, snapshot.LabelResolvedPinY!.Value, 8);
             Assert.DoesNotContain("OfficeIMOConnectorLabelPlacement", saved.Data.Keys);
             Assert.DoesNotContain(saved.ShapeData, row => row.Name == "OfficeIMOConnectorLabelPlacement");
@@ -156,14 +156,14 @@ public sealed class VisioConnectorTextFrameTests {
     [InlineData("vdx")]
     [InlineData("vsdx")]
     public void ClearingPagePinsRestoresEditablePathIntent(string format) {
-        var document = VisioDocument.Create(); var page = document.AddPage("Path", 8, 8);
+        var document = VisioDocument.Create(); var page = document.AddPage("Path", OfficeLength.Inches(8), OfficeLength.Inches(8));
         var connector = page.AddConnector("c", new OfficePoint(1, 2), new OfficePoint(5, 2));
         connector.Label = "Review"; connector.PlaceLabelAt(3, 4);
         connector.LabelPlacement!.PinX = null; connector.LabelPlacement.PinY = null;
         connector.LabelPlacement.Position = .25; connector.LabelPlacement.OffsetX = .1; connector.LabelPlacement.OffsetY = .2;
         document = Reopen(document, format); connector = document.Pages[0].Connectors[0];
         connector.EndPoint = new OfficePoint(5, 6);
-        var snapshot = Reopen(document, format).CreateInspectionSnapshot().Pages[0].Connectors[0];
+        var snapshot = Reopen(document, format).Inspect().Pages[0].Connectors[0];
         Assert.Equal(2.1, snapshot.LabelResolvedPinX!.Value, 8); Assert.Equal(3.2, snapshot.LabelResolvedPinY!.Value, 8);
     }
 
@@ -245,7 +245,7 @@ public sealed class VisioConnectorTextFrameTests {
 
     private static void AddLabelObstacle(VisioPage page, VisioConnector connector) {
         var bounds = connector.GetLabelBounds();
-        page.AddRectangle((bounds.Left + bounds.Right) / 2, (bounds.Bottom + bounds.Top) / 2, .5, .5, "Obstacle", VisioMeasurementUnit.Inches);
+        page.AddRectangle(OfficeLength.Inches((bounds.Left.ToInches() + bounds.Right.ToInches()) / 2), OfficeLength.Inches((bounds.Bottom.ToInches() + bounds.Top.ToInches()) / 2), OfficeLength.Inches(.5), OfficeLength.Inches(.5), "Obstacle");
     }
 
     private static VisioDocument Producer() => VisioDocument.LoadLegacyXml(Path.Combine(AppContext.BaseDirectory, "Fixtures", "LegacyXml", "nxbre-chocolatebox.vdx")).Value;

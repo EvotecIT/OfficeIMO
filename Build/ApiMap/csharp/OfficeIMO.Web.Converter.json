@@ -1,0 +1,13 @@
+{
+  "package": "OfficeIMO.Web.Converter",
+  "status": "Phase A browser consumer migration",
+  "changes": [],
+  "extraChanges": [
+    {
+      "phase": "A",
+      "applied": "applied",
+      "note": "The browser worker migrates native PDF loads, conversion kernels and Markdown return types. Detailed serialization/import evidence stays internal and is shared through InternalsVisibleTo. Reverse adapter references and lazy-load catalogs use OfficeIMO.Pdf.Word, OfficeIMO.Pdf.Excel and OfficeIMO.Pdf.PowerPoint. The shared front-door raw-HTML configuration preserves rich Markdown import without another renderer implementation."
+    }
+  ],
+  "applicationStatus": "The native WebAssembly build and local publish pass; 135 .NET tests and seven published-worker conversions pass. PDF previews and package XML are validated."
+}

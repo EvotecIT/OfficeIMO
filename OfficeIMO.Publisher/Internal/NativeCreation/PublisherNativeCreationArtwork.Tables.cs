@@ -19,7 +19,7 @@ internal static partial class PublisherNativeCreationArtwork {
             }
             if (!unmerged && !hasFill && table.BorderSegments.Count == 0) continue;
             var slots = new PublisherTableCellSlot[table.Cells.Count];
-            var fills = new OfficeIMO.Drawing.OfficeColor?[table.Cells.Count];
+            var fills = new OfficeColor?[table.Cells.Count];
             for (int index = 0; index < table.Cells.Count; index++) {
                 context.Token.ThrowIfCancellationRequested();
                 PublisherTableCell cell = table.Cells[index];

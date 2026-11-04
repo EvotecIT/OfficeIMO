@@ -9,7 +9,7 @@ schema: 2.0.0
 Adds a built-in cover page template to a Word document.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Add-OfficeWordCoverPage [-Template] <WordCoverPageTemplate> [-Document <WordDocument>] [-PublishDate <string>] [-Abstract <string>] [-CompanyAddress <string>] [-CompanyEmail <string>] [-PassThru] [<CommonParameters>]
 ```
@@ -33,7 +33,7 @@ Abstract/summary stored in the cover page properties custom XML part.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -49,7 +49,7 @@ Company address stored in the cover page properties custom XML part.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -65,7 +65,7 @@ Company email stored in the cover page properties custom XML part.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -81,7 +81,7 @@ Document to update. Defaults to the current Word DSL or tracked document.
 
 ```yaml
 Type: WordDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -97,7 +97,7 @@ Emit the created cover page.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -113,7 +113,7 @@ Publish date stored in the cover page properties custom XML part.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -129,7 +129,7 @@ Cover page template to insert.
 
 ```yaml
 Type: WordCoverPageTemplate
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: Austin, Banded, Facet, Grid, IonDark, IonLight, Element, Wisp, ViewMaster, SliceLight, SliceDark, SideLine, Semaphore, Retrospect
 

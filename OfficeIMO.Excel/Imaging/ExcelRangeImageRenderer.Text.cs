@@ -14,7 +14,7 @@ namespace OfficeIMO.Excel {
         private static void DrawRasterCellText(
             OfficeRasterCanvas canvas,
             ExcelVisualCell cell,
-            ExcelRangeVisualSnapshot snapshot,
+            ExcelRangeVisualInfo snapshot,
             ExcelImageExportOptions options,
             double scale,
             IReadOnlyDictionary<string, ExcelVisualCell> cellsByAddress,
@@ -155,7 +155,7 @@ namespace OfficeIMO.Excel {
         private static void AppendSvgCellText(
             StringBuilder builder,
             ExcelVisualCell cell,
-            ExcelRangeVisualSnapshot snapshot,
+            ExcelRangeVisualInfo snapshot,
             ExcelImageExportOptions options,
             OfficeRasterCanvas textMeasurer,
             IReadOnlyDictionary<string, ExcelVisualCell> cellsByAddress,
@@ -639,7 +639,7 @@ namespace OfficeIMO.Excel {
 
         private static CellTextViewport ResolveCellTextViewport(
             ExcelVisualCell cell,
-            ExcelRangeVisualSnapshot snapshot,
+            ExcelRangeVisualInfo snapshot,
             double scale,
             IReadOnlyDictionary<string, ExcelVisualCell> cellsByAddress) {
             double x = cell.X * scale;
@@ -678,7 +678,7 @@ namespace OfficeIMO.Excel {
             return new CellTextViewport(x, y, width, height);
         }
 
-        private static bool CanCellTextSpillRight(ExcelVisualCell cell, ExcelRangeVisualSnapshot snapshot) {
+        private static bool CanCellTextSpillRight(ExcelVisualCell cell, ExcelRangeVisualInfo snapshot) {
             if (!CanCellTextSpill(cell, snapshot)) {
                 return false;
             }
@@ -692,13 +692,13 @@ namespace OfficeIMO.Excel {
                 cell.ValueKind == ExcelVisualCellValueKind.Text;
         }
 
-        private static bool CanCellTextSpillLeft(ExcelVisualCell cell, ExcelRangeVisualSnapshot snapshot) {
+        private static bool CanCellTextSpillLeft(ExcelVisualCell cell, ExcelRangeVisualInfo snapshot) {
             return CanCellTextSpill(cell, snapshot) &&
                 cell.ValueKind == ExcelVisualCellValueKind.Text &&
                 string.Equals(cell.Style.HorizontalAlignment, "right", StringComparison.OrdinalIgnoreCase);
         }
 
-        private static bool CanCellTextSpill(ExcelVisualCell cell, ExcelRangeVisualSnapshot snapshot) {
+        private static bool CanCellTextSpill(ExcelVisualCell cell, ExcelRangeVisualInfo snapshot) {
             if (cell.CoveredByMerge ||
                 cell.Style.WrapText ||
                 cell.Style.ShrinkToFit ||
@@ -713,14 +713,14 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static bool CanSpillThroughNeighbor(ExcelVisualCell neighbor, ExcelRangeVisualSnapshot snapshot) {
+        private static bool CanSpillThroughNeighbor(ExcelVisualCell neighbor, ExcelRangeVisualInfo snapshot) {
             return !neighbor.CoveredByMerge &&
                 string.IsNullOrEmpty(neighbor.Text) &&
                 neighbor.RichTextRuns.Count == 0 &&
                 !IsCellCoveredByDrawingLayer(neighbor, snapshot);
         }
 
-        private static bool IsCellCoveredByDrawingLayer(ExcelVisualCell cell, ExcelRangeVisualSnapshot snapshot) {
+        private static bool IsCellCoveredByDrawingLayer(ExcelVisualCell cell, ExcelRangeVisualInfo snapshot) {
             for (int index = 0; index < snapshot.DrawingLayers.Count; index++) {
                 ExcelVisualDrawingLayer layer = snapshot.DrawingLayers[index];
                 if (IsProvenOpaqueDrawingLayer(layer) &&
@@ -733,7 +733,7 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool IsCellTextAnchorOccludedByDrawingLayer(ExcelVisualCell cell, ExcelRangeVisualSnapshot snapshot, CellTextViewport viewport, CellTextInsets insets, double scale) {
+        private static bool IsCellTextAnchorOccludedByDrawingLayer(ExcelVisualCell cell, ExcelRangeVisualInfo snapshot, CellTextViewport viewport, CellTextInsets insets, double scale) {
             if (!TryGetCellTextAnchorProbe(cell, viewport, insets, scale, out double x, out double y, out double width, out double height)) {
                 return false;
             }
@@ -867,8 +867,8 @@ namespace OfficeIMO.Excel {
             return max;
         }
 
-        private static double ResolveRunFontSize(ExcelVisualTextRun run, ExcelCellStyleSnapshot style, double scale) {
-            double fontSize = run.FontSize.GetValueOrDefault(style.FontSize.GetValueOrDefault(CellTextFontSize));
+        private static double ResolveRunFontSize(ExcelVisualTextRun run, ExcelCellStyleInfo style, double scale) {
+            double fontSize = run.FontSize?.ToPoints() ?? style.FontSize?.ToPoints() ?? CellTextFontSize;
             if (fontSize <= 0D || double.IsNaN(fontSize) || double.IsInfinity(fontSize)) {
                 fontSize = CellTextFontSize;
             }
@@ -876,13 +876,13 @@ namespace OfficeIMO.Excel {
             return fontSize * scale;
         }
 
-        private static string ResolveRunFontFamily(ExcelVisualTextRun run, ExcelCellStyleSnapshot style) {
+        private static string ResolveRunFontFamily(ExcelVisualTextRun run, ExcelCellStyleInfo style) {
             string? fontName = string.IsNullOrWhiteSpace(run.FontName) ? style.FontName : run.FontName;
             return string.IsNullOrWhiteSpace(fontName) ? "Arial, sans-serif" : fontName! + ", Arial, sans-serif";
         }
 
-        private static double ResolveCellFontSize(ExcelCellStyleSnapshot style, double scale) {
-            double fontSize = style.FontSize.GetValueOrDefault(CellTextFontSize);
+        private static double ResolveCellFontSize(ExcelCellStyleInfo style, double scale) {
+            double fontSize = style.FontSize?.ToPoints() ?? CellTextFontSize;
             if (fontSize <= 0D || double.IsNaN(fontSize) || double.IsInfinity(fontSize)) {
                 fontSize = CellTextFontSize;
             }
@@ -890,11 +890,11 @@ namespace OfficeIMO.Excel {
             return fontSize * scale;
         }
 
-        private static string ResolveCellFontFamily(ExcelCellStyleSnapshot style) =>
+        private static string ResolveCellFontFamily(ExcelCellStyleInfo style) =>
             string.IsNullOrWhiteSpace(style.FontName) ? "Arial, sans-serif" : style.FontName! + ", Arial, sans-serif";
 
         private static void AddRichTextFontFamilyFallbackDiagnostics(
-            ExcelRangeVisualSnapshot snapshot,
+            ExcelRangeVisualInfo snapshot,
             ExcelVisualCell cell,
             OfficeFontFaceCollection fonts,
             List<OfficeImageExportDiagnostic>? diagnostics) {
@@ -923,7 +923,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static void AddCellFontFamilyFallbackDiagnosticIfNeeded(
-            ExcelRangeVisualSnapshot snapshot,
+            ExcelRangeVisualInfo snapshot,
             ExcelVisualCell cell,
             OfficeFontFaceCollection fonts,
             List<OfficeImageExportDiagnostic>? diagnostics) {
@@ -958,7 +958,7 @@ namespace OfficeIMO.Excel {
         private static bool ShouldUseHyperlinkHint(ExcelVisualCell cell, ExcelImageExportOptions options) =>
             options.ShowHyperlinkHints && cell.Hyperlink != null && !cell.Style.Underline;
 
-        private static double ResolveExcelTextRotationDegrees(int? textRotation, ExcelRangeVisualSnapshot snapshot, ExcelVisualCell cell, List<OfficeImageExportDiagnostic>? diagnostics) {
+        private static double ResolveExcelTextRotationDegrees(int? textRotation, ExcelRangeVisualInfo snapshot, ExcelVisualCell cell, List<OfficeImageExportDiagnostic>? diagnostics) {
             if (!textRotation.HasValue || textRotation.Value == 0) {
                 return 0D;
             }
@@ -980,7 +980,7 @@ namespace OfficeIMO.Excel {
             return value <= 90 ? -value : value - 90D;
         }
 
-        private static void AddRotatedTextApproximationDiagnostic(ExcelRangeVisualSnapshot snapshot, ExcelVisualCell cell, List<OfficeImageExportDiagnostic>? diagnostics) {
+        private static void AddRotatedTextApproximationDiagnostic(ExcelRangeVisualInfo snapshot, ExcelVisualCell cell, List<OfficeImageExportDiagnostic>? diagnostics) {
             diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(
                 OfficeImageExportDiagnosticSeverity.Warning,
                 ExcelImageExportDiagnosticCodes.CellTextRotationApproximation,
@@ -990,7 +990,7 @@ namespace OfficeIMO.Excel {
 
         private static bool IsStackedTextRotation(int? textRotation) => textRotation == 255;
 
-        private static void AddTextClippingDiagnosticIfNeeded(OfficeTextBlockLayout layout, ExcelRangeVisualSnapshot snapshot, ExcelVisualCell cell, List<OfficeImageExportDiagnostic>? diagnostics) {
+        private static void AddTextClippingDiagnosticIfNeeded(OfficeTextBlockLayout layout, ExcelRangeVisualInfo snapshot, ExcelVisualCell cell, List<OfficeImageExportDiagnostic>? diagnostics) {
             if (!layout.Clipped) {
                 return;
             }
@@ -1002,7 +1002,7 @@ namespace OfficeIMO.Excel {
                 GetCellDiagnosticSource(snapshot, cell)));
         }
 
-        private static void AddTextClippingDiagnosticIfNeeded(OfficeRichTextBlockLayout layout, ExcelRangeVisualSnapshot snapshot, ExcelVisualCell cell, List<OfficeImageExportDiagnostic>? diagnostics) {
+        private static void AddTextClippingDiagnosticIfNeeded(OfficeRichTextBlockLayout layout, ExcelRangeVisualInfo snapshot, ExcelVisualCell cell, List<OfficeImageExportDiagnostic>? diagnostics) {
             if (!layout.Clipped) {
                 return;
             }
@@ -1014,7 +1014,7 @@ namespace OfficeIMO.Excel {
                 GetCellDiagnosticSource(snapshot, cell)));
         }
 
-        private static void AddCellTextOccludedByDrawingDiagnostic(ExcelRangeVisualSnapshot snapshot, ExcelVisualCell cell, List<OfficeImageExportDiagnostic>? diagnostics) {
+        private static void AddCellTextOccludedByDrawingDiagnostic(ExcelRangeVisualInfo snapshot, ExcelVisualCell cell, List<OfficeImageExportDiagnostic>? diagnostics) {
             diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(
                 OfficeImageExportDiagnosticSeverity.Warning,
                 ExcelImageExportDiagnosticCodes.CellTextOccludedByDrawing,
@@ -1022,7 +1022,7 @@ namespace OfficeIMO.Excel {
                 GetCellDiagnosticSource(snapshot, cell)));
         }
 
-        private static void AddRichTextLayoutApproximationDiagnostic(ExcelRangeVisualSnapshot snapshot, ExcelVisualCell cell, List<OfficeImageExportDiagnostic>? diagnostics) {
+        private static void AddRichTextLayoutApproximationDiagnostic(ExcelRangeVisualInfo snapshot, ExcelVisualCell cell, List<OfficeImageExportDiagnostic>? diagnostics) {
             diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(
                 OfficeImageExportDiagnosticSeverity.Warning,
                 ExcelImageExportDiagnosticCodes.CellRichTextLayoutApproximation,
@@ -1030,8 +1030,8 @@ namespace OfficeIMO.Excel {
                 GetCellDiagnosticSource(snapshot, cell)));
         }
 
-        private static string GetCellDiagnosticSource(ExcelRangeVisualSnapshot snapshot, ExcelVisualCell cell) =>
-            snapshot.SheetName + "!" + A1.ColumnIndexToLetters(cell.Column) + cell.Row.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        private static string GetCellDiagnosticSource(ExcelRangeVisualInfo snapshot, ExcelVisualCell cell) =>
+            snapshot.SheetName + "!" + ExcelA1.ColumnIndexToLetters(cell.Column) + cell.Row.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
         private readonly struct CellTextInsets {
             internal CellTextInsets(double left, double right) {

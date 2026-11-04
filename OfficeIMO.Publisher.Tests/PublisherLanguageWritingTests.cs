@@ -47,7 +47,7 @@ public sealed class PublisherLanguageWritingTests {
             document.ReplaceStoryParagraphs(id, story.Paragraphs.Select(paragraph => new OfficeRichTextParagraph(
                 paragraph.Runs.Select(run => run.WithLanguageId(language)).ToArray(), paragraph.Alignment,
                 paragraph.LineHeight, paragraph.Margins, paragraph.Indent, paragraph.LineHeightFactor).WithTabStops(paragraph.TabStops)).ToArray());
-            byte[] output = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+            byte[] output = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
             PublisherNativeWritingTests.AssertPreservedStorage(source, output, "Quill/QuillSub/CONTENTS");
             Assert.Equal(OpaqueCharacterFields(source), OpaqueCharacterFields(output));
             document = PublisherDocument.Load(output);
@@ -65,7 +65,7 @@ public sealed class PublisherLanguageWritingTests {
     public void Unqualified_language_scalar_remains_opaque_and_refuses_explicit_editing(bool outOfRange) {
         byte[] source = PublisherInputContractTests.Mutate("Quill/QuillSub/CONTENTS", bytes => {
             var data = new PublisherBinaryData(bytes, "Quill");
-            var context = new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None);
+            var context = new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None);
             PublisherQuillChunk page = PublisherQuillDirectory.Read(data, context).First(chunk => chunk.Tag == "FDPC");
             int count = data.U16(page.Offset);
             int position = page.Offset + data.U16(page.Offset + 8 + count * 4);
@@ -74,13 +74,13 @@ public sealed class PublisherLanguageWritingTests {
             else bytes[language.Offset - 1] = 0x20;
         }, "NativeComparison/FrameCreation/native-framecreation.pub");
         PublisherDocument document = PublisherDocument.Load(source);
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, diagnostic => diagnostic.Code == "PUB_TEXT_LANGUAGE_UNASSESSED");
-        Assert.Equal(source, document.ToPubBytes());
+        Assert.Contains(document.ReadReport.Diagnostics, diagnostic => diagnostic.Code == "PUB_TEXT_LANGUAGE_UNASSESSED");
+        Assert.Equal(source, document.ToBytes());
         PublisherTextStory story = document.TextStories.First();
         document.ReplaceStoryParagraphs(story.Id, story.Paragraphs.Select(paragraph => new OfficeRichTextParagraph(
             paragraph.Runs.Select(run => run.WithLanguageId(1036)).ToArray(), paragraph.Alignment, paragraph.LineHeight,
             paragraph.Margins, paragraph.Indent, paragraph.LineHeightFactor).WithTabStops(paragraph.TabStops)).ToArray());
-        Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        Assert.Throws<OfficeConversionException>(() => document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
     }
 
     [Theory]
@@ -104,7 +104,7 @@ public sealed class PublisherLanguageWritingTests {
         Assert.NotEmpty(requested);
         if (cells) document.ReplaceTableCellParagraphs(table!.Id, 0, 0, requested);
         else document.ReplaceStoryParagraphs(story.Id, requested);
-        PublisherDocument saved = PublisherDocument.Load(document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        PublisherDocument saved = PublisherDocument.Load(document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         var actual = cells ? saved.Pages[0].Tables.Single().Cells[0].Paragraphs : saved.TextStories[0].Paragraphs;
         Assert.Equal(requested.Select(paragraph => string.Concat(paragraph.Runs.Select(run => run.Text))),
             actual.Select(paragraph => string.Concat(paragraph.Runs.Select(run => run.Text))));
@@ -120,7 +120,7 @@ public sealed class PublisherLanguageWritingTests {
         if (!cells) {
             PublisherTextStory emptySource = document.TextStories[0];
             document.ReplaceStoryParagraphs(emptySource.Id, new[] { emptySource.Paragraphs[0] });
-            document = PublisherDocument.Load(document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+            document = PublisherDocument.Load(document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         }
         PublisherTable? table = cells ? document.Pages.SelectMany(page => page.Tables).First(item =>
             item.Cells.Any(cell => cell.Paragraphs.Count == 1 && cell.Paragraphs[0].Runs.All(run => run.Text.Length == 0))) : null;
@@ -132,7 +132,7 @@ public sealed class PublisherLanguageWritingTests {
             original.Alignment, original.LineHeight, original.Margins, original.Indent, original.LineHeightFactor).WithTabStops(original.TabStops);
         if (cells) document.ReplaceTableCellParagraphs(table!.Id, cell!.RowIndex, cell.ColumnIndex, new[] { typed, typed });
         else document.ReplaceStoryParagraphs(story.Id, new[] { typed, typed });
-        PublisherDocument saved = PublisherDocument.Load(document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        PublisherDocument saved = PublisherDocument.Load(document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         var actual = cells ? saved.Pages.SelectMany(page => page.Tables).Single(value => value.Id == table!.Id)
             .Cells.Single(value => value.RowIndex == cell!.RowIndex && value.ColumnIndex == cell.ColumnIndex).Paragraphs : saved.TextStories.Single(value => value.Id == story.Id).Paragraphs;
         Assert.Equal(2, actual.Count);
@@ -142,7 +142,7 @@ public sealed class PublisherLanguageWritingTests {
     private static string[] OpaqueCharacterFields(byte[] bytes) {
         Assert.True(OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compound, out string? error), error);
         var data = new PublisherBinaryData(compound!.Streams["Quill/QuillSub/CONTENTS"], "Quill");
-        var context = new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None);
+        var context = new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None);
         var blocks = new PublisherBlockReader(data, context);
         return PublisherQuillDirectory.Read(data, context).Where(chunk => chunk.Tag == "FDPC").SelectMany(chunk => {
             int count = data.U16(chunk.Offset);

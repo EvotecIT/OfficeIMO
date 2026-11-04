@@ -13,9 +13,9 @@ public sealed class PdfEmbeddedFontSnapshotTests {
             : PdfComplianceTestFonts.FindBundledTrueTypeFont();
         Assert.NotNull(path);
         byte[] caller = File.ReadAllBytes(path!);
-        var first = new PdfOptions().RegisterFontFamily(PdfStandardFont.Helvetica,
+        var first = new PdfCreateOptions().RegisterFontFamily(PdfStandardFont.Helvetica,
             new PdfEmbeddedFontFamily("Repeated snapshot", caller));
-        var second = new PdfOptions().RegisterFontFamily(PdfStandardFont.Helvetica,
+        var second = new PdfCreateOptions().RegisterFontFamily(PdfStandardFont.Helvetica,
             new PdfEmbeddedFontFamily("Repeated snapshot", caller));
 
         if (cff) {
@@ -98,7 +98,7 @@ public sealed class PdfEmbeddedFontSnapshotTests {
         Assert.NotNull(path);
         byte[] caller = File.ReadAllBytes(path!);
         var family = new PdfEmbeddedFontFamily("Released snapshot", caller);
-        var options = new PdfOptions().RegisterFontFamily(PdfStandardFont.Helvetica, family);
+        var options = new PdfCreateOptions().RegisterFontFamily(PdfStandardFont.Helvetica, family);
         Assert.True(options.TryGetEmbeddedStandardFontProgram(PdfStandardFont.Helvetica, out PdfTrueTypeFontProgram? font));
         return new[] { new WeakReference(caller), new WeakReference(family.RegularSnapshot),
             new WeakReference(font!.FontDataForInspection) };

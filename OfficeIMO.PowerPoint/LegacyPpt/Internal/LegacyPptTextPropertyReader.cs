@@ -96,7 +96,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             bool invalidDefaultTab = allowRulerFields && rawDefaultTabSize < 0;
             hasUnprojectedFormatting = hasRulerOnlyField || unresolvedBulletFont
                 || (bulletHasColor == true && unresolvedBulletColor)
-                || bulletSizeUnprojected || invalidDefaultTab;
+                || bulletSizeUnprojected || invalidDefaultTab
+                || rawTabStops.Count > PowerPointParagraph.MaximumTabStops;
 
             return new LegacyPptParagraphRun(start, length, indentLevel, hasBullet,
                 bulletHasFont, bulletHasColor, bulletHasSize, bulletCharacter, bulletFontIndex,

@@ -139,7 +139,9 @@ internal static class MarkdownInlineToLatexConverter {
     private static string RenderFallback(IMarkdownInline node) {
         var sequence = new InlineSequence { AutoSpacing = false };
         sequence.AddRaw(node);
-        return MarkdownDoc.Create().Add(new ParagraphBlock(sequence)).ToMarkdown();
+        using var document = MarkdownDocument.Create();
+        document.Add(new ParagraphBlock(sequence));
+        return document.ToMarkdown();
     }
 }
 
@@ -147,13 +149,13 @@ internal sealed class ConversionState {
     private readonly Dictionary<string, FootnoteDefinitionBlock> _footnotes;
     private readonly HashSet<string> _resolvingFootnotes = new HashSet<string>(StringComparer.Ordinal);
 
-    internal ConversionState(MarkdownToLatexOptions options, IEnumerable<FootnoteDefinitionBlock> footnotes) {
+    internal ConversionState(MarkdownLatexExportOptions options, IEnumerable<FootnoteDefinitionBlock> footnotes) {
         Options = options;
         _footnotes = footnotes
             .GroupBy(static footnote => footnote.Label, StringComparer.Ordinal)
             .ToDictionary(static group => group.Key, static group => group.First(), StringComparer.Ordinal);
     }
-    internal MarkdownToLatexOptions Options { get; }
+    internal MarkdownLatexExportOptions Options { get; }
     internal string LineEnding => Options.LineEnding;
     internal HashSet<string> Packages { get; } = new HashSet<string>(StringComparer.Ordinal);
     internal HashSet<string> TheoremEnvironments { get; } = new HashSet<string>(StringComparer.Ordinal);

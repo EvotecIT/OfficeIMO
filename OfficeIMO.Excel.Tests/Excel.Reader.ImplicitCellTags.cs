@@ -24,7 +24,7 @@ public partial class Excel {
                   <cellXfs count="2"><xf numFmtId="0"/><xf numFmtId="14"/></cellXfs>
                 </styleSheet>
                 """));
-            using var reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions { TreatDatesUsingNumberFormat = treatDates });
+            using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { TreatDatesUsingNumberFormat = treatDates });
             string[] names = { "alpha", "beta", "typed", "AT&T", "end" };
             object[] kinds = { true, false, 7d, 8d, true };
             double[] dates = { 45292, 45293, 9, 10, 45294 };
@@ -54,7 +54,7 @@ public partial class Excel {
             "<c s=\"9\"><v>3</v></c>",
         }, "Value");
         try {
-            var exception = Assert.Throws<InvalidDataException>(() => ExcelDocument.OpenDataReader(path));
+            var exception = Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
             Assert.Contains("cell A4 references a missing cell style", exception.Message);
         } finally {
             File.Delete(path);
@@ -76,7 +76,7 @@ public partial class Excel {
                     new SharedStringItem(new Text("first")), new SharedStringItem(new Text("second")));
                 part.SharedStringTable.Save();
             }
-            var exception = Assert.Throws<InvalidDataException>(() => ExcelDocument.OpenDataReader(path));
+            var exception = Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
             Assert.Contains("cell A4 references a missing shared string", exception.Message);
         } finally {
             File.Delete(path);

@@ -14,10 +14,10 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Selection");
-                    sheet.CellValue(3, 3, "Active");
-                    sheet.CellValue(4, 4, "Selected");
-                    sheet.CellValue(5, 5, "Selected");
+                    ExcelSheet sheet = document.AddSheet("Selection");
+                    sheet.Cell(3, 3).SetValue("Active");
+                    sheet.Cell(4, 4).SetValue("Selected");
+                    sheet.Cell(5, 5).SetValue("Selected");
 
                     Worksheet worksheet = sheet.WorksheetPart.Worksheet;
                     SheetViews? sheetViews = worksheet.GetFirstChild<SheetViews>();

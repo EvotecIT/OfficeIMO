@@ -12,14 +12,14 @@ namespace OfficeIMO.Tests {
             using (var doc = ExcelDocument.Create(filePath)) {
                 // Case-sensitive comparer first: allow "Table" and "TABLE" side by side
                 doc.TableNameComparer = System.StringComparer.Ordinal; // case-sensitive
-                var s = doc.AddWorksheet("Data");
-                s.CellValue(1, 1, "A");
+                var s = doc.AddSheet("Data");
+                s.Cell(1, 1).SetValue("A");
                 s.AddTable("A1:A1", hasHeader: true, name: "Table", ExcelTableStyle.TableStyleMedium9);
 
                 // Switch to case-insensitive and ensure suffixing now applies for the same base name
                 doc.TableNameComparer = System.StringComparer.OrdinalIgnoreCase; // resets cache
-                s.CellValue(2, 1, "B");
-                s.AddTable("A2:A2", hasHeader: true, name: "TABLE", ExcelTableStyle.TableStyleMedium9);
+                s.Cell(2, 1).SetValue("B");
+                s.AddTable("A3:A3", hasHeader: true, name: "TABLE", ExcelTableStyle.TableStyleMedium9);
                 doc.Save();
             }
 

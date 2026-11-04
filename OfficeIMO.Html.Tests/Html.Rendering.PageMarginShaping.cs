@@ -43,7 +43,7 @@ public sealed partial class HtmlRenderingTests {
                 (glyph.GlyphId, glyph.AdvanceWidth, glyph.OffsetX, glyph.OffsetY, glyph.UnicodeText)));
         Assert.Equal(margin.PreparedShaping.Measure(margin.Font.Size), margin.TextAdvanceWidth!.Value, 6);
         Assert.Equal(text, rendered.Text.Trim());
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -51,7 +51,7 @@ public sealed partial class HtmlRenderingTests {
     [InlineData(true)]
     public void HtmlPageMarginShaping_MarkedCffMaxContentFitsAndExportsTheSameGlyphScene(bool explicitProvider) {
         const string text = "Cafe\u0301";
-        HtmlToPdfOptions options = PageMarginShapingOptions(cff: true);
+        HtmlPdfExportOptions options = PageMarginShapingOptions(cff: true);
         if (explicitProvider) options.TextShapingProvider = OfficeManagedTextShapingProvider.Instance;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
             PageMarginShapingSource("top-center", text, "width:max-content;height:max-content", text));
@@ -63,10 +63,10 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(text, margin.PreparedShaping!.Text);
         Assert.Equal(margin.PreparedShaping.Measure(margin.Font.Size), artifact.Width, 6);
         Assert.Equal(24D, artifact.Height, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
 
-        PdfCore.PdfDocumentConversionResult pdf = document.ToPdfDocumentResult(options);
-        pdf.RequireNoLoss();
+        PdfCore.PdfDocumentConversionResult pdf = document.ConvertToPdfWithEvidence(options);
+        pdf.ThrowIfLoss();
         byte[] saved = pdf.ToBytes();
         Assert.Equal(text, PdfCore.PdfReadDocument.Open(saved).ExtractText().Trim());
         OfficeImageExportResult image = document.ExportImage(OfficeImageExportFormat.Png, options);
@@ -79,11 +79,11 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlPageMarginShaping_SavedArabicArtifactRetainsItsLogicalClusterOnce() {
         const string text = "لَا";
-        HtmlToPdfOptions options = PageMarginShapingOptions();
+        HtmlPdfExportOptions options = PageMarginShapingOptions();
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
             PageMarginShapingSource("bottom-center", text, "width:max-content", string.Empty));
-        PdfCore.PdfDocumentConversionResult pdf = document.ToPdfDocumentResult(options);
-        pdf.RequireNoLoss();
+        PdfCore.PdfDocumentConversionResult pdf = document.ConvertToPdfWithEvidence(options);
+        pdf.ThrowIfLoss();
         byte[] bytes = pdf.ToBytes();
 
         Assert.True(string.IsNullOrWhiteSpace(PdfCore.PdfReadDocument.Open(bytes).ExtractText()));
@@ -95,7 +95,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlPageMarginShaping_RegisteredFallbackKeepsEachFontAndItsPositionedMarks() {
-        HtmlToPdfOptions options = PageMarginShapingOptions();
+        HtmlPdfExportOptions options = PageMarginShapingOptions();
         options.Fonts.Add("Latin", File.ReadAllBytes(Path.Combine(RepositoryTestPaths.Find(),
             "OfficeIMO.Drawing.Tests/TestAssets/SourceSansPro-Regular.otf")));
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(
@@ -108,12 +108,12 @@ public sealed partial class HtmlRenderingTests {
             Assert.NotNull(run.PreparedShaping);
             Assert.Equal(run.PreparedShaping!.Measure(run.Font.Size), run.TextAdvanceWidth!.Value, 6);
         });
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
     public void HtmlPageMarginShaping_AuthoredHardLinesRetainLeadingAndTheFinalEmptyLine() {
-        HtmlToPdfOptions options = PageMarginShapingOptions(cff: true);
+        HtmlPdfExportOptions options = PageMarginShapingOptions(cff: true);
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(
             PageMarginShapingSource("top-center", "A\u0301\\A A\u0301\\A ",
                 "width:80px;height:max-content", "A\u0301")), options);
@@ -126,7 +126,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Equal("A\u0301", run.Text);
             Assert.NotNull(run.PreparedShaping);
         });
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -146,12 +146,12 @@ public sealed partial class HtmlRenderingTests {
             Assert.NotNull(run.PreparedShaping);
         });
         Assert.Equal(leading, text[1].LayoutY - text[0].LayoutY, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
     public void HtmlPageMarginShaping_WrappingKeepsEachCombiningClusterAndItsMeasuredAdvance() {
-        HtmlToPdfOptions options = PageMarginShapingOptions(cff: true);
+        HtmlPdfExportOptions options = PageMarginShapingOptions(cff: true);
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(
             PageMarginShapingSource("top-center", "A\u0301 A\u0301", "width:min-content;height:max-content", "A\u0301")), options);
         HtmlRenderSemanticGroup artifact = PageMarginGeometryBox(Assert.Single(rendered.Pages), "top-center");
@@ -165,7 +165,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.NotNull(run.PreparedShaping);
             Assert.Equal(run.PreparedShaping!.Measure(run.Font.Size), run.TextAdvanceWidth!.Value, 6);
         });
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -183,7 +183,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(body.PreparedShaping!.Result.Glyphs.Select(glyph => glyph.GlyphId),
             margin.PreparedShaping.Result.Glyphs.Select(glyph => glyph.GlyphId));
         Assert.Equal(body.TextAdvanceWidth, margin.TextAdvanceWidth);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -193,11 +193,11 @@ public sealed partial class HtmlRenderingTests {
             PageMarginShapingSource("top-center", content, "width:1px;line-height:0", string.Empty)),
             PageMarginShapingOptions(cff: true));
 
-        Assert.Contains(rendered.Diagnostics, item => item.Source == "@page @top-center"
+        Assert.Contains(rendered.NativeDiagnostics, item => item.Source == "@page @top-center"
             && item.Detail == "text-layout-limit" && item.LossKind == OfficeConversionLossKind.Omission);
         Assert.Equal(OfficeTextLayoutEngine.MaximumLayoutLines,
             PageMarginShapedText(PageMarginGeometryBox(Assert.Single(rendered.Pages), "top-center")).Length);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
     }
 
     [Theory]
@@ -207,7 +207,7 @@ public sealed partial class HtmlRenderingTests {
         byte[] font = File.ReadAllBytes(Path.Combine(RepositoryTestPaths.Find(),
             source == "A" ? "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Regular.ttf"
                 : "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/NotoSansArabic-Regular.ttf"));
-        HtmlToPdfOptions options = PageMarginShapingOptions(fontData: font);
+        HtmlPdfExportOptions options = PageMarginShapingOptions(fontData: font);
         var provider = new LanguageAdvanceTextShapingProvider(font);
         // The provider's exact program must cover this positive fixture. Noto
         // Arabic deliberately has no Latin A and correctly declines that text.
@@ -226,40 +226,40 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(expected, margin.TextAdvanceWidth!.Value, 6);
         Assert.NotEmpty(provider.Requests);
         Assert.All(provider.Requests, request => Assert.Equal("fa", request.Language));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
     public void HtmlPageMarginShaping_DeclinedGeneratedTextHasAStableSourceAndCannotClaimNoLoss() {
-        HtmlToPdfOptions options = PageMarginShapingOptions();
+        HtmlPdfExportOptions options = PageMarginShapingOptions();
         options.TextShapingProvider = new DecliningPageMarginShapingProvider();
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(
             PageMarginShapingSource("top-center", "لَا", "width:80px", string.Empty)), options);
 
-        Assert.Contains(rendered.Diagnostics, item => item.Source == "@page @top-center"
+        Assert.Contains(rendered.NativeDiagnostics, item => item.Source == "@page @top-center"
             && item.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported
             && item.LossKind == OfficeConversionLossKind.Approximation);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
     }
 
     [Fact]
     public void HtmlPageMarginShaping_ZeroSizeNeverCallsTheConfiguredProvider() {
         var provider = new DecliningPageMarginShapingProvider();
-        HtmlToPdfOptions options = PageMarginShapingOptions();
+        HtmlPdfExportOptions options = PageMarginShapingOptions();
         options.TextShapingProvider = provider;
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(
             PageMarginShapingSource("top-center", "لَا\\A لَا", "font-size:0;line-height:12px;height:max-content", string.Empty)), options);
 
         Assert.Equal(0, provider.Calls);
         Assert.Empty(PageMarginShapedText(PageMarginGeometryBox(Assert.Single(rendered.Pages), "top-center")));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
-    private static HtmlToPdfOptions PageMarginShapingOptions(bool cff = false, byte[]? fontData = null) {
+    private static HtmlPdfExportOptions PageMarginShapingOptions(bool cff = false, byte[]? fontData = null) {
         byte[] data = fontData ?? File.ReadAllBytes(Path.Combine(RepositoryTestPaths.Find(), cff
             ? "OfficeIMO.Drawing.Tests/TestAssets/SourceSansPro-Regular.otf"
             : "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/NotoSansArabic-Regular.ttf"));
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Paged, HonorCssPageRules = true, AllowSystemFontFallback = false,
             DefaultFontFamily = "Typography", FontFamily = new PdfCore.PdfEmbeddedFontFamily("Typography", data),
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()

@@ -307,7 +307,7 @@ namespace OfficeIMO.Visio.Diagrams {
             ValidateReferences();
             Layout(root);
 
-            VisioPage page = _document.AddPage(_pageName, _pageWidth, _pageHeight, _unit);
+            VisioPage page = _document.AddPageInches(_pageName, _pageWidth, _pageHeight, _unit);
             page.Grid(visible: false, snap: true);
             AddTeamBands(page);
             AddNodes(page);
@@ -526,7 +526,7 @@ namespace OfficeIMO.Visio.Diagrams {
             }
 
             double y = _pageHeight - _topMargin - (_titleHeight / 2D);
-            VisioShape title = page.AddTextBox(_titleId, _pageWidth / 2D, y, Math.Max(1D, _pageWidth - _leftMargin - _rightMargin), _titleHeight, _titleText, _unit);
+            VisioShape title = page.AddTextBoxInches(_titleId, _pageWidth / 2D, y, Math.Max(1D, _pageWidth - _leftMargin - _rightMargin), _titleHeight, _titleText, _unit);
             title.TextStyle = CreateTitleTextStyle();
             VisioSemanticUserCells.MarkGeneratedAdornment(title);
         }
@@ -580,9 +580,9 @@ namespace OfficeIMO.Visio.Diagrams {
                 }
 
                 if (callout.UsePlacement) {
-                    page.AddCallout(target.Shape, callout.Id, callout.Text, callout.Placement, callout.Gap, callout.Options);
+                    page.AddCalloutInches(target.Shape, callout.Id, callout.Text, callout.Placement, callout.Gap, callout.Options);
                 } else {
-                    page.AddCallout(target.Shape, callout.Id, callout.Text, callout.PinX, callout.PinY, callout.Options);
+                    page.AddCalloutInches(target.Shape, callout.Id, callout.Text, callout.PinX, callout.PinY, callout.Options);
                 }
             }
         }
@@ -599,10 +599,10 @@ namespace OfficeIMO.Visio.Diagrams {
 
             double horizontalMargin = Math.Min(_leftMargin, _rightMargin).ToInches(_unit);
             double verticalMargin = Math.Min(_topMargin, _bottomMargin).ToInches(_unit);
-            bool overflows = bounds.Left < horizontalMargin ||
-                             bounds.Bottom < verticalMargin ||
-                             bounds.Right > page.Width - horizontalMargin ||
-                             bounds.Top > page.Height - verticalMargin;
+            bool overflows = bounds.LeftInches < horizontalMargin ||
+                             bounds.BottomInches < verticalMargin ||
+                             bounds.RightInches > page.WidthInches - horizontalMargin ||
+                             bounds.TopInches > page.HeightInches - verticalMargin;
             if (overflows) {
                 page.FitToContent(horizontalMargin, verticalMargin);
             }

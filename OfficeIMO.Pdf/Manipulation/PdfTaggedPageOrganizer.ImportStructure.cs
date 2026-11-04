@@ -41,7 +41,7 @@ internal static partial class PdfTaggedPageOrganizer {
         var nums = new PdfArray(); foreach (var pair in targetEntries) { nums.Items.Add(new PdfNumber(pair.Key)); nums.Items.Add(pair.Value); }
         var parentTree = new PdfDictionary(); parentTree.Items["Nums"] = nums; targetRoot.Items["ParentTree"] = parentTree;
         targetRoot.Items["ParentTreeNextKey"] = new PdfNumber(nextKey);
-        string prefix = UniqueStructureIdPrefix(objects, "import" + (-imported.Min()).ToString(System.Globalization.CultureInfo.InvariantCulture) + ":");
+        string prefix = UniqueStructureIdPrefix(objects, "import" + (-imported.Min()).ToString(System.Globalization.CultureInfo.InvariantCulture) + ":", token);
         var roles = MergeMap("RoleMap"); var classes = MergeMap("ClassMap");
         Dictionary<string, string> MergeMap(string name) {
             var renames = new Dictionary<string, string>(StringComparer.Ordinal);

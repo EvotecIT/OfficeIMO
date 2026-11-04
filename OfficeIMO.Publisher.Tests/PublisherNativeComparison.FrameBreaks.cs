@@ -11,7 +11,7 @@ public sealed partial class PublisherNativeComparisonTests {
         byte[] source = File.ReadAllBytes(fixture);
         byte[] font = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestAssets", "Carlito-Regular.ttf"));
         var fonts = new OfficeFontFaceCollection().Add("Arial", font).Add("Courier New", font);
-        PublisherDocument document = PublisherDocument.Load(source, new PublisherReadOptions { Fonts = fonts });
+        PublisherDocument document = PublisherDocument.Load(source, new PublisherLoadOptions { Fonts = fonts });
         NativeCase contract = ReadContract("TextFrameBreaks");
         var profiles = contract.Expected.Shapes
             .Where(shape => shape.FrameBreak?.Kind == "FirstExact" || shape.FrameBreak?.Kind == "TightExact")
@@ -29,14 +29,14 @@ public sealed partial class PublisherNativeComparisonTests {
             }
         }
         Assert.Equal(12, checkedFrames);
-        Assert.Equal(source, document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        Assert.Equal(source, document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         // Font substitution is deliberate here: these wide exact-line frames
         // establish allocation/transport, not native font-baseline agreement.
         PublisherPage shortPage = document.Pages[4];
         PublisherTextFrame shortFrame = Assert.Single(shortPage.TextFrames);
         Assert.Equal(12, shortFrame.Height, 3);
         OfficeRasterImage direct = OfficeDrawingRasterRenderer.Render(shortPage.CreateDrawing());
-        PdfReadDocument pdf = PdfReadDocument.Open(document.ToPdfBytes());
+        using PdfDocument pdf = PublisherNativeTests.ExportAndReloadPdf(document);
         OfficeRasterImage reopened = OfficeDrawingRasterRenderer.Render(pdf.Pages[4].ToDrawing());
         Assert.True(InkBelowFrame(direct, shortFrame) > 0);
         Assert.True(InkBelowFrame(reopened, shortFrame) > 0);

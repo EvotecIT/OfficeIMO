@@ -12,11 +12,11 @@ public sealed class MarkdownCancellationTests {
         ChmDocument book = ChmDocument.Load(ChmFixture.Book());
         using var cancelled = new CancellationTokenSource();
         int calls = 0;
-        var options = new HtmlToMarkdownOptions();
+        var options = new HtmlMarkdownExportOptions();
         options.ElementFilters.Add(_ => { calls++; cancelled.Cancel(); return false; });
         Assert.ThrowsAny<OperationCanceledException>(() => {
-            if (model) book.ToMarkdownDocumentResult(markdownOptions: options, cancellationToken: cancelled.Token);
-            else book.ToMarkdownResult(markdownOptions: options, cancellationToken: cancelled.Token);
+            if (model) book.ConvertToMarkdownDocumentWithEvidence(markdownOptions: options, cancellationToken: cancelled.Token);
+            else book.ConvertToMarkdownWithEvidence(markdownOptions: options, cancellationToken: cancelled.Token);
         });
         Assert.Equal(1, calls);
     }
@@ -26,13 +26,13 @@ public sealed class MarkdownCancellationTests {
         ChmDocument book = ChmDocument.Load(ChmFixture.Book());
         using var cancelled = new CancellationTokenSource();
         int calls = 0;
-        var options = new HtmlToMarkdownOptions { MarkdownWriteOptions = new MarkdownWriteOptions() };
+        var options = new HtmlMarkdownExportOptions { MarkdownWriteOptions = new MarkdownSaveOptions() };
         options.MarkdownWriteOptions.BlockRenderExtensions.Add(MarkdownBlockMarkdownRenderExtension.CreateContextual(
             "cancel-serialization", typeof(ParagraphBlock), (_, context) => {
                 Assert.Equal(cancelled.Token, context.CancellationToken);
                 calls++; cancelled.Cancel(); return "Cancelled paragraph";
             }));
-        Assert.ThrowsAny<OperationCanceledException>(() => book.ToMarkdownResult(markdownOptions: options, cancellationToken: cancelled.Token));
+        Assert.ThrowsAny<OperationCanceledException>(() => book.ConvertToMarkdownWithEvidence(markdownOptions: options, cancellationToken: cancelled.Token));
         Assert.Equal(1, calls);
     }
 }

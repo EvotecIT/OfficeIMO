@@ -6,8 +6,8 @@ namespace OfficeIMO.Excel.Tests;
 public sealed class ExcelDataReaderXlsChartSubstreamTests {
     [Fact]
     public void NativeXlsReader_ExcludesEmbeddedChartSeriesAndKeepsOrdinarySheets() {
-        using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(
-            FixturePath, new ExcelReadOptions { HasHeaderRow = false });
+        using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(
+            FixturePath, new ExcelReaderOptions { HasHeaderRow = false });
         string[] names = { "graphs2", "graphs1", "b", "lb", "c", "Info", "cl", "maquis", "wijn", "All" };
         int[] expectedRows = { 0, 0, 29, 26, 28, 26, 43, 23, 77, 110 };
         int[] expectedValues = { 0, 0, 333, 294, 224, 45, 502, 160, 592, 761 };
@@ -52,7 +52,7 @@ public sealed class ExcelDataReaderXlsChartSubstreamTests {
                 if (oversizedLength) WriteUInt16(bytes, offset + 2, ushort.MaxValue);
                 else WriteUInt16(bytes, offset + 6, 0x0010);
             });
-            Assert.Throws<InvalidDataException>(() => ExcelDocument.OpenDataReader(path));
+            Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
         } finally {
             File.Delete(path);
         }
@@ -73,7 +73,7 @@ public sealed class ExcelDataReaderXlsChartSubstreamTests {
                 }
                 throw new InvalidDataException("The test fixture contains no embedded chart EOF.");
             });
-            Assert.Throws<InvalidDataException>(() => ExcelDocument.OpenDataReader(path));
+            Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
         } finally {
             File.Delete(path);
         }
@@ -111,7 +111,7 @@ public sealed class ExcelDataReaderXlsChartSubstreamTests {
                 throw new InvalidDataException("The fixture contains no ordinary cell row to reorder.");
             });
             Assert.Throws<InvalidDataException>(() => {
-                using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(path);
+                using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(path);
                 do {
                     while (reader.Read()) { }
                 } while (reader.NextResult());

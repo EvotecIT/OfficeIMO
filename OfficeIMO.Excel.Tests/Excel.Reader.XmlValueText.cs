@@ -40,7 +40,7 @@ public partial class Excel {
                 """;
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml",
                 Encoding.Unicode.GetPreamble().Concat(Encoding.Unicode.GetBytes(xml)).ToArray());
-            var options = new ExcelReadOptions {
+            var options = new ExcelReaderOptions {
                 UseCachedFormulaResult = useCachedFormulaResult,
                 NumericAsDecimal = numericAsDecimal,
                 InferDataTableColumnTypes = false
@@ -48,7 +48,7 @@ public partial class Excel {
             object number = numericAsDecimal ? (object)12.5m : 12.5d;
             object next = numericAsDecimal ? (object)42m : 42d;
             object[] expected = { number, "AlphaBeta", true, "String11", number, next };
-            using (var reader = ExcelDocument.OpenDataReader(path, options)) {
+            using (var reader = ExcelDocument.OpenReader(path, options)) {
                 Assert.True(reader.Read());
                 Assert.Equal(12.5d, reader.GetDouble(0));
                 Assert.True(reader.GetBoolean(2));
@@ -85,7 +85,7 @@ public partial class Excel {
             string xml = "<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><sheetData>"
                 + "<row r=\"1\"><c r=\"A1\" t=\"s\"><v/></c><c r=\"B1\"><v>42</v></c></row></sheetData></worksheet>";
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml));
-            using var owner = ExcelDocumentReader.Open(path, new ExcelReadOptions { UseCachedFormulaResult = false });
+            using var owner = ExcelDocumentReader.Open(path, new ExcelReaderOptions { UseCachedFormulaResult = false });
             var values = owner.GetSheet("Data").ReadRange("A1:B1", ExcelExecutionMode.Sequential);
             Assert.Equal(string.Empty, values[0, 0]);
             Assert.Equal(42d, values[0, 1]);

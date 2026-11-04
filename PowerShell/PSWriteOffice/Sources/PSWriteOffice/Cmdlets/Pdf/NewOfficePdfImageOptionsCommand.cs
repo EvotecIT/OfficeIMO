@@ -11,7 +11,7 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 ///   <code>$options = New-OfficePdfImageOptions -ThumbnailMaxDimension 320 -MaximumOutputWidth 640
 /// Export-OfficePdfImage -Path .\Report.pdf -OutputPath .\Thumbnails -Options $options</code>
 /// </example>
-[Cmdlet(VerbsCommon.New, "OfficePdfImageOptions")]
+[Cmdlet(VerbsCommon.New, "OfficePdfImageOptions", DefaultParameterSetName = "Default")]
 [OutputType(typeof(PdfImageExportOptions))]
 public sealed class NewOfficePdfImageOptionsCommand : OfficeImageOptionsCommandBase<PdfImageExportOptions> {
     /// <summary>Maximum thumbnail width or height.</summary>

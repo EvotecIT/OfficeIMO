@@ -27,7 +27,7 @@ public sealed class PstAllocationMapPerformanceTests {
             long outputBytes;
             var stopwatch = Stopwatch.StartNew();
             using (EmailStorePstWriter writer = EmailStorePstWriter.Create(path,
-                new EmailStorePstWriterOptions(failOnDataLoss: true, checkpointIntervalItems: int.MaxValue))) {
+                new EmailStorePstWriterOptions(failOnLoss: true, checkpointIntervalItems: int.MaxValue))) {
                 PstAllocationMapTestSupport.CountingFileStream counted =
                     PstAllocationMapTestSupport.CountMapWrites(PstAllocationMapTestSupport.WriterFile(writer));
                 string folder = writer.AddFolder("Benchmark");

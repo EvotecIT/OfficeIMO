@@ -32,7 +32,7 @@ internal static class Program {
             if (args.Length is >= 3 and <= 5 && args[0] == "create") {
                 PublisherNativeCreationPlan specification = CandidateCases.Create(args[1], args.Length >= 4 ? args[3] : null,
                     args.Length == 5 ? args[4] : null);
-                byte[] bytes = PublisherNativeCreationCodec.Create(specification, new PublisherReadOptions(),
+                byte[] bytes = PublisherNativeCreationCodec.Create(specification, new PublisherLoadOptions(),
                     new PublisherSaveOptions().MaxOutputBytes, CancellationToken.None);
                 WriteNew(args[2], bytes);
                 Console.WriteLine(JsonSerializer.Serialize(new {
@@ -157,7 +157,7 @@ internal static class Program {
             operation = args[0], prepared = prepared.IsPrepared,
             output = bytes == null ? null : Path.GetFullPath(args[2]),
             bytes = prepared.ByteLength, sha256 = bytes == null ? null : NativeInventory.Hash(bytes),
-            diagnostics = prepared.FidelityDiagnostics,
+            diagnostics = prepared.Diagnostics,
             styleDependencies = prepared.StyleDependencies,
             nativeAcceptance = "unassessed",
             repairFreeOpening = "unassessed"

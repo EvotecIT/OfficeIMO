@@ -45,13 +45,15 @@ public sealed partial class EpubPublication {
         var relationshipSelectors = new MergeRelationshipSelectors(relationships, token);
         foreach (XElement style in inlineStyles) {
             token.ThrowIfCancellationRequested();
-            style.Value = HtmlCssIdSelectorRewriter.Rewrite(style.Value, ids, token, relationshipSelectors.Rewrite);
+            style.Value = HtmlCssIdSelectorRewriter.Rewrite(style.Value, ids, token, relationshipSelectors.Rewrite,
+                maximumOutputCharacters: _maximumEntryBytes);
         }
         clonedBytes = previousBytes;
         foreach (string path in createdPaths) {
             token.ThrowIfCancellationRequested();
             string css = Encoding.UTF8.GetString(result.Entries[path]);
-            string rewritten = HtmlCssIdSelectorRewriter.Rewrite(css, ids, token, relationshipSelectors.Rewrite);
+            string rewritten = HtmlCssIdSelectorRewriter.Rewrite(css, ids, token, relationshipSelectors.Rewrite,
+                maximumOutputCharacters: _maximumEntryBytes);
             byte[] bytes = new UTF8Encoding(false, true).GetBytes(rewritten);
             CheckClonedBytes(bytes);
             result.Entries[path] = bytes;
@@ -69,7 +71,7 @@ public sealed partial class EpubPublication {
                 token.ThrowIfCancellationRequested();
                 return kind == HtmlResourceKind.Stylesheet ? Import(value, path, depth) :
                     RewriteMovedReference(path, null, path, null, value, string.Empty, string.Empty, map);
-            }, includeFragmentReferences: true);
+            }, includeFragmentReferences: true, maximumOutputCharacters: _maximumEntryBytes);
         }
 
         string Import(string value, string path, int depth) {

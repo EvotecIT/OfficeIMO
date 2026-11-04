@@ -1,6 +1,6 @@
 namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Identifies the page-size category stored by a binary PowerPoint document.</summary>
-    public enum LegacyPptSlideSizeType : ushort {
+    internal enum LegacyPptSlideSizeType : ushort {
         /// <summary>A computer-screen presentation.</summary>
         Screen = 0,
         /// <summary>Letter paper.</summary>
@@ -18,7 +18,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     }
 
     /// <summary>Represents the complete fixed-width DocumentAtom settings.</summary>
-    public sealed class LegacyPptDocumentSettings {
+    internal sealed class LegacyPptDocumentSettings {
         internal LegacyPptDocumentSettings(int slideWidth, int slideHeight, int notesWidth,
             int notesHeight, int serverZoomNumerator, int serverZoomDenominator,
             uint notesMasterPersistId, uint handoutMasterPersistId, ushort firstSlideNumber,

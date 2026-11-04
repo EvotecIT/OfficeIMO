@@ -24,13 +24,15 @@ public sealed class HtmlRawBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
     string IMarkdownBlock.RenderMarkdown() => Html;
     string IMarkdownBlock.RenderHtml() {
         var o = HtmlRenderContext.Options;
-        var handling = o?.RawHtmlHandling ?? RawHtmlHandling.Allow;
-        return handling switch {
-            RawHtmlHandling.Allow => TerminateParsedHtml(o?.GitHubHtmlTagFilter == true ? GitHubHtmlTagFilter.Apply(Html) : Html),
-            RawHtmlHandling.Escape => "<pre class=\"md-raw-html\"><code>" + HtmlTextEncoder.Encode(Html, o) + "</code></pre>",
-            RawHtmlHandling.Sanitize => RawHtmlSanitizer.Sanitize(Html, o),
+        var handling = o?.RawHtmlHandling ?? MarkdownRawHtmlHandling.Allow;
+        string rendered = handling switch {
+            MarkdownRawHtmlHandling.Allow => TerminateParsedHtml(o?.GitHubHtmlTagFilter == true ? GitHubHtmlTagFilter.Apply(Html) : Html),
+            MarkdownRawHtmlHandling.Escape => "<pre class=\"md-raw-html\"><code>" + HtmlTextEncoder.Encode(Html, o) + "</code></pre>",
+            MarkdownRawHtmlHandling.Sanitize => RawHtmlSanitizer.Sanitize(Html, o),
             _ => string.Empty
         };
+        o?.RecordRawHtmlChange(Html, rendered, "RawHtmlBlock");
+        return rendered;
     }
 
     private string TerminateParsedHtml(string html) =>

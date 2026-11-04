@@ -43,16 +43,18 @@ public partial class Word {
         using WordDocument document = CreateInheritedRunningStoryControl(footer, kind, mode);
         WordSection later = document.Sections[1];
         string before = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        WordToPdfOptions options = EmptyRunningOptions();
+        WordPdfExportOptions options = EmptyRunningOptions();
         options.IncludePageNumbers = false;
-        if (mode == "override") options.PdfOptions = new PdfOptions {
-            HeaderFont = PdfStandardFont.Courier, HeaderFontSize = 18D, HeaderAlign = PdfAlign.Left,
-            FooterFont = PdfStandardFont.Courier, FooterFontSize = 18D, FooterAlign = PdfAlign.Left
+        if (mode == "override") options.PdfOptions = new PdfCreateOptions {
+            PageSetup = {
+                Header = { StandardFont = PdfStandardFont.Courier, FontSize = global::OfficeIMO.OfficeLength.Points(18D), Alignment = OfficeAlignment.Left },
+                Footer = { StandardFont = PdfStandardFont.Courier, FontSize = global::OfficeIMO.OfficeLength.Points(18D), Alignment = OfficeAlignment.Left }
+            }
         };
         using WordDocument? explicitDocument = mode == "override" ? CreateExplicitRunningStoryControl(document) : null;
-        using var explicitPdf = explicitDocument == null ? null : PdfPigDocument.Open(explicitDocument.ToPdfBytes(options));
+        using var explicitPdf = explicitDocument == null ? null : PdfPigDocument.Open(explicitDocument.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         for (int repeat = 0; repeat < 2; repeat++) {
-            using var pdf = PdfPigDocument.Open(document.ToPdfBytes(options));
+            using var pdf = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
             Assert.Equal(mode == "continuous" ? 1 : 3, pdf.NumberOfPages);
             Assert.Contains("S1", pdf.GetPage(1).Text);
             Assert.Contains("S2A", pdf.GetPage(mode == "continuous" ? 1 : 2).Text);
@@ -73,9 +75,9 @@ public partial class Word {
         Assert.Equal(before, document._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
         // Resolving inherited content must preserve authored linkage slots.
         if (mode != "blank") {
-            Assert.Null(later.Header?.Default); Assert.Null(later.Footer?.Default);
-            Assert.Null(later.Header?.First); Assert.Null(later.Footer?.First);
-            Assert.Null(later.Header?.Even); Assert.Null(later.Footer?.Even);
+            Assert.Null(later.PageSetup.GetHeader(WordHeaderFooterType.Default)); Assert.Null(later.PageSetup.GetFooter(WordHeaderFooterType.Default));
+            Assert.Null(later.PageSetup.GetHeader(WordHeaderFooterType.First)); Assert.Null(later.PageSetup.GetFooter(WordHeaderFooterType.First));
+            Assert.Null(later.PageSetup.GetHeader(WordHeaderFooterType.Even)); Assert.Null(later.PageSetup.GetFooter(WordHeaderFooterType.Even));
         }
     }
 
@@ -95,7 +97,7 @@ public partial class Word {
     public void SaveAsPdf_InheritedEvenRunningStoryUsesRestartedPageNumber(bool footer, int start) {
         using WordDocument document = CreateInheritedRunningStoryControl(footer, "even", "fields");
         document.Sections[1]._sectionProperties.AddChild(new W.PageNumberType { Start = start }, true);
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(EmptyRunningOptions()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(start % 2 == 0 ? 3 : 4, pdf.NumberOfPages);
         int secondPage = pdf.NumberOfPages - 1;
         for (int index = 0; index < 2; index++) {
@@ -108,25 +110,25 @@ public partial class Word {
 
     private static WordDocument CreateInheritedRunningStoryControl(bool footer, string kind, string mode) {
         using WordDocument source = WordDocument.Create();
-        WordHeaderFooter[] headers = { source.HeaderDefaultOrCreate, source.HeaderFirstOrCreate, source.HeaderEvenOrCreate };
-        WordHeaderFooter[] footers = { source.FooterDefaultOrCreate, source.FooterFirstOrCreate, source.FooterEvenOrCreate };
+        WordHeaderFooter[] headers = { source.PageSetup.Header, source.PageSetup.FirstPageHeader, source.PageSetup.EvenPageHeader };
+        WordHeaderFooter[] footers = { source.PageSetup.Footer, source.PageSetup.FirstPageFooter, source.PageSetup.EvenPageFooter };
         foreach (WordHeaderFooter story in headers.Concat(footers))
             foreach (var child in story.ChildElements.ToArray()) child.Remove();
-        source.Sections[0].DifferentFirstPage = kind == "first";
-        source.Sections[0].DifferentOddAndEvenPages = kind == "even";
+        source.Sections[0].PageSetup.DifferentFirstPage = kind == "first";
+        source.Sections[0].PageSetup.DifferentOddAndEvenPages = kind == "even";
         int slot = Array.IndexOf(new[] { "default", "first", "even" }, kind);
         WordParagraph marker = (footer ? footers : headers)[slot].AddParagraph("MARK");
         SetInheritedRunningControlStyle(marker);
-        if (mode == "fields") marker.AddText(" P").AddField(WordFieldType.Page).AddText(" S").AddField(WordFieldType.SectionPages);
+        if (mode == "fields") marker.AddText(" P").AddField(WordFieldType.Page).Paragraph.AddText(" S").AddField(WordFieldType.SectionPages);
         SetInheritedRunningControlStyle(source.AddParagraph("S1"));
         WordSection later = source.AddSection(mode == "continuous" ? WordSectionBreakType.Continuous : WordSectionBreakType.NextPage);
-        later.DifferentFirstPage = kind == "first";
+        later.PageSetup.DifferentFirstPage = kind == "first";
         if (mode == "blank") {
-            later.AddHeadersAndFooters();
-            if (kind == "even") later.DifferentOddAndEvenPages = true;
+            _ = later.PageSetup.Header;
+            if (kind == "even") later.PageSetup.DifferentOddAndEvenPages = true;
             WordHeaderFooter? blank = footer
-                ? kind == "first" ? later.Footer?.First : kind == "even" ? later.Footer?.Even : later.Footer?.Default
-                : kind == "first" ? later.Header?.First : kind == "even" ? later.Header?.Even : later.Header?.Default;
+                ? kind == "first" ? later.PageSetup.GetFooter(WordHeaderFooterType.First) : kind == "even" ? later.PageSetup.GetFooter(WordHeaderFooterType.Even) : later.PageSetup.GetFooter(WordHeaderFooterType.Default)
+                : kind == "first" ? later.PageSetup.GetHeader(WordHeaderFooterType.First) : kind == "even" ? later.PageSetup.GetHeader(WordHeaderFooterType.Even) : later.PageSetup.GetHeader(WordHeaderFooterType.Default);
             Assert.NotNull(blank);
             foreach (var child in blank!.ChildElements.ToArray()) child.Remove();
             blank.AddParagraph();
@@ -147,8 +149,8 @@ public partial class Word {
     }
 
     private static void SetInheritedRunningControlStyle(WordParagraph paragraph) {
-        paragraph.FontFamily = "Arial"; paragraph.FontSize = 12;
-        paragraph.LineSpacing = 240; paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
-        paragraph.LineSpacingBeforePoints = paragraph.LineSpacingAfterPoints = 0;
+        paragraph.FontFamily = "Arial"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+        paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(240) * 635)));
+        paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
     }
 }

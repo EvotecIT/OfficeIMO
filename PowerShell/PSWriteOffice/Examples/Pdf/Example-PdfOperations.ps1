@@ -25,7 +25,7 @@ New-OfficePdf -Path $second {
 }
 
 Join-OfficePdf -Path $first, $second -OutputPath $joined
-Split-OfficePdf -Path $joined -OutputDirectory $splitDirectory -Prefix 'part'
+Split-OfficeDocument -Path $joined -OutputDirectory $splitDirectory -Prefix 'part'
 Set-OfficePdfPage -Path $joined -Rotation 90 -PageRange '2' -OutputPath $rotated
 Set-OfficePdfMetadata -Path $rotated -OutputPath $metadata -Title 'PDF Operations Example' -Author 'PSWriteOffice' -Subject 'Existing PDF operations'
 Add-OfficePdfStamp -Path $metadata -OutputPath $stamped -Text 'REVIEWED' -Color '#0F766E' -FontSize 22 -Rotation 12 -PageRange '1'

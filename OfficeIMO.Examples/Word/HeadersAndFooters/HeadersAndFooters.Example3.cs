@@ -13,29 +13,13 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("[*] Creating standard document with Headers and Footers including Sections");
             string filePath = System.IO.Path.Combine(folderPath, "Basic Document with Headers and Footers.docx");
 
-            WordHeaders RequireHeaders(WordHeaders? headers, string description) {
-                if (headers == null) {
-                    throw new InvalidOperationException($"{description} are not available.");
-                }
-
-                return headers;
-            }
-
-            WordHeader RequireHeader(WordHeader? header, string description) {
-                if (header == null) {
-                    throw new InvalidOperationException($"{description} is not available.");
-                }
-
-                return header;
-            }
 
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddHeadersAndFooters();
 
-                document.Sections[0].PageOrientation = OfficePageOrientation.Landscape;
+                document.Sections[0].PageSetup.Orientation = OfficePageOrientation.Landscape;
 
-                var headers = RequireHeaders(document.Header, "Document headers");
-                var defaultHeader = RequireHeader(headers.Default, "Default header");
+                var setup = document.PageSetup;
+                var defaultHeader = setup.Header;
 
                 var paragraphInHeader = defaultHeader.AddParagraph();
                 paragraphInHeader.Text = "Default Header / Section 0";
@@ -44,33 +28,31 @@ namespace OfficeIMO.Examples.Word {
 
                 var paragraph = document.AddParagraph("Basic paragraph - Page 1");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
+                paragraph.Color = OfficeIMO.OfficeColor.Red;
 
                 var section2 = document.AddSection();
-                section2.AddHeadersAndFooters();
 
-                var section2Headers = RequireHeaders(section2.Header, "Section 2 headers");
-                var section2DefaultHeader = RequireHeader(section2Headers.Default, "Section 2 default header");
+                var section2Setup = section2.PageSetup;
+                var section2DefaultHeader = section2Setup.Header;
 
                 var paragraghInHeaderSection1 = section2DefaultHeader.AddParagraph();
-                paragraghInHeaderSection1.Text = "Weird shit? 1";
+                paragraghInHeaderSection1.Text = "Section 1 header";
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 2");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
+                paragraph.Color = OfficeIMO.OfficeColor.Red;
 
                 var section3 = document.AddSection();
-                section3.AddHeadersAndFooters();
 
-                var section3Headers = RequireHeaders(section3.Header, "Section 3 headers");
-                var section3DefaultHeader = RequireHeader(section3Headers.Default, "Section 3 default header");
+                var section3Setup = section3.PageSetup;
+                var section3DefaultHeader = section3Setup.Header;
 
                 var paragraghInHeaderSection3 = section3DefaultHeader.AddParagraph();
-                paragraghInHeaderSection3.Text = "Weird shit? 2";
+                paragraghInHeaderSection3.Text = "Section 2 header";
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 3");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
+                paragraph.Color = OfficeIMO.OfficeColor.Red;
 
                 // 2 section, 9 paragraphs + 7 pagebreaks = 15 paragraphs, 7 pagebreaks
                 Console.WriteLine("+ Paragraphs: " + document.Paragraphs.Count);

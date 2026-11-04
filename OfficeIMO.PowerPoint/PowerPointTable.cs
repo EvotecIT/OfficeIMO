@@ -13,10 +13,11 @@ namespace OfficeIMO.PowerPoint {
     /// </summary>
     public partial class PowerPointTable : PowerPointShape {
         private const int EmusPerPoint = 12700;
-        private readonly SlidePart? _slidePart;
+        private readonly SlidePart? _initialSlidePart;
+        private SlidePart? _slidePart => Element.Ancestors<DocumentFormat.OpenXml.Presentation.Slide>().FirstOrDefault()?.SlidePart ?? _initialSlidePart;
 
         internal PowerPointTable(GraphicFrame frame, OpenXmlPartContainer? ownerPart = null) : base(frame, ownerPart) {
-            _slidePart = ownerPart as SlidePart;
+            _initialSlidePart = ownerPart as SlidePart;
         }
 
         private GraphicFrame Frame => (GraphicFrame)Element;

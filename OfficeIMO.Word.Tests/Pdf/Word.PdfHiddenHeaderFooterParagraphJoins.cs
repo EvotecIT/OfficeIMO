@@ -19,8 +19,8 @@ public partial class Word {
     [InlineData(true, true, true)]
     public void SaveAsPdf_HiddenHeaderFooterMarkJoinsTextAndPreservesWhitespace(bool footer, bool nativeDoc, bool whitespace) {
         using WordDocument source = CreateJoinedParagraphDocument();
-        source.AddParagraph("BODY"); source.AddHeadersAndFooters();
-        WordHeaderFooter story = footer ? source.Footer.Default : source.Header.Default;
+        source.AddParagraph("BODY"); _ = source.PageSetup.Header;
+        WordHeaderFooter story = footer ? source.PageSetup.GetFooter(WordHeaderFooterType.Default) : source.PageSetup.GetHeader(WordHeaderFooterType.Default);
         WordParagraph alpha = story.AddParagraph(whitespace ? "ALPHA " : "ALPHA");
         story.AddParagraph("BETA"); HideJoinMark(alpha, true);
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(nativeDoc ? WordFileFormat.Doc : WordFileFormat.Docx)));
@@ -44,8 +44,8 @@ public partial class Word {
     [InlineData(true, true)]
     public void SaveAsPdf_VisibleHeaderFooterMarkRetainsSeparateLines(bool footer, bool nativeDoc) {
         using WordDocument source = CreateJoinedParagraphDocument();
-        source.AddParagraph("BODY"); source.AddHeadersAndFooters();
-        WordHeaderFooter story = footer ? source.Footer.Default : source.Header.Default;
+        source.AddParagraph("BODY"); _ = source.PageSetup.Header;
+        WordHeaderFooter story = footer ? source.PageSetup.GetFooter(WordHeaderFooterType.Default) : source.PageSetup.GetHeader(WordHeaderFooterType.Default);
         WordParagraph alpha = story.AddParagraph("ALPHA"); HideJoinMark(alpha, false);
         story.AddParagraph("BETA");
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(nativeDoc ? WordFileFormat.Doc : WordFileFormat.Docx)));
@@ -61,8 +61,8 @@ public partial class Word {
     [InlineData(true)]
     public void SaveAsPdf_HiddenHeaderFooterChainSkipsHiddenTextAndUsesFirstAlignment(bool footer) {
         using WordDocument document = CreateJoinedParagraphDocument();
-        document.AddParagraph("BODY"); document.AddHeadersAndFooters();
-        WordHeaderFooter story = footer ? document.Footer.Default : document.Header.Default;
+        document.AddParagraph("BODY"); _ = document.PageSetup.Header;
+        WordHeaderFooter story = footer ? document.PageSetup.GetFooter(WordHeaderFooterType.Default) : document.PageSetup.GetHeader(WordHeaderFooterType.Default);
         WordParagraph alpha = story.AddParagraph("ALPHA "); alpha.ParagraphAlignment = WordParagraphAlignment.Center; HideJoinMark(alpha, true);
         WordParagraph hidden = story.AddParagraph("SECRET"); hidden.Hidden = true; HideJoinMark(hidden, true);
         WordParagraph beta = story.AddParagraph("BETA"); beta.ParagraphAlignment = WordParagraphAlignment.Right;
@@ -82,11 +82,11 @@ public partial class Word {
     [InlineData(true)]
     public void SaveAsPdf_MixedHeaderFooterJoinRetainsTypographyOnJoinedBaseline(bool footer) {
         using WordDocument document = CreateJoinedParagraphDocument();
-        document.AddParagraph("BODY"); document.AddHeadersAndFooters();
-        WordHeaderFooter story = footer ? document.Footer.Default : document.Header.Default;
+        document.AddParagraph("BODY"); _ = document.PageSetup.Header;
+        WordHeaderFooter story = footer ? document.PageSetup.GetFooter(WordHeaderFooterType.Default) : document.PageSetup.GetHeader(WordHeaderFooterType.Default);
         WordParagraph alpha = story.AddParagraph("ALPHA"); HideJoinMark(alpha, true);
         story.AddParagraph("BETA").Bold = true;
-        var result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false,
+        var result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false,
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() });
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
         var letters = pdf.GetPage(1).Letters;
@@ -96,7 +96,7 @@ public partial class Word {
         Assert.Equal(alphaStart.StartBaseLine.Y, betaStart.StartBaseLine.Y, 3);
         Assert.DoesNotContain("Bold", alphaStart.FontName, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Bold", betaStart.FontName, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "NativeHiddenParagraphJoinUnsupported");
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "native-hidden-paragraph-join-unsupported");
     }
 
     [Theory]
@@ -108,8 +108,8 @@ public partial class Word {
     [InlineData(true, 2)]
     public void SaveAsPdf_UnsupportedRunningStoryJoinReportsLossBeforeSerialization(bool footer, int tableDepth) {
         using WordDocument document = CreateJoinedParagraphDocument();
-        document.AddParagraph("BODY"); document.AddHeadersAndFooters();
-        WordHeaderFooter story = footer ? document.Footer.Default : document.Header.Default;
+        document.AddParagraph("BODY"); _ = document.PageSetup.Header;
+        WordHeaderFooter story = footer ? document.PageSetup.GetFooter(WordHeaderFooterType.Default) : document.PageSetup.GetHeader(WordHeaderFooterType.Default);
         WordTableCell? cell = tableDepth > 0 ? story.AddTable(1, 1).Rows[0].Cells[0] : null;
         for (int depth = 1; depth < tableDepth; depth++) cell = cell!.AddTable(1, 1).Rows[0].Cells[0];
         WordParagraph alpha = cell == null ? story.AddParagraph("ALPHA") : cell.AddParagraph("ALPHA", removeExistingParagraphs: true);
@@ -117,16 +117,16 @@ public partial class Word {
         alpha._paragraph.ParagraphProperties!.Append(new W.Shading { Fill = "eeeeee", Val = W.ShadingPatternValues.Clear });
         if (cell == null) story.AddParagraph("BETA");
         else cell.AddParagraph("BETA");
-        var result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false,
+        var result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false,
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() });
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeHiddenParagraphJoinUnsupported" &&
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "native-hidden-paragraph-join-unsupported" &&
             warning.Source == (tableDepth > 0 ? "table cell" : "header/footer"));
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
-        using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
+        using var pdf = PdfPigDocument.Open(result.Value.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters;
         Assert.NotEqual(letters.First(letter => letter.Value == "A").StartBaseLine.Y,
             letters.First(letter => letter.Value == "B").StartBaseLine.Y);
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeHiddenParagraphJoinUnsupported");
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "native-hidden-paragraph-join-unsupported");
     }
 
     [Theory]
@@ -134,8 +134,8 @@ public partial class Word {
     [InlineData(true)]
     public void SaveAsPdf_HiddenHeaderFooterTableCellMarkJoinsWithinCell(bool footer) {
         using WordDocument source = CreateJoinedParagraphDocument();
-        source.AddParagraph("BODY"); source.AddHeadersAndFooters();
-        WordHeaderFooter story = footer ? source.Footer.Default : source.Header.Default;
+        source.AddParagraph("BODY"); _ = source.PageSetup.Header;
+        WordHeaderFooter story = footer ? source.PageSetup.GetFooter(WordHeaderFooterType.Default) : source.PageSetup.GetHeader(WordHeaderFooterType.Default);
         WordTable table = story.AddTable(1, 1);
         WordParagraph alpha = table.Rows[0].Cells[0].AddParagraph("ALPHA ", removeExistingParagraphs: true); HideJoinMark(alpha, true);
         table.Rows[0].Cells[0].AddParagraph("BETA");
@@ -164,11 +164,11 @@ public partial class Word {
         W.Style normal = styles.Elements<W.Style>().Single(style => style.StyleId?.Value == "Normal");
         normal.StyleRunProperties!.RemoveAllChildren<W.FontSize>();
         normal.StyleRunProperties.RemoveAllChildren<W.FontSizeComplexScript>();
-        document.AddParagraph("BODY"); document.AddHeadersAndFooters();
-        WordHeaderFooter story = footer ? document.Footer.Default : document.Header.Default;
+        document.AddParagraph("BODY"); _ = document.PageSetup.Header;
+        WordHeaderFooter story = footer ? document.PageSetup.GetFooter(WordHeaderFooterType.Default) : document.PageSetup.GetHeader(WordHeaderFooterType.Default);
         WordParagraph alpha = story.AddParagraph("ALPHA"); HideJoinMark(alpha, true);
-        story.AddParagraph("BETA").FontSize = sameSize ? 12 : 14;
-        var result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false,
+        story.AddParagraph("BETA").FontSize = global::OfficeIMO.OfficeLength.Points(sameSize ? 12 : 14);
+        var result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false,
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() });
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
         var letters = pdf.GetPage(1).Letters;
@@ -178,6 +178,6 @@ public partial class Word {
         Assert.Equal(12D, alphaStart.FontSize, 3);
         Assert.Equal(sameSize ? 12D : 14D, betaStart.FontSize, 3);
         Assert.Contains("ALPHABETA", pdf.GetPage(1).Text);
-        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "NativeHiddenParagraphJoinUnsupported");
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "native-hidden-paragraph-join-unsupported");
     }
 }

@@ -39,27 +39,27 @@ public sealed class IWorkFractionFormatCorpusTests {
     [Fact]
     public void Saved_fraction_output_preserves_numeric_types_and_reports_display_approximation() {
         using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Fixture("json")));
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(Fixture("numbers"), conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(Fixture("numbers"), IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
         Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_TABLE_NUMBER_FORMAT_UNSUPPORTED");
         Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_AUTOMATIC_DECIMALS_APPROXIMATED");
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_FRACTION_DISPLAY_APPROXIMATED"
             && d.LossKind == global::OfficeIMO.OfficeConversionLossKind.Approximation);
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         ExcelSheet sheet = Assert.Single(reopened.Sheets);
-        ExcelRangeVisualSnapshot snapshot = sheet.Range($"B1:B{manifest.RootElement.GetProperty("cases").GetArrayLength()}").CreateVisualSnapshot();
+        ExcelRangeVisualInfo snapshot = sheet.Range($"B1:B{manifest.RootElement.GetProperty("cases").GetArrayLength()}").CreateVisualSnapshot();
         foreach (JsonElement expected in manifest.RootElement.GetProperty("cases").EnumerateArray()) {
             int row = expected.GetProperty("row").GetInt32();
-            ExcelCellData cell = sheet.CellAt(row, 2).GetValue();
+            ExcelCellData cell = sheet.Cell(row, 2).GetValue();
             Assert.Equal(ExcelCellDataKind.Number, cell.Kind);
             Assert.Equal(expected.GetProperty("portableValue").GetDouble(), Assert.IsType<double>(cell.Value));
             string text = Assert.Single(snapshot.Cells, c => c.Row == row).Text;
             Assert.Equal(expected.GetProperty("destinationDisplayText").GetString(), text);
             if (expected.GetProperty("sourceDisplayIsQualified").GetBoolean())
                 Assert.Equal(expected.GetProperty("sourceDisplayText").GetString(), text);
-            Assert.Equal(expected.GetProperty("destinationFormatCode").GetString(), sheet.CellAt(row, 2).GetStyle().NumberFormatCode);
+            Assert.Equal(expected.GetProperty("destinationFormatCode").GetString(), sheet.Cell(row, 2).GetStyle().NumberFormatCode);
         }
     }
 }

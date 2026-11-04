@@ -7,10 +7,9 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 internal static class PolicyBrief {
     internal static void Create(string folder) {
         using WordDocument document = WordDocument.Create(Path.Combine(folder, "example.docx"));
-        document.Settings.FontFamily = "Carlito";
-        document.Settings.FontSize = 11;
-        document.BuiltinDocumentProperties.Title = "Shared workspace guide";
-        document.BuiltinDocumentProperties.Subject = "Working agreements";
+        document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(11);
+        document.Properties.Title = "Shared workspace guide";
+        document.Properties.Subject = "Working agreements";
         document.AddParagraph("Shared workspace guide").Style = WordParagraphStyles.Heading1;
         document.AddParagraph("Version 1.0 | Owner: Workplace team | Review: March 2027");
         document.AddParagraph("A concise working agreement for reserving shared desks and meeting spaces.");
@@ -31,19 +30,19 @@ internal static class PolicyBrief {
                 WordTableCell cell = table.Rows[row].Cells[column];
                 cell.Paragraphs[0].Text = rules[row][column];
                 if (row == 0) {
-                    cell.ShadingFillColorHex = "2F5597";
+                    cell.ShadingFillColor = OfficeColor.Parse("2F5597");
                     cell.Paragraphs[0].Bold = true;
-                    cell.Paragraphs[0].SetColorHex("FFFFFF");
+                    cell.Paragraphs[0].SetColor(OfficeColor.Parse("FFFFFF"));
                 }
             }
         }
 
         WordParagraph reminder = document.AddParagraph("Release a booking as soon as plans change. Unused space is returned to the pool automatically after the release time.");
-        reminder.LineSpacingBeforePoints = 10;
-        reminder.ShadingFillColorHex = "EAF1FB";
+        reminder.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(10D);
+        reminder.ShadingFillColor = OfficeColor.Parse("EAF1FB");
         reminder.Borders.LeftStyle = WordBorderStyle.Single;
-        reminder.Borders.LeftColorHex = "2F5597";
-        reminder.Borders.LeftSize = 24;
+        reminder.Borders.LeftColor = OfficeColor.Parse("2F5597");
+        reminder.Borders.LeftSize = OfficeLength.Points(3);
         document.AddParagraph("Leave it ready for the next person").Style = WordParagraphStyles.Heading2;
         WordList actions = document.AddList(WordListStyle.Bulleted);
         actions.AddItem("Remove personal items and dispose of waste.");
@@ -53,20 +52,20 @@ internal static class PolicyBrief {
         Section("Exceptions", "Contact the Workplace team for accessible equipment, recurring project space, or a visitor group.");
         Section("Questions and review", "The Workplace team records feedback and reviews the agreement every six months.");
         foreach (WordParagraph paragraph in document.Paragraphs) {
-            paragraph.FontFamily = "Carlito";
-            paragraph.FontSize = 11;
-            paragraph.LineSpacingAfterPoints = 7;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(11);
+            paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(7D);
             if (paragraph.Style == WordParagraphStyles.Heading1) {
-                paragraph.FontSize = 26;
+                paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(26);
                 paragraph.Bold = true;
-                paragraph.LineSpacingAfterPoints = 12;
+                paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(12D);
             } else if (paragraph.Style == WordParagraphStyles.Heading2) {
-                paragraph.FontSize = 15;
+                paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(15);
                 paragraph.Bold = true;
-                paragraph.LineSpacingBeforePoints = 12;
-                paragraph.LineSpacingAfterPoints = 6;
+                paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(12D);
+                paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(6D);
             }
         }
+        WorkflowFooter.Add(document, "Shared workspace guide");
         document.Save();
 
         void Section(string heading, string body) {

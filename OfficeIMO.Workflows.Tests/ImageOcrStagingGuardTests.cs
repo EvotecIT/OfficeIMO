@@ -73,29 +73,29 @@ namespace OfficeIMO.Workflows.Tests {
                 new ImageOcrWorkflowRequest {
                     InputPath = source,
                     OutputPath = destination,
-                    ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                    ConflictPolicy = OfficePublicationPolicy.Replace,
                     PublicationGuard = guard,
                     OutputStream = output
                 }, new DelegateOcrEngine("fixture", (_, _) => Task.FromResult(new OcrResult { Text = "Recognized" })));
 
         private sealed class DestinationGuard(string allowedLocalRoot, string destination, bool allowPublication)
-            : IOfficeWorkflowPublicationGuard, IOfficeWorkflowStagingGuard {
+            : IOfficePublicationGuard, IOfficeStagingGuard {
             internal string AllowedLocalRoot { get; } = allowedLocalRoot;
             internal int StagingChecks { get; private set; }
             internal int PublicationChecks { get; private set; }
 
-            public ValueTask EnsureStagingDirectoryAllowedAsync(string directory, CancellationToken cancellationToken) {
+            public Task EnsureStagingDirectoryAllowedAsync(string directory, CancellationToken cancellationToken) {
                 cancellationToken.ThrowIfCancellationRequested();
                 StagingChecks++;
                 if (!string.Equals(Path.GetFullPath(directory), Path.GetFullPath(AllowedLocalRoot), StringComparison.Ordinal))
                     throw new UnauthorizedAccessException("Only the configured local output root is admitted for staging.");
-                return ValueTask.CompletedTask;
+                return Task.CompletedTask;
             }
 
-            public ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken cancellationToken) {
+            public Task<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken cancellationToken) {
                 cancellationToken.ThrowIfCancellationRequested();
                 PublicationChecks++;
-                return ValueTask.FromResult(allowPublication && string.Equals(path, destination, StringComparison.Ordinal));
+                return Task.FromResult(allowPublication && string.Equals(path, destination, StringComparison.Ordinal));
             }
         }
 

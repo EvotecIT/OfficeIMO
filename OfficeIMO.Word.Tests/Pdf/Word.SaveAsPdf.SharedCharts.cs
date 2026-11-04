@@ -16,8 +16,8 @@ public sealed class WordSharedChartPdfTests {
     [Fact]
     public void NativeThreeDimensionalPointStyleIsFlattenedForPdf() {
         using var document = WordDocument.Create();
-        WordChart chart = document.AddChart(OfficeChartKind.Pie, new OfficeChartData(new[] { "A", "B" },
-            new[] { new OfficeChartSeries("Status", new[] { 7d, 3d }) }));
+        WordChart chart = document.AddChart(OfficeChartType.Pie,new OfficeChartData(new[] { "A", "B" },
+            new[] { new OfficeSeries("Status", new[] { 7d, 3d }) }));
         C.PlotArea plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
         C.PieChart pie = plot.GetFirstChild<C.PieChart>()!;
         var pie3d = new C.Pie3DChart();
@@ -33,28 +33,28 @@ public sealed class WordSharedChartPdfTests {
         object?[] arguments = { chart, null, null };
         Assert.True((bool)factory.Invoke(null, arguments)!);
         Assert.IsType<OfficeChartSnapshot>(arguments[1]);
-        Assert.NotEmpty(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        Assert.NotEmpty(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
     }
 
     [Theory]
-    [InlineData(OfficeChartKind.Pie)]
-    [InlineData(OfficeChartKind.Doughnut)]
-    public void ExplodedSliceSurvivesNativePdfProjection(OfficeChartKind kind) {
+    [InlineData(OfficeChartType.Pie)]
+    [InlineData(OfficeChartType.Doughnut)]
+    public void ExplodedSliceSurvivesNativePdfProjection(OfficeChartType kind) {
         OfficeIMO.Pdf.PdfConversionReport conversionReport;
         using var document = WordDocument.Create();
-        WordChart chart = document.AddChart(kind, new OfficeChartData(new[] { "A", "B" },
-            new[] { new OfficeChartSeries("Status", new[] { 7d, 3d }).WithPointExplosions(new[] { 25, 0 }) }));
+        WordChart chart = document.AddChart(kind,new OfficeChartData(new[] { "A", "B" },
+            new[] { new OfficeSeries("Status", new[] { 7d, 3d }).WithPointExplosions(new[] { 25, 0 }) }));
         MethodInfo factory = typeof(WordPdfConverterExtensions).GetMethod("TryCreateNativeWordChartSnapshot",
             BindingFlags.NonPublic | BindingFlags.Static)!;
         object?[] arguments = { chart, null, null };
         Assert.True((bool)factory.Invoke(null, arguments)!);
         OfficeChartSnapshot projected = Assert.IsType<OfficeChartSnapshot>(arguments[1]);
         Assert.Equal(new[] { 25, 0 }, projected.Data.Series.Single().PointExplosions);
-        var options = new WordToPdfOptions { IncludePageNumbers = false };
-        var conversion = document.ToPdfDocumentResult(options);
+        var options = new WordPdfExportOptions { IncludePageNumbers = false };
+        var conversion = document.ConvertToPdfWithEvidence(options);
         conversionReport = conversion.Report;
         Assert.NotEmpty(conversion.Value.ToBytes());
-        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "native-body-chart-unsupported");
     }
 
     [Theory]
@@ -65,8 +65,7 @@ public sealed class WordSharedChartPdfTests {
     public void DefaultLegendShapeDoesNotDisableSingleChartPdfWithDataTable(string appearance) {
         OfficeIMO.Pdf.PdfConversionReport conversionReport;
         using var document = WordDocument.Create();
-        WordChart chart = document.AddChart(OfficeChartKind.ColumnClustered,
-            new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Count", new[] { 4d }) }));
+        WordChart chart = document.AddChart(OfficeChartType.ColumnClustered,            new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Count", new[] { 4d }) }));
         C.Chart native = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!;
         native.PlotArea!.AddChild(new C.DataTable(), true);
         C.Legend legend = native.GetFirstChild<C.Legend>()!;
@@ -81,11 +80,11 @@ public sealed class WordSharedChartPdfTests {
         object?[] arguments = { chart, null, null };
         Assert.True((bool)factory.Invoke(null, arguments)!);
         Assert.IsType<OfficeChartSnapshot>(arguments[1]);
-        var options = new WordToPdfOptions { IncludePageNumbers = false };
-        var conversion = document.ToPdfDocumentResult(options);
+        var options = new WordPdfExportOptions { IncludePageNumbers = false };
+        var conversion = document.ConvertToPdfWithEvidence(options);
         conversionReport = conversion.Report;
         byte[] pdfBytes = conversion.Value.ToBytes();
-        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "native-body-chart-unsupported");
         using var pdf = PdfPigDocument.Open(new MemoryStream(pdfBytes));
         Assert.Single(pdf.GetPages());
     }
@@ -108,11 +107,11 @@ public sealed class WordSharedChartPdfTests {
         Assert.Equal(shared.Style.LegendBorderColor, projected.Style.LegendBorderColor);
         Assert.Equal(shared.Style.LegendBorderWidth, projected.Style.LegendBorderWidth);
 
-        var options = new WordToPdfOptions { IncludePageNumbers = false };
-        var conversion = document.ToPdfDocumentResult(options);
+        var options = new WordPdfExportOptions { IncludePageNumbers = false };
+        var conversion = document.ConvertToPdfWithEvidence(options);
         conversionReport = conversion.Report;
         byte[] pdfBytes = conversion.Value.ToBytes();
-        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "native-body-chart-unsupported");
         using var pdf = PdfPigDocument.Open(new MemoryStream(pdfBytes));
         Assert.Single(pdf.GetPages());
     }
@@ -124,16 +123,16 @@ public sealed class WordSharedChartPdfTests {
         OfficeIMO.Pdf.PdfConversionReport conversionReport;
         using var document = WordDocument.Create();
         var data = bubble ? new OfficeChartData(new[] { "1", "2" }, new[] {
-            OfficeChartSeries.CreateBubble("Measured", new[] { 1d, 2d }, new[] { 3d, 4d }, new[] { 5d, 20d }, OfficeColor.Parse("#224466")) }) :
-            new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Columns", new[] { 100d, 200d }),
-                new OfficeChartSeries("Ratio", new[] { 1d, 2d }, null, OfficeColor.Parse("#224466"), null, true,
-                    renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary) });
-        document.AddChart(bubble ? OfficeChartKind.Bubble : OfficeChartKind.ColumnClustered, data, "Shared chart");
-        var options = new WordToPdfOptions { IncludePageNumbers = false };
+            OfficeSeries.CreateBubble("Measured", new[] { 1d, 2d }, new[] { 3d, 4d }, new[] { 5d, 20d }, OfficeColor.Parse("#224466")) }) :
+            new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Columns", new[] { 100d, 200d }),
+                new OfficeSeries("Ratio", new[] { 1d, 2d }, null, OfficeColor.Parse("#224466"), null, true,
+                    renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary) });
+        document.AddChart(bubble ? OfficeChartType.Bubble : OfficeChartType.ColumnClustered, data, new OfficeChartOptions { Title = "Shared chart" });
+        var options = new WordPdfExportOptions { IncludePageNumbers = false };
         string path = Path.Combine(Path.GetTempPath(), "officeimo-shared-chart-" + Guid.NewGuid().ToString("N") + ".pdf");
         try {
-            conversionReport = document.SaveAsPdf(path, options).Report;
-            Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+            conversionReport = (document.ConvertToPdfWithEvidence(options).Save(path)).Report;
+            Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "native-body-chart-unsupported");
             using var pdf = PdfPigDocument.Open(path);
             string text = string.Join(" ", pdf.GetPages().SelectMany(page => page.GetWords()).Select(word => word.Text));
             Assert.Contains("Shared chart", text);

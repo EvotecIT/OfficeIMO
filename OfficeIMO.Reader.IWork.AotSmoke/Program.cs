@@ -65,7 +65,7 @@ foreach (var (name, kind, sha256) in fixtures) {
     Reject<OperationCanceledException>(() => IWorkSourceDocument.Open(path, options: null,
         new CancellationToken(canceled: true)), name + " pre-cancellation");
     Reject<InvalidDataException>(() => IWorkSourceDocument.Open(path,
-        new IWorkReadOptions { MaximumPackageBytes = 1 }), name + " package byte limit");
+        new IWorkReadOptions { MaxPackageBytes = 1 }), name + " package byte limit");
     Reject<OperationCanceledException>(() => reader.ReadDocument(path,
         cancellationToken: new CancellationToken(canceled: true)), name + " Reader pre-cancellation");
     Reject<IOException>(() => reader.ReadDocument(path,

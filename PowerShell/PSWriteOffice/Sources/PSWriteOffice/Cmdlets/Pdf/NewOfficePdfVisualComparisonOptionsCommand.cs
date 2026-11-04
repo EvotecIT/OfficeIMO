@@ -11,7 +11,7 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 ///   <code>$options = New-OfficePdfVisualComparisonOptions -ChannelTolerance 2 -AllowedDifferenceRatio 0.001 -MaxPages 50
 /// Compare-OfficePdfVisual -ReferencePath .\Expected.pdf -DifferencePath .\Actual.pdf -Options $options</code>
 /// </example>
-[Cmdlet(VerbsCommon.New, "OfficePdfVisualComparisonOptions")]
+[Cmdlet(VerbsCommon.New, "OfficePdfVisualComparisonOptions", DefaultParameterSetName = "Default")]
 [OutputType(typeof(PdfVisualComparisonOptions))]
 public sealed class NewOfficePdfVisualComparisonOptionsCommand : PSCmdlet {
     /// <summary>Render scale applied before comparison.</summary>

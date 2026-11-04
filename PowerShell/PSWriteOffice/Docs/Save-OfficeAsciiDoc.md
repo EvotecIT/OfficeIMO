@@ -9,7 +9,7 @@ schema: 2.0.0
 Saves an OfficeIMO AsciiDoc document.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
 Save-OfficeAsciiDoc [-Document] <AsciiDocDocument> [-Path] <string> [-Options <AsciiDocWriterOptions>] [-Mode <AsciiDocWriterMode>] [-LineEnding <OfficeLineEnding>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
@@ -33,7 +33,7 @@ AsciiDoc document to save.
 
 ```yaml
 Type: AsciiDocDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -49,7 +49,7 @@ Canonical line ending: LF, CRLF, or CR. Omit it to retain the source preference.
 
 ```yaml
 Type: OfficeLineEnding
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values: LF, CRLF, CR
 
@@ -65,7 +65,7 @@ Writer mode. Preserve retains unchanged source; Canonical emits stable formattin
 
 ```yaml
 Type: AsciiDocWriterMode
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values: Preserve, Canonical
 
@@ -81,7 +81,7 @@ Optional writer settings.
 
 ```yaml
 Type: AsciiDocWriterOptions
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -97,7 +97,7 @@ Return the saved document.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -113,7 +113,7 @@ Destination path.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 

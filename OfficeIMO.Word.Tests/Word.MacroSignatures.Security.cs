@@ -159,7 +159,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(WordSignatureValidationState.Failed, signature.CryptographicStatus);
             Assert.Null(signature.SignerThumbprint);
             Assert.Contains(signature.Findings, finding =>
-                finding.Code == "MacroSignatureSignerCountInvalid" &&
+                finding.Code == "macro-signature-signer-count-invalid" &&
                 finding.State == WordSignatureValidationState.Failed);
         }
 
@@ -180,7 +180,7 @@ namespace OfficeIMO.Tests {
             Assert.True(platform.ReplacedStagingPath);
             Assert.False(result.Succeeded);
             Assert.Equal(originalBytes, File.ReadAllBytes(filePath));
-            Assert.Contains(result.Findings, finding => finding.Code == "SourcePackageChangedDuringSigning");
+            Assert.Contains(result.Findings, finding => finding.Code == "source-package-changed-during-signing");
         }
 
         [Fact]
@@ -198,7 +198,7 @@ namespace OfficeIMO.Tests {
 
             Assert.False(result.Succeeded);
             Assert.False(result.MacroProjectPreserved);
-            Assert.Contains(result.Findings, finding => finding.Code == "MacroValidatedSnapshotChanged");
+            Assert.Contains(result.Findings, finding => finding.Code == "macro-validated-snapshot-changed");
         }
 
         [Fact]
@@ -234,17 +234,9 @@ namespace OfficeIMO.Tests {
             request.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension(
                 new OidCollection { new Oid("1.3.6.1.5.5.7.3.4") },
                 critical: false));
-            using X509Certificate2 created = request.CreateSelfSigned(
+            return request.CreateSelfSigned(
                 DateTimeOffset.UtcNow.AddMinutes(-5),
                 DateTimeOffset.UtcNow.AddDays(1));
-            byte[] exported = created.Export(X509ContentType.Pfx);
-#if NET9_0_OR_GREATER
-            return X509CertificateLoader.LoadPkcs12(exported, null, X509KeyStorageFlags.Exportable);
-#else
-#pragma warning disable SYSLIB0057 // X509CertificateLoader is unavailable before .NET 9.
-            return new X509Certificate2(exported, (string?)null, X509KeyStorageFlags.Exportable);
-#pragma warning restore SYSLIB0057
-#endif
         }
 
         private static void AddTimestampedMacroSignatureProfile(

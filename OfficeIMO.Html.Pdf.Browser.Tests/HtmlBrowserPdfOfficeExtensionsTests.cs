@@ -26,26 +26,26 @@ public sealed class HtmlBrowserPdfOfficeExtensionsTests {
     [Fact]
     public void CapturedPdfOpensIntoTheCanonicalDocumentModelWithBrowserDiagnostics() {
         byte[] bytes = PdfDocument.Create(pdf => pdf.Content(content => content
-            .Paragraph(paragraph => paragraph.Text("Browser capture bridge"))))
+            .AddParagraph(paragraph => paragraph.AddText("Browser capture bridge"))))
             .ToBytes();
         HtmlBrowserPdfResult capture = CreateCapture(bytes, tagged: false);
 
         PdfDocumentConversionResult result = capture.ToPdfDocumentResult();
 
-        Assert.True(result.Value.Preflight().CanExtractText);
+        Assert.True(result.Value.Analyze().Preflight.CanExtractText);
         Assert.True(result.Value.PlanMutation(PdfMutationOperation.ModifyPageContent).CanExecute);
         HtmlBrowserPdfCaptureReport report = Assert.IsType<HtmlBrowserPdfCaptureReport>(
             Assert.Single(result.SourceConversionReports));
         Assert.False(report.Tagged);
         Assert.False(report.HasLoss);
-        Assert.Same(capture.Diagnostics, report.Diagnostics);
+        Assert.Same(capture.Diagnostics, report.NativeDiagnostics);
     }
 
     [Fact]
     public void CaptureReportTreatsBlockedResourcesAndWarningsAsPotentialLoss() {
         HtmlBrowserPdfResult capture = CreateCapture(
             PdfDocument.Create(pdf => pdf.Content(content => content
-                .Paragraph(paragraph => paragraph.Text("Incomplete capture")))).ToBytes(),
+                .AddParagraph(paragraph => paragraph.AddText("Incomplete capture")))).ToBytes(),
             tagged: true,
             blockedRequestCount: 1,
             blockedRequests: new[] { "https://blocked.example/font.woff2" },
@@ -57,16 +57,16 @@ public sealed class HtmlBrowserPdfOfficeExtensionsTests {
 
         Assert.True(report.Tagged);
         Assert.True(report.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
-        Assert.True(result.Value.Preflight().CanExtractText);
+        Assert.ThrowsAny<OfficeConversionException>(() => report.ThrowIfLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
+        Assert.True(result.Value.Analyze().Preflight.CanExtractText);
     }
 
     [Fact]
     public async Task CapturedPdfCanBeOpenedAsynchronouslyWithoutLosingTaggedIntent() {
         HtmlBrowserPdfResult capture = CreateCapture(
             PdfDocument.Create(pdf => pdf.Content(content => content
-                .Paragraph(paragraph => paragraph.Text("Async bridge")))).ToBytes(),
+                .AddParagraph(paragraph => paragraph.AddText("Async bridge")))).ToBytes(),
             tagged: true);
 
         PdfDocumentConversionResult result = await capture.ToPdfDocumentResultAsync();
@@ -74,7 +74,7 @@ public sealed class HtmlBrowserPdfOfficeExtensionsTests {
         HtmlBrowserPdfCaptureReport report = Assert.IsType<HtmlBrowserPdfCaptureReport>(
             Assert.Single(result.SourceConversionReports));
         Assert.True(report.Tagged);
-        Assert.True(result.Value.Preflight().CanRead);
+        Assert.True(result.Value.Analyze().Preflight.CanRead);
     }
 
     private static HtmlBrowserPdfResult CreateCapture(

@@ -1,0 +1,46 @@
+# Public surface inventory
+
+This tool proposes accessibility candidates for the Tier 1 libraries. It reads
+built Release assemblies, user guides, package READMEs and C# and PowerShell examples. One model
+signature closure spans the selected packages, so a documented Word API can retain
+its Core options and result models. Concrete Markdown syntax nodes, caller-visible
+exception types, attribute contracts, virtual extension points and concrete
+subtypes of exposed abstract model classes also remain public. Examples count across
+format directories and package READMEs because conversion examples use more than
+one package. The supported renderer plug-in sample also defines a public extension
+contract; it never receives friend-assembly access. Public interfaces, overrides, operators and
+exposed model data retain their contracts. Public constructors, value-type members
+and immutable `With...` copies that return the same model type also survive the
+signature closure.
+
+The unified document lifecycle and source conversion forms also remain public,
+including their async and out-report overloads. A synchronous example does not
+make its required async counterpart a visibility candidate. This retention rule
+applies to document members, domain extension methods and the front-door converter;
+it does not retain static file-converter helpers by name alone.
+
+Build the selected packages for `net10.0` before analysis, then run:
+
+```sh
+dotnet run --project Build/ApiMap/SurfaceAnalysis -- \
+    . /path/to/surface-inventory.json
+```
+
+The default set is Core, Word, Excel, PowerPoint, Pdf, Markdown and OfficeIMO.
+Additional arguments replace that package set. The tool uses the repository SDK's
+Roslyn assemblies and adds no runtime package dependency.
+
+The output is a review list, not an automatic accessibility edit. Check each
+candidate's callers, public inheritance and signatures in adapters before changing
+it. Model closure retains existing public construction; it never promotes a
+package-internal constructor. Undocumented constructors that require a format
+document remain candidates: attaching a model belongs to the document authoring
+API. Explicitly documented construction still retains its contract.
+Compiler-generated constructors can have no explicit source location. Overload
+locations are omitted when the source signature cannot be matched unambiguously.
+Generated API references and design documents are excluded as evidence; otherwise
+an automatically listed API would keep itself public.
+
+After reviewing the surface, use the public API analyzer's shipped baseline to
+track deliberate changes. [The analyzer documentation](https://github.com/dotnet/roslyn/blob/main/src/RoslynAnalyzers/PublicApiAnalyzers/PublicApiAnalyzers.Help.md)
+explains nullability and separate baseline files for conditional framework APIs.

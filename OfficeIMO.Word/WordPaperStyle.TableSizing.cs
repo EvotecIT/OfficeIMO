@@ -42,10 +42,8 @@ public sealed partial class WordPaperStyle {
         }
         int[] widths = AllocateHeaderWidths(available, minima, weights);
         // Keep the serialized preferred width, fixed layout, grid and every row in agreement.
-        table.WidthType = WordTableWidthUnit.Dxa;
-        table.Width = available;
-        table.ColumnWidthType = WordTableWidthUnit.Dxa;
-        table.ColumnWidth = widths.ToList();
+        table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus((long)available * 635));
+        table.ColumnWidth = widths.Select(width => (WordTableWidth?)WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus((long)width * 635))).ToList();
         table._tableProperties!.TableLayout = new TableLayout { Type = TableLayoutValues.Fixed };
         table.RefreshGrid();
     }
@@ -59,7 +57,7 @@ public sealed partial class WordPaperStyle {
                 var inherited = WordRunFormatting.EnumerateRunStyleProperties(scoped).ToArray();
                 string family = scoped.FontFamily ?? inherited.Select(style => style.RunFonts?.Ascii?.Value)
                     .FirstOrDefault(value => !string.IsNullOrEmpty(value)) ?? FontFamily;
-                double size = scoped.FontSizePoints ?? inherited.Select(style => style.FontSize?.Val?.Value)
+                double size = scoped.NativeFontSizePoints ?? inherited.Select(style => style.FontSize?.Val?.Value)
                     .Select(value => double.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out double halfPoints)
                         ? (double?)(halfPoints / 2D) : null).FirstOrDefault(value => value.HasValue) ?? 9D;
                 bool bold = (run.RunProperties?.Bold == null ? (bool?)null : scoped.Bold) ?? inherited.Select(style => style.Bold == null ? (bool?)null : style.Bold.Val?.Value ?? true)
@@ -94,8 +92,8 @@ public sealed partial class WordPaperStyle {
             }
             longest = Math.Max(longest, wordWidth);
         }
-        int left = cell.MarginLeftWidth ?? table.StyleDetails?.MarginDefaultLeftWidth ?? TableCellHorizontalPadding;
-        int right = cell.MarginRightWidth ?? table.StyleDetails?.MarginDefaultRightWidth ?? TableCellHorizontalPadding;
+        int left = checked((int)(cell.MarginLeft ?? table.StyleDetails?.MarginDefaultLeft ?? TableCellHorizontalPadding).ToTwips());
+        int right = checked((int)(cell.MarginRight ?? table.StyleDetails?.MarginDefaultRight ?? TableCellHorizontalPadding).ToTwips());
         // Round strictly outward: an exact twip boundary must survive PDF grid normalization.
         return Math.Max(1, checked((int)Math.Floor(longest * 20D) + 1 + Math.Max(0, left) + Math.Max(0, right)));
     }

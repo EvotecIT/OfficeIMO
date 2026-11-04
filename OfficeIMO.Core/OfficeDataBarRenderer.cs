@@ -6,7 +6,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Shared dependency-free renderer for proportional data bars inside a rectangular region.
 /// </summary>
-public static class OfficeDataBarRenderer {
+internal static class OfficeDataBarRenderer {
     /// <summary>
     /// Draws a resolved data bar on a raster canvas.
     /// </summary>

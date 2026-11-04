@@ -104,7 +104,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 ThrowUnsupported(sheet, conditionalFormattingReason ?? "conditional formatting");
             }
 
-            ExcelSheet.ExcelHeaderFooterSnapshot headerFooter = sheet.GetHeaderFooter();
+            ExcelSheet.ExcelHeaderFooterInfo headerFooter = sheet.GetHeaderFooter();
             if (headerFooter.HeaderHasPicturePlaceholder || headerFooter.FooterHasPicturePlaceholder) {
                 ThrowUnsupported(sheet, "header or footer images");
             }
@@ -673,7 +673,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             return null;
         }
 
-        private static bool SupportsHeaderFooterText(ExcelSheet.ExcelHeaderFooterSnapshot headerFooter, out string? reason) {
+        private static bool SupportsHeaderFooterText(ExcelSheet.ExcelHeaderFooterInfo headerFooter, out string? reason) {
             reason = null;
             string? oddHeaderText = BuildHeaderFooterText(headerFooter.HeaderLeft, headerFooter.HeaderCenter, headerFooter.HeaderRight);
             string? oddFooterText = BuildHeaderFooterText(headerFooter.FooterLeft, headerFooter.FooterCenter, headerFooter.FooterRight);
@@ -841,7 +841,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
 
             if (pane.TopLeftCell?.Value != null
-                && (!A1.TryParseCellReferenceFast(pane.TopLeftCell.Value, out int row, out int column)
+                && (!ExcelA1.TryParseCellReferenceFast(pane.TopLeftCell.Value, out int row, out int column)
                     || row < 1
                     || row > 65536
                     || column < 1

@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Buffers;
 using System.Collections;
 using System.Data;
@@ -16,13 +14,24 @@ namespace OfficeIMO.CSV;
 /// Preserves the single-consumer data-reader contract while typed CSV batches are projected by
 /// bounded workers. The source reader remains owned by one calling thread.
 /// </summary>
-internal sealed class CsvParallelDataReader : DbDataReader,
+internal sealed class CsvParallelDataReader : CsvDataReader,
     ICsvDataReaderDialectMetadata,
     ICsvDataReaderPositionMetadata,
     IDataReaderMappingMetadata,
     IDataReaderMappingErrorMetadata,
     IDataReaderFastMappingValues
 {
+#if NET8_0_OR_GREATER
+    /// <inheritdoc />
+    public override bool TryGetUtf8Text(int ordinal, out ReadOnlySpan<byte> text)
+    {
+        EnsureOpenRow();
+        if ((uint)ordinal >= (uint)_fieldCount) throw new IndexOutOfRangeException();
+        text = default;
+        return false;
+    }
+#endif
+
     private readonly CsvDataReader _source;
     private readonly IDataReaderParallelBatchSource _batchSource;
     private readonly int _degreeOfParallelism;
@@ -41,7 +50,7 @@ internal sealed class CsvParallelDataReader : DbDataReader,
     private bool _closed;
     private bool _failed;
 
-    internal CsvParallelDataReader(CsvDataReader source, CsvDataReaderParallelOptions options)
+    internal CsvParallelDataReader(CsvDataReader source, CsvDataReaderParallelOptions options) : base(source)
     {
         _source = source ?? throw new ArgumentNullException(nameof(source));
         if (options is null) throw new ArgumentNullException(nameof(options));
@@ -62,7 +71,7 @@ internal sealed class CsvParallelDataReader : DbDataReader,
             : new CancellationTokenSource();
     }
 
-    internal static DbDataReader Apply(CsvDataReader source, CsvDataReaderOptions options)
+    internal static CsvDataReader Apply(CsvDataReader source, CsvReaderOptions options)
     {
         CsvDataReaderParallelOptions? parallel = options.ParallelProcessing;
         if (parallel is null)
@@ -96,18 +105,18 @@ internal sealed class CsvParallelDataReader : DbDataReader,
 
     public override int Depth => 0;
 
-    public char Delimiter => _source.Delimiter;
+    public override char Delimiter => _source.Delimiter;
 
     /// <inheritdoc />
-    public string DelimiterText => _source.DelimiterText;
+    public override string DelimiterText => _source.DelimiterText;
 
-    public long RecordNumber => IsPositionedOnRow ? _recordNumber : 0;
+    public override long RecordNumber => IsPositionedOnRow ? _recordNumber : 0;
 
-    public int? PhysicalLineNumber => IsPositionedOnRow
+    public override int? PhysicalLineNumber => IsPositionedOnRow
         ? _currentBatch!.GetPhysicalLineNumber(_currentRow)
         : null;
 
-    public int? PhysicalEndLineNumber => IsPositionedOnRow
+    public override int? PhysicalEndLineNumber => IsPositionedOnRow
         ? _currentBatch!.GetPhysicalEndLineNumber(_currentRow)
         : null;
 

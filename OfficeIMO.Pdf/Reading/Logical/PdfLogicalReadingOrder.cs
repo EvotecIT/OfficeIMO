@@ -31,6 +31,7 @@ public enum PdfLogicalReadingOrderScope {
 /// <summary>
 /// One logical page item in crop-, rotation-, and column-aware reading order.
 /// </summary>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfLogicalReadingOrderItem {
     internal PdfLogicalReadingOrderItem(
         PdfLogicalReadingOrderKind kind,
@@ -107,7 +108,7 @@ public sealed class PdfLogicalReadingOrderItem {
 }
 
 /// <summary>Shared logical reading-order analysis for reverse-conversion adapters.</summary>
-public static partial class PdfLogicalReadingOrderAnalysis {
+internal static partial class PdfLogicalReadingOrderAnalysis {
     private const double SpanningWidthRatio = 0.62D;
 
     /// <summary>
@@ -212,19 +213,19 @@ public static partial class PdfLogicalReadingOrderAnalysis {
             if (page.RotationDegrees != 0) confidence -= 0.03D;
             var evidence = new List<PdfInferenceEvidence> {
                 new PdfInferenceEvidence(
-                    item.HasGeometry ? "reading-order.visible-geometry" : "reading-order.source-sequence-fallback",
+                    item.HasGeometry ? "reading-order-visible-geometry" : "reading-order-source-sequence-fallback",
                     item.HasGeometry ? "The item was ordered from visible page geometry." : "The item has no placement geometry and retains source sequence after positioned content.",
                     item.HasGeometry ? 0.8D : -0.2D),
                 new PdfInferenceEvidence(
-                    item.SpansColumns ? "reading-order.spanning-band" : "reading-order.column-band",
+                    item.SpansColumns ? "reading-order-spanning-band" : "reading-order-column-band",
                     item.SpansColumns ? "The item spans the page column band." : "The item was assigned to column " + item.ColumnIndex.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".",
                     item.SpansColumns ? 0.7D : 0.6D)
             };
             if (page.RotationDegrees != 0) {
-                evidence.Add(new PdfInferenceEvidence("reading-order.page-rotation", "Geometry was normalized through the page's " + page.RotationDegrees.ToString(System.Globalization.CultureInfo.InvariantCulture) + " degree rotation.", 0.7D));
+                evidence.Add(new PdfInferenceEvidence("reading-order-page-rotation", "Geometry was normalized through the page's " + page.RotationDegrees.ToString(System.Globalization.CultureInfo.InvariantCulture) + " degree rotation.", 0.7D));
             }
             if (item.IsClipped) {
-                evidence.Add(new PdfInferenceEvidence("reading-order.crop-clipped", "Source geometry was clipped to the visible crop boundary.", -0.4D));
+                evidence.Add(new PdfInferenceEvidence("reading-order-crop-clipped", "Source geometry was clipped to the visible crop boundary.", -0.4D));
             }
             result[index] = new PdfLogicalReadingOrderItem(
                 item.Kind, item.SourceIndex, item.PlacementIndex, index, item.ColumnIndex, item.SpansColumns,
@@ -338,7 +339,7 @@ public static partial class PdfLogicalReadingOrderAnalysis {
             if (ordered[index].Matched) {
                 evidence = item.Evidence.Concat(new[] {
                     new PdfInferenceEvidence(
-                        "reading-order.canonical-understanding",
+                        "reading-order-canonical-understanding",
                         "The item's position is owned by the canonical PDF understanding pipeline.",
                         0.9D)
                 }).ToArray();
@@ -371,7 +372,7 @@ public static partial class PdfLogicalReadingOrderAnalysis {
         position = 0L;
         IReadOnlyList<PdfLogicalTextBlock>? lines = item.Kind switch {
             PdfLogicalReadingOrderKind.TextBlock => new[] { page.TextBlocks[item.SourceIndex] },
-            PdfLogicalReadingOrderKind.Heading => new[] { page.Headings[item.SourceIndex].Line },
+            PdfLogicalReadingOrderKind.Heading => page.Headings[item.SourceIndex].Lines,
             PdfLogicalReadingOrderKind.Paragraph => page.Paragraphs[item.SourceIndex].Lines,
             PdfLogicalReadingOrderKind.ListItem => page.ListItems[item.SourceIndex].Lines,
             _ => null
@@ -491,7 +492,9 @@ public static partial class PdfLogicalReadingOrderAnalysis {
             if (TryGetVisualBounds(page, table, out PdfVisualBounds bounds)) tableBounds[tableIndex] = bounds;
             tableTexts[tableIndex] = NormalizeTableProjectionText(string.Join(" ", table.Rows.SelectMany(static row => row)), consumeWork);
         }
-        for (int index = 0; index < page.Headings.Count; index++) representedTextBlocks.Add(page.Headings[index].Line);
+        for (int index = 0; index < page.Headings.Count; index++) {
+            foreach (PdfLogicalTextBlock line in page.Headings[index].Lines) representedTextBlocks.Add(line);
+        }
         for (int index = 0; index < page.Paragraphs.Count; index++) {
             foreach (PdfLogicalTextBlock line in page.Paragraphs[index].Lines) representedTextBlocks.Add(line);
         }
@@ -511,7 +514,7 @@ public static partial class PdfLogicalReadingOrderAnalysis {
                 block.Kind is (PdfLogicalElementKind.Header or PdfLogicalElementKind.Footer)) continue;
             if (!representedTextBlocks.Contains(block)) AddText(PdfLogicalReadingOrderKind.TextBlock, index, new[] { block });
         }
-        for (int index = 0; index < page.Headings.Count; index++) AddText(PdfLogicalReadingOrderKind.Heading, index, new[] { page.Headings[index].Line });
+        for (int index = 0; index < page.Headings.Count; index++) AddText(PdfLogicalReadingOrderKind.Heading, index, page.Headings[index].Lines);
         for (int index = 0; index < page.Paragraphs.Count; index++) {
             IReadOnlyList<PdfLogicalTextBlock> lines = page.Paragraphs[index].Lines;
             if (!lines.All(listOwnedTextBlocks.Contains) &&
@@ -686,7 +689,10 @@ public static partial class PdfLogicalReadingOrderAnalysis {
         if (anchors.Length < 2 || item.Kind is not (PdfLogicalReadingOrderKind.Heading or PdfLogicalReadingOrderKind.Paragraph or PdfLogicalReadingOrderKind.TextBlock)) return false;
         double center = (item.Left + item.Right) / 2D;
         bool pageCentered = Math.Abs(center - (pageWidth / 2D)) <= pageWidth * 0.12D;
-        if (item.Kind == PdfLogicalReadingOrderKind.Heading) return pageCentered;
+        // A heading that starts at a column anchor belongs to that column, even when the column sits near the page
+        // centre; a centred heading that starts away from every column edge divides the bands.
+        bool startsAtColumnEdge = anchors.Skip(1).Any(anchor => Math.Abs(item.Left - anchor) <= Math.Max(6D, pageWidth * 0.015D));
+        if (item.Kind == PdfLogicalReadingOrderKind.Heading) return pageCentered && !startsAtColumnEdge;
         double nearestAnchor = anchors.Min(anchor => Math.Abs(anchor - item.Left));
         return pageCentered && nearestAnchor > Math.Max(24D, pageWidth * 0.1D);
     }

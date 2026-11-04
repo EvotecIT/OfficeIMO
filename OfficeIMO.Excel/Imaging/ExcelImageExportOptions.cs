@@ -73,14 +73,14 @@ namespace OfficeIMO.Excel {
         public bool IncludeWorkbookPathInHeaderFooter { get; set; }
 
         /// <summary>
-        /// Default column width in pixels when a column has no explicit width.
+        /// Fallback physical column width used by image layout when no explicit width is stored.
         /// </summary>
-        public double DefaultColumnWidthPixels { get; set; } = 64D;
+        public OfficeLength DefaultColumnWidth { get; set; } = OfficeLength.Pixels(64);
 
         /// <summary>
-        /// Default row height in pixels when a row has no explicit height.
+        /// Fallback physical row height used by image layout when no explicit height is stored.
         /// </summary>
-        public double DefaultRowHeightPixels { get; set; } = 20D;
+        public OfficeLength DefaultRowHeight { get; set; } = OfficeLength.Pixels(20);
 
         /// <summary>
         /// Maximum number of worksheet cells materialized for one visual snapshot.
@@ -100,6 +100,24 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public int MaximumPageBreakImages { get; set; } = DefaultMaximumPageBreakImages;
 
+        /// <summary>Explicit A1 range, or null to render each selected worksheet's used range.</summary>
+        public string? Range { get; set; }
+
+        /// <summary>Timestamp for dynamic header/footer fields; captured once per operation when omitted.</summary>
+        public DateTime? HeaderFooterDateTime { get; set; }
+
+        /// <summary>Uses configured print-area segments when no explicit range is supplied.</summary>
+        public bool UsePrintArea { get; set; }
+
+        /// <summary>Splits worksheet batches at manual row and column page breaks. Single-image rendering reports unsplit content.</summary>
+        public bool SplitByManualPageBreaks { get; set; }
+
+        /// <summary>Worksheet names to export. Explicitly selected sheets are included regardless of visibility.</summary>
+        public IReadOnlyList<string>? SheetNames { get; set; }
+
+        /// <summary>Includes hidden and very hidden worksheets when no explicit sheet selection is supplied.</summary>
+        public bool IncludeHiddenSheets { get; set; }
+
         /// <summary>Creates an independent options snapshot.</summary>
         public ExcelImageExportOptions Clone() => CopyExcelOptionsTo(new ExcelImageExportOptions());
 
@@ -116,11 +134,17 @@ namespace OfficeIMO.Excel {
             target.ShowHyperlinkHints = ShowHyperlinkHints;
             target.ShowCommentBodies = ShowCommentBodies;
             target.IncludeWorkbookPathInHeaderFooter = IncludeWorkbookPathInHeaderFooter;
-            target.DefaultColumnWidthPixels = DefaultColumnWidthPixels;
-            target.DefaultRowHeightPixels = DefaultRowHeightPixels;
+            target.DefaultColumnWidth = DefaultColumnWidth;
+            target.DefaultRowHeight = DefaultRowHeight;
             target.MaximumRenderedCells = MaximumRenderedCells;
             target.MaximumTotalSourceImageBytes = MaximumTotalSourceImageBytes;
             target.MaximumPageBreakImages = MaximumPageBreakImages;
+            target.Range = Range;
+            target.HeaderFooterDateTime = HeaderFooterDateTime;
+            target.UsePrintArea = UsePrintArea;
+            target.SplitByManualPageBreaks = SplitByManualPageBreaks;
+            target.SheetNames = SheetNames?.ToArray();
+            target.IncludeHiddenSheets = IncludeHiddenSheets;
             return target;
         }
 
@@ -138,83 +162,4 @@ namespace OfficeIMO.Excel {
         }
     }
 
-    /// <summary>
-    /// Options for worksheet image export.
-    /// </summary>
-    public sealed class ExcelWorksheetImageExportOptions : ExcelImageExportOptions {
-        /// <summary>
-        /// Optional explicit range. When omitted, the worksheet used range is exported.
-        /// </summary>
-        public string? Range { get; set; }
-
-        /// <summary>
-        /// Timestamp used for dynamic Excel header/footer date and time fields such as <c>&amp;D</c>, <c>&amp;T</c>, <c>&amp;[Date]</c>, and <c>&amp;[Time]</c>.
-        /// When omitted, image export uses the current local time captured at the start of the worksheet export.
-        /// </summary>
-        public DateTime? HeaderFooterDateTime { get; set; }
-
-        /// <summary>
-        /// When true and <see cref="Range"/> is omitted, uses the worksheet print area when configured.
-        /// </summary>
-        public bool UsePrintArea { get; set; }
-
-        /// <summary>
-        /// When true, <see cref="ExcelSheet.ExportImages(OfficeImageExportFormat, ExcelWorksheetImageExportOptions?)"/> splits output at manual row and column page breaks.
-        /// Single-image worksheet export keeps one result and emits a diagnostic instead of splitting.
-        /// </summary>
-        public bool SplitByManualPageBreaks { get; set; }
-
-        /// <summary>Creates an independent worksheet options snapshot.</summary>
-        public ExcelWorksheetImageExportOptions CloneWorksheet() {
-            ExcelWorksheetImageExportOptions clone = CopyExcelOptionsTo(new ExcelWorksheetImageExportOptions());
-            clone.Range = Range;
-            clone.HeaderFooterDateTime = HeaderFooterDateTime;
-            clone.UsePrintArea = UsePrintArea;
-            clone.SplitByManualPageBreaks = SplitByManualPageBreaks;
-            return clone;
-        }
-    }
-
-    /// <summary>
-    /// Options for workbook image export.
-    /// </summary>
-    public sealed class ExcelWorkbookImageExportOptions : ExcelImageExportOptions {
-        /// <summary>
-        /// Optional list of worksheet names to export. When omitted, visible worksheets are exported.
-        /// </summary>
-        public IReadOnlyList<string>? SheetNames { get; set; }
-
-        /// <summary>
-        /// When true and <see cref="SheetNames"/> is omitted, workbook image export includes hidden and very hidden worksheets.
-        /// Explicitly named worksheets are exported regardless of visibility.
-        /// </summary>
-        public bool IncludeHiddenSheets { get; set; }
-
-        /// <summary>
-        /// Timestamp used for dynamic Excel header/footer date and time fields in worksheet image exports.
-        /// When omitted, workbook image export uses the current local time captured at the start of the workbook export.
-        /// </summary>
-        public DateTime? HeaderFooterDateTime { get; set; }
-
-        /// <summary>
-        /// When true, each worksheet image export uses that worksheet's print area when configured.
-        /// </summary>
-        public bool UseWorksheetPrintAreas { get; set; }
-
-        /// <summary>
-        /// When true, workbook image export asks each worksheet to split output at manual row and column page breaks.
-        /// </summary>
-        public bool SplitWorksheetsByManualPageBreaks { get; set; }
-
-        /// <summary>Creates an independent workbook options snapshot.</summary>
-        public ExcelWorkbookImageExportOptions CloneWorkbook() {
-            ExcelWorkbookImageExportOptions clone = CopyExcelOptionsTo(new ExcelWorkbookImageExportOptions());
-            clone.SheetNames = SheetNames?.ToArray();
-            clone.IncludeHiddenSheets = IncludeHiddenSheets;
-            clone.HeaderFooterDateTime = HeaderFooterDateTime;
-            clone.UseWorksheetPrintAreas = UseWorksheetPrintAreas;
-            clone.SplitWorksheetsByManualPageBreaks = SplitWorksheetsByManualPageBreaks;
-            return clone;
-        }
-    }
 }

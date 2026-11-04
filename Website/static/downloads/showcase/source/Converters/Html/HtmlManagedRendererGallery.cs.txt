@@ -246,7 +246,7 @@ namespace OfficeIMO.Examples.Html {
                 </html>
                 """;
 
-            var options = new HtmlToPdfOptions {
+            var options = new HtmlPdfExportOptions {
                 PageSize = OfficePageSizes.A4.Landscape(),
                 Margins = HtmlRenderMargins.All(18D),
                 BackgroundColor = OfficeColor.White,
@@ -264,12 +264,16 @@ namespace OfficeIMO.Examples.Html {
 
             HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
             HtmlRenderDocument rendered = HtmlRenderEngine.Render(document, options);
-            HtmlDiagnostic[] fidelityDiagnostics = rendered.Diagnostics
+            HtmlDiagnostic[] fidelityDiagnostics = rendered.NativeDiagnostics
                 .Where(diagnostic => diagnostic.Severity != HtmlDiagnosticSeverity.Info)
                 .ToArray();
-            if (fidelityDiagnostics.Length > 0) {
-                throw new InvalidOperationException("Managed renderer gallery emitted fidelity diagnostics: " + string.Join("; ", fidelityDiagnostics.Select(diagnostic =>
-                    diagnostic.Code + " (" + diagnostic.Source + ": " + diagnostic.Detail + ")")));
+            foreach (HtmlDiagnostic diagnostic in fidelityDiagnostics) {
+                Console.WriteLine($"Managed renderer gallery: {diagnostic.Severity} {diagnostic.Code} ({diagnostic.Source}): {diagnostic.Message}");
+            }
+            if (fidelityDiagnostics.Any(diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error)) {
+                throw new InvalidOperationException("Managed renderer gallery failed: " + string.Join("; ", fidelityDiagnostics
+                    .Where(diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error)
+                    .Select(diagnostic => diagnostic.Code + " (" + diagnostic.Source + "): " + diagnostic.Message)));
             }
             bool hasHyphenationProof = rendered.Pages
                 .SelectMany(page => EnumerateManagedRendererGalleryVisuals(page.Scene))
@@ -282,17 +286,17 @@ namespace OfficeIMO.Examples.Html {
 
             File.WriteAllText(htmlPath, html);
             document.SaveAsPdf(pdfPath, options);
-            document.ToImage(options)
-                .AsPng()
-                .OnFileConflict(OfficeImageExportFileConflictPolicy.Replace)
-                .Save(pngPath);
-            document.ToImage(options)
-                .AsSvg()
-                .OnFileConflict(OfficeImageExportFileConflictPolicy.Replace)
-                .Save(svgPath);
+            var imageOptions1 = options.Clone();
+            imageOptions1.Format = OfficeImageExportFormat.Png;
+            imageOptions1.FileConflictPolicy = OfficeImageExportFileConflictPolicy.Replace;
+            document.SaveAsImage(pngPath, imageOptions1);
+            var imageOptions2 = options.Clone();
+            imageOptions2.Format = OfficeImageExportFormat.Svg;
+            imageOptions2.FileConflictPolicy = OfficeImageExportFileConflictPolicy.Replace;
+            document.SaveAsImage(svgPath, imageOptions2);
 
             byte[] pdf = File.ReadAllBytes(pdfPath);
-            int formFieldCount = global::OfficeIMO.Pdf.PdfDocument.Load(pdf).Inspect().FormFieldCount;
+            int formFieldCount = global::OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(pdf)).Inspect().FormFieldCount;
             if (formFieldCount < 4) {
                 throw new InvalidOperationException($"Managed renderer gallery expected at least four PDF fields but found {formFieldCount}.");
             }

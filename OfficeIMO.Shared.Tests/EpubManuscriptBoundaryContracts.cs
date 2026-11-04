@@ -70,13 +70,16 @@ public sealed class EpubManuscriptBoundaryContracts {
     public void MissingTargetsStillFailAndLocalReferencesDoNotCollapseOtherChapters() {
         var missing = Import("<h1>One</h1><p aria-describedby='missing'>First</p><h1>Two</h1><p>Second</p>");
         Assert.False(missing.Succeeded);
-        Assert.Contains(missing.Report.FidelityDiagnostics, d => d.Code == "EPUB_IMPORT_ID_REFERENCE_INVALID");
+        Assert.Contains(missing.Report.Diagnostics, d => d.Code == "EPUB_IMPORT_ID_REFERENCE_INVALID");
         Assert.Throws<InvalidDataException>(() => missing.Publication.Write());
         var local = Import("<h1 id='one'>One</h1><p aria-labelledby='one'>First</p><h1>Two</h1><p>Second</p>");
         Assert.Equal(2, Reopen(local).Spine.Count);
-        Assert.DoesNotContain(local.Report.FidelityDiagnostics, d => d.Code == "EPUB_IMPORT_CHAPTER_BOUNDARY_PRESERVED");
+        Assert.DoesNotContain(local.Report.Diagnostics, d => d.Code == "EPUB_IMPORT_CHAPTER_BOUNDARY_PRESERVED");
     }
 
     private static EpubManuscriptResult Import(string body) => EpubManuscript.ImportHtml(HtmlConversionDocument.Parse("<title>Book</title>" + body));
-    private static EpubPublication Reopen(EpubManuscriptResult result) => EpubPublication.Load(new MemoryStream(result.RequireNoLoss().Write().Bytes));
+    private static EpubPublication Reopen(EpubManuscriptResult result) {
+        result.ThrowIfLoss();
+        return EpubPublication.Load(new MemoryStream(result.Value.Write().Bytes));
+    }
 }

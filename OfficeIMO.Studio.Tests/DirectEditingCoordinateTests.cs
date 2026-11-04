@@ -21,7 +21,7 @@ public sealed class DirectEditingCoordinateTests {
         using var files = new TextEditingReviewTests.Files();
         byte[] source = Source(rotation);
         File.WriteAllBytes(files.Source, source);
-        var document = PdfDocument.Load(source);
+        var document = PdfDocument.Load(new System.IO.MemoryStream(source));
         PdfTextMatch match = Assert.Single(document.Text.Find("Account"));
         using var app = TestAppBuilder.StartSession();
         await app.Dispatch(async () => {
@@ -79,7 +79,7 @@ public sealed class DirectEditingCoordinateTests {
     public async Task BatchPreviewUsesPhysicalGeometryBeforeTheReaderSceneLoads() {
         using var files = new TextEditingReviewTests.Files();
         byte[] source = Source(0); File.WriteAllBytes(files.Source, source);
-        var document = PdfDocument.Load(source);
+        var document = PdfDocument.Load(new System.IO.MemoryStream(source));
         using var app = TestAppBuilder.StartSession();
         await app.Dispatch(async () => {
             using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null));

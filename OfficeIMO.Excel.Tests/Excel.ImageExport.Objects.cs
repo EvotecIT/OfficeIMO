@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportToleratesMalformedDrawingTextAttributes() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                document.AddWorksheet("MalformedShape").CellValue(1, 1, "Anchor");
+                document.AddSheet("MalformedShape").Cell(1, 1).SetValue("Anchor");
                 document.Save();
             }
 
@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
             CorruptAbsoluteDrawingShapeAttributes(filePath);
 
             using ExcelDocument loaded = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
-            OfficeImageExportResult result = loaded["MalformedShape"].ExportImage(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
+            OfficeImageExportResult result = loaded["MalformedShape"].ExportImage(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 Range = "A1:C3",
                 ShowGridlines = false
             });
@@ -38,11 +38,11 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportKeepsCellTextVisibleThroughNoFillShapes() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("InvisibleShape");
-                sheet.SetColumnWidth(1, 8);
-                sheet.SetColumnWidth(2, 30);
-                sheet.SetRowHeight(1, 24);
-                sheet.CellValue(1, 1, "Visible through shape");
+                ExcelSheet sheet = document.AddSheet("InvisibleShape");
+                sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(8));
+                sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(30));
+                sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
+                sheet.Cell(1, 1).SetValue("Visible through shape");
                 document.Save();
             }
 
@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
             MakeFirstAbsoluteDrawingShapeInvisible(filePath);
 
             using ExcelDocument loaded = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
-            OfficeImageExportResult result = loaded["InvisibleShape"].ExportImage(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
+            OfficeImageExportResult result = loaded["InvisibleShape"].ExportImage(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 Range = "A1:B1",
                 ShowGridlines = false
             });
@@ -66,16 +66,16 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportRendersCellCommentIndicatorsAndReportsUnsupportedBodiesInVisibleRange() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Objects");
-            sheet.CellValue(1, 1, "Name");
-            sheet.CellValue(2, 2, "Reviewed");
+            ExcelSheet sheet = document.AddSheet("Objects");
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(2, 2).SetValue("Reviewed");
             sheet.SetComment("B2", "Needs design review", "Reviewer");
             sheet.SetComment("C3", "Outside export", "Reviewer");
 
             ExcelRange range = sheet.Range("A1:B2");
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
-            string svg = range.ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
+            string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
 
             OfficeImageExportDiagnostic snapshotDiagnostic = Assert.Single(snapshot.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellCommentUnsupported);
             OfficeImageExportDiagnostic pngDiagnostic = Assert.Single(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellCommentUnsupported);
@@ -98,9 +98,9 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportRendersCommentBodiesWhenRequested() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("CommentBody");
-            sheet.CellValue(1, 1, "Name");
-            sheet.CellValue(2, 2, "Reviewed");
+            ExcelSheet sheet = document.AddSheet("CommentBody");
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(2, 2).SetValue("Reviewed");
             sheet.SetCommentRichText("B2", new[] {
                 new ExcelRichTextRun("Needs ") { FontColor = "C00000", Bold = true },
                 new ExcelRichTextRun("design review") { Italic = true, Underline = true, FontColor = "2563EB" },
@@ -110,13 +110,13 @@ namespace OfficeIMO.Tests {
             ExcelImageExportOptions options = new ExcelImageExportOptions {
                 ShowGridlines = false,
                 ShowCommentBodies = true,
-                DefaultColumnWidthPixels = 92D,
-                DefaultRowHeightPixels = 28D
+                DefaultColumnWidth = OfficeIMO.OfficeLength.Pixels(92D),
+                DefaultRowHeight = OfficeIMO.OfficeLength.Pixels(28D)
             };
             ExcelRange range = sheet.Range("A1:F8");
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            string svg = range.ToSvg(options);
+            string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
 
             ExcelVisualCommentIndicator indicator = Assert.Single(snapshot.CommentIndicators);
             ExcelVisualCommentBody body = Assert.Single(snapshot.CommentBodies);
@@ -167,8 +167,8 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportPreservesRichCommentBreaksAndNonRgbColors() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("CommentBreaks");
-                sheet.CellValue(2, 2, "Reviewed");
+                ExcelSheet sheet = document.AddSheet("CommentBreaks");
+                sheet.Cell(2, 2).SetValue("Reviewed");
                 sheet.SetCommentRichText("B2", new[] {
                     new ExcelRichTextRun("Line one"),
                     new ExcelRichTextRun("line two") { Bold = true }
@@ -194,12 +194,12 @@ namespace OfficeIMO.Tests {
             var options = new ExcelImageExportOptions {
                 ShowGridlines = false,
                 ShowCommentBodies = true,
-                DefaultColumnWidthPixels = 92D,
-                DefaultRowHeightPixels = 28D
+                DefaultColumnWidth = OfficeIMO.OfficeLength.Pixels(92D),
+                DefaultRowHeight = OfficeIMO.OfficeLength.Pixels(28D)
             };
 
             ExcelVisualCommentBody body = Assert.Single(range.CreateVisualSnapshot(options).CommentBodies);
-            string svg = range.ToSvg(options);
+            string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
 
             Assert.Equal("Line one\nline two", body.Text);
             Assert.Equal("Line one\n", string.Concat(body.RichTextRuns.Take(2).Select(run => run.Text)));
@@ -217,32 +217,32 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportPlacesCommentBodyAwayFromChartWhenSpaceExists() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("CommentChart");
+            ExcelSheet sheet = document.AddSheet("CommentChart");
             for (int column = 1; column <= 10; column++) {
-                sheet.SetColumnWidth(column, 10);
+                sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(10));
             }
 
             for (int row = 1; row <= 8; row++) {
-                sheet.SetRowHeight(row, 28);
+                sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
             }
 
-            sheet.CellValue(4, 1, "Month");
-            sheet.CellValue(4, 2, "Score");
-            sheet.CellValue(5, 1, "Jan");
-            sheet.CellValue(5, 2, 120);
-            sheet.CellValue(6, 1, "Feb");
-            sheet.CellValue(6, 2, 180);
-            sheet.CellValue(2, 4, "Review");
+            sheet.Cell(4, 1).SetValue("Month");
+            sheet.Cell(4, 2).SetValue("Score");
+            sheet.Cell(5, 1).SetValue("Jan");
+            sheet.Cell(5, 2).SetValue(120);
+            sheet.Cell(6, 1).SetValue("Feb");
+            sheet.Cell(6, 2).SetValue(180);
+            sheet.Cell(2, 4).SetValue("Review");
             sheet.SetComment("D2", "This note should avoid the chart when rendered.", "Reviewer");
-            sheet.AddChartFromRange("A4:B6", row: 1, column: 5, widthPixels: 260, heightPixels: 120, type: ExcelChartType.ColumnClustered, title: "Trend");
+            sheet.AddChart(OfficeChartType.ColumnClustered, "A4:B6", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(260), Height = OfficeLength.Pixels(120), Title = "Trend" });
 
             var options = new ExcelImageExportOptions {
                 ShowGridlines = false,
                 ShowCommentBodies = true,
-                DefaultColumnWidthPixels = 70D,
-                DefaultRowHeightPixels = 28D
+                DefaultColumnWidth = OfficeIMO.OfficeLength.Pixels(70D),
+                DefaultRowHeight = OfficeIMO.OfficeLength.Pixels(28D)
             };
-            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:J8").CreateVisualSnapshot(options);
+            ExcelRangeVisualInfo snapshot = sheet.Range("A1:J8").CreateVisualSnapshot(options);
             OfficeImageExportResult svg = sheet.Range("A1:J8").ExportImage(OfficeImageExportFormat.Svg, options);
 
             ExcelVisualCommentIndicator indicator = Assert.Single(snapshot.CommentIndicators);
@@ -259,10 +259,10 @@ namespace OfficeIMO.Tests {
             const string personId = "{11111111-1111-1111-1111-111111111111}";
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Threaded");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(1, 2, "Reviewed");
-                sheet.CellValue(1, 4, "Outside");
+                ExcelSheet sheet = document.AddSheet("Threaded");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Reviewed");
+                sheet.Cell(1, 4).SetValue("Outside");
                 document.Save();
             }
 
@@ -299,9 +299,9 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {
                 ExcelSheet sheet = document.Sheets.Single();
                 ExcelRange range = sheet.Range("A1:B1");
-                ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
+                ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
                 OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
-                string svg = range.ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
+                string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
 
                 OfficeImageExportDiagnostic snapshotDiagnostic = Assert.Single(snapshot.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ThreadedCommentUnsupported);
                 OfficeImageExportDiagnostic pngDiagnostic = Assert.Single(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ThreadedCommentUnsupported);
@@ -325,10 +325,10 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportReportsUnsupportedDrawingShapesInVisibleRange() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Shapes");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 2, "Reviewed");
-                sheet.CellValue(1, 4, "Outside");
+                ExcelSheet sheet = document.AddSheet("Shapes");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 2).SetValue("Reviewed");
+                sheet.Cell(1, 4).SetValue("Outside");
                 document.Save();
             }
 
@@ -337,7 +337,7 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {
                 ExcelSheet sheet = document.Sheets.Single();
                 ExcelRange range = sheet.Range("A1:B2");
-                ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
+                ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
                 OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
 
                 OfficeImageExportDiagnostic snapshotDiagnostic = Assert.Single(snapshot.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
@@ -355,9 +355,9 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportRendersSupportedDrawingShapesThroughSharedDrawing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("ShapeVisual");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 2, "Reviewed");
+                ExcelSheet sheet = document.AddSheet("ShapeVisual");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 2).SetValue("Reviewed");
                 document.Save();
             }
 
@@ -367,9 +367,9 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.Sheets.Single();
                 ExcelRange range = sheet.Range("A1:D4");
                 var options = new ExcelImageExportOptions { ShowGridlines = false };
-                ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+                ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
                 OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-                string svg = range.ToSvg(options);
+                string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
 
                 Assert.True(
                     snapshot.DrawingObjects.Count == 1,
@@ -393,8 +393,8 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportCarriesShapingContextIntoDrawingObjects() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("ShapeShaping");
-                sheet.CellValue(1, 1, "Name");
+                ExcelSheet sheet = document.AddSheet("ShapeShaping");
+                sheet.Cell(1, 1).SetValue("Name");
                 document.Save();
             }
 
@@ -429,12 +429,15 @@ namespace OfficeIMO.Tests {
                 diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.TextShapingFallback);
         }
 
-        [Fact]
-        public void ExcelWorksheet_ImageExportExpandsUsedRangeForDrawingShapes() {
+        [Theory]
+        [InlineData(32D, 12D)]
+        [InlineData(64D, 20D)]
+        [InlineData(128D, 40D)]
+        public void ExcelWorksheet_ImageExportExpandsUsedRangeForDrawingShapes(double columnWidth, double rowHeight) {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("ShapeOnly");
-                sheet.CellValue(1, 1, "Only cell");
+                ExcelSheet sheet = document.AddSheet("ShapeOnly");
+                sheet.Cell(1, 1).SetValue("Only cell");
                 document.Save();
             }
 
@@ -442,8 +445,8 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {
                 ExcelSheet sheet = document.Sheets.Single();
-                var options = new ExcelWorksheetImageExportOptions { ShowGridlines = false };
-                ExcelRangeVisualSnapshot snapshot = sheet.CreateVisualSnapshot(options);
+                var options = new ExcelImageExportOptions { ShowGridlines = false, DefaultColumnWidth = OfficeLength.Pixels(columnWidth), DefaultRowHeight = OfficeLength.Pixels(rowHeight) };
+                ExcelRangeVisualInfo snapshot = sheet.CreateVisualSnapshot(options);
                 OfficeImageExportResult png = sheet.ExportImage(OfficeImageExportFormat.Png, options);
                 OfficeImageExportResult svg = sheet.ExportImage(OfficeImageExportFormat.Svg, options);
                 string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
@@ -466,8 +469,8 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_ImageExportDoesNotExpandUsedRangeForUnsupportedDrawingShapes() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("UnsupportedOnly");
-                sheet.CellValue(1, 1, "Only cell");
+                ExcelSheet sheet = document.AddSheet("UnsupportedOnly");
+                sheet.Cell(1, 1).SetValue("Only cell");
                 document.Save();
             }
 
@@ -475,8 +478,8 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {
                 ExcelSheet sheet = document.Sheets.Single();
-                var options = new ExcelWorksheetImageExportOptions { ShowGridlines = false };
-                ExcelRangeVisualSnapshot snapshot = sheet.CreateVisualSnapshot(options);
+                var options = new ExcelImageExportOptions { ShowGridlines = false };
+                ExcelRangeVisualInfo snapshot = sheet.CreateVisualSnapshot(options);
                 OfficeImageExportResult png = sheet.ExportImage(OfficeImageExportFormat.Png, options);
 
                 Assert.Equal("UnsupportedOnly!A1:A1", png.Source);
@@ -490,11 +493,11 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_ImageExportIncludesDrawingObjectAnchorOffsetsWhenExpandingUsedRange() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("OffsetShape");
-                sheet.SetColumnWidth(1, 8D);
-                sheet.SetColumnWidth(2, 8D);
-                sheet.SetColumnWidth(3, 8D);
-                sheet.CellValue(1, 1, "Only cell");
+                ExcelSheet sheet = document.AddSheet("OffsetShape");
+                sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(8D));
+                sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(8D));
+                sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(8D));
+                sheet.Cell(1, 1).SetValue("Only cell");
                 document.Save();
             }
 
@@ -502,7 +505,7 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {
                 ExcelSheet sheet = document.Sheets.Single();
-                var options = new ExcelWorksheetImageExportOptions { ShowGridlines = false };
+                var options = new ExcelImageExportOptions { ShowGridlines = false };
                 OfficeImageExportResult png = sheet.ExportImage(OfficeImageExportFormat.Png, options);
 
                 Assert.Equal("OffsetShape!A1:C3", png.Source);
@@ -514,11 +517,14 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportResolvesAbsoluteAnchorDrawingShapeCoordinates() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("AbsoluteShape");
-                sheet.SetColumnWidth(1, 8);
-                sheet.SetColumnWidth(2, 8);
-                sheet.SetRowHeight(1, 24);
-                sheet.CellValue(1, 2, "Shape area");
+                ExcelSheet sheet = document.AddSheet("AbsoluteShape");
+                // Keep the seven-pixel grid explicit; this test checks absolute-anchor translation.
+                var gridFont = document.WorkbookPartRoot.WorkbookStylesPart!.Stylesheet!.Fonts!.Elements<X.Font>().First();
+                gridFont.GetFirstChild<X.FontName>()!.Val = "OfficeIMO Missing Grid Font 28b06c8d";
+                sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(8));
+                sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(8));
+                sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
+                sheet.Cell(1, 2).SetValue("Shape area");
                 document.Save();
             }
 
@@ -526,7 +532,7 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {
                 ExcelSheet sheet = document.Sheets.Single();
-                ExcelRangeVisualSnapshot snapshot = sheet.Range("B1:D3").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
+                ExcelRangeVisualInfo snapshot = sheet.Range("B1:D3").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
 
                 ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
                 Assert.Equal("Absolute shape", drawingObject.Text);
@@ -547,9 +553,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 document.EnsureWorkbookTheme();
-                ExcelSheet sheet = document.AddWorksheet("ThemeShape");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 2, "Themed shape");
+                ExcelSheet sheet = document.AddSheet("ThemeShape");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 2).SetValue("Themed shape");
                 document.Save();
             }
 
@@ -567,24 +573,24 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.Sheets.Single();
                 ExcelRange range = sheet.Range("A1:D4");
                 var options = new ExcelImageExportOptions { ShowGridlines = false };
-                ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+                ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
                 OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-                string svg = range.ToSvg(options);
+                string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
 
                 ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
-                // Accent1 4F81BD, lumMod=60000 then lumOff=40000, rounded after both HSL operations.
-                Assert.Equal("FF95B3D7", drawingObject.FillColorArgb);
-                Assert.Equal("FFC0504D", drawingObject.StrokeColorArgb);
-                Assert.Equal("FF9BBB59", drawingObject.TextColorArgb);
+                // Accent1 3F64D7, lumMod=60000 then lumOff=40000, rounded after both HSL operations.
+                Assert.Equal("FF8CA2E7", drawingObject.FillColorArgb);
+                Assert.Equal("FFDC7536", drawingObject.StrokeColorArgb);
+                Assert.Equal("FF058E80", drawingObject.TextColorArgb);
                 Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
                 Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
-                Assert.Contains("#95B3D7", svg, StringComparison.Ordinal);
-                Assert.Contains("#C0504D", svg, StringComparison.Ordinal);
-                Assert.Contains("#9BBB59", svg, StringComparison.Ordinal);
+                Assert.Contains("#8CA2E7", svg, StringComparison.Ordinal);
+                Assert.Contains("#DC7536", svg, StringComparison.Ordinal);
+                Assert.Contains("#058E80", svg, StringComparison.Ordinal);
 
                 Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
                 Assert.NotNull(rendered);
-                Assert.True(CountPixelsNear(rendered!, OfficeColor.FromRgb(149, 179, 215)) > 100);
+                Assert.True(CountPixelsNear(rendered!, OfficeColor.FromRgb(140, 162, 231)) > 100);
             }
         }
 
@@ -592,9 +598,9 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportHonorsDrawingShapeOutlineStyleThroughSharedDrawing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("OutlineStyle");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 2, "Styled outline");
+                ExcelSheet sheet = document.AddSheet("OutlineStyle");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 2).SetValue("Styled outline");
                 document.Save();
             }
 
@@ -611,9 +617,9 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.Sheets.Single();
                 ExcelRange range = sheet.Range("A1:D4");
                 var options = new ExcelImageExportOptions { ShowGridlines = false };
-                ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+                ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
                 OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-                string svg = range.ToSvg(options);
+                string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
 
                 ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
                 Assert.Equal(OfficeStrokeDashStyle.DashDot, drawingObject.StrokeDashStyle);
@@ -631,8 +637,8 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportClampsUntrustedDrawingShapeOutlineWidths() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("BoundedOutline");
-                sheet.CellValue(1, 1, "Shape");
+                ExcelSheet sheet = document.AddSheet("BoundedOutline");
+                sheet.Cell(1, 1).SetValue("Shape");
                 document.Save();
             }
 
@@ -643,7 +649,7 @@ namespace OfficeIMO.Tests {
                 strokeWidthEmu: int.MaxValue);
 
             using ExcelDocument loaded = ExcelDocument.Load(filePath);
-            ExcelRangeVisualSnapshot snapshot = loaded.Sheets.Single().Range("A1:D4").CreateVisualSnapshot();
+            ExcelRangeVisualInfo snapshot = loaded.Sheets.Single().Range("A1:D4").CreateVisualSnapshot();
 
             Assert.Equal(64D, Assert.Single(snapshot.DrawingObjects).StrokeWidth);
         }
@@ -652,9 +658,9 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportRendersDrawingShapeEffectsThroughSharedDrawing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("ShapeEffects");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 2, "Styled effects");
+                ExcelSheet sheet = document.AddSheet("ShapeEffects");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 2).SetValue("Styled effects");
                 document.Save();
             }
 
@@ -678,9 +684,9 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.Sheets.Single();
                 ExcelRange range = sheet.Range("A1:D4");
                 var options = new ExcelImageExportOptions { ShowGridlines = false, BackgroundColor = OfficeColor.White };
-                ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+                ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
                 OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-                string svg = range.ToSvg(options);
+                string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
 
                 ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
                 Assert.NotNull(drawingObject.Glow);
@@ -738,9 +744,9 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportPreservesDrawingShapeTextLineBreaks() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("ShapeBreaks");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 2, "Shape breaks");
+                ExcelSheet sheet = document.AddSheet("ShapeBreaks");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 2).SetValue("Shape breaks");
                 document.Save();
             }
 
@@ -748,7 +754,7 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {
                 ExcelSheet sheet = document.Sheets.Single();
-                ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:D4").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
+                ExcelRangeVisualInfo snapshot = sheet.Range("A1:D4").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
 
                 ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
                 Assert.Equal("Line 1" + Environment.NewLine + "Line 2", drawingObject.Text);
@@ -760,9 +766,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 document.EnsureWorkbookTheme();
-                ExcelSheet sheet = document.AddWorksheet("DefaultStyle");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 2, "Default styled shape");
+                ExcelSheet sheet = document.AddSheet("DefaultStyle");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 2).SetValue("Default styled shape");
                 document.Save();
             }
 
@@ -772,7 +778,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.Sheets.Single();
                 ExcelRange range = sheet.Range("A1:D4");
                 var options = new ExcelImageExportOptions { ShowGridlines = false };
-                ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+                ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
                 OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
 
                 ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
@@ -788,9 +794,9 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportRendersSharedDrawingMlPresetShapesThroughSharedDrawing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("PresetShape");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 2, "Shared heart");
+                ExcelSheet sheet = document.AddSheet("PresetShape");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 2).SetValue("Shared heart");
                 document.Save();
             }
 
@@ -807,9 +813,9 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.Sheets.Single();
                 ExcelRange range = sheet.Range("A1:D4");
                 var options = new ExcelImageExportOptions { ShowGridlines = false };
-                ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+                ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
                 OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-                string svg = range.ToSvg(options);
+                string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
 
                 ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
                 Assert.Equal("PresetShape!B2", drawingObject.Source);
@@ -846,9 +852,9 @@ namespace OfficeIMO.Tests {
             foreach ((A.ShapeTypeValues preset, string expectedName) in presets) {
                 string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
                 using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                    ExcelSheet sheet = document.AddWorksheet("FlowchartShape");
-                    sheet.CellValue(1, 1, "Name");
-                    sheet.CellValue(2, 2, expectedName);
+                    ExcelSheet sheet = document.AddSheet("FlowchartShape");
+                    sheet.Cell(1, 1).SetValue("Name");
+                    sheet.Cell(2, 2).SetValue(expectedName);
                     document.Save();
                 }
 
@@ -864,9 +870,9 @@ namespace OfficeIMO.Tests {
                 ExcelSheet loadedSheet = loaded.Sheets.Single();
                 ExcelRange range = loadedSheet.Range("A1:D4");
                 var options = new ExcelImageExportOptions { ShowGridlines = false };
-                ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+                ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
                 OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-                string svg = range.ToSvg(options);
+                string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
 
                 ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
                 Assert.Equal(expectedName, drawingObject.ShapePresetName);
@@ -881,9 +887,9 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportRendersRotatedDrawingMlPresetShapesThroughSharedDrawing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("RotatedShape");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 2, "Rotated heart");
+                ExcelSheet sheet = document.AddSheet("RotatedShape");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 2).SetValue("Rotated heart");
                 document.Save();
             }
 
@@ -900,7 +906,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.Sheets.Single();
                 ExcelRange range = sheet.Range("A1:D4");
                 var options = new ExcelImageExportOptions { ShowGridlines = false };
-                ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+                ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
                 OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
                 OfficeImageExportResult svgResult = range.ExportImage(OfficeImageExportFormat.Svg, options);
                 string svg = System.Text.Encoding.UTF8.GetString(svgResult.Bytes);
@@ -929,9 +935,9 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportReportsRotatedDrawingShapeTextApproximation() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("RotatedText");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 2, "Rotated label");
+                ExcelSheet sheet = document.AddSheet("RotatedText");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 2).SetValue("Rotated label");
                 document.Save();
             }
 
@@ -945,7 +951,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.Sheets.Single();
                 ExcelRange range = sheet.Range("A1:D4");
                 var options = new ExcelImageExportOptions { ShowGridlines = false };
-                ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+                ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
                 OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
                 OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
                 string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
@@ -967,9 +973,9 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportHonorsDrawingShapeTextAlignmentThroughSharedDrawing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("AlignedText");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 2, "Aligned label");
+                ExcelSheet sheet = document.AddSheet("AlignedText");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 2).SetValue("Aligned label");
                 document.Save();
             }
 
@@ -984,13 +990,14 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.Sheets.Single();
                 ExcelRange range = sheet.Range("A1:D4");
                 var options = new ExcelImageExportOptions { ShowGridlines = false };
-                ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+                ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
                 OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
                 OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
                 string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
 
                 ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
                 Assert.Equal("AlignedText!B2", drawingObject.Source);
+                Assert.Null(drawingObject.TextFontSize);
                 Assert.Equal(OfficeTextAlignment.Right, drawingObject.TextAlignment);
                 Assert.Equal(OfficeTextVerticalAlignment.Bottom, drawingObject.TextVerticalAlignment);
                 Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
@@ -1005,9 +1012,9 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportHonorsDrawingShapeTextColorThroughSharedDrawing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("TextColor");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 2, "Colored label");
+                ExcelSheet sheet = document.AddSheet("TextColor");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 2).SetValue("Colored label");
                 document.Save();
             }
 
@@ -1023,7 +1030,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.Sheets.Single();
                 ExcelRange range = sheet.Range("A1:D4");
                 var options = new ExcelImageExportOptions { ShowGridlines = false };
-                ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+                ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
                 OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
                 OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
                 string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
@@ -1042,9 +1049,9 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportHonorsDrawingShapeTextFontThroughSharedDrawing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("TextFont");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 2, "Styled label");
+                ExcelSheet sheet = document.AddSheet("TextFont");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 2).SetValue("Styled label");
                 document.Save();
             }
 
@@ -1065,14 +1072,14 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.Sheets.Single();
                 ExcelRange range = sheet.Range("A1:D4");
                 var options = new ExcelImageExportOptions { ShowGridlines = false };
-                ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+                ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
                 OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
                 OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
                 string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
 
                 ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
                 Assert.Equal("Aptos", drawingObject.TextFontFamily);
-                Assert.Equal(18D, drawingObject.TextFontSize);
+                Assert.Equal(18D, drawingObject.TextFontSize?.ToPoints());
                 Assert.True((drawingObject.TextFontStyle & OfficeFontStyle.Bold) == OfficeFontStyle.Bold);
                 Assert.True((drawingObject.TextFontStyle & OfficeFontStyle.Italic) == OfficeFontStyle.Italic);
                 Assert.True((drawingObject.TextFontStyle & OfficeFontStyle.Underline) == OfficeFontStyle.Underline);
@@ -1091,7 +1098,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportWrapsDrawingShapeTextThroughSharedDrawing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AddWorksheet("TextWrap");
+                document.AddSheet("TextWrap");
                 document.Save();
             }
 
@@ -1114,7 +1121,7 @@ namespace OfficeIMO.Tests {
                 ExcelRange range = sheet.Range("A1:D6");
                 var options = new ExcelImageExportOptions { ShowGridlines = false };
                 options.Fonts.Add("WrapFixture", OfficeIMO.TestAssets.PdfTestFontAssets.LoadBundledOpenTypeCffFont());
-                ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+                ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
                 OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
                 OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
                 string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
@@ -1138,7 +1145,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportHonorsDrawingShapeTextInsetsThroughSharedDrawing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AddWorksheet("TextInsets");
+                document.AddSheet("TextInsets");
                 document.Save();
             }
 
@@ -1161,7 +1168,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.Sheets.Single();
                 ExcelRange range = sheet.Range("A1:D4");
                 var options = new ExcelImageExportOptions { ShowGridlines = false };
-                ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+                ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
                 OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
                 string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
 
@@ -1179,7 +1186,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportShrinksDrawingShapeTextThroughSharedDrawing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AddWorksheet("TextShrink");
+                document.AddSheet("TextShrink");
                 document.Save();
             }
 
@@ -1200,7 +1207,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.Sheets.Single();
                 ExcelRange range = sheet.Range("A1:D4");
                 var options = new ExcelImageExportOptions { ShowGridlines = false };
-                ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+                ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
                 OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
                 OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
                 string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
@@ -1219,7 +1226,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportReportsDrawingShapeTextAutoFitUnsupported() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AddWorksheet("TextAutoFit");
+                document.AddSheet("TextAutoFit");
                 document.Save();
             }
 
@@ -1240,7 +1247,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.Sheets.Single();
                 ExcelRange range = sheet.Range("A1:D4");
                 var options = new ExcelImageExportOptions { ShowGridlines = false };
-                ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+                ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
                 OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
                 OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
                 string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
@@ -1258,7 +1265,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportRendersSimpleDrawingShapeVerticalTextThroughSharedDrawing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AddWorksheet("VerticalText");
+                document.AddSheet("VerticalText");
                 document.Save();
             }
 
@@ -1278,7 +1285,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.Sheets.Single();
                 ExcelRange range = sheet.Range("A1:D4");
                 var options = new ExcelImageExportOptions { ShowGridlines = false };
-                ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+                ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
                 OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
                 OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
                 string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
@@ -1301,7 +1308,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportRendersVertical270DrawingShapeTextThroughSharedDrawing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AddWorksheet("Vertical270");
+                document.AddSheet("Vertical270");
                 document.Save();
             }
 
@@ -1323,7 +1330,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.Sheets.Single();
                 ExcelRange range = sheet.Range("A1:F8");
                 var options = new ExcelImageExportOptions { ShowGridlines = false };
-                ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+                ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
                 OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
                 OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
                 string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
@@ -1349,11 +1356,16 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             byte[] redBadge = CreateSolidPng(120, 48, OfficeColor.FromRgb(220, 38, 38));
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("LayerOrder");
-                sheet.CellValue(1, 1, "Layer order");
-                sheet.CellValue(2, 2, "Overlap");
+                ExcelSheet sheet = document.AddSheet("LayerOrder");
+                sheet.Cell(1, 1).SetValue("Layer order");
+                sheet.Cell(2, 2).SetValue("Overlap");
                 if (imageFirst) {
-                    sheet.AddImage(2, 2, redBadge, "image/png", widthPixels: 120, heightPixels: 48, name: "Red badge");
+                    sheet.AddImage(2, 2, redBadge, new OfficeIMO.Excel.ExcelImageOptions {
+                        ContentType = "image/png",
+                        Width = OfficeIMO.OfficeLength.Pixels(120),
+                        Height = OfficeIMO.OfficeLength.Pixels(48),
+                        Name = "Red badge"
+                    });
                 }
 
                 document.Save();
@@ -1363,7 +1375,12 @@ namespace OfficeIMO.Tests {
             if (!imageFirst) {
                 using ExcelDocument document = ExcelDocument.Load(filePath);
                 ExcelSheet sheet = document.Sheets.Single();
-                sheet.AddImage(2, 2, redBadge, "image/png", widthPixels: 120, heightPixels: 48, name: "Red badge");
+                sheet.AddImage(2, 2, redBadge, new OfficeIMO.Excel.ExcelImageOptions {
+                    ContentType = "image/png",
+                    Width = OfficeIMO.OfficeLength.Pixels(120),
+                    Height = OfficeIMO.OfficeLength.Pixels(48),
+                    Name = "Red badge"
+                });
                 document.Save();
             }
 
@@ -1371,8 +1388,8 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.Sheets.Single();
                 ExcelRange range = sheet.Range("A1:D4");
                 var options = new ExcelImageExportOptions { ShowGridlines = false };
-                ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
-                string svg = range.ToSvg(options);
+                ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
+                string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
                 OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
 
                 Assert.Equal(2, snapshot.DrawingLayers.Count);

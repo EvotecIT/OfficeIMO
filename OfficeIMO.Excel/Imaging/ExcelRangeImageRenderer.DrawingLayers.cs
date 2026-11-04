@@ -5,7 +5,7 @@ namespace OfficeIMO.Excel {
     internal static partial class ExcelRangeImageRenderer {
         private static void RenderRasterDrawingLayers(
             OfficeRasterCanvas canvas,
-            ExcelRangeVisualSnapshot snapshot,
+            ExcelRangeVisualInfo snapshot,
             ExcelImageExportOptions options,
             List<OfficeImageExportDiagnostic>? diagnostics,
             System.Threading.CancellationToken cancellationToken) {
@@ -42,7 +42,7 @@ namespace OfficeIMO.Excel {
 
         private static void AppendSvgDrawingLayers(
             StringBuilder builder,
-            ExcelRangeVisualSnapshot snapshot,
+            ExcelRangeVisualInfo snapshot,
             ExcelImageExportOptions options,
             List<OfficeImageExportDiagnostic>? diagnostics,
             OfficeRasterCanvas textMeasurer,

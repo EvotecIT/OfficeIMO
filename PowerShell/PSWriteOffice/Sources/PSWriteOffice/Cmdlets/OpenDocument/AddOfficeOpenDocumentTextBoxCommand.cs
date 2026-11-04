@@ -10,7 +10,7 @@ namespace PSWriteOffice.Cmdlets.OpenDocument;
 ///   <prefix>PS&gt; </prefix>
 ///   <code>Add-OfficeOpenDocumentTextBox -Text 'Approved' -X 18 -Y 12 -Width 6 -Height 2</code>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeOpenDocumentTextBox")]
+[Cmdlet(VerbsCommon.Add, "OfficeOpenDocumentTextBox", DefaultParameterSetName = "Default")]
 [OutputType(typeof(OdpTextBox))]
 public sealed class AddOfficeOpenDocumentTextBoxCommand : PSCmdlet {
     /// <summary>Slide target. Omit inside Add-OfficeOpenDocumentSlide -Content.</summary>

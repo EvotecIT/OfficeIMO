@@ -7,7 +7,7 @@ namespace OfficeIMO.Examples.Markdown {
         public static void Example(string folderPath, bool open = false) {
             Console.WriteLine("[*] Markdown → HTML fragments and styles");
 
-            var doc = MarkdownDoc.Create()
+            var doc = MarkdownDocument.Create()
                 .H1("HTML Rendering")
                 .P("This demonstrates fragment vs document and style presets.")
                 .H2("List")
@@ -19,48 +19,51 @@ namespace OfficeIMO.Examples.Markdown {
             Directory.CreateDirectory(outDir);
 
             // Fragment (inline CSS by default)
-            var fragment = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.GithubAuto });
+            var fragment = doc.ToHtml(new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.GithubAuto, Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment });
             var fragmentPath = Path.Combine(outDir, "Sample.Fragment.html");
             File.WriteAllText(fragmentPath, fragment);
             Console.WriteLine($"✓ HTML fragment: {fragmentPath}");
 
             // Full document with inline GitHub auto style
-            var fullDoc = doc.ToHtmlDocument(new HtmlOptions { Title = "Sample", Style = HtmlStyle.GithubAuto, CssDelivery = CssDelivery.Inline });
+            var fullDoc = doc.ToHtml(new MarkdownHtmlExportOptions { Kind = MarkdownHtmlKind.Document, Title = "Sample", Style = MarkdownHtmlStyle.GithubAuto, CssDelivery = MarkdownCssDelivery.Inline });
             var fullDocPath = Path.Combine(outDir, "Sample.Document.Inline.html");
             File.WriteAllText(fullDocPath, fullDoc);
             Console.WriteLine($"✓ HTML document (inline CSS): {fullDocPath}");
 
             // Full document with external CSS sidecar
             var externalPath = Path.Combine(outDir, "Sample.Document.External.html");
-            doc.SaveAsHtml(externalPath, new HtmlOptions { Title = "Sample External", Style = HtmlStyle.Clean, CssDelivery = CssDelivery.ExternalFile });
+            doc.SaveAsHtml(externalPath, new MarkdownHtmlExportOptions { Title = "Sample External", Style = MarkdownHtmlStyle.Clean, CssDelivery = MarkdownCssDelivery.ExternalFile });
             Console.WriteLine($"✓ HTML document (external CSS): {externalPath}");
 
             // Online mode referencing a CDN CSS, and Offline mode that downloads and inlines it
             var cdnUrl = "https://cdn.jsdelivr.net/npm/github-markdown-css@5.5.1/github-markdown.min.css";
-            var online = doc.ToHtmlDocument(new HtmlOptions { Title = "CDN Online", CssDelivery = CssDelivery.LinkHref, CssHref = cdnUrl, AssetMode = AssetMode.Online, BodyClass = "markdown-body" });
+            var online = doc.ToHtml(new MarkdownHtmlExportOptions { Kind = MarkdownHtmlKind.Document, Title = "CDN Online", CssDelivery = MarkdownCssDelivery.LinkHref, CssHref = cdnUrl, AssetMode = MarkdownAssetMode.Online, BodyClass = "markdown-body" });
             File.WriteAllText(Path.Combine(outDir, "Sample.Document.CdnOnline.html"), online);
             Console.WriteLine("✓ HTML document (CDN link)");
 
-            var offline = doc.ToHtmlDocument(new HtmlOptions { Title = "CDN Offline", CssDelivery = CssDelivery.LinkHref, CssHref = cdnUrl, AssetMode = AssetMode.Offline, BodyClass = "markdown-body" });
+            var offline = doc.ToHtml(new MarkdownHtmlExportOptions { Kind = MarkdownHtmlKind.Document, Title = "CDN Offline", CssDelivery = MarkdownCssDelivery.LinkHref, CssHref = cdnUrl, AssetMode = MarkdownAssetMode.Offline, BodyClass = "markdown-body" });
             File.WriteAllText(Path.Combine(outDir, "Sample.Document.CdnOfflineInline.html"), offline);
             Console.WriteLine("✓ HTML document (CDN downloaded + inlined)");
 
             // Global CSS example when hosts provide their own container and want to opt out of scoping
-            var globalOptions = new HtmlOptions {
+            var globalOptions = new MarkdownHtmlExportOptions
+            {
+                Kind = MarkdownHtmlKind.Document,
                 Title = "Global Scope",
-                Style = HtmlStyle.Clean,
+                Style = MarkdownHtmlStyle.Clean,
                 BodyClass = null,
                 CssScopeSelector = null
             };
             var globalPath = Path.Combine(outDir, "Sample.Document.GlobalScope.html");
-            File.WriteAllText(globalPath, doc.ToHtmlDocument(globalOptions));
+            File.WriteAllText(globalPath, doc.ToHtml(globalOptions));
             Console.WriteLine($"✓ HTML document (global CSS scope): {globalPath}");
 
             // Prism highlighting with manifest only (host can dedupe) + plugin example
-            var opts = new HtmlOptions {
-                Kind = HtmlKind.Fragment,
-                EmitMode = AssetEmitMode.ManifestOnly,
-                Prism = new PrismOptions { Enabled = true, Theme = PrismTheme.GithubAuto, Languages = { "csharp", "bash" }, Plugins = { "line-numbers", "copy-to-clipboard" } }
+            var opts = new MarkdownHtmlExportOptions
+            {
+                Kind = MarkdownHtmlKind.Fragment,
+                EmitMode = MarkdownAssetEmitMode.ManifestOnly,
+                Prism = new MarkdownPrismOptions { Enabled = true, Theme = MarkdownPrismTheme.GithubAuto, Languages = { "csharp", "bash" }, Plugins = { "line-numbers", "copy-to-clipboard" } }
             };
             var parts = doc.ToHtmlParts(opts);
             var manifestPath = Path.Combine(outDir, "Sample.Prism.Manifest.json");
@@ -68,9 +71,9 @@ namespace OfficeIMO.Examples.Markdown {
             Console.WriteLine("✓ Prism manifest-only output (no tags emitted)");
 
             // Merge manifests from multiple fragments (simulate host behavior)
-            var more = MarkdownDoc.Create().H2("Code").Code("bash", "echo 'hi'");
+            var more = MarkdownDocument.Create().H2("Code").Code("bash", "echo 'hi'");
             var parts2 = more.ToHtmlParts(opts);
-            var merged = OfficeIMO.Markdown.HtmlAssetMerger.Build(new[] { parts.Assets, parts2.Assets });
+            var merged = OfficeIMO.Markdown.MarkdownHtmlAssetMerger.Build(new[] { parts.Assets, parts2.Assets });
             File.WriteAllText(Path.Combine(outDir, "Sample.Prism.MergedHead.html"), "<!-- head links -->\n" + merged.headLinks);
             File.WriteAllText(Path.Combine(outDir, "Sample.Prism.MergedInline.css"), merged.inlineCss);
             File.WriteAllText(Path.Combine(outDir, "Sample.Prism.MergedInline.js"), merged.inlineJs);

@@ -137,7 +137,7 @@ public sealed class ConversionQueueLifecycleTests {
     private static extern int Link(string existingFile, string newFile);
 
     private static ConversionWorkbenchViewModel Create(Func<IReadOnlyList<string>> sources, string root,
-        IOfficeWorkflowRunner? runner = null, IOfficeWorkflowPublicationGuard? guard = null) {
+        IOfficeWorkflowRunner? runner = null, IOfficePublicationGuard? guard = null) {
         var model = new ConversionWorkbenchViewModel(_ => Task.FromResult(sources()),
             _ => Task.FromResult<string?>(root), runner, localizer: null, publicationGuard: guard);
         model.SelectedRoute = model.Routes.Single(route => route.Route.Id == "html-pdf");
@@ -160,8 +160,8 @@ public sealed class ConversionQueueLifecycleTests {
         }
     }
 
-    private sealed class PublicationGuard(Func<string, CancellationToken, ValueTask<bool>> check) : IOfficeWorkflowPublicationGuard {
-        public ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken cancellationToken) => check(path, cancellationToken);
+    private sealed class PublicationGuard(Func<string, CancellationToken, ValueTask<bool>> check) : IOfficePublicationGuard {
+        public Task<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken cancellationToken) => check(path, cancellationToken).AsTask();
     }
 
     private sealed class Scope : IDisposable {

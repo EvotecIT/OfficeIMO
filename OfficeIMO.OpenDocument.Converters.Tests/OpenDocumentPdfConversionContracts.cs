@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using OfficeIMO.Drawing;
@@ -10,58 +9,33 @@ using OfficeIMO.OpenDocument.Odp.Pdf;
 using OfficeIMO.OpenDocument.Ods.Pdf;
 using OfficeIMO.OpenDocument.Odt.Pdf;
 using OfficeIMO.Pdf;
+using OfficeIMO.Word.OpenDocument;
 using Xunit;
 
 namespace OfficeIMO.OpenDocument.Converters.Tests;
 
 public sealed class OpenDocumentPdfConversionContracts {
-    public static IEnumerable<object[]> DirectAdapterTypes() {
-        yield return new object[] { typeof(OdtPdfConversionExtensions) };
-        yield return new object[] { typeof(OdsPdfConversionExtensions) };
-        yield return new object[] { typeof(OdpPdfConversionExtensions) };
-    }
-
-    [Theory]
-    [MemberData(nameof(DirectAdapterTypes))]
-    public void OpenDocumentFacadesExposeTheCanonicalPdfLifecycle(Type adapterType) {
-        MethodInfo[] methods = adapterType.GetMethods(BindingFlags.Public | BindingFlags.Static);
-
-        Assert.Single(methods, method => method.Name == "ToPdfBytes");
-        Assert.DoesNotContain(methods, method => method.Name == "ToPdf");
-        Assert.Single(methods, method => method.Name == "ToPdfDocument");
-        MethodInfo resultMethod = Assert.Single(methods, method => method.Name == "ToPdfDocumentResult");
-        Assert.Equal(typeof(PdfDocumentConversionResult), resultMethod.ReturnType);
-        Assert.Equal(2, methods.Count(method => method.Name == "SaveAsPdf" && method.ReturnType == typeof(PdfSaveResult)));
-        Assert.Equal(2, methods.Count(method => method.Name == "SaveAsPdfResult" && method.ReturnType == typeof(PdfSaveResult)));
-        Assert.Equal(2, methods.Count(method => method.Name == "SaveAsPdfAsync" && method.ReturnType == typeof(Task<PdfSaveResult>)));
-        Assert.Equal(2, methods.Count(method => method.Name == "SaveAsPdfResultAsync" && method.ReturnType == typeof(Task<PdfSaveResult>)));
-    }
-
     [Fact]
     public void OdtFacadePreservesProjectionLossAndProducesReadablePdf() {
         OdtDocument source = OdtDocument.Create();
         source.AddParagraph("Direct ODT PDF");
         source.AddTrackedParagraphInsertion("Tracked source", "Reviewer");
 
-        PdfDocumentConversionResult result = source.ToPdfDocumentResult();
-        byte[] bytes = result.ToBytes();
-        OdfConversionReport projection = Assert.IsType<OdfConversionReport>(
-            Assert.Single(result.SourceConversionReports));
+        using PdfDocument pdf = source.ToPdf(null, out OfficeConversionReport report);
+        byte[] bytes = pdf.ToBytes(new PdfSaveOptions { AllowLoss = true });
 
         Assert.Equal("%PDF", Encoding.ASCII.GetString(bytes, 0, 4));
-        Assert.Contains("Direct ODT PDF", PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
-        Assert.Contains(projection.Mappings, mapping =>
+        Assert.Contains("Direct ODT PDF", PdfDocument.Load(new System.IO.MemoryStream(bytes)).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains(report.Diagnostics, diagnostic =>
+            diagnostic.Location == "source-tracked-changes" && diagnostic.LossKind != OfficeConversionLossKind.None);
+        Assert.True(report.HasLoss);
+        OdfConversionLossException loss = Assert.Throws<OdfConversionLossException>(() => source.ToPdf(new OdtPdfExportOptions {
+            ConversionOptions = new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported }
+        }, out _));
+        Assert.Contains(loss.Report.Mappings, mapping =>
             mapping.Feature == "source-tracked-changes" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
-        Assert.True(result.HasLoss);
-        OdfConversionLossException loss = Assert.Throws<OdfConversionLossException>(() => result.RequireNoLoss());
-        Assert.Same(projection, loss.Report);
-        Assert.DoesNotContain(result.Warnings, warning =>
-            warning.Code.StartsWith("ODF_", StringComparison.Ordinal));
-        Assert.Collection(
-            result.ConversionReports,
-            report => Assert.Same(projection, report),
-            report => Assert.Same(result.Report, report));
+        Assert.Throws<OfficeConversionException>(() => source.ToPdf(new OdtPdfExportOptions { FailOnLoss = true }, out _));
     }
 
     [Fact]
@@ -69,19 +43,14 @@ public sealed class OpenDocumentPdfConversionContracts {
         OdsDocument source = OdsDocument.Create();
         source.AddSheet("Revenue").Cell(0, 0).SetString("Quarter total");
 
-        PdfDocumentConversionResult result = source.ToPdfDocumentResult();
-        byte[] bytes = result.ToBytes();
-        string text = PdfReadDocument.Open(bytes).ExtractText();
-        OdfConversionReport projection = Assert.IsType<OdfConversionReport>(
-            Assert.Single(result.SourceConversionReports));
+        using PdfDocument pdf = source.ToPdf(null, out OfficeConversionReport report);
+        byte[] bytes = pdf.ToBytes(new PdfSaveOptions { AllowLoss = true });
+        string text = PdfDocument.Load(new System.IO.MemoryStream(bytes)).ExtractText();
 
         Assert.Equal("%PDF", Encoding.ASCII.GetString(bytes, 0, 4));
         Assert.Contains("Quarter total", text, StringComparison.Ordinal);
-        Assert.Single(PdfReadDocument.Open(bytes).Pages);
-        Assert.Contains(projection.Mappings, mapping =>
-            mapping.Status == OdfConversionMappingStatus.Converted);
-        Assert.DoesNotContain(result.Warnings, warning =>
-            warning.Code.StartsWith("ODF_", StringComparison.Ordinal));
+        Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(bytes)).Pages);
+        Assert.DoesNotContain(report.Diagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Failure);
     }
 
     [Fact]
@@ -92,20 +61,15 @@ public sealed class OpenDocumentPdfConversionContracts {
         OdpRectangle animated = slide.AddRectangle(OdfRect.FromCentimeters(1, 4, 2, 2));
         slide.AddFadeInAnimation(animated, TimeSpan.FromSeconds(1));
 
-        PdfDocumentConversionResult result = source.ToPdfDocumentResult();
-        byte[] bytes = result.ToBytes();
-        string text = PdfReadDocument.Open(bytes).ExtractText();
-        OdfConversionReport projection = Assert.IsType<OdfConversionReport>(
-            Assert.Single(result.SourceConversionReports));
+        using PdfDocument pdf = source.ToPdf(null, out OfficeConversionReport report);
+        byte[] bytes = pdf.ToBytes(new PdfSaveOptions { AllowLoss = true });
+        string text = PdfDocument.Load(new System.IO.MemoryStream(bytes)).ExtractText();
 
         Assert.Equal("%PDF", Encoding.ASCII.GetString(bytes, 0, 4));
         Assert.Contains("Direct ODP PDF", text, StringComparison.Ordinal);
-        Assert.Contains(projection.Mappings, mapping =>
-            mapping.Feature == "source-presentation-animations" &&
-            mapping.Status == OdfConversionMappingStatus.Unsupported);
-        Assert.True(result.HasLoss);
-        OdfConversionLossException loss = Assert.Throws<OdfConversionLossException>(() => result.RequireNoLoss());
-        Assert.Same(projection, loss.Report);
+        Assert.Contains(report.Diagnostics, diagnostic =>
+            diagnostic.Location == "source-presentation-animations" && diagnostic.LossKind != OfficeConversionLossKind.None);
+        Assert.True(report.HasLoss);
     }
 
     [Fact]
@@ -115,17 +79,11 @@ public sealed class OpenDocumentPdfConversionContracts {
         source.AddTrackedParagraphInsertion("Tracked source", "Reviewer");
         using var stream = new MemoryStream();
 
-        PdfSaveResult save = await source.SaveAsPdfAsync(stream);
+        OfficeConversionReport save = await source.SaveAsPdfAsync(stream);
 
-        Assert.True(save.Succeeded, save.Exception?.Message);
         Assert.True(stream.Length > 0);
+        Assert.True(stream.CanWrite);
         Assert.True(save.HasLoss);
-        OdfConversionLossException loss = Assert.Throws<OdfConversionLossException>(() => save.RequireNoLoss());
-        Assert.IsType<OdfConversionReport>(loss.Report);
-        Assert.Collection(
-            save.ConversionReports,
-            report => Assert.IsType<OdfConversionReport>(report),
-            report => Assert.IsType<PdfConversionReport>(report));
-        Assert.All(save.ConversionReports, report => Assert.IsAssignableFrom<IOfficeConversionReport>(report));
+        Assert.Contains(save.Diagnostics, diagnostic => diagnostic.Location == "source-tracked-changes");
     }
 }

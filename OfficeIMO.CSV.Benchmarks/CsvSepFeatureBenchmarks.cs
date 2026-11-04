@@ -58,9 +58,8 @@ public class CsvTrimUnescapeBenchmarks {
 
     [Benchmark(Baseline = true)]
     public CsvReadObservation OfficeIMODataReaderStrings() {
-        using DbDataReader reader = CsvDocument.OpenTextDataReader(
-            _csvText,
-            new CsvLoadOptions {
+        using DbDataReader reader = CsvDocument.OpenReader(new System.IO.StringReader(_csvText),
+            options: new CsvReaderOptions {
                 DetectDelimiter = false,
                 Delimiter = ',',
                 HasHeaderRow = false,
@@ -178,7 +177,7 @@ public class CsvTrimUnescapeSpanBenchmarks {
         CsvDocument.ReadFieldSpansFromText(
             _csvText,
             ref visitor,
-            new CsvLoadOptions {
+            new CsvReaderOptions {
                 DetectDelimiter = false,
                 Delimiter = ',',
                 HasHeaderRow = false,
@@ -419,7 +418,7 @@ internal sealed class CsvTypedMaterializationFixture {
     }
 
     internal CsvBenchmarkRow[] OfficeIMOParallel(int degreeOfParallelism, int batchSize = 2048) {
-        using DbDataReader reader = CsvDocument.OpenTextDataReader(_csvText);
+        using DbDataReader reader = CsvDocument.OpenReader(new System.IO.StringReader(_csvText));
         int id = reader.GetOrdinal(nameof(CsvBenchmarkRow.Id));
         int name = reader.GetOrdinal(nameof(CsvBenchmarkRow.Name));
         int department = reader.GetOrdinal(nameof(CsvBenchmarkRow.Department));
@@ -551,12 +550,12 @@ internal sealed class CsvTypedMaterializationFixture {
     }
 
     private CsvBenchmarkRow[] ReadOfficeImoRows() {
-        using DbDataReader reader = CsvDocument.OpenTextDataReader(_csvText);
+        using DbDataReader reader = CsvDocument.OpenReader(new System.IO.StringReader(_csvText));
         return reader.RowsAs<CsvBenchmarkRow>().ToArray();
     }
 
     private CsvBenchmarkRow[] ReadOfficeImoManualRows() {
-        using DbDataReader reader = CsvDocument.OpenTextDataReader(_csvText);
+        using DbDataReader reader = CsvDocument.OpenReader(new System.IO.StringReader(_csvText));
         int id = reader.GetOrdinal(nameof(CsvBenchmarkRow.Id));
         int name = reader.GetOrdinal(nameof(CsvBenchmarkRow.Name));
         int department = reader.GetOrdinal(nameof(CsvBenchmarkRow.Department));

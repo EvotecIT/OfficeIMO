@@ -34,16 +34,16 @@ public partial class PdfDocumentVisualQualityTests {
         List<List<Letter>> expected = FragmentJustificationLines(controlPdf, columns: false);
         Assert.True(expected.Count > 10, "The paragraph must exceed one physical page or column frame.");
 
-        PdfOptions options = FragmentJustificationOptions(140);
-        if (owner == "BodyColumns") options.PageWidth = 500;
+        PdfCreateOptions options = FragmentJustificationOptions(140);
+        if (owner == "BodyColumns") options.PageSetup.Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(500), options.PageSetup.Size.Height);
         var document = PdfDocument.Create(options);
         if (owner == "Footnote") {
             PdfFootnoteDefinition note = document.Content.DefineFootnote(addParagraph);
-            document.Content.Paragraph(paragraph => paragraph.Runs(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(note) }),
+            document.Content.AddParagraph(paragraph => paragraph.AddRuns(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(note) }),
                 style: FragmentJustificationStyle());
         } else if (owner == "BodyColumns") {
             document.Content.Columns(addParagraph,
-                new PdfMultiColumnOptions { ColumnCount = 2, Gap = 20, BalanceLastPage = false });
+                new PdfMultiColumnOptions { ColumnCount = 2, Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceLastPage = false });
         } else {
             addParagraph(document.Content);
         }
@@ -99,23 +99,27 @@ public partial class PdfDocumentVisualQualityTests {
         }
     }
 
-    private static PdfOptions FragmentJustificationOptions(double height) => new() {
-        PageWidth = 260, PageHeight = height, MarginLeft = 20, MarginRight = 20,
-        MarginTop = 20, MarginBottom = 20, DefaultFontSize = 8, DefaultFont = PdfStandardFont.Helvetica,
+    private static PdfCreateOptions FragmentJustificationOptions(double height) => new() {
+        PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(height)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+        }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(8), DefaultFont = PdfStandardFont.Helvetica,
+        // The paint comparison extracts black underline segments from both documents.
+        DefaultTextColor = global::OfficeIMO.OfficeColor.Black,
         CompressContentStreams = false
     };
 
     private static PdfParagraphStyle FragmentJustificationStyle(bool distributed = false) => new() {
-        FontSize = 8, LineSpacing = PdfLineSpacing.Exactly(10), SpacingBefore = 0, SpacingAfter = 0,
+        FontSize = global::OfficeIMO.OfficeLength.Points(8), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(10)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
         JustificationMode = distributed ? PdfJustificationMode.Characters : PdfJustificationMode.Words,
         JustifyExplicitLineBreaks = distributed, JustifyLastLine = distributed
     };
 
     private static void AddFragmentJustificationParagraph(PdfContentBuilder content, bool distributed) {
         string text = "Short break\n" + string.Join(" ", Enumerable.Range(0, 80).Select(index => "word" + index.ToString("D2", CultureInfo.InvariantCulture)));
-        content.Paragraph(paragraph => paragraph.Runs(new[] { new PdfTextRun(text, underline: true,
-                backgroundColor: new PdfColor(1, 1, 0), linkUri: "https://example.test/fragment") }),
-            PdfAlign.Justify, style: FragmentJustificationStyle(distributed));
+        content.AddParagraph(paragraph => paragraph.AddRuns(new[] { new PdfTextRun(text, underline: true,
+                backgroundColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(1, 1, 0), linkUri: "https://example.test/fragment") }),
+            OfficeAlignment.Justify, style: FragmentJustificationStyle(distributed));
     }
 
     private static List<List<Letter>> FragmentJustificationLines(PdfPigDocument pdf, bool columns) {

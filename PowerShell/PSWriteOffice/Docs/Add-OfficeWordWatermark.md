@@ -64,7 +64,7 @@ Accept wildcard characters: False
 ```
 
 ### -ImagePath
-Path to an image watermark.
+Path to an image watermark, resolved literally against the current PowerShell location.
 
 ```yaml
 Type: String

@@ -16,7 +16,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     [Fact]
     public void PdfTextExtractor_ExtractAllText_ReadsLibraryGeneratedHexText() {
         byte[] bytes = PdfDocument.Create()
-            .Paragraph(p => p.Text("Hello extractor"))
+            .Paragraph(p => p.AddText("Hello extractor"))
             .ToBytes();
 
         string text = PdfTextExtractor.ExtractAllText(bytes);

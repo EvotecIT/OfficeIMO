@@ -1,12 +1,12 @@
 $evidence = '.\Evidence-Summary.pdf'
 $report = '.\Report-With-Evidence.pdf'
 
-PdfNew -Path $evidence {
+New-OfficePdf -Path $evidence {
     PdfHeading 'Evidence summary'
     PdfParagraph 'The review completed successfully.'
 }
 
-PdfNew -Path $report {
+New-OfficePdf -Path $report {
     PdfTheme Report
     PdfHeading 'Audit report'
     PdfParagraph 'The supporting evidence is embedded in this PDF.'

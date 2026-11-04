@@ -1,4 +1,5 @@
 using OfficeIMO.Reader;
+using OfficeIMO.Reader.All;
 using OfficeIMO.Reader.Html;
 using OfficeIMO.Reader.Json;
 using OfficeIMO.Excel;
@@ -14,6 +15,37 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class ReaderDetectionTests {
+    [Theory]
+    [InlineData(1)]
+    [InlineData(8)]
+    [InlineData(64)]
+    public void DetectionPrefixDoesNotExceedAnExplicitSmallProbeCeiling(int maximumBytes) {
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(new string('x', 512)));
+        ReaderDetectionResult result = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Detect(stream, "source.blob",
+            new ReaderDetectionOptions { MaxProbeBytes = maximumBytes, InspectContainers = false });
+        Assert.InRange(result.InspectedBytes, 1, maximumBytes);
+        Assert.Equal(0, stream.Position);
+        Assert.True(stream.CanRead);
+    }
+
+    [Fact]
+    public void ReadContainerDetectionHonorsCapturedDefaultsAndExplicitOverrides() {
+        using var word = WordDocument.Create();
+        word.AddParagraph("Container policy");
+        byte[] bytes = word.ToBytes();
+        var options = new ReaderOptions {
+            DetectionMode = ReaderDetectionMode.PreferContent,
+            DetectionInspectContainers = false
+        };
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddAllOfficeIMOHandlers()
+            .WithDefaultOptions(options).Build();
+        options.DetectionInspectContainers = true;
+
+        Assert.Equal(ReaderInputKind.Zip, reader.ReadDocument(bytes, "source.blob").Kind);
+        Assert.False(reader.DefaultOptions.DetectionInspectContainers);
+        Assert.Equal(ReaderInputKind.Word, reader.ReadDocument(bytes, "source.blob", options).Kind);
+    }
+
     [Fact]
     public void DocumentReader_DetectKind_CoversEveryClassifiedOfficeExtension() {
         Assert.All(WordFormatCatalog.All, format =>

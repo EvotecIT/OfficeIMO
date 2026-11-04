@@ -41,7 +41,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
 
         private int LoadOfficeIMO(bool validate) {
             using MemoryStream stream = new MemoryStream(_input.WorkbookBytes, writable: false);
-            using IDataReader reader = ExcelDocument.OpenDataReader(stream);
+            using IDataReader reader = ExcelDocument.OpenReader(stream);
             return Load(reader, "OfficeIMO", validate);
         }
 

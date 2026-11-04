@@ -6,46 +6,65 @@ schema: 2.0.0
 ---
 # Add-OfficeWordText
 ## SYNOPSIS
-Adds inline text to the current paragraph.
+Adds styled text or a hyperlink to the current or given Word paragraph.
 
 ## SYNTAX
 ### Text (Default)
 ```powershell
-Add-OfficeWordText [-Text] <string[]> [-Paragraph <WordParagraph>] [-Bold] [-Italic] [-Underline <WordUnderlineStyle>] [-Color <string>] [-Strike] [-FontSize <Double>] [-FontName <string>] [-PassThru] [<CommonParameters>]
+Add-OfficeWordText [-Text] <string[]> [-Paragraph <WordParagraph>] [-Bold] [-Italic] [-Strikethrough] [-Underline <WordUnderlineStyle>] [-Color <OfficeColor>] [-Font <string>] [-Size <OfficeLength>] [-PassThru] [<CommonParameters>]
 ```
 
-### Run
+### Link
 ```powershell
-Add-OfficeWordText -Run <Object[]> [-Paragraph <WordParagraph>] [-Bold] [-Italic] [-Underline <WordUnderlineStyle>] [-Color <string>] [-Strike] [-FontSize <Double>] [-FontName <string>] [-PassThru] [<CommonParameters>]
+Add-OfficeWordText [-Text] <string[]> -Link <uri> [-Paragraph <WordParagraph>] [-Bold] [-Italic] [-Strikethrough] [-Underline <WordUnderlineStyle>] [-Color <OfficeColor>] [-Font <string>] [-Size <OfficeLength>] [-Tooltip <string>] [-NoHistory] [-NoLinkStyle] [-PassThru] [<CommonParameters>]
+```
+
+### Anchor
+```powershell
+Add-OfficeWordText [-Text] <string[]> -Anchor <string> [-Paragraph <WordParagraph>] [-Bold] [-Italic] [-Strikethrough] [-Underline <WordUnderlineStyle>] [-Color <OfficeColor>] [-Font <string>] [-Size <OfficeLength>] [-Tooltip <string>] [-NoHistory] [-NoLinkStyle] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Supports bold/italic/underline and color tweaks for quick DSL composition.
+A bare Size means points; unit-suffixed lengths are accepted. Hyperlinks use the Hyperlink style unless NoLinkStyle is supplied.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> Add-OfficeWordParagraph { Add-OfficeWordText -Text 'Important: ' -Bold }
+WordParagraph { WordText 'Important: ' -Bold -Font Aptos -Size 11pt; WordText 'read first' -Italic }
 ```
 
-Writes “Important:” with bold formatting.
 
 ### EXAMPLE 2
 ```powershell
-PS> $paragraph | Add-OfficeWordText -Run @{ Text = 'Status: ', 'Ready'; Bold = $true, $false; Color = $null, 'SeaGreen' }
+WordParagraph { WordText 'Example' -Link 'https://example.org' -Tooltip 'External reference'; WordText 'Summary' -Anchor Summary }
 ```
 
-Appends one line with independent formatting for its label and value.
 
 ## PARAMETERS
+
+### -Anchor
+Bookmark target in this document.
+
+```yaml
+Type: String
+Parameter Sets: Anchor
+Aliases: None
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
 
 ### -Bold
 Apply bold formatting.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Text, Run
+Parameter Sets: Text, Link, Anchor
 Aliases: None
 Possible values:
 
@@ -57,11 +76,11 @@ Accept wildcard characters: False
 ```
 
 ### -Color
-Run color. Named colors and hexadecimal values are accepted.
+Text color, including a semantic theme role.
 
 ```yaml
-Type: String
-Parameter Sets: Text, Run
+Type: OfficeColor
+Parameter Sets: Text, Link, Anchor
 Aliases: None
 Possible values:
 
@@ -72,28 +91,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -FontName
-Font name or family.
+### -Font
+Font family.
 
 ```yaml
 Type: String
-Parameter Sets: Text, Run
-Aliases: Font, FontFamily, Typeface
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -FontSize
-Font size in points.
-
-```yaml
-Type: Double
-Parameter Sets: Text, Run
+Parameter Sets: Text, Link, Anchor
 Aliases: None
 Possible values:
 
@@ -109,7 +112,55 @@ Apply italic formatting.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Text, Run
+Parameter Sets: Text, Link, Anchor
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Link
+Absolute hyperlink URL.
+
+```yaml
+Type: Uri
+Parameter Sets: Link
+Aliases: None
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoHistory
+Disable hyperlink navigation history.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Link, Anchor
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoLinkStyle
+Do not apply the built-in Hyperlink character style.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Link, Anchor
 Aliases: None
 Possible values:
 
@@ -121,11 +172,11 @@ Accept wildcard characters: False
 ```
 
 ### -Paragraph
-Paragraph that will receive the text outside a DSL context.
+Paragraph to receive text outside a content block.
 
 ```yaml
 Type: WordParagraph
-Parameter Sets: Text, Run
+Parameter Sets: Text, Link, Anchor
 Aliases: None
 Possible values:
 
@@ -137,11 +188,11 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the target paragraph for further composition.
+Emit the target paragraph, or each created hyperlink for Link and Anchor.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Text, Run
+Parameter Sets: Text, Link, Anchor
 Aliases: None
 Possible values:
 
@@ -152,28 +203,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Run
-Rich text runs. Each run can be created with TextRun/WordTextRun or provided as a hashtable/object.
+### -Size
+Font size; a bare number means points.
 
 ```yaml
-Type: Object[]
-Parameter Sets: Run
-Aliases: Runs
+Type: OfficeLength
+Parameter Sets: Text, Link, Anchor
+Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Strike
-Render text with strikethrough.
+### -Strikethrough
+Apply strikethrough.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Text, Run
+Parameter Sets: Text, Link, Anchor
 Aliases: None
 Possible values:
 
@@ -189,7 +240,7 @@ Text segments to append.
 
 ```yaml
 Type: String[]
-Parameter Sets: Text
+Parameter Sets: Text, Link, Anchor
 Aliases: None
 Possible values:
 
@@ -200,12 +251,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Tooltip
+Hyperlink tooltip.
+
+```yaml
+Type: String
+Parameter Sets: Link, Anchor
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -Underline
-Optional underline style.
+Underline style.
 
 ```yaml
 Type: WordUnderlineStyle
-Parameter Sets: Text, Run
+Parameter Sets: Text, Link, Anchor
 Aliases: None
 Possible values: Single, Words, Double, Thick, Dotted, DottedHeavy, Dash, DashedHeavy, DashLong, DashLongHeavy, DotDash, DashDotHeavy, DotDotDash, DashDotDotHeavy, Wave, WavyHeavy, WavyDouble, None
 
@@ -226,6 +293,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 ## OUTPUTS
 
 - `OfficeIMO.Word.WordParagraph`
+- `OfficeIMO.Word.WordHyperLink`
 
 ## RELATED LINKS
 

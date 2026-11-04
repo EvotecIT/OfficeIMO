@@ -1,4 +1,3 @@
-#nullable enable
 #if NET8_0_OR_GREATER
 using System.Runtime.ExceptionServices;
 using System.Threading;
@@ -79,7 +78,7 @@ public sealed partial class CsvDocument
 
     private static void AccumulateTextPartition<TAccumulator>(
         string text,
-        CsvLoadOptions options,
+        CsvParsingSettings options,
         int columnCount,
         CsvTextPartition partition,
         CsvRecordAccumulator<TAccumulator> accumulate,

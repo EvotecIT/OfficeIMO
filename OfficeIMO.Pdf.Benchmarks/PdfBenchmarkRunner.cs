@@ -144,7 +144,7 @@ internal static class PdfBenchmarkRunner {
             "1-12",
             12,
             new PdfPageRenderOptions {
-                Format = PdfPageRenderFormat.Svg,
+                Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Svg,
                 MaxPages = 12,
                 ContinueOnError = false
             });
@@ -155,7 +155,7 @@ internal static class PdfBenchmarkRunner {
             "1-4",
             4,
             new PdfPageRenderOptions {
-                Format = PdfPageRenderFormat.Png,
+                Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png,
                 ThumbnailMaxDimension = 512,
                 MaxPages = 4,
                 MaxPixelsPerPage = 512L * 512L,
@@ -220,7 +220,7 @@ internal static class PdfBenchmarkRunner {
         PdfDocument? precomposed) {
         PdfDocument document = precomposed ?? createDocument(mode);
         using var output = new MemoryStream();
-        PdfSaveResult save = document.Save(output);
+        PdfSaveResult save = document.SaveWithEvidence(output);
         PdfSerializationReport serialization = save.Serialization
             ?? throw new InvalidOperationException("PDF serialization benchmark did not return runtime evidence.");
         byte[] bytes = output.ToArray();

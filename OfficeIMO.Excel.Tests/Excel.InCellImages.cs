@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
         public void Test_InCellImage_RoundTripsAndFollowsStructuralEdits() {
             using var stream = new MemoryStream();
             using (var document = ExcelDocument.Create()) {
-                ExcelSheet sheet = document.AddWorksheet("Images");
+                ExcelSheet sheet = document.AddSheet("Images");
                 sheet.SetInCellImage(2, 2, TinyPng, altText: "Status badge");
 
                 sheet.InsertRows(2);
@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_InCellImage_CopyMoveAndRemovePreserveNativeValue() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Images");
+            ExcelSheet sheet = document.AddSheet("Images");
             sheet.SetInCellImage(1, 1, TinyPng, altText: "Logo");
 
             sheet.Range("A1").CopyTo("B2");
@@ -55,14 +55,14 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_InCellImage_FollowsSortAndSurvivesFilterAndResizeMetadata() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Images");
-            sheet.CellValue(1, 1, "Key");
-            sheet.CellValue(1, 2, "Image");
-            sheet.CellValue(2, 1, "Zulu");
-            sheet.CellValue(3, 1, "Alpha");
+            ExcelSheet sheet = document.AddSheet("Images");
+            sheet.Cell(1, 1).SetValue("Key");
+            sheet.Cell(1, 2).SetValue("Image");
+            sheet.Cell(2, 1).SetValue("Zulu");
+            sheet.Cell(3, 1).SetValue("Alpha");
             sheet.SetInCellImage(2, 2, TinyPng, altText: "Sorted badge");
-            sheet.AddAutoFilter("A1:B3");
-            sheet.SetColumnWidth(2, 24D);
+            sheet.Range("A1:B3").AutoFilter();
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(24D));
 
             sheet.Range("A1:B3").SortByColumn(1, ascending: true, hasHeader: true);
 
@@ -75,8 +75,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_InCellImage_ReplacesAndRemovesInlineStringPayload() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Images");
-            sheet.CellValue(1, 1, "Old value");
+            ExcelSheet sheet = document.AddSheet("Images");
+            sheet.Cell(1, 1).SetValue("Old value");
             Cell cell = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<Cell>());
             cell.CellValue = null;
             cell.DataType = CellValues.InlineString;

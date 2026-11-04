@@ -459,7 +459,7 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
         return false;
     }
 
-    private static string? BuildNetworkShellHeadHtml(MarkdownRendererOptions options, AssetMode assetMode) {
+    private static string? BuildNetworkShellHeadHtml(MarkdownRendererOptions options, MarkdownAssetMode assetMode) {
         var network = options.Network;
         if (network?.Enabled != true) {
             return null;
@@ -575,13 +575,13 @@ try {
 """;
     }
 
-    private static string ResolveScriptSrc(string? url, AssetMode assetMode, MarkdownExternalTextResolver? resolver) {
+    private static string ResolveScriptSrc(string? url, MarkdownAssetMode assetMode, MarkdownExternalTextResolver? resolver) {
         var value = (url ?? string.Empty).Trim();
         if (value.Length == 0) {
             return string.Empty;
         }
 
-        if (assetMode == AssetMode.Offline) {
+        if (assetMode == MarkdownAssetMode.Offline) {
             var bundled = MarkdownRenderer.BuildBundledScriptSrc(value, "application/javascript", resolver);
             if (!string.IsNullOrWhiteSpace(bundled)) {
                 return bundled;
@@ -591,13 +591,13 @@ try {
         return value;
     }
 
-    private static string ResolveCssHref(string? url, AssetMode assetMode, MarkdownExternalTextResolver? resolver) {
+    private static string ResolveCssHref(string? url, MarkdownAssetMode assetMode, MarkdownExternalTextResolver? resolver) {
         var value = (url ?? string.Empty).Trim();
         if (value.Length == 0) {
             return string.Empty;
         }
 
-        if (assetMode == AssetMode.Offline) {
+        if (assetMode == MarkdownAssetMode.Offline) {
             var bundled = MarkdownRenderer.BuildBundledCssHref(value, resolver);
             if (!string.IsNullOrWhiteSpace(bundled)) {
                 return bundled;

@@ -17,8 +17,13 @@ internal static class OfficeRasterStroker {
     /// Appends the outline of one polyline. A polyline whose last point repeats its first is closed
     /// and gets a join there instead of caps. <paramref name="pixelsPerUnit"/> sizes round joins and caps.
     /// </summary>
-    internal static void AppendOutline(IReadOnlyList<OfficePoint> points, double width, OfficeStrokeLineCap cap, OfficeStrokeLineJoin join, double miterLimit, double pixelsPerUnit, List<List<OfficePoint>> output) {
-        var style = new OfficeStrokeOutlineOptions { StartCap = OfficeStrokeOutlineOptions.FromCap(cap), EndCap = OfficeStrokeOutlineOptions.FromCap(cap) };
+    internal static void AppendOutline(IReadOnlyList<OfficePoint> points, double width, OfficeStrokeLineCap cap, OfficeStrokeLineJoin join, double miterLimit, double pixelsPerUnit, List<List<OfficePoint>> output) =>
+        AppendOutline(points, width, cap, join, miterLimit, pixelsPerUnit, output, null);
+
+    internal static void AppendOutline(IReadOnlyList<OfficePoint> points, double width, OfficeStrokeLineCap cap, OfficeStrokeLineJoin join, double miterLimit, double pixelsPerUnit, List<List<OfficePoint>> output,
+        Action<int>? chargePoints, System.Threading.CancellationToken cancellationToken = default) {
+        var style = new OfficeStrokeOutlineOptions { StartCap = OfficeStrokeOutlineOptions.FromCap(cap), EndCap = OfficeStrokeOutlineOptions.FromCap(cap),
+            ChargePoints = chargePoints, CancellationToken = cancellationToken };
         AppendOutline(points, width, join, miterLimit, pixelsPerUnit, output, style);
     }
 
@@ -147,13 +152,15 @@ internal static class OfficeRasterStroker {
 
     private static void AddPiece(List<List<OfficePoint>> output, List<OfficePoint> piece, OfficeStrokeOutlineOptions style) {
         if (piece.Count < 3) return;
+        // Generated pieces consume work even when area validation discards them.
+        // Each temporary piece is bounded by the curve flattener's segment cap.
+        style.ChargePoints?.Invoke(piece.Count);
         var area = 0.0;
         var origin = piece[0];
         for (int i = 0, j = piece.Count - 1; i < piece.Count; j = i++)
             area += (piece[j].X - origin.X) * (piece[i].Y - origin.Y) - (piece[i].X - origin.X) * (piece[j].Y - origin.Y);
         if (double.IsNaN(area) || (style.PreserveExactGeometry ? area == 0D : Math.Abs(area) <= Epsilon * Epsilon)) return;
         if (area < 0) piece.Reverse();
-        style.ChargePoints?.Invoke(piece.Count);
         output.Add(piece);
     }
 

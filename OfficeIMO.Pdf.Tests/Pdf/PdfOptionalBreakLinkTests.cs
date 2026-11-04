@@ -9,7 +9,7 @@ public sealed class PdfOptionalBreakLinkTests {
     [InlineData(false)]
     [InlineData(true)]
     public void OptionalBreaks_GeneratedPreflightKeepsSourceOffsetsWithAndWithoutFallbacks(bool fallback) {
-        var options = new PdfOptions();
+        var options = new PdfCreateOptions();
         if (fallback) {
             byte[] font = OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'A', 'V');
             options.EmbedStandardFont(PdfStandardFont.Helvetica, font, "IdentifierFont");
@@ -19,10 +19,10 @@ public sealed class PdfOptionalBreakLinkTests {
             }, new[] { PdfStandardFont.TimesRoman }));
         }
         string display = fallback ? "AV\u200BBAV" : "AV\u200BAV";
-        var document = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text(display));
+        var document = PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddText(display));
         Assert.Empty(document.AnalyzeTextEncoding());
         Assert.Equal(fallback ? "AVBAV" : "AVAV", PdfReadDocument.Open(document.ToBytes()).ExtractText().Trim());
-        var error = Assert.Single(PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text("AV\u200B\uFFFF")).AnalyzeTextEncoding());
+        var error = Assert.Single(PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddText("AV\u200B\uFFFF")).AnalyzeTextEncoding());
         Assert.Equal(3, error.Index);
         Assert.Equal("U+FFFF", error.CodePoint);
     }
@@ -40,13 +40,13 @@ public sealed class PdfOptionalBreakLinkTests {
         string? path = cff ? PdfComplianceTestFonts.FindBundledOpenTypeCffFont() : PdfComplianceTestFonts.FindBundledTrueTypeFont();
         Assert.NotNull(path);
         byte[] font = System.IO.File.ReadAllBytes(path!);
-        var options = new PdfOptions();
+        var options = new PdfCreateOptions();
         if (named) { options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("IdentifierFont", font)); }
         else { options.EmbedStandardFont(PdfStandardFont.Helvetica, font, "IdentifierFont"); }
         var run = new PdfTextRun("AV\u200BAV", fontFamily: named ? "IdentifierFont" : null);
-        if (spaced) { run = run.WithHorizontalTextScaling(75D).WithCharacterSpacing(0.5D); }
+        if (spaced) { run = run.WithHorizontalTextScaling(75D).WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(0.5D)); }
 
-        byte[] bytes = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Runs(new[] { run })).ToBytes();
+        byte[] bytes = PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddRuns(new[] { run })).ToBytes();
 
         Assert.Equal("AVAV", PdfReadDocument.Open(bytes).ExtractText().Trim());
         Assert.Equal(1, PdfInspector.Inspect(bytes).PageCount);
@@ -57,19 +57,19 @@ public sealed class PdfOptionalBreakLinkTests {
     [InlineData(true)]
     public void OptionalBreakOnlyLink_KeepsVisibleSiblingAndDestination(bool namedDestination) {
         const string uri = "https://example.test/identifier";
-        var document = PdfDocument.Create(new PdfOptions {
+        var document = PdfDocument.Create(new PdfCreateOptions {
             TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers
         }.UseTextFallbacks());
         document.Paragraph(paragraph => {
             if (namedDestination) {
-                paragraph.LinkToBookmark("\u200B", "details", contents: "Separator");
-                paragraph.LinkToBookmark("MailHost12", "details", contents: "Visible identifier");
+                paragraph.AddBookmarkLink("\u200B", "details", contents: "Separator");
+                paragraph.AddBookmarkLink("MailHost12", "details", contents: "Visible identifier");
             } else {
-                paragraph.Link("\u200B", uri, contents: "Separator");
-                paragraph.Link("MailHost12", uri, contents: "Visible identifier");
+                paragraph.AddLink("\u200B", uri, contents: "Separator");
+                paragraph.AddLink("MailHost12", uri, contents: "Visible identifier");
             }
         });
-        document.Bookmark("details").Paragraph(paragraph => paragraph.Text("Destination body"));
+        document.Bookmark("details").Paragraph(paragraph => paragraph.AddText("Destination body"));
 
         byte[] bytes = document.ToBytes();
 
@@ -91,11 +91,11 @@ public sealed class PdfOptionalBreakLinkTests {
     [InlineData(false)]
     [InlineData(true)]
     public void OptionalBreakOnlyLink_DoesNotCreateAnOrphanStructure(bool visibleSibling) {
-        var document = PdfDocument.Create(new PdfOptions { TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers });
+        var document = PdfDocument.Create(new PdfCreateOptions { TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers });
         document.Paragraph(paragraph => {
-            paragraph.Text("Before ");
-            paragraph.Link("\u200B", "https://example.test/empty");
-            if (visibleSibling) paragraph.Link("Visible", "https://example.test/visible");
+            paragraph.AddText("Before ");
+            paragraph.AddLink("\u200B", "https://example.test/empty");
+            if (visibleSibling) paragraph.AddLink("Visible", "https://example.test/visible");
         });
         PdfDocumentInfo info = PdfInspector.Inspect(document.ToBytes());
         Assert.Equal(visibleSibling ? 1 : 0, info.LinkAnnotations.Count);
@@ -118,7 +118,7 @@ public sealed class PdfOptionalBreakLinkTests {
     [Fact]
     public void TableOfContents_IdentifierWithOptionalBreaks_KeepsFinalPageAndPositiveLinkAreas() {
         const string display = "Mx12.\u200Blong-\u200Blabel.\u200Bexample.\u200Btest";
-        byte[] bytes = PdfDocument.Create(new PdfOptions { TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers })
             .TableOfContents(new PdfTableOfContentsOptions {
                 Entries = new[] { new PdfTableOfContentsEntry(display, "details") },
                 PageNumberFormatter = page => "page-" + page

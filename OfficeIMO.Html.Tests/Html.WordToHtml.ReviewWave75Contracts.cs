@@ -16,7 +16,7 @@ public partial class HtmlWordToHtml {
         document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
         document.AddParagraph().AddText("Script").SetCharacterStyleId("InheritedSuperscript");
 
-        string html = document.ToHtml(new WordToHtmlOptions { IncludeRunClasses = true });
+        string html = document.ToHtml(new WordHtmlExportOptions { IncludeRunClasses = true });
 
         string styleRule = Assert.Single(html.Split('\n'), line => line.Contains(".InheritedSuperscript {", StringComparison.Ordinal));
         Assert.DoesNotContain("vertical-align:super", styleRule, StringComparison.Ordinal);
@@ -41,7 +41,7 @@ public partial class HtmlWordToHtml {
         styles.Append(reset);
         document.AddParagraph().AddText("Mixed Case").SetCharacterStyleId("ResetCaps");
 
-        string html = document.ToHtml(new WordToHtmlOptions { IncludeRunClasses = true });
+        string html = document.ToHtml(new WordHtmlExportOptions { IncludeRunClasses = true });
 
         string styleRule = Assert.Single(html.Split('\n'), line => line.Contains(".ResetCaps {", StringComparison.Ordinal));
         Assert.Contains("font-variant:normal", styleRule, StringComparison.Ordinal);

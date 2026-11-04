@@ -16,25 +16,27 @@ namespace OfficeIMO.Examples.Word {
 
 
                 textBox.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
-                textBox.HorizontalPositionOffsetCentimeters = 1.5;
+                textBox.HorizontalPositionOffset = OfficeLength.Centimeters(1.5);
                 textBox.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
 
-                textBox.VerticalPositionOffsetCentimeters = 5;
+                textBox.VerticalPositionOffset = OfficeLength.Centimeters(5);
 
                 Console.WriteLine("Vertical Position Offset: " + textBox.VerticalPositionOffset);
-                Console.WriteLine("Vertical Position Offset in CM: " + textBox.VerticalPositionOffsetCentimeters);
+                Console.WriteLine("Vertical Position Offset in CM: " + textBox.VerticalPositionOffset?.ToCentimeters());
 
 
                 document.TextBoxes[0].RelativeWidthPercentage = 0;
                 document.TextBoxes[0].RelativeHeightPercentage = 0;
 
-                document.TextBoxes[0].WidthCentimeters = 10;
-                document.TextBoxes[0].HeightCentimeters = 5;
+                document.TextBoxes[0].Width = OfficeLength.Centimeters(10);
+                document.TextBoxes[0].RelativeWidthPercentage = 0;
+                document.TextBoxes[0].Height = OfficeLength.Centimeters(5);
+                document.TextBoxes[0].RelativeHeightPercentage = 0;
 
-                Console.WriteLine("Width centimeters: " + textBox.WidthCentimeters);
-                Console.WriteLine("Height centimeters: " + textBox.HeightCentimeters);
-                Console.WriteLine("Width emus: " + textBox.Width);
-                Console.WriteLine("Height emus: " + textBox.Height);
+                Console.WriteLine("Width centimeters: " + textBox.Width.ToCentimeters());
+                Console.WriteLine("Height centimeters: " + textBox.Height.ToCentimeters());
+                Console.WriteLine("Width emus: " + textBox.Width.ToEmus());
+                Console.WriteLine("Height emus: " + textBox.Height.ToEmus());
 
                 document.Save();
                 if (openWord) document.OpenInApplication();

@@ -12,9 +12,9 @@ public partial class PdfTextExtractorPageTests {
         byte[] pdf = BuildTwoColumnPdf();
 
         IReadOnlyList<string> pages = PdfTextExtractor.ExtractTextByPage(pdf, new PdfTextLayoutOptions {
-            MarginLeft = 36,
-            MarginRight = 36,
-            MinGutterWidth = 24
+            MarginLeft = OfficeIMO.OfficeLength.Points(36),
+            MarginRight = OfficeIMO.OfficeLength.Points(36),
+            MinGutterWidth = OfficeIMO.OfficeLength.Points(24)
         });
 
         string text = Normalize(pages[0]);
@@ -34,11 +34,11 @@ public partial class PdfTextExtractorPageTests {
 
     [Fact]
     public void GetTextSpans_UsesStandardFontMetricsWhenWidthsAreOmitted() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.TimesRoman,
-                DefaultFontSize = 10
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Paragraph(p => p.Text("WWWW"))
+            .Paragraph(p => p.AddText("WWWW"))
             .ToBytes();
 
         PdfTextSpan span = Assert.Single(
@@ -53,12 +53,12 @@ public partial class PdfTextExtractorPageTests {
     [Fact]
     public void GetTextSpans_UsesWinAnsiPunctuationMetricsWhenWidthsAreOmitted() {
         const string text = "\u201CWait\u201D\u2014ok\u2026";
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.TimesRoman,
-                DefaultFontSize = 10,
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 TextKerning = false
             })
-            .Paragraph(p => p.Text(text))
+            .Paragraph(p => p.AddText(text))
             .ToBytes();
 
         PdfTextSpan span = Assert.Single(
@@ -73,11 +73,11 @@ public partial class PdfTextExtractorPageTests {
     [Fact]
     public void GetTextSpans_UsesWinAnsiAccentedLetterMetricsWhenWidthsAreOmitted() {
         const string text = "r\u00E9sum\u00E9";
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.TimesRoman,
-                DefaultFontSize = 10
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Paragraph(p => p.Text(text))
+            .Paragraph(p => p.AddText(text))
             .ToBytes();
 
         PdfTextSpan span = Assert.Single(

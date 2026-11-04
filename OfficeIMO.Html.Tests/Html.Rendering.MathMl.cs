@@ -90,7 +90,7 @@ public sealed partial class HtmlRenderingTests {
             + "<msqrt><mi>x</mi></msqrt></math><div style='font-size:12px;line-height:14px'>Below</div></body>";
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(180D / HtmlRenderOptions.CssPixelsPerInch, 120D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(180D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(120D / HtmlRenderOptions.CssPixelsPerInch)),
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent
         };
@@ -101,13 +101,13 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText above = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), item => item.Text == "Above");
         HtmlRenderText below = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), item => item.Text == "Below");
         string svg = source.ToSvg(options);
-        byte[] pdf = source.ToPdfBytes(new HtmlToPdfOptions {
+        byte[] pdf = (source.ToPdf(new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(180D / HtmlRenderOptions.CssPixelsPerInch, 120D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(180D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(120D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent
-        });
+        })).ToBytes();
         string pdfText = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
 
         Assert.Equal(120D, drawing.Width, 3);
@@ -132,7 +132,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
 
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.MathMlContentUnsupported);
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.MathMlContentUnsupported);
         Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
         Assert.Contains("\U0001D465", rendered.Text, StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Pages[0].Visuals, item => item is HtmlRenderDrawing drawing && drawing.Source == "math#broken");
@@ -149,7 +149,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
 
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.MathMlContentUnsupported);
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.MathMlContentUnsupported);
         Assert.Equal("maction", diagnostic.Detail);
         Assert.Equal("x", rendered.Text);
         Assert.Contains(rendered.Pages[0].Visuals, item => item is HtmlRenderDrawing drawing && drawing.Source == "math#action");
@@ -167,7 +167,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
 
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.MathMlContentUnsupported);
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.MathMlContentUnsupported);
         Assert.Equal("mstyle[" + expectedAttribute + "]", diagnostic.Detail);
         Assert.Contains("x", rendered.Text, StringComparison.Ordinal);
     }
@@ -181,7 +181,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 120D, ViewportHeight = 60D });
 
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.MathMlContentUnsupported);
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.MathMlContentUnsupported);
         Assert.Equal(expectedDetail, diagnostic.Detail);
         Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
         Assert.Contains("x", rendered.Text, StringComparison.Ordinal);

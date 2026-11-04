@@ -63,6 +63,6 @@ public sealed class PdfVisualSelectedComparisonTests {
     }
 
     private static byte[] Pages(int count) => PdfDocument.Create(document => {
-        for (int index = 0; index < count; index++) document.Page(page => page.Size(150, 180));
+        for (int index = 0; index < count; index++) document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(150), global::OfficeIMO.OfficeLength.Points(180)));
     }).ToBytes();
 }

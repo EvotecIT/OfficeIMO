@@ -69,7 +69,7 @@ function Test-ShowcaseGenerationReceipt {
         if ($conversion.outputPath -cne $pdfs[0].path -or $conversion.outputSha256 -cne $pdfs[0].sha256 -or
             $conversion.routeId -cne 'docx-pdf' -or $conversion.command -cne 'Export-OfficeDocumentPdf' -or
             -not $conversion.routeEvidence -or -not $conversion.report -or
-            -not ($conversion.report.Warnings -is [array]) -or -not ($conversion.warnings -is [array]) -or
+            -not ($conversion.report.Diagnostics -is [array]) -or -not ($conversion.warnings -is [array]) -or
             $pdfs[0].diagnostics.pageCount -lt 1 -or -not ($pdfs[0].diagnostics.fonts -is [array])) { return $false }
         $urls = @($Card.previews.url)
         $previewArtifacts = @($Catalog.artifacts | Where-Object { $_.previewSource -and ('/downloads/showcase/' + $_.destination) -cin $urls })

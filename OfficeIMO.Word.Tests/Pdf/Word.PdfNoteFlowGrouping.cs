@@ -41,7 +41,7 @@ public partial class Word {
             .Concat(main.Document.Descendants<W.EndnoteReference>()
                 .Select(reference => "OfficeIMO.Endnote." + reference.Id!.Value)).ToArray();
 
-        var result = document.ToPdfDocumentResult(FootnoteDiagnosticOptions());
+        var result = document.ConvertToPdfWithEvidence(FootnoteDiagnosticOptions());
         for (int serialization = 0; serialization < 2; serialization++) {
             byte[] bytes = result.ToBytes();
             using var pdf = PdfPigDocument.Open(bytes);
@@ -66,8 +66,8 @@ public partial class Word {
                 Assert.InRange(destination.PageNumber.Value, 1, pdf.NumberOfPages);
             }
         }
-        Assert.Single(result.Warnings, warning => warning.Code == "NativeFootnotePlacementApproximated");
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeNoteFlowSeparatorOmitted");
+        Assert.Single(result.Warnings, warning => warning.Code == "native-footnote-placement-approximated");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "native-note-flow-separator-omitted");
         Assert.Equal(documentBefore, main.Document.OuterXml);
         Assert.Equal(footnotesBefore, main.FootnotesPart.Footnotes.OuterXml);
         Assert.Equal(endnotesBefore, main.EndnotesPart.Endnotes.OuterXml);

@@ -259,7 +259,7 @@ public static partial class HtmlComputedStyleEngine {
                 environment.Height,
                 containerUnitWidth,
                 containerUnitHeight,
-                OfficeIMO.Drawing.OfficeColor.Black,
+                OfficeIMO.OfficeColor.Black,
                 out HtmlRenderBorderEdges borders,
                 out _)) {
             borderHorizontal = borders.Left.LayoutWidth + borders.Right.LayoutWidth;
@@ -362,8 +362,8 @@ public static partial class HtmlComputedStyleEngine {
                 HtmlRenderCssValues.NormalizeComponentValueWhitespace(resolvedExpected),
                 StringComparison.Ordinal);
         }
-        if (HtmlRenderCssValues.TryColor(actual, out OfficeIMO.Drawing.OfficeColor actualColor)
-            && HtmlRenderCssValues.TryColor(expected, out OfficeIMO.Drawing.OfficeColor expectedColor)) {
+        if (HtmlRenderCssValues.TryColor(actual, out OfficeIMO.OfficeColor actualColor)
+            && HtmlRenderCssValues.TryColor(expected, out OfficeIMO.OfficeColor expectedColor)) {
             return actualColor == expectedColor;
         }
         double fontReference = string.Equals(name, "font-size", StringComparison.OrdinalIgnoreCase)

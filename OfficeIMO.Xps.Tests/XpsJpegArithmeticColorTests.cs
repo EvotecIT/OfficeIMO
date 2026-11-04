@@ -26,13 +26,13 @@ public sealed class XpsJpegArithmeticColorTests {
             markup.Descendants().Single(e => e.Name.LocalName == "ImageBrush").SetAttributeValue("ImageSource",
                 "{ColorConvertedBitmap " + source + " " + profileUri + "}");
             page.ReplaceMarkup(markup);
-            var loaded = XpsDocument.Load(document.Save()); page = loaded.Pages[0];
+            var loaded = XpsDocument.Load(document.ToBytes()); page = loaded.Pages[0];
             var svg = page.ToSvg(); Assert.Empty(svg.Diagnostics);
             Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg.Svg), out var drawing));
             var images = new[] {
                 OfficeDrawingRasterRenderer.Render(page.ToDrawing()),
                 OfficeDrawingRasterRenderer.Render(drawing!),
-                OfficeDrawingRasterRenderer.Render(PdfReadDocument.Open(loaded.ToPdf()).Pages[0].ToDrawing(), scale: 4D / 3D)
+                OfficeDrawingRasterRenderer.Render(PdfDocument.Load(new System.IO.MemoryStream(loaded.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).Pages[0].ToDrawing(), scale: 4D / 3D)
             };
             for (int y = 0; y < 19; y++) for (int x = 0; x < 35; x++) {
                 int at = (y * 35 + x) * 3;

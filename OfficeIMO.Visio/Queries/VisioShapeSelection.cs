@@ -2,7 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Visio {
     /// <summary>
@@ -301,8 +301,8 @@ namespace OfficeIMO.Visio {
         /// <param name="deltaY">Vertical offset in inches.</param>
         public VisioShapeSelection MoveBy(double deltaX, double deltaY) {
             foreach (VisioShape shape in _shapes) {
-                shape.PinX += deltaX;
-                shape.PinY += deltaY;
+                shape.PinXInches += deltaX;
+                shape.PinYInches += deltaY;
             }
 
             return this;
@@ -311,14 +311,15 @@ namespace OfficeIMO.Visio {
         /// <summary>
         /// Resizes every selected shape.
         /// </summary>
-        /// <param name="width">New width in inches.</param>
-        /// <param name="height">New height in inches.</param>
-        public VisioShapeSelection Size(double width, double height) {
+        /// <param name="width">New physical width.</param>
+        /// <param name="height">New physical height.</param>
+        public VisioShapeSelection Size(OfficeLength width, OfficeLength height) {
+            double widthInches = width.ToInches(), heightInches = height.ToInches();
             foreach (VisioShape shape in _shapes) {
-                shape.Width = width;
-                shape.Height = height;
-                shape.LocPinX = width / 2;
-                shape.LocPinY = height / 2;
+                shape.WidthInches = widthInches;
+                shape.HeightInches = heightInches;
+                shape.LocPinXInches = widthInches / 2;
+                shape.LocPinYInches = heightInches / 2;
             }
 
             return this;

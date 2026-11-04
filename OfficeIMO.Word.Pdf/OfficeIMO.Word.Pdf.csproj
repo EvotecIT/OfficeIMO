@@ -2,8 +2,6 @@
   <PropertyGroup>
     <Description>PDF converter for OfficeIMO.Word - Export Word documents to PDF using the first-party OfficeIMO.Pdf engine.</Description>
     <PackageId>OfficeIMO.Word.Pdf</PackageId>
-    <AssemblyName>OfficeIMO.Word.Pdf</AssemblyName>
-    <AssemblyTitle>OfficeIMO.Word.Pdf</AssemblyTitle>
     <VersionPrefix>3.5.3</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
@@ -47,4 +45,17 @@
     <InternalsVisibleTo Include="OfficeIMO.Pdf.Tests" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Using Include="System.Text" />
+    <Using Include="System.Collections.Generic" />
+    <Using Include="System.Collections" />
+    <Using Include="OfficeIMO.Drawing" />
+    <Using Include="OfficeIMO.OpenXml.Internal" />
+    <Using Include="DocumentFormat.OpenXml" />
+  </ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.OpenDocument.Odt.Pdf" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Workflows" /><InternalsVisibleTo Include="PSWriteOffice" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Workflows.IWork" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Rtf.Tests" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Web.Converter" /><InternalsVisibleTo Include="OfficeIMO.Web.Converter.Tests" /></ItemGroup>
 </Project>

@@ -1,8 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>Excel workbook adapter for OfficeIMO.Reader.Core.</Description>
-    <AssemblyName>OfficeIMO.Reader.Excel</AssemblyName>
-    <AssemblyTitle>OfficeIMO.Reader.Excel</AssemblyTitle>
     <VersionPrefix>3.5.3</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
@@ -48,4 +46,5 @@
   <ItemGroup><Compile Include="..\OfficeIMO.Reader.FormatInternals\NativePackageInspectionProjection.cs" Link="FormatInternals\NativePackageInspectionProjection.cs" /></ItemGroup>
   <ItemGroup><Compile Include="..\OfficeIMO.Reader.FormatInternals\OpenXmlReaderAdmission.cs" Link="FormatInternals\OpenXmlReaderAdmission.cs" /></ItemGroup>
   <ItemGroup><Compile Include="..\OfficeIMO.Reader.FormatInternals\NativeReaderAdmission.cs" Link="FormatInternals\NativeReaderAdmission.cs" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO" /></ItemGroup>
 </Project>

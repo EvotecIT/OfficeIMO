@@ -9,7 +9,18 @@ import UniformTypeIdentifiers
 /// works on a private working copy, so it never needs access to the user's file, and each save writes the engine's
 /// result back through the system.
 final class StudioDocument: ReferenceFileDocument, @unchecked Sendable {
+    #if os(macOS)
+    /// Office documents open only to become a new PDF: see OfficeDocumentView.
+    static let readableContentTypes: [UTType] = [.pdf] + ["org.openxmlformats.wordprocessingml.document", "com.microsoft.word.doc",
+                                                          "org.openxmlformats.spreadsheetml.sheet", "org.openxmlformats.presentationml.presentation",
+                                                          "public.rtf"].map { UTType(importedAs: $0) }
+    #else
     static let readableContentTypes: [UTType] = [.pdf]
+    #endif
+    static let writableContentTypes: [UTType] = [.pdf]
+
+    /// The copy of an office document this document opened, which is to be converted rather than edited.
+    private(set) var officeSource: URL?
 
     /// The engine's copy of the document, inside the app's temporary folder.
     let workingCopy: URL
@@ -20,9 +31,18 @@ final class StudioDocument: ReferenceFileDocument, @unchecked Sendable {
     private let publicationObserver = Mutex<StudioFilePublicationObserver?>(nil)
     private let initializationError: Error?
 
-    /// A blank page, for the system's New command: Letter where it is the common paper size, otherwise A4.
+    /// A blank page, for the system's New command.
     init() {
         workingCopy = Self.makeWorkingCopyURL(named: "Untitled.pdf")
+        do {
+            try FileManager.default.createDirectory(at: workingCopy.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try Self.blankPDF().write(to: workingCopy)
+            initializationError = nil
+        } catch { initializationError = error }
+    }
+
+    /// One blank page: Letter where it is the common paper size, otherwise A4.
+    static func blankPDF() throws -> Data {
         let letter = ["US", "CA", "MX", "PH", "CL", "CO", "VE"].contains(Locale.current.region?.identifier ?? "")
         var page = letter ? CGRect(x: 0, y: 0, width: 612, height: 792) : CGRect(x: 0, y: 0, width: 595.28, height: 841.89)
         let data = NSMutableData()
@@ -31,12 +51,8 @@ final class StudioDocument: ReferenceFileDocument, @unchecked Sendable {
             context.endPDFPage()
             context.closePDF()
         }
-        do {
-            guard data.length > 0 else { throw CocoaError(.fileWriteUnknown) }
-            try FileManager.default.createDirectory(at: workingCopy.deletingLastPathComponent(), withIntermediateDirectories: true)
-            try (data as Data).write(to: workingCopy)
-            initializationError = nil
-        } catch { initializationError = error }
+        guard data.length > 0 else { throw CocoaError(.fileWriteUnknown) }
+        return data as Data
     }
 
     init(configuration: ReadConfiguration) throws {
@@ -45,6 +61,7 @@ final class StudioDocument: ReferenceFileDocument, @unchecked Sendable {
         initializationError = nil
         try FileManager.default.createDirectory(at: workingCopy.deletingLastPathComponent(), withIntermediateDirectories: true)
         try data.write(to: workingCopy)
+        if !configuration.contentType.conforms(to: .pdf) { officeSource = workingCopy }
     }
 
     /// Opens a file the app can read directly, without the system's document browser.
@@ -93,7 +110,9 @@ final class StudioDocument: ReferenceFileDocument, @unchecked Sendable {
     }
 
     func fileWrapper(snapshot: Data, configuration: WriteConfiguration) throws -> FileWrapper {
-        FileWrapper(regularFileWithContents: snapshot)
+        // An office document is never replaced by the PDF it became.
+        if officeSource != nil, let existing = configuration.existingFile { return existing }
+        return FileWrapper(regularFileWithContents: snapshot)
     }
 
     func setSnapshotPreparation(for drawingID: UUID, _ prepare: @escaping @MainActor @Sendable () throws -> Void) {

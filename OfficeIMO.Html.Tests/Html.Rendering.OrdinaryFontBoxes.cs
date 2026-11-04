@@ -29,7 +29,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(fontHeight, owner.Height, 6);
         Assert.Equal(24D + lineHeight, OrdinaryFontBoxShape(rendered, "div#following").Y, 6);
         AssertOrdinaryFontBoxPdf(html, "Hgyp", 24D + baseline);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -58,7 +58,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Equal(29D, Assert.Single(text).Y + text[0].Font.Size, 6);
             AssertOrdinaryFontBoxPdf(html, "Hgyp", 29D);
         }
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -77,7 +77,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(29D, before.Y + before.Font.Size, 6);
         Assert.Equal(29D + blockHeight, after.Y + after.Font.Size, 6);
         Assert.Equal(24D + blockHeight, OrdinaryFontBoxShape(rendered, "div#following").Y, 6);
-        byte[] bytes = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(OrdinaryBaselineOptions()));
+        byte[] bytes = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions(OrdinaryBaselineOptions()))).ToBytes();
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         var page = pdf.GetPage(1);
         Assert.Equal("HgypTAIL", string.Concat(page.Letters.Select(letter => letter.Value)));
@@ -86,7 +86,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.InRange(Math.Abs((page.Height - page.Letters[index].StartBaseLine.Y) / 0.75D - expected),
                 0D, 0.0005D / 0.75D + 0.000001D);
         }
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -122,10 +122,10 @@ public sealed partial class HtmlRenderingTests {
             Assert.Equal((byte)0, pixel.B);
             Assert.InRange(pixel.A, (byte)(opacity * 255D), (byte)Math.Ceiling(opacity * 255D));
         }
-        byte[] bytes = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(OrdinaryBaselineOptions()));
+        byte[] bytes = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions(OrdinaryBaselineOptions()))).ToBytes();
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         Assert.Equal("HgypTAIL", string.Concat(pdf.GetPage(1).Letters.Select(letter => letter.Value)));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -147,10 +147,10 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal((byte)0, pixel.G);
         Assert.Equal((byte)255, pixel.B);
         Assert.InRange(pixel.A, (byte)127, (byte)128);
-        byte[] bytes = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(OrdinaryBaselineOptions()));
+        byte[] bytes = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions(OrdinaryBaselineOptions()))).ToBytes();
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         Assert.Equal("HgypBLOCKTAIL", string.Concat(pdf.GetPage(1).Letters.Select(letter => letter.Value)));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -184,14 +184,14 @@ public sealed partial class HtmlRenderingTests {
             Assert.Equal((byte)255, pixel.B);
         }
         Assert.Equal((byte)255, pixel.A);
-        byte[] bytes = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(OrdinaryBaselineOptions()));
+        byte[] bytes = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions(OrdinaryBaselineOptions()))).ToBytes();
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         // Stacking layers can change content stream order; geometric reading
         // order proves every saved glyph survives exactly once on its line.
         Assert.Equal("LEADWHOLETAIL", string.Concat(pdf.GetPage(1).Letters
             .OrderByDescending(letter => letter.StartBaseLine.Y).ThenBy(letter => letter.StartBaseLine.X)
             .Select(letter => letter.Value)));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -215,10 +215,10 @@ public sealed partial class HtmlRenderingTests {
         Assert.InRange(pixel.A, (byte)(opacity * 255D), (byte)Math.Ceiling(opacity * 255D));
         if (opacity < 1D) Assert.Single(OrdinaryFontBoxVisuals(rendered).OfType<HtmlRenderEffectGroup>(),
             group => group.Source == "span#owner" && group.Opacity == opacity);
-        byte[] bytes = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(OrdinaryBaselineOptions()));
+        byte[] bytes = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions(OrdinaryBaselineOptions()))).ToBytes();
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         Assert.Equal("MMMMTAIL", string.Concat(pdf.GetPage(1).Letters.Select(letter => letter.Value)));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -233,7 +233,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(41D, text.Y + text.Font.Size, 6);
         Assert.Equal(24D, OrdinaryFontBoxShape(rendered, "div#following").Y, 6);
         AssertOrdinaryFontBoxPdf(html, "X", 41D);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -248,7 +248,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OrdinaryFontBoxShape(control, "div#following").Y,
             OrdinaryFontBoxShape(rendered, "div#following").Y, 6);
         Assert.Equal(48D, OrdinaryFontBoxShape(rendered, "div#following").Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -264,7 +264,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText text = Assert.Single(OrdinaryFontBoxVisuals(rendered).OfType<HtmlRenderText>());
         Assert.Equal(baseline, text.Y + text.Font.Size, 6);
         AssertOrdinaryFontBoxPdf(html, "Hgyp", baseline);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -286,7 +286,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Equal(59D, Assert.Single(text).Y + text[0].Font.Size, 6);
             AssertOrdinaryFontBoxPdf(html, "Hgyp", 59D);
         }
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -307,7 +307,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Equal(59D, Assert.Single(text).Y + text[0].Font.Size, 6);
             AssertOrdinaryFontBoxPdf(html, "Hgyp", 59D);
         }
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -328,7 +328,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(childSize == 16D ? 19D : 49D, OrdinaryFontBoxShape(rendered, "span#child").Height, 6);
         Assert.Equal(24D + extent, OrdinaryFontBoxShape(rendered, "div#following").Y, 6);
         AssertOrdinaryFontBoxPdf(html, "Hgyp", 24D + baseline);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -353,7 +353,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.All(OrdinaryFontBoxVisuals(rendered).OfType<HtmlRenderText>(),
             text => Assert.Equal(24D + baseline, text.Y + text.Font.Size, 6));
         AssertOrdinaryFontBoxPdf(html, "Hgyp", 24D + baseline);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -374,8 +374,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(controlPositioned.Y, positioned.Y, 6);
         Assert.Equal(OrdinaryFontBoxShape(control, "div#following").Y,
             OrdinaryFontBoxShape(rendered, "div#following").Y, 6);
-        PdfLinkAnnotation[] Links(string html) => PdfReadDocument.Open(HtmlConversionDocument.Parse(html)
-            .ToPdfBytes(new HtmlToPdfOptions(OrdinaryBaselineOptions())))
+        PdfLinkAnnotation[] Links(string html) => PdfReadDocument.Open((HtmlConversionDocument.Parse(html)
+            .ToPdf(new HtmlPdfExportOptions(OrdinaryBaselineOptions()))).ToBytes())
             .Pages.SelectMany(page => page.GetLinkAnnotations()).ToArray();
         PdfLinkAnnotation[] expected = Links(Source(false));
         PdfLinkAnnotation[] actual = Links(Source(true));
@@ -388,7 +388,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Equal(expected[index].X2, actual[index].X2, 6);
             Assert.Equal(expected[index].Y2, actual[index].Y2, 6);
         }
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     private static string OrdinaryFontBoxSource(double size, double lineHeight, string content) =>
@@ -406,7 +406,7 @@ public sealed partial class HtmlRenderingTests {
             shape => shape.Source == source && shape.Shape.FillColor.HasValue);
 
     private static void AssertOrdinaryFontBoxPdf(string html, string expectedText, double baseline) {
-        byte[] bytes = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(OrdinaryBaselineOptions()));
+        byte[] bytes = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions(OrdinaryBaselineOptions()))).ToBytes();
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         var page = pdf.GetPage(1);
         Assert.Equal(expectedText, string.Concat(page.Letters.Select(letter => letter.Value)));

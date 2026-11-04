@@ -69,13 +69,18 @@ public sealed partial class OfficeVbaProject {
             || directory == null) throw new InvalidDataException(detail);
         var project = new OfficeVbaProject(bytes, compound, directory, OfficeVbaText.Decode(projectText, directory.CodePage));
         project.IsProtected = OfficeVbaProjectText.IsProtected(project._projectText);
+        string[] moduleNames = directory.Modules.Select(module => module.UnicodeName.Length > 0
+            ? new System.Text.UnicodeEncoding(false, false, true).GetString(module.UnicodeName)
+            : OfficeVbaText.Decode(module.AnsiName, directory.CodePage)).ToArray();
+        if (moduleNames.Any(name => name.IndexOf('/') >= 0))
+            throw new InvalidDataException("A VBA module name contains the PROJECT declaration delimiter.");
+        var moduleKinds = new OfficeVbaProjectText.ModuleKindLookup(project._projectText, moduleNames);
         int remaining = options.MaximumExpandedBytes - directoryBytes.Length;
         var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var streams = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        int moduleIndex = 0;
         foreach (OfficeVbaDirectoryCodec.ModuleModel module in directory.Modules) {
-            string name = module.UnicodeName.Length > 0
-                ? new System.Text.UnicodeEncoding(false, false, true).GetString(module.UnicodeName)
-                : OfficeVbaText.Decode(module.AnsiName, directory.CodePage);
+            string name = moduleNames[moduleIndex++];
             if (!names.Add(name) || !streams.Add(module.StreamName)) throw new InvalidDataException("VBA modules have duplicate names or stream identities.");
             if (!compound.Streams.TryGetValue("VBA/" + module.StreamName, out byte[]? stream)
                 || module.TextOffset > stream.Length) throw new InvalidDataException("A VBA module stream is missing or its source offset is outside the stream.");
@@ -83,7 +88,7 @@ public sealed partial class OfficeVbaProject {
             Buffer.BlockCopy(stream, module.TextOffset, compressedSource, 0, compressedSource.Length);
             if (!OfficeVbaCompression.TryDecompress(compressedSource, remaining, out byte[] source, out detail)) throw new InvalidDataException(detail);
             remaining -= source.Length;
-            OfficeVbaModuleKind kind = OfficeVbaProjectText.GetModuleKind(project._projectText, name, module.TypeId);
+            OfficeVbaModuleKind kind = moduleKinds.Get(name, module.TypeId);
             project._modules.Add(new OfficeVbaModule(name, kind, OfficeVbaText.Decode(source, directory.CodePage).TrimEnd('\0'), module));
         }
         foreach (OfficeVbaDirectoryCodec.ReferenceModel reference in directory.References) {
@@ -176,7 +181,8 @@ public sealed partial class OfficeVbaProject {
 
     /// <summary>Adds a registered type-library reference without installing or executing that library.</summary>
     /// <remarks>Major and minor versions must each be between 0 and 65535, as required by the native reference format.</remarks>
-    public void AddRegisteredReference(string name, Guid typeLibraryId, int majorVersion = 1, int minorVersion = 0, string path = "") {
+    /// <returns>The added reference, or the existing reference with the same type-library identity.</returns>
+    public OfficeVbaReference AddRegisteredReference(string name, Guid typeLibraryId, int majorVersion = 1, int minorVersion = 0, string path = "") {
         EnsureEditable();
         OfficeVbaText.ValidateIdentifier(name, 128);
         if (typeLibraryId == Guid.Empty) throw new ArgumentException("A type library identity is required.", nameof(typeLibraryId));
@@ -184,12 +190,16 @@ public sealed partial class OfficeVbaProject {
         if (minorVersion < 0 || minorVersion > ushort.MaxValue) throw new ArgumentOutOfRangeException(nameof(minorVersion));
         if (path == null || path.IndexOfAny(new[] { '#', '\r', '\n', '\0' }) >= 0) throw new ArgumentException("The type-library path cannot contain reference separators.", nameof(path));
         string identity = typeLibraryId.ToString("B").ToUpperInvariant();
-        if (_references.Any(reference => reference.LibraryId?.StartsWith("*\\G" + identity + "#", StringComparison.OrdinalIgnoreCase) == true)) return;
+        OfficeVbaReference? existing = _references.FirstOrDefault(reference =>
+            reference.LibraryId?.StartsWith("*\\G" + identity + "#", StringComparison.OrdinalIgnoreCase) == true);
+        if (existing != null) return existing;
         if (_references.Any(reference => string.Equals(reference.Name, name, StringComparison.OrdinalIgnoreCase))) throw new ArgumentException("A reference with this name already exists.", nameof(name));
         string libid = "*\\G" + identity + "#" + majorVersion.ToString("x", System.Globalization.CultureInfo.InvariantCulture) + "."
             + minorVersion.ToString("x", System.Globalization.CultureInfo.InvariantCulture) + "#0#" + path + "#" + name;
-        _references.Add(new OfficeVbaReference(name, libid, OfficeVbaDirectoryWriter.RegisteredReference(name, libid, CodePage)));
+        var created = new OfficeVbaReference(name, libid, OfficeVbaDirectoryWriter.RegisteredReference(name, libid, CodePage));
+        _references.Add(created);
         _referencesChanged = true;
+        return created;
     }
 
     /// <summary>Removes one explicit reference without rewriting source that uses its types.</summary>

@@ -15,7 +15,7 @@ internal sealed partial class PublisherModelState {
         PublisherPicture picture = _publication.EditablePicture(pictureId);
         var payload = ValidatePictureBytes(bytes, token);
         PublisherPublicationState candidate = _publication.ReplaceImage(picture, payload.Bytes, payload.ContentType);
-        if (candidate.AdditionalImageBytes > _decoded.Options.MaximumTotalImageBytes - _decoded.ImageBytes)
+        if (candidate.AdditionalImageBytes > _decoded.Options.MaxTotalImageBytes - _decoded.ImageBytes)
             throw new ArgumentException("Replacement image exceeds the configured publication image byte limit.", nameof(bytes));
         return WithPublication(candidate);
     }
@@ -29,7 +29,7 @@ internal sealed partial class PublisherModelState {
         var payload = ValidatePictureBytes(bytes, token);
         ValidateNewPicture(payload.Decode, nameof(bytes));
         PublisherPublicationState candidate = _publication.AddPicture(page, payload.Bytes, payload.ContentType, x, y, width, height, out pictureId);
-        if (candidate.AdditionalImageBytes > _decoded.Options.MaximumTotalImageBytes - _decoded.ImageBytes)
+        if (candidate.AdditionalImageBytes > _decoded.Options.MaxTotalImageBytes - _decoded.ImageBytes)
             throw new ArgumentException("New picture exceeds the configured publication image byte limit.", nameof(bytes));
         return WithPublication(candidate);
     }
@@ -54,24 +54,24 @@ internal sealed partial class PublisherModelState {
     // Addition and replacement share content validation and byte ownership.
     // Creation's static/orientation policy does not narrow existing replacements.
     private (byte[] Bytes, string ContentType, OfficeRasterDecodeInfo Decode) ValidatePictureBytes(byte[] bytes, CancellationToken token) {
-        if (bytes.Length == 0 || bytes.Length > _decoded.Options.MaximumImageBytes)
+        if (bytes.Length == 0 || bytes.Length > _decoded.Options.MaxImageBytes)
             throw new ArgumentException("Picture bytes must fit the configured per-image limit.", nameof(bytes));
         return ValidatePictureContent((byte[])bytes.Clone(), token);
     }
 
     private (byte[] Bytes, string ContentType, OfficeRasterDecodeInfo Decode) ValidatePictureContent(byte[] bytes, CancellationToken token) {
-        if (bytes.Length == 0 || bytes.Length > _decoded.Options.MaximumImageBytes)
+        if (bytes.Length == 0 || bytes.Length > _decoded.Options.MaxImageBytes)
             throw new ArgumentException("Picture bytes must fit the configured per-image limit.", nameof(bytes));
         byte[] owned = bytes;
         if (!OfficeImageReader.TryIdentifyByContent(owned, null, token, out OfficeImageInfo info)
             || info.Format is not (OfficeImageFormat.Png or OfficeImageFormat.Jpeg))
             throw new ArgumentException("Pictures require PNG or JPEG content.", nameof(bytes));
-        if (info.Width <= 0 || info.Height <= 0 || (long)info.Width * info.Height > _decoded.Options.MaximumRasterPixels)
+        if (info.Width <= 0 || info.Height <= 0 || (long)info.Width * info.Height > _decoded.Options.MaxRasterPixels)
             throw new ArgumentException("Picture dimensions exceed the configured pixel limit.", nameof(bytes));
         var options = new OfficeRasterDecodeOptions {
-            MaximumEncodedBytes = Math.Min(_decoded.Options.MaximumImageBytes, 128 * 1024 * 1024),
-            MaximumDecodedPixels = Math.Min(_decoded.Options.MaximumRasterPixels, 50_000_000),
-            MaximumInspectionWorkPixels = Math.Min(_decoded.Options.MaximumImageProcessingPixels, 50_000_000),
+            MaximumEncodedBytes = Math.Min(_decoded.Options.MaxImageBytes, 128 * 1024 * 1024),
+            MaximumDecodedPixels = Math.Min(_decoded.Options.MaxRasterPixels, 50_000_000),
+            MaximumInspectionWorkPixels = Math.Min(_decoded.Options.MaxImageProcessingPixels, 50_000_000),
             CancellationToken = token
         };
         if (!OfficeRasterImageDecoder.TryDecode(owned, options, out OfficeRasterImage? raster, out OfficeRasterDecodeInfo decoded) || raster == null)

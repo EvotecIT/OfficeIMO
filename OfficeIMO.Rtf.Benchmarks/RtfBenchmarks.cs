@@ -25,22 +25,22 @@ public class RtfCoreBenchmarks {
 
     [Benchmark]
     [BenchmarkCategory("Parse")]
-    public RtfReadResult Parse() => RtfDocument.Read(_rtf);
+    public RtfReadResult Parse() => RtfDocument.ParseResult(_rtf);
 
     [Benchmark]
     [BenchmarkCategory("Lossless")]
-    public string LosslessRoundTrip() => RtfDocument.Read(_rtf).EditLossless().ToRtf();
+    public string LosslessRoundTrip() => RtfDocument.ParseResult(_rtf).EditLossless().ToRtf();
 
     [Benchmark]
     [BenchmarkCategory("SemanticWrite")]
-    public string SemanticRewrite() => RtfDocument.Read(_rtf).Document.ToRtf();
+    public string SemanticRewrite() => RtfDocument.ParseResult(_rtf).Document.ToRtf();
 }
 
 [MemoryDiagnoser]
 [OperationsPerSecond]
 public class RtfAdapterBenchmarks {
     private RtfDocument _document = null!;
-    private RtfToPdfOptions _pdfOptions = null!;
+    private RtfPdfExportOptions _pdfOptions = null!;
     private OfficeDocumentReader _reader = null!;
     private byte[] _readerInput = null!;
 
@@ -51,7 +51,7 @@ public class RtfAdapterBenchmarks {
 
     [GlobalSetup]
     public void Setup() {
-        _document = RtfDocument.Read(RtfBenchmarkCorpus.Get(Scale).Rtf).Document;
+        _document = RtfDocument.ParseResult(RtfBenchmarkCorpus.Get(Scale).Rtf).Document;
         _pdfOptions = RtfBenchmarkSupport.CreatePdfOptions();
         _reader = new OfficeDocumentReaderBuilder().AddRtfHandler().Build();
         _readerInput = _document.ToBytes();
@@ -63,28 +63,28 @@ public class RtfAdapterBenchmarks {
 
     [Benchmark]
     [BenchmarkCategory("Markdown")]
-    public string Markdown() => _document.ToMarkdown();
+    public string Markdown() => _document.ToMarkdown().ToMarkdown();
 
     [Benchmark]
     [BenchmarkCategory("Pdf")]
-    public byte[] Pdf() => _document.ToPdfDocument(_pdfOptions).ToBytes();
+    public byte[] Pdf() => _document.ToPdf(_pdfOptions).ToBytes();
 
     [Benchmark]
     [BenchmarkCategory("Word")]
     public int WordModel() {
-        using WordDocument word = _document.ToWordDocument();
+        using WordDocument word = _document.ToWord();
         return _document.Blocks.Count;
     }
 
     [Benchmark]
     [BenchmarkCategory("Word")]
     public byte[] Word() {
-        using WordDocument word = _document.ToWordDocument();
-        using MemoryStream stream = word.ToStream();
+        using WordDocument word = _document.ToWord();
+        using MemoryStream stream = new MemoryStream(word.ToBytes());
         return stream.ToArray();
     }
 
     [Benchmark]
     [BenchmarkCategory("Reader")]
-    public ReaderChunk[] Reader() => _reader.Read(_readerInput, "benchmark.rtf").ToArray();
+    public ReaderChunk[] Reader() => _reader.Enumerate(_readerInput, "benchmark.rtf").ToArray();
 }

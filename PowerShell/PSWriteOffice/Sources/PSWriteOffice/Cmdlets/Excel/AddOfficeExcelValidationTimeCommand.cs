@@ -87,7 +87,7 @@ public sealed class AddOfficeExcelValidationTimeCommand : PSCmdlet
     {
         var sheet = ResolveSheet();
         string targetRange = ExcelTargetRangeResolver.Resolve(sheet, Range, HeaderName, TableName, HeaderRow, IncludeHeader.IsPresent);
-        sheet.ValidationTime(targetRange, Operator, Formula1, Formula2, AllowBlank, ErrorTitle, ErrorMessage);
+        sheet.Range(targetRange).Validation().Time(Operator, Formula1, Formula2, AllowBlank, ErrorTitle, ErrorMessage);
 
         if (PassThru.IsPresent)
         {

@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using System.IO;
 using System.Text;
 
 namespace OfficeIMO.Core;
@@ -9,6 +10,7 @@ internal enum OfficeNumberStyle { Decimal, LowerRoman, UpperRoman, LowerLetter, 
 
 /// <summary>Formats labels independently of their source identity and placement.</summary>
 internal static class OfficeNumberFormatter {
+    private const int MaximumExpandedLabelCharacters = 4096;
     internal static string Format(int number, OfficeNumberStyle style) {
         if (number < 1) throw new ArgumentOutOfRangeException(nameof(number), "Number must be positive.");
         return style switch {
@@ -24,6 +26,8 @@ internal static class OfficeNumberFormatter {
     }
 
     private static string Roman(int number) {
+        if (number > 4_000_000)
+            throw new InvalidDataException("The Roman number label exceeds the supported expansion limit.");
         int[] values = { 1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1 };
         string[] numerals = { "M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I" };
         var result = new StringBuilder();
@@ -45,6 +49,10 @@ internal static class OfficeNumberFormatter {
     }
 
     // Word note labels repeat the current letter after Z: AA, BB, ... ZZ, AAA.
-    private static string RepeatedLetters(int number, bool uppercase) =>
-        new((char)((uppercase ? 'A' : 'a') + (number - 1) % 26), (number - 1) / 26 + 1);
+    private static string RepeatedLetters(int number, bool uppercase) {
+        int length = (number - 1) / 26 + 1;
+        if (length > MaximumExpandedLabelCharacters)
+            throw new InvalidDataException("The repeated-letter label exceeds the supported expansion limit.");
+        return new string((char)((uppercase ? 'A' : 'a') + (number - 1) % 26), length);
+    }
 }

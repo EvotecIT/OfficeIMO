@@ -72,7 +72,7 @@ namespace OfficeIMO.Word {
 
         private static WordPageSizeDefinition FromPhysicalSize(OfficePageSize size, ushort paperCode) =>
             new WordPageSizeDefinition(
-                checked((uint)Math.Round(size.ToPointWidth() * 20D, MidpointRounding.AwayFromZero)),
-                checked((uint)Math.Round(size.ToPointHeight() * 20D, MidpointRounding.AwayFromZero)), paperCode);
+                checked((uint)Math.Round(size.Width.ToPoints() * 20D, MidpointRounding.AwayFromZero)),
+                checked((uint)Math.Round(size.Height.ToPoints() * 20D, MidpointRounding.AwayFromZero)), paperCode);
     }
 }

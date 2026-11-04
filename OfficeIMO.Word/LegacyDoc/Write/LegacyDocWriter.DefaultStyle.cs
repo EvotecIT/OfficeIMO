@@ -47,6 +47,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             SpacingBetweenLines? defaults = paragraphDefaults?.SpacingBetweenLines;
             TextAlignment? alignment = paragraphDefaults?.GetFirstChild<TextAlignment>();
             if (defaults == null && alignment == null) return;
+            // DOC spacing projection only understands these WordprocessingML values.
+            // Extension attributes must not be multiplied into every root style.
+            var inheritedSpacingAttributes = defaults?.GetAttributes().Where(attribute =>
+                attribute.NamespaceUri == "http://schemas.openxmlformats.org/wordprocessingml/2006/main" &&
+                attribute.LocalName is "before" or "after" or "beforeLines" or "afterLines" or
+                    "beforeAutospacing" or "afterAutospacing").ToArray();
             // DOC has no docDefaults record. Put the defaults on roots of the style
             // hierarchy; derived styles continue to inherit their base's overrides.
             foreach (string styleId in paragraphStyles.Keys.ToArray()) {
@@ -69,10 +75,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     spacing.Line = defaults.Line!.Value;
                     spacing.LineRule = defaults.LineRule?.Value ?? LineSpacingRuleValues.Auto;
                 }
-                foreach (var attribute in defaults.GetAttributes()) {
-                    // The line/rule pair is handled above. An authored line
-                    // without a rule means automatic spacing.
-                    if (attribute.LocalName is "line" or "lineRule") continue;
+                foreach (var attribute in inheritedSpacingAttributes!) {
                     if (!spacing.GetAttributes().Any(existing => existing.LocalName == attribute.LocalName && existing.NamespaceUri == attribute.NamespaceUri)) {
                         spacing.SetAttribute(attribute);
                     }

@@ -54,11 +54,12 @@ namespace OfficeIMO.Excel {
             }
 
             CellValues? typeHint = cell.DataType?.Value;
-            bool hasFormula = cell.CellFormula is not null;
-            string? formulaText = hasFormula ? ExtractFormulaText(cell) : null;
+            GetCellChildren(cell, out var formula, out var cellValue, out var inlineString);
+            bool hasFormula = formula is not null;
+            string? formulaText = formula?.Text;
             bool preferFormulaText = hasFormula && !_opt.UseCachedFormulaResult && formulaText != null;
-            string? rawText = preferFormulaText ? null : ExtractRawText(cell);
-            string? inlineText = preferFormulaText ? null : ExtractInlineString(cell, typeHint);
+            string? rawText = preferFormulaText ? null : cellValue?.InnerText;
+            string? inlineText = preferFormulaText ? null : ExtractInlineString(inlineString, typeHint);
 
             if (rawText == null && inlineText == null && formulaText == null && !CellHasExplicitBlank(cell)) {
                 return binding.IsNullable;

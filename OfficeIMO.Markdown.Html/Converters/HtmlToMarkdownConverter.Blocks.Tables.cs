@@ -11,7 +11,7 @@ internal sealed partial class HtmlToMarkdownConverter {
         bool headerWritten = false;
         var headerCells = new List<TableCell>();
         var rowCells = new List<IReadOnlyList<TableCell>>();
-        var columnAlignments = new List<ColumnAlignment>();
+        var columnAlignments = new List<MarkdownColumnAlignment>();
         var columnWidthPoints = new List<double?>();
         var columnWidthWeights = new List<double?>();
         int maxExpandedColumns = context.Options.MaxTableExpandedColumns;
@@ -54,7 +54,7 @@ internal sealed partial class HtmlToMarkdownConverter {
                 }
 
                 var cellBlocks = ConvertTableCellToBlocks(cell, context);
-                ColumnAlignment cellAlignment = ParseAlignment(cell);
+                MarkdownColumnAlignment cellAlignment = ParseAlignment(cell);
                 var structuredCell = new TableCell(cellBlocks) {
                     Alignment = cellAlignment,
                     BackgroundColor = ParseBackgroundColor(cell),
@@ -115,21 +115,21 @@ internal sealed partial class HtmlToMarkdownConverter {
         }
     }
 
-    private static void CaptureColumnAlignment(List<ColumnAlignment> alignments, int columnIndex, ColumnAlignment alignment, bool replaceExisting) {
+    private static void CaptureColumnAlignment(List<MarkdownColumnAlignment> alignments, int columnIndex, MarkdownColumnAlignment alignment, bool replaceExisting) {
         while (alignments.Count <= columnIndex) {
-            alignments.Add(ColumnAlignment.None);
+            alignments.Add(MarkdownColumnAlignment.None);
         }
 
-        if (alignment == ColumnAlignment.None) {
+        if (alignment == MarkdownColumnAlignment.None) {
             return;
         }
 
-        if (replaceExisting || alignments[columnIndex] == ColumnAlignment.None) {
+        if (replaceExisting || alignments[columnIndex] == MarkdownColumnAlignment.None) {
             alignments[columnIndex] = alignment;
         }
     }
 
-    private static void CaptureColumnGroupAlignments(IElement table, ConversionContext context, List<ColumnAlignment> alignments, int maxExpandedColumns) {
+    private static void CaptureColumnGroupAlignments(IElement table, ConversionContext context, List<MarkdownColumnAlignment> alignments, int maxExpandedColumns) {
         int columnIndex = 0;
         foreach (var child in table.Children) {
             if (HasEffectiveTagName(child, context, "COLGROUP")) {
@@ -144,7 +144,7 @@ internal sealed partial class HtmlToMarkdownConverter {
 
                 foreach (var col in colElements) {
                     var columnAlignment = ParseAlignment(col);
-                    if (columnAlignment == ColumnAlignment.None) {
+                    if (columnAlignment == MarkdownColumnAlignment.None) {
                         columnAlignment = groupAlignment;
                     }
 
@@ -160,12 +160,12 @@ internal sealed partial class HtmlToMarkdownConverter {
         }
     }
 
-    private static int CaptureSpannedColumnAlignment(List<ColumnAlignment> alignments, int columnIndex, IElement columnElement, ColumnAlignment alignment, bool replaceExisting, int maxExpandedColumns) {
+    private static int CaptureSpannedColumnAlignment(List<MarkdownColumnAlignment> alignments, int columnIndex, IElement columnElement, MarkdownColumnAlignment alignment, bool replaceExisting, int maxExpandedColumns) {
         int span = ParseColumnSpan(columnElement.GetAttribute("span"));
         return CaptureSpannedColumnAlignment(alignments, columnIndex, span, alignment, replaceExisting, maxExpandedColumns: maxExpandedColumns);
     }
 
-    private static int CaptureSpannedColumnAlignment(List<ColumnAlignment> alignments, int columnIndex, int span, ColumnAlignment alignment, bool replaceExisting, int maxExpandedColumns) {
+    private static int CaptureSpannedColumnAlignment(List<MarkdownColumnAlignment> alignments, int columnIndex, int span, MarkdownColumnAlignment alignment, bool replaceExisting, int maxExpandedColumns) {
         int boundedSpan = Math.Min(span, Math.Max(0, maxExpandedColumns - columnIndex));
         for (int offset = 0; offset < boundedSpan; offset++) {
             CaptureColumnAlignment(alignments, columnIndex + offset, alignment, replaceExisting);
@@ -287,15 +287,15 @@ internal sealed partial class HtmlToMarkdownConverter {
         }
 
         bool hasFixedWidths = false;
-        table.ColumnWidthPoints.Clear();
+        table.ColumnWidths.Clear();
         for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
             double? width = columnIndex < widthPoints.Count ? widthPoints[columnIndex] : null;
-            table.ColumnWidthPoints.Add(width);
+            table.ColumnWidths.Add(width.HasValue ? OfficeLength.Points(width.Value) : null);
             hasFixedWidths |= width.HasValue;
         }
 
         if (!hasFixedWidths) {
-            table.ColumnWidthPoints.Clear();
+            table.ColumnWidths.Clear();
         }
 
         bool hasWeights = false;
@@ -315,7 +315,7 @@ internal sealed partial class HtmlToMarkdownConverter {
         }
     }
 
-    private static void ApplyColumnAlignments(TableBlock table, List<ColumnAlignment> alignments) {
+    private static void ApplyColumnAlignments(TableBlock table, List<MarkdownColumnAlignment> alignments) {
         int columnCount = table.Headers.Count;
         for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
             columnCount = Math.Max(columnCount, table.Rows[rowIndex].Count);
@@ -323,7 +323,7 @@ internal sealed partial class HtmlToMarkdownConverter {
 
         table.Alignments.Clear();
         for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-            table.Alignments.Add(columnIndex < alignments.Count ? alignments[columnIndex] : ColumnAlignment.None);
+            table.Alignments.Add(columnIndex < alignments.Count ? alignments[columnIndex] : MarkdownColumnAlignment.None);
         }
     }
 
@@ -346,14 +346,14 @@ internal sealed partial class HtmlToMarkdownConverter {
         }
     }
 
-    private static ColumnAlignment ParseAlignment(IElement cell) {
+    private static MarkdownColumnAlignment ParseAlignment(IElement cell) {
         var alignment = ParseAlignmentValue(cell.GetAttribute("align"));
-        if (alignment != ColumnAlignment.None) {
+        if (alignment != MarkdownColumnAlignment.None) {
             return alignment;
         }
 
         alignment = ParseAlignmentValue(TryGetStyleDeclarationValue(cell.GetAttribute("style"), "text-align"));
-        if (alignment != ColumnAlignment.None) {
+        if (alignment != MarkdownColumnAlignment.None) {
             return alignment;
         }
 
@@ -624,26 +624,26 @@ internal sealed partial class HtmlToMarkdownConverter {
         return false;
     }
 
-    private static ColumnAlignment ParseAlignmentValue(string? rawAlignment) {
+    private static MarkdownColumnAlignment ParseAlignmentValue(string? rawAlignment) {
         if (string.IsNullOrWhiteSpace(rawAlignment)) {
-            return ColumnAlignment.None;
+            return MarkdownColumnAlignment.None;
         }
 
         switch (rawAlignment!.Trim().ToLowerInvariant()) {
             case "left":
-                return ColumnAlignment.Left;
+                return MarkdownColumnAlignment.Left;
             case "center":
-                return ColumnAlignment.Center;
+                return MarkdownColumnAlignment.Center;
             case "right":
-                return ColumnAlignment.Right;
+                return MarkdownColumnAlignment.Right;
             default:
-                return ColumnAlignment.None;
+                return MarkdownColumnAlignment.None;
         }
     }
 
-    private static ColumnAlignment ParseAlignmentClassTokens(string? classValue) {
+    private static MarkdownColumnAlignment ParseAlignmentClassTokens(string? classValue) {
         if (string.IsNullOrWhiteSpace(classValue)) {
-            return ColumnAlignment.None;
+            return MarkdownColumnAlignment.None;
         }
 
         foreach (string rawToken in classValue!.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)) {
@@ -657,7 +657,7 @@ internal sealed partial class HtmlToMarkdownConverter {
                 case "ta-left":
                 case "has-text-left":
                 case "is-left":
-                    return ColumnAlignment.Left;
+                    return MarkdownColumnAlignment.Left;
                 case "center":
                 case "align-center":
                 case "aligncenter":
@@ -668,7 +668,7 @@ internal sealed partial class HtmlToMarkdownConverter {
                 case "has-text-centered":
                 case "is-center":
                 case "is-centered":
-                    return ColumnAlignment.Center;
+                    return MarkdownColumnAlignment.Center;
                 case "right":
                 case "align-right":
                 case "alignright":
@@ -677,11 +677,11 @@ internal sealed partial class HtmlToMarkdownConverter {
                 case "ta-right":
                 case "has-text-right":
                 case "is-right":
-                    return ColumnAlignment.Right;
+                    return MarkdownColumnAlignment.Right;
             }
         }
 
-        return ColumnAlignment.None;
+        return MarkdownColumnAlignment.None;
     }
 
     private static IReadOnlyList<IMarkdownBlock> ConvertTableCellToBlocks(IElement cell, ConversionContext context) {

@@ -7,7 +7,6 @@ using Anchor = DocumentFormat.OpenXml.Drawing.Wordprocessing.Anchor;
 using ShapeProperties = DocumentFormat.OpenXml.Drawing.Pictures.ShapeProperties;
 using V = DocumentFormat.OpenXml.Vml;
 
-#nullable enable annotations
 using DocumentFormat.OpenXml.Office2010.Word.Drawing;
 using Pic = DocumentFormat.OpenXml.Drawing.Pictures;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -43,15 +42,15 @@ namespace OfficeIMO.Word {
         private bool? _noRotation;
         private bool? _noSelection;
         private int? _fixedOpacity;
-        private string? _alphaInversionColorHex;
+        private string? _alphaInversionColorValue;
         private int? _blackWhiteThreshold;
         private int? _blurRadius;
         private bool? _blurGrow;
-        private string? _colorChangeFromHex;
-        private string? _colorChangeToHex;
-        private string? _colorReplacementHex;
-        private string? _duotoneColor1Hex;
-        private string? _duotoneColor2Hex;
+        private string? _colorChangeFromValue;
+        private string? _colorChangeToValue;
+        private string? _colorReplacementValue;
+        private string? _duotoneColor1Value;
+        private string? _duotoneColor2Value;
         private bool? _grayScale;
         private int? _luminanceBrightness;
         private int? _luminanceContrast;
@@ -193,9 +192,9 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the image's description.
+        /// Gets or sets the image's alternative text.
         /// </summary>
-        public string? Description {
+        public string? AltText {
             get => _vmlShape != null ? _vmlShape.GetAttributes().FirstOrDefault(attribute => attribute.LocalName == "alt").Value : GetDocProperties()?.Description;
             set {
                 if (_vmlShape != null) {
@@ -238,128 +237,6 @@ namespace OfficeIMO.Word {
                 if (drawingProperties != null) {
                     drawingProperties.Hidden = value;
                 }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets Width of an image
-        /// </summary>
-        public double? Width {
-            get {
-                if (_vmlShape != null) return ReadVmlDimension("width");
-                var inlineCx = _Image.Inline?.Extent?.Cx?.Value;
-                if (inlineCx.HasValue) {
-                    return inlineCx.Value / EnglishMetricUnitsPerInch * PixelsPerInch;
-                }
-                var anchorCx = _Image.Anchor?.Extent?.Cx?.Value;
-                if (anchorCx.HasValue) {
-                    return anchorCx.Value / EnglishMetricUnitsPerInch * PixelsPerInch;
-                }
-                return null;
-            }
-            set {
-                if (value == null) throw new ArgumentNullException(nameof(value));
-                if (_vmlShape != null) {
-                    WriteVmlDimension("width", value.Value);
-                    return;
-                }
-                double emuWidth = value.Value * EnglishMetricUnitsPerInch / PixelsPerInch;
-                if (_Image.Inline?.Extent != null) {
-                    _Image.Inline.Extent.Cx = (long)emuWidth;
-                    var picture = _Image.Inline?.Graphic?.GraphicData?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                    var ext = picture?.ShapeProperties?.Transform2D?.Extents;
-                    if (ext != null) {
-                        ext.Cx = (Int64Value)emuWidth;
-                    }
-                } else {
-                    var a = _Image.Anchor;
-                    if (a?.Extent != null) {
-                        a.Extent.Cx = (long)emuWidth;
-                        var anchorGraphic = a.OfType<Graphic>().FirstOrDefault();
-                        var picture = anchorGraphic?.GraphicData?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                        var ext = picture?.ShapeProperties?.Transform2D?.Extents;
-                        if (ext != null) {
-                            ext.Cx = (Int64Value)emuWidth;
-                        }
-                    }
-                }
-                // _Image.Inline.Extent.Cx = (Int64Value)emuWidth;
-                //var picture = _Image.Inline.Graphic.GraphicData.ChildElements.OfType<DocumentFormat.OpenXml.Drawing.Pictures.Picture>().First();
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets Height of an image
-        /// </summary>
-        public double? Height {
-            get {
-                if (_vmlShape != null) return ReadVmlDimension("height");
-                var inlineCy = _Image.Inline?.Extent?.Cy?.Value;
-                if (inlineCy.HasValue) {
-                    return inlineCy.Value / EnglishMetricUnitsPerInch * PixelsPerInch;
-                }
-                var anchorCy = _Image.Anchor?.Extent?.Cy?.Value;
-                if (anchorCy.HasValue) {
-                    return anchorCy.Value / EnglishMetricUnitsPerInch * PixelsPerInch;
-                }
-                return null;
-            }
-            set {
-                if (value == null) throw new ArgumentNullException(nameof(value));
-                if (_vmlShape != null) {
-                    WriteVmlDimension("height", value.Value);
-                    return;
-                }
-                if (_Image.Inline?.Extent != null) {
-                    double emuHeight = value.Value * EnglishMetricUnitsPerInch / PixelsPerInch;
-                    _Image.Inline.Extent.Cy = (Int64Value)emuHeight;
-                    var picture = _Image.Inline?.Graphic?.GraphicData?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                    var ext = picture?.ShapeProperties?.Transform2D?.Extents;
-                    if (ext != null) {
-                        ext.Cy = (Int64Value)emuHeight;
-                    }
-                } else {
-                    var a = _Image.Anchor;
-                    if (a?.Extent != null) {
-                        double emuHeight = value.Value * EnglishMetricUnitsPerInch / PixelsPerInch;
-                        a.Extent.Cy = (Int64Value)emuHeight;
-                        var anchorGraphic = a.OfType<Graphic>().FirstOrDefault();
-                        var picture = anchorGraphic?.GraphicData?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
-                        var ext = picture?.ShapeProperties?.Transform2D?.Extents;
-                        if (ext != null) {
-                            ext.Cy = (Int64Value)emuHeight;
-                        }
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets the image width in EMUs.
-        /// </summary>
-        public double? EmuWidth {
-            get {
-                var inlineCx = _Image.Inline?.Extent?.Cx?.Value;
-                if (inlineCx.HasValue) return inlineCx.Value;
-
-                var anchorCx = _Image.Anchor?.Extent?.Cx?.Value;
-                if (anchorCx.HasValue) return anchorCx.Value;
-
-                return null;
-            }
-        }
-        /// <summary>
-        /// Gets the image height in EMUs.
-        /// </summary>
-        public double? EmuHeight {
-            get {
-                var inlineCy = _Image.Inline?.Extent?.Cy?.Value;
-                if (inlineCy.HasValue) return inlineCy.Value;
-
-                var anchorCy = _Image.Anchor?.Extent?.Cy?.Value;
-                if (anchorCy.HasValue) return anchorCy.Value;
-
-                return null;
             }
         }
 

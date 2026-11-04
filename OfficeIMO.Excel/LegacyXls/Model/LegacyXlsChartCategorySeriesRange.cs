@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes category, date, or series axis interval metadata decoded from a legacy XLS CatSerRange record.
     /// </summary>
-    public sealed class LegacyXlsChartCategorySeriesRange {
+    internal sealed class LegacyXlsChartCategorySeriesRange {
         internal LegacyXlsChartCategorySeriesRange(short crossingCategory, short labelInterval, short tickInterval, ushort flags) {
             CrossingCategory = crossingCategory;
             LabelInterval = labelInterval;

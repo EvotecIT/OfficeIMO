@@ -61,7 +61,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 LegacyDocTextCharacter[] storyCharacters = textContent.AllCharacters.Where(character =>
                     character.CharacterPosition >= headerBaseCharacterPosition + startCharacter &&
                     character.CharacterPosition < headerBaseCharacterPosition + endCharacter).ToArray();
-                if (storyCharacters.Any(character => GetParagraphFormatForFileOffset(paragraphFormattingRanges, character.FileOffset).IsInTable == true)) {
+                if (HasTableFormatting(storyCharacters, paragraphFormattingRanges)) {
                     // MS-DOC 2.3.3 places a guard paragraph mark outside the story content.
                     // Remove that one mark while retaining authored empty paragraphs.
                     LegacyDocTextCharacter lastCharacter = storyCharacters[storyCharacters.Length - 1];
@@ -553,6 +553,25 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             return LegacyDocParagraphFormat.Default;
+        }
+
+        private static bool HasTableFormatting(IReadOnlyList<LegacyDocTextCharacter> characters,
+            IReadOnlyList<LegacyDocParagraphFormatRange> ranges) {
+            // Resolve offsets in range order so overlapping PAPX ranges retain the
+            // first-match behavior of GetParagraphFormatForFileOffset.
+            var unresolved = new SortedSet<int>(characters.Select(character => character.FileOffset));
+            foreach (LegacyDocParagraphFormatRange range in ranges) {
+                if (unresolved.Count == 0) break;
+                if (range.FileOffsetEnd <= range.FileOffsetStart) continue;
+                var matching = unresolved.GetViewBetween(range.FileOffsetStart, range.FileOffsetEnd - 1);
+                while (true) {
+                    using var iterator = matching.GetEnumerator();
+                    if (!iterator.MoveNext()) break;
+                    if (range.Format.IsInTable == true) return true;
+                    unresolved.Remove(iterator.Current);
+                }
+            }
+            return false;
         }
 
         private static bool HasLaterHeaderFooterParagraphContent(IReadOnlyList<LegacyDocTextCharacter> characters, int startIndex) {

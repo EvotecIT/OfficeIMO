@@ -55,6 +55,7 @@ internal static class PdfContentStreamInterpreter {
         private int _index;
         private int _operationCount;
         private int _operandCount;
+        private int _markedContentDepth;
         private bool _hasInvalidOperand;
 
         internal Reader(
@@ -135,6 +136,13 @@ internal static class PdfContentStreamInterpreter {
                 _hasInvalidOperand = false;
                 if (skipOperation) {
                     continue;
+                }
+
+                if (name is "BDC" or "BMC") {
+                    if (++_markedContentDepth > _maxNestingDepth)
+                        throw PdfReadLimitException.Create(PdfReadLimitKind.ContentNestingDepth, _maxNestingDepth, _markedContentDepth);
+                } else if (name == "EMC" && _markedContentDepth > 0) {
+                    _markedContentDepth--;
                 }
 
                 bool keepReading;

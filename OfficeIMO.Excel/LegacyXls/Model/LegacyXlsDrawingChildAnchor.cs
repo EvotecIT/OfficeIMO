@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes shallow metadata decoded from an OfficeArtChildAnchor record.
     /// </summary>
-    public sealed class LegacyXlsDrawingChildAnchor {
+    internal sealed class LegacyXlsDrawingChildAnchor {
         /// <summary>
         /// Creates preserve-only metadata for an OfficeArt child anchor.
         /// </summary>

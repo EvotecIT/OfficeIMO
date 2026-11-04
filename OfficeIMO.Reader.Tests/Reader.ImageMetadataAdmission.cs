@@ -29,9 +29,9 @@ public sealed class ReaderImageMetadataAdmissionTests {
             string path = Path.Combine(directory, "source.png"); File.WriteAllBytes(path, bytes);
             async Task Read() {
                 if (route == "direct") reader.ReadDocument(bytes, "source.png", options);
-                else if (route == "lazy") reader.Read(bytes, "source.png", options).ToArray();
+                else if (route == "lazy") reader.Enumerate(bytes, "source.png", options).ToArray();
                 else if (route == "batch") await reader.ReadDocumentsDetailedAsync(new[] { path }, options);
-                else reader.ReadFolder(directory, options: options).ToArray();
+                else reader.EnumerateFolder(directory, options: options).ToArray();
             }
             ReaderResourceLimitException error = await Assert.ThrowsAsync<ReaderResourceLimitException>(Read);
             Assert.Equal("image-metadata.MaximumInputBytes", error.LimitName);

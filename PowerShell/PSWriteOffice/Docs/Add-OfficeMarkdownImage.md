@@ -16,7 +16,7 @@ Add-OfficeMarkdownImage [-Path] <string> [-Alt <string>] [-Title <string>] [-Wid
 
 ### Document
 ```powershell
-Add-OfficeMarkdownImage [-Path] <string> -Document <MarkdownDoc> [-Alt <string>] [-Title <string>] [-Width <Double>] [-Height <Double>] [-PassThru] [<CommonParameters>]
+Add-OfficeMarkdownImage [-Path] <string> -Document <MarkdownDocument> [-Alt <string>] [-Title <string>] [-Width <Double>] [-Height <Double>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -56,7 +56,7 @@ Accept wildcard characters: False
 Markdown document to update outside the DSL context.
 
 ```yaml
-Type: MarkdownDoc
+Type: MarkdownDocument
 Parameter Sets: Document
 Aliases: None
 Possible values:
@@ -153,11 +153,11 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.Markdown.MarkdownDoc`
+- `OfficeIMO.Markdown.MarkdownDocument`
 
 ## OUTPUTS
 
-- `OfficeIMO.Markdown.MarkdownDoc`
+- `OfficeIMO.Markdown.MarkdownDocument`
 
 ## RELATED LINKS
 

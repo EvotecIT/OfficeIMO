@@ -124,7 +124,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = WordDocument.Create(filePath);
-                document.AddParagraph("BMP ").InsertImage(imagePath);
+                document.AddParagraph("BMP ").AddImage(imagePath);
                 var requestUris = new List<string>();
                 var batchBodies = new List<string>();
                 using var httpClient = new HttpClient(new FakeHttpMessageHandler(async request => {

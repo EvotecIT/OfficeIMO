@@ -9,7 +9,7 @@ schema: 2.0.0
 Creates Excel/OpenDocument conversion settings.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 New-OfficeExcelOpenDocumentOptions [-LossPolicy <OdfConversionLossPolicy>] [-IncludeBasicStyles] [-MaximumExpandedCells <Int64>] [-MaximumRows <Int32>] [-MaximumColumns <Int32>] [<CommonParameters>]
 ```
@@ -33,7 +33,7 @@ Copy common font, fill, and number-format styles.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -49,7 +49,7 @@ Whether conversion loss is reported or rejected.
 
 ```yaml
 Type: OdfConversionLossPolicy
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: ReportOnly, ThrowOnSkippedOrUnsupported, ThrowOnAnyLoss
 
@@ -65,7 +65,7 @@ Maximum spreadsheet columns.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -81,7 +81,7 @@ Maximum cells materialized during conversion.
 
 ```yaml
 Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -97,7 +97,7 @@ Maximum spreadsheet rows.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

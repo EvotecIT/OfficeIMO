@@ -12,14 +12,14 @@ namespace OfficeIMO.Tests {
         public void Test_ValidateDocument() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
-            using (var presentation = PowerPointPresentation.Create(filePath)) {
+            using (var presentation = PowerPointDocument.Create(filePath)) {
                 var errors = presentation.ValidateDocument();
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
                 Assert.True(presentation.DocumentIsValid);
                 presentation.Save();
             }
 
-            using (var presentation = PowerPointPresentation.Load(filePath)) {
+            using (var presentation = PowerPointDocument.Load(filePath)) {
                 var errors = presentation.ValidateDocument();
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
                 Assert.True(presentation.DocumentIsValid);

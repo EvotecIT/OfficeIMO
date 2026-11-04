@@ -1,6 +1,6 @@
 # OfficeIMO PDF library comparisons
 
-This opt-in project measures complete, validated PDF workflows. It is deliberately outside `OfficeIMO.sln`: QuestPDF, PeachPDF, PdfPecker, PDFsharp/MigraDoc, PdfPig, iText, pdfHTML, HtmlTinkerX, and Chromium are benchmark tools, not OfficeIMO runtime dependencies. Public QuestPDF evidence is pinned to **QuestPDF 2026.5.0**, the last release with the embedded Community MIT License; that exact version is recorded in every result and displayed beside QuestPDF on the benchmark page.
+This opt-in project measures complete, validated PDF workflows. It is deliberately outside `OfficeIMO.slnx`: QuestPDF, PeachPDF, PdfPecker, PDFsharp/MigraDoc, PdfPig, iText, pdfHTML, HtmlTinkerX, and Chromium are benchmark tools, not OfficeIMO runtime dependencies. Public QuestPDF evidence is pinned to **QuestPDF 2026.5.0**, the last release with the embedded Community MIT License; that exact version is recorded in every result and displayed beside QuestPDF on the benchmark page.
 
 ## Workload matrix
 
@@ -15,7 +15,7 @@ Each page contains a heading, narrative text, and a four-column account/status t
 The benchmark families intentionally answer different questions:
 
 - `PdfNativeOperationsBenchmarks`: OfficeIMO reads, selects, merges, and splits independently generated iText and MigraDoc inputs. Each source has 100 pages with four table rows and one narrative paragraph per page. Selection preserves a descending 25-page selection; merge combines 25 four-page documents. `Split` and `SplitSelections` both emit 100 single-page PDFs, with the latter exercising the compound selection API. Setup independently validates all input and output pages before timing. This lane compares OfficeIMO revisions and does not time the input producers.
-- `PdfPreflightScalingBenchmarks`: OfficeIMO preflights 5-, 6-, 50-, and 500-page documents, both plain and with page labels, XMP metadata, and viewer preferences. Setup verifies that each input is readable, rewrite-safe, and has the expected page count and catalog features. This is an OfficeIMO revision-to-revision scaling check, not a third-party comparison.
+- `PdfAnalysisScalingBenchmarks`: OfficeIMO loads and analyzes 5-, 6-, 50-, and 500-page documents, both plain and with page labels, XMP metadata, and viewer preferences. Each measured operation returns the complete consolidated health, capability, optimization, signature, and append-only analysis report from `PdfDocument.Analyze()`. Setup verifies that each input is readable, rewrite-safe, and has the expected page count and catalog features. This is an OfficeIMO revision-to-revision scaling check, not a third-party comparison. The workload replaces isolated preflight; previous isolated-preflight timings are not comparable.
 - `PdfCatalogPageOperationScalingBenchmarks`: OfficeIMO splits every page and extracts a reversed, non-contiguous selection from 5-, 6-, 50-, and 500-page documents with no catalog features, one page-label range, a distinct range for every page, or a bookmark on every page. Setup reopens the outputs and checks page order, content markers, and applicable page labels or named destinations. This OfficeIMO-only lane exposes page-count and catalog-feature costs that the standard/dense comparison matrix does not exercise.
 - `PdfMergeApiScalingBenchmarks`: OfficeIMO merges the same two validated sources through `MergeBytes`, `MergeWith(byte[])`, and `MergeWith(PdfDocument)` at 5, 6, 50, and 500 pages per source. Setup checks every output page and marker. This lane compares OfficeIMO API paths with each other; the three-engine `PdfMergeBenchmarks` remains the library comparison.
 - `PdfPageImportScalingBenchmarks` and `PdfPageImportSourceScalingBenchmarks`: public page import inserts a one-page source at the start, middle, or end of 5-, 6-, 50-, and 500-page targets, then appends all pages from 5-, 6-, 50-, and 500-page sources to a two-page target. Setup validates every output page and its order. These lanes compare OfficeIMO revisions and expose target-size and source-size scaling separately.
@@ -185,6 +185,26 @@ dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmar
 
 The command uses the benchmark's own rendering and artifact checks, saves each input and PDF, and records any rejection in `html-payload-evidence.json`.
 
+### HTML head-to-head corpus
+
+`html-head-to-head` compares OfficeIMO.Html, PeachPDF and PdfPecker with Chromium as the reference across a whole document corpus: an invoice, a five-page tour, a 30-page table report, sixteen focused feature pages, OfficeIMO qualification fixtures and, when a local clone is supplied, samples from the peer repositories. Authored pages live in `Corpus/HeadToHead`. Peer samples are read from the clone and are not committed. Results are grouped by provenance, so a fixture from one engine's own test suite cannot stand for the whole corpus.
+
+Every engine runs with its default fonts and options, A4 and tagged output, in its own worker process. A timed first document includes browser start-up where there is one; cold runs report that first document and its peak RSS. Warm and parallel runs first warm up for 30 documents or 20 seconds, whichever comes first, so the just-in-time compiler has optimised a slow engine as fully as a fast one (`--warmup` and `--warmup-seconds` change this). Every timed render must return a complete PDF. The worker records wall and CPU time, allocation, peak RSS and parallel throughput. `html-head-to-head-stages` splits OfficeIMO's warm cost into parsing, layout alone and the full conversion; `ToPdf` writes the PDF while converting, so writing is part of that last stage. Fidelity is judged afterwards by one independent rasteriser: `pdftoppm` at 96 DPI against the Chromium page. The ink score is the mismatch on lightly blurred pages divided by the ink present on either page, so antialiasing does not dominate and blank margins do not flatter a result. Read the scores with the contact sheet: Chromium does not implement every CSS feature in the corpus, and a score only measures distance from Chromium.
+
+Requires Pillow plus `pdftoppm`, `pdftotext`, `pdfinfo`, `pdffonts` and `qpdf` on `PATH`, and the Playwright Chromium revision matching `Microsoft.Playwright`.
+
+```sh
+python3 OfficeIMO.Pdf.Benchmarks.Comparisons/HeadToHead/h2h.py corpus --out "$OUT/corpus" --peers "$PEER_CLONES"
+dotnet build OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj -c Release -f net10.0
+dotnet OfficeIMO.Pdf.Benchmarks.Comparisons/bin/Release/net10.0/OfficeIMO.Pdf.Benchmarks.Comparisons.dll html-head-to-head --corpus "$OUT/corpus" --output "$OUT/run" --cold 3 --warm 15 --warm-seconds 10 --parallel 4 --timeout 400
+dotnet OfficeIMO.Pdf.Benchmarks.Comparisons/bin/Release/net10.0/OfficeIMO.Pdf.Benchmarks.Comparisons.dll html-head-to-head-diagnostics --corpus "$OUT/corpus" --output "$OUT/run/officeimo-diagnostics.json"
+python3 OfficeIMO.Pdf.Benchmarks.Comparisons/HeadToHead/h2h.py deploy --out "$OUT/deploy"
+python3 OfficeIMO.Pdf.Benchmarks.Comparisons/HeadToHead/h2h.py analyze --run "$OUT/run" --corpus "$OUT/corpus"
+python3 OfficeIMO.Pdf.Benchmarks.Comparisons/HeadToHead/h2h.py sheet --run "$OUT/run"
+```
+
+`results.md` holds the per-document table and `contact/index.html` shows the pages side by side. Timing is host-dependent; repeat the run and compare medians. Appending a second run to the same output directory adds to those medians.
+
 For isolated build output, pass `-BuildArtifactsPath` to the comparison wrapper. The artifact exporter accepts `-InspectionAssemblyDirectory` when the matching Release PDF and Core assemblies live outside their usual project folders. Use the `net8.0` inspection assemblies with PowerShell running on .NET 8 or 9.
 
 For a local short engineering run without catalog updates:
@@ -201,7 +221,7 @@ dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmar
 dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj -c Release -f net10.0 -- --filter "*PdfStructuredFormatScalingBenchmarks*" --job Short
 dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj -c Release -f net10.0 -- --filter "*PdfReadBenchmarks*" --job Short
 dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj -c Release -f net10.0 -- --filter "*PdfStructuredRead*Benchmarks*" --job Short
-dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj -c Release -f net10.0 -- --filter "*PdfPreflightScalingBenchmarks*" --job Short
+dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj -c Release -f net10.0 -- --filter "*PdfAnalysisScalingBenchmarks*" --job Short
 dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj -c Release -f net10.0 -- --filter "*PdfCatalogPageOperationScalingBenchmarks*" --job Short
 dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj -c Release -f net10.0 -- --filter "*PdfMergeApiScalingBenchmarks*" --job Short
 dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj -c Release -f net10.0 -- --filter "*PdfPageImport*ScalingBenchmarks*" --job Short

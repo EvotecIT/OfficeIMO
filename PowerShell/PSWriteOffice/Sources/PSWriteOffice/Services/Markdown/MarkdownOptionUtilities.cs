@@ -1,17 +1,19 @@
 using System;
+using System.Collections;
 using System.IO;
 using System.Management.Automation;
 using OfficeIMO.Drawing;
 using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Pdf;
 using PSWriteOffice.Services.Pdf;
+using PSWriteOffice.Foundation;
 
 namespace PSWriteOffice.Services.Markdown;
 
 internal interface IMarkdownReaderOptionSource
 {
-    MarkdownReaderOptions? ReaderOptions { get; }
-    MarkdownReaderOptions.MarkdownDialectProfile? Profile { get; }
+    MarkdownLoadOptions? ReaderOptions { get; }
+    MarkdownLoadOptions.MarkdownDialectProfile? Profile { get; }
     string? BaseUri { get; }
     int? MaxInputCharacters { get; }
     MarkdownInputNormalizationPreset? NormalizeInput { get; }
@@ -25,7 +27,7 @@ internal interface IMarkdownReaderOptionSource
 
 internal interface IMarkdownWriteOptionSource
 {
-    MarkdownWriteOptions? WriteOptions { get; }
+    MarkdownSaveOptions? WriteOptions { get; }
     OfficeMarkdownWriteProfile? WriteProfile { get; }
     MarkdownImageRenderingMode? ImageRenderingMode { get; }
     string? LineEnding { get; }
@@ -34,8 +36,8 @@ internal interface IMarkdownWriteOptionSource
 
 internal interface IMarkdownPdfOptionSource
 {
-    MarkdownToPdfOptions? MarkdownPdfOptions { get; }
-    OfficeIMO.Pdf.PdfOptions? PdfOptions { get; }
+    MarkdownPdfExportOptions? MarkdownPdfOptions { get; }
+    OfficeIMO.Pdf.PdfCreateOptions? PdfOptions { get; }
     OfficeVisualThemeKind? PdfTheme { get; }
     string? PdfFontFamily { get; }
     string? PdfTitle { get; }
@@ -61,7 +63,30 @@ internal interface IMarkdownPdfOptionSource
 
 internal static class MarkdownOptionUtilities
 {
-    internal static MarkdownReaderOptions? BuildReaderOptions(IMarkdownReaderOptionSource source)
+    /// <summary>Captures native reader settings and applies explicit hashtable overrides to an independent snapshot.</summary>
+    internal static MarkdownLoadOptions? BindReaderOptions(EngineIntrinsics engine, object[]? inputs)
+    {
+        MarkdownLoadOptions? options = null;
+        var binder = new OfficeOptionsTransformationAttribute(typeof(MarkdownLoadOptions));
+        foreach (object input in inputs ?? Array.Empty<object>())
+        {
+            object? value = OfficeArgumentValue.Unwrap(input);
+            if (value is MarkdownLoadOptions typed)
+            {
+                if (options != null) throw new PSArgumentException("Supply one Markdown reader options object before any hashtable overrides.");
+                options = typed.Clone();
+            }
+            else if (value is IDictionary dictionary)
+            {
+                options ??= MarkdownLoadOptions.CreateOfficeIMOProfile();
+                options = ((MarkdownLoadOptions)binder.ApplyTo(engine, options, dictionary)).Clone();
+            }
+            else throw new PSArgumentException("Options accepts Markdown reader settings or a hashtable of native reader properties.");
+        }
+        return options;
+    }
+
+    internal static MarkdownLoadOptions? BuildReaderOptions(IMarkdownReaderOptionSource source)
     {
         if (source.ReaderOptions != null && source.Profile.HasValue)
         {
@@ -73,10 +98,10 @@ internal static class MarkdownOptionUtilities
             return null;
         }
 
-        var options = source.ReaderOptions
+        var options = source.ReaderOptions?.Clone()
             ?? (source.Profile.HasValue
-                ? MarkdownReaderOptions.CreateProfile(source.Profile.Value)
-                : MarkdownReaderOptions.CreateOfficeIMOProfile());
+                ? MarkdownLoadOptions.CreateProfile(source.Profile.Value)
+                : MarkdownLoadOptions.CreateOfficeIMOProfile());
 
         if (!string.IsNullOrWhiteSpace(source.BaseUri))
         {
@@ -127,15 +152,20 @@ internal static class MarkdownOptionUtilities
         return options;
     }
 
-    internal static MarkdownWriteOptions? BuildWriteOptions(IMarkdownWriteOptionSource source)
+    internal static MarkdownSaveOptions? BuildWriteOptions(IMarkdownWriteOptionSource source, MarkdownSaveOptions? defaults = null)
     {
+        if (source.WriteOptions != null && source.WriteProfile.HasValue)
+        {
+            throw new PSArgumentException("Specify either -WriteOptions or -WriteProfile, not both.");
+        }
         if (source.WriteOptions == null && !source.WriteProfile.HasValue && !source.ImageRenderingMode.HasValue
             && string.IsNullOrWhiteSpace(source.LineEnding) && string.IsNullOrWhiteSpace(source.UnorderedListMarker))
         {
             return null;
         }
 
-        var options = source.WriteOptions?.Clone() ?? CreateWriteProfile(source.WriteProfile);
+        var options = source.WriteOptions?.Clone() ?? (source.WriteProfile.HasValue
+            ? CreateWriteProfile(source.WriteProfile) : defaults?.Clone() ?? CreateWriteProfile(null));
 
         if (source.ImageRenderingMode.HasValue)
         {
@@ -161,9 +191,9 @@ internal static class MarkdownOptionUtilities
         return options;
     }
 
-    internal static MarkdownToPdfOptions BuildPdfOptions(IMarkdownPdfOptionSource source, PSCmdlet command, string? fallbackBaseDirectory)
+    internal static MarkdownPdfExportOptions BuildPdfOptions(IMarkdownPdfOptionSource source, PSCmdlet command, string? fallbackBaseDirectory)
     {
-        var options = source.MarkdownPdfOptions?.Clone() ?? new MarkdownToPdfOptions();
+        var options = source.MarkdownPdfOptions?.Clone() ?? new MarkdownPdfExportOptions();
 
         if (source.PdfOptions != null) options.PdfOptions = source.PdfOptions;
         if (source.PdfTheme.HasValue) options.Theme = MarkdownVisualTheme.Create(source.PdfTheme.Value);
@@ -187,8 +217,8 @@ internal static class MarkdownOptionUtilities
         if (source.PdfIncludeDataUriImages.HasValue) options.ResourcePolicy.AllowDataUris = source.PdfIncludeDataUriImages.Value;
         if (source.PdfRestrictLocalImagesToBaseDirectory.HasValue) options.RestrictLocalImagesToBaseDirectory = source.PdfRestrictLocalImagesToBaseDirectory.Value;
         if (source.PdfMaximumDataUriImageBytes.HasValue) options.MaximumDataUriImageBytes = source.PdfMaximumDataUriImageBytes.Value;
-        if (source.PdfDefaultImageWidth.HasValue) options.DefaultImageWidth = source.PdfDefaultImageWidth.Value;
-        if (source.PdfDefaultImageHeight.HasValue) options.DefaultImageHeight = source.PdfDefaultImageHeight.Value;
+        if (source.PdfDefaultImageWidth.HasValue) options.DefaultImageWidth = global::OfficeIMO.OfficeLength.Points(source.PdfDefaultImageWidth.Value);
+        if (source.PdfDefaultImageHeight.HasValue) options.DefaultImageHeight = global::OfficeIMO.OfficeLength.Points(source.PdfDefaultImageHeight.Value);
         if (source.PdfFrontMatterRenderMode.HasValue) options.FrontMatterRenderMode = source.PdfFrontMatterRenderMode.Value;
         if (source.PdfUseFrontMatterVisualTheme.HasValue) options.UseFrontMatterTheme = source.PdfUseFrontMatterVisualTheme.Value;
         if (source.PdfUseFrontMatterMetadata.HasValue) options.UseFrontMatterMetadata = source.PdfUseFrontMatterMetadata.Value;
@@ -206,13 +236,13 @@ internal static class MarkdownOptionUtilities
 
     internal static MarkdownVisualTheme CreateTheme(OfficeVisualThemeKind kind) => MarkdownVisualTheme.Create(kind);
 
-    private static MarkdownWriteOptions CreateWriteProfile(OfficeMarkdownWriteProfile? profile)
+    private static MarkdownSaveOptions CreateWriteProfile(OfficeMarkdownWriteProfile? profile)
     {
         return profile switch
         {
-            OfficeMarkdownWriteProfile.Portable => MarkdownWriteOptions.CreatePortableProfile(),
-            OfficeMarkdownWriteProfile.HtmlImage => MarkdownWriteOptions.CreateHtmlImageProfile(),
-            _ => MarkdownWriteOptions.CreateOfficeIMOProfile()
+            OfficeMarkdownWriteProfile.Portable => MarkdownSaveOptions.CreatePortableProfile(),
+            OfficeMarkdownWriteProfile.HtmlImage => MarkdownSaveOptions.CreateHtmlImageProfile(),
+            _ => MarkdownSaveOptions.CreateOfficeIMOProfile()
         };
     }
 

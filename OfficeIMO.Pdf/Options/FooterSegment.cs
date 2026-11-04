@@ -1,25 +1,25 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>A segment of header or footer content, either literal text, styled text, or a page token.</summary>
-public sealed class FooterSegment {
+public sealed class PdfFooterSegment {
     /// <summary>Segment kind (text or token).</summary>
-    public FooterSegmentKind Kind { get; }
-    /// <summary>Literal text used when <see cref="Kind"/> is <see cref="FooterSegmentKind.Text"/>.</summary>
+    public PdfFooterSegmentKind Kind { get; }
+    /// <summary>Literal text used when <see cref="Kind"/> is <see cref="PdfFooterSegmentKind.Text"/>.</summary>
     public string? Text { get; }
     /// <summary>Optional visual styling for this segment.</summary>
     /// <remarks>Header/footer rich text supports text styling only. Links, inline visuals, and paragraph tabs are not accepted.</remarks>
     public PdfTextRun? StyledRun { get; }
 
     /// <summary>Creates a new footer segment.</summary>
-    public FooterSegment(FooterSegmentKind kind, string? text = null) {
-        if (kind != FooterSegmentKind.Text &&
-            kind != FooterSegmentKind.PageNumber &&
-            kind != FooterSegmentKind.TotalPages &&
-            kind != FooterSegmentKind.DocumentPages) {
+    public PdfFooterSegment(PdfFooterSegmentKind kind, string? text = null) {
+        if (kind != PdfFooterSegmentKind.Text &&
+            kind != PdfFooterSegmentKind.PageNumber &&
+            kind != PdfFooterSegmentKind.TotalPages &&
+            kind != PdfFooterSegmentKind.DocumentPages) {
             throw new System.ArgumentOutOfRangeException(nameof(kind), "Footer segments must use a supported segment kind.");
         }
 
-        if (kind == FooterSegmentKind.Text && text == null) {
+        if (kind == PdfFooterSegmentKind.Text && text == null) {
             throw new System.ArgumentNullException(nameof(text), "Footer text segments cannot be null.");
         }
 
@@ -27,7 +27,7 @@ public sealed class FooterSegment {
         Text = text;
     }
 
-    private FooterSegment(FooterSegmentKind kind, string? text, PdfTextRun styledRun) {
+    private PdfFooterSegment(PdfFooterSegmentKind kind, string? text, PdfTextRun styledRun) {
         ValidateStyledRun(styledRun, nameof(styledRun));
         Kind = kind;
         Text = text;
@@ -36,30 +36,30 @@ public sealed class FooterSegment {
 
     /// <summary>Creates a styled literal text segment.</summary>
     /// <param name="run">Visual text run to render.</param>
-    public static FooterSegment RichText(PdfTextRun run) {
+    public static PdfFooterSegment RichText(PdfTextRun run) {
         Guard.NotNull(run, nameof(run));
-        return new FooterSegment(FooterSegmentKind.Text, run.Text, run);
+        return new PdfFooterSegment(PdfFooterSegmentKind.Text, run.Text, run);
     }
 
     /// <summary>Creates a current-page token using the supplied visual text style.</summary>
     /// <param name="style">Text run whose visual styling is applied; its text is ignored.</param>
-    public static FooterSegment PageNumber(PdfTextRun style) {
+    public static PdfFooterSegment PageNumber(PdfTextRun style) {
         Guard.NotNull(style, nameof(style));
-        return new FooterSegment(FooterSegmentKind.PageNumber, null, style);
+        return new PdfFooterSegment(PdfFooterSegmentKind.PageNumber, null, style);
     }
 
     /// <summary>Creates a total-pages token using the supplied visual text style.</summary>
     /// <param name="style">Text run whose visual styling is applied; its text is ignored.</param>
-    public static FooterSegment TotalPages(PdfTextRun style) {
+    public static PdfFooterSegment TotalPages(PdfTextRun style) {
         Guard.NotNull(style, nameof(style));
-        return new FooterSegment(FooterSegmentKind.TotalPages, null, style);
+        return new PdfFooterSegment(PdfFooterSegmentKind.TotalPages, null, style);
     }
 
     /// <summary>Creates a document-wide page-count token using the supplied visual text style.</summary>
     /// <param name="style">Text run whose visual styling is applied; its text is ignored.</param>
-    public static FooterSegment DocumentPages(PdfTextRun style) {
+    public static PdfFooterSegment DocumentPages(PdfTextRun style) {
         Guard.NotNull(style, nameof(style));
-        return new FooterSegment(FooterSegmentKind.DocumentPages, null, style);
+        return new PdfFooterSegment(PdfFooterSegmentKind.DocumentPages, null, style);
     }
 
     internal static void ValidateStyledRun(PdfTextRun run, string paramName) {

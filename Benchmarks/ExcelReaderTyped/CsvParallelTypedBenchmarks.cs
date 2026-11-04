@@ -2,6 +2,7 @@ using BenchmarkDotNet.Attributes;
 using ExcelReader.Core.Parser;
 using ExcelReader.Core.Reader.Csv;
 using OfficeIMO.CSV;
+using CsvReaderOptions = OfficeIMO.CSV.CsvReaderOptions;
 using OfficeIMO.Data;
 using Sylvan.Data;
 using Sylvan.Data.Csv;
@@ -69,7 +70,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
 
         [Benchmark]
         public long OfficeIMOCoreParallel() {
-            using DbDataReader reader = CsvDocument.OpenDataReader(_fixture.Path, LoadOptions());
+            using DbDataReader reader = CsvDocument.OpenReader(_fixture.Path, options: LoadOptions());
             ParallelRowMappingOptions options = ParallelOptions();
             return _fixture.Heavy ? Consume(reader.RowsAsParallel<CsvHeavyRecord>(options))
                 : Consume(reader.RowsAsParallel<CsvNarrowRecord>(options));
@@ -81,17 +82,21 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             // The public span API accepts decoded text. File I/O and UTF-8 decoding belong
             // to this operation, rather than giving one library a pre-decoded setup input.
             string text = File.ReadAllText(_fixture.Path);
-            return _fixture.Heavy ? Consume(CsvDocument.ReadTextRowsAsParallel(text, HeavyFactory,
-                loadOptions: LoadOptions(), parallelOptions: ParallelOptions()))
-                : Consume(CsvDocument.ReadTextRowsAsParallel(text, NarrowFactory,
-                    loadOptions: LoadOptions(), parallelOptions: ParallelOptions()));
+            return _fixture.Heavy ? Consume(CsvDocument.ReadTextRowsAsParallel(text,
+            HeavyFactory,
+            options: LoadOptions(),
+            parallelOptions: ParallelOptions()))
+                : Consume(CsvDocument.ReadTextRowsAsParallel(text,
+            NarrowFactory,
+            options: LoadOptions(),
+            parallelOptions: ParallelOptions()));
         }
 #endif
 
         [Benchmark]
         public long SylvanSequential() {
             using StreamReader text = new StreamReader(_fixture.Path);
-            using CsvDataReader reader = global::Sylvan.Data.Csv.CsvDataReader.Create(text,
+            using global::Sylvan.Data.Csv.CsvDataReader reader = global::Sylvan.Data.Csv.CsvDataReader.Create(text,
                 new global::Sylvan.Data.Csv.CsvDataReaderOptions { Culture = CultureInfo.InvariantCulture });
             return _fixture.Heavy ? Consume(reader.GetRecords<CsvHeavyRecord>()) : Consume(reader.GetRecords<CsvNarrowRecord>());
         }
@@ -115,7 +120,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             return _fixture.Check(sum, count);
         }
 
-        private CsvLoadOptions LoadOptions() => new() { MaxInputBytes = Math.Max(CsvLoadOptions.DefaultMaxInputBytes, _fixture.Bytes) };
+        private CsvReaderOptions LoadOptions() => new() { MaxInputBytes = Math.Max(CsvReaderOptions.DefaultMaxInputBytes, _fixture.Bytes) };
         private ParallelRowMappingOptions ParallelOptions() => new() { MaxDegreeOfParallelism = Dop == 0 ? null : Dop };
 
 #if OFFICEIMO_BENCHMARK_NEW_APIS

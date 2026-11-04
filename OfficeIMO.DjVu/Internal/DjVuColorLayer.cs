@@ -52,7 +52,7 @@ internal sealed class DjVuColorLayer {
                 throw new InvalidDataException("Invalid DjVu JPEG layer header.");
             long pixels = (long)header.Width * header.Height;
             if (pixels > budget.Options.MaxPagePixels)
-                throw new DjVuResourceLimitException(nameof(DjVuReadOptions.MaxPagePixels));
+                throw new DjVuResourceLimitException(nameof(DjVuLoadOptions.MaxPagePixels));
             budget.WorkingBytes(data.LongLength + 64L * 1024 + pixels * 4);
             var decodeOptions = new OfficeRasterDecodeOptions {
                 CancellationToken = budget.Cancellation, MaximumDecodedPixels = Math.Min(budget.Options.MaxPagePixels, 50_000_000),

@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents one changed-cell value in a BIFF8 worksheet scenario.
     /// </summary>
-    public sealed class LegacyXlsScenarioInputCell {
+    internal sealed class LegacyXlsScenarioInputCell {
         /// <summary>
         /// Creates scenario changed-cell metadata.
         /// </summary>

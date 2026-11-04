@@ -18,11 +18,11 @@ public sealed class PublisherTableClusterWritingTests {
         Assert.Equal(1011U, before.Clusters[2].Used);
         Assert.True(before.Clusters.Length > 3);
         Assert.All(before.Clusters.Skip(3), entry => Assert.Equal((0U, 6U), entry));
-        Assert.Equal(source, document.ToPubBytes());
+        Assert.Equal(source, document.ToBytes());
         document.SetTableCellFillColor(table.Id, 0, 2, OfficeColor.FromRgb(180, 240, 180));
         PublisherTableBorderSegment edge = table.BorderSegments[0];
         if (removeAndReaddEdge) document.SetTableBorderStyle(table.Id, edge.FirstRow, edge.FirstColumn, edge.LastRow, edge.LastColumn, null);
-        byte[] saved = document.ToPubBytes(Allow());
+        byte[] saved = document.ToBytes(Allow());
         Allocation after = ReadAllocation(saved);
         Assert.Equal(before.Clusters.Length + 1, after.Clusters.Length);
         Assert.Equal(before.Clusters.Take(2), after.Clusters.Take(2));
@@ -39,10 +39,10 @@ public sealed class PublisherTableClusterWritingTests {
             .Concat(Enumerable.Range(0, 7).Select(value => nextClusterStart + (uint)value)), added);
         PublisherNativeWritingTests.AssertPreservedStorage(source, saved, "Escher/EscherStm");
         document = PublisherDocument.Load(saved);
-        Assert.Equal(saved, document.ToPubBytes());
+        Assert.Equal(saved, document.ToBytes());
         if (removeAndReaddEdge) {
             document.SetTableBorderStyle(table.Id, edge.FirstRow, edge.FirstColumn, edge.LastRow, edge.LastColumn, edge.Side);
-            byte[] restored = document.ToPubBytes(Allow());
+            byte[] restored = document.ToBytes(Allow());
             Allocation readded = ReadAllocation(restored);
             Assert.Equal(after.Cursor + 1, readded.Cursor);
             Assert.Equal((3U, 8U), readded.Clusters.Last());
@@ -62,13 +62,13 @@ public sealed class PublisherTableClusterWritingTests {
         Assert.True((before.Cursor >> 10) > 3);
         Assert.Equal(219U, before.Clusters[(int)(before.Cursor >> 10) - 1].Used);
         PublisherDocument document = PublisherDocument.Load(source);
-        Assert.Equal(source, document.ToPubBytes());
+        Assert.Equal(source, document.ToBytes());
         PublisherTable original = document.Pages[0].Tables.Single();
         Assert.Equal(400, original.Cells.Count);
         Assert.Equal(840, PublisherTableBorderTopologyTests.Coverage(original).Length);
         var edges = original.BorderSegments.Take(3).ToArray();
         foreach (var edge in edges) document.SetTableBorderStyle(original.Id, edge.FirstRow, edge.FirstColumn, edge.LastRow, edge.LastColumn, null);
-        byte[] deleted = document.ToPubBytes(Allow());
+        byte[] deleted = document.ToBytes(Allow());
         Allocation removed = ReadAllocation(deleted);
         Assert.Equal(before.Clusters, removed.Clusters);
         Assert.Equal(before.Cursor, removed.Cursor);
@@ -76,7 +76,7 @@ public sealed class PublisherTableClusterWritingTests {
         Assert.Equal(before.DrawingCount - 3, removed.DrawingCount);
         document = PublisherDocument.Load(deleted);
         foreach (var edge in edges) document.SetTableBorderStyle(original.Id, edge.FirstRow, edge.FirstColumn, edge.LastRow, edge.LastColumn, edge.Side);
-        byte[] restored = document.ToPubBytes(Allow());
+        byte[] restored = document.ToBytes(Allow());
         Allocation after = ReadAllocation(restored);
         Assert.Equal(before.Cursor + 3, after.Cursor);
         Assert.Equal(before.Maximum, after.Maximum);
@@ -93,7 +93,7 @@ public sealed class PublisherTableClusterWritingTests {
         PublisherDocument document = PublisherDocument.Load(source);
         PublisherTable table = document.Pages[0].Tables.Single();
         Assert.Equal(400, table.Cells.Count); Assert.Equal("N101", table.Cells[0].Text);
-        Assert.Equal(source, document.ToPubBytes());
+        Assert.Equal(source, document.ToBytes());
         OfficeRichTextParagraph paragraph = table.Cells[0].Paragraphs.Single();
         OfficeRichTextRun run = paragraph.Runs.Single();
         document.ReplaceTableCellParagraphs(table.Id, 0, 0, new[] {
@@ -101,10 +101,10 @@ public sealed class PublisherTableClusterWritingTests {
                 run.FontFamily, run.Strikethrough, run.BackgroundColor, run.UnderlineStyle, run.StrikethroughStyle, run.Baseline, run.ParagraphIndent) },
                 paragraph.Alignment, paragraph.LineHeight, paragraph.Margins, paragraph.Indent, paragraph.LineHeightFactor).WithTabStops(paragraph.TabStops)
         });
-        byte[] saved = document.ToPubBytes(Allow());
+        byte[] saved = document.ToBytes(Allow());
         Compare(PublisherDocument.Load(Fixture("TableClusterWide")).Pages[0].Tables.Single(), PublisherDocument.Load(saved).Pages[0].Tables.Single());
         PublisherNativeWritingTests.AssertPreservedStorage(source, saved, "Quill/QuillSub/CONTENTS");
-        Assert.Equal(saved, PublisherDocument.Load(saved).ToPubBytes());
+        Assert.Equal(saved, PublisherDocument.Load(saved).ToBytes());
     }
 
     [Fact]
@@ -115,20 +115,20 @@ public sealed class PublisherTableClusterWritingTests {
         PublisherTable expected = PublisherDocument.Load(Fixture("TableClusterWide")).Pages[0].Tables.Single();
         Assert.Equal(400, original.Cells.Count); Assert.Empty(original.BorderSegments);
         Assert.All(original.Cells, cell => Assert.Null(cell.FillColor));
-        Assert.Equal(source, document.ToPubBytes());
+        Assert.Equal(source, document.ToBytes());
         foreach (PublisherTableCell cell in expected.Cells.Where(cell => cell.FillColor.HasValue))
             document.SetTableCellFillColor(original.Id, cell.RowIndex, cell.ColumnIndex, cell.FillColor);
         var side = new OfficeBorderSide(OfficeColor.FromRgb(0, 128, 0), 0.5);
         for (int row = 0; row <= 20; row++) document.SetTableBorderStyle(original.Id, row, 0, row, 20, side);
         for (int column = 0; column <= 20; column++) document.SetTableBorderStyle(original.Id, 0, column, 20, column, side);
-        byte[] saved = document.ToPubBytes(Allow());
+        byte[] saved = document.ToBytes(Allow());
         Allocation allocation = ReadAllocation(saved);
         Assert.Equal(new[] { (1U, 3U), (2U, 1U), (3U, 1024U), (3U, 219U) }, allocation.Clusters);
         Assert.Equal(1243U, allocation.DrawingCount); Assert.Equal(1247U, allocation.Total);
         Assert.Equal(4314U, allocation.Cursor); Assert.Equal(4315U, allocation.Maximum);
         Compare(expected, PublisherDocument.Load(saved).Pages[0].Tables.Single());
         PublisherNativeWritingTests.AssertPreservedStorage(source, saved, "Escher/EscherStm");
-        Assert.Equal(saved, PublisherDocument.Load(saved).ToPubBytes());
+        Assert.Equal(saved, PublisherDocument.Load(saved).ToBytes());
     }
 
     [Fact]
@@ -167,14 +167,14 @@ public sealed class PublisherTableClusterWritingTests {
         BitConverter.GetBytes(2U).CopyTo(art, fdgg.Offset + (wrongOwner ? 16 : 20));
         byte[] malformed = OfficeCompoundFileWriter.Rewrite(compound, new Dictionary<string, byte[]> { ["Escher/EscherStm"] = art });
         PublisherDocument document = PublisherDocument.Load(malformed);
-        Assert.Equal(malformed, document.ToPubBytes());
+        Assert.Equal(malformed, document.ToBytes());
         PublisherTable table = document.Pages[0].Tables.OrderBy(item => item.Y).Last();
         document.SetTableCellFillColor(table.Id, 0, 0, OfficeColor.FromRgb(180, 240, 180));
-        OfficeConversionException error = Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(Allow()));
-        Assert.Contains(error.Report.FidelityDiagnostics, item => item.Code == "PUB_NATIVE_EDIT_UNSUPPORTED" && item.LossKind == OfficeConversionLossKind.Failure);
+        OfficeConversionException error = Assert.Throws<OfficeConversionException>(() => document.ToBytes(Allow()));
+        Assert.Contains(error.Report.Diagnostics, item => item.Code == "PUB_NATIVE_EDIT_UNSUPPORTED" && item.LossKind == OfficeConversionLossKind.Failure);
     }
 
-    private static PublisherSaveOptions Allow() => new() { LossPolicy = OfficeConversionLossPolicy.Allow };
+    private static PublisherSaveOptions Allow() => new() { AllowLoss = true };
     private static byte[] Fixture(string name, string? file = null) => File.ReadAllBytes(PublisherNativeTests.Fixture(
         "NativeComparison/" + name + "/" + (file ?? "native-" + name.ToLowerInvariant() + ".pub")));
     private static void Compare(PublisherTable expected, PublisherTable actual) {
@@ -198,7 +198,7 @@ public sealed class PublisherTableClusterWritingTests {
             BitConverter.ToUInt32(art, fdg.Offset), BitConverter.ToUInt32(art, fdgg.Offset + 8), clusters, ids);
     }
     private static PublisherEscherReader Reader(byte[] art) => new(new PublisherBinaryData(art, "Escher/EscherStm"), null,
-        new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None));
+        new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None));
     private static OfficeCompoundFile Compound(byte[] bytes) {
         Assert.True(OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compound, out string? error), error); return compound!;
     }

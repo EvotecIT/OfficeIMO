@@ -21,15 +21,15 @@ public partial class Word {
     public void SaveAsPdf_PreservesWordSpacesByDefaultAndHonorsExplicitPdfPolicy(bool table, string policy, int separatorCount) {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph;
-        if (table) paragraph = word.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
+        if (table) paragraph = word.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0];
         else paragraph = word.AddParagraph();
-        paragraph.Text = "  ALPHA   BETA"; paragraph.FontSize = 12; paragraph.FontFamily = "Arial";
-        PdfOptions? pdfOptions = policy == "none" ? null : new PdfOptions { DefaultFontSize = 12D };
+        paragraph.Text = "  ALPHA   BETA"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12); paragraph.FontFamily = "Arial";
+        PdfCreateOptions? pdfOptions = policy == "none" ? null : new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D) };
         if (policy == "collapse") pdfOptions!.PreserveTextWhitespace = false;
         if (policy == "preformatted") pdfOptions!.PreserveTextWhitespace = true;
         bool? callerValue = pdfOptions?.PreserveTextWhitespace;
         string source = word._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        using var pdf = PdfPigDocument.Open(word.ToPdfDocument(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(word.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, FontFamily = "Arial", ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
             PdfOptions = pdfOptions
         }).ToBytes());
@@ -44,18 +44,18 @@ public partial class Word {
     public void SaveAsPdf_DefaultSpaceFlowWrapsOnceAndCloneRetainsExplicitOverride() {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph("ALPHA" + new string(' ', 60) + "BETA");
-        paragraph.FontSize = 12; paragraph.FontFamily = "Arial";
-        PdfOptions unconfigured = new PdfOptions { DefaultFontSize = 12D }.Clone();
-        var options = new WordToPdfOptions { IncludePageNumbers = false, FontFamily = "Arial",
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12); paragraph.FontFamily = "Arial";
+        PdfCreateOptions unconfigured = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D) }.Clone();
+        var options = new WordPdfExportOptions { IncludePageNumbers = false, FontFamily = "Arial",
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = unconfigured,
-            PageSize = new PageSize(240D, 792D), Margins = PageMargins.Uniform(72D) };
-        using var normal = PdfPigDocument.Open(word.ToPdfDocument(options).ToBytes());
+            PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(240D),OfficeIMO.OfficeLength.Points(792D)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72D)) };
+        using var normal = PdfPigDocument.Open(word.ToPdf(options).ToBytes());
         var letters = normal.GetPage(1).Letters.Where(l => !string.IsNullOrWhiteSpace(l.Value)).ToArray();
         Assert.InRange(letters[0].StartBaseLine.Y - letters[5].StartBaseLine.Y, 12D, 16D);
         Assert.InRange(Math.Abs(letters[5].StartBaseLine.X - 72D), 0, .02D);
-        PdfOptions explicitOptions = new PdfOptions { DefaultFontSize = 12D, PreserveTextWhitespace = false }.Clone();
+        PdfCreateOptions explicitOptions = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D), PreserveTextWhitespace = false }.Clone();
         options.PdfOptions = explicitOptions;
-        using var collapsed = PdfPigDocument.Open(word.ToPdfDocument(options).ToBytes());
+        using var collapsed = PdfPigDocument.Open(word.ToPdf(options).ToBytes());
         var collapsedLetters = collapsed.GetPage(1).Letters.Where(l => !string.IsNullOrWhiteSpace(l.Value)).ToArray();
         Assert.Equal(collapsedLetters[0].StartBaseLine.Y, collapsedLetters[5].StartBaseLine.Y, 3);
         Assert.False(explicitOptions.PreserveTextWhitespace);

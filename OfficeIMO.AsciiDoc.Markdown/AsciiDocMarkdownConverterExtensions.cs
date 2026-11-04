@@ -7,30 +7,30 @@ public static class AsciiDocMarkdownConverterExtensions {
     public static AsciiDocToMarkdownResult ToMarkdownDocumentResult(
         this AsciiDocBlock block,
         AsciiDocDocumentAttributes attributes,
-        AsciiDocToMarkdownOptions? options = null) =>
+        AsciiDocMarkdownExportOptions? options = null) =>
         AsciiDocToMarkdownConverter.ConvertBlock(block, attributes, options);
 
     /// <summary>Converts a native AsciiDoc document to the OfficeIMO Markdown semantic model.</summary>
     public static AsciiDocToMarkdownResult ToMarkdownDocumentResult(
         this AsciiDocDocument document,
-        AsciiDocToMarkdownOptions? options = null) =>
+        AsciiDocMarkdownExportOptions? options = null) =>
         AsciiDocToMarkdownConverter.Convert(document, options);
 
     /// <summary>Converts an AsciiDoc document to a typed Markdown document.</summary>
-    public static MarkdownDoc ToMarkdownDocument(
+    public static MarkdownDocument ToMarkdownDocument(
         this AsciiDocDocument document,
-        AsciiDocToMarkdownOptions? options = null) =>
+        AsciiDocMarkdownExportOptions? options = null) =>
         document.ToMarkdownDocumentResult(options).Value;
 
     /// <summary>Converts an OfficeIMO Markdown document to canonical lossless AsciiDoc.</summary>
     public static MarkdownToAsciiDocResult ToAsciiDocDocumentResult(
-        this MarkdownDoc document,
-        MarkdownToAsciiDocOptions? options = null) =>
+        this MarkdownDocument document,
+        MarkdownAsciiDocExportOptions? options = null) =>
         MarkdownToAsciiDocConverter.Convert(document, options);
 
     /// <summary>Converts a Markdown document to a parsed canonical AsciiDoc document.</summary>
     public static AsciiDocDocument ToAsciiDocDocument(
-        this MarkdownDoc document,
-        MarkdownToAsciiDocOptions? options = null) =>
+        this MarkdownDocument document,
+        MarkdownAsciiDocExportOptions? options = null) =>
         document.ToAsciiDocDocumentResult(options).Value;
 }

@@ -61,7 +61,7 @@ public sealed class Markdown_Markdig_Extension_Inventory_Tests {
     private static string GetRepositoryRoot() {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
         while (directory != null) {
-            if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.sln"))) {
+            if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.slnx"))) {
                 return directory.FullName;
             }
 

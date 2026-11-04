@@ -4,11 +4,11 @@ $Path = Join-Path $PSScriptRoot 'Example-WordReplaceText.docx'
 New-OfficeWord -Path $Path {
     WordParagraph {
         WordText 'FY24 status is ready for review.'
-        WordHyperlink -Text 'Portal FY24' -Url 'https://old.example.com/FY24' -Tooltip 'FY24 portal'
+        WordText -Text 'Portal FY24' -Link 'https://old.example.com/FY24' -Tooltip 'FY24 portal'
     }
 
     WordParagraph {
-        WordHyperlink -Text 'Jump to FY24 summary' -Anchor 'FY24Summary' -Tooltip 'FY24 section'
+        WordText -Text 'Jump to FY24 summary' -Anchor 'FY24Summary' -Tooltip 'FY24 section'
     }
 
     WordParagraph {

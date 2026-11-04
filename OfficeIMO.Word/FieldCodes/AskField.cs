@@ -2,7 +2,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Represents the ASK field code.
     /// </summary>
-    public class AskField : WordFieldCode {
+    public class WordAskField : WordFieldCode {
         /// <summary>
         /// Bookmark to assign the value to.
         /// </summary>

@@ -9,8 +9,8 @@ namespace OfficeIMO.Publisher.Tests;
 // native-authored controls provide the independent producer input separately.
 internal static class PublisherShapeEditingFixture {
     internal static PublisherDocument Create(string? restriction = null, bool withWrapping = false,
-        PublisherReadOptions? options = null, int hiddenObjects = 0, bool exhaustedIds = false) {
-        var context = new PublisherParseContext((options ?? new PublisherReadOptions()).Clone(), default);
+        PublisherLoadOptions? options = null, int hiddenObjects = 0, bool exhaustedIds = false) {
+        var context = new PublisherParseContext((options ?? new PublisherLoadOptions()).Clone(), default);
         var source = new PublisherContents(300, 300, new Dictionary<uint, PublisherContentChunk>());
         source.Pages.Add(new PublisherSourcePage(20, "A", null, null, true, restriction == "unqualified-master" ? 2U : 3U));
         source.Pages.Add(new PublisherSourcePage(10, "One", 20, null));

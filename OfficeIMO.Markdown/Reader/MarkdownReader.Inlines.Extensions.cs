@@ -1,6 +1,6 @@
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     /// <summary>
     /// Parses a single line of Markdown inline content into a typed <see cref="InlineSequence"/>.
     /// This helper is exposed to allow other components (e.g., Word converter) to interpret
@@ -9,20 +9,20 @@ public static partial class MarkdownReader {
     /// <param name="text">Inline Markdown text.</param>
     /// <param name="options">Reader options controlling inline interpretation.</param>
     /// <returns>Parsed sequence of inline nodes.</returns>
-    public static InlineSequence ParseInlineText(string? text, MarkdownReaderOptions? options = null) =>
+    public static InlineSequence ParseInlineText(string? text, MarkdownLoadOptions? options = null) =>
         ParseInlineText(text, options, null);
 
-    internal static InlineSequence ParseInlineText(string? text, MarkdownReaderOptions? options, MarkdownReaderState? state) =>
+    internal static InlineSequence ParseInlineText(string? text, MarkdownLoadOptions? options, MarkdownReaderState? state) =>
         ParseInlineText(text, options, state, sourceMap: null);
 
     internal static InlineSequence ParseInlineText(
         string? text,
-        MarkdownReaderOptions? options,
+        MarkdownLoadOptions? options,
         MarkdownReaderState? state,
         MarkdownInlineSourceMap? sourceMap) =>
-        ParseInlines(text ?? string.Empty, options ?? new MarkdownReaderOptions(), state, sourceMap);
+        ParseInlines(text ?? string.Empty, options ?? new MarkdownLoadOptions(), state, sourceMap);
 
-    private static IReadOnlyList<MarkdownInlineParserExtension> BuildEffectiveInlineParserExtensions(MarkdownReaderOptions options) {
+    private static IReadOnlyList<MarkdownInlineParserExtension> BuildEffectiveInlineParserExtensions(MarkdownLoadOptions options) {
         if (options.InlineParserExtensions.Count == 0) {
             return Array.Empty<MarkdownInlineParserExtension>();
         }
@@ -38,7 +38,7 @@ public static partial class MarkdownReader {
         return active;
     }
 
-    private static IReadOnlyList<MarkdownInlineTransformExtension> BuildEffectiveInlineTransformExtensions(MarkdownReaderOptions options) {
+    private static IReadOnlyList<MarkdownInlineTransformExtension> BuildEffectiveInlineTransformExtensions(MarkdownLoadOptions options) {
         if (options.InlineTransformExtensions.Count == 0) {
             return Array.Empty<MarkdownInlineTransformExtension>();
         }
@@ -54,7 +54,7 @@ public static partial class MarkdownReader {
         return active;
     }
 
-    private static void ApplyInlineTransformExtensions(InlineSequence sequence, string sourceText, MarkdownReaderOptions options, MarkdownReaderState? state) {
+    private static void ApplyInlineTransformExtensions(InlineSequence sequence, string sourceText, MarkdownLoadOptions options, MarkdownReaderState? state) {
         var inlineTransformExtensions = BuildEffectiveInlineTransformExtensions(options);
         if (inlineTransformExtensions.Count == 0) {
             return;
@@ -66,7 +66,7 @@ public static partial class MarkdownReader {
     private static void ApplyInlineTransformExtensions(
         InlineSequence sequence,
         string sourceText,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState? state,
         IReadOnlyList<MarkdownInlineTransformExtension> inlineTransformExtensions,
         bool isNestedSequence) {
@@ -97,7 +97,7 @@ public static partial class MarkdownReader {
     private static bool TryParseInlineExtension(
         string text,
         int position,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState? state,
         bool allowLinks,
         bool allowImages,

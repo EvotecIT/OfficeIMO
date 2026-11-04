@@ -3,14 +3,14 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel {
     internal static partial class ExcelRangeImageRenderer {
-        private static void RenderRasterImages(OfficeRasterCanvas canvas, ExcelRangeVisualSnapshot snapshot, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics, System.Threading.CancellationToken cancellationToken) {
+        private static void RenderRasterImages(OfficeRasterCanvas canvas, ExcelRangeVisualInfo snapshot, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics, System.Threading.CancellationToken cancellationToken) {
             foreach (ExcelVisualImage image in snapshot.Images) {
                 cancellationToken.ThrowIfCancellationRequested();
                 RenderRasterImage(canvas, image, options, diagnostics, cancellationToken);
             }
         }
 
-        private static void AppendSvgImages(StringBuilder builder, ExcelRangeVisualSnapshot snapshot, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics) {
+        private static void AppendSvgImages(StringBuilder builder, ExcelRangeVisualInfo snapshot, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics) {
             int index = 0;
             foreach (ExcelVisualImage image in snapshot.Images) {
                 AppendSvgImage(builder, snapshot, image, options, diagnostics, ref index);
@@ -29,7 +29,7 @@ namespace OfficeIMO.Excel {
                 diagnosticSource: image.Source);
         }
 
-        private static void AppendSvgImage(StringBuilder builder, ExcelRangeVisualSnapshot snapshot, ExcelVisualImage image, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics, ref int index) {
+        private static void AppendSvgImage(StringBuilder builder, ExcelRangeVisualInfo snapshot, ExcelVisualImage image, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics, ref int index) {
             double scale = options.Scale;
             var fallbackCodec = new OfficeRasterImageFallbackCodec(options.ImageCodec, diagnostics, image.Source);
             if (!OfficeSvgImageRenderer.TryCreateDataUri(image.ContentType, image.Bytes, image.Name, fallbackCodec, out string dataUri)) {

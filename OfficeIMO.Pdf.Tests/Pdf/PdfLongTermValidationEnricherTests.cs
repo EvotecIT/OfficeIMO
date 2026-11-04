@@ -108,7 +108,7 @@ public class PdfLongTermValidationEnricherTests {
 
     [Fact]
     public void PlannerBlocksDssVriEnrichmentForUnsignedPdf() {
-        byte[] unsignedPdf = PdfDocument.Create().Paragraph(p => p.Text("Unsigned")).ToBytes();
+        byte[] unsignedPdf = PdfDocument.Create().Paragraph(p => p.AddText("Unsigned")).ToBytes();
 
         PdfMutationPlan plan = PdfMutationPlanner.Plan(unsignedPdf, PdfMutationOperation.EnrichLongTermValidation);
 
@@ -118,7 +118,7 @@ public class PdfLongTermValidationEnricherTests {
     }
 
     private static byte[] CreateSignedPdf(X509Certificate2 certificate) {
-        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("LTV source")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(p => p.AddText("LTV source")).ToBytes();
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
             source,
             new PdfExternalSignatureOptions {

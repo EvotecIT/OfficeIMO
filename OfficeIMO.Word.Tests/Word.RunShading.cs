@@ -9,14 +9,14 @@ public partial class Word {
     public void RunShadingFillColor_ClearsThemeFillAttributes() {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = document.AddParagraph("Themed");
-        paragraph.RunShadingFillColorHex = "FFFFFF";
+        paragraph.BackgroundColor = OfficeColor.Parse("FFFFFF");
         paragraph._runProperties!.Shading!.ThemeFill = ThemeColorValues.Accent1;
         paragraph._runProperties.Shading.ThemeFillTint = "33";
         paragraph._runProperties.Shading.ThemeFillShade = "66";
 
-        paragraph.RunShadingFillColorHex = "ABCDEF";
+        paragraph.BackgroundColor = OfficeColor.Parse("ABCDEF");
 
-        Assert.Equal("ABCDEF", paragraph.RunShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("ABCDEF"), paragraph.BackgroundColor);
         Assert.Equal("ABCDEF", paragraph._runProperties.Shading.Fill?.Value);
         Assert.Null(paragraph._runProperties.Shading.ThemeFill);
         Assert.Null(paragraph._runProperties.Shading.ThemeFillTint);
@@ -27,25 +27,25 @@ public partial class Word {
     public void RunShadingFillColor_DisabledPatternIgnoresStaleFill() {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = document.AddParagraph("Disabled");
-        paragraph.RunShadingFillColorHex = "FF0000";
+        paragraph.BackgroundColor = OfficeColor.Parse("FF0000");
         paragraph._runProperties!.Shading!.Val = ShadingPatternValues.Nil;
 
-        Assert.Equal(string.Empty, paragraph.RunShadingFillColorHex);
-        Assert.Null(paragraph.RunShadingFillColor);
+        Assert.Null(paragraph.BackgroundColor);
+        Assert.Null(paragraph.BackgroundColor);
 
-        using MemoryStream stream = document.ToStream();
+        using MemoryStream stream = new System.IO.MemoryStream(document.ToBytes());
         stream.Position = 0;
         using WordDocument reloaded = WordDocument.Load(stream);
         WordParagraph reloadedParagraph = Assert.Single(
             reloaded.Paragraphs,
             candidate => candidate.Text == "Disabled");
 
-        Assert.Equal(string.Empty, reloadedParagraph.RunShadingFillColorHex);
-        Assert.Null(reloadedParagraph.RunShadingFillColor);
+        Assert.Null(reloadedParagraph.BackgroundColor);
+        Assert.Null(reloadedParagraph.BackgroundColor);
 
-        reloadedParagraph.RunShadingFillColorHex = "00FF00";
+        reloadedParagraph.BackgroundColor = OfficeColor.Parse("00FF00");
 
-        Assert.Equal("00FF00", reloadedParagraph.RunShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("00FF00"), reloadedParagraph.BackgroundColor);
         Assert.Equal(ShadingPatternValues.Clear, reloadedParagraph._runProperties!.Shading!.Val?.Value);
     }
 
@@ -54,19 +54,19 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = document.AddParagraph("Automatic");
 
-        paragraph.RunShadingFillColorHex = "auto";
+        paragraph.RunShadingFillValue = "auto";
 
-        Assert.Equal("AUTO", paragraph.RunShadingFillColorHex);
-        Assert.Null(paragraph.RunShadingFillColor);
+        Assert.Equal("AUTO", paragraph.RunShadingFillValue);
+        Assert.Null(paragraph.BackgroundColor);
 
-        using MemoryStream stream = document.ToStream();
+        using MemoryStream stream = new System.IO.MemoryStream(document.ToBytes());
         stream.Position = 0;
         using WordDocument reloaded = WordDocument.Load(stream);
         WordParagraph reloadedParagraph = Assert.Single(
             reloaded.Paragraphs,
             candidate => candidate.Text == "Automatic");
 
-        Assert.Equal("AUTO", reloadedParagraph.RunShadingFillColorHex);
-        Assert.Null(reloadedParagraph.RunShadingFillColor);
+        Assert.Equal("AUTO", reloadedParagraph.RunShadingFillValue);
+        Assert.Null(reloadedParagraph.BackgroundColor);
     }
 }

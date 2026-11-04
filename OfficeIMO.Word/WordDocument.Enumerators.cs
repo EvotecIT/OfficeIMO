@@ -23,12 +23,12 @@ namespace OfficeIMO.Word {
 
             // Iterate headers/footers per section to avoid multi-section header warnings
             foreach (var sec in this.Sections) {
-                var headers = sec.Header;
+                var headers = sec.Headers;
                 foreach (var p in EnumerateHeaderFooterParagraphs(headers.Default)) yield return p;
                 foreach (var p in EnumerateHeaderFooterParagraphs(headers.Even)) yield return p;
                 foreach (var p in EnumerateHeaderFooterParagraphs(headers.First)) yield return p;
 
-                var footers = sec.Footer;
+                var footers = sec.Footers;
                 foreach (var p in EnumerateHeaderFooterParagraphs(footers.Default)) yield return p;
                 foreach (var p in EnumerateHeaderFooterParagraphs(footers.Even)) yield return p;
                 foreach (var p in EnumerateHeaderFooterParagraphs(footers.First)) yield return p;

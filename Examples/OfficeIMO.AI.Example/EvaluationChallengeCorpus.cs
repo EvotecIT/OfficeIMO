@@ -28,9 +28,9 @@ internal static class EvaluationChallengeCorpus {
         };
         string[][] table = { new[] { "Code", "Count", "Amount" }, new[] { "AA-7", "0", "-3.25" },
             new[] { "BB-2", "19", "1024.80" }, new[] { "CC-8", "2", "0.00" } };
-        var fontOptions = new PdfOptions { DefaultFontSize = 14 };
+        var fontOptions = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(14) };
         if (!fontOptions.TryUseDefaultDocumentFontFallback(requireEmbeddedFont: true)) throw new InvalidOperationException("Evaluation requires an embeddable font.");
-        byte[] pdf = PdfDocument.Create(builder => builder.Content(content => content.H1("Reconciliation").Table(table)),
+        byte[] pdf = PdfDocument.Create(builder => builder.Content(content => content.H1("Reconciliation").AddTable(table)),
             fontOptions).ToBytes();
         var tableGold = new EvaluationGold(Table: new(table[0], table.Skip(1).Select(row => (IReadOnlyList<string>)row).ToArray()));
         var parse = new OfficeAiRequest { Operation = OfficeAiOperation.Parse, Instruction = "Transcribe the reconciliation heading and every table cell exactly." };
@@ -48,10 +48,10 @@ internal static class EvaluationChallengeCorpus {
             for (int number = 1; number <= 8; number++) {
                 int pageNumber = number;
                 document.Page(page => page.Content(content => {
-                    if (pageNumber == 1) content.Text("Northern depot: 29 crates.");
-                    if (pageNumber == 8) content.Text("Southern depot: 11 crates.");
+                    if (pageNumber == 1) content.AddParagraph("Northern depot: 29 crates.");
+                    if (pageNumber == 8) content.AddParagraph("Southern depot: 11 crates.");
                     for (int line = 0; line < 24; line++)
-                        content.Text("Routine handling guidance: keep aisles clear and packaging dry.");
+                        content.AddParagraph("Routine handling guidance: keep aisles clear and packaging dry.");
                 }));
             }
         }, fontOptions).ToBytes();

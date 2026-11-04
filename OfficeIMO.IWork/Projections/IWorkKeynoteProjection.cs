@@ -246,7 +246,7 @@ internal static partial class IWorkKeynoteReader {
                 || showMessage.HasUnexpectedWireKind(3, IWorkWireKind.Bytes)
                     ? -1
                     : IWorkProtobuf.CountFields(slideTreeBytes, 2,
-                        source.Options.MaximumProtobufFieldCount,
+                        source.Options.MaxProtobufFieldCount,
                         out slideTreeFieldCount);
         } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             slideReferenceCount = -1;
@@ -258,8 +258,8 @@ internal static partial class IWorkKeynoteReader {
                 "The Keynote show does not contain a supported slide tree.", show.EntryPath, show.Identifier));
             return new IWorkKeynoteProjection(source, slides, null, diagnostics, supportsEditableReconstruction: false, sourceIdentity: new IWorkObjectIdentity(document), referenceIssues: references.Issues, declarationIssues: references.Declarations.Issues);
         }
-        if (slideReferenceCount > source.Options.MaximumProjectedSlides) {
-            throw new InvalidDataException($"Keynote slide count exceeds the configured projection limit of {source.Options.MaximumProjectedSlides}.");
+        if (slideReferenceCount > source.Options.MaxProjectedSlides) {
+            throw new InvalidDataException($"Keynote slide count exceeds the configured projection limit of {source.Options.MaxProjectedSlides}.");
         }
         IWorkWireMessage slideTree;
         try {
@@ -286,8 +286,8 @@ internal static partial class IWorkKeynoteReader {
         IReadOnlyList<IWorkArchiveRecord> nodes = references.ReadAll(
             show, slideTree, 2, out int unresolvedNodeCount, "3/2", allowedType: type => type == SlideNodeArchive,
             resolvedPositions: nodePositions);
-        if (nodes.Count > source.Options.MaximumProjectedSlides) {
-            throw new InvalidDataException($"Keynote slide count exceeds the configured projection limit of {source.Options.MaximumProjectedSlides}.");
+        if (nodes.Count > source.Options.MaxProjectedSlides) {
+            throw new InvalidDataException($"Keynote slide count exceeds the configured projection limit of {source.Options.MaxProjectedSlides}.");
         }
         if (unresolvedNodeCount > 0) {
             supportsEditableReconstruction = false;

@@ -1,6 +1,6 @@
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     private static readonly bool[] PotentialInlineStartLookup = CreatePotentialInlineStartLookup();
 
     private static bool[] CreatePotentialInlineStartLookup() {
@@ -78,7 +78,7 @@ public static partial class MarkdownReader {
 
     private static bool ContainsPotentialInlineSyntax(
         string text,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         bool allowLinks,
         bool allowImages) {
         for (int i = 0; i < text.Length; i++) {
@@ -92,7 +92,7 @@ public static partial class MarkdownReader {
         return allowLinks && ContainsPotentialBareAutolinkSyntax(text, options);
     }
 
-    private static bool ContainsPotentialBareAutolinkSyntax(string text, MarkdownReaderOptions options) {
+    private static bool ContainsPotentialBareAutolinkSyntax(string text, MarkdownLoadOptions options) {
         if (string.IsNullOrEmpty(text)) {
             return false;
         }
@@ -127,7 +127,7 @@ public static partial class MarkdownReader {
 
     private static bool ContainsEnabledBareScheme(
         string text,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         string scheme) {
         if (!IsBareSchemePrefixEnabled(options, scheme)) {
             return false;

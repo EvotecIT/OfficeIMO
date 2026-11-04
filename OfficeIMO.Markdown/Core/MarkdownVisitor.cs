@@ -12,7 +12,7 @@ public abstract class MarkdownVisitor {
         }
 
         switch (node) {
-            case MarkdownDoc document:
+            case MarkdownDocument document:
                 VisitDocument(document);
                 break;
 
@@ -216,7 +216,7 @@ public abstract class MarkdownVisitor {
     protected virtual void DefaultVisit(MarkdownObject node) => VisitChildren(node);
 
     /// <summary>Visits a document and, by default, its children.</summary>
-    protected virtual void VisitDocument(MarkdownDoc document) => DefaultVisit(document);
+    protected virtual void VisitDocument(MarkdownDocument document) => DefaultVisit(document);
 
     /// <summary>Visits a generic block and, by default, its children.</summary>
     protected virtual void VisitBlock(MarkdownBlock block) => DefaultVisit(block);

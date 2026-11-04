@@ -83,6 +83,32 @@ public sealed class BookProjectRevisionTests {
         Assert.Equal(capacity, project.Revisions.Count);
     }
 
+    [Fact]
+    public void RevisionExpansionBudgetAppliesAcrossSnapshotsAndReopen() {
+        var project = BookProject.Create("Bounded expansion");
+        project.Publication.AddResource("attachment", "EPUB/attachment.bin", "application/octet-stream", new byte[52 * 1024 * 1024]);
+        var first = project.CreateRevision("Baseline");
+        for (int i = 1; i < 4; i++) project.CreateRevision("Revision " + i);
+        Assert.Throws<InvalidOperationException>(() => project.CreateRevision("Overflow"));
+        Assert.Equal(4, project.Revisions.Count);
+
+        byte[] saved = project.ToProjectBytes();
+        byte[] overfull = Rewrite(saved, (entries, record) => {
+            var copy = record["Revisions"]!.AsArray()[0]!.DeepClone();
+            string id = Guid.NewGuid().ToString("N");
+            copy["Id"] = id;
+            entries.Add("revisions/" + id + ".epub", entries["revisions/" + first.Id + ".epub"]);
+            record["Revisions"]!.AsArray().Add(copy);
+        });
+        Assert.Throws<InvalidDataException>(() => BookProject.LoadProject(overfull));
+
+        var reopened = BookProject.LoadProject(saved);
+        Assert.Equal(4, reopened.Revisions.Count);
+        reopened.RemoveRevision(first.Id);
+        reopened.CreateRevision("Replacement");
+        Assert.Equal(4, reopened.Revisions.Count);
+    }
+
     [Theory]
     [InlineData("hash")]
     [InlineData("missing")]

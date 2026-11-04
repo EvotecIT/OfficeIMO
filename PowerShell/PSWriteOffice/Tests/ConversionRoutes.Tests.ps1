@@ -3,42 +3,40 @@ BeforeAll {
     Import-Module $moduleManifest -Global -ErrorAction Stop
 }
 
-Describe 'Conversion route discovery' {
-    It 'returns the owner contract and intersects extension and ID filters' {
-        $route = @(Get-OfficeConversionRoute -Id DOCX-PDF -SourceExtension 'DOCX' -TargetExtension '.PDF')
-        $route.Count | Should -Be 1
+Describe 'Conversion capability discovery' {
+    It 'returns native fidelity evidence and intersects exact extensions and IDs' {
+        $route = @(Get-OfficeDocumentCapability -Conversion -Id DOCX-PDF -From 'DOCX' -To '.PDF')
+        $route | Should -HaveCount 1
         $route[0].Id | Should -Be 'docx-pdf'
         $route[0].PackageId | Should -Be 'OfficeIMO.Word.Pdf'
         $route[0].KnownLimitations | Should -Not -BeNullOrEmpty
         $route[0].SupportEvidence | Should -Not -BeNullOrEmpty
         $route[0].TextFormattingContract | Should -Not -BeNullOrEmpty
-        @(Get-OfficeConversionRoute -Id docx-pdf -TargetExtension docx).Count | Should -Be 0
-        @(Get-OfficeConversionRoute -Id no-such-route).Count | Should -Be 0
+        @(Get-OfficeDocumentCapability -Conversion -Id docx-pdf -To docx) | Should -HaveCount 0
+        @(Get-OfficeDocumentCapability -Conversion -Id no-such-route) | Should -HaveCount 0
+        $families = @(Get-OfficeDocumentCapability -Conversion -From Word -To Pdf)
+        $families.Id | Should -Contain 'docx-pdf'
+        { Get-OfficeDocumentCapability -Conversion -From no-such-format -ErrorAction Stop } | Should -Throw '*supported format*'
     }
 
-    It 'reports batch PDF availability for the current host without treating reverse routes as PDF export' {
-        $word = Get-OfficeConversionRoute -Id docx-pdf
-        $reverse = Get-OfficeConversionRoute -Id pdf-docx
-        $modern = $PSVersionTable.PSEdition -eq 'Core'
-        $word.PdfBatchSupported | Should -Be $modern
-        $word.PdfBatchMinimumPowerShellVersion | Should -Be ([version]'7.4')
-        $reverse.PdfBatchSupported | Should -BeFalse
-        $reverse.PdfBatchCommand | Should -BeNullOrEmpty
-        $batch = @(Get-OfficeConversionRoute -PdfBatch)
-        if ($modern) {
-            $batch.Id | Should -Contain 'docx-pdf'
-            $batch.Id | Should -Not -Contain 'pdf-docx'
-            @($batch | Where-Object TargetExtension -ne '.pdf').Count | Should -Be 0
-            @($batch | Where-Object PdfBatchCommand -ne 'Export-OfficeDocumentPdf').Count | Should -Be 0
-        } else { $batch.Count | Should -Be 0 }
+    It 'reports installed executable routes without describing unavailable converters as executable' {
+        $executable = @(Get-OfficeDocumentCapability -Conversion -Executable)
+        $executable.Id | Should -Contain 'docx-pdf'
+        $executable.Id | Should -Contain 'pdf-docx'
+        $executable.ConversionSupported | Should -Not -Contain $false
+        $executable.ConversionCommand | Should -Not -Contain $null
+        $executable.ConversionCommand | Select-Object -Unique | Should -Be 'Convert-OfficeDocument'
+        $pdf = @(Get-OfficeDocumentCapability -Conversion -Executable -To Pdf)
+        $pdf.Id | Should -Contain 'docx-pdf'
+        $pdf.Id | Should -Not -Contain 'pdf-docx'
+        @($pdf | Where-Object TargetExtension -NE '.pdf') | Should -HaveCount 0
     }
 
-    It 'can be queried repeatedly and from pipeline IDs without modifying catalog rows' {
-        $rows = @([pscustomobject]@{ Id = 'docx-pdf' }, [pscustomobject]@{ Id = 'pdf-docx' }) | Get-OfficeConversionRoute
-        @($rows).Count | Should -Be 2
-        $stringRows = @('docx-pdf', 'pdf-docx') | Get-OfficeConversionRoute
-        @($stringRows.Id) | Should -Be @('docx-pdf', 'pdf-docx')
-        @(Get-OfficeConversionRoute -Id docx-pdf).Count | Should -Be 1
-        @(Get-OfficeConversionRoute -Id docx-pdf).Count | Should -Be 1
+    It 'accepts pipeline route IDs without mutating canonical rows on repeated queries' {
+        $rows = @([pscustomobject]@{ Id = 'docx-pdf' }, [pscustomobject]@{ Id = 'pdf-docx' }) |
+            Get-OfficeDocumentCapability -Conversion
+        @($rows) | Should -HaveCount 2
+        @(Get-OfficeDocumentCapability -Conversion -Id docx-pdf) | Should -HaveCount 1
+        @(Get-OfficeDocumentCapability -Conversion -Id docx-pdf) | Should -HaveCount 1
     }
 }

@@ -10,7 +10,7 @@ public sealed class PdfDrawingRichKerningTests {
     private const string Family = "Rich kerning fixture";
     private static OfficeRichTextRun Run(string text, double size, double? threshold, string family = Family) =>
         new OfficeRichTextRun(text, size, OfficeColor.Black, fontFamily: family).WithAutomaticPairKerningThreshold(threshold);
-    private static byte[] Write(OfficeDrawing drawing) => PdfDocument.Create(new PdfOptions {
+    private static byte[] Write(OfficeDrawing drawing) => PdfDocument.Create(new PdfCreateOptions {
         PageWidth = 100, PageHeight = 80, MarginLeft = 0, MarginRight = 0, MarginTop = 0, MarginBottom = 0
     }.UseRenderingProfile(new OfficeRenderingProfile("Rich kerning", drawing.Fonts)))
         .Canvas(canvas => canvas.Drawing(drawing, 0, 0, 100, 80)).ToBytes();

@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Visio {
     public partial class VisioDocument {
@@ -150,7 +150,7 @@ namespace OfficeIMO.Visio {
             writer.WriteAttributeString("N", "Paragraph");
             writer.WriteStartElement("Row", ns);
             writer.WriteAttributeString("IX", "0");
-            WriteCell(writer, ns, "HorzAlign", (int)textStyle.HorizontalAlignment.Value);
+            WriteCell(writer, ns, "HorzAlign", VisioDrawingTextAlignment.ToHorzAlignCell(textStyle.HorizontalAlignment.Value));
             writer.WriteEndElement();
             writer.WriteEndElement();
         }

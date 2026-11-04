@@ -17,6 +17,7 @@ internal sealed class MboxStoreSessionBackend : IEmailStoreSessionBackend {
     private readonly Dictionary<string, MboxItem> _itemsById =
         new Dictionary<string, MboxItem>(StringComparer.Ordinal);
     private readonly IReadOnlyList<EmailStoreFolderInfo> _folders;
+    private bool _bulkReadActive;
 
     internal MboxStoreSessionBackend(Stream stream, string? sourceName,
         EmailStoreReaderOptions options, CancellationToken cancellationToken, bool isSnapshot = false) {
@@ -58,6 +59,19 @@ internal sealed class MboxStoreSessionBackend : IEmailStoreSessionBackend {
     public IReadOnlyList<EmailStoreFolderInfo> Folders => _folders;
     public IReadOnlyList<EmailStoreDiagnostic> Diagnostics => _diagnostics;
 
+    internal IDisposable BeginBulkRead(CancellationToken cancellationToken) {
+        if (_bulkReadActive) throw new InvalidOperationException("An mbox bulk read is already active.");
+        ValidateBulkSource(cancellationToken);
+        _bulkReadActive = true;
+        return new BulkReadScope(this, cancellationToken);
+    }
+
+    private void ValidateBulkSource(CancellationToken cancellationToken) {
+        Stream source = _openSource?.Invoke() ?? _stream!;
+        try { _sourceGuard.Validate(source, cancellationToken); }
+        finally { if (_openSource != null) source.Dispose(); }
+    }
+
     public IEnumerable<EmailStoreItemReference> EnumerateItems(
         EmailStoreEnumerationOptions options, CancellationToken cancellationToken) {
         if (options.FolderId != null && !string.Equals(options.FolderId, FolderId,
@@ -95,17 +109,17 @@ internal sealed class MboxStoreSessionBackend : IEmailStoreSessionBackend {
                 maximumMessages: 1);
             Stream source = _openSource?.Invoke() ?? _stream!;
             try {
-                _sourceGuard.Validate(source, cancellationToken);
+                _sourceGuard.Validate(source, cancellationToken, verifyFingerprint: !_bulkReadActive);
                 using (var input = new EmailStoreSegmentStream(source, item.Offset, item.Length)) {
                     if (options.PreferStreamingAttachmentContent) {
                         using EmailReadResult result = MboxSelectedMessageReader.Read(input, mailboxOptions,
                             cancellationToken, out EmailMailboxEntry mailboxEntry);
-                        _sourceGuard.Validate(source, cancellationToken);
+                        _sourceGuard.Validate(source, cancellationToken, verifyFingerprint: !_bulkReadActive);
                         _resources.Adopt(result);
                         entry = new EmailMailboxEntryReadResult(mailboxEntry, result.Diagnostics, item.Length);
                     } else {
                         entry = new EmailMailboxReader(mailboxOptions).ReadEntries(input, cancellationToken).Single();
-                        _sourceGuard.Validate(source, cancellationToken);
+                        _sourceGuard.Validate(source, cancellationToken, verifyFingerprint: !_bulkReadActive);
                     }
                 }
             } finally {
@@ -127,6 +141,24 @@ internal sealed class MboxStoreSessionBackend : IEmailStoreSessionBackend {
     }
 
     public void Dispose() { if (_ownsResources) _resources.Dispose(); }
+
+    private sealed class BulkReadScope : IDisposable {
+        private readonly MboxStoreSessionBackend _owner;
+        private readonly CancellationToken _cancellationToken;
+        private bool _disposed;
+
+        internal BulkReadScope(MboxStoreSessionBackend owner, CancellationToken cancellationToken) {
+            _owner = owner;
+            _cancellationToken = cancellationToken;
+        }
+
+        public void Dispose() {
+            if (_disposed) return;
+            _disposed = true;
+            _owner._bulkReadActive = false;
+            _owner.ValidateBulkSource(_cancellationToken);
+        }
+    }
 
     private void Index(Stream stream, CancellationToken cancellationToken) {
         long offset = 0;

@@ -1,7 +1,7 @@
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
-    private static MarkdownSyntaxNode BuildDocumentSyntaxTree(IReadOnlyList<MarkdownSyntaxNode> children, MarkdownDoc? document = null) =>
+internal static partial class MarkdownReader {
+    private static MarkdownSyntaxNode BuildDocumentSyntaxTree(IReadOnlyList<MarkdownSyntaxNode> children, MarkdownDocument? document = null) =>
         new MarkdownSyntaxNode(MarkdownSyntaxKind.Document, MarkdownBlockSyntaxBuilder.GetAggregateSpan(children), children: children, associatedObject: document);
 
     private static MarkdownSyntaxNode DetachOriginalSyntaxAssociations(MarkdownSyntaxNode node) {
@@ -35,7 +35,7 @@ public static partial class MarkdownReader {
     }
 
     internal static MarkdownSyntaxNode BuildSyntaxTree(
-        MarkdownDoc document,
+        MarkdownDocument document,
         IReadOnlyList<MarkdownSourceSpan?>? topLevelBlockSourceSpans = null,
         MarkdownSourceSpan? frontMatterSpan = null) {
         if (document == null) {
@@ -58,7 +58,7 @@ public static partial class MarkdownReader {
     }
 
     internal static MarkdownSyntaxNode BuildFinalSyntaxTree(
-        MarkdownDoc document,
+        MarkdownDocument document,
         MarkdownSyntaxNode originalSyntaxTree,
         IReadOnlyList<MarkdownDocumentTransformDiagnostic>? transformDiagnostics = null) {
         var blockSpans = BuildTopLevelBlockSourceSpans(document, originalSyntaxTree, transformDiagnostics);
@@ -69,7 +69,7 @@ public static partial class MarkdownReader {
         return finalSyntaxTree;
     }
 
-    private static void CaptureSyntaxNodes(MarkdownDoc doc, int previousBlockCount, int startLine, int endExclusiveLine, List<MarkdownSyntaxNode> nodes, MarkdownReaderState? state = null) {
+    private static void CaptureSyntaxNodes(MarkdownDocument doc, int previousBlockCount, int startLine, int endExclusiveLine, List<MarkdownSyntaxNode> nodes, MarkdownReaderState? state = null) {
         int start = startLine + 1;
         int end = Math.Max(start, endExclusiveLine);
         var span = CreateLineSpan(state, start, end);
@@ -99,7 +99,7 @@ public static partial class MarkdownReader {
         ?? new MarkdownSourceSpan(startLine, startColumn, endLine, endColumn);
 
     private static IReadOnlyList<MarkdownSourceSpan?> BuildTopLevelBlockSourceSpans(
-        MarkdownDoc document,
+        MarkdownDocument document,
         MarkdownSyntaxNode originalSyntaxTree,
         IReadOnlyList<MarkdownDocumentTransformDiagnostic>? transformDiagnostics) {
         var children = originalSyntaxTree?.Children ?? Array.Empty<MarkdownSyntaxNode>();
@@ -135,7 +135,7 @@ public static partial class MarkdownReader {
         return spans;
     }
 
-    private static MarkdownSourceSpan? GetFrontMatterSpan(MarkdownDoc document, MarkdownSyntaxNode originalSyntaxTree) {
+    private static MarkdownSourceSpan? GetFrontMatterSpan(MarkdownDocument document, MarkdownSyntaxNode originalSyntaxTree) {
         if (document?.DocumentHeader == null || originalSyntaxTree == null || originalSyntaxTree.Children.Count == 0) {
             return null;
         }

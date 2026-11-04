@@ -19,8 +19,8 @@ public sealed class ExcelLegacyCryptoApiStorageTests {
         foreach (var stream in original.Streams.Where(item => item.Key.StartsWith("_VBA_PROJECT_CUR/", StringComparison.OrdinalIgnoreCase)))
             Assert.Equal(stream.Value, encryptedCompound!.Streams[stream.Key]);
         using var document = ExcelDocument.LoadEncrypted(new MemoryStream(encrypted), "test-password");
-        document.Sheets[0].CellValue(1, 1, "CryptoAPI restored storage");
-        byte[] plain = document.ToBytes(ExcelFileFormat.Xls);
+        document.Sheets[0].Cell(1, 1).SetValue("CryptoAPI restored storage");
+        byte[] plain = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
         Assert.True(OfficeCompoundFileReader.TryRead(plain, out OfficeCompoundFile? result, out string? error), error);
         Assert.False(result!.Streams.ContainsKey("encryption"));
         Assert.DoesNotContain(BiffRecordReader.ReadRecords(result.Streams["Workbook"], new()), item => item.Type == 0x002f);
@@ -41,7 +41,7 @@ public sealed class ExcelLegacyCryptoApiStorageTests {
         foreach (var stream in original.Streams.Where(item => item.Key.StartsWith("_VBA_PROJECT_CUR/", StringComparison.OrdinalIgnoreCase)))
             Assert.Equal(stream.Value, protectedOutput.Streams[stream.Key]);
         using var reloaded = ExcelDocument.LoadEncrypted(output, "new-password");
-        Assert.Equal("CryptoAPI restored storage", reloaded.Sheets[0].CellAt(1, 1).GetValue<string>());
+        Assert.Equal("CryptoAPI restored storage", reloaded.Sheets[0].Cell(1, 1).GetValue<string>());
         Assert.Equal(4, reloaded.LegacyXlsChartSheets.Count);
     }
 
@@ -83,8 +83,8 @@ public sealed class ExcelLegacyCryptoApiStorageTests {
             Assert.False(raw.Streams.ContainsKey("\u0005SummaryInformation"));
         }
         using var document = ExcelDocument.LoadEncrypted(new MemoryStream(bytes), "test-password");
-        Assert.Equal("Encrypted summary native control", document.BuiltinDocumentProperties.Title);
-        Assert.Equal("Nested inert VBA storage acceptance", document.BuiltinDocumentProperties.Subject);
+        Assert.Equal("Encrypted summary native control", document.Properties.Title);
+        Assert.Equal("Nested inert VBA storage acceptance", document.Properties.Subject);
         Assert.Equal(10, document.Sheets.Count); Assert.Equal(4, document.LegacyXlsChartSheets.Count);
         var native = LegacyXlsWorkbook.Load(bytes, new() { Password = "test-password" });
         var projectStorage = OfficeCompoundStorage.Extract(native.SourceCompoundFile!, "_VBA_PROJECT_CUR");

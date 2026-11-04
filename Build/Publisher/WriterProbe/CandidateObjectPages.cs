@@ -18,7 +18,7 @@ internal static class CandidateObjectPages {
         document.AddShape(document.Pages[0].Id, rectangle, 72, 216);
         document.AddPage(master.Id);
         PublisherPage last = document.AddPage(master.Id);
-        document.AddPicture(last.Id, image, 330, 216, 96, 96);
+        document.AddImage(last.Id, image, 330, 216, 96, 96);
         return document;
     }
 }

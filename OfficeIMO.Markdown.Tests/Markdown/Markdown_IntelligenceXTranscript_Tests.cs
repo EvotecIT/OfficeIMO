@@ -9,8 +9,8 @@ namespace OfficeIMO.Tests {
     public class Markdown_IntelligenceXTranscript_Tests {
         [Fact]
         public void HtmlStyle_ChatAuto_EmitsChatMarkerAndAutoThemeCss() {
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Hello");
-            var parts = doc.ToHtmlParts(new HtmlOptions { Kind = HtmlKind.Fragment, Style = HtmlStyle.ChatAuto });
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse("Hello");
+            var parts = doc.ToHtmlParts(new MarkdownHtmlExportOptions { Kind = MarkdownHtmlKind.Fragment, Style = MarkdownHtmlStyle.ChatAuto });
 
             Assert.Contains("omd-chat", parts.Css);
             Assert.Contains("prefers-color-scheme", parts.Css);
@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void MarkdownRendererPresets_CreateIntelligenceXTranscript_UsesChatStyleAndScopedCss() {
             var opts = MarkdownRendererPresets.CreateIntelligenceXTranscript();
-            Assert.Equal(HtmlStyle.ChatAuto, opts.HtmlOptions.Style);
+            Assert.Equal(MarkdownHtmlStyle.ChatAuto, opts.HtmlOptions.Style);
             Assert.Equal("#omdRoot article.markdown-body", opts.HtmlOptions.CssScopeSelector);
         }
 
@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests {
         public void MarkdownRendererPresets_CreateStrict_UsesGenericStyleAndLeavesChatChromeOff() {
             var opts = MarkdownRendererPresets.CreateStrict();
 
-            Assert.Equal(HtmlStyle.GithubAuto, opts.HtmlOptions.Style);
+            Assert.Equal(MarkdownHtmlStyle.GithubAuto, opts.HtmlOptions.Style);
             Assert.Equal("article.markdown-body", opts.HtmlOptions.CssScopeSelector);
             Assert.False(opts.EnableCodeCopyButtons);
             Assert.False(opts.EnableTableCopyButtons);
@@ -37,7 +37,7 @@ namespace OfficeIMO.Tests {
         public void MarkdownRendererPresets_CreateStrictPortable_Disables_OfficeImoOnly_Reader_Extensions() {
             var opts = MarkdownRendererPresets.CreateStrictPortable();
 
-            Assert.Equal(HtmlStyle.GithubAuto, opts.HtmlOptions.Style);
+            Assert.Equal(MarkdownHtmlStyle.GithubAuto, opts.HtmlOptions.Style);
             Assert.Equal("article.markdown-body", opts.HtmlOptions.CssScopeSelector);
             Assert.False(opts.ReaderOptions.Callouts);
             Assert.False(opts.ReaderOptions.TaskLists);
@@ -52,7 +52,7 @@ namespace OfficeIMO.Tests {
         public void MarkdownRendererPresets_CreateIntelligenceXTranscriptPortable_Disables_OfficeImoOnly_Reader_Extensions() {
             var opts = MarkdownRendererPresets.CreateIntelligenceXTranscriptPortable();
 
-            Assert.Equal(HtmlStyle.ChatAuto, opts.HtmlOptions.Style);
+            Assert.Equal(MarkdownHtmlStyle.ChatAuto, opts.HtmlOptions.Style);
             Assert.Equal("#omdRoot article.markdown-body", opts.HtmlOptions.CssScopeSelector);
             Assert.False(opts.ReaderOptions.Callouts);
             Assert.False(opts.ReaderOptions.TaskLists);
@@ -68,9 +68,9 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void MarkdownRendererPresets_CreateStrict_Can_Target_CommonMark_Profile() {
-            var opts = MarkdownRendererPresets.CreateStrict(MarkdownReaderOptions.MarkdownDialectProfile.CommonMark);
+            var opts = MarkdownRendererPresets.CreateStrict(MarkdownLoadOptions.MarkdownDialectProfile.CommonMark);
 
-            Assert.Equal(HtmlStyle.GithubAuto, opts.HtmlOptions.Style);
+            Assert.Equal(MarkdownHtmlStyle.GithubAuto, opts.HtmlOptions.Style);
             Assert.False(opts.ReaderOptions.FrontMatter);
             Assert.False(opts.ReaderOptions.Callouts);
             Assert.False(opts.ReaderOptions.TaskLists);
@@ -82,9 +82,9 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void MarkdownRendererPresets_CreateIntelligenceXTranscript_Can_Target_Gfm_Profile() {
-            var opts = MarkdownRendererPresets.CreateIntelligenceXTranscript(MarkdownReaderOptions.MarkdownDialectProfile.GitHubFlavoredMarkdown);
+            var opts = MarkdownRendererPresets.CreateIntelligenceXTranscript(MarkdownLoadOptions.MarkdownDialectProfile.GitHubFlavoredMarkdown);
 
-            Assert.Equal(HtmlStyle.ChatAuto, opts.HtmlOptions.Style);
+            Assert.Equal(MarkdownHtmlStyle.ChatAuto, opts.HtmlOptions.Style);
             Assert.Equal("#omdRoot article.markdown-body", opts.HtmlOptions.CssScopeSelector);
             Assert.False(opts.ReaderOptions.FrontMatter);
             Assert.False(opts.ReaderOptions.Callouts);
@@ -130,7 +130,7 @@ namespace OfficeIMO.Tests {
             MarkdownRendererIntelligenceXAdapter.Apply(opts);
             MarkdownRendererIntelligenceXLegacyMigration.Apply(opts);
 
-            Assert.Equal(HtmlStyle.ChatAuto, opts.HtmlOptions.Style);
+            Assert.Equal(MarkdownHtmlStyle.ChatAuto, opts.HtmlOptions.Style);
             Assert.Equal("#omdRoot article.markdown-body", opts.HtmlOptions.CssScopeSelector);
             Assert.False(opts.EnableCodeCopyButtons);
             Assert.False(opts.EnableTableCopyButtons);
@@ -1020,8 +1020,8 @@ Dataview preview:
 
         [Fact]
         public void HtmlStyle_ChatAuto_Includes_Bubble_Css_Classes() {
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Hello");
-            var parts = doc.ToHtmlParts(new HtmlOptions { Kind = HtmlKind.Fragment, Style = HtmlStyle.ChatAuto });
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse("Hello");
+            var parts = doc.ToHtmlParts(new MarkdownHtmlExportOptions { Kind = MarkdownHtmlKind.Fragment, Style = MarkdownHtmlStyle.ChatAuto });
 
             Assert.Contains(".omd-chat-bubble", parts.Css, StringComparison.Ordinal);
             Assert.Contains(".omd-chat-row", parts.Css, StringComparison.Ordinal);

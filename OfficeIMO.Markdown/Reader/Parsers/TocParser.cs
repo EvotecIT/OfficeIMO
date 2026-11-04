@@ -1,9 +1,9 @@
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     /// <summary>
     /// Recognizes common inline TOC placeholders and converts them into a TocPlaceholderBlock so
-    /// downstream rendering can generate a proper Table of Contents. Supported forms:
+    /// downstream rendering can generate a proper MarkdownTable of Contents. Supported forms:
     ///   [TOC]
     ///   [[TOC]]
     ///   [TOC min=2 max=3 ordered=true layout=sidebar-right sticky=true scrollspy=true title="On this page"]
@@ -11,7 +11,7 @@ public static partial class MarkdownReader {
     ///   <!-- TOC --> or <!-- toc -->
     /// </summary>
     internal sealed class TocParser : IMarkdownBlockParser {
-        public bool TryParse(string[] lines, ref int i, MarkdownReaderOptions options, MarkdownDoc doc, MarkdownReaderState state) {
+        public bool TryParse(string[] lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
             var raw = lines[i]; if (string.IsNullOrWhiteSpace(raw)) return false;
             var t = raw.Trim();
 
@@ -23,7 +23,7 @@ public static partial class MarkdownReader {
                 t.Equals("{:toc}", System.StringComparison.OrdinalIgnoreCase) ||
                 t.Equals("<!-- TOC -->", System.StringComparison.OrdinalIgnoreCase) ||
                 t.Equals("<!-- toc -->", System.StringComparison.OrdinalIgnoreCase)) {
-                var opts = new TocOptions();
+                var opts = new MarkdownTocOptions();
                 var ph = new TocPlaceholderBlock(opts);
                 doc.Add(ph); i++; return true;
             }
@@ -31,7 +31,7 @@ public static partial class MarkdownReader {
             // Parameterized: [TOC key=value ...]
             if (t.StartsWith("[TOC", System.StringComparison.OrdinalIgnoreCase) && t.EndsWith("]")) {
                 var inner = t.Substring(4, t.Length - 5).Trim(); // after [TOC and before ]
-                var opts = new TocOptions {
+                var opts = new MarkdownTocOptions {
                     RequireTopLevel = false
                 };
                 bool hasTitleAttribute = false;
@@ -40,20 +40,20 @@ public static partial class MarkdownReader {
                 }
                 if (!hasTitleAttribute) opts.IncludeTitle = false;
                 // Clamp levels and sanitize options
-                if (opts.MinLevel < 1) opts.MinLevel = TocOptions.DefaultMinLevel;
+                if (opts.MinLevel < 1) opts.MinLevel = MarkdownTocOptions.DefaultMinLevel;
                 if (opts.MaxLevel < opts.MinLevel) opts.MaxLevel = opts.MinLevel;
                 if (opts.MaxLevel > 9) opts.MaxLevel = 9;
                 if (opts.MinLevel > 9) opts.MinLevel = 9;
-                if (opts.TitleLevel < 1) opts.TitleLevel = TocOptions.DefaultTitleLevel;
+                if (opts.TitleLevel < 1) opts.TitleLevel = MarkdownTocOptions.DefaultTitleLevel;
                 if (opts.TitleLevel > 6) opts.TitleLevel = 6;
-                if (opts.WidthPx.HasValue && opts.WidthPx.Value <= 0) opts.WidthPx = TocOptions.DefaultSidebarWidthPx;
+                if (opts.WidthPx.HasValue && opts.WidthPx.Value <= 0) opts.WidthPx = MarkdownTocOptions.DefaultSidebarWidthPx;
                 var ph = new TocPlaceholderBlock(opts);
                 doc.Add(ph); i++; return true;
             }
             return false;
         }
 
-        private static bool ApplyAttributes(string inner, TocOptions o) {
+        private static bool ApplyAttributes(string inner, MarkdownTocOptions o) {
             bool hasTitleAttribute = false;
             foreach (var tok in Tokenize(inner)) {
                 int eq = tok.IndexOf('=');
@@ -67,28 +67,28 @@ public static partial class MarkdownReader {
                     case "titlelevel": if (int.TryParse(val, out var tl)) o.TitleLevel = tl; break;
                     case "layout":
                         var v = val.ToLowerInvariant();
-                        if (v is "panel") o.Layout = TocLayout.Panel;
-                        else if (v is "sidebar-right" or "sidebarright" or "right") o.Layout = TocLayout.SidebarRight;
-                        else if (v is "sidebar-left" or "sidebarleft" or "left") o.Layout = TocLayout.SidebarLeft;
-                        else o.Layout = TocLayout.List; break;
+                        if (v is "panel") o.Layout = MarkdownTocLayout.Panel;
+                        else if (v is "sidebar-right" or "sidebarright" or "right") o.Layout = MarkdownTocLayout.SidebarRight;
+                        else if (v is "sidebar-left" or "sidebarleft" or "left") o.Layout = MarkdownTocLayout.SidebarLeft;
+                        else o.Layout = MarkdownTocLayout.List; break;
                     case "scrollspy": if (Bool(val)) o.ScrollSpy = true; break;
                     case "sticky": if (Bool(val)) o.Sticky = true; break;
                     case "aria": case "arialabel": o.AriaLabel = val; break;
                     case "width": case "widthpx": if (int.TryParse(val, out var w)) o.WidthPx = w; break;
                     case "chrome":
                         var c = val.ToLowerInvariant();
-                        if (c == "none" || c == "no" || c == "ghost") o.Chrome = TocChrome.None;
-                        else if (c == "outline") o.Chrome = TocChrome.Outline;
-                        else if (c == "panel") o.Chrome = TocChrome.Panel;
-                        else o.Chrome = TocChrome.Default; break;
+                        if (c == "none" || c == "no" || c == "ghost") o.Chrome = MarkdownTocChrome.None;
+                        else if (c == "outline") o.Chrome = MarkdownTocChrome.Outline;
+                        else if (c == "panel") o.Chrome = MarkdownTocChrome.Panel;
+                        else o.Chrome = MarkdownTocChrome.Default; break;
                     case "hideonnarrow": if (Bool(val)) o.HideOnNarrow = true; break;
                     case "requiretoplevel": o.RequireTopLevel = Bool(val); break;
                     case "normalize": case "normalizetominlevel": if (!Bool(val)) o.NormalizeToMinLevel = false; break;
                     case "scope":
                         var sv = val.ToLowerInvariant();
-                        if (sv.StartsWith("prev")) o.Scope = TocScope.PreviousHeading;
-                        else if (sv.StartsWith("head")) o.Scope = TocScope.HeadingTitle; // requires scopeheading
-                        else o.Scope = TocScope.Document;
+                        if (sv.StartsWith("prev")) o.Scope = MarkdownTocScope.PreviousHeading;
+                        else if (sv.StartsWith("head")) o.Scope = MarkdownTocScope.HeadingTitle; // requires scopeheading
+                        else o.Scope = MarkdownTocScope.Document;
                         break;
                     case "scopeheading": case "scopeheadingtitle": o.ScopeHeadingTitle = val; break;
                 }

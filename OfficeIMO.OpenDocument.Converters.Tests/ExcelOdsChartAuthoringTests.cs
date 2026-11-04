@@ -15,18 +15,17 @@ namespace OfficeIMO.OpenDocument.Converters.Tests;
 
 public sealed class ExcelOdsChartAuthoringTests {
     [Theory]
-    [InlineData(ExcelChartType.ColumnClustered, "chart:bar", false)]
-    [InlineData(ExcelChartType.BarClustered, "chart:bar", true)]
-    [InlineData(ExcelChartType.Line, "chart:line", null)]
-    public void ExcelChartConvertsToReopenableOdsAndBack(ExcelChartType type, string chartClass, bool? vertical) {
+    [InlineData(OfficeChartType.ColumnClustered, "chart:bar", false)]
+    [InlineData(OfficeChartType.BarClustered, "chart:bar", true)]
+    [InlineData(OfficeChartType.Line, "chart:line", null)]
+    public void ExcelChartConvertsToReopenableOdsAndBack(OfficeChartType type, string chartClass, bool? vertical) {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Summary");
+        ExcelSheet sheet = source.AddSheet("Summary");
         var data = new ExcelChartData(new[] { "Jan", "Feb" },
             new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d }) });
-        sheet.AddChart(data, row: 5, column: 4, widthPixels: 480, heightPixels: 300,
-            type: type, title: "Sales");
+        sheet.AddChart(type, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 5, Column = 4, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(300), Title = "Sales" });
 
-        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> result = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "charts" &&
             mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
         Assert.DoesNotContain(result.Report.Mappings, mapping => mapping.Feature == "charts" &&
@@ -48,14 +47,14 @@ public sealed class ExcelOdsChartAuthoringTests {
         OdsDocument reopened = OdsDocument.Load(new MemoryStream(result.Value.ToBytes()));
         Assert.True(reopened.Validate().IsValid);
         Assert.Single(reopened.GetSheet("Summary")!.Charts);
-        OdfConversionResult<ExcelDocument> back = reopened.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> back = reopened.ConvertToExcelWithEvidence();
         using ExcelDocument roundTrip = back.Value;
         ExcelChart converted = Assert.Single(roundTrip["Summary"].Charts);
         Assert.Equal(type, converted.ChartType);
         Assert.True(converted.TryGetData(out ExcelChartData actual));
         Assert.Equal(new[] { "Jan", "Feb" }, actual.Categories);
         Assert.Equal(new[] { 10d, 20d }, Assert.Single(actual.Series).Values);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new ExcelOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -65,10 +64,9 @@ public sealed class ExcelOdsChartAuthoringTests {
             Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (ExcelDocument source = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = source.AddWorksheet("Summary");
-                sheet.AddChart(new ExcelChartData(new[] { "Jan", "Feb" },
-                    new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d }) }),
-                    row: 5, column: 4, type: ExcelChartType.ColumnClustered);
+                ExcelSheet sheet = source.AddSheet("Summary");
+                sheet.AddChart(OfficeChartType.ColumnClustered, new ExcelChartData(new[] { "Jan", "Feb" },
+                    new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 5, Column = 4 });
                 source.Save();
             }
             using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {
@@ -85,7 +83,7 @@ public sealed class ExcelOdsChartAuthoringTests {
                 drawing.Save();
             }
             using ExcelDocument imported = ExcelDocument.Load(path);
-            OdfConversionResult<OdsDocument> result = imported.ToOpenDocumentResult();
+            OdfConversionResult<OdsDocument> result = imported.ConvertToOpenDocumentWithEvidence();
             Assert.Empty(result.Value.GetSheet("Summary")!.Charts);
             Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "charts" &&
                 mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
@@ -100,8 +98,8 @@ public sealed class ExcelOdsChartAuthoringTests {
             Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (ExcelDocument source = ExcelDocument.Create(path)) {
-                source.AddWorksheet("Summary").AddChart(new ExcelChartData(new[] { "Jan" },
-                    new[] { new ExcelChartSeries("Sales", new[] { 10d }) }), row: 5, column: 4);
+                source.AddSheet("Summary").AddChart(OfficeIMO.OfficeChartType.ColumnClustered, new ExcelChartData(new[] { "Jan" },
+                    new[] { new ExcelChartSeries("Sales", new[] { 10d }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 5, Column = 4 });
                 source.Save();
             }
             using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {
@@ -112,7 +110,7 @@ public sealed class ExcelOdsChartAuthoringTests {
                 frame.Ancestors<Xdr.WorksheetDrawing>().Single().Save();
             }
             using ExcelDocument imported = ExcelDocument.Load(path);
-            OdfConversionResult<OdsDocument> result = imported.ToOpenDocumentResult();
+            OdfConversionResult<OdsDocument> result = imported.ConvertToOpenDocumentWithEvidence();
             Assert.Empty(result.Value.GetSheet("Summary")!.Charts);
             Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "charts" &&
                 mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 2);
@@ -127,8 +125,8 @@ public sealed class ExcelOdsChartAuthoringTests {
             Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (ExcelDocument source = ExcelDocument.Create(path)) {
-                source.AddWorksheet("Summary").AddChart(new ExcelChartData(new[] { "Jan", "Feb" },
-                    new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d }) }), row: 5, column: 4);
+                source.AddSheet("Summary").AddChart(OfficeIMO.OfficeChartType.ColumnClustered, new ExcelChartData(new[] { "Jan", "Feb" },
+                    new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 5, Column = 4 });
                 source.Save();
             }
             using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {
@@ -142,7 +140,7 @@ public sealed class ExcelOdsChartAuthoringTests {
                 drawing.Save();
             }
             using ExcelDocument imported = ExcelDocument.Load(path);
-            OdfConversionResult<OdsDocument> result = imported.ToOpenDocumentResult();
+            OdfConversionResult<OdsDocument> result = imported.ConvertToOpenDocumentWithEvidence();
             Assert.Single(result.Value.GetSheet("Summary")!.Charts);
             Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "charts" &&
                 mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
@@ -159,15 +157,15 @@ public sealed class ExcelOdsChartAuthoringTests {
             Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (ExcelDocument source = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = source.AddWorksheet("Summary");
+                ExcelSheet sheet = source.AddSheet("Summary");
                 var data = new ExcelChartData(new[] { "Jan" },
                     new[] { new ExcelChartSeries("Sales", new[] { 10d }) });
                 ExcelChartDataRange range = sheet.WriteChartData(data, orientation: ExcelChartDataOrientation.Horizontal);
-                sheet.AddChart(range, row: 5, column: 4, type: ExcelChartType.ColumnClustered);
+                sheet.AddChart(OfficeChartType.ColumnClustered, range, new OfficeIMO.Excel.ExcelChartOptions { Row = 5, Column = 4 });
                 source.Save();
             }
             using ExcelDocument imported = ExcelDocument.Load(path);
-            OdfConversionResult<OdsDocument> result = imported.ToOpenDocumentResult();
+            OdfConversionResult<OdsDocument> result = imported.ConvertToOpenDocumentWithEvidence();
             Assert.Single(result.Value.GetSheet("Summary")!.Charts);
             Assert.DoesNotContain(result.Report.Mappings, mapping => mapping.Feature == "charts" &&
                 mapping.Status == OdfConversionMappingStatus.Unsupported);
@@ -179,14 +177,14 @@ public sealed class ExcelOdsChartAuthoringTests {
     [Fact]
     public void MixedSeriesAndSecondaryAxisRemainExplicitLoss() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Summary");
-        sheet.AddChart(new ExcelChartData(new[] { "Jan", "Feb" }, new[] {
-            new ExcelChartSeries("Sales", new[] { 10d, 20d }, ExcelChartType.ColumnClustered),
-            new ExcelChartSeries("Trend", new[] { 12d, 22d }, ExcelChartType.Line,
+        ExcelSheet sheet = source.AddSheet("Summary");
+        sheet.AddChart(OfficeChartType.ColumnClustered, new ExcelChartData(new[] { "Jan", "Feb" }, new[] {
+            new ExcelChartSeries("Sales", new[] { 10d, 20d }, OfficeChartType.ColumnClustered),
+            new ExcelChartSeries("Trend", new[] { 12d, 22d }, OfficeChartType.Line,
                 OfficeChartAxisGroup.Secondary)
-        }), row: 5, column: 4, type: ExcelChartType.ColumnClustered);
+        }), new OfficeIMO.Excel.ExcelChartOptions { Row = 5, Column = 4 });
 
-        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> result = source.ConvertToOpenDocumentWithEvidence();
         Assert.Empty(result.Value.GetSheet("Summary")!.Charts);
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "charts" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
@@ -195,14 +193,13 @@ public sealed class ExcelOdsChartAuthoringTests {
     [Fact]
     public void NonnumericWorksheetValueRemainsExplicitChartLoss() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Summary");
-        ExcelChart chart = sheet.AddChart(new ExcelChartData(new[] { "Jan", "Feb" },
-            new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d }) }),
-            row: 5, column: 4, type: ExcelChartType.ColumnClustered);
+        ExcelSheet sheet = source.AddSheet("Summary");
+        ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, new ExcelChartData(new[] { "Jan", "Feb" },
+            new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 5, Column = 4 });
         ExcelChartDataRange range = chart.DataRange!;
-        source[range.SheetName].Cell(range.SeriesStartRow, range.SeriesStartColumn, "not numeric");
+        source[range.SheetName].Cell(range.SeriesStartRow, range.SeriesStartColumn).SetValue("not numeric");
 
-        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> result = source.ConvertToOpenDocumentWithEvidence();
         Assert.Empty(result.Value.GetSheet("Summary")!.Charts);
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "charts" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
@@ -216,11 +213,11 @@ public sealed class ExcelOdsChartAuthoringTests {
         string dataSheet;
         try {
             using (ExcelDocument source = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = source.AddWorksheet("Summary");
-                ExcelChart chart = sheet.AddChart(new ExcelChartData(new[] { "Jan", "Feb" }, new[] {
+                ExcelSheet sheet = source.AddSheet("Summary");
+                ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, new ExcelChartData(new[] { "Jan", "Feb" }, new[] {
                     new ExcelChartSeries("Sales", new[] { 10d, 20d }),
                     new ExcelChartSeries("Trend", new[] { 12d, 22d })
-                }), row: 5, column: 4, type: ExcelChartType.ColumnClustered);
+                }), new OfficeIMO.Excel.ExcelChartOptions { Row = 5, Column = 4 });
                 dataSheet = chart.DataRange!.SheetName;
                 source.Save();
             }
@@ -238,7 +235,7 @@ public sealed class ExcelOdsChartAuthoringTests {
                 space.Save();
             }
             using ExcelDocument reloaded = ExcelDocument.Load(path);
-            OdfConversionResult<OdsDocument> result = reloaded.ToOpenDocumentResult();
+            OdfConversionResult<OdsDocument> result = reloaded.ConvertToOpenDocumentWithEvidence();
             Assert.Empty(result.Value.GetSheet("Summary")!.Charts);
             Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "charts" &&
                 mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
@@ -253,10 +250,9 @@ public sealed class ExcelOdsChartAuthoringTests {
         string dataSheet;
         try {
             using (ExcelDocument source = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = source.AddWorksheet("Summary");
-                ExcelChart sourceChart = sheet.AddChart(new ExcelChartData(new[] { "Jan", "Feb" },
-                    new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d }) }),
-                    row: 5, column: 4, type: ExcelChartType.ColumnClustered);
+                ExcelSheet sheet = source.AddSheet("Summary");
+                ExcelChart sourceChart = sheet.AddChart(OfficeChartType.ColumnClustered, new ExcelChartData(new[] { "Jan", "Feb" },
+                    new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 5, Column = 4 });
                 dataSheet = sourceChart.DataRange!.SheetName;
                 source.Save();
             }
@@ -270,7 +266,7 @@ public sealed class ExcelOdsChartAuthoringTests {
                 space.Save();
             }
             using ExcelDocument reloaded = ExcelDocument.Load(path);
-            OdsChart chart = Assert.Single(reloaded.ToOpenDocumentResult().Value.GetSheet("Summary")!.Charts);
+            OdsChart chart = Assert.Single(reloaded.ConvertToOpenDocumentWithEvidence().Value.GetSheet("Summary")!.Charts);
             SpreadsheetRangeReference address = SpreadsheetRangeReference.Parse(
                 chart.CategoriesAddress!, SpreadsheetAddressDialect.OpenDocument);
             Assert.Equal(dataSheet, address.Start.SheetName);

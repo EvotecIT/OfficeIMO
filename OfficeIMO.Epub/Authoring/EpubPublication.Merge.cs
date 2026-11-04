@@ -108,11 +108,20 @@ public sealed partial class EpubPublication {
         XAttribute[] originals = Root.DescendantsAndSelf().Attributes().ToArray(), proposed = package.Root!.DescendantsAndSelf().Attributes().ToArray();
         var packageEdits = new List<(XAttribute Attribute, string Value)>();
         var references = new HashSet<XAttribute>(PackageResourceReferences(package.Root));
+        var escapedRefinementTargets = refinementTargets.ToDictionary(pair => pair.Key,
+            pair => "#" + Uri.EscapeDataString(pair.Value), StringComparer.Ordinal);
+        long stagedPackageCharacters = 0;
         for (int index = 0; index < proposed.Length; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!references.Contains(proposed[index])) continue;
-            string value = RetargetMergePackageRefinement(proposed[index], refinementTargets)
+            string value = RetargetMergePackageRefinement(proposed[index], escapedRefinementTargets)
                 ?? RewriteMovedReference(PackagePath, null, PackagePath, null, proposed[index].Value, string.Empty, string.Empty, Map);
-            if (value != proposed[index].Value) { proposed[index].Value = value; packageEdits.Add((originals[index], value)); }
+            if (value != proposed[index].Value) {
+                if (value.Length > _maximumMetadataBytes - stagedPackageCharacters)
+                    throw new InvalidDataException("Merge package edits exceed the metadata limit.");
+                stagedPackageCharacters += value.Length;
+                proposed[index].Value = value; packageEdits.Add((originals[index], value));
+            }
         }
         if (retainedPositionId != null)
             package.Root.Element(Opf + "spine")!.Elements(Opf + "itemref").Single(item => (string?)item.Attribute("idref") == firstManifestId).SetAttributeValue("id", retainedPositionId);
@@ -136,7 +145,7 @@ public sealed partial class EpubPublication {
         foreach (var entry in selectorStyles.Entries) entries.Add(entry.Key, entry.Value);
         long delta = entries.Values.Sum(value => value.LongLength) - _retainedBytes;
         EnsurePackageBudget(package, delta);
-        ValidatePublication(package, entries, new List<OfficeConversionFidelityDiagnostic>(), cancellationToken, changed: true);
+        ValidatePublication(package, entries, new List<OfficeDiagnostic>(), cancellationToken, changed: true);
         EnsurePackageBudget(package, delta);
         cancellationToken.ThrowIfCancellationRequested();
         foreach (var edit in packageEdits) edit.Attribute.Value = edit.Value;

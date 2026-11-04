@@ -9,7 +9,7 @@ schema: 2.0.0
 Saves a project through the qualified native codec with loss protection.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
 Save-OfficeProject [-Path] <string> -Document <ProjectDocument> [-Format <ProjectFileFormat>] [-AllowLoss] [-Force] [-ReportVariable <string>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
@@ -32,7 +32,7 @@ Permit reported conversion loss. Unsupported codecs still fail.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -48,7 +48,7 @@ Project to inspect or change.
 
 ```yaml
 Type: ProjectDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -64,7 +64,7 @@ Replace an existing destination.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -80,7 +80,7 @@ Explicit generation or exchange format.
 
 ```yaml
 Type: ProjectFileFormat
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values: Automatic, Xml, Mpp14, Mpt14, Mpp12, Mpt12, Mpp9, Mpt9, Mpp8, Mpt8, Mpx4
 
@@ -96,7 +96,7 @@ Return the created or changed object.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -112,7 +112,7 @@ Destination filename; its extension selects the format.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -128,7 +128,7 @@ Variable receiving the preservation and conversion assessment.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 

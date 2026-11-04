@@ -6,7 +6,7 @@ namespace OfficeIMO.Drawing.Binary;
 /// <summary>
 /// Describes one property entry from an OfficeArt FOPT property table.
 /// </summary>
-public sealed class OfficeArtProperty {
+internal sealed class OfficeArtProperty {
     /// <summary>Creates an OfficeArt property entry.</summary>
     public OfficeArtProperty(int index, ushort rawOperationId, uint value,
         int? availableComplexDataLength = null, string? complexText = null,

@@ -2,7 +2,7 @@ name: GitHub Housekeeping
 
 on:
   schedule:
-    - cron: "17 */6 * * *"
+    - cron: "17 4 * * *"
   workflow_dispatch:
     inputs:
       apply:

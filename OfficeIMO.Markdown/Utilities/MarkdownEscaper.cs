@@ -6,7 +6,7 @@ using System.Text;
 /// <summary>
 /// Shared helper for escaping Markdown-reserved characters across inline renderers.
 /// </summary>
-public static partial class MarkdownEscaper {
+internal static partial class MarkdownEscaper {
     // Inline HTML is allowed in rendered Markdown (e.g., <u> for underline), so we intentionally
     // do not escape angle brackets here to preserve legitimate HTML passthroughs.
     // Allows: "Use <u>underline</u> for emphasis" -> "Use <u>underline</u> for emphasis"

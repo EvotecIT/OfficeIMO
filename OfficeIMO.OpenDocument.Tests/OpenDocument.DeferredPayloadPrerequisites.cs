@@ -99,10 +99,10 @@ public sealed class OpenDocumentDeferredPayloadPrerequisiteTests {
         byte[] expected = { 1, 3, 5, 7 };
         OdtDocument document = OdtDocument.Load(new MemoryStream(Package(expected)), new OdfLoadOptions { DeferBinaryPayloads = true });
         using OfficeEmbeddedPayloadInspection inspection = document.InspectEmbeddedPayloads();
-        document.Metadata.Title = "Edited"; document.AddParagraph("new text");
+        document.Properties.Title = "Edited"; document.AddParagraph("new text");
         byte[] saved = document.ToBytes();
         OdtDocument reopened = OdtDocument.Load(new MemoryStream(saved));
-        Assert.Equal("Edited", reopened.Metadata.Title); Assert.Equal(2, reopened.ContentBlocks.Count);
+        Assert.Equal("Edited", reopened.Properties.Title); Assert.Equal(2, reopened.ContentBlocks.Count);
         Assert.Equal(expected, reopened.GetPackageEntryBytes("Vendor/payload.bin"));
         using Stream payload = inspection.OpenRead(0); Assert.Equal(expected, Read(payload));
     }

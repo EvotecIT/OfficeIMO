@@ -26,7 +26,7 @@ internal sealed class PdfPrintColorTransform {
         _blackPreservationMode = blackPreservationMode;
     }
 
-    internal static PdfPrintColorTransform? Create(PdfOptions options) {
+    internal static PdfPrintColorTransform? Create(PdfCreateOptions options) {
         Guard.NotNull(options, nameof(options));
         if (!options.ConvertVectorColorsToPdfXPrintCondition &&
             !options.ConvertRasterImagesToPdfXPrintCondition) {
@@ -88,7 +88,7 @@ internal sealed class PdfPrintColorTransform {
             double red = double.Parse(match.Groups["red"].Value, NumberStyles.Float, CultureInfo.InvariantCulture);
             double green = double.Parse(match.Groups["green"].Value, NumberStyles.Float, CultureInfo.InvariantCulture);
             double blue = double.Parse(match.Groups["blue"].Value, NumberStyles.Float, CultureInfo.InvariantCulture);
-            Convert(new PdfColor(red, green, blue), out double cyan, out double magenta, out double yellow, out double black);
+            Convert(global::OfficeIMO.OfficeColor.FromNormalizedRgb(red, green, blue), out double cyan, out double magenta, out double yellow, out double black);
             return Format(cyan) + " " + Format(magenta) + " " + Format(yellow) + " " + Format(black) +
                 (match.Groups["operator"].Value == "rg" ? " k" : " K");
         });
@@ -140,8 +140,8 @@ internal sealed class PdfPrintColorTransform {
         }
     }
 
-    private void Convert(PdfColor color, out double cyan, out double magenta, out double yellow, out double black) {
-        bool isNeutral = NearlyEqual(color.R, color.G) && NearlyEqual(color.G, color.B);
+    private void Convert(global::OfficeIMO.OfficeColor color, out double cyan, out double magenta, out double yellow, out double black) {
+        bool isNeutral = NearlyEqual(color.ToNormalizedRgb().R, color.ToNormalizedRgb().G) && NearlyEqual(color.ToNormalizedRgb().G, color.ToNormalizedRgb().B);
         if (_blackPreservationMode == PdfBlackPreservationMode.NeutralAxis && isNeutral) {
             cyan = 0D;
             magenta = 0D;
@@ -149,7 +149,7 @@ internal sealed class PdfPrintColorTransform {
             black = GetProfileDerivedNeutralBlack(color);
             return;
         }
-        if (_blackPreservationMode == PdfBlackPreservationMode.PureBlack && isNeutral && NearlyEqual(color.R, 0D)) {
+        if (_blackPreservationMode == PdfBlackPreservationMode.PureBlack && isNeutral && NearlyEqual(color.ToNormalizedRgb().R, 0D)) {
             cyan = 0D;
             magenta = 0D;
             yellow = 0D;
@@ -157,7 +157,7 @@ internal sealed class PdfPrintColorTransform {
             return;
         }
 
-        if (!_profile.TryConvertToDevice(color.ToOfficeColor(), _renderingIntent, out double[] components) || components.Length != 4) {
+        if (!_profile.TryConvertToDevice(color, _renderingIntent, out double[] components) || components.Length != 4) {
             throw new InvalidOperationException("The configured PDF/X CMYK ICC profile could not convert a generated RGB color.");
         }
 
@@ -173,11 +173,11 @@ internal sealed class PdfPrintColorTransform {
             throw new ArgumentException("CMYK conversion destination must contain at least four components.", nameof(destination));
         }
 
-        Convert(PdfColor.FromOfficeColor(color), out destination[0], out destination[1], out destination[2], out destination[3]);
+        Convert(color, out destination[0], out destination[1], out destination[2], out destination[3]);
     }
 
-    private double GetProfileDerivedNeutralBlack(PdfColor color) {
-        OfficeColor officeColor = color.ToOfficeColor();
+    private double GetProfileDerivedNeutralBlack(global::OfficeIMO.OfficeColor color) {
+        OfficeColor officeColor = color;
         int level = officeColor.R;
         if (System.Threading.Volatile.Read(ref _neutralBlackCached[level])) return _neutralBlackCache[level];
         lock (_neutralBlackCacheLock) {

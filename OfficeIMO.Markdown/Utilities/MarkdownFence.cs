@@ -6,7 +6,7 @@ using System.Text;
 /// <summary>
 /// Helpers for reading markdown fenced-code boundaries and choosing non-colliding fences.
 /// </summary>
-public static class MarkdownFence {
+internal static class MarkdownFence {
     /// <summary>
     /// Tries to parse a fence run from a markdown line.
     /// </summary>

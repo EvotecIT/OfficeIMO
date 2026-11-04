@@ -22,12 +22,12 @@ namespace OfficeIMO.Excel.Tests {
                 + "<c r=\"F2\" t=\"str\"><v>2,75</v></c></row>", columns: 6,
                 multipleSheets: surface == "multiSheet");
             try {
-                var options = new ExcelReadOptions {
+                var options = new ExcelReaderOptions {
                     Culture = CultureInfo.GetCultureInfo("de-DE"),
                     NumericAsDecimal = numericAsDecimal
                 };
                 using (var owner = surface == "range" ? ExcelDocumentReader.Open(path, options) : null)
-                using (DbDataReader reader = owner == null ? ExcelDocument.OpenDataReader(path, options)
+                using (DbDataReader reader = owner == null ? ExcelDocument.OpenReader(path, options)
                     : (DbDataReader)owner.GetSheet("Data").ReadRangeAsDataReader("A1:F4097", schemaSampleRows: 0)) {
                     Assert.True(reader.Read());
                     AssertXmlNumericCultureValue(reader.GetValue(0), 1.5D, numericAsDecimal);
@@ -47,7 +47,7 @@ namespace OfficeIMO.Excel.Tests {
 
                 options.UseCachedFormulaResult = false;
                 using (var owner = surface == "range" ? ExcelDocumentReader.Open(path, options) : null)
-                using (DbDataReader reader = owner == null ? ExcelDocument.OpenDataReader(path, options)
+                using (DbDataReader reader = owner == null ? ExcelDocument.OpenReader(path, options)
                     : (DbDataReader)owner.GetSheet("Data").ReadRangeAsDataReader("A1:F4097", schemaSampleRows: 0)) {
                     Assert.True(reader.Read());
                     Assert.Equal("1+2.125", reader.GetString(2));
@@ -70,13 +70,13 @@ namespace OfficeIMO.Excel.Tests {
                 + "<c r=\"C2\"><f>2+0.75</f><v>2,75</v></c>"
                 + "<c r=\"D2\" t=\"inlineStr\"><is><t>1,23</t></is></c></row>", columns: 4);
             try {
-                var options = new ExcelReadOptions {
+                var options = new ExcelReaderOptions {
                     Culture = CultureInfo.GetCultureInfo("pl-PL"),
                     NumericAsDecimal = numericAsDecimal
                 };
                 if (decliningConverter) options.CellValueConverter = static _ => ExcelCellValue.NotHandled;
 
-                using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(path, options);
+                using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(path, options);
                 Assert.True(reader.Read());
                 AssertXmlNumericCultureValue(reader.GetValue(0), 1.23D, numericAsDecimal);
                 AssertXmlNumericCultureValue(reader.GetValue(1), 1.5D, numericAsDecimal);
@@ -97,7 +97,7 @@ namespace OfficeIMO.Excel.Tests {
                 + "<c r=\"D2\" t=\"inlineStr\"><is><t>1,5</t></is></c></row>", columns: 4);
             try {
                 var seenRawText = new List<string>();
-                using DbDataReader reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions {
+                using DbDataReader reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions {
                     Culture = CultureInfo.GetCultureInfo("de-DE"),
                     CellValueConverter = context => {
                         Assert.Equal("de-DE", context.Culture.Name);
@@ -137,8 +137,8 @@ namespace OfficeIMO.Excel.Tests {
                     + "<c r=\"E2\" t=\"inlineStr\"><is><t>indexed</t></is></c></row></sheetData></worksheet>";
                 ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(worksheet));
                 SetXmlNumericCultureDateStyle(path);
-                using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(path,
-                    new ExcelReadOptions { NumericAsDecimal = numericAsDecimal });
+                using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(path,
+                    new ExcelReaderOptions { NumericAsDecimal = numericAsDecimal });
                 Assert.True(reader.Read());
     #if NET8_0_OR_GREATER
                 Assert.True(reader.TryGetUtf8Text(4, out var borrowed));
@@ -162,7 +162,7 @@ namespace OfficeIMO.Excel.Tests {
                 + "<c r=\"B2\" s=\"1\"><f>1.23456789e100</f><v>1.23456789e100</v></c></row>", columns: 2);
             try {
                 SetXmlNumericCultureDateStyle(path);
-                using DbDataReader reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions {
+                using DbDataReader reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions {
                     NumericAsDecimal = true, MaxXmlDataReaderBufferedCharacters = 64
                 });
                 Assert.True(reader.Read());
@@ -194,7 +194,7 @@ namespace OfficeIMO.Excel.Tests {
                 + "<c r=\"F2\"><v>1.0</v></c></row>", columns: names.Length, headerCells: headers);
             try {
                 using ExcelDocumentReader owner = ExcelDocumentReader.Open(path,
-                    new ExcelReadOptions { Culture = CultureInfo.GetCultureInfo("de-DE") });
+                    new ExcelReaderOptions { Culture = CultureInfo.GetCultureInfo("de-DE") });
                 var sheet = owner.GetSheet("Data");
                 XmlNumericCultureBindingRow row = Assert.Single(streamed
                     ? sheet.ReadObjectsStream<XmlNumericCultureBindingRow>("A1:F2")

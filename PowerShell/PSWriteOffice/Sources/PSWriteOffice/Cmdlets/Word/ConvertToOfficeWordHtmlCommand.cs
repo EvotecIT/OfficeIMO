@@ -96,7 +96,7 @@ public sealed class ConvertToOfficeWordHtmlCommand : PSCmdlet {
                 throw new InvalidOperationException("Word document was not provided.");
             }
 
-            var options = new WordToHtmlOptions {
+            var options = new WordHtmlExportOptions {
                 IncludeFontStyles = IncludeFontStyles.IsPresent,
                 IncludeListStyles = IncludeListStyles.IsPresent,
                 IncludeParagraphClasses = IncludeParagraphClasses.IsPresent,

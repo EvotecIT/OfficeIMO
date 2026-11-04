@@ -86,9 +86,9 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static void ApplyDataLabelTextStyle(OpenXmlCompositeElement labels, double? fontSizePoints, bool? bold,
+        private static void ApplyDataLabelTextStyle(OpenXmlCompositeElement labels, OfficeLength? fontSize, bool? bold,
             bool? italic, string? color, string? fontName) {
-            ApplyTextStyle(EnsureTextPropertiesRunProperties(labels), fontSizePoints, bold, italic, color, fontName);
+            ApplyTextStyle(EnsureTextPropertiesRunProperties(labels), fontSize, bold, italic, color, fontName);
             if (labels is C.DataLabels dataLabels) {
                 NormalizeDataLabelsOrder(dataLabels);
             } else if (labels is C.DataLabel dataLabel) {
@@ -97,7 +97,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void ApplyDataLabelShapeStyle(OpenXmlCompositeElement labels, string? fillColor, string? lineColor,
-            double? lineWidthPoints, bool noFill, bool noLine) {
+            OfficeLength? lineWidth, bool noFill, bool noLine) {
             C.ChartShapeProperties props = EnsureDataLabelShapeProperties(labels);
             if (noFill) {
                 ApplyNoFill(props);
@@ -107,8 +107,8 @@ namespace OfficeIMO.PowerPoint {
 
             if (noLine) {
                 ApplyNoLine(props);
-            } else if (lineColor != null || lineWidthPoints != null) {
-                ApplyOptionalLine(props, lineColor, lineWidthPoints);
+            } else if (lineColor != null || lineWidth != null) {
+                ApplyOptionalLine(props, lineColor, lineWidth);
             }
 
             if (labels is C.DataLabels dataLabels) {
@@ -119,16 +119,16 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void ApplyDataLabelLeaderLines(C.DataLabels labels, bool showLeaderLines, string? lineColor,
-            double? lineWidthPoints) {
+            OfficeLength? lineWidth) {
             ReplaceChild(labels, new C.ShowLeaderLines { Val = showLeaderLines });
 
-            if (showLeaderLines || lineColor != null || lineWidthPoints != null) {
+            if (showLeaderLines || lineColor != null || lineWidth != null) {
                 C.LeaderLines leaderLines = labels.GetFirstChild<C.LeaderLines>() ?? new C.LeaderLines();
                 C.ChartShapeProperties props = leaderLines.GetFirstChild<C.ChartShapeProperties>() ?? new C.ChartShapeProperties();
-                if (lineColor != null || lineWidthPoints != null) {
-                    ApplyOptionalLine(props, lineColor, lineWidthPoints);
+                if (lineColor != null || lineWidth != null) {
+                    ApplyOptionalLine(props, lineColor, lineWidth);
                 }
-                if ((lineColor != null || lineWidthPoints != null) && props.Parent == null) {
+                if ((lineColor != null || lineWidth != null) && props.Parent == null) {
                     leaderLines.Append(props);
                 }
                 if (leaderLines.Parent == null) {
@@ -174,7 +174,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void ApplyDataLabelTemplate(C.DataLabels labels, PowerPointChartDataLabelTemplate template) {
-            bool applyTextStyle = template.FontSizePoints != null
+            bool applyTextStyle = template.FontSize != null
                 || template.Bold != null
                 || template.Italic != null
                 || template.TextColor != null
@@ -183,20 +183,20 @@ namespace OfficeIMO.PowerPoint {
                 || template.NoLine
                 || template.FillColor != null
                 || template.LineColor != null
-                || template.LineWidthPoints != null;
+                || template.LineWidth != null;
             bool applyLeaderLines = template.ShowLeaderLines != null
                 || template.LeaderLineColor != null
-                || template.LeaderLineWidthPoints != null;
+                || template.LeaderLineWidth != null;
 
             if (applyTextStyle) {
-                ValidateTextStyle(template.FontSizePoints, template.TextColor, template.FontName);
+                ValidateTextStyle(template.FontSize, template.TextColor, template.FontName);
             }
             if (applyShapeStyle) {
-                ValidateAreaStyle(template.FillColor, template.LineColor, template.LineWidthPoints,
+                ValidateAreaStyle(template.FillColor, template.LineColor, template.LineWidth,
                     template.NoFill, template.NoLine);
             }
             if (applyLeaderLines) {
-                ValidateDataLabelLeaderLines(template.LeaderLineColor, template.LeaderLineWidthPoints);
+                ValidateDataLabelLeaderLines(template.LeaderLineColor, template.LeaderLineWidth);
             }
 
             ApplyDataLabelOverrides(labels, template.ShowLegendKey, template.ShowValue, template.ShowCategoryName,
@@ -207,22 +207,22 @@ namespace OfficeIMO.PowerPoint {
                 ApplyDataLabelSeparator(labels, template.Separator);
             }
             if (applyTextStyle) {
-                ApplyDataLabelTextStyle(labels, template.FontSizePoints, template.Bold, template.Italic,
+                ApplyDataLabelTextStyle(labels, template.FontSize, template.Bold, template.Italic,
                     template.TextColor, template.FontName);
             }
             if (applyShapeStyle) {
-                ApplyDataLabelShapeStyle(labels, template.FillColor, template.LineColor, template.LineWidthPoints,
+                ApplyDataLabelShapeStyle(labels, template.FillColor, template.LineColor, template.LineWidth,
                     template.NoFill, template.NoLine);
             }
             if (applyLeaderLines) {
                 bool showLeaderLines = template.ShowLeaderLines ?? true;
                 ApplyDataLabelLeaderLines(labels, showLeaderLines, template.LeaderLineColor,
-                    template.LeaderLineWidthPoints);
+                    template.LeaderLineWidth);
             }
         }
 
         private static void ApplyDataLabelTemplate(C.DataLabel label, PowerPointChartDataLabelTemplate template) {
-            bool applyTextStyle = template.FontSizePoints != null
+            bool applyTextStyle = template.FontSize != null
                 || template.Bold != null
                 || template.Italic != null
                 || template.TextColor != null
@@ -231,7 +231,7 @@ namespace OfficeIMO.PowerPoint {
                 || template.NoLine
                 || template.FillColor != null
                 || template.LineColor != null
-                || template.LineWidthPoints != null;
+                || template.LineWidth != null;
 
             if (template.NumberFormat != null && string.IsNullOrWhiteSpace(template.NumberFormat)) {
                 throw new ArgumentException("Number format cannot be empty.", nameof(template.NumberFormat));
@@ -240,10 +240,10 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentException("Separator cannot be empty.", nameof(template.Separator));
             }
             if (applyTextStyle) {
-                ValidateTextStyle(template.FontSizePoints, template.TextColor, template.FontName);
+                ValidateTextStyle(template.FontSize, template.TextColor, template.FontName);
             }
             if (applyShapeStyle) {
-                ValidateAreaStyle(template.FillColor, template.LineColor, template.LineWidthPoints,
+                ValidateAreaStyle(template.FillColor, template.LineColor, template.LineWidth,
                     template.NoFill, template.NoLine);
             }
 
@@ -255,11 +255,11 @@ namespace OfficeIMO.PowerPoint {
                 ApplyDataLabelSeparator(label, template.Separator);
             }
             if (applyTextStyle) {
-                ApplyDataLabelTextStyle(label, template.FontSizePoints, template.Bold, template.Italic,
+                ApplyDataLabelTextStyle(label, template.FontSize, template.Bold, template.Italic,
                     template.TextColor, template.FontName);
             }
             if (applyShapeStyle) {
-                ApplyDataLabelShapeStyle(label, template.FillColor, template.LineColor, template.LineWidthPoints,
+                ApplyDataLabelShapeStyle(label, template.FillColor, template.LineColor, template.LineWidth,
                     template.NoFill, template.NoLine);
             }
         }
@@ -268,14 +268,14 @@ namespace OfficeIMO.PowerPoint {
             PowerPointChartDataLabelTemplate template) {
             bool applyLeaderLines = template.ShowLeaderLines == true
                 || template.LeaderLineColor != null
-                || template.LeaderLineWidthPoints != null;
+                || template.LeaderLineWidth != null;
             if (!applyLeaderLines) {
                 return;
             }
 
-            ValidateDataLabelLeaderLines(template.LeaderLineColor, template.LeaderLineWidthPoints);
+            ValidateDataLabelLeaderLines(template.LeaderLineColor, template.LeaderLineWidth);
             ApplyDataLabelLeaderLines(EnsureDataLabels(series), template.ShowLeaderLines ?? true,
-                template.LeaderLineColor, template.LeaderLineWidthPoints);
+                template.LeaderLineColor, template.LeaderLineWidth);
         }
 
         private static C.DataLabels EnsureDataLabels(OpenXmlCompositeElement chartElement) {

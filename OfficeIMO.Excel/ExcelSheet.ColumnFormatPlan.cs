@@ -14,7 +14,7 @@ namespace OfficeIMO.Excel {
             bool includeHeader = false,
             bool autoFit = false,
             int? headerRow = null,
-            ExcelReadOptions? options = null) {
+            ExcelReaderOptions? options = null) {
             if (plan == null) throw new ArgumentNullException(nameof(plan));
             if (headerRow.HasValue && headerRow.Value <= 0) throw new ArgumentOutOfRangeException(nameof(headerRow), "Header row must be 1 or greater.");
 
@@ -66,7 +66,7 @@ namespace OfficeIMO.Excel {
             ExcelColumnFormatRule rule,
             bool includeHeader,
             int? headerRow,
-            ExcelReadOptions? options,
+            ExcelReaderOptions? options,
             out int columnIndex,
             out bool directCandidateMatched,
             out bool directCandidateAvailable) {
@@ -91,14 +91,14 @@ namespace OfficeIMO.Excel {
                 : TryGetColumnIndexByHeader(rule.Header, out columnIndex, options);
         }
 
-        private bool TryGetColumnIndexByHeaderRow(string header, int headerRow, out int columnIndex, ExcelReadOptions? options) {
+        private bool TryGetColumnIndexByHeaderRow(string header, int headerRow, out int columnIndex, ExcelReaderOptions? options) {
             columnIndex = 0;
             if (string.IsNullOrWhiteSpace(header)) {
                 return false;
             }
 
             string usedRange = GetUsedRangeA1();
-            var (_, firstColumn, _, lastColumn) = A1.ParseRange(usedRange);
+            var (_, firstColumn, _, lastColumn) = ExcelA1.ParseRange(usedRange);
             int columnCount = lastColumn - firstColumn + 1;
             if (columnCount <= 0) {
                 return false;
@@ -136,7 +136,7 @@ namespace OfficeIMO.Excel {
 
         private void ApplyColumnNumberFormat(int columnIndex, int? headerRow, bool includeHeader, string numberFormat) {
             string usedRange = GetUsedRangeA1();
-            var (usedStartRow, _, usedEndRow, _) = A1.ParseRange(usedRange);
+            var (usedStartRow, _, usedEndRow, _) = ExcelA1.ParseRange(usedRange);
             int startRow = headerRow.HasValue
                 ? (includeHeader ? headerRow.Value : headerRow.Value + 1)
                 : (includeHeader ? usedStartRow : usedStartRow + 1);
@@ -144,7 +144,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            string column = A1.ColumnIndexToLetters(columnIndex);
+            string column = ExcelA1.ColumnIndexToLetters(columnIndex);
             FormatRange(
                 column + startRow.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" +
                 column + usedEndRow.ToString(System.Globalization.CultureInfo.InvariantCulture),

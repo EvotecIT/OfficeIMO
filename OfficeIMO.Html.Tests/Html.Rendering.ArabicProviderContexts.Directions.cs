@@ -27,7 +27,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(glyphs, item => item.Glyph.UnicodeText == "("
             && item.Direction == OfficeTextDirection.RightToLeft
             && item.Glyph.GlyphId == provider.GlyphId(')'));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -46,6 +46,6 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(20D, runs.Sum(run => run.TextAdvanceWidth!.Value), 6);
         Assert.All(runs, run => Assert.NotNull(run.PreparedShaping));
         Assert.NotEmpty(DecorationLines(rendered));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 }

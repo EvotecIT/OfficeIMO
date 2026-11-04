@@ -14,10 +14,10 @@ internal static class CandidateMasterContent {
         document.AddPage(master.Id);
         document.AddPage(master.Id);
         Shape(master.Id, 36, 72, 240, 96, OfficeColor.Red);
-        PublisherPicture logo = document.AddPicture(master.Id, image, 72, 72, 96, 96);
+        PublisherPicture logo = document.AddImage(master.Id, image, 72, 72, 96, 96);
         Text(master.Id, "Master: shared content", 36, 72, 18);
         Shape(document.Pages[0].Id, 36, 84, 240, 12, OfficeColor.Blue);
-        document.AddPicture(document.Pages[2].Id, logo.ImageId!.Value, 180, 72, 96, 96);
+        document.AddImage(document.Pages[2].Id, logo.ImageId!.Value, 180, 72, 96, 96);
         Shape(document.Pages[2].Id, 36, 108, 240, 12, OfficeColor.FromRgb(0, 128, 0));
         Text(document.Pages[2].Id, "Page foreground", 36, 180, 12);
         return document;

@@ -1,0 +1,20 @@
+{
+  "package": "OfficeIMO.AI",
+  "status": "Consumer changes required by M2 Phase A validation.",
+  "changes": [],
+  "extraChanges": [
+    {
+      "subject": "Modern trimming analysis of JSON transport",
+      "note": "Named internal source-generated transport records replace anonymous reflection serialization for snapshot fingerprints, review artifacts, planning and synthesis. JSON property order, casing, enum representations and omission behavior remain unchanged. JsonArray additions select the non-generic JsonNode overload. Required by enabled modern analyzers; no new runtime dependency.",
+      "status": "compiled-modern-awaiting-tests"
+    }
+  ],
+  "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
+  "authority": "Docs/officeimo.api-design.md, including the c526a10ad2 framework decision; the approved design overrides M0 open questions.",
+  "questionResolutions": {
+    "conversionForms": "Source.ToTarget, source.SaveAsTarget and OfficeConversionReport; async ToTarget returns OfficeConversionResult<T>. ToHtml returns string. No static From factories.",
+    "frameworks": "No framework is dropped in 3.6. Original library TFMs and Windows net472 conditions remain; the front door and both Workflows projects support the full set. Modern-only engines stay conditional.",
+    "packageDirection": "Word.Pdf and PowerPoint.Pdf export native documents. Reverse reconstruction is Pdf.Word and Pdf.PowerPoint; Excel reconstruction is Pdf.Excel. Word page images live in Word.Pdf.",
+    "surface": "Markdown syntax nodes are exempt from the format prefix. OfficeColor/OfficeColorRole use the root OfficeIMO namespace. Authoring, units, image-builder consolidation, visibility baselines and AOT smoke acceptance are Phase B."
+  }
+}

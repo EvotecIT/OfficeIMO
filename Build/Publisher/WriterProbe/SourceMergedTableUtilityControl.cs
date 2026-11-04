@@ -80,5 +80,5 @@ internal static class SourceMergedTableUtilityControl {
     }
     private static string Hash(byte[] bytes, PublisherEscherRecord record) => NativeInventory.Hash(bytes.AsSpan(record.Offset - 8, record.Length + 8).ToArray());
     private static PublisherEscherReader Reader(byte[] bytes) => new(new PublisherBinaryData(bytes, "Escher/EscherStm"), null,
-        new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None));
+        new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None));
 }

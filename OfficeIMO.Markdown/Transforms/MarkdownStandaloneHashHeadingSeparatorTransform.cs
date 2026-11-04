@@ -10,15 +10,15 @@ namespace OfficeIMO.Markdown;
 /// </remarks>
 /// <example>
 /// <code>
-/// var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+/// var options = MarkdownLoadOptions.CreateOfficeIMOProfile();
 /// options.DocumentTransforms.Add(new MarkdownStandaloneHashHeadingSeparatorTransform());
 ///
-/// var document = MarkdownReader.Parse("#\n## Result", options);
+/// var document = MarkdownDocument.Parse("#\n## Result", options);
 /// </code>
 /// </example>
 public sealed class MarkdownStandaloneHashHeadingSeparatorTransform : IMarkdownDocumentTransform {
     /// <inheritdoc />
-    public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+    public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }

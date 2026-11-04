@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Collects shared PDF conversion warnings from one adapter run.
 /// </summary>
-public sealed class PdfConversionReport : IOfficeConversionReport {
+public sealed class PdfConversionReport : OfficeConversionReport {
     private readonly List<PdfConversionWarning> _warnings = new();
     private readonly List<PdfConversionReport> _linkedReports = new();
     private readonly IReadOnlyList<PdfConversionWarning> _readOnlyWarnings;
@@ -62,10 +62,11 @@ public sealed class PdfConversionReport : IOfficeConversionReport {
     public bool HasErrors => Warnings.Any(static warning => warning.Severity == PdfConversionWarningSeverity.Error);
 
     /// <summary>True when conversion reported an approximation, omission, failure, or unassessed fidelity.</summary>
-    public bool HasLoss => Warnings.Any(static warning => warning.LossKind != OfficeConversionLossKind.None);
+    public override bool HasLoss => Warnings.Any(static warning => warning.LossKind != OfficeConversionLossKind.None);
 
     /// <summary>Gets category-preserving diagnostics for composed conversion routes.</summary>
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => Array.AsReadOnly(
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics => Array.AsReadOnly(
         Warnings.Select(static warning => warning.ToFidelityDiagnostic()).ToArray());
 
     /// <summary>
@@ -109,24 +110,7 @@ public sealed class PdfConversionReport : IOfficeConversionReport {
         return this;
     }
 
-    /// <summary>
-    /// Throws when conversion reported an approximation, omission, failure, or unassessed fidelity.
-    /// Informational diagnostics with no fidelity loss are allowed.
-    /// </summary>
-    public PdfConversionReport RequireNoLoss() {
-        PdfConversionWarning[] lossWarnings = Warnings
-            .Where(static warning => warning.LossKind != OfficeConversionLossKind.None)
-            .ToArray();
-        if (lossWarnings.Length > 0) {
-            throw new InvalidOperationException(CreateFailureMessage("PDF conversion reported possible content loss.", lossWarnings));
-        }
 
-        return this;
-    }
-
-    void IOfficeConversionReport.RequireNoLoss() {
-        RequireNoLoss();
-    }
 
     /// <summary>
     /// Throws when the report contains error-severity conversion warnings; otherwise returns the current report for fluent checks.
@@ -157,6 +141,7 @@ public sealed class PdfConversionReport : IOfficeConversionReport {
         Guard.NotNull(warning, nameof(warning));
         EnsureMutable();
         _warnings.Add(warning);
+        PdfOutputDiagnosticScope.Capture(this, warning);
     }
 
     /// <summary>Adds all warnings from another report.</summary>
@@ -169,7 +154,7 @@ public sealed class PdfConversionReport : IOfficeConversionReport {
     }
 
     /// <summary>Adds shared text encoding diagnostics as conversion warnings.</summary>
-    public void AddTextDiagnostics(IEnumerable<PdfTextEncodingDiagnostic> diagnostics, string converter = "OfficeIMO.Pdf") {
+    internal void AddTextDiagnostics(IEnumerable<PdfTextEncodingDiagnostic> diagnostics, string converter = "OfficeIMO.Pdf") {
         Guard.NotNull(diagnostics, nameof(diagnostics));
         foreach (PdfTextEncodingDiagnostic diagnostic in diagnostics) {
             Add(diagnostic.ToConversionWarning(converter));
@@ -177,13 +162,13 @@ public sealed class PdfConversionReport : IOfficeConversionReport {
     }
 
     /// <summary>Adds missing-glyph diagnostics from an embedded-font fallback plan as conversion warnings.</summary>
-    public void AddTextFallbackPlanDiagnostics(PdfTextFallbackPlan plan, string converter = "OfficeIMO.Pdf") {
+    internal void AddTextFallbackPlanDiagnostics(PdfTextFallbackPlan plan, string converter = "OfficeIMO.Pdf") {
         Guard.NotNull(plan, nameof(plan));
         AddTextDiagnostics(plan.Diagnostics, converter);
     }
 
     /// <summary>Adds shared text shaping diagnostics as conversion warnings.</summary>
-    public void AddTextShapingDiagnostics(IEnumerable<PdfTextShapingDiagnostic> diagnostics, string converter = "OfficeIMO.Pdf") {
+    internal void AddTextShapingDiagnostics(IEnumerable<PdfTextShapingDiagnostic> diagnostics, string converter = "OfficeIMO.Pdf") {
         Guard.NotNull(diagnostics, nameof(diagnostics));
         foreach (PdfTextShapingDiagnostic diagnostic in diagnostics) {
             Add(diagnostic.ToConversionWarning(converter));
@@ -191,7 +176,7 @@ public sealed class PdfConversionReport : IOfficeConversionReport {
     }
 
     /// <summary>Adds shared embedded-font diagnostics as conversion warnings.</summary>
-    public void AddFontDiagnostics(IEnumerable<PdfFontEmbeddingDiagnostic> diagnostics, string converter = "OfficeIMO.Pdf") {
+    internal void AddFontDiagnostics(IEnumerable<PdfFontEmbeddingDiagnostic> diagnostics, string converter = "OfficeIMO.Pdf") {
         Guard.NotNull(diagnostics, nameof(diagnostics));
         foreach (PdfFontEmbeddingDiagnostic diagnostic in diagnostics) {
             Add(diagnostic.ToConversionWarning(converter));
@@ -237,7 +222,7 @@ public sealed class PdfConversionReport : IOfficeConversionReport {
     private static bool IsDeclaredSubstitutionWarning(PdfConversionWarning warning) =>
         warning.Code.EndsWith("FontFamilySubstituted", StringComparison.OrdinalIgnoreCase) ||
         warning.Code.EndsWith("FontSubstitution", StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(warning.Code, "NativeFontFamilySlotExhausted", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(warning.Code, "native-font-family-slot-exhausted", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(warning.Code, "font-family-substitution", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(warning.Code, "unsupported-font-ligature-substitution", StringComparison.OrdinalIgnoreCase);
 }

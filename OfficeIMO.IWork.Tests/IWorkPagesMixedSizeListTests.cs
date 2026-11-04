@@ -64,7 +64,7 @@ public sealed class IWorkPagesMixedSizeListTests {
 
     internal static void CheckWord(IWorkSourceDocument source) {
         var items = source.ReadPages().Body.Paragraphs.Where(item => item.ListNumber.HasValue).ToArray();
-        using var result = source.ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = source.ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream();
         result.Value.Save(output);

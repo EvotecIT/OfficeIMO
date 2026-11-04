@@ -3,7 +3,7 @@ using System.IO;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Fluent;
 using OfficeIMO.Drawing;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Examples.Visio {
     /// <summary>
@@ -17,9 +17,9 @@ namespace OfficeIMO.Examples.Visio {
             VisioDocument document = VisioDocument.Create(filePath);
             document.AsFluent()
                 .Info(info => info.Title("Basic Visio").Author("OfficeIMO"))
-                .Page("Page-1", 8.5, 11, VisioMeasurementUnit.Inches, p => p
-                    .Rect("start", 2, 2, 2, 1, "Rectangle")
-                    .Shape("start", s => s
+                .AddPage("Page-1", OfficeLength.Inches(8.5), OfficeLength.Inches(11), VisioMeasurementUnit.Inches, configure: p => p
+                    .AddRectangle("start", OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(1), "Rectangle")
+                    .GetShape("start", s => s
                         .Fill(Color.LightBlue)
                         .Stroke(Color.DarkBlue, 0.02)
                         .Font("Aptos")

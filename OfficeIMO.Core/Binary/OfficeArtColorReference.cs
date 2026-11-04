@@ -3,7 +3,7 @@ using System;
 namespace OfficeIMO.Drawing.Binary;
 
 /// <summary>Represents the packed OfficeArtCOLORREF value defined by MS-ODRAW.</summary>
-public readonly struct OfficeArtColorReference : IEquatable<OfficeArtColorReference> {
+internal readonly struct OfficeArtColorReference : IEquatable<OfficeArtColorReference> {
     /// <summary>Creates a color reference from its packed 32-bit value.</summary>
     public OfficeArtColorReference(uint value) => Value = value;
 

@@ -6,8 +6,8 @@ namespace OfficeIMO.Tests.MarkdownSuite {
     public class Markdown_BaseUri_Tests {
         [Fact]
         public void BaseUri_ResolvesRelativeLinks() {
-            var options = new MarkdownReaderOptions { BaseUri = "https://docs.example.com/articles/" };
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse("See [Guide](getting-started/index.html).", options);
+            var options = new MarkdownLoadOptions { BaseUri = "https://docs.example.com/articles/" };
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse("See [Guide](getting-started/index.html).", options);
 
             var paragraph = Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
             var link = Assert.Single(paragraph.Inlines.Nodes.OfType<LinkInline>());
@@ -16,8 +16,8 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void BaseUri_ResolvesRelativeImages() {
-            var options = new MarkdownReaderOptions { BaseUri = "https://cdn.example.com/static/" };
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse("![Logo](images/logo.png)", options);
+            var options = new MarkdownLoadOptions { BaseUri = "https://cdn.example.com/static/" };
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse("![Logo](images/logo.png)", options);
 
             var image = Assert.IsType<ImageBlock>(doc.Blocks[0]);
             Assert.Equal("https://cdn.example.com/static/images/logo.png", image.Path);
@@ -30,8 +30,8 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                 "",
                 "[docs]: ./guide/index.html \"Docs\""
             });
-            var options = new MarkdownReaderOptions { BaseUri = "https://docs.example.com/" };
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, options);
+            var options = new MarkdownLoadOptions { BaseUri = "https://docs.example.com/" };
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md, options);
 
             var paragraph = Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
             var link = Assert.Single(paragraph.Inlines.Nodes.OfType<LinkInline>());
@@ -40,8 +40,8 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void BaseUri_SkipsAbsoluteUrls() {
-            var options = new MarkdownReaderOptions { BaseUri = "https://docs.example.com/base/" };
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Visit [Site](https://example.net/x) and [Cdn](//cdn.example.net/app.js) and [Mail](mailto:hello@example.net) and [Fragment](#intro).", options);
+            var options = new MarkdownLoadOptions { BaseUri = "https://docs.example.com/base/" };
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse("Visit [Site](https://example.net/x) and [Cdn](//cdn.example.net/app.js) and [Mail](mailto:hello@example.net) and [Fragment](#intro).", options);
 
             var urls = doc.Blocks
                 .OfType<ParagraphBlock>()
@@ -57,8 +57,8 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void BaseUri_SkipsDataUrls() {
-            var options = new MarkdownReaderOptions { BaseUri = "https://assets.example.com/" };
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse("![Inline](data:image/png;base64,AAA)", options);
+            var options = new MarkdownLoadOptions { BaseUri = "https://assets.example.com/" };
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse("![Inline](data:image/png;base64,AAA)", options);
 
             var image = Assert.IsType<ImageBlock>(doc.Blocks[0]);
             Assert.Equal("data:image/png;base64,AAA", image.Path);
@@ -66,8 +66,8 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void BaseUri_AllowsEmptyHref() {
-            var options = new MarkdownReaderOptions { BaseUri = "https://docs.example.com/base/" };
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse("[Empty]()", options);
+            var options = new MarkdownLoadOptions { BaseUri = "https://docs.example.com/base/" };
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse("[Empty]()", options);
 
             var paragraph = Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
             var link = Assert.Single(paragraph.Inlines.Nodes.OfType<LinkInline>());
@@ -76,8 +76,8 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void BaseUri_BlocksFileScheme() {
-            var options = new MarkdownReaderOptions { BaseUri = "file:///tmp/" };
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse("![Pic](images/photo.png)", options);
+            var options = new MarkdownLoadOptions { BaseUri = "file:///tmp/" };
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse("![Pic](images/photo.png)", options);
 
             var image = Assert.IsType<ImageBlock>(doc.Blocks[0]);
             // file:// base should be ignored, leaving relative path untouched
@@ -86,8 +86,8 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void BaseUri_HandlesInvalidUris() {
-            var options = new MarkdownReaderOptions { BaseUri = "http://exa mple.com" }; // invalid base should be ignored
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse("![Photo](images/photo.png)", options);
+            var options = new MarkdownLoadOptions { BaseUri = "http://exa mple.com" }; // invalid base should be ignored
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse("![Photo](images/photo.png)", options);
 
             var image = Assert.IsType<ImageBlock>(doc.Blocks[0]);
             Assert.Equal("images/photo.png", image.Path);

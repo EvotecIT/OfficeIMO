@@ -13,6 +13,7 @@ internal sealed class PdfObjectGraphFingerprint : IDisposable {
     private readonly Dictionary<(int ObjectNumber, int Generation), int> _references = new();
     private readonly IReadOnlyDictionary<int, string>? _stableReferenceLabels;
     private readonly Func<string, bool>? _includeDictionaryKey;
+    private readonly Func<PdfDictionary, string, bool>? _includeDictionaryEntry;
     private readonly bool _preserveUnresolvedReferenceIdentity;
     private readonly int _maximumDepth;
     private readonly int _maximumNodes;
@@ -28,6 +29,7 @@ internal sealed class PdfObjectGraphFingerprint : IDisposable {
         IReadOnlyDictionary<int, string>? stableReferenceLabels = null,
         Func<string, bool>? includeDictionaryKey = null,
         bool preserveUnresolvedReferenceIdentity = false,
+        Func<PdfDictionary, string, bool>? includeDictionaryEntry = null,
         CancellationToken cancellationToken = default) {
         _objects = objects;
         _maximumDepth = maximumDepth;
@@ -35,6 +37,7 @@ internal sealed class PdfObjectGraphFingerprint : IDisposable {
         _cancellationToken = cancellationToken;
         _stableReferenceLabels = stableReferenceLabels;
         _includeDictionaryKey = includeDictionaryKey;
+        _includeDictionaryEntry = includeDictionaryEntry;
         _preserveUnresolvedReferenceIdentity = preserveUnresolvedReferenceIdentity;
     }
 
@@ -130,14 +133,14 @@ internal sealed class PdfObjectGraphFingerprint : IDisposable {
         int includedCount = 0;
         foreach (string key in dictionary.Items.Keys) {
             _cancellationToken.ThrowIfCancellationRequested();
-            if (_includeDictionaryKey == null || _includeDictionaryKey(key)) includedCount++;
+            if ((_includeDictionaryKey == null || _includeDictionaryKey(key)) && (_includeDictionaryEntry == null || _includeDictionaryEntry(dictionary, key))) includedCount++;
         }
         if (includedCount > _maximumNodes - _nodes) {
             throw new InvalidDataException("PDF rendering identity exceeded its bounded object graph.");
         }
         AppendInt32(includedCount);
         foreach (KeyValuePair<string, PdfObject> item in dictionary.Items.OrderBy(static item => item.Key, StringComparer.Ordinal)) {
-            if (_includeDictionaryKey != null && !_includeDictionaryKey(item.Key)) continue;
+            if (_includeDictionaryKey != null && !_includeDictionaryKey(item.Key) || _includeDictionaryEntry != null && !_includeDictionaryEntry(dictionary, item.Key)) continue;
             AppendString(item.Key);
             AppendObject(item.Value, depth + 1);
         }

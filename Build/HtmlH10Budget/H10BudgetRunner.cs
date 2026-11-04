@@ -293,7 +293,7 @@ internal static class H10BudgetRunner {
 
     private static string FindRepositoryRoot() {
         for (DirectoryInfo? directory = new(Directory.GetCurrentDirectory()); directory != null; directory = directory.Parent)
-            if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.sln"))) return directory.FullName;
+            if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.slnx"))) return directory.FullName;
         throw new DirectoryNotFoundException("OfficeIMO repository root was not found.");
     }
 

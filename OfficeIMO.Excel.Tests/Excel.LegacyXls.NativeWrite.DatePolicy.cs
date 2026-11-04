@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksInvalidOpenXmlDateCellsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("date value 'not-a-date'", (document, sheet) => {
-                sheet.CellValue(1, 1, "not-a-date");
+                sheet.Cell(1, 1).SetValue("not-a-date");
                 SetOpenXmlDateCell(sheet, "A1", "not-a-date");
             });
         }
@@ -21,8 +21,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksInvalidOpenXmlFormulaCachedDatesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("cached date result 'not-a-date'", (document, sheet) => {
-                sheet.CellValue(1, 1, 1d);
-                sheet.CellFormula(2, 1, "A1+1");
+                sheet.Cell(1, 1).SetValue(1d);
+                sheet.Cell(2, 1).SetFormula("A1+1");
 
                 OpenXmlCell cell = sheet.WorksheetPart.Worksheet.Descendants<OpenXmlCell>()
                     .Single(item => string.Equals(item.CellReference?.Value, "A2", StringComparison.OrdinalIgnoreCase));
@@ -38,9 +38,9 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("FormulaDates");
-                    sheet.CellValue(1, 1, "2026-01-02T00:00:00");
-                    sheet.CellFormula(1, 1, "DATE(2026,1,2)");
+                    ExcelSheet sheet = document.AddSheet("FormulaDates");
+                    sheet.Cell(1, 1).SetValue("2026-01-02T00:00:00");
+                    sheet.Cell(1, 1).SetFormula("DATE(2026,1,2)");
 
                     OpenXmlCell cell = sheet.WorksheetPart.Worksheet.Descendants<OpenXmlCell>()
                         .Single(item => string.Equals(item.CellReference?.Value, "A1", StringComparison.OrdinalIgnoreCase));

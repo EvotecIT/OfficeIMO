@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes decoded BopPop chart group options preserved from a BIFF chart stream.
     /// </summary>
-    public sealed class LegacyXlsChartBopPopOptions {
+    internal sealed class LegacyXlsChartBopPopOptions {
         internal LegacyXlsChartBopPopOptions(byte subtype, bool automaticSplit, ushort split, short splitPosition, short splitPercent, short secondaryPieSizePercent, short gapPercent, double splitValue, ushort flags) {
             Subtype = subtype;
             AutomaticSplit = automaticSplit;

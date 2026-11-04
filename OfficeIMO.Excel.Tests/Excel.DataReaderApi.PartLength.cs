@@ -74,13 +74,14 @@ public partial class Excel {
             File.WriteAllBytes(path, bytes);
 
             Exception? error = Record.Exception(() => {
-                var options = new ExcelReadOptions { EnableWorksheetPrefetch = prefetch };
+                var options = new ExcelReaderOptions { EnableWorksheetPrefetch = prefetch };
                 if (sdkReader) {
                     using var document = ExcelDocumentReader.Open(path, options);
                     using var reader = document.GetSheet("Data").ReadUsedRangeAsDataReader();
                     while (reader.Read()) { }
                 } else {
-                    using var reader = ExcelDocument.OpenDataReader(path, options);
+                    using var reader = ExcelDocument.OpenReader(path, options);
+                    while (reader.Read()) { }
                 }
             });
             bool rejected = error is InvalidDataException or EndOfStreamException;

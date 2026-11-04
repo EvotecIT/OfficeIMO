@@ -31,7 +31,7 @@ public sealed class PublisherPageRoleTests {
         Assert.True(OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? source, out string? error), error);
         byte[] contents = (byte[])source!.Streams["Contents"].Clone();
         var data = new PublisherBinaryData(contents, "Contents");
-        var context = new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None);
+        var context = new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None);
         PublisherContents publication = new PublisherContentsReader(data, context).Read();
         PublisherContentChunk document = Assert.Single(publication.Chunks.Values, chunk => chunk.Kind == 0x44);
         var fields = new PublisherBlockReader(data, context).Chunk(document.Offset, document.End);

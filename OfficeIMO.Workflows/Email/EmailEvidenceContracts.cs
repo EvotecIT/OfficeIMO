@@ -26,7 +26,7 @@ public sealed class EmailEvidenceOptions {
     /// <summary>Maximum rendered PDF pages.</summary>
     public int MaxPdfPages { get; set; } = 200;
     internal void Validate() {
-        ArgumentNullException.ThrowIfNull(ReaderOptions);
+        if (ReaderOptions == null) throw new ArgumentNullException(nameof(ReaderOptions));
         if (MaxBodySourceCharacters < 1 || MaxBodySourceCharacters > 16 * 1024 * 1024 ||
             MaxBodyTextCharacters < 1 || MaxBodyTextCharacters > 2 * 1024 * 1024 ||
             MaxMessages < 1 || MaxMessages > 1000 || MaxItemsScanned < 1 || MaxItemsScanned > 100_000 ||

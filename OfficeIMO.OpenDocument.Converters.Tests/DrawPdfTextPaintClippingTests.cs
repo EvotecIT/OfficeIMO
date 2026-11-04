@@ -70,13 +70,13 @@ public sealed class DrawPdfTextPaintClippingTests {
     }
 
     private static void Verify(OdgDocument source, bool clipped, string marker) {
-        string[] before = Xml(source); var result = source.ToPdfDocumentResult();
+        string[] before = Xml(source); var result = source.ConvertToPdfWithEvidence(null, default);
         var report = Assert.IsType<OdfConversionReport>(Assert.Single(result.SourceConversionReports));
         Assert.Equal(clipped, report.Mappings.Any(m => m.Feature.EndsWith(":text-clipped", StringComparison.Ordinal)
             && m.Status == OdfConversionMappingStatus.Unsupported));
-        var strict = new OdgToPdfOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported };
-        if (clipped) Assert.Throws<OdfConversionLossException>(() => source.ToPdfBytes(strict));
-        else Assert.Contains(marker, PdfReadDocument.Open(source.ToPdfBytes(strict)).ExtractText());
+        var strict = new OdgPdfExportOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported };
+        if (clipped) Assert.Throws<OdfConversionLossException>(() => source.ToPdf(strict).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        else Assert.Contains(marker, PdfDocument.Load(new System.IO.MemoryStream(source.ToPdf(strict).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).ExtractText());
         Assert.Equal(before, Xml(source));
     }
     private static string[] Xml(OdgDocument source) => new[] { source.GetXml("content.xml").ToString(), source.GetXml("styles.xml").ToString() };

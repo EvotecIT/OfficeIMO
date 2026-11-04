@@ -25,7 +25,7 @@ public sealed class PublisherParagraphRetentionWritingTests {
         var requested = order.Select(index => detached ? original.Paragraphs[index].WithTabStops(original.Paragraphs[index].TabStops)
             : original.Paragraphs[index]).ToArray();
         document.ReplaceStoryParagraphs(original.Id, requested);
-        byte[] bytes = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        byte[] bytes = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         PublisherDocument saved = PublisherDocument.Load(bytes);
         PublisherTextStory actual = saved.TextStories[0];
         Assert.Equal(string.Join("\n", requested.Select(p => string.Concat(p.Runs.Select(r => r.Text)))) + "\n", actual.Text);
@@ -56,10 +56,10 @@ public sealed class PublisherParagraphRetentionWritingTests {
         OfficeRichTextParagraph p = original.Paragraphs[selected];
         document.ReplaceStoryParagraphs(original.Id, new[] { detached ? p.WithTabStops(p.TabStops) : p, original.Paragraphs[2] });
         if (detached) {
-            var error = Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+            var error = Assert.Throws<OfficeConversionException>(() => document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
             Assert.True(Assert.IsType<PublisherSaveReport>(error.Report).HasErrors);
         } else {
-            byte[] bytes = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+            byte[] bytes = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
             PublisherDocument saved = PublisherDocument.Load(bytes);
             Assert.Equal(original.Paragraphs[selected].Runs[0].Text + "\n" + original.Paragraphs[2].Runs[0].Text + "\n", saved.TextStories.Last().Text);
             Assert.Equal(Definition(document, source, original.Id, selected, "FDPC"), Definition(saved, bytes, original.Id, 0, "FDPC"));

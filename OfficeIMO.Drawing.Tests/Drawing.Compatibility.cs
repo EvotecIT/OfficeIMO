@@ -62,7 +62,7 @@ public sealed class DrawingCompatibilityTests {
         Assert.False(report.HasBlockedFeatures);
         Assert.False(report.IsStrictlyCompatible);
         Assert.Single(report.GetFindings(OfficeCompatibilityImpact.Behavioral));
-        Assert.Throws<InvalidOperationException>(report.RequireNoLoss);
+        Assert.ThrowsAny<OfficeConversionException>(report.ThrowIfLoss);
     }
 
     [Fact]
@@ -99,9 +99,9 @@ public sealed class DrawingCompatibilityTests {
 
         Assert.Equal(OfficeConversionLossKind.Failure, finding.LossKind);
         Assert.Equal(OfficeConversionLossKind.Failure,
-            Assert.Single(report.FidelityDiagnostics).LossKind);
+            Assert.Single(report.Diagnostics).LossKind);
         Assert.True(report.HasLoss);
-        Assert.Throws<InvalidOperationException>(report.RequireNoLoss);
+        Assert.ThrowsAny<OfficeConversionException>(report.ThrowIfLoss);
     }
 
     [Fact]

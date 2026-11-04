@@ -34,7 +34,7 @@ public sealed class PublisherTableCellStyleTests {
             new OfficeRichTextRun(text, run.FontSize, run.Color, run.Bold, run.Italic, run.Underline, run.FontFamily)
         }, template.Alignment, template.LineHeight, template.Margins, template.Indent, template.LineHeightFactor).WithTabStops(template.TabStops)).ToArray();
         document.ReplaceTableCellParagraphs(original.Id, 0, 0, paragraphs);
-        byte[] saved = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        byte[] saved = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         PublisherNativeWritingTests.AssertPreservedStorage(source, saved, "Quill/QuillSub/CONTENTS");
         PublisherDocument reopened = PublisherDocument.Load(saved);
         Check(reopened, edited);
@@ -69,12 +69,12 @@ public sealed class PublisherTableCellStyleTests {
         Assert.Null(table.Cells[0].FillColor);
         Assert.Equal(OfficeColor.FromRgb(160, 224, 255), table.Cells[1].FillColor);
         Assert.Equal(6, table.BorderSegments.Count);
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, diagnostic => diagnostic.Code == "PUB_TABLE_CELL_STYLE_UNSUPPORTED"
+        Assert.Contains(document.ReadReport.Diagnostics, diagnostic => diagnostic.Code == "PUB_TABLE_CELL_STYLE_UNSUPPORTED"
             && diagnostic.LossKind == OfficeConversionLossKind.Omission);
-        Assert.Equal(input, document.ToPubBytes());
+        Assert.Equal(input, document.ToBytes());
         document.SetTableCellFillColor(table.Id, 0, 0, OfficeColor.FromRgb(20, 40, 60));
-        Assert.Throws<OfficeIMO.OfficeConversionException>(() => document.ToPubBytes(
-            new PublisherSaveOptions { LossPolicy = OfficeIMO.OfficeConversionLossPolicy.Allow }));
+        Assert.Throws<OfficeIMO.OfficeConversionException>(() => document.ToBytes(
+            new PublisherSaveOptions { AllowLoss = true }));
     }
 
     [Theory]
@@ -96,9 +96,9 @@ public sealed class PublisherTableCellStyleTests {
         Assert.Null(table.Cells[0].FillColor);
         Assert.Equal(OfficeColor.FromRgb(160, 224, 255), table.Cells[1].FillColor);
         Assert.Equal(6, table.BorderSegments.Count);
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, diagnostic => diagnostic.Code == "PUB_TABLE_CELL_STYLE_UNSUPPORTED"
+        Assert.Contains(document.ReadReport.Diagnostics, diagnostic => diagnostic.Code == "PUB_TABLE_CELL_STYLE_UNSUPPORTED"
             && diagnostic.LossKind == OfficeConversionLossKind.Omission);
-        Assert.Equal(input, document.ToPubBytes());
+        Assert.Equal(input, document.ToBytes());
     }
 
     private static void Check(PublisherDocument document, bool edited) {

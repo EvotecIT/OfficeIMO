@@ -11,12 +11,12 @@ Adds a visually separated panel paragraph to a PDF document.
 ## SYNTAX
 ### Context (Default)
 ```powershell
-Add-OfficePdfPanel [-Text] <string> [-Align <PdfAlign>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfPanel [-Text] <string> [-Align <OfficeAlignment>] [-PassThru] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Add-OfficePdfPanel [-Text] <string> -Document <PdfDocument> [-Align <PdfAlign>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfPanel [-Text] <string> -Document <PdfDocument> [-Align <OfficeAlignment>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -40,10 +40,10 @@ Adds a highlighted panel paragraph to the generated PDF.
 Panel alignment.
 
 ```yaml
-Type: PdfAlign
+Type: OfficeAlignment
 Parameter Sets: Context, Document
 Aliases: None
-Possible values: Left, Center, Right, Justify
+Possible values: Left, Center, Right, Justify, Start, End
 
 Required: False
 Position: named

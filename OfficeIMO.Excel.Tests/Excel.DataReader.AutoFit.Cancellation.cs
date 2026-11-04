@@ -14,7 +14,7 @@ public sealed class ExcelDataReaderAutoFitCancellationTests {
     [InlineData(true)]
     public void CancellationDuringDeferredReaderAutoFitDoesNotPublishTheImport(bool hasLaterRow) {
         using var document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         using DataTable table = CreateDates(hasLaterRow);
         using var cancellation = new CancellationTokenSource();
         bool measuredDate = false;
@@ -41,17 +41,17 @@ public sealed class ExcelDataReaderAutoFitCancellationTests {
         document.Save(saved);
         using var reopened = ExcelDocument.Load(saved);
         Assert.Single(reopened.GetTables());
-        Assert.True(Assert.Single(reopened.Sheets[0].GetColumnDefinitions()).Width > 0D);
-        Assert.Equal(Date().UtcDateTime.ToOADate(), reopened.Sheets[0].CellAt(2, 1).GetValue<double>());
+        Assert.True(Assert.Single(reopened.Sheets[0].GetColumnDefinitions()).Width?.CharacterCount > 0D);
+        Assert.Equal(Date().UtcDateTime.ToOADate(), reopened.Sheets[0].Cell(2, 1).GetValue<double>());
         if (hasLaterRow) {
-            Assert.Equal(Date().AddDays(1).UtcDateTime.ToOADate(), reopened.Sheets[0].CellAt(3, 1).GetValue<double>());
+            Assert.Equal(Date().AddDays(1).UtcDateTime.ToOADate(), reopened.Sheets[0].Cell(3, 1).GetValue<double>());
         }
     }
 
     [Fact]
     public void PreCanceledReaderAutoFitObservesCancellationForAnEmptyImport() {
         using var document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         using var table = new DataTable("Data");
         table.Columns.Add("When", typeof(DateTimeOffset));
         using var reader = table.CreateDataReader();
@@ -69,9 +69,9 @@ public sealed class ExcelDataReaderAutoFitCancellationTests {
     public void ReaderAutoFitOnANonemptySheetDoesNotApplyWidthsAfterCancellation() {
         using var document = ExcelDocument.Create();
         document.DateTimeOffsetWriteStrategy = value => value.UtcDateTime;
-        ExcelSheet sheet = document.AddWorksheet("Data");
-        sheet.CellValue(1, 1, "Existing value");
-        var widths = sheet.GetColumnDefinitions().Select(column => column.Width).ToArray();
+        ExcelSheet sheet = document.AddSheet("Data");
+        sheet.Cell(1, 1).SetValue("Existing value");
+        var widths = sheet.GetColumnDefinitions().Select(column => (column.Width?.CharacterCount)).ToArray();
         using DataTable table = CreateDates(hasLaterRow: false);
         using var reader = table.CreateDataReader();
         using var cancellation = new CancellationTokenSource();
@@ -83,15 +83,15 @@ public sealed class ExcelDataReaderAutoFitCancellationTests {
             sheet.InsertDataReaderWithResult(reader, startRow: 2, autoFit: true, ct: cancellation.Token));
 
         Assert.Equal(cancellation.Token, error.CancellationToken);
-        Assert.Equal(widths, sheet.GetColumnDefinitions().Select(column => column.Width));
+        Assert.Equal(widths, sheet.GetColumnDefinitions().Select(column => (column.Width?.CharacterCount)));
         document.Execution.OnTiming = null;
         using var saved = new MemoryStream();
         document.Save(saved);
         using var reopened = ExcelDocument.Load(saved);
-        Assert.Equal(widths, reopened.Sheets[0].GetColumnDefinitions().Select(column => column.Width));
-        Assert.Equal("Existing value", reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
-        Assert.Equal("When", reopened.Sheets[0].CellAt(2, 1).GetValue<string>());
-        Assert.Equal(Date().UtcDateTime.ToOADate(), reopened.Sheets[0].CellAt(3, 1).GetValue<double>());
+        Assert.Equal(widths, reopened.Sheets[0].GetColumnDefinitions().Select(column => (column.Width?.CharacterCount)));
+        Assert.Equal("Existing value", reopened.Sheets[0].Cell(1, 1).GetValue<string>());
+        Assert.Equal("When", reopened.Sheets[0].Cell(2, 1).GetValue<string>());
+        Assert.Equal(Date().UtcDateTime.ToOADate(), reopened.Sheets[0].Cell(3, 1).GetValue<double>());
     }
 
     private static DateTimeOffset Date() => new(2026, 10, 11, 8, 30, 0, TimeSpan.Zero);
@@ -110,7 +110,7 @@ public sealed class ExcelDataReaderAutoFitCancellationTests {
         using var reopened = ExcelDocument.Load(saved);
         Assert.Empty(reopened.GetTables());
         Assert.Empty(reopened.Sheets[0].GetColumnDefinitions());
-        Assert.True(string.IsNullOrEmpty(reopened.Sheets[0].CellAt(1, 1).GetValue<string>()));
-        Assert.True(string.IsNullOrEmpty(reopened.Sheets[0].CellAt(2, 1).GetValue<string>()));
+        Assert.True(string.IsNullOrEmpty(reopened.Sheets[0].Cell(1, 1).GetValue<string>()));
+        Assert.True(string.IsNullOrEmpty(reopened.Sheets[0].Cell(2, 1).GetValue<string>()));
     }
 }

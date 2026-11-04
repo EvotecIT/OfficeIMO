@@ -26,8 +26,8 @@ public sealed partial class HtmlRenderingTests {
         options.AllowSystemFontFallback = false;
         options.ViewportWidth = 320D;
         options.ViewportHeight = 300D;
-        options.PageSize = new OfficePageSize(320D / HtmlRenderOptions.CssPixelsPerInch,
-            300D / HtmlRenderOptions.CssPixelsPerInch);
+        options.PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(320D / HtmlRenderOptions.CssPixelsPerInch),
+            global::OfficeIMO.OfficeLength.Inches(300D / HtmlRenderOptions.CssPixelsPerInch));
         options.HonorCssPageRules = false;
         HtmlRenderDocument rendered = HtmlRenderEngine.Execute(HtmlConversionDocument.Parse(html),
             HtmlRenderRequest.Create(profile, HtmlRenderEncoder.DisplayList, options)).Document;
@@ -46,7 +46,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.True(FloatPaintContainsGlyphInk(raster, text),
                 "Retained searchable text must also retain visible glyph ink.");
         }
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -69,8 +69,8 @@ public sealed partial class HtmlRenderingTests {
         options.ViewportWidth = 816D;
         options.ViewportHeight = 900D;
         options.Margins = HtmlRenderMargins.All(48D);
-        options.PageSize = new OfficePageSize(320D / HtmlRenderOptions.CssPixelsPerInch,
-            pageHeight / HtmlRenderOptions.CssPixelsPerInch);
+        options.PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(320D / HtmlRenderOptions.CssPixelsPerInch),
+            global::OfficeIMO.OfficeLength.Inches(pageHeight / HtmlRenderOptions.CssPixelsPerInch));
         options.HonorCssPageRules = false;
         HtmlRenderDocument rendered = HtmlRenderEngine.Execute(HtmlConversionDocument.Parse(html),
             HtmlRenderRequest.Create(profile, HtmlRenderEncoder.DisplayList, options)).Document;
@@ -91,7 +91,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Single(rendered.Pages.SelectMany(item => EnumerateRenderVisuals(item.Scene))
                 .OfType<HtmlRenderText>(), item => item.Text == marker);
         }
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     private static bool FloatPaintContainsGlyphInk(OfficeRasterImage raster, HtmlRenderText text) {

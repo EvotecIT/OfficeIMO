@@ -13,9 +13,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ReadRowsEmptyRows.xlsx");
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var sheet = document.AddWorksheet("Data");
-                    sheet.CellValue(1, 1, "Header");
-                    sheet.CellValue(3, 1, "Value");
+                    var sheet = document.AddSheet("Data");
+                    sheet.Cell(1, 1).SetValue("Header");
+                    sheet.Cell(3, 1).SetValue("Value");
                     document.Save();
                 }
 
@@ -40,9 +40,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ReadRowsBlankCells.xlsx");
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var sheet = document.AddWorksheet("Data");
-                    sheet.CellValue(1, 1, "Header");
-                    sheet.CellValue(3, 1, "Value");
+                    var sheet = document.AddSheet("Data");
+                    sheet.Cell(1, 1).SetValue("Header");
+                    sheet.Cell(3, 1).SetValue("Value");
                     document.Save();
                 }
 
@@ -73,10 +73,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ReadRowsOutsideRequestedColumns.xlsx");
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var sheet = document.AddWorksheet("Data");
-                    sheet.CellValue(1, 1, "Header");
-                    sheet.CellValue(2, 2, "Outside");
-                    sheet.CellValue(3, 1, "Value");
+                    var sheet = document.AddSheet("Data");
+                    sheet.Cell(1, 1).SetValue("Header");
+                    sheet.Cell(2, 2).SetValue("Outside");
+                    sheet.Cell(3, 1).SetValue("Value");
                     document.Save();
                 }
 
@@ -101,9 +101,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ReadRowsAsEmptyRows.xlsx");
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var sheet = document.AddWorksheet("Data");
-                    sheet.CellValue(1, 1, "Header");
-                    sheet.CellValue(3, 1, "Value");
+                    var sheet = document.AddSheet("Data");
+                    sheet.Cell(1, 1).SetValue("Header");
+                    sheet.Cell(3, 1).SetValue("Value");
                     document.Save();
                 }
 

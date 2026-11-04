@@ -12,6 +12,23 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Fact]
+    public void SaveAsPdf_ForegroundRunningBoxMeasuresManyOrdinaryBodyRuns() {
+        using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
+        W.Paragraph body = SetAnchoredControlBodyAutoSpacing(document);
+        var paragraph = new WordParagraph(document, body);
+        paragraph.LineSpacing = WordLineSpacing.Exact(OfficeLength.Points(6));
+        foreach (int index in Enumerable.Range(0, 300))
+            body.Append(new W.Run(new W.Text("x")));
+        string before = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
+
+        var result = document.ConvertToPdfWithEvidence(EmptyRunningOptions());
+
+        using var pdf = PdfPigDocument.Open(result.Value.ToBytes(new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        Assert.Contains("S2", string.Join(" ", Enumerable.Range(1, pdf.NumberOfPages).Select(index => pdf.GetPage(index).Text)));
+        Assert.Equal(before, document._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
+    }
+
+    [Fact]
     public void SaveAsPdf_ForegroundRunningBoxWithUpwardAutoBodyInkRetainsWarnedFlow() {
         using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
         W.Paragraph body = SetAnchoredControlBodyAutoSpacing(document);
@@ -19,16 +36,16 @@ public partial class Word {
         W.Run run = body.Elements<W.Run>().First();
         run.RunProperties ??= new W.RunProperties();
         run.RunProperties.FontSize = new W.FontSize { Val = "288" };
-        DW.Anchor anchor = document.Sections[1].Header!.First!.TextBoxes.Single().Anchor!;
+        DW.Anchor anchor = document.Sections[1].PageSetup.FirstPageHeader.TextBoxes.Single().Anchor!;
         anchor.Elements<W14.RelativeHeight>().Single().PercentageHeight!.Text = "8000";
         SetAnchoredControlCyanFill(anchor);
         string before = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
         string[] storiesBefore = AnchoredRunningStoryXml(document);
-        WordToPdfOptions options = EmptyRunningOptions();
+        WordPdfExportOptions options = EmptyRunningOptions();
         options.ResourcePolicy.AllowDocumentFontEmbedding = true;
-        var result = document.ToPdfDocumentResult(options);
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
-        using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
+        var result = document.ConvertToPdfWithEvidence(options);
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
+        using var pdf = PdfPigDocument.Open(result.Value.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         foreach (string token in new[] { "PREFIX", "BOX", "SUFFIX", "S2" }) AnchoredRunningLetters(pdf.GetPage(2), token);
         Assert.All(AnchoredRunningLetters(pdf.GetPage(2), "S2"), letter => Assert.Equal(144D, letter.PointSize, 3));
         Assert.Equal(before, document._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
@@ -44,20 +61,20 @@ public partial class Word {
         run.RunProperties.FontSize = new W.FontSize { Val = "24" };
         run.RunProperties.Highlight = new W.Highlight { Val = W.HighlightColorValues.Yellow };
         run.Elements<W.Text>().First().Text += " ORDINARY HIGHLIGHTED BODY PAINT";
-        WordTextBox box = document.Sections[1].Header!.First!.TextBoxes.Single();
+        WordTextBox box = document.Sections[1].PageSetup.FirstPageHeader.TextBoxes.Single();
         box.Anchor!.RemoveAllChildren<W14.RelativeHeight>();
-        box.Height = 571500L;
+        box.Height = OfficeLength.Emus(571500L);
         box.Anchor.Descendants<A.Transform2D>().Single().Extents!.Cy = 571500L;
         box.Anchor.VerticalPosition!.PositionOffset!.Text = "341630";
         foreach (W.Break lineBreak in box.Paragraphs.Single()._paragraph.Descendants<W.Break>().ToArray()) lineBreak.Remove();
         SetAnchoredControlCyanFill(box.Anchor);
         string before = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
         string[] storiesBefore = AnchoredRunningStoryXml(document);
-        WordToPdfOptions options = EmptyRunningOptions();
+        WordPdfExportOptions options = EmptyRunningOptions();
         options.ResourcePolicy.AllowDocumentFontEmbedding = true;
-        var result = document.ToPdfDocumentResult(options);
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
-        using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
+        var result = document.ConvertToPdfWithEvidence(options);
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
+        using var pdf = PdfPigDocument.Open(result.Value.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         foreach (string token in new[] { "PREFIX", "BOX", "SUFFIX", "S2" }) AnchoredRunningLetters(pdf.GetPage(2), token);
         Assert.All(AnchoredRunningLetters(pdf.GetPage(2), "S2"), letter => Assert.Equal(12D, letter.PointSize, 3));
         Assert.Contains(pdf.GetPage(2).Paths, path => path.IsFilled && path.FillColor.ToRGBValues() == (1D, 1D, 0D));
@@ -87,7 +104,7 @@ public partial class Word {
     [InlineData(true)]
     public void SaveAsPdf_ForegroundRunningBoxWithUpwardExactBodyInkRetainsWarnedFlow(bool inheritedSpacing) {
         using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
-        DW.Anchor anchor = document.Sections[1].Header!.First!.TextBoxes.Single().Anchor!;
+        DW.Anchor anchor = document.Sections[1].PageSetup.FirstPageHeader.TextBoxes.Single().Anchor!;
         anchor.Elements<W14.RelativeHeight>().Single().PercentageHeight!.Text = "8000";
         Wps.ShapeProperties shape = anchor.Descendants<Wps.ShapeProperties>().Single();
         shape.RemoveAllChildren<A.NoFill>();
@@ -108,14 +125,13 @@ public partial class Word {
             bodySource.ParagraphProperties!.RemoveAllChildren<W.SpacingBetweenLines>();
             bodySource.ParagraphProperties.ParagraphStyleId = new W.ParagraphStyleId { Val = "UpwardBody" };
         } else {
-            body.LineSpacingPoints = 6;
-            body.LineSpacingRule = WordLineSpacingRule.Exact;
+            body.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(6));
         }
         string[] before = AnchoredRunningStoryXml(document);
         string stylesBefore = main.StyleDefinitionsPart!.Styles!.OuterXml;
-        var result = document.ToPdfDocumentResult(EmptyRunningOptions());
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
-        using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
+        var result = document.ConvertToPdfWithEvidence(EmptyRunningOptions());
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
+        using var pdf = PdfPigDocument.Open(result.Value.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(3, pdf.NumberOfPages);
         foreach (string token in new[] { "PREFIX", "BOX", "SUFFIX", "S2" }) AnchoredRunningLetters(pdf.GetPage(2), token);
         Assert.All(AnchoredRunningLetters(pdf.GetPage(2), "S2"), letter => Assert.Equal(144D, letter.PointSize, 3));
@@ -127,10 +143,10 @@ public partial class Word {
     [Fact]
     public void SaveAsPdf_ForegroundRunningBoxOverNegativeBodyIndentRetainsWarnedFlow() {
         using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
-        WordTextBox box = document.Sections[1].Header!.First!.TextBoxes.Single();
+        WordTextBox box = document.Sections[1].PageSetup.FirstPageHeader.TextBoxes.Single();
         box.Anchor!.RemoveAllChildren<W14.RelativeWidth>();
         box.Anchor.RemoveAllChildren<W14.RelativeHeight>();
-        box.Width = box.Height = 571500L;
+        box.Width = box.Height = OfficeLength.Emus(571500L);
         box.Anchor.Descendants<A.Transform2D>().Single().Extents!.Cx = 571500L;
         box.Anchor.Descendants<A.Transform2D>().Single().Extents!.Cy = 571500L;
         DW.HorizontalPosition position = box.Anchor.HorizontalPosition!;
@@ -143,9 +159,9 @@ public partial class Word {
         bodySource.ParagraphProperties!.Indentation = new W.Indentation { Left = "-1440" };
         text.Text += " NEGATIVE INDENT OVERPAINT";
         string[] before = AnchoredRunningStoryXml(document);
-        var result = document.ToPdfDocumentResult(EmptyRunningOptions());
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
-        using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
+        var result = document.ConvertToPdfWithEvidence(EmptyRunningOptions());
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
+        using var pdf = PdfPigDocument.Open(result.Value.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         foreach (string token in new[] { "PREFIX", "BOX", "SUFFIX", "S2" }) AnchoredRunningLetters(pdf.GetPage(2), token);
         Assert.Contains("COUNT 2", pdf.GetPage(3).Text);
         Assert.Equal(before, AnchoredRunningStoryXml(document));
@@ -154,7 +170,7 @@ public partial class Word {
     [Fact]
     public void SaveAsPdf_DecorationOnlyNbspRunningBoxOverBodyRetainsWarnedFlow() {
         using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
-        WordTextBox box = document.Sections[1].Header!.First!.TextBoxes.Single();
+        WordTextBox box = document.Sections[1].PageSetup.FirstPageHeader.TextBoxes.Single();
         box.Anchor!.VerticalPosition!.PositionOffset!.Text = "914400";
         WordParagraph inner = box.Paragraphs.Single();
         foreach (W.Break lineBreak in inner._paragraph.Descendants<W.Break>().ToArray()) lineBreak.Remove();
@@ -163,9 +179,9 @@ public partial class Word {
         source.RunProperties ??= new W.RunProperties();
         source.RunProperties.Highlight = new W.Highlight { Val = W.HighlightColorValues.Yellow };
         string[] before = AnchoredRunningStoryXml(document);
-        var result = document.ToPdfDocumentResult(EmptyRunningOptions());
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
-        using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
+        var result = document.ConvertToPdfWithEvidence(EmptyRunningOptions());
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
+        using var pdf = PdfPigDocument.Open(result.Value.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(3, pdf.NumberOfPages);
         foreach (string token in new[] { "PREFIX", "SUFFIX", "S2" }) AnchoredRunningLetters(pdf.GetPage(2), token);
         Assert.Contains(pdf.GetPage(2).Paths, path => path.IsFilled && path.FillColor.ToRGBValues() == (1D, 1D, 0D));

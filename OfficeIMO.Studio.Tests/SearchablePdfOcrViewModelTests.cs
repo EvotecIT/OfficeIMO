@@ -144,7 +144,7 @@ public sealed class SearchablePdfOcrViewModelTests {
         try {
             string sourceDirectory = Directory.CreateDirectory(Path.Combine(root, "source")).FullName;
             string input = Path.Combine(sourceDirectory, "scan.pdf");
-            OfficeIMO.Pdf.PdfDocument.Create(document => document.Page(page => page.Size(420D, 620D))).Save(input);
+            OfficeIMO.Pdf.PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(420D), global::OfficeIMO.OfficeLength.Points(620D)))).Save(input);
             byte[] original = File.ReadAllBytes(input);
             string alias = Path.Combine(root, "alias.pdf");
             if (kind == "hard-link") {

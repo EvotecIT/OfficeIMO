@@ -22,19 +22,19 @@ public partial class Word {
             WordTable table = document.AddTable(1, 1);
             WordTableCell cell = table.Rows[0].Cells[0];
             cell.Paragraphs[0].Text = "Styled";
-            cell.ShadingFillColorHex = "FF0000";
+            cell.ShadingFillColor = OfficeColor.Parse("FF0000");
             cell.Borders.TopStyle = WordBorderStyle.Single;
             cell.Borders.BottomStyle = WordBorderStyle.Single;
             cell.Borders.LeftStyle = WordBorderStyle.Single;
             cell.Borders.RightStyle = WordBorderStyle.Single;
-            cell.Borders.TopColorHex = "0000FF";
-            cell.Borders.BottomColorHex = "0000FF";
-            cell.Borders.LeftColorHex = "0000FF";
-            cell.Borders.RightColorHex = "0000FF";
-            cell.Borders.TopSize = 8;
-            cell.Borders.BottomSize = 8;
-            cell.Borders.LeftSize = 8;
-            cell.Borders.RightSize = 8;
+            cell.Borders.TopColor = OfficeColor.Parse("0000FF");
+            cell.Borders.BottomColor = OfficeColor.Parse("0000FF");
+            cell.Borders.LeftColor = OfficeColor.Parse("0000FF");
+            cell.Borders.RightColor = OfficeColor.Parse("0000FF");
+            cell.Borders.TopSize = global::OfficeIMO.OfficeLength.Points(1);
+            cell.Borders.BottomSize = global::OfficeIMO.OfficeLength.Points(1);
+            cell.Borders.LeftSize = global::OfficeIMO.OfficeLength.Points(1);
+            cell.Borders.RightSize = global::OfficeIMO.OfficeLength.Points(1);
             document.Save();
             document.SaveAsPdf(pdfPath);
         }
@@ -54,22 +54,22 @@ public partial class Word {
             WordTable table = document.AddTable(1, 1);
             WordTableCell cell = table.Rows[0].Cells[0];
             cell.Paragraphs[0].Text = "Native styled cell";
-            cell.ShadingFillColorHex = "FF0000";
+            cell.ShadingFillColor = OfficeColor.Parse("FF0000");
             cell.Borders.TopStyle = WordBorderStyle.Single;
             cell.Borders.BottomStyle = WordBorderStyle.Single;
             cell.Borders.LeftStyle = WordBorderStyle.Single;
             cell.Borders.RightStyle = WordBorderStyle.Single;
-            cell.Borders.TopColorHex = "0000FF";
-            cell.Borders.BottomColorHex = "0000FF";
-            cell.Borders.LeftColorHex = "0000FF";
-            cell.Borders.RightColorHex = "0000FF";
-            cell.Borders.TopSize = 8;
-            cell.Borders.BottomSize = 8;
-            cell.Borders.LeftSize = 8;
-            cell.Borders.RightSize = 8;
+            cell.Borders.TopColor = OfficeColor.Parse("0000FF");
+            cell.Borders.BottomColor = OfficeColor.Parse("0000FF");
+            cell.Borders.LeftColor = OfficeColor.Parse("0000FF");
+            cell.Borders.RightColor = OfficeColor.Parse("0000FF");
+            cell.Borders.TopSize = global::OfficeIMO.OfficeLength.Points(1);
+            cell.Borders.BottomSize = global::OfficeIMO.OfficeLength.Points(1);
+            cell.Borders.LeftSize = global::OfficeIMO.OfficeLength.Points(1);
+            cell.Borders.RightSize = global::OfficeIMO.OfficeLength.Points(1);
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false
             });
         }
@@ -96,17 +96,17 @@ public partial class Word {
             WordTableCell cell = table.Rows[0].Cells[0];
             cell.Paragraphs[0].Text = "Native non-uniform cell";
             cell.Borders.TopStyle = WordBorderStyle.Single;
-            cell.Borders.TopColorHex = "FF0000";
-            cell.Borders.TopSize = 16;
+            cell.Borders.TopColor = OfficeColor.Parse("FF0000");
+            cell.Borders.TopSize = global::OfficeIMO.OfficeLength.Points(2);
             cell.Borders.RightStyle = WordBorderStyle.Single;
-            cell.Borders.RightColorHex = "0000FF";
-            cell.Borders.RightSize = 20;
+            cell.Borders.RightColor = OfficeColor.Parse("0000FF");
+            cell.Borders.RightSize = global::OfficeIMO.OfficeLength.Points(2.5);
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new OfficeIMO.Pdf.PageSize(360, 200),
-                Margins = OfficeIMO.Pdf.PageMargins.Uniform(30)
+                PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(200)),
+                Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30))
             });
         }
 
@@ -137,26 +137,26 @@ public partial class Word {
             cell.Borders.BottomStyle = WordBorderStyle.Double;
             cell.Borders.LeftStyle = WordBorderStyle.Double;
             cell.Borders.RightStyle = WordBorderStyle.Double;
-            cell.Borders.TopColorHex = "123456";
-            cell.Borders.BottomColorHex = "123456";
-            cell.Borders.LeftColorHex = "123456";
-            cell.Borders.RightColorHex = "123456";
-            cell.Borders.TopSize = 8;
-            cell.Borders.BottomSize = 8;
-            cell.Borders.LeftSize = 8;
-            cell.Borders.RightSize = 8;
+            cell.Borders.TopColor = OfficeColor.Parse("123456");
+            cell.Borders.BottomColor = OfficeColor.Parse("123456");
+            cell.Borders.LeftColor = OfficeColor.Parse("123456");
+            cell.Borders.RightColor = OfficeColor.Parse("123456");
+            cell.Borders.TopSize = global::OfficeIMO.OfficeLength.Points(1);
+            cell.Borders.BottomSize = global::OfficeIMO.OfficeLength.Points(1);
+            cell.Borders.LeftSize = global::OfficeIMO.OfficeLength.Points(1);
+            cell.Borders.RightSize = global::OfficeIMO.OfficeLength.Points(1);
             cell.Borders.TopLeftToBottomRightStyle = WordBorderStyle.Double;
-            cell.Borders.TopLeftToBottomRightColorHex = "654321";
-            cell.Borders.TopLeftToBottomRightSize = 8;
+            cell.Borders.TopLeftToBottomRightColor = OfficeColor.Parse("654321");
+            cell.Borders.TopLeftToBottomRightSize = global::OfficeIMO.OfficeLength.Points(1);
             cell.Borders.TopRightToBottomLeftStyle = WordBorderStyle.Double;
-            cell.Borders.TopRightToBottomLeftColorHex = "654321";
-            cell.Borders.TopRightToBottomLeftSize = 8;
+            cell.Borders.TopRightToBottomLeftColor = OfficeColor.Parse("654321");
+            cell.Borders.TopRightToBottomLeftSize = global::OfficeIMO.OfficeLength.Points(1);
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new OfficeIMO.Pdf.PageSize(360, 200),
-                Margins = OfficeIMO.Pdf.PageMargins.Uniform(30)
+                PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(200)),
+                Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30))
             });
         }
 

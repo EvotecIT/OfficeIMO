@@ -7,6 +7,9 @@ namespace OfficeIMO.Word {
     /// Handles endnotes.
     /// </summary>
     public partial class WordEndNote : WordElement {
+        /// <summary>Gets the paragraph handle containing this note's reference run.</summary>
+        public WordParagraph Paragraph => new WordParagraph(_document, _paragraph, _run);
+
         private readonly WordDocument _document;
         private readonly Paragraph _paragraph;
         private readonly Run _run;
@@ -77,7 +80,7 @@ namespace OfficeIMO.Word {
         }
 
 
-        internal static WordParagraph AddEndNote(WordDocument document, WordParagraph wordParagraph, WordParagraph footerWordParagraph) {
+        internal static WordEndNote AddEndNote(WordDocument document, WordParagraph wordParagraph, WordParagraph footerWordParagraph) {
 
             var endNoteReferenceId = GetNextEndNoteReferenceId(document);
 
@@ -105,7 +108,7 @@ namespace OfficeIMO.Word {
             }
             endNotesPart.Endnotes!.Append(endNote);
 
-            return newWordParagraph;
+            return new WordEndNote(document, newWordParagraph._paragraph, newWordParagraph._run!, endNoteReference);
         }
 
         internal static long GetNextEndNoteReferenceId(WordDocument document) {

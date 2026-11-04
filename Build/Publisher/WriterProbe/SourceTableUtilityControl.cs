@@ -67,5 +67,5 @@ internal static class SourceTableUtilityControl {
 
     internal sealed record UtilityRemoval(byte[] Bytes, byte[] Artwork, uint RetainedAllocationCursor, uint ActiveDrawingCount, uint ActiveTotal);
 
-    private static PublisherParseContext Context() => new(new PublisherReadOptions(), CancellationToken.None);
+    private static PublisherParseContext Context() => new(new PublisherLoadOptions(), CancellationToken.None);
 }

@@ -38,7 +38,7 @@ public sealed class PdfDrawingImageRotationCenterTests {
             rotationCenterY: rotationCenterY);
         var drawing = new OfficeDrawing(120D, 120D)
             .AddImage(Png, "image/png", projection, "Rotated marker");
-        byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .Drawing(drawing)
             .ToBytes();
         string content = Encoding.ASCII.GetString(pdf);

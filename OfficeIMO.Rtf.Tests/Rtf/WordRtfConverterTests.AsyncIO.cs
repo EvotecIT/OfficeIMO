@@ -15,19 +15,19 @@ public partial class WordRtfConverterTests {
     public async Task Word_Rtf_Async_IO_Provides_Byte_Stream_And_File_Loading_Surface() {
         using WordDocument word = WordDocument.Create();
         word.AddParagraph("Async clinical ż");
-        var options = new RtfWriteOptions { IncludeGenerator = false };
+        var options = new RtfSaveOptions { IncludeGenerator = false };
 
-        string rtf = word.ToRtf(options);
-        byte[] bytes = word.ToRtfBytes(options);
+        string rtf = word.ToRtf().ToRtf(options);
+        byte[] bytes = word.ToRtf().ToBytes(options);
 
         Assert.Equal(rtf, Encoding.UTF8.GetString(bytes));
 
-        using MemoryStream memoryStream = word.ToRtfStream(options);
+        using MemoryStream memoryStream = word.ToRtf().ToStream(options);
         Assert.Equal(bytes, memoryStream.ToArray());
 
         using var output = new MemoryStream();
         output.WriteByte(0x2A);
-        await word.SaveAsRtfAsync(output, options);
+        await word.SaveAsRtfAsync(output, new OfficeIMO.Word.Rtf.WordRtfExportOptions { SaveOptions = options });
         byte[] saved = output.ToArray();
 
         Assert.Equal(0, output.Position);
@@ -36,11 +36,11 @@ public partial class WordRtfConverterTests {
 
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".rtf");
         try {
-            await word.SaveAsRtfAsync(path, options, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+            await word.SaveAsRtfAsync(path, new OfficeIMO.Word.Rtf.WordRtfExportOptions { SaveOptions = options, Encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false) });
             Assert.Equal(bytes, File.ReadAllBytes(path));
 
             RtfReadResult fileRead = await RtfDocument.LoadResultAsync(path);
-            using WordDocument fromFile = fileRead.Document.ToWordDocument();
+            using WordDocument fromFile = fileRead.Document.ToWord();
             Assert.Contains("Async clinical ż", string.Concat(fromFile.Paragraphs.Select(paragraph => paragraph.Text)), StringComparison.Ordinal);
         } finally {
             if (File.Exists(path)) {
@@ -48,10 +48,10 @@ public partial class WordRtfConverterTests {
             }
         }
 
-        using WordDocument fromText = RtfDocument.Read(rtf).Document.ToWordDocument();
+        using WordDocument fromText = RtfDocument.ParseResult(rtf).Document.ToWord();
         Assert.Contains("Async clinical ż", string.Concat(fromText.Paragraphs.Select(paragraph => paragraph.Text)), StringComparison.Ordinal);
 
-        using WordDocument fromBytes = RtfDocument.LoadResult(bytes).Document.ToWordDocument();
+        using WordDocument fromBytes = RtfDocument.LoadResult(bytes).Document.ToWord();
         Assert.Contains("Async clinical ż", string.Concat(fromBytes.Paragraphs.Select(paragraph => paragraph.Text)), StringComparison.Ordinal);
 
         using var input = new MemoryStream();
@@ -60,7 +60,7 @@ public partial class WordRtfConverterTests {
         input.Position = 1;
 
         RtfReadResult streamRead = await RtfDocument.LoadResultAsync(input);
-        using WordDocument fromStream = streamRead.Document.ToWordDocument();
+        using WordDocument fromStream = streamRead.Document.ToWord();
         Assert.Equal(1, input.Position);
         Assert.Contains("Async clinical ż", string.Concat(fromStream.Paragraphs.Select(paragraph => paragraph.Text)), StringComparison.Ordinal);
     }

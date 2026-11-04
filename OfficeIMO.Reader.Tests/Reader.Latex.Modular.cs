@@ -118,8 +118,8 @@ public sealed class ReaderLatexModularTests {
         const string source = @"\documentclass{article}\begin{document}\begin{tabular}{lcr}\textbf{L}&\textbf{C}&\textbf{R}\\left&center&right\\\end{tabular}\end{document}";
         ReaderChunk chunk = Assert.Single(LatexReaderAdapter.Read(LatexDocument.Parse(source),
             latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks }));
-        OfficeIMO.Markdown.TableBlock table = Assert.Single(OfficeIMO.Markdown.MarkdownReader.Parse(chunk.Markdown!).Blocks.OfType<OfficeIMO.Markdown.TableBlock>());
-        Assert.Equal(new[] { OfficeIMO.Markdown.ColumnAlignment.Left, OfficeIMO.Markdown.ColumnAlignment.Center, OfficeIMO.Markdown.ColumnAlignment.Right }, table.Alignments);
+        OfficeIMO.Markdown.TableBlock table = Assert.Single(OfficeIMO.Markdown.MarkdownDocument.Parse(chunk.Markdown!).Blocks.OfType<OfficeIMO.Markdown.TableBlock>());
+        Assert.Equal(new[] { OfficeIMO.Markdown.MarkdownColumnAlignment.Left, OfficeIMO.Markdown.MarkdownColumnAlignment.Center, OfficeIMO.Markdown.MarkdownColumnAlignment.Right }, table.Alignments);
         Assert.Contains("left\tcenter\tright", chunk.Text, StringComparison.Ordinal);
     }
 
@@ -132,12 +132,12 @@ public sealed class ReaderLatexModularTests {
         const string source = "\\usepackage{custom}\n\\newcommand{\\greet}{Hello}\n\\begin{document}\n\\greet World\n\\end{document}\nTRAILER";
         LatexDocument document = LatexDocument.Parse(source, new LatexParseOptions { Profile = LatexDocumentProfile.PreserveOnly });
         ReaderChunk[] chunks = LatexReaderAdapter.Read(document, readerOptions: new ReaderOptions { MaxChars = 32 },
-            latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks, MarkdownOptions = new LatexToMarkdownOptions {
+            latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks, MarkdownOptions = new LatexMarkdownExportOptions {
                 IncludePreambleAsFrontMatter = false, PreserveUnsupportedAsSource = preserve
             } }).ToArray();
         Assert.Equal(preserve ? source : string.Empty, string.Concat(chunks.Select(static chunk => chunk.Text)));
         Assert.Contains(chunks.SelectMany(static chunk => chunk.Warnings ?? Array.Empty<string>()), static warning => warning.StartsWith("LATEXMD297:", StringComparison.Ordinal));
-        if (preserve) Assert.All(chunks, static chunk => Assert.IsType<OfficeIMO.Markdown.CodeBlock>(Assert.Single(OfficeIMO.Markdown.MarkdownReader.Parse(chunk.Markdown!).Blocks)));
+        if (preserve) Assert.All(chunks, static chunk => Assert.IsType<OfficeIMO.Markdown.CodeBlock>(Assert.Single(OfficeIMO.Markdown.MarkdownDocument.Parse(chunk.Markdown!).Blocks)));
         else Assert.All(chunks, static chunk => Assert.Equal(string.Empty, chunk.Markdown));
         Assert.Equal(1, chunks[0].Location.StartLine);
         Assert.Equal(6, chunks[0].Location.EndLine);
@@ -197,9 +197,9 @@ public sealed class ReaderLatexModularTests {
         Assert.Equal(expected, string.Concat(chunks.Select(static chunk => chunk.Text)));
         Assert.All(chunks, static chunk => {
             Assert.InRange(chunk.Text.Length, 1, 32);
-            OfficeIMO.Markdown.MarkdownDoc parsed = OfficeIMO.Markdown.MarkdownReader.Parse(chunk.Markdown!);
+            OfficeIMO.Markdown.MarkdownDocument parsed = OfficeIMO.Markdown.MarkdownDocument.Parse(chunk.Markdown!);
             Assert.All(parsed.Blocks, static block => Assert.IsType<OfficeIMO.Markdown.CodeBlock>(block));
-            Assert.DoesNotContain("<a id=\"fake\"></a>", parsed.ToHtmlFragment(), StringComparison.Ordinal);
+            Assert.DoesNotContain("<a id=\"fake\"></a>", parsed.ToHtml(), StringComparison.Ordinal);
         });
     }
 
@@ -212,10 +212,10 @@ public sealed class ReaderLatexModularTests {
             readerOptions: new ReaderOptions { MaxChars = 32 }, latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks, IncludeDiagnostics = false }).ToArray();
         Assert.True(chunks.Length > 1);
         Assert.All(chunks, static chunk => {
-            OfficeIMO.Markdown.MarkdownDoc parsed = OfficeIMO.Markdown.MarkdownReader.Parse(chunk.Markdown!);
+            OfficeIMO.Markdown.MarkdownDocument parsed = OfficeIMO.Markdown.MarkdownDocument.Parse(chunk.Markdown!);
             Assert.All(parsed.Blocks, static block => Assert.IsType<OfficeIMO.Markdown.ParagraphBlock>(block));
             Assert.DoesNotContain(parsed.Descendants(), static node => node is OfficeIMO.Markdown.LinkInline || node is OfficeIMO.Markdown.ItalicSequenceInline);
-            Assert.DoesNotContain("<a id=\"fake\"></a>", parsed.ToHtmlFragment(), StringComparison.Ordinal);
+            Assert.DoesNotContain("<a id=\"fake\"></a>", parsed.ToHtml(), StringComparison.Ordinal);
         });
     }
 
@@ -226,10 +226,10 @@ public sealed class ReaderLatexModularTests {
         string body = new string('p', 70) + "\\label{real}\\verb|<a id=\"fake\"></a> *value*|" + new string('s', 70);
         ReaderChunk[] chunks = LatexReaderAdapter.Read(LatexDocument.Parse("\\documentclass{article}\\begin{document}" + body + "\\end{document}"),
             readerOptions: new ReaderOptions { MaxChars = 32 }, latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks, IncludeDiagnostics = false }).ToArray();
-        string html = string.Concat(chunks.Select(static chunk => OfficeIMO.Markdown.MarkdownReader.Parse(chunk.Markdown!).ToHtmlFragment()));
+        string html = string.Concat(chunks.Select(static chunk => OfficeIMO.Markdown.MarkdownDocument.Parse(chunk.Markdown!).ToHtml()));
         Assert.Contains("<a id=\"real\"></a>", html, StringComparison.Ordinal);
         Assert.DoesNotContain("<a id=\"fake\"></a>", html, StringComparison.Ordinal);
-        Assert.Contains(chunks, static chunk => OfficeIMO.Markdown.MarkdownReader.Parse(chunk.Markdown!).Blocks.OfType<OfficeIMO.Markdown.CodeBlock>().Any());
+        Assert.Contains(chunks, static chunk => OfficeIMO.Markdown.MarkdownDocument.Parse(chunk.Markdown!).Blocks.OfType<OfficeIMO.Markdown.CodeBlock>().Any());
     }
 
     [Theory]
@@ -268,7 +268,7 @@ public sealed class ReaderLatexModularTests {
             readerOptions: new ReaderOptions { MaxChars = 40 }, latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks, IncludeDiagnostics = false }).ToArray();
         ReaderChunk part = Assert.Single(chunks, static chunk => chunk.Text.Contains("*value*", StringComparison.Ordinal));
         OfficeIMO.Markdown.ParagraphBlock paragraph = Assert.IsType<OfficeIMO.Markdown.ParagraphBlock>(
-            Assert.Single(OfficeIMO.Markdown.MarkdownReader.Parse(part.Markdown!).Blocks));
+            Assert.Single(OfficeIMO.Markdown.MarkdownDocument.Parse(part.Markdown!).Blocks));
         var text = new StringBuilder();
         foreach (OfficeIMO.Markdown.IPlainTextMarkdownInline inline in paragraph.Inlines.Nodes.OfType<OfficeIMO.Markdown.IPlainTextMarkdownInline>()) inline.AppendPlainText(text);
         Assert.Equal(indentation + literal, text.ToString());
@@ -337,7 +337,7 @@ public sealed class ReaderLatexModularTests {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(Source));
         stream.Position = 5;
         Assert.Throws<IOException>(() => LatexReaderAdapter.Read(stream, readerOptions: new ReaderOptions { MaxInputBytes = readerLimit },
-            latexOptions: new ReaderLatexOptions { ParseOptions = new LatexParseOptions { MaximumInputBytes = nativeLimit } }).ToArray());
+            latexOptions: new ReaderLatexOptions { ParseOptions = new LatexParseOptions { MaxInputBytes = nativeLimit } }).ToArray());
         Assert.Equal(5, stream.Position);
         Assert.True(stream.CanRead);
     }
@@ -378,7 +378,7 @@ public sealed class ReaderLatexModularTests {
     public void NativeParserLimitExceptionsRetainTheirType() {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(Source));
         Assert.Throws<InvalidDataException>(() => LatexReaderAdapter.Read(stream,
-            latexOptions: new ReaderLatexOptions { ParseOptions = new LatexParseOptions { MaximumInputLength = 8 } }).ToArray());
+            latexOptions: new ReaderLatexOptions { ParseOptions = new LatexParseOptions { MaxInputLength = 8 } }).ToArray());
         Assert.Equal(0, stream.Position);
     }
 
@@ -444,7 +444,7 @@ public sealed class ReaderLatexModularTests {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddLatexHandler().Build();
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(Source), writable: false);
 
-        ReaderChunk[] chunks = reader.Read(stream, "guide.tex").ToArray();
+        ReaderChunk[] chunks = reader.Enumerate(stream, "guide.tex").ToArray();
 
         Assert.NotEmpty(chunks);
         Assert.Equal(ReaderInputKind.Latex, reader.DetectKind("guide.tex"));
@@ -595,18 +595,18 @@ public sealed class ReaderLatexModularTests {
     [Fact]
     public void RegistrationSnapshotsEveryNativeLimitAndCustomOpaqueEnvironment() {
         var parse = new LatexParseOptions {
-            MaximumInputBytes = 8, MaximumExpansionInputLength = 123, MaximumExpansionTokenCount = 7
+            MaxInputBytes = 8, MaxExpansionInputLength = 123, MaxExpansionTokenCount = 7
         };
         parse.VerbatimEnvironmentNames.Add("opaque");
         ReaderLatexOptions clone = ReaderLatexOptionsCloner.Clone(new ReaderLatexOptions { ParseOptions = parse });
-        Assert.Equal(8, clone.ParseOptions.MaximumInputBytes);
-        Assert.Equal(123, clone.ParseOptions.MaximumExpansionInputLength);
-        Assert.Equal(7, clone.ParseOptions.MaximumExpansionTokenCount);
+        Assert.Equal(8, clone.ParseOptions.MaxInputBytes);
+        Assert.Equal(123, clone.ParseOptions.MaxExpansionInputLength);
+        Assert.Equal(7, clone.ParseOptions.MaxExpansionTokenCount);
         parse.VerbatimEnvironmentNames.Clear();
         Assert.Contains("opaque", clone.ParseOptions.VerbatimEnvironmentNames);
         using var limited = new MemoryStream(Encoding.UTF8.GetBytes(Source));
         Assert.Throws<IOException>(() => LatexReaderAdapter.Read(limited, latexOptions: clone).ToArray());
-        clone.ParseOptions.MaximumInputBytes = null;
+        clone.ParseOptions.MaxInputBytes = null;
         const string opaque = "\\documentclass{article}\\begin{document}\\begin{opaque}\\section{FAKE}\\end{opaque}\\end{document}";
         using var input = new MemoryStream(Encoding.UTF8.GetBytes(opaque));
         ReaderChunk[] chunks = LatexReaderAdapter.Read(input, latexOptions: clone).ToArray();
@@ -633,7 +633,7 @@ public sealed class ReaderLatexModularTests {
         LatexDocument document = LatexDocument.Parse("\\begin{document}\\begin{custom}Important\\end{custom}\\end{document}");
         ReaderChunk[] chunks = LatexReaderAdapter.Read(document, latexOptions: new ReaderLatexOptions {
             ChunkByBlock = blocks,
-            MarkdownOptions = new OfficeIMO.Latex.Markdown.LatexToMarkdownOptions { PreserveUnsupportedAsSource = false }
+            MarkdownOptions = new OfficeIMO.Latex.Markdown.LatexMarkdownExportOptions { PreserveUnsupportedAsSource = false }
         }).ToArray();
         Assert.Contains(chunks.SelectMany(static chunk => chunk.Warnings ?? Array.Empty<string>()), static warning => warning.StartsWith("LATEXMD299:", StringComparison.Ordinal));
         Assert.All(chunks, static chunk => Assert.Equal(string.Empty, chunk.Text));

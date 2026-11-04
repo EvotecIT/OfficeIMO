@@ -23,7 +23,7 @@ public sealed class PdfAnnotationBatchTests {
             System.Text.Encoding.ASCII.GetBytes(value))).ToList(), 1, 9, PdfFileVersion.Pdf17);
         var source = PdfDocument.Load(bytes);
         var before = source.Inspect().Annotations;
-        var pages = source.Read(new PdfReadOptions { Profile = PdfReadProfile.Fast }).Pages;
+        var pages = source.Read(new PdfLoadOptions { Profile = PdfReadProfile.Fast }).Pages;
         int[] numbers = before.Select(annotation => annotation.ObjectNumber!.Value).ToArray();
         var edited = (copy ? source.Annotations.CopyManyVisual(numbers, 13, 7) : source.Annotations.MoveManyVisual(numbers, 13, 7)).ToDocument();
         var after = edited.Inspect().Annotations;
@@ -291,7 +291,7 @@ public sealed class PdfAnnotationBatchTests {
     }
 
     internal static PdfDocument CreateAnnotatedDocument() {
-        var document = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Source content"));
+        var document = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Source content"));
         document = document.Annotations.Add(new PdfAnnotationCreateOptions {
             Subtype = "Line", Name = "line", Rectangle = new[] { 40D, 50D, 180D, 100D },
             Line = new[] { 45D, 55D, 175D, 95D }, GenerateAppearance = true

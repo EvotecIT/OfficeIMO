@@ -10,7 +10,7 @@ New-OfficeExcel -Path $path {
 
         Set-OfficeExcelSmartHyperlink -Address 'A2' -Url 'https://datatracker.ietf.org/doc/html/rfc7208'
         Set-OfficeExcelHostHyperlink -Address 'B2' -Url 'https://learn.microsoft.com/office/open-xml/'
-        Add-OfficeExcelImageFromUrl -Address 'D2' -Url 'https://raw.githubusercontent.com/github/explore/main/topics/powershell/powershell.png' -WidthPixels 48 -HeightPixels 48
+        Add-OfficeExcelImage -Address 'D2' -Url 'https://raw.githubusercontent.com/github/explore/main/topics/powershell/powershell.png' -Width 48px -Height 48px
     }
 }
 

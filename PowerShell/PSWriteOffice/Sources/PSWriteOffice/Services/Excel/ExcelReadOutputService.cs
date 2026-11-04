@@ -11,9 +11,9 @@ namespace PSWriteOffice.Services.Excel;
 
 internal static class ExcelReadOutputService
 {
-    public static ExcelReadOptions CreateOptions(bool numericAsDecimal, bool useCachedFormulaResult = true, CultureInfo? culture = null)
+    public static ExcelReaderOptions CreateOptions(bool numericAsDecimal, bool useCachedFormulaResult = true, CultureInfo? culture = null)
     {
-        return new ExcelReadOptions {
+        return new ExcelReaderOptions {
             NumericAsDecimal = numericAsDecimal,
             UseCachedFormulaResult = useCachedFormulaResult,
             Culture = culture ?? CultureInfo.InvariantCulture
@@ -21,7 +21,7 @@ internal static class ExcelReadOutputService
     }
 
     public static void ConfigureSelection(
-        ExcelReadOptions options,
+        ExcelReaderOptions options,
         string? sheetName,
         int? sheetIndex,
         string? a1Range,

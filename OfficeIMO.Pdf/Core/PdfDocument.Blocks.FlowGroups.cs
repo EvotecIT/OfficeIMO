@@ -52,12 +52,20 @@ public sealed partial class PdfDocument {
         PdfLayoutPositionCapture? capture = null) {
         Guard.NotNull(composeFactory, nameof(composeFactory));
         var generatedSectionOwner = new object();
+        // Retain the owning page's options, including defaults configured after registration.
+        PdfCreateOptions owningOptions = CompositionOptions;
         AddBlock(new FlowBlock(
             context => {
-                using GeneratedSectionMaterializationScope generatedSections = BeginGeneratedSectionMaterialization(generatedSectionOwner);
-                Action<PdfContentBuilder> compose = composeFactory(context)
-                    ?? throw new InvalidOperationException("Deferred PDF flow factory returned null.");
-                return BuildFlowBlocks(compose);
+                PdfCreateOptions? previousOptions = _compositionOptions;
+                _compositionOptions = owningOptions;
+                try {
+                    using GeneratedSectionMaterializationScope generatedSections = BeginGeneratedSectionMaterialization(generatedSectionOwner);
+                    Action<PdfContentBuilder> compose = composeFactory(context)
+                        ?? throw new InvalidOperationException("Deferred PDF flow factory returned null.");
+                    return BuildFlowBlocks(compose);
+                } finally {
+                    _compositionOptions = previousOptions;
+                }
             },
             options,
             capture));

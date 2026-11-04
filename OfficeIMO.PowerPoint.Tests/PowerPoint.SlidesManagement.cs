@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
         public void CanRemoveSlide() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 presentation.AddSlide().AddTextBox("Slide 1");
                 presentation.AddSlide().AddTextBox("Slide 2");
                 presentation.AddSlide().AddTextBox("Slide 3");
@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                 Assert.Equal(2, presentation.Slides.Count);
                 Assert.Equal("Slide 1", presentation.Slides[0].TextBoxes.First().Text);
                 Assert.Equal("Slide 3", presentation.Slides[1].TextBoxes.First().Text);
@@ -40,8 +40,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void RemoveSlide_CleansInboundInternalHyperlinks() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide source = presentation.AddSlide();
             PowerPointTextRun run = source.AddTextBox("Open target")
                 .Paragraphs.Single().Runs.Single();
@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests {
         public void RemovingSlidesDownToOneKeepsPresentationValid() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 presentation.AddSlide().AddTextBox("Slide 1");
                 presentation.AddSlide().AddTextBox("Slide 2");
                 presentation.AddSlide().AddTextBox("Slide 3");
@@ -89,7 +89,7 @@ namespace OfficeIMO.Tests {
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                 Assert.Single(presentation.Slides);
                 Assert.True(presentation.DocumentIsValid);
             }
@@ -101,7 +101,7 @@ namespace OfficeIMO.Tests {
         public void CanMoveSlide() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 presentation.AddSlide().AddTextBox("Slide 1");
                 presentation.AddSlide().AddTextBox("Slide 2");
                 presentation.AddSlide().AddTextBox("Slide 3");
@@ -115,7 +115,7 @@ namespace OfficeIMO.Tests {
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                 Assert.Equal(3, presentation.Slides.Count);
                 Assert.Equal("Slide 2", presentation.Slides[0].TextBoxes.First().Text);
                 Assert.Equal("Slide 3", presentation.Slides[1].TextBoxes.First().Text);
@@ -127,13 +127,13 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void RemovingInvalidSlideThrows() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(Path.GetTempFileName());
+            using PowerPointDocument presentation = PowerPointDocument.Create(Path.GetTempFileName());
             Assert.Throws<ArgumentOutOfRangeException>(() => presentation.RemoveSlide(0));
         }
 
         [Fact]
         public void RemovingLastSlideLeavesAValidEmptyPresentation() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(Path.GetTempFileName());
+            using PowerPointDocument presentation = PowerPointDocument.Create(Path.GetTempFileName());
             presentation.AddSlide();
 
             presentation.RemoveSlide(0);
@@ -144,7 +144,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void MovingInvalidSlideThrows() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(Path.GetTempFileName());
+            using PowerPointDocument presentation = PowerPointDocument.Create(Path.GetTempFileName());
             presentation.AddSlide();
             Assert.Throws<ArgumentOutOfRangeException>(() => presentation.MoveSlide(0, 1));
             Assert.Throws<ArgumentOutOfRangeException>(() => presentation.MoveSlide(1, 0));
@@ -155,10 +155,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide source = presentation.AddSlide();
                 source.AddTextBox("Source slide");
-                source.AddPicture(imagePath);
+                source.AddImage(imagePath);
                 source.Notes.Text = "Speaker notes";
                 source.Hidden = true;
 
@@ -166,7 +166,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal(2, presentation.Slides.Count);
                 Assert.Equal("Source slide", duplicate.TextBoxes.First().Text);
-                Assert.Single(duplicate.Pictures);
+                Assert.Single(duplicate.Images);
                 Assert.True(duplicate.Hidden);
                 Assert.Equal("Speaker notes", duplicate.Notes.Text);
 
@@ -174,7 +174,7 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(presentation.ValidateDocument());
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                 Assert.Equal(2, presentation.Slides.Count);
                 Assert.True(presentation.Slides[1].Hidden);
                 Assert.Equal("Source slide", presentation.Slides[1].TextBoxes.First().Text);
@@ -185,10 +185,47 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DuplicatingAnUntouchedLoadedSlideSharesMediaAndKeepsItWhenTheSourceIsRemoved() {
+            string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
+            byte[] imageBytes = File.ReadAllBytes(imagePath);
+            byte[] deck;
+            using (PowerPointDocument presentation = PowerPointDocument.Create()) {
+                PowerPointSlide source = presentation.AddSlide();
+                source.AddTextBox("Source slide");
+                source.AddImage(imagePath);
+                source.Hidden = true;
+                deck = presentation.ToBytes();
+            }
+
+            byte[] saved;
+            using (var input = new MemoryStream(deck, writable: false))
+            using (PowerPointDocument presentation = PowerPointDocument.Load(input)) {
+                PowerPointSlide duplicate = presentation.DuplicateSlide(0);
+                Assert.True(duplicate.Hidden);
+                ImagePart sourceImage = presentation.Slides[0].SlidePart.ImageParts.Single();
+                Assert.Same(sourceImage, duplicate.SlidePart.ImageParts.Single());
+
+                presentation.RemoveSlide(0);
+                saved = presentation.ToBytes();
+            }
+
+            using var output = new MemoryStream(saved, writable: false);
+            using PresentationDocument package = PresentationDocument.Open(output, false);
+            SlidePart remaining = package.PresentationPart!.SlideParts.Single();
+            Assert.Equal("Source slide", remaining.Slide!.Descendants<A.Text>().First().Text);
+            Assert.False(remaining.Slide.Show?.Value ?? true);
+            using Stream image = remaining.ImageParts.Single().GetStream();
+            using var copy = new MemoryStream();
+            image.CopyTo(copy);
+            Assert.Equal(imageBytes, copy.ToArray());
+            Assert.Empty(new OpenXmlValidator().Validate(package));
+        }
+
+        [Fact]
         public void CanDuplicateSlideWithChart() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide source = presentation.AddSlide();
                 source.AddChart();
 
@@ -200,7 +237,7 @@ namespace OfficeIMO.Tests {
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                 Assert.Equal(2, presentation.Slides.Count);
                 Assert.Single(presentation.Slides[0].Charts);
                 Assert.Single(presentation.Slides[1].Charts);
@@ -215,21 +252,21 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
 
-            using (PowerPointPresentation source = PowerPointPresentation.Create(sourcePath)) {
+            using (PowerPointDocument source = PowerPointDocument.Create(sourcePath)) {
                 PowerPointSlide sourceSlide = source.AddSlide();
                 sourceSlide.AddTextBox("Imported slide");
-                sourceSlide.AddPicture(imagePath);
+                sourceSlide.AddImage(imagePath);
                 sourceSlide.Notes.Text = "Imported notes";
                 sourceSlide.Hidden = true;
                 source.Save();
                 Assert.Empty(source.ValidateDocument());
 
-                using (PowerPointPresentation target = PowerPointPresentation.Create(targetPath)) {
+                using (PowerPointDocument target = PowerPointDocument.Create(targetPath)) {
                     PowerPointSlide imported = target.ImportSlide(source, 0);
 
                     Assert.Single(target.Slides);
                     Assert.Equal("Imported slide", imported.TextBoxes.First().Text);
-                    Assert.Single(imported.Pictures);
+                    Assert.Single(imported.Images);
                     Assert.True(imported.Hidden);
                     Assert.Equal("Imported notes", imported.Notes.Text);
 
@@ -238,10 +275,10 @@ namespace OfficeIMO.Tests {
                 }
             }
 
-            using (PowerPointPresentation target = PowerPointPresentation.Load(targetPath)) {
+            using (PowerPointDocument target = PowerPointDocument.Load(targetPath)) {
                 Assert.Single(target.Slides);
                 Assert.Equal("Imported slide", target.Slides[0].TextBoxes.First().Text);
-                Assert.Single(target.Slides[0].Pictures);
+                Assert.Single(target.Slides[0].Images);
                 Assert.True(target.Slides[0].Hidden);
                 Assert.Equal("Imported notes", target.Slides[0].Notes.Text);
             }
@@ -256,7 +293,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             try {
-                using (PowerPointPresentation source = PowerPointPresentation.Create(sourcePath)) {
+                using (PowerPointDocument source = PowerPointDocument.Create(sourcePath)) {
                     PowerPointSlide sourceSlide = source.AddSlide();
                     sourceSlide.AddTextBox("Read-only source");
                     sourceSlide.AddChart();
@@ -265,12 +302,12 @@ namespace OfficeIMO.Tests {
                     source.Save();
                 }
 
-                using (PowerPointPresentation source = PowerPointPresentation.Load(sourcePath,
+                using (PowerPointDocument source = PowerPointDocument.Load(sourcePath,
                            new PowerPointLoadOptions {
                                AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly,
                                PersistenceMode = OfficeIMO.DocumentPersistenceMode.Explicit
                            }))
-                using (PowerPointPresentation target = PowerPointPresentation.Create(targetPath)) {
+                using (PowerPointDocument target = PowerPointDocument.Create(targetPath)) {
                     ChartPart sourceChartPart = source.OpenXmlDocument.PresentationPart!
                         .SlideParts.Single().ChartParts.Single();
                     sourceChartPart.ChartSpace!.RoundedCorners = new C.RoundedCorners { Val = true };
@@ -286,7 +323,7 @@ namespace OfficeIMO.Tests {
                     Assert.Empty(target.ValidateDocument());
                 }
 
-                using (PowerPointPresentation target = PowerPointPresentation.Load(targetPath)) {
+                using (PowerPointDocument target = PowerPointDocument.Load(targetPath)) {
                     Assert.Equal("Read-only source", target.Slides[0].TextBoxes.Single().Text);
                     Assert.Equal("Read-only notes", target.Slides[0].Notes.Text);
                     Assert.True(target.Slides[0].Hidden);
@@ -305,7 +342,7 @@ namespace OfficeIMO.Tests {
             string filePath = CreateTempFilePath(".pptx");
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     presentation.AddSlide().AddTextBox("Visible slide");
                     PowerPointSlide hiddenSlide = presentation.AddSlide();
                     hiddenSlide.AddTextBox("Hidden slide");
@@ -328,7 +365,7 @@ namespace OfficeIMO.Tests {
                     Assert.False(hiddenSlidePart.Slide!.Show!.Value);
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                     Assert.False(presentation.Slides[0].Hidden);
                     Assert.True(presentation.Slides[1].Hidden);
                 }
@@ -345,7 +382,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             try {
-                using (PowerPointPresentation source = PowerPointPresentation.Create(sourcePath)) {
+                using (PowerPointDocument source = PowerPointDocument.Create(sourcePath)) {
                     PowerPointSlide sourceSlide = source.AddSlide();
                     sourceSlide.AddTextBox("Imported slide");
                     sourceSlide.Notes.Text = "Imported notes";
@@ -368,8 +405,8 @@ namespace OfficeIMO.Tests {
                     notesPart.NotesSlide.Save();
                 }
 
-                using (PowerPointPresentation source = PowerPointPresentation.Load(sourcePath))
-                using (PowerPointPresentation target = PowerPointPresentation.Create(targetPath)) {
+                using (PowerPointDocument source = PowerPointDocument.Load(sourcePath))
+                using (PowerPointDocument target = PowerPointDocument.Create(targetPath)) {
                     PowerPointSlide imported = target.ImportSlide(source, 0);
 
                     Assert.Equal("Imported notes", imported.Notes.Text);

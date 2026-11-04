@@ -42,7 +42,7 @@ public sealed partial class HtmlRenderingTests {
             AssertFixedHeightOverflowPlacement(rendered, "FORCED-TWO", secondPage, secondTop);
             AssertFixedHeightOverflowPlacement(rendered, "FORCED-THREE", thirdPage, thirdTop);
             AssertFixedHeightOverflowPlacement(rendered, "FORCED-AFTER", afterPage, afterTop);
-            rendered.RequireNoLoss();
+            rendered.ThrowIfLoss();
         }
     }
 
@@ -69,7 +69,7 @@ public sealed partial class HtmlRenderingTests {
             AssertFixedHeightOverflowPlacement(rendered, "EMPTY-THREE", pages, 20D);
             foreach (HtmlRenderPage blank in rendered.Pages.Skip(1).Take(emptySiblings))
                 Assert.Empty(blank.Visuals.OfType<HtmlRenderText>());
-            rendered.RequireNoLoss();
+            rendered.ThrowIfLoss();
         }
     }
 
@@ -99,7 +99,7 @@ public sealed partial class HtmlRenderingTests {
             AssertFixedHeightOverflowPlacement(rendered, "AFTER-FLOW", 2, 0D);
             if (blankAllocation) Assert.Empty(rendered.Pages[0].Visuals.OfType<HtmlRenderText>());
             else AssertFixedHeightOverflowPlacement(rendered, "AFTER-THREE", 2, 20D);
-            rendered.RequireNoLoss();
+            rendered.ThrowIfLoss();
         }
     }
 
@@ -127,7 +127,7 @@ public sealed partial class HtmlRenderingTests {
             AssertFixedHeightOverflowPlacement(rendered, "ANCESTOR-THREE", terminal ? 1 : 2, terminal ? 40D : 20D);
             AssertFixedHeightOverflowPlacement(rendered, "ANCESTOR-INNER-AFTER", 2, 0D);
             AssertFixedHeightOverflowPlacement(rendered, "ANCESTOR-OUTER-AFTER", 2, 0D);
-            rendered.RequireNoLoss();
+            rendered.ThrowIfLoss();
         }
     }
 
@@ -154,7 +154,7 @@ public sealed partial class HtmlRenderingTests {
             AssertFixedHeightOverflowPlacement(rendered, "INITIAL-ONE", 2, 0D);
             AssertFixedHeightOverflowPlacement(rendered, "INITIAL-TWO", 2, 20D);
             AssertFixedHeightOverflowPlacement(rendered, "INITIAL-AFTER", 2, 0D);
-            rendered.RequireNoLoss();
+            rendered.ThrowIfLoss();
         }
     }
 
@@ -179,7 +179,7 @@ public sealed partial class HtmlRenderingTests {
             AssertFixedHeightOverflowPlacement(rendered, "VISIBLE-TWO", 2, 0D);
             AssertFixedHeightOverflowPlacement(rendered, "VISIBLE-THREE", 2, 20D);
             AssertFixedHeightOverflowPlacement(rendered, "VISIBLE-AFTER", 2, 0D);
-            rendered.RequireNoLoss();
+            rendered.ThrowIfLoss();
         }
     }
 
@@ -196,7 +196,7 @@ public sealed partial class HtmlRenderingTests {
 
             Assert.Contains(rendered.Diagnostics,
                 diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ConstrainedOverflowPaginationPending);
-            Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+            Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
         }
     }
 
@@ -221,7 +221,7 @@ public sealed partial class HtmlRenderingTests {
             AssertFixedHeightOverflowPlacement(rendered, "ANONYMOUS-TWO", 2, 0D);
             AssertFixedHeightOverflowPlacement(rendered, "ANONYMOUS-THREE", 2, 20D);
             AssertFixedHeightOverflowPlacement(rendered, "ANONYMOUS-AFTER", 2, 0D);
-            rendered.RequireNoLoss();
+            rendered.ThrowIfLoss();
         }
     }
 
@@ -246,7 +246,7 @@ public sealed partial class HtmlRenderingTests {
             // The after boundary belongs to the first destination edge even
             // when independent visible overflow continues farther down page two.
             AssertFixedHeightOverflowPlacement(rendered, "TERMINAL-AFTER", 2, 0D);
-            rendered.RequireNoLoss();
+            rendered.ThrowIfLoss();
         }
     }
 
@@ -274,7 +274,7 @@ public sealed partial class HtmlRenderingTests {
             AssertFixedHeightOverflowPlacement(rendered, "PREFIX", 1, 0D);
             AssertFixedHeightOverflowPlacement(rendered, "ENTRY-ONE", 2, 0D);
             AssertFixedHeightOverflowPlacement(rendered, "ENTRY-AFTER", 2, 0D);
-            rendered.RequireNoLoss();
+            rendered.ThrowIfLoss();
         }
     }
 }

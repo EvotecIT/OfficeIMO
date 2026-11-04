@@ -32,19 +32,19 @@ public partial class HtmlWordGapClosure {
             </div>
             """;
 
-        HtmlToWordResult conversion = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+        HtmlToWordResult conversion = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence();
         using WordDocument document = conversion.Value;
         WordParagraph paragraph = Assert.Single(
             document.Paragraphs,
             candidate => candidate.Text.Contains("Logical spacing", StringComparison.Ordinal));
 
-        Assert.Equal(expectedBefore, paragraph.IndentationBefore);
-        Assert.Equal(expectedAfter, paragraph.IndentationAfter);
-        Assert.Equal(60, paragraph.LineSpacingBefore);
-        Assert.Equal(90, paragraph.LineSpacingAfter);
+        Assert.Equal(expectedBefore, checked((int?)(paragraph.IndentationBefore?.ToTwips())));
+        Assert.Equal(expectedAfter, checked((int?)(paragraph.IndentationAfter?.ToTwips())));
+        Assert.Equal(60, checked((int?)(paragraph.LineSpacingBefore?.ToTwips())));
+        Assert.Equal(90, checked((int?)(paragraph.LineSpacingAfter?.ToTwips())));
         Assert.DoesNotContain(
-            conversion.Report.Diagnostics,
-            diagnostic => diagnostic.Code == "UnsupportedCssDeclaration" &&
+            conversion.Report.NativeDiagnostics,
+            diagnostic => diagnostic.Code == "unsupported-css-declaration" &&
                           diagnostic.Source?.Contains("inline", StringComparison.OrdinalIgnoreCase) == true);
     }
 
@@ -55,12 +55,12 @@ public partial class HtmlWordGapClosure {
             <p style="margin-left:30px;margin-inline-start:10px">Logical last</p>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph physicalLast = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Physical last");
         WordParagraph logicalLast = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Logical last");
 
-        Assert.Equal(450, physicalLast.IndentationBefore);
-        Assert.Equal(150, logicalLast.IndentationBefore);
+        Assert.Equal(450, checked((int?)(physicalLast.IndentationBefore?.ToTwips())));
+        Assert.Equal(150, checked((int?)(logicalLast.IndentationBefore?.ToTwips())));
     }
 
     [Fact]
@@ -70,14 +70,14 @@ public partial class HtmlWordGapClosure {
             <p style="padding-inline-start:10px;padding-left:30px;padding-block-start:20px;padding-top:40px">Physical last</p>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph logicalLast = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Logical last");
         WordParagraph physicalLast = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Physical last");
 
-        Assert.Equal(150, logicalLast.IndentationBefore);
-        Assert.Equal(300, logicalLast.LineSpacingBefore);
-        Assert.Equal(450, physicalLast.IndentationBefore);
-        Assert.Equal(600, physicalLast.LineSpacingBefore);
+        Assert.Equal(150, checked((int?)(logicalLast.IndentationBefore?.ToTwips())));
+        Assert.Equal(300, checked((int?)(logicalLast.LineSpacingBefore?.ToTwips())));
+        Assert.Equal(450, checked((int?)(physicalLast.IndentationBefore?.ToTwips())));
+        Assert.Equal(600, checked((int?)(physicalLast.LineSpacingBefore?.ToTwips())));
     }
 
     [Fact]
@@ -94,27 +94,27 @@ public partial class HtmlWordGapClosure {
             <p id="specific" class="y">Specificity</p>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph sourceOrder = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Source order");
         WordParagraph specificity = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Specificity");
 
-        Assert.Equal(450, sourceOrder.IndentationBefore);
-        Assert.Equal(150, sourceOrder.IndentationAfter);
-        Assert.Equal(450, specificity.IndentationBefore);
-        Assert.Equal(150, specificity.IndentationAfter);
+        Assert.Equal(450, checked((int?)(sourceOrder.IndentationBefore?.ToTwips())));
+        Assert.Equal(150, checked((int?)(sourceOrder.IndentationAfter?.ToTwips())));
+        Assert.Equal(450, checked((int?)(specificity.IndentationBefore?.ToTwips())));
+        Assert.Equal(150, checked((int?)(specificity.IndentationAfter?.ToTwips())));
     }
 
     [Fact]
     public void HtmlToWord_InlineLogicalSpacing_IsReportedAsUnsupported() {
         const string html = """<p>Before <span style="margin-inline-start:10px">inline</span> after</p>""";
-        var options = new HtmlToWordOptions {
-            UnsupportedCssHandling = HtmlUnsupportedCssHandling.Error,
+        var options = new HtmlWordExportOptions {
+            UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Error,
         };
 
         HtmlUnsupportedCssException exception = Assert.Throws<HtmlUnsupportedCssException>(
-            () => HtmlConversionDocument.Parse(html).ToWordDocument(options));
+            () => HtmlConversionDocument.Parse(html).ToWord(options));
 
-        Assert.Equal("UnsupportedCssDeclaration", exception.Code);
+        Assert.Equal("unsupported-css-declaration", exception.Code);
         Assert.Equal("span:margin-inline-start", exception.CssSource);
     }
 
@@ -127,12 +127,12 @@ public partial class HtmlWordGapClosure {
             <p style="padding-left:30px!important;padding-inline-start:10px">Important padding</p>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
 
-        Assert.Equal(450, Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Important physical").IndentationBefore);
-        Assert.Equal(150, Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Important logical").IndentationBefore);
-        Assert.Equal(450, Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Important physical last").IndentationBefore);
-        Assert.Equal(450, Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Important padding").IndentationBefore);
+        Assert.Equal(450, checked((int?)(Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Important physical").IndentationBefore?.ToTwips())));
+        Assert.Equal(150, checked((int?)(Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Important logical").IndentationBefore?.ToTwips())));
+        Assert.Equal(450, checked((int?)(Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Important physical last").IndentationBefore?.ToTwips())));
+        Assert.Equal(450, checked((int?)(Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Important padding").IndentationBefore?.ToTwips())));
     }
 
     [Fact]
@@ -141,11 +141,11 @@ public partial class HtmlWordGapClosure {
             <p style="margin-left:30px;margin-inline:10px bogus">Invalid pair</p>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph paragraph = Assert.Single(document.Paragraphs, candidate => candidate.Text == "Invalid pair");
 
-        Assert.Equal(450, paragraph.IndentationBefore);
-        Assert.Null(paragraph.IndentationAfter);
+        Assert.Equal(450, checked((int?)(paragraph.IndentationBefore?.ToTwips())));
+        Assert.Null(checked((int?)(paragraph.IndentationAfter?.ToTwips())));
     }
 
     [Fact]
@@ -161,14 +161,14 @@ public partial class HtmlWordGapClosure {
             </div>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph paragraph = Assert.Single(document.Paragraphs, candidate => candidate.Text == "CSS direction");
         WordParagraph ownDir = Assert.Single(document.Paragraphs, candidate => candidate.Text == "Own dir");
 
-        Assert.Equal(150, paragraph.IndentationBefore);
-        Assert.Null(paragraph.IndentationAfter);
-        Assert.Null(ownDir.IndentationBefore);
-        Assert.Equal(150, ownDir.IndentationAfter);
+        Assert.Equal(150, checked((int?)(paragraph.IndentationBefore?.ToTwips())));
+        Assert.Null(checked((int?)(paragraph.IndentationAfter?.ToTwips())));
+        Assert.Null(checked((int?)(ownDir.IndentationBefore?.ToTwips())));
+        Assert.Equal(150, checked((int?)(ownDir.IndentationAfter?.ToTwips())));
     }
 
     [Fact]
@@ -177,12 +177,12 @@ public partial class HtmlWordGapClosure {
             <p style="direction:rtl!important;direction:ltr;margin-inline-start:10px">Important direction</p>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph paragraph = Assert.Single(document.Paragraphs, candidate => candidate.Text == "Important direction");
 
         Assert.True(paragraph.BiDi);
-        Assert.Null(paragraph.IndentationBefore);
-        Assert.Equal(150, paragraph.IndentationAfter);
+        Assert.Null(checked((int?)(paragraph.IndentationBefore?.ToTwips())));
+        Assert.Equal(150, checked((int?)(paragraph.IndentationAfter?.ToTwips())));
     }
 
     [Fact]
@@ -194,16 +194,16 @@ public partial class HtmlWordGapClosure {
             </div>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph initial = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Initial");
         WordParagraph inherited = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Inherited");
 
         Assert.False(initial.BiDi);
-        Assert.Equal(150, initial.IndentationBefore);
-        Assert.Null(initial.IndentationAfter);
+        Assert.Equal(150, checked((int?)(initial.IndentationBefore?.ToTwips())));
+        Assert.Null(checked((int?)(initial.IndentationAfter?.ToTwips())));
         Assert.True(inherited.BiDi);
-        Assert.Null(inherited.IndentationBefore);
-        Assert.Equal(150, inherited.IndentationAfter);
+        Assert.Null(checked((int?)(inherited.IndentationBefore?.ToTwips())));
+        Assert.Equal(150, checked((int?)(inherited.IndentationAfter?.ToTwips())));
     }
 
     [Fact]
@@ -213,21 +213,21 @@ public partial class HtmlWordGapClosure {
             <div class="frame"><p>First</p><p>Second</p></div>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph first = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "First");
         WordParagraph second = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Second");
 
-        Assert.Equal("ABCDEF", first.ShadingFillColorHex);
-        Assert.Equal("ABCDEF", second.ShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("ABCDEF"), first.ShadingFillColor);
+        Assert.Equal(OfficeColor.Parse("ABCDEF"), second.ShadingFillColor);
         Assert.Equal(WordBorderStyle.Single, first.Borders.TopStyle);
         Assert.Null(first.Borders.BottomStyle);
         Assert.Null(second.Borders.TopStyle);
         Assert.Equal(WordBorderStyle.Single, second.Borders.BottomStyle);
         Assert.Equal(WordBorderStyle.Single, first.Borders.LeftStyle);
         Assert.Equal(WordBorderStyle.Single, second.Borders.RightStyle);
-        Assert.Equal("123456", first.Borders.LeftColorHex);
-        Assert.Equal(120, first.IndentationBefore);
-        Assert.Equal(120, second.IndentationAfter);
+        Assert.Equal(OfficeColor.Parse("123456"), first.Borders.LeftColor);
+        Assert.Equal(120, checked((int?)(first.IndentationBefore?.ToTwips())));
+        Assert.Equal(120, checked((int?)(second.IndentationAfter?.ToTwips())));
     }
 
     [Fact]
@@ -239,12 +239,12 @@ public partial class HtmlWordGapClosure {
             </div>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph specific = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Specific");
         WordParagraph inherited = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Inherited frame");
 
-        Assert.Equal("FF0000", specific.ShadingFillColorHex);
-        Assert.Equal("0000FF", inherited.ShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("FF0000"), specific.ShadingFillColor);
+        Assert.Equal(OfficeColor.Parse("0000FF"), inherited.ShadingFillColor);
     }
 
     [Fact]
@@ -255,14 +255,14 @@ public partial class HtmlWordGapClosure {
             </p>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph paragraph = Assert.Single(
             document.Paragraphs,
             candidate => candidate.Text.Contains("Important frame", StringComparison.Ordinal));
 
-        Assert.Equal("ABCDEF", paragraph.ShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("ABCDEF"), paragraph.ShadingFillColor);
         Assert.Equal(WordBorderStyle.Single, paragraph.Borders.LeftStyle);
-        Assert.Equal("123456", paragraph.Borders.LeftColorHex);
+        Assert.Equal(OfficeColor.Parse("123456"), paragraph.Borders.LeftColor);
     }
 
     [Fact]
@@ -273,12 +273,12 @@ public partial class HtmlWordGapClosure {
             </blockquote>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph paragraph = Assert.Single(document.Paragraphs, candidate => candidate.Text == "Quoted spacing");
 
-        Assert.Equal(180, paragraph.IndentationBefore);
-        Assert.Equal(105, paragraph.LineSpacingBefore);
-        Assert.Equal(105, paragraph.LineSpacingAfter);
+        Assert.Equal(180, checked((int?)(paragraph.IndentationBefore?.ToTwips())));
+        Assert.Equal(105, checked((int?)(paragraph.LineSpacingBefore?.ToTwips())));
+        Assert.Equal(105, checked((int?)(paragraph.LineSpacingAfter?.ToTwips())));
     }
 
     [Fact]
@@ -287,14 +287,14 @@ public partial class HtmlWordGapClosure {
             <span>Before</span><div style="border:1px solid #123456">Inside</div>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph before = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Before");
         WordParagraph inside = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Inside");
 
         Assert.NotSame(before, inside);
         Assert.Equal(WordBorderStyle.Single, inside.Borders.TopStyle);
         Assert.Equal(WordBorderStyle.Single, inside.Borders.BottomStyle);
-        Assert.Equal("123456", inside.Borders.LeftColorHex);
+        Assert.Equal(OfficeColor.Parse("123456"), inside.Borders.LeftColor);
     }
 
     [Fact]
@@ -308,7 +308,7 @@ public partial class HtmlWordGapClosure {
         WordParagraph inside = Assert.Single(cell.Paragraphs, paragraph => paragraph.Text == "Inside cell");
         Assert.Equal(WordBorderStyle.Single, inside.Borders.TopStyle);
         Assert.Equal(WordBorderStyle.Single, inside.Borders.BottomStyle);
-        Assert.Equal("123456", inside.Borders.LeftColorHex);
+        Assert.Equal(OfficeColor.Parse("123456"), inside.Borders.LeftColor);
     }
 
     [Fact]
@@ -331,7 +331,7 @@ public partial class HtmlWordGapClosure {
     public void HtmlToWord_BorderColorLonghand_DoesNotSynthesizeVisibleBorder() {
         const string html = """<p style="border-left-color:#ff0000">No border style</p>""";
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph paragraph = Assert.Single(document.Paragraphs, candidate => candidate.Text == "No border style");
 
         Assert.Null(paragraph.Borders.LeftStyle);
@@ -344,7 +344,7 @@ public partial class HtmlWordGapClosure {
             <p style="border-left:2px #00ff00">One side</p>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph allSides = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "All sides");
         WordParagraph oneSide = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "One side");
 
@@ -362,7 +362,7 @@ public partial class HtmlWordGapClosure {
             <p style="border-left:1px solid red;border-left:1px red">Reset one side</p>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph allSides = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Reset all sides");
         WordParagraph oneSide = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Reset one side");
 
@@ -382,33 +382,33 @@ public partial class HtmlWordGapClosure {
             <p style="border:1px solid rgb(1, 2, 3)">Functional color</p>
             """;
 
-        HtmlToWordResult conversion = HtmlConversionDocument.Parse(html).ToWordDocumentResult(
-            new HtmlToWordOptions { UnsupportedCssHandling = HtmlUnsupportedCssHandling.Warn });
+        HtmlToWordResult conversion = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(
+            new HtmlWordExportOptions { UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Warn });
         using WordDocument document = conversion.Value;
         WordParagraph background = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Background");
         WordParagraph border = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Border");
         WordParagraph transparent = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Transparent");
         WordParagraph functionalColor = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Functional color");
 
-        Assert.Equal("FF0000", background.ShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("FF0000"), background.ShadingFillColor);
         Assert.Equal(WordBorderStyle.Single, border.Borders.TopStyle);
-        Assert.Equal("FF0000", border.Borders.TopColorHex);
-        Assert.True(string.IsNullOrEmpty(transparent.ShadingFillColorHex));
-        Assert.Equal("010203", functionalColor.Borders.TopColorHex);
-        Assert.Contains(conversion.Report.Diagnostics, diagnostic =>
-            diagnostic.Code == "UnsupportedCssValue" &&
+        Assert.Equal(OfficeColor.Parse("FF0000"), border.Borders.TopColor);
+        Assert.Null(transparent.ShadingFillColor);
+        Assert.Equal(OfficeColor.Parse("010203"), functionalColor.Borders.TopColor);
+        Assert.Contains(conversion.Report.NativeDiagnostics, diagnostic =>
+            diagnostic.Code == "unsupported-css-value" &&
             diagnostic.Source == "div:border");
     }
 
     [Fact]
     public void HtmlToWord_ExactTextBackground_SurvivesSaveReloadAndHtmlExport() {
         const string html = """<p>Before <span style="background-color:#abcdef">exact</span> after</p>""";
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph exactRun = Assert.Single(
             document.Paragraphs[0].GetRuns(),
             run => run.Text.Contains("exact", StringComparison.Ordinal));
 
-        Assert.Equal("ABCDEF", exactRun.RunShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("ABCDEF"), exactRun.BackgroundColor);
         Assert.Null(exactRun.Highlight);
 
         using var stream = new MemoryStream();
@@ -424,13 +424,13 @@ public partial class HtmlWordGapClosure {
             reloaded.Paragraphs[0].GetRuns(),
             run => run.Text.Contains("exact", StringComparison.Ordinal));
 
-        Assert.Equal("ABCDEF", reloadedRun.RunShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("ABCDEF"), reloadedRun.BackgroundColor);
         Assert.Contains(
             "background-color:#abcdef",
-            reloaded.ToHtml(new WordToHtmlOptions { IncludeRunHighlightStyles = true }),
+            reloaded.ToHtml(new WordHtmlExportOptions { IncludeRunHighlightStyles = true }),
             StringComparison.OrdinalIgnoreCase);
 
-        AssertRenderedWordBackgrounds(reloaded, OfficeIMO.Drawing.OfficeColor.Parse("#ABCDEF"));
+        AssertRenderedWordBackgrounds(reloaded, OfficeIMO.OfficeColor.Parse("#ABCDEF"));
     }
 
     [Fact]
@@ -439,7 +439,7 @@ public partial class HtmlWordGapClosure {
             <p><mark>marked <span style="background-color:#abcdef!important">exact</span></mark></p>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph markedRun = Assert.Single(
             document.Paragraphs[0].GetRuns(),
             run => run.Text.Contains("marked", StringComparison.Ordinal));
@@ -449,31 +449,31 @@ public partial class HtmlWordGapClosure {
 
         Assert.Equal(WordHighlightColor.Yellow, markedRun.Highlight);
         Assert.Null(exactRun.Highlight);
-        Assert.Equal("ABCDEF", exactRun.RunShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("ABCDEF"), exactRun.BackgroundColor);
 
-        AssertRenderedWordBackgrounds(document, OfficeIMO.Drawing.OfficeColor.Parse("#ABCDEF"), OfficeIMO.Drawing.OfficeColor.Yellow);
-        string roundTrip = document.ToHtml(new WordToHtmlOptions { IncludeRunHighlightStyles = true });
+        AssertRenderedWordBackgrounds(document, OfficeIMO.OfficeColor.Parse("#ABCDEF"), OfficeIMO.OfficeColor.Yellow);
+        string roundTrip = document.ToHtml(new WordHtmlExportOptions { IncludeRunHighlightStyles = true });
         Assert.Contains("<mark", roundTrip, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("background-color:#abcdef", roundTrip, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public void HtmlToWord_NearestHighlightMode_ReportsColorApproximation() {
-        var options = new HtmlToWordOptions {
-            TextBackgroundMode = HtmlTextBackgroundMode.NearestHighlight
+        var options = new HtmlWordExportOptions {
+            TextBackgroundMode = WordHtmlTextBackgroundMode.NearestHighlight
         };
 
         HtmlToWordResult conversion = HtmlConversionDocument
             .Parse("""<p><span style="background-color:#abcdef">approximate</span></p>""")
-            .ToWordDocumentResult(options);
+            .ConvertToWordWithEvidence(options);
         using WordDocument document = conversion.Value;
         WordParagraph run = Assert.Single(document.Paragraphs[0].GetRuns());
 
         Assert.NotNull(run.Highlight);
-        Assert.Equal(string.Empty, run.RunShadingFillColorHex);
+        Assert.Null(run.BackgroundColor);
         Assert.Contains(
             conversion.Report.Diagnostics,
-            diagnostic => diagnostic.Code == "TextBackgroundColorApproximated");
+            diagnostic => diagnostic.Code == "text-background-color-approximated");
     }
 
     [Fact]
@@ -495,9 +495,9 @@ public partial class HtmlWordGapClosure {
                 Interlocked.Decrement(ref active);
             }
         }));
-        var options = new HtmlToWordOptions {
+        var options = new HtmlWordExportOptions {
             HttpClient = httpClient,
-            ImageProcessing = ImageProcessingMode.Embed,
+            ImageProcessing = WordHtmlImageProcessingMode.Embed,
             MaxConcurrentResourceLoads = 2
         };
         const string html = """
@@ -506,7 +506,7 @@ public partial class HtmlWordGapClosure {
             <img src="https://example.test/three.png" alt="Three">
             """;
 
-        using WordDocument document = await HtmlConversionDocument.Parse(html).ToWordDocumentAsync(options);
+        using WordDocument document = (await HtmlConversionDocument.Parse(html).ToWordAsync(options)).Value;
 
         Assert.Equal(3, document.Images.Count);
         Assert.Equal(2, maximum);
@@ -514,35 +514,35 @@ public partial class HtmlWordGapClosure {
 
     [Fact]
     public void HtmlToWordOptions_Clone_PreservesNewConversionContracts() {
-        var options = new HtmlToWordOptions {
+        var options = new HtmlWordExportOptions {
             MaxConcurrentResourceLoads = 3,
-            TextBackgroundMode = HtmlTextBackgroundMode.NearestHighlight
+            TextBackgroundMode = WordHtmlTextBackgroundMode.NearestHighlight
         };
 
-        HtmlToWordOptions clone = options.Clone();
+        HtmlWordExportOptions clone = options.Clone();
 
         Assert.Equal(3, clone.MaxConcurrentResourceLoads);
-        Assert.Equal(HtmlTextBackgroundMode.NearestHighlight, clone.TextBackgroundMode);
+        Assert.Equal(WordHtmlTextBackgroundMode.NearestHighlight, clone.TextBackgroundMode);
     }
 
     [Fact]
     public async Task HtmlToWord_InvalidResourceConcurrency_IsRejectedBeforeNetworkAccess() {
-        var options = new HtmlToWordOptions {
-            ImageProcessing = ImageProcessingMode.Embed,
+        var options = new HtmlWordExportOptions {
+            ImageProcessing = WordHtmlImageProcessingMode.Embed,
             MaxConcurrentResourceLoads = 0
         };
 
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
             HtmlConversionDocument
                 .Parse("""<img src="https://example.test/image.png">""")
-                .ToWordDocumentAsync(options));
+                .ToWordAsync(options));
     }
 
     [Fact]
     public async Task WordTableCell_AddHtmlAsync_PreservesTypedContainerAndArtifact() {
         using WordDocument document = WordDocument.Create();
         WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
-        await cell.AddHtmlAsync(HtmlConversionDocument.Parse("""
+        IReadOnlyList<WordElement> created = await cell.AddHtmlAsync(HtmlConversionDocument.Parse("""
             <h2>Cell heading</h2>
             <ul><li>First item</li><li>Second item</li></ul>
             <table><tr><td>Nested</td></tr></table>
@@ -550,6 +550,13 @@ public partial class HtmlWordGapClosure {
 
         Assert.Contains(cell.Paragraphs, paragraph => paragraph.Text.Contains("Cell heading", StringComparison.Ordinal));
         Assert.Contains(cell.Elements, element => element is WordTable);
+        Assert.Equal(new[] { "Cell heading", "First item", "Second item", "[table]" },
+            created.Select(element => element is WordParagraph paragraph ? paragraph.Text : "[table]")
+                .Where(text => text.Length > 0));
+        WordParagraph heading = Assert.Single(created.OfType<WordParagraph>(), paragraph => paragraph.Text == "Cell heading");
+        heading.Bold = true;
+        WordTable nested = Assert.Single(created.OfType<WordTable>());
+        nested.Rows[0].Cells[0].Paragraphs.Single(paragraph => paragraph.Text == "Nested").Text = "Nested edited";
 
         using var stream = new MemoryStream();
         document.Save(stream);
@@ -559,18 +566,23 @@ public partial class HtmlWordGapClosure {
         Assert.Contains(reloadedCell.Paragraphs, paragraph => paragraph.Text.Contains("Cell heading", StringComparison.Ordinal));
         Assert.Contains(reloadedCell.Elements, element => element is WordTable);
         Assert.Contains(reloadedCell.Paragraphs, paragraph => paragraph.Text.Contains("First item", StringComparison.Ordinal));
+        Assert.True(reloadedCell.Paragraphs.Single(paragraph => paragraph.Text == "Cell heading").Bold);
+        Assert.Contains(Assert.Single(reloadedCell.Elements.OfType<WordTable>()).Paragraphs,
+            paragraph => paragraph.Text == "Nested edited");
     }
 
     [Fact]
-    public void WordTableCell_AddHtml_AppendsTopLevelInlineSiblingsWithoutDeletingContent() {
+    public async Task WordTableCell_AddHtml_AppendsTopLevelInlineSiblingsWithoutDeletingContent() {
         using WordDocument document = WordDocument.Create();
         WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
         cell.Paragraphs[0].Text = "Existing";
 
-        cell.AddHtml(HtmlConversionDocument.Parse("""<span>First</span><span>Second</span>"""));
+        IReadOnlyList<WordElement> created = await cell.AddHtmlAsync("""<span>First</span><span>Second</span>""");
 
         Assert.Contains(cell.Paragraphs, paragraph => paragraph.Text == "Existing");
         Assert.Equal("ExistingFirstSecond", string.Concat(cell.Paragraphs.Select(paragraph => paragraph.Text)));
+        Assert.Equal(new[] { "First", "Second" }, created.OfType<WordParagraph>()
+            .Where(paragraph => paragraph.Text.Length > 0).Select(paragraph => paragraph.Text));
     }
 
     [Fact]
@@ -578,7 +590,7 @@ public partial class HtmlWordGapClosure {
         using WordDocument document = WordDocument.Create();
         WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
         using (var imageStream = new MemoryStream(Convert.FromBase64String(ValidPng))) {
-            cell.Paragraphs[0].AddImage(imageStream, "existing.png", 10, 10);
+            cell.Paragraphs[0].AddImage(imageStream, "existing.png", OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10));
         }
 
         cell.AddHtml(HtmlConversionDocument.Parse("""<span>Appended</span>"""));
@@ -597,15 +609,23 @@ public partial class HtmlWordGapClosure {
         Assert.Contains(reloadedCell.Paragraphs, paragraph => paragraph.Text == "Appended");
     }
 
-    [Fact]
-    public void WordTableCell_AddHtml_ReplacesOnlyTheFreshEmptyRunPlaceholder() {
+    [Theory]
+    [InlineData("<p>Imported paragraph</p>", true)]
+    [InlineData("<span>Imported paragraph</span>", false)]
+    public void WordTableCell_AddHtml_MaterializesContentInFreshEmptyParagraph(string html, bool parsed) {
         using WordDocument document = WordDocument.Create();
         WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
 
-        cell.AddHtml(HtmlConversionDocument.Parse("""<p>Imported paragraph</p>"""));
+        Assert.Empty(cell.AddHtml(string.Empty));
+        IReadOnlyList<WordElement> created = parsed
+            ? cell.AddHtml(HtmlConversionDocument.Parse(html))
+            : cell.AddHtml(html);
 
         Paragraph paragraph = Assert.Single(cell._tableCell.Elements<Paragraph>());
         Assert.Equal("Imported paragraph", paragraph.InnerText);
+        WordParagraph imported = Assert.Single(created.OfType<WordParagraph>(), element => element.Text == "Imported paragraph");
+        Assert.All(created, element => Assert.Same(paragraph, Assert.IsType<WordParagraph>(element)._paragraph));
+        imported.Bold = true;
 
         using var stream = new MemoryStream();
         document.Save(stream);
@@ -613,6 +633,7 @@ public partial class HtmlWordGapClosure {
         WordTableCell reloadedCell = reloaded.Tables[0].Rows[0].Cells[0];
         Paragraph reloadedParagraph = Assert.Single(reloadedCell._tableCell.Elements<Paragraph>());
         Assert.Equal("Imported paragraph", reloadedParagraph.InnerText);
+        Assert.True(reloadedCell.Paragraphs.Single(element => element.Text == "Imported paragraph").Bold);
     }
 
     [Fact]
@@ -650,7 +671,7 @@ public partial class HtmlWordGapClosure {
         using WordDocument document = WordDocument.Create();
         WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
         cell.Paragraphs[0].Text = "Existing";
-        var options = new HtmlToWordOptions { SupportsHeadingNumbering = true };
+        var options = new HtmlWordExportOptions { SupportsHeadingNumbering = true };
 
         cell.AddHtml(HtmlConversionDocument.Parse("<h1>One</h1><p>Middle</p><h2>Two</h2>"), options);
 
@@ -684,7 +705,7 @@ public partial class HtmlWordGapClosure {
     public void WordTableCell_AddHtml_NumberedHeadingsReplaceTheFreshPlaceholder() {
         using WordDocument document = WordDocument.Create();
         WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
-        var options = new HtmlToWordOptions { SupportsHeadingNumbering = true };
+        var options = new HtmlWordExportOptions { SupportsHeadingNumbering = true };
 
         cell.AddHtml(HtmlConversionDocument.Parse("<h1>One</h1><h2>Two</h2>"), options);
 
@@ -728,8 +749,7 @@ public partial class HtmlWordGapClosure {
     [Fact]
     public async Task WordTableCell_AddHtmlAsync_UsesHeaderPartForTopLevelImage() {
         using WordDocument document = WordDocument.Create();
-        document.AddHeadersAndFooters();
-        WordHeader header = document.Sections[0].Header.Default!;
+        WordHeader header = document.Sections[0].PageSetup.Header;
         WordTableCell cell = header.AddTable(1, 1).Rows[0].Cells[0];
         string html = $"""<img src="data:image/png;base64,{ValidPng}" alt="Header PNG">""";
 
@@ -742,7 +762,7 @@ public partial class HtmlWordGapClosure {
         document.Save(stream);
         using WordDocument reloaded = WordDocument.Load(new MemoryStream(stream.ToArray()));
 
-        WordTableCell reloadedCell = reloaded.Sections[0].Header.Default!.Tables[0].Rows[0].Cells[0];
+        WordTableCell reloadedCell = reloaded.Sections[0].PageSetup.Header.Tables[0].Rows[0].Cells[0];
         Assert.Contains(reloadedCell.Paragraphs, paragraph => paragraph.IsImage);
         Assert.Empty(reloaded.Images);
     }

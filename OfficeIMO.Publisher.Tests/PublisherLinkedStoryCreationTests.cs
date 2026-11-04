@@ -34,11 +34,11 @@ public sealed class PublisherLinkedStoryCreationTests {
                     run.Bold, run.Italic, run.Underline, run.FontFamily) }, template.Alignment, template.LineHeight,
                     template.Margins, template.Indent, template.LineHeightFactor).WithTabStops(template.TabStops)
             });
-            var saved = document.ToPubBytesResult(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
-            Assert.False(saved.Report.HasErrors);
-            PublisherNativeWritingTests.AssertPreservedStorage(source, saved.Value, "Quill/QuillSub/CONTENTS");
-            Assert.Equal(Layout(source), Layout(saved.Value));
-            document = PublisherDocument.Load(saved.Value);
+            byte[] savedBytes = document.ToBytes(new PublisherSaveOptions { AllowLoss = true }, out PublisherSaveReport saveReport);
+            Assert.False(saveReport.HasErrors);
+            PublisherNativeWritingTests.AssertPreservedStorage(source, savedBytes, "Quill/QuillSub/CONTENTS");
+            Assert.Equal(Layout(source), Layout(savedBytes));
+            document = PublisherDocument.Load(savedBytes);
             Assert.Equal(2, document.TextStories.Count);
             Assert.Equal(Text(count) + "\n", document.TextStories.Single(value => value.Id == story.Id).Text);
             Assert.Equal("Independent story\n", Assert.Single(document.TextStories, value => value.Id != story.Id).Text);
@@ -48,7 +48,7 @@ public sealed class PublisherLinkedStoryCreationTests {
             Assert.Equal(0, frames[0].TextStart);
             Assert.Equal(frames[0].TextLength, frames[1].TextStart);
             Assert.Equal(frames[1].TextStart + frames[1].TextLength, frames[2].TextStart);
-            source = saved.Value;
+            source = savedBytes;
         }
     }
 
@@ -62,7 +62,7 @@ public sealed class PublisherLinkedStoryCreationTests {
         byte[] stream = compound!.Streams["Quill/QuillSub/CONTENTS"];
         var data = new PublisherBinaryData(stream, "Quill/QuillSub/CONTENTS");
         PublisherQuillChunk chunk = PublisherQuillDirectory.Read(data,
-            new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None)).Single(value => value.Tag == "MCLD");
+            new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None)).Single(value => value.Tag == "MCLD");
         return stream.Skip(chunk.Offset).Take(chunk.Length).ToArray();
     }
 }

@@ -71,7 +71,7 @@ namespace OfficeIMO.Excel {
 
             private static FormulaDependencyTableRange? TryCreateRange(Table table) {
                 if (table.Reference?.Value == null
-                    || !A1.TryParseRange(
+                    || !ExcelA1.TryParseRange(
                         table.Reference.Value.Replace("$", string.Empty),
                         out int firstRow,
                         out int firstColumn,
@@ -122,8 +122,8 @@ namespace OfficeIMO.Excel {
                             out int firstColumn,
                             out int lastRow,
                             out int lastColumn)) {
-                        string start = A1.CellReference(firstRow, firstColumn);
-                        string endReference = A1.CellReference(lastRow, lastColumn);
+                        string start = ExcelA1.CellReference(firstRow, firstColumn);
+                        string endReference = ExcelA1.CellReference(lastRow, lastColumn);
                         dependencyMatches.Add(new FormulaDependencyReferenceMatch(
                             index,
                             reference.Length,
@@ -256,7 +256,7 @@ namespace OfficeIMO.Excel {
                 .Select(part => part.Table)
                 .OfType<Table>()) {
                 if (candidate.Reference?.Value != null
-                    && A1.TryParseRange(
+                    && ExcelA1.TryParseRange(
                         candidate.Reference.Value.Replace("$", string.Empty),
                         out int firstRow,
                         out int firstColumn,

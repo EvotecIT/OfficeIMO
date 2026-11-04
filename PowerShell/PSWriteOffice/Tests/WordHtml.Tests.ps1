@@ -27,7 +27,7 @@ Describe 'Word HTML conversions' {
         ConvertFrom-OfficeWordHtml -Html $html -OutputPath $docPath | Out-Null
         Test-Path $docPath | Should -BeTrue
 
-        $document = Get-OfficeWord -Path $docPath -ReadOnly
+        $document = Open-OfficeWord -Path $docPath -ReadOnly
         try {
             $document.Paragraphs.Count | Should -BeGreaterThan 0
         } finally {

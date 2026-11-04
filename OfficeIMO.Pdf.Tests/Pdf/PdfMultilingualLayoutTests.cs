@@ -16,7 +16,7 @@ public sealed class PdfMultilingualLayoutTests {
             .SearchableText("Separate row", 47D, 90D, 160D, 21D))
             .ToBytes();
         PdfLogicalPage page = Assert.Single(PdfDocument.Load(bytes)
-            .Read(new PdfReadOptions { Profile = PdfReadProfile.Structured }).Pages);
+            .Read(new PdfLoadOptions { Profile = PdfReadProfile.Structured }).Pages);
         Assert.Equal(new[] { "Raport jakosci dokumentu", "Separate row" },
             page.Analysis.Lines.Select(static line => line.Text));
         PdfUnderstandingLine heading = page.Analysis.Lines[0];
@@ -48,7 +48,7 @@ public sealed class PdfMultilingualLayoutTests {
             Assert.Equal(fixture.GetProperty("files").GetProperty("native.pdf").GetString()!.ToUpperInvariant(), hash);
         }
         string[] expected = fixture.GetProperty("readingOrder").EnumerateArray().Select(value => value.GetString()!).ToArray();
-        PdfDocumentReadResult read = PdfDocument.Load(source).Read(new PdfReadOptions { Profile = PdfReadProfile.Structured });
+        PdfDocumentReadResult read = PdfDocument.Load(source).Read(new PdfLoadOptions { Profile = PdfReadProfile.Structured });
         Assert.Equal(Normalize(string.Join(" ", expected)), Normalize(read.Text));
         PdfLogicalPage page = Assert.Single(read.Pages);
         PdfLogicalTable table = Assert.Single(page.Tables);

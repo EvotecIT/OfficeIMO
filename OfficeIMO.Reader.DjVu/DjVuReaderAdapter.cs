@@ -14,12 +14,12 @@ internal static class DjVuReaderAdapter {
         var input = DocumentReaderEngine.ReadAdapterInput(stream, name ?? "document.djvu", reader, token, limits.MaxSourceBytes);
         return ReadSnapshot(input, reader, options, limits, token);
     }
-    private static OfficeDocumentReadResult ReadSnapshot(ReaderAdapterInputSnapshot input, ReaderOptions reader, ReaderDjVuOptions options, DjVuReadOptions limits, CancellationToken token) {
+    private static OfficeDocumentReadResult ReadSnapshot(ReaderAdapterInputSnapshot input, ReaderOptions reader, ReaderDjVuOptions options, DjVuLoadOptions limits, CancellationToken token) {
         var result = Project(DjVuDocument.Load(input.Bytes, limits, token), input.Source, reader, options, token);
         foreach (var chunk in result.Chunks) DocumentReaderEngine.ApplyAdapterSource(chunk, input, reader.ComputeHashes);
         return result;
     }
-    private static DjVuReadOptions Limits(ReaderOptions reader, ReaderDjVuOptions options) {
+    private static DjVuLoadOptions Limits(ReaderOptions reader, ReaderDjVuOptions options) {
         var limits = options.ReadOptions.Clone();
         if (reader.MaxInputBytes.HasValue) limits.MaxSourceBytes = Math.Min(limits.MaxSourceBytes, reader.MaxInputBytes.Value);
         return limits;
@@ -38,7 +38,7 @@ internal static class DjVuReaderAdapter {
         var links = new List<OfficeDocumentLink>();
         metadata.Add(new OfficeDocumentMetadataEntry { Id = "djvu-page-count", Category = "reader.container", Name = "PageCount",
             Value = document.Pages.Count.ToString(CultureInfo.InvariantCulture), ValueType = "count" });
-        long assetBytes = 0, chunkCharacters = 0;
+        long assetBytes = 0, chunkCharacters = 0, blockCharacters = 0;
         foreach (var page in DjVuPageSelection.Select(document, options.PageNumbers, options.ReadOptions.MaxPages, token)) {
             token.ThrowIfCancellationRequested();
             int pageOrder = pages.Count + 1;
@@ -60,6 +60,10 @@ internal static class DjVuReaderAdapter {
             foreach (var zone in WordZones(text.Zones)) {
                 token.ThrowIfCancellationRequested();
                 Check(blocks.Count + 1L, limits?.MaxBlocks, nameof(ReaderResourceLimits.MaxBlocks));
+                // Sibling zones may overlap. Bound their retained strings before copying,
+                // independently of the compact native text layer and chunk projections.
+                Check(blockCharacters + zone.CharacterLength, options.ReadOptions.MaxTextCharacters, nameof(DjVuLoadOptions.MaxTextCharacters));
+                blockCharacters += zone.CharacterLength;
                 var display = page.GetDisplayBounds(zone.Bounds);
                 var block = new OfficeDocumentBlock { Id = "djvu-page-" + page.Number + "-word-" + pageBlocks.Count, Kind = "word",
                     Text = text.Text.Substring(zone.CharacterOffset, zone.CharacterLength),
@@ -69,6 +73,8 @@ internal static class DjVuReaderAdapter {
             }
             if (pageBlocks.Count == 0 && text.Text.Length != 0) {
                 Check(blocks.Count + 1L, limits?.MaxBlocks, nameof(ReaderResourceLimits.MaxBlocks));
+                Check(blockCharacters + text.Text.Length, options.ReadOptions.MaxTextCharacters, nameof(DjVuLoadOptions.MaxTextCharacters));
+                blockCharacters += text.Text.Length;
                 var block = new OfficeDocumentBlock { Id = "djvu-page-" + page.Number + "-text", Kind = "paragraph", Text = text.Text, Location = location };
                 blocks.Add(block); pageBlocks.Add(block);
             }
@@ -105,7 +111,7 @@ internal static class DjVuReaderAdapter {
                     PayloadHash = OfficeDocumentAssetHash.ComputeSha256Hex(payload), Location = location,
                     Region = new OfficeDocumentRegion { Width = page.DisplayWidth * 72.0 / page.Dpi, Height = page.DisplayHeight * 72.0 / page.Dpi } };
                 assets.Add(asset);
-                foreach (var diagnostic in rendered.FidelityDiagnostics) diagnostics.Add(new OfficeDocumentDiagnostic { Code = diagnostic.Code, Message = diagnostic.Message,
+                foreach (var diagnostic in rendered.Diagnostics) diagnostics.Add(new OfficeDocumentDiagnostic { Code = diagnostic.Code, Message = diagnostic.Message,
                     Severity = OfficeDocumentDiagnosticSeverity.Warning, Category = OfficeDocumentDiagnosticCategory.Content, Source = "OfficeIMO.DjVu", IsRecoverable = true, Location = location });
             }
             OfficeDocumentOcrCandidate? candidate = null;

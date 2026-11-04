@@ -3,8 +3,8 @@ using OfficeIMO.PowerPoint.LegacyPpt.Model;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt {
     /// <summary>Provides a compact inventory of a binary PowerPoint import.</summary>
-    public sealed class LegacyPptImportReport : IOfficeConversionReport {
-        internal LegacyPptImportReport(LegacyPptPresentation presentation) {
+    internal sealed class LegacyPptImportReport : OfficeConversionReport {
+        internal LegacyPptImportReport(LegacyPptDocument presentation) {
             SlideCount = presentation.Slides.Count;
             ShapeCount = presentation.Slides.Sum(slide => slide.Shapes.Count);
             TextShapeCount = presentation.Slides.Sum(slide =>
@@ -138,23 +138,25 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             EncryptionKeySizeBits = presentation.EncryptionKeySizeBits;
             EncryptedDocumentProperties =
                 presentation.EncryptedDocumentProperties;
-            List<OfficeConversionFidelityDiagnostic> fidelityDiagnostics = presentation.Diagnostics
-                .Select(diagnostic => new OfficeConversionFidelityDiagnostic(
+            List<OfficeDiagnostic> fidelityDiagnostics = presentation.Diagnostics
+                .Select(diagnostic => new global::OfficeIMO.OfficeDiagnostic(
                     diagnostic.Code,
+                    global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
                     diagnostic.Message,
-                    GetLossKind(diagnostic),
-                    "OfficeIMO.PowerPoint.LegacyPpt.Reader",
                     diagnostic.StreamOffset.HasValue
                         ? $"PowerPoint Document+0x{diagnostic.StreamOffset.Value:X}"
-                        : null))
+                        : null,
+                    "OfficeIMO.PowerPoint.LegacyPpt.Reader",
+                    GetLossKind(diagnostic)))
                 .ToList();
             if (UnsupportedShapeCount > 0) {
-                fidelityDiagnostics.Add(new OfficeConversionFidelityDiagnostic(
-                    "PPT-UNSUPPORTED-SHAPES",
+                fidelityDiagnostics.Add(new global::OfficeIMO.OfficeDiagnostic(
+                    "ppt-unsupported-shapes",
+                    global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
                     $"{UnsupportedShapeCount} preserve-only shape(s) cannot be projected to editable PowerPoint content.",
-                    OfficeConversionLossKind.Omission,
+                    "shapes",
                     "OfficeIMO.PowerPoint.LegacyPpt.Reader",
-                    "shapes"));
+                    OfficeConversionLossKind.Omission));
             }
             FidelityDiagnostics = Array.AsReadOnly(fidelityDiagnostics.ToArray());
         }
@@ -169,17 +171,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             }
 
             string code = diagnostic.Code;
-            return code is "PPT-COMMENT-TAG-DATA" or "PPT-COMMENT-CONTAINER"
-                or "PPT-COMMENT-ATOM" or "PPT-COMMENT-INDEX"
-                or "PPT-COMMENT-DATETIME" or "PPT-COMMENT-STRING"
-                or "PPT-COMMENT-EXTENSION"
-                || code.IndexOf("-PRESERVED", StringComparison.Ordinal) >= 0
-                || code.IndexOf("-PRESERVE-ONLY", StringComparison.Ordinal) >= 0
-                || code.EndsWith("-UNSUPPORTED", StringComparison.Ordinal)
-                || code.EndsWith("-MISSING", StringComparison.Ordinal)
-                || code.EndsWith("-TRUNCATED", StringComparison.Ordinal)
-                || code.EndsWith("-READ", StringComparison.Ordinal)
-                || code.EndsWith("-MALFORMED", StringComparison.Ordinal)
+            return code is "ppt-comment-tag-data" or "ppt-comment-container"
+                or "ppt-comment-atom" or "ppt-comment-index"
+                or "ppt-comment-datetime" or "ppt-comment-string"
+                or "ppt-comment-extension"
+                || code.IndexOf("-preserved", StringComparison.Ordinal) >= 0
+                || code.IndexOf("-preserve-only", StringComparison.Ordinal) >= 0
+                || code.EndsWith("-unsupported", StringComparison.Ordinal)
+                || code.EndsWith("-missing", StringComparison.Ordinal)
+                || code.EndsWith("-truncated", StringComparison.Ordinal)
+                || code.EndsWith("-read", StringComparison.Ordinal)
+                || code.EndsWith("-malformed", StringComparison.Ordinal)
                 ? OfficeConversionLossKind.Omission
                 : OfficeConversionLossKind.Approximation;
         }
@@ -380,17 +382,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         public bool HasConversionLoss => HasLoss;
 
         /// <inheritdoc />
-        public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
+        protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+        private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics { get; }
 
         /// <inheritdoc />
-        public bool HasLoss => FidelityDiagnostics.Any(diagnostic =>
+        public override bool HasLoss => FidelityDiagnostics.Any(diagnostic =>
             diagnostic.LossKind != OfficeConversionLossKind.None);
 
         /// <inheritdoc />
-        public void RequireNoLoss() {
-            if (HasLoss) throw new InvalidDataException(
-                "The legacy PPT import reported content loss. Inspect FidelityDiagnostics and the source diagnostics for details.");
-        }
+        protected override OfficeConversionException CreateLossException() => new OfficeConversionException("The legacy PPT import reported content loss. Inspect Diagnostics and the source diagnostics for details.", this);
 
         private static int CountSpecialMasterShapes(LegacyPptSpecialMaster? master) =>
             master?.Shapes.Count ?? 0;
@@ -409,7 +409,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             master?.Background?.HasProjectableFill == true ? 1 : 0;
 
         private static IEnumerable<LegacyPptShape> EnumerateShapes(
-            LegacyPptPresentation presentation) {
+            LegacyPptDocument presentation) {
             IEnumerable<LegacyPptShape> roots = presentation.Slides
                 .SelectMany(slide => slide.Shapes)
                 .Concat(presentation.Slides.SelectMany(slide =>

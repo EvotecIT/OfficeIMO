@@ -30,7 +30,7 @@ public partial class Word {
         }
         Assert.Empty(source.ValidateDocument());
 
-        using WordDocument reopened = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument reopened = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         var missing = new List<string>();
         foreach (W.OnOffType property in properties) {
             WordParagraph off = reopened.Paragraphs.Single(p => p.Text == "ExplicitOff" + property.LocalName);
@@ -49,7 +49,7 @@ public partial class Word {
     public void HiddenText_ExplicitFormattingRoundTripsWithoutLosingText(WordFileFormat format, bool hidden) {
         using WordDocument source = WordDocument.Create();
         WordParagraph run = source.AddParagraph("Retained hidden content");
-        run.FontSize = 12;
+        run.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         run.Hidden = hidden;
         Assert.Equal(hidden, run.Hidden);
         Assert.Empty(source.ValidateDocument());
@@ -58,7 +58,7 @@ public partial class Word {
         WordParagraph saved = Assert.Single(reopened.Paragraphs);
         Assert.Equal("Retained hidden content", saved.Text);
         Assert.Equal(hidden, saved.Hidden);
-        Assert.Equal(12, saved.FontSize);
+        Assert.Equal(12, saved.FontSize?.ToPoints());
         Assert.Empty(reopened.ValidateDocument());
     }
 
@@ -143,8 +143,8 @@ public partial class Word {
         Assert.Empty(source.ValidateDocument());
 
         using WordDocument reopened = WordDocument.Load(new MemoryStream(source.ToBytes(format)));
-        string text = OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(reopened.ToPdfBytes(
-            new WordToPdfOptions { IncludePageNumbers = false, FontFamily = "Helvetica" }));
+        string text = OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(reopened.ToPdf(
+            new WordPdfExportOptions { IncludePageNumbers = false, FontFamily = "Helvetica" }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Contains("VISIBLECONTROL", text);
         Assert.Contains("VISIBLEOVERRIDE", text);
         Assert.DoesNotContain("INHERITEDSECRET", text);

@@ -56,7 +56,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         private static bool TryCreateSelection(Selection selection, out LegacyXlsSelection? legacySelection) {
             legacySelection = null;
             string activeCell = selection.ActiveCell?.Value ?? "A1";
-            if (!A1.TryParseCellReferenceFast(activeCell, out int activeRow, out int activeColumn)
+            if (!ExcelA1.TryParseCellReferenceFast(activeCell, out int activeRow, out int activeColumn)
                 || !IsWithinBiff8Limits(activeRow, activeColumn)) {
                 return false;
             }
@@ -95,7 +95,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         private static bool TryParseSelectedRange(string reference, out LegacyXlsSelectedRange? selectedRange) {
             selectedRange = null;
             string normalized = reference.Replace("$", string.Empty);
-            if (A1.TryParseCellReferenceFast(normalized, out int row, out int column)) {
+            if (ExcelA1.TryParseCellReferenceFast(normalized, out int row, out int column)) {
                 if (!IsWithinBiff8Limits(row, column)) {
                     return false;
                 }
@@ -104,7 +104,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 return true;
             }
 
-            if (!A1.TryParseRange(normalized, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)
+            if (!ExcelA1.TryParseRange(normalized, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)
                 || !IsWithinBiff8Limits(firstRow, firstColumn)
                 || !IsWithinBiff8Limits(lastRow, lastColumn)) {
                 return false;

@@ -1,6 +1,6 @@
 using System;
 using OfficeIMO.Drawing;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Visio.Fluent {
     /// <summary>
@@ -90,7 +90,7 @@ namespace OfficeIMO.Visio.Fluent {
 
         /// <summary>Applies a reusable connector style.</summary>
         /// <param name="style">Connector style to apply.</param>
-        public VisioFluentConnector Style(VisioConnectorStyle style) { _c.ApplyStyle(style); return this; }
+        public VisioFluentConnector ApplyStyle(VisioConnectorStyle style) { _c.ApplyStyle(style); return this; }
 
         /// <summary>Applies reusable text formatting to the connector label.</summary>
         /// <param name="style">Text style to apply.</param>

@@ -43,7 +43,7 @@ public sealed class PublisherCharacterAttributeReadingTests {
             PublisherTextStory story = Assert.Single(document.TextStories, item => item.Text == "Native character control: Underline" + native + "\n");
             Assert.Equal(expected[native], Assert.Single(Assert.Single(story.Paragraphs).Runs).UnderlineStyle);
         }
-        Assert.Equal(new[] { 6, 9, 10, 16, 17, 18, 19, 20, 21, 22, 23 }, document.ReadReport.FidelityDiagnostics
+        Assert.Equal(new[] { 6, 9, 10, 16, 17, 18, 19, 20, 21, 22, 23 }, document.ReadReport.Diagnostics
             .Where(item => item.Code == "PUB_TEXT_UNDERLINE_APPROXIMATED" && item.LossKind == OfficeConversionLossKind.Approximation)
             .Select(item => int.Parse(item.Location!.Substring("Quill/underline/".Length))).Distinct().OrderBy(value => value));
     }

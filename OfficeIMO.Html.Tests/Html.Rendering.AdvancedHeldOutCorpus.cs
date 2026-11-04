@@ -53,7 +53,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderIntentProfile profile,
         HtmlRenderEncoder encoder,
         HtmlRenderOptions options) {
-        HtmlRenderRequest request = HtmlRenderRequest.Create(profile, encoder, options);
+        HtmlRenderRequest request = HtmlRenderRequest.Create(profile, encoder, HtmlPdfExportOptions.ForImageExport(options));
         HtmlRenderResult result = HtmlRenderEngine.Execute(source, request);
         IReadOnlyList<OfficeImageExportResult> images = result.ExportImages();
 
@@ -78,7 +78,7 @@ public sealed partial class HtmlRenderingTests {
         string text = NormalizeCorpusWhitespace(document.Text);
         Assert.All(scenario.Manifest.TextMarkers, marker =>
             Assert.Contains(NormalizeCorpusWhitespace(marker), text, StringComparison.Ordinal));
-        Assert.DoesNotContain(document.Diagnostics, diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error);
+        Assert.DoesNotContain(document.NativeDiagnostics, diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error);
     }
 
     private static HtmlRenderOptions CreateHeldOutScreenOptions() => new() {
@@ -96,7 +96,7 @@ public sealed partial class HtmlRenderingTests {
         Mode = HtmlRenderMode.Paged,
         ViewportWidth = 768D,
         ViewportHeight = 900D,
-        PageSize = new OfficePageSize(8.27D, 11.69D),
+        PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(8.27D), global::OfficeIMO.OfficeLength.Inches(11.69D)),
         Margins = HtmlRenderMargins.All(40D),
         Scale = 1D,
         BackgroundColor = OfficeColor.White,
@@ -108,7 +108,7 @@ public sealed partial class HtmlRenderingTests {
         Mode = HtmlRenderMode.Continuous,
         ViewportWidth = 768D,
         ViewportHeight = 900D,
-        PageSize = new OfficePageSize(8D, 9.375D),
+        PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(8D), global::OfficeIMO.OfficeLength.Inches(9.375D)),
         Margins = HtmlRenderMargins.All(0D),
         HonorCssPageRules = false,
         Scale = 1D,

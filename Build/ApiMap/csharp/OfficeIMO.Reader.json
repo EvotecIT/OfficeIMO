@@ -1,0 +1,16 @@
+{
+  "package": "OfficeIMO.Reader",
+  "status": "Public API consumer migration.",
+  "changes": [],
+  "extraChanges": [
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Native projection fixtures use canonical AddImage after removal of the void AddImageAt alias. Image bytes, size and expected reader behavior are unchanged.",
+      "files": [
+        "OfficeIMO.Reader.Tests/Reader.NativeLeanProjection.cs",
+        "OfficeIMO.Reader.Tests/Reader.LoadedNativeProjection.cs"
+      ]
+    }
+  ]
+}

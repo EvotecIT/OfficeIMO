@@ -10,34 +10,37 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Fact]
-        [Trait("Category","ExcelPropsHF")]
-        public void Excel_HeaderFooter_And_Properties_Roundtrip() {
+        [Trait("Category", "ExcelPropsHF")]
+        public void Excel_HeaderFooter_And_Properties_Roundtrip()
+        {
             string filePath = Path.Combine(_directoryWithFiles, "PropsHeaderFooter.xlsx");
-            if (File.Exists(filePath)) File.Delete(filePath);
-
+            if (File.Exists(filePath))
+                File.Delete(filePath);
             using (var doc = ExcelDocument.Create(filePath))
             {
                 // Set workbook info via fluent
-                doc.AsFluent().Info(i => i
-                    .Title("Roundtrip Title")
-                    .Author("Roundtrip Author")
-                    .Company("Roundtrip Co")
-                    .Application("OfficeIMO.Excel")
-                    .Keywords("test,excel,header,footer")
-                ).End();
+                {
+                    doc.Properties.Title = "Roundtrip Title";
+                    doc.Properties.Creator = "Roundtrip Author";
+                    doc.ApplicationProperties.Company = "Roundtrip Co";
+                    doc.ApplicationProperties.ApplicationName = "OfficeIMO.Excel";
+                    doc.Properties.Keywords = "test,excel,header,footer";
+                }
 
-                var sheet = doc.AddWorksheet("Summary");
-                sheet.Cell(1, 1, "Hello");
-
+                var sheet = doc.AddSheet("Summary");
+                sheet.Cell(1, 1).SetValue("Hello");
                 // Header/footer with tokens and image
                 string logoPath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
                 byte[]? logo = File.Exists(logoPath) ? File.ReadAllBytes(logoPath) : null;
-                sheet.SetHeaderFooter(headerCenter: "Domain Detective", headerRight: "Page &P of &N");
-                if (logo != null) sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, logo, "image/png", widthPoints: 96, heightPoints: 32);
-
+                sheet.PageSetup.Header.Center.Text = "Domain Detective";
+                sheet.PageSetup.Header.Right.Text = "Page &P of &N";
+                if (logo != null)
+                    sheet.PageSetup.Header.Center.SetImage(logo, "image/png", width: OfficeLength.Points(96), height: OfficeLength.Points(32));
                 // Save and close
                 doc.Save();
             }
@@ -45,18 +48,17 @@ namespace OfficeIMO.Tests {
             // Reopen read-only and verify
             using (var verify = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
             {
-                Assert.Equal("Roundtrip Title", verify.BuiltinDocumentProperties.Title);
-                Assert.Equal("Roundtrip Author", verify.BuiltinDocumentProperties.Creator);
+                Assert.Equal("Roundtrip Title", verify.Properties.Title);
+                Assert.Equal("Roundtrip Author", verify.Properties.Creator);
                 Assert.Equal("Roundtrip Co", verify.ApplicationProperties.Company);
-
                 var summary = verify.Sheets.FirstOrDefault(s => s.Name == "Summary");
                 Assert.NotNull(summary);
-                var hf = summary!.GetHeaderFooter();
+                var hf = summary!.PageSetup;
                 // Header center must contain our text; right must include tokens
-                Assert.Contains("Domain Detective", hf.HeaderCenter);
-                Assert.Contains("&P", hf.HeaderRight);
-                Assert.Contains("&N", hf.HeaderRight);
-                Assert.True(hf.HeaderHasPicturePlaceholder);
+                Assert.Contains("Domain Detective", hf.Header.Center.Text);
+                Assert.Contains("&P", hf.Header.Right.Text);
+                Assert.Contains("&N", hf.Header.Right.Text);
+                Assert.NotNull(hf.Header.Center.Image);
                 Assert.Empty(verify.ValidateOpenXml());
             }
         }
@@ -69,10 +71,10 @@ namespace OfficeIMO.Tests {
 
             using (var doc = ExcelDocument.Create(filePath))
             {
-                var sheet = doc.AddWorksheet("Sheet1");
+                var sheet = doc.AddSheet("Sheet1");
                 var pngPath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
                 var pngBytes = File.ReadAllBytes(pngPath);
-                sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, pngBytes, "image/png");
+                sheet.PageSetup.Header.Center.SetImage(pngBytes, "image/png");
                 doc.Save();
             }
 
@@ -98,10 +100,10 @@ namespace OfficeIMO.Tests {
 
             using (var doc = ExcelDocument.Create(filePath))
             {
-                var sheet = doc.AddWorksheet("Sheet1");
+                var sheet = doc.AddSheet("Sheet1");
                 var jpegPath = Path.Combine(_directoryWithImages, "Kulek.jpg");
                 var jpegBytes = File.ReadAllBytes(jpegPath);
-                sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, jpegBytes, " image/jpg; charset=binary ");
+                sheet.PageSetup.Header.Center.SetImage(jpegBytes, " image/jpg; charset=binary ");
                 doc.Save();
             }
 
@@ -127,10 +129,10 @@ namespace OfficeIMO.Tests {
 
             using (var doc = ExcelDocument.Create(filePath))
             {
-                var sheet = doc.AddWorksheet("Sheet1");
+                var sheet = doc.AddSheet("Sheet1");
                 var jpegPath = Path.Combine(_directoryWithImages, "Kulek.jpg");
                 var jpegBytes = File.ReadAllBytes(jpegPath);
-                sheet.SetFooterImage(ExcelHeaderFooterPosition.Center, jpegBytes, "image/jpeg");
+                sheet.PageSetup.Footer.Center.SetImage(jpegBytes, "image/jpeg");
                 doc.Save();
             }
 
@@ -156,11 +158,11 @@ namespace OfficeIMO.Tests {
 
             using (var doc = ExcelDocument.Create(filePath))
             {
-                var sheet = doc.AddWorksheet("Sheet1");
+                var sheet = doc.AddSheet("Sheet1");
                 var pngPath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
                 var pngBytes = File.ReadAllBytes(pngPath);
-                sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, pngBytes, "image/png");
-                sheet.SetHeaderFooter(headerCenter: "Plain header");
+                sheet.PageSetup.Header.Center.SetImage(pngBytes, "image/png");
+                sheet.PageSetup.Header.Center.Text = "Plain header";
                 doc.Save();
             }
 
@@ -173,9 +175,9 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 var sheet = document.Sheets.First();
-                var hf = sheet.GetHeaderFooter();
-                Assert.False(hf.HeaderHasPicturePlaceholder);
-                Assert.Equal("Plain header", hf.HeaderCenter);
+                var hf = sheet.PageSetup;
+                Assert.Null(hf.Header.Center.Image);
+                Assert.Equal("Plain header", hf.Header.Center.Text);
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -198,11 +200,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (var doc = ExcelDocument.Create(filePath))
                 {
-                    var sheet = doc.AddWorksheet("Sheet1");
-                    await sheet.SetHeaderImageFromUrlAsync(
-                        ExcelHeaderFooterPosition.Center,
-                        url,
-                        new OfficeRemoteImageLoadOptions { AllowPrivateNetworkAddresses = true });
+                    var sheet = doc.AddSheet("Sheet1");
+                    await sheet.PageSetup.Header.Center.SetImageFromUrlAsync(url, new OfficeRemoteImageLoadOptions { AllowPrivateNetworkAddresses = true });
                     doc.Save();
                 }
             } finally {
@@ -238,11 +237,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (var doc = ExcelDocument.Create(filePath))
                 {
-                    var sheet = doc.AddWorksheet("Sheet1");
-                    await sheet.SetFooterImageFromUrlAsync(
-                        ExcelHeaderFooterPosition.Center,
-                        url,
-                        new OfficeRemoteImageLoadOptions { AllowPrivateNetworkAddresses = true });
+                    var sheet = doc.AddSheet("Sheet1");
+                    await sheet.PageSetup.Footer.Center.SetImageFromUrlAsync(url, new OfficeRemoteImageLoadOptions { AllowPrivateNetworkAddresses = true });
                     doc.Save();
                 }
             } finally {
@@ -289,6 +285,5 @@ namespace OfficeIMO.Tests {
                 }
             });
         }
-
     }
 }

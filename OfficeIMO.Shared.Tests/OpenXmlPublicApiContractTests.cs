@@ -11,7 +11,7 @@ public class OpenXmlPublicApiContractTests {
     private static readonly HashSet<string> AllowedOpenXmlEscapeHatches = new(StringComparer.Ordinal) {
         "OfficeIMO.Word.WordDocument.OpenXmlDocument property type",
         "OfficeIMO.Excel.ExcelDocument.OpenXmlDocument property type",
-        "OfficeIMO.PowerPoint.PowerPointPresentation.OpenXmlDocument property type"
+        "OfficeIMO.PowerPoint.PowerPointDocument.OpenXmlDocument property type"
     };
 
     private static readonly string[] RequiredOpenXmlBackedAssemblies = {

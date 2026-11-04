@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes OfficeArt fill-property metadata decoded from a legacy XLS chart GelFrame record.
     /// </summary>
-    public sealed class LegacyXlsChartGelFrame {
+    internal sealed class LegacyXlsChartGelFrame {
         internal LegacyXlsChartGelFrame(
             IReadOnlyList<LegacyXlsDrawingOfficeArtRecord> officeArtRecords,
             IReadOnlyList<LegacyXlsDrawingShapeProperty> shapeProperties) {

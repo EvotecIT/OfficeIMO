@@ -37,7 +37,7 @@ public sealed class ReaderPublisherTableEditingTests {
         string semanticText = string.Concat(result.Blocks.Select(block => block.Text));
         Assert.Single(Regex.Matches(semanticText, "Expanded inventory"));
         Assert.Single(Regex.Matches(semanticText, "Second paragraph"));
-        var pdfOptions = new PdfOptions();
+        var pdfOptions = new PdfCreateOptions();
         pdfOptions.UseTextFallbacks();
         string pdfText = PdfReadDocument.Open(result.ToPdfDocumentResult(new PdfProjectionOptions {
             PagePolicy = PdfProjectionPagePolicy.ContinuousFlow, IncludeMetadata = false, PdfOptions = pdfOptions

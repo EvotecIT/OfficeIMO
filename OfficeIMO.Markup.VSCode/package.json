@@ -414,7 +414,10 @@
     "@chevrotain/gast@11.1.2": {
       "lodash-es": "4.18.1"
     },
-    "katex": "0.18.2"
+    "katex": "0.18.2",
+    "@vscode/vsce": {
+      "minimatch": "^11.0.1"
+    }
   },
   "devDependencies": {
     "@types/node": "^26.6.5",

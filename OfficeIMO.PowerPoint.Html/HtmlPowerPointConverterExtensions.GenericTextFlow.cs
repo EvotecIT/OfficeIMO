@@ -11,9 +11,7 @@ public static partial class HtmlPowerPointConverterExtensions {
     private static double MeasureGenericTitleHeight(string title) {
         const double fontSize = 18D;
         OfficeTextMeasurer measurer = OfficeTextMeasurer.Create(new OfficeFontInfo("Aptos", fontSize));
-        Func<string?, double, double> measure = (value, size) =>
-            measurer.MeasureWidth(value, measurer.CreateStyle(measurer.FallbackFontInfo.WithSize(size)))
-            * 72D / OfficeTextMeasurer.DefaultDpi;
+        Func<string?, double, double> measure = CreateGenericTextMeasure(measurer);
         OfficeTextBlockLayout layout = OfficeTextLayoutEngine.LayoutTextBlock(title, fontSize,
             GenericTextWidthPoints - 14.4D, 100000D, 1.2D, 1D, measure,
             wrap: true, forceSingleLine: false, shrinkToFit: false);
@@ -22,14 +20,14 @@ public static partial class HtmlPowerPointConverterExtensions {
 
     private static bool TryImportGenericTextBlock(
         HtmlSemanticBlock block,
-        PptCore.PowerPointPresentation presentation,
+        PptCore.PowerPointDocument presentation,
         HtmlToPowerPointResult result,
         HtmlImportBudget budget,
         ref PptCore.PowerPointSlide slide,
         ref double contentTop,
         ref double pictureTop,
         double slideBottom,
-        HtmlToPowerPointOptions options) {
+        HtmlPowerPointExportOptions options) {
         string text = block.Text;
         if (text.Length == 0) return true;
         if (!budget.IsMetadataWithinLimit(text, out string metadataLimit)) {
@@ -58,9 +56,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         OfficeFontStyle fontStyle = block.Runs.Any(run => run.Bold)
             ? OfficeFontStyle.Bold : OfficeFontStyle.Regular;
         OfficeTextMeasurer measurer = OfficeTextMeasurer.Create(new OfficeFontInfo("Aptos", fontSize, fontStyle));
-        Func<string?, double, double> measure = (value, size) =>
-            measurer.MeasureWidth(value, measurer.CreateStyle(measurer.FallbackFontInfo.WithSize(size)))
-            * 72D / OfficeTextMeasurer.DefaultDpi;
+        Func<string?, double, double> measure = CreateGenericTextMeasure(measurer);
         int offset = 0;
         bool reportedStyleLoss = false;
         bool reportedListLoss = false;
@@ -206,9 +202,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                     measurer = OfficeTextMeasurer.Create(new OfficeFontInfo("Aptos", fontSize, fontStyle));
                     measurers.Add((fontSize, fontStyle), measurer);
                 }
-                Func<string?, double, double> measure = (value, size) =>
-                    measurer.MeasureWidth(value, measurer.CreateStyle(measurer.FallbackFontInfo.WithSize(size)))
-                    * 72D / OfficeTextMeasurer.DefaultDpi;
+                Func<string?, double, double> measure = CreateGenericTextMeasure(measurer);
                 OfficeTextBlockLayout layout = OfficeTextLayoutEngine.LayoutTextBlock(cell.Text, fontSize,
                     cellWidth * Math.Min(columns, Math.Max(1, cell.ColumnSpan)), 100000D, 1.2D, 1D, measure,
                     wrap: true, forceSingleLine: false, shrinkToFit: false);
@@ -235,6 +229,15 @@ public static partial class HtmlPowerPointConverterExtensions {
         for (int row = 0; row < rows; row++)
             rowHeights[row] = Math.Max(rowHeights[row], spanHeights[leafCount + row]);
         return rowHeights;
+    }
+
+    /// <summary>Reserves both the Office estimate and the face used by shared drawing export.</summary>
+    private static Func<string?, double, double> CreateGenericTextMeasure(OfficeTextMeasurer measurer) {
+        var metrics = new OfficeRasterCanvas(new OfficeRasterImage(1, 1));
+        return (value, size) => Math.Max(
+            measurer.MeasureWidth(value, measurer.CreateStyle(measurer.FallbackFontInfo.WithSize(size)))
+                * 72D / OfficeTextMeasurer.DefaultDpi,
+            metrics.MeasureText(value, size, measurer.FallbackFontInfo.FamilyName, measurer.FallbackFontInfo.Style));
     }
 
     private static double GetGenericTextMeasureFontSize(HtmlSemanticBlock block) {
@@ -310,7 +313,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         paragraph.Text = slices[0].Text;
         ApplySemanticRun(paragraph.Runs[0], slices[0].Run, hyperlinkPolicy, preserveTargetText: true);
         for (int index = 1; index < slices.Count; index++) {
-            PptCore.PowerPointTextRun target = paragraph.AddRun(slices[index].Text);
+            PptCore.PowerPointTextRun target = paragraph.AddText(slices[index].Text);
             ApplySemanticRun(target, slices[index].Run, hyperlinkPolicy, preserveTargetText: true);
         }
         return true;

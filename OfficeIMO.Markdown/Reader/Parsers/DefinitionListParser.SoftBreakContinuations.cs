@@ -1,11 +1,11 @@
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     private static (IReadOnlyList<IMarkdownBlock> Blocks, IReadOnlyList<MarkdownSyntaxNode> SyntaxChildren) PreserveMarkdigDefinitionLazyParagraphSoftBreaks(
         IReadOnlyList<IMarkdownBlock> blocks,
         IReadOnlyList<MarkdownSyntaxNode> syntaxChildren,
         IReadOnlyList<MarkdownSourceLineSlice> sourceLines,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state) {
         if (blocks == null || syntaxChildren == null || sourceLines == null ||
             blocks.Count == 0 || blocks.Count != syntaxChildren.Count) {
@@ -39,7 +39,7 @@ public static partial class MarkdownReader {
     private static bool TryCreateDefinitionLazyParagraphInlines(
         MarkdownSyntaxNode paragraphSyntax,
         IReadOnlyList<MarkdownSourceLineSlice> sourceLines,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state,
         out InlineSequence inlines) {
         inlines = new InlineSequence { AutoSpacing = false };
@@ -115,7 +115,7 @@ public static partial class MarkdownReader {
 
     private static InlineSequence ParseDefinitionLazyParagraphInlines(
         IReadOnlyList<MarkdownSourceLineSlice> lines,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state) {
         if (state?.SourceTextMap == null) {
             return ParseDefinitionLazyParagraphInlinesWithoutSourceMap(lines, options, state);
@@ -127,7 +127,7 @@ public static partial class MarkdownReader {
 
     private static InlineSequence ParseDefinitionLazyParagraphInlinesWithoutSourceMap(
         IReadOnlyList<MarkdownSourceLineSlice> lines,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState? state) {
         var sequence = new InlineSequence { AutoSpacing = false };
         for (int i = 0; i < lines.Count; i++) {
@@ -146,7 +146,7 @@ public static partial class MarkdownReader {
 
     private static (string Text, MarkdownInlineSourceMap SourceMap) JoinDefinitionLazyParagraphLinesWithSourceMap(
         IReadOnlyList<MarkdownSourceLineSlice> lines,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state) {
         var text = new StringBuilder();
         var points = new List<MarkdownSourcePoint?>();

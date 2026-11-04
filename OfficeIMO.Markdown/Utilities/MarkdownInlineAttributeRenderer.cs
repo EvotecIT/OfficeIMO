@@ -9,7 +9,7 @@ internal static class MarkdownInlineAttributeRenderer {
         return markdown + MarkdownAttributeBlockRenderer.RenderInlineTrailing(markdownObject.Attributes);
     }
 
-    internal static string RenderHtml(IMarkdownInline inline, string html, HtmlOptions? options) {
+    internal static string RenderHtml(IMarkdownInline inline, string html, MarkdownHtmlExportOptions? options) {
         if (inline is not MarkdownObject markdownObject || markdownObject.Attributes.IsEmpty || string.IsNullOrEmpty(html)) {
             return html;
         }
@@ -43,7 +43,7 @@ internal static class MarkdownInlineAttributeRenderer {
         IMarkdownInline inline,
         MarkdownAttributeSet attributes,
         string html,
-        HtmlOptions? options,
+        MarkdownHtmlExportOptions? options,
         out string rendered) {
         rendered = html;
 
@@ -66,7 +66,7 @@ internal static class MarkdownInlineAttributeRenderer {
         return false;
     }
 
-    private static string InsertAttributesIntoFirstTag(string html, string tagPrefix, MarkdownAttributeSet attributes, HtmlOptions? options) {
+    private static string InsertAttributesIntoFirstTag(string html, string tagPrefix, MarkdownAttributeSet attributes, MarkdownHtmlExportOptions? options) {
         var start = html.IndexOf(tagPrefix, StringComparison.OrdinalIgnoreCase);
         if (start < 0) {
             return html;

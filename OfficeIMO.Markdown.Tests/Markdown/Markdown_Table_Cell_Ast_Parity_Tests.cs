@@ -148,9 +148,9 @@ public sealed class Markdown_Table_Cell_Ast_Parity_Tests {
         AssertTableCellAstParity(markdown, html, rowIndex: 0, cellIndex: 0, options: CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart));
     }
 
-    private static void AssertTableCellAstParity(string markdown, string html, int rowIndex, int cellIndex, MarkdownReaderOptions? options = null) {
-        var markdownDocument = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
-        var htmlDocument = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
+    private static void AssertTableCellAstParity(string markdown, string html, int rowIndex, int cellIndex, MarkdownLoadOptions? options = null) {
+        var markdownDocument = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
+        var htmlDocument = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown();
 
         var markdownTable = Assert.IsType<TableBlock>(Assert.Single(markdownDocument.Blocks));
         var htmlTable = Assert.IsType<TableBlock>(Assert.Single(htmlDocument.Blocks));
@@ -161,8 +161,8 @@ public sealed class Markdown_Table_Cell_Ast_Parity_Tests {
         Assert.Equal(markdownSummary, htmlSummary);
     }
 
-    private static MarkdownReaderOptions CreateSemanticOptions(string language, string semanticKind) {
-        var options = new MarkdownReaderOptions();
+    private static MarkdownLoadOptions CreateSemanticOptions(string language, string semanticKind) {
+        var options = new MarkdownLoadOptions();
         options.FencedBlockExtensions.Add(new MarkdownFencedBlockExtension(
             "Semantic AST",
             new[] { language },

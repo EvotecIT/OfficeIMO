@@ -28,17 +28,16 @@ internal static partial class NativeKeynoteWriterSmoke {
         Require(projection.Slides[2].Tables.Single().Cells.Count == 0, "NativeAOT empty table gained content.");
         Require(table.GetBorders(2, 2).Bottom is { Width: 1 } border && border.Color.ToRgbHex() == "000000",
             "NativeAOT table default borders differ.");
-        using var converted = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(new MemoryStream(bytes),
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Open(new MemoryStream(bytes), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         converted.Report.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); converted.Value.Save(output); output.Position = 0;
-        using var saved = PowerPointPresentation.Load(output);
+        using var saved = PowerPointDocument.Load(output);
         Require(saved.Slides.Count == 3 && !saved.ValidateDocument().Any()
             && saved.Slides[0].Tables.Single().GetCell(1, 2).Text == "1200.5"
-            && saved.Slides[1].Tables.Single().GetCell(0, 0).Text == "A😀B\nZażółć — café",
+            && saved.Slides[1].Tables.Single().GetCell(0, 0).Text == "A😀B" + Environment.NewLine + "Zażółć — café",
             "NativeAOT table PPTX did not retain content through save/reopen.");
-        foreach (var options in new[] { new IWorkKeynoteWriteOptions { MaximumTables = 2 },
-            new IWorkKeynoteWriteOptions { MaximumTableCells = 20 } }) {
+        foreach (var options in new[] { new IWorkKeynoteWriteOptions { MaxTables = 2 },
+            new IWorkKeynoteWriteOptions { MaxTableCells = 20 } }) {
             using var unchanged = new MemoryStream(new byte[] { 9, 8, 7 });
             try { document.Save(unchanged, options); throw new InvalidOperationException("NativeAOT table budget was not enforced."); }
             catch (InvalidDataException) { }
@@ -52,8 +51,7 @@ internal static partial class NativeKeynoteWriterSmoke {
         byte[] bytes = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "native-table-borders.key"));
         Require(Convert.ToHexString(SHA256.HashData(bytes)) == "2032CE6CDEE7F75DA8DE21D502B47D4E5C7F4EB4D152786A84DD81FEDA176D45",
             "NativeAOT controlled border source changed.");
-        using var converted = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(new MemoryStream(bytes),
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Open(new MemoryStream(bytes), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         converted.Report.RequireCompleteEditableReconstruction();
         var table = converted.Projection.Slides[0].Tables.Single();
         Require(table.GetBorders(2, 2).Bottom is { Width: 3 } red && red.Color.ToRgbHex() == "FF3333"
@@ -62,7 +60,7 @@ internal static partial class NativeKeynoteWriterSmoke {
             && table.GetBorders(1, 2).Top is { Width: 2 } && table.GetBorders(3, 3).Top is { Width: 0 },
             "NativeAOT border inheritance, visibility or ordered shared edges differ.");
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         Require(!reopened.ValidateDocument().Any() && converted.Projection.SourceDeclarationIssues.Count == 0
             && converted.Projection.SourceReferenceIssues.Count == 0, "NativeAOT border PPTX or source qualification is incomplete.");
         Console.WriteLine("PASS | native Keynote table borders | native 15.4 source | inherited strokes, region visibility, ordered shared edits, disabled categories and saved/reopened PPTX");

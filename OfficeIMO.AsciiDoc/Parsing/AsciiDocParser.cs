@@ -33,7 +33,7 @@ internal static class AsciiDocParser {
 
             if (AsciiDocLineClassifier.TryGetDelimiter(content, out AsciiDocDelimitedBlockKind delimiterKind)) {
                 AsciiDocTableConfiguration? tableConfiguration = delimiterKind == AsciiDocDelimitedBlockKind.Table
-                    ? AsciiDocTableConfiguration.Create(content, GetPendingAttributeLists(blocks), options.MaximumTableColumnCount)
+                    ? AsciiDocTableConfiguration.Create(content, GetPendingAttributeLists(blocks), options.MaxTableColumnCount)
                     : null;
                 lineIndex = AddDelimitedBlock(lines, lineIndex, delimiterKind, sourceText, factory, tableConfiguration, blocks, syntaxNodes, diagnostics);
                 hasStructuralContent = true;
@@ -576,28 +576,28 @@ internal static class AsciiDocParser {
             && options.Profile != AsciiDocDocumentProfile.PreserveOnly) {
             throw new ArgumentOutOfRangeException(nameof(options), "Profile must be a defined AsciiDoc document profile.");
         }
-        if (options.MaximumInputLength.HasValue && options.MaximumInputLength.Value < 0) {
-            throw new ArgumentOutOfRangeException(nameof(options), "MaximumInputLength cannot be negative.");
+        if (options.MaxInputLength.HasValue && options.MaxInputLength.Value < 0) {
+            throw new ArgumentOutOfRangeException(nameof(options), "MaxInputLength cannot be negative.");
         }
-        if (options.MaximumBlockCount.HasValue && options.MaximumBlockCount.Value < 1) {
-            throw new ArgumentOutOfRangeException(nameof(options), "MaximumBlockCount must be positive.");
+        if (options.MaxBlockCount.HasValue && options.MaxBlockCount.Value < 1) {
+            throw new ArgumentOutOfRangeException(nameof(options), "MaxBlockCount must be positive.");
         }
-        if (options.MaximumInlineNestingDepth < 1) {
-            throw new ArgumentOutOfRangeException(nameof(options), "MaximumInlineNestingDepth must be positive.");
+        if (options.MaxInlineNestingDepth < 1) {
+            throw new ArgumentOutOfRangeException(nameof(options), "MaxInlineNestingDepth must be positive.");
         }
-        if (options.MaximumInlineNodeCount < 1) {
-            throw new ArgumentOutOfRangeException(nameof(options), "MaximumInlineNodeCount must be positive.");
+        if (options.MaxInlineNodeCount < 1) {
+            throw new ArgumentOutOfRangeException(nameof(options), "MaxInlineNodeCount must be positive.");
         }
-        if (options.MaximumTableCellCount < 1 || options.MaximumTableColumnCount < 1 || options.MaximumTableSpan < 1)
+        if (options.MaxTableCellCount < 1 || options.MaxTableColumnCount < 1 || options.MaxTableSpan < 1)
             throw new ArgumentOutOfRangeException(nameof(options), "Table limits must be positive.");
-        if (options.MaximumInputLength.HasValue && source.Length > options.MaximumInputLength.Value) {
-            throw new ArgumentException("AsciiDoc source exceeds MaximumInputLength.", nameof(source));
+        if (options.MaxInputLength.HasValue && source.Length > options.MaxInputLength.Value) {
+            throw new ArgumentException("AsciiDoc source exceeds MaxInputLength.", nameof(source));
         }
     }
 
     private static void EnforceBlockLimit(int blockCount, AsciiDocParseOptions options) {
-        if (options.MaximumBlockCount.HasValue && blockCount >= options.MaximumBlockCount.Value) {
-            throw new InvalidDataException("AsciiDoc source exceeds MaximumBlockCount.");
+        if (options.MaxBlockCount.HasValue && blockCount >= options.MaxBlockCount.Value) {
+            throw new InvalidDataException("AsciiDoc source exceeds MaxBlockCount.");
         }
     }
 

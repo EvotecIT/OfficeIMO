@@ -201,7 +201,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (rawValue != 0 && rawValue != 1) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-WORKBOOK-METADATA-VALUE-UNEXPECTED",
+                    "xls-biff-workbook-metadata-value-unexpected",
                     $"Workbook metadata record 0x{record.Type:X4} contains unexpected Boolean value {rawValue}.",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -219,7 +219,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (rawValue != 0) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-WORKBOOK-METADATA-RESERVED-VALUE-UNEXPECTED",
+                    "xls-biff-workbook-metadata-reserved-value-unexpected",
                     $"Reserved workbook metadata record 0x{record.Type:X4} contains unexpected value {rawValue}.",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -230,7 +230,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (record.Payload.Length < 2) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-WORKBOOK-METADATA-SHORT",
+                    "xls-biff-workbook-metadata-short",
                     $"Workbook metadata record 0x{record.Type:X4} is shorter than expected.",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -250,7 +250,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if ((record.Payload.Length % 2) != 0) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-TABID-LENGTH-INVALID",
+                    "xls-biff-tabid-length-invalid",
                     "The TabId record contains a partial sheet tab identifier.",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -274,7 +274,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (value != 0x000e && value != 0x0010 && value != 0x0011) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-BUILTIN-FNGROUPCOUNT-UNEXPECTED",
+                    "xls-biff-builtin-fngroupcount-unexpected",
                     $"The BuiltInFnGroupCount workbook metadata record contains unexpected value {value}.",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -287,7 +287,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (record.Payload.Length < 4) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-WORKBOOK-METADATA-SHORT",
+                    "xls-biff-workbook-metadata-short",
                     "The Country workbook metadata record is shorter than expected.",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -305,7 +305,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (record.Payload.Length < 18) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-WORKBOOK-METADATA-SHORT",
+                    "xls-biff-workbook-metadata-short",
                     "The Window1 workbook metadata record is shorter than expected.",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -342,7 +342,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             } catch (InvalidDataException ex) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-WRITEACCESS-INVALID",
+                    "xls-biff-writeaccess-invalid",
                     $"The WriteAccess workbook metadata record could not be read. {ex.Message}",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -373,7 +373,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (record.Payload.Length < 6) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-FILESHARING-SHORT",
+                    "xls-biff-filesharing-short",
                     "The FileSharing workbook metadata record was too short to parse.",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -395,7 +395,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             } catch (InvalidDataException ex) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-FILESHARING-USERNAME-INVALID",
+                    "xls-biff-filesharing-username-invalid",
                     $"The FileSharing write-reservation user name could not be read. {ex.Message}",
                     recordOffset: record.Offset,
                     recordType: record.Type));

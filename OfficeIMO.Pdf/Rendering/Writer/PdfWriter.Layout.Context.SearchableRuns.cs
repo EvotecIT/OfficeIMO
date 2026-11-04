@@ -33,7 +33,7 @@ internal static partial class PdfWriter {
             bool cff = currentOpts.TryGetEmbeddedStandardOpenTypeCffFontProgram(font, out var cffProgram);
             var content = new ContentStreamBuilder(sb).SaveState().BeginText()
                 .WordSpacing(0D).TextRise(0D).HorizontalTextScaling(100D).TextRenderingMode(3)
-                .TextMatrix(ax, -ay, ux / height, -uy / height, quad.BottomLeft.X, currentOpts.PageHeight - quad.BottomLeft.Y);
+                .TextMatrix(ax, -ay, ux / height, -uy / height, quad.BottomLeft.X, currentOpts.PageHeight.ToPoints() - quad.BottomLeft.Y);
             var logicalText = new StringBuilder();
             for (int i = index; i <= last; i++) logicalText.Append(((PdfCanvasSearchableTextItem)items[i]).Text);
             int? markedContentId = RegisterTextStructureElement("Span", _canvasStructureParentElement, logicalOrder: first.LogicalOrder);

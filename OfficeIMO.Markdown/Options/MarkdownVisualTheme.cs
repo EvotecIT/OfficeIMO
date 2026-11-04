@@ -9,37 +9,37 @@ public sealed class MarkdownVisualTheme {
             OfficeVisualThemeKind.Plain,
             "Plain",
             "Minimal styling that leaves renderers close to their plain defaults.",
-            HtmlStyle.Clean,
+            MarkdownHtmlStyle.Clean,
             "none"),
         new MarkdownVisualThemePreset(
             OfficeVisualThemeKind.WordLike,
             "WordLike",
             "Clean document styling for general Word, HTML, and PDF exports.",
-            HtmlStyle.Word,
+            MarkdownHtmlStyle.Word,
             "word", "word-document"),
         new MarkdownVisualThemePreset(
             OfficeVisualThemeKind.TechnicalDocument,
             "TechnicalDocument",
             "Polished technical-document styling for guides, READMEs, and specifications.",
-            HtmlStyle.GithubAuto,
+            MarkdownHtmlStyle.GithubAuto,
             "technical", "docs", "documentation"),
         new MarkdownVisualThemePreset(
             OfficeVisualThemeKind.GitHubLike,
             "GitHubLike",
             "GitHub-inspired Markdown styling for README-style exports.",
-            HtmlStyle.GithubAuto,
+            MarkdownHtmlStyle.GithubAuto,
             "github"),
         new MarkdownVisualThemePreset(
             OfficeVisualThemeKind.Compact,
             "Compact",
             "Dense document styling for technical notes and command output.",
-            HtmlStyle.Clean,
+            MarkdownHtmlStyle.Clean,
             "dense"),
         new MarkdownVisualThemePreset(
             OfficeVisualThemeKind.Report,
             "Report",
             "Report-oriented styling with stronger tables and section hierarchy.",
-            HtmlStyle.Word,
+            MarkdownHtmlStyle.Word,
             "business-report")
     });
 
@@ -60,7 +60,7 @@ public sealed class MarkdownVisualTheme {
     public MarkdownVisualTheme() {
     }
 
-    private MarkdownVisualTheme(OfficeVisualThemeKind kind, string name, HtmlStyle htmlStyle) {
+    private MarkdownVisualTheme(OfficeVisualThemeKind kind, string name, MarkdownHtmlStyle htmlStyle) {
         Kind = kind;
         Name = name;
         HtmlStyle = htmlStyle;
@@ -73,7 +73,7 @@ public sealed class MarkdownVisualTheme {
     public string Name { get; set; } = "Custom";
 
     /// <summary>Preferred built-in HTML style preset when rendering this theme to HTML.</summary>
-    public HtmlStyle HtmlStyle { get; set; } = HtmlStyle.Word;
+    public MarkdownHtmlStyle HtmlStyle { get; set; } = MarkdownHtmlStyle.Word;
 
     /// <summary>Semantic color palette shared by exporters.</summary>
     public MarkdownVisualPalette Palette {
@@ -81,7 +81,7 @@ public sealed class MarkdownVisualTheme {
         set => _palette = value?.Clone() ?? throw new ArgumentNullException(nameof(value));
     }
 
-    /// <summary>Table styling shared by exporters.</summary>
+    /// <summary>MarkdownTable styling shared by exporters.</summary>
     public MarkdownTableVisualStyle Table {
         get => _table;
         set => _table = value?.Clone() ?? throw new ArgumentNullException(nameof(value));
@@ -146,13 +146,13 @@ public sealed class MarkdownVisualTheme {
     }
 
     /// <summary>Plain profile with minimal visual opinions.</summary>
-    public static MarkdownVisualTheme Plain() => new MarkdownVisualTheme(OfficeVisualThemeKind.Plain, "Plain", HtmlStyle.Clean) {
+    public static MarkdownVisualTheme Plain() => new MarkdownVisualTheme(OfficeVisualThemeKind.Plain, "Plain", MarkdownHtmlStyle.Clean) {
         _palette = new MarkdownVisualPalette(),
-        _table = new MarkdownTableVisualStyle { BorderWidth = 0.5, CellPaddingX = 5, CellPaddingY = 4 }
+        _table = new MarkdownTableVisualStyle { BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5), CellPaddingX = global::OfficeIMO.OfficeLength.Points(5), CellPaddingY = global::OfficeIMO.OfficeLength.Points(4) }
     };
 
     /// <summary>Neutral Word-like profile for general documents.</summary>
-    public static MarkdownVisualTheme WordLike() => new MarkdownVisualTheme(OfficeVisualThemeKind.WordLike, "WordLike", HtmlStyle.Word) {
+    public static MarkdownVisualTheme WordLike() => new MarkdownVisualTheme(OfficeVisualThemeKind.WordLike, "WordLike", MarkdownHtmlStyle.Word) {
         _palette = new MarkdownVisualPalette {
             Accent = OfficeColor.Parse("#2563EB"),
             Heading = OfficeColor.Parse("#111827"),
@@ -168,7 +168,7 @@ public sealed class MarkdownVisualTheme {
     };
 
     /// <summary>Polished profile for technical guides, specs, and READMEs.</summary>
-    public static MarkdownVisualTheme TechnicalDocument() => new MarkdownVisualTheme(OfficeVisualThemeKind.TechnicalDocument, "TechnicalDocument", HtmlStyle.GithubAuto) {
+    public static MarkdownVisualTheme TechnicalDocument() => new MarkdownVisualTheme(OfficeVisualThemeKind.TechnicalDocument, "TechnicalDocument", MarkdownHtmlStyle.GithubAuto) {
         _palette = new MarkdownVisualPalette {
             Accent = OfficeColor.Parse("#0969DA"),
             Heading = OfficeColor.Parse("#0F172A"),
@@ -181,11 +181,11 @@ public sealed class MarkdownVisualTheme {
             TableHeaderText = OfficeColor.Parse("#0F172A"),
             TableStripeBackground = OfficeColor.Parse("#F8FAFC")
         },
-        _table = new MarkdownTableVisualStyle { BorderWidth = 0.5, CellPaddingX = 6, CellPaddingY = 5 }
+        _table = new MarkdownTableVisualStyle { BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5), CellPaddingX = global::OfficeIMO.OfficeLength.Points(6), CellPaddingY = global::OfficeIMO.OfficeLength.Points(5) }
     };
 
     /// <summary>GitHub-inspired profile for README-style exports.</summary>
-    public static MarkdownVisualTheme GitHubLike() => new MarkdownVisualTheme(OfficeVisualThemeKind.GitHubLike, "GitHubLike", HtmlStyle.GithubAuto) {
+    public static MarkdownVisualTheme GitHubLike() => new MarkdownVisualTheme(OfficeVisualThemeKind.GitHubLike, "GitHubLike", MarkdownHtmlStyle.GithubAuto) {
         _palette = new MarkdownVisualPalette {
             Accent = OfficeColor.Parse("#0969DA"),
             Heading = OfficeColor.Parse("#24292F"),
@@ -201,7 +201,7 @@ public sealed class MarkdownVisualTheme {
     };
 
     /// <summary>Compact profile for dense technical notes.</summary>
-    public static MarkdownVisualTheme Compact() => new MarkdownVisualTheme(OfficeVisualThemeKind.Compact, "Compact", HtmlStyle.Clean) {
+    public static MarkdownVisualTheme Compact() => new MarkdownVisualTheme(OfficeVisualThemeKind.Compact, "Compact", MarkdownHtmlStyle.Clean) {
         _palette = new MarkdownVisualPalette {
             Accent = OfficeColor.Parse("#2563EB"),
             Heading = OfficeColor.Parse("#1F2937"),
@@ -214,11 +214,11 @@ public sealed class MarkdownVisualTheme {
             TableHeaderText = OfficeColor.Parse("#1F2937"),
             TableStripeBackground = OfficeColor.Parse("#F8FAFC")
         },
-        _table = new MarkdownTableVisualStyle { BorderWidth = 0.4, CellPaddingX = 4, CellPaddingY = 3 }
+        _table = new MarkdownTableVisualStyle { BorderWidth = global::OfficeIMO.OfficeLength.Points(0.4), CellPaddingX = global::OfficeIMO.OfficeLength.Points(4), CellPaddingY = global::OfficeIMO.OfficeLength.Points(3) }
     };
 
     /// <summary>Report-oriented profile with stronger hierarchy and tables.</summary>
-    public static MarkdownVisualTheme Report() => new MarkdownVisualTheme(OfficeVisualThemeKind.Report, "Report", HtmlStyle.Word) {
+    public static MarkdownVisualTheme Report() => new MarkdownVisualTheme(OfficeVisualThemeKind.Report, "Report", MarkdownHtmlStyle.Word) {
         _palette = new MarkdownVisualPalette {
             Accent = OfficeColor.Parse("#1E40AF"),
             Heading = OfficeColor.Parse("#1E293B"),
@@ -231,7 +231,7 @@ public sealed class MarkdownVisualTheme {
             TableHeaderText = OfficeColor.Parse("#172554"),
             TableStripeBackground = OfficeColor.Parse("#EFF6FF")
         },
-        _table = new MarkdownTableVisualStyle { BorderWidth = 0.7, CellPaddingX = 6, CellPaddingY = 5 }
+        _table = new MarkdownTableVisualStyle { BorderWidth = global::OfficeIMO.OfficeLength.Points(0.7), CellPaddingX = global::OfficeIMO.OfficeLength.Points(6), CellPaddingY = global::OfficeIMO.OfficeLength.Points(5) }
     };
 
     /// <summary>Returns a copy of this theme with the requested color scheme applied.</summary>

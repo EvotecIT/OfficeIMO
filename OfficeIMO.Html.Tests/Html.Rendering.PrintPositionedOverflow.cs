@@ -19,7 +19,7 @@ public sealed partial class HtmlRenderingTests {
     public async Task PrintFitCountsAbsoluteCardOverflowWithoutFittingInFlowHeaders(
         string header, int cardCount, int expectedPages) {
         string html = CreatePositionedPrintOverflowFixture(header, cardCount);
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             PageSize = OfficePageSizes.A4,
             Margins = HtmlRenderMargins.All(0D),
             ViewportWidth = 816D
@@ -31,7 +31,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(expectedPages, result.RenderResult.Document.Pages.Count);
         Assert.DoesNotContain(result.RenderResult.Document.Diagnostics,
             diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PrintFitOverflowUnresolved);
-        string pdfText = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+        string pdfText = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes())).ExtractText();
         for (int number = 1; number <= 30; number++) {
             Assert.Contains("PARAGRAPH " + number, pdfText);
         }
@@ -39,7 +39,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public async Task ExplicitlyDisabledPrintFitKeepsAbsoluteCardOverflowAtFullScale() {
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             PageSize = OfficePageSizes.A4,
             Margins = HtmlRenderMargins.All(0D),
             ViewportWidth = 816D,
@@ -60,7 +60,7 @@ public sealed partial class HtmlRenderingTests {
         string html = CreatePositionedPrintOverflowFixture("absolute", 9)
             .Replace(".head{position:absolute;width:100%;height:180px;background:#acf}",
                 ".head{position:absolute;width:100%;height:180px;background:#acf;" + effect + "}");
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             PageSize = OfficePageSizes.A4,
             Margins = HtmlRenderMargins.All(0D),
             ViewportWidth = 816D
@@ -77,7 +77,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public async Task InFlowPrintFitDoesNotRefitGrowingPercentagePositionedBox() {
         string html = CreateGrowingPercentagePositionedBoxFixture(110, rootMinWidth: false);
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             PageSize = OfficePageSizes.A4,
             Margins = HtmlRenderMargins.All(0D),
             ViewportWidth = 816D
@@ -89,7 +89,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(3, result.RenderResult.Document.Pages.Count);
         Assert.DoesNotContain(result.RenderResult.Document.Diagnostics,
             diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PrintFitOverflowUnresolved);
-        string pdfText = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+        string pdfText = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes())).ExtractText();
         for (int number = 1; number <= 30; number++) Assert.Contains("PARAGRAPH " + number, pdfText);
     }
 
@@ -97,7 +97,7 @@ public sealed partial class HtmlRenderingTests {
     [InlineData(110)]
     [InlineData(140)]
     public async Task RootMinWidthPrintFitDoesNotRefitGrowingPercentagePositionedBox(int percentage) {
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             PageSize = OfficePageSizes.A4,
             Margins = HtmlRenderMargins.All(0D),
             ViewportWidth = 816D

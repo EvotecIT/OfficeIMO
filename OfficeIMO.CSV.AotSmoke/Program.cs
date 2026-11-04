@@ -30,14 +30,14 @@ if (explicitlyMapped.Name != "Alice" || explicitlyMapped.Score != 42 ||
     throw new InvalidOperationException("The explicit CSV typed-row mapper lost a value.");
 }
 
-using var reader = CsvDocument.OpenTextDataReader("Name,Score,Date,Time\nAlice,42,2026-08-06,14:35:12\n");
+using var reader = CsvDocument.OpenReader(new System.IO.StringReader("Name,Score,Date,Time\nAlice,42,2026-08-06,14:35:12\n"));
 CsvSmokeRow streamed = reader.RowsAs<CsvSmokeRow>().Single();
 if (streamed.Name != "Alice" || streamed.Score != 42 ||
     streamed.Date != new DateOnly(2026, 8, 6) || streamed.Time != new TimeOnly(14, 35, 12)) {
     throw new InvalidOperationException("The forward-only CSV typed-row mapper lost a value.");
 }
 
-using var explicitReader = CsvDocument.OpenTextDataReader("Name,Score,Date,Time\nAlice,42,2026-08-06,14:35:12\n");
+using var explicitReader = CsvDocument.OpenReader(new System.IO.StringReader("Name,Score,Date,Time\nAlice,42,2026-08-06,14:35:12\n"));
 CsvSmokeRow explicitlyStreamed = explicitReader.RowsAs<CsvSmokeRow>(mapper => mapper
     .FromColumn<string>("Name", static (row, value) => { row.Name = value; return row; })
     .FromColumn<int>("Score", static (row, value) => { row.Score = value; return row; })
@@ -56,9 +56,8 @@ CsvSchema parallelSchema = new CsvSchemaBuilder()
     .Column("Time").AsType(typeof(TimeOnly))
     .Done()
     .Build();
-using (var parallelReader = CsvDocument.OpenTextDataReader(
-           "Name,Score,Date,Time\nAlice,42,2026-08-06,14:35:12\nBob,43,2026-08-07,15:36:13\n",
-           readerOptions: new CsvDataReaderOptions {
+using (var parallelReader = CsvDocument.OpenReader(new System.IO.StringReader("Name,Score,Date,Time\nAlice,42,2026-08-06,14:35:12\nBob,43,2026-08-07,15:36:13\n"),
+            options: new CsvReaderOptions {
                Schema = parallelSchema,
                ParallelProcessing = new CsvDataReaderParallelOptions {
                    MaxDegreeOfParallelism = 2,
@@ -101,9 +100,8 @@ using (var parallelExportedText = new StringWriter(CultureInfo.InvariantCulture)
     }
 }
 
-using var arrowReader = CsvDocument.OpenTextDataReader(
-    "Id,Name\n1,Ada\n2,Grace\n",
-    readerOptions: new CsvDataReaderOptions { InferSchema = true });
+using var arrowReader = CsvDocument.OpenReader(new System.IO.StringReader("Id,Name\n1,Ada\n2,Grace\n"),
+            options: new CsvReaderOptions { InferSchema = true });
 using ArrowCArrayStreamOwner arrowOwner = arrowReader.ExportArrowCStream(
     new ArrowReadOptions { BatchSize = 1 });
 IArrowArrayStream importedArrowStream = arrowOwner.ImportArrayStream();
@@ -117,9 +115,8 @@ using (importedArrowStream) {
     }
 }
 
-using var nativeArrowReader = CsvDocument.OpenTextDataReader(
-    "Id,Name\n1,Ada\n2,Grace\n",
-    readerOptions: new CsvDataReaderOptions { InferSchema = true });
+using var nativeArrowReader = CsvDocument.OpenReader(new System.IO.StringReader("Id,Name\n1,Ada\n2,Grace\n"),
+            options: new CsvReaderOptions { InferSchema = true });
 using ArrowCArrayStreamOwner nativeArrowOwner = nativeArrowReader.ExportArrowCStream(
     new ArrowReadOptions { BatchSize = 1 });
 using (ArrowCArrayStreamOwner.ArrowCArrayStreamLease nativeLease = nativeArrowOwner.AcquireLease()) {

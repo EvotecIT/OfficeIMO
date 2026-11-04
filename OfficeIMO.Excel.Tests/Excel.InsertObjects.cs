@@ -48,7 +48,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "InsertObjectsClass.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 var people = new List<Person> {
                     new Person {
                         Name = "Alice",
@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests {
                         Address = new Address { City = "Paris", Zip = "75001" }
                     }
                 };
-                sheet.InsertObjects(people);
+                sheet.WriteData(people);
                 document.Save();
             }
 
@@ -101,7 +101,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "InsertObjectsDictionary.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 var items = new List<Dictionary<string, object>> {
                     new Dictionary<string, object> {
                         { "Name", "Alice" },
@@ -114,7 +114,7 @@ namespace OfficeIMO.Tests {
                         { "Address", new Dictionary<string, object> { { "City", "Paris" }, { "Zip", "75001" } } }
                     }
                 };
-                sheet.InsertObjects(items);
+                sheet.WriteData(items);
                 document.Save();
             }
 
@@ -181,8 +181,8 @@ namespace OfficeIMO.Tests {
             List<string> expectedHeaders = BuildExpectedHeaders(nodes.Cast<object>());
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(nodes);
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(nodes);
                 document.Save();
             }
 

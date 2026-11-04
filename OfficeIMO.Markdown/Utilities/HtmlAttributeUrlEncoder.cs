@@ -5,7 +5,7 @@ internal static class HtmlAttributeUrlEncoder {
         return Encode(url, null);
     }
 
-    internal static string Encode(string? url, HtmlOptions? options) {
+    internal static string Encode(string? url, MarkdownHtmlExportOptions? options) {
         if (string.IsNullOrEmpty(url)) {
             return string.Empty;
         }
@@ -21,7 +21,7 @@ internal static class HtmlAttributeUrlEncoder {
         return EncodeSrcSet(srcSet, null);
     }
 
-    internal static string EncodeSrcSet(string? srcSet, HtmlOptions? options) {
+    internal static string EncodeSrcSet(string? srcSet, MarkdownHtmlExportOptions? options) {
         if (string.IsNullOrWhiteSpace(srcSet)) {
             return string.Empty;
         }

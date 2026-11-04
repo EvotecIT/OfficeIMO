@@ -39,7 +39,7 @@ public sealed class ConvertToOfficeOpenDocumentCommand : PSCmdlet
 
     /// <summary>Open PowerPoint presentation.</summary>
     [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "PowerPoint")]
-    public PowerPointPresentation PowerPointPresentation { get; set; } = null!;
+    public PowerPointDocument PowerPointDocument { get; set; } = null!;
 
     /// <summary>Destination ODT, ODS, or ODP path.</summary>
     [Parameter(Mandatory = true, Position = 1)]
@@ -71,7 +71,7 @@ public sealed class ConvertToOfficeOpenDocumentCommand : PSCmdlet
         Directory.CreateDirectory(System.IO.Path.GetDirectoryName(output) ?? SessionState.Path.CurrentFileSystemLocation.Path);
         WordDocument? ownedWord = null;
         ExcelDocument? ownedExcel = null;
-        PowerPointPresentation? ownedPresentation = null;
+        PowerPointDocument? ownedPresentation = null;
         try
         {
             object result;
@@ -84,9 +84,12 @@ public sealed class ConvertToOfficeOpenDocumentCommand : PSCmdlet
                         word = WordDocumentService.LoadDocument(sourcePath, readOnly: true, autoSave: false);
                         ownedWord = word;
                     }
-                    var wordResult = word.ToOpenDocumentResult(WordOptions);
-                    if (FailOnLoss.IsPresent) wordResult.RequireNoLoss();
-                    wordResult.Value.Save(output);
+                    OfficeConversionReport wordResult;
+                    using (var converted = word.ToOpenDocument(WordOptions, out wordResult))
+                    {
+                        if (FailOnLoss.IsPresent) wordResult.ThrowIfLoss();
+                        converted.Save(output);
+                    }
                     result = wordResult;
                     break;
                 case OdfDocumentKind.Spreadsheet:
@@ -96,21 +99,27 @@ public sealed class ConvertToOfficeOpenDocumentCommand : PSCmdlet
                         excel = ExcelDocumentService.LoadDocument(sourcePath, readOnly: true, autoSave: false);
                         ownedExcel = excel;
                     }
-                    var excelResult = excel.ToOpenDocumentResult(ExcelOptions);
-                    if (FailOnLoss.IsPresent) excelResult.RequireNoLoss();
-                    excelResult.Value.Save(output);
+                    OfficeConversionReport excelResult;
+                    using (var converted = excel.ToOpenDocument(ExcelOptions, out excelResult))
+                    {
+                        if (FailOnLoss.IsPresent) excelResult.ThrowIfLoss();
+                        converted.Save(output);
+                    }
                     result = excelResult;
                     break;
                 case OdfDocumentKind.Presentation:
-                    var presentation = PowerPointPresentation;
+                    var presentation = PowerPointDocument;
                     if (sourcePath != null)
                     {
-                        presentation = PowerPointDocumentService.LoadPresentation(sourcePath, readOnly: true);
+                        presentation = PowerPointDocumentService.LoadDocument(sourcePath, readOnly: true);
                         ownedPresentation = presentation;
                     }
-                    var presentationResult = presentation.ToOpenDocumentResult(PowerPointOptions);
-                    if (FailOnLoss.IsPresent) presentationResult.RequireNoLoss();
-                    presentationResult.Value.Save(output);
+                    OfficeConversionReport presentationResult;
+                    using (var converted = presentation.ToOpenDocument(PowerPointOptions, out presentationResult))
+                    {
+                        if (FailOnLoss.IsPresent) presentationResult.ThrowIfLoss();
+                        converted.Save(output);
+                    }
                     result = presentationResult;
                     break;
                 default:
@@ -122,7 +131,7 @@ public sealed class ConvertToOfficeOpenDocumentCommand : PSCmdlet
         {
             if (ownedWord != null) WordDocumentService.CloseDocument(ownedWord);
             if (ownedExcel != null) ExcelDocumentService.CloseDocument(ownedExcel);
-            if (ownedPresentation != null) PowerPointDocumentService.ClosePresentation(ownedPresentation, save: false, show: false);
+            if (ownedPresentation != null) PowerPointDocumentService.CloseDocument(ownedPresentation, save: false, show: false);
         }
     }
 

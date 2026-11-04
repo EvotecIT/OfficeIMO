@@ -12,11 +12,11 @@
     <PackageReference Include="OfficeIMO.Archives" Version="$(OfficeIMOQualificationVersion)" />
     <PackageReference Include="OfficeIMO.Reader.Zip" Version="$(OfficeIMOQualificationVersion)" />
   </ItemGroup>
+  <Target Name="RequireQualificationVersion" BeforeTargets="CoreCompile">
+    <Error Condition="'$(OfficeIMOQualificationVersion)' == ''" Text="Pass OfficeIMOQualificationVersion for the explicit packed candidate." />
+  </Target>
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
     <Compile Remove="*Evidence.cs" />
     <Reference Include="System.IO.Compression" />
   </ItemGroup>
-  <Target Name="RequireQualificationVersion" BeforeTargets="CoreCompile">
-    <Error Condition="'$(OfficeIMOQualificationVersion)' == ''" Text="Pass OfficeIMOQualificationVersion for the explicit packed candidate." />
-  </Target>
 </Project>

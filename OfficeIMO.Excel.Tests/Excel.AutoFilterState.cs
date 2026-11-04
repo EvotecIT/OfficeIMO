@@ -7,20 +7,20 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_AutoFilterState_ReadsValuesCustomBlankAndTopCriteria() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Region");
-            sheet.CellValue(1, 2, "Amount");
-            sheet.CellValue(1, 3, "Rank");
-            sheet.CellValue(2, 1, "EU");
-            sheet.CellValue(2, 2, 10);
-            sheet.CellValue(2, 3, 1);
-            sheet.CellValue(3, 1, "US");
-            sheet.CellValue(3, 2, 20);
-            sheet.CellValue(3, 3, 2);
-            sheet.AutoFilterAdd("A1:C3");
-            sheet.AutoFilterByHeaderEquals("Region", new[] { "EU", "US" });
-            sheet.AutoFilterByHeaderBetween("Amount", 10, 20);
-            sheet.AutoFilterTopBottom("A1:C3", 2, 1, top: true, percent: false);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Region");
+            sheet.Cell(1, 2).SetValue("Amount");
+            sheet.Cell(1, 3).SetValue("Rank");
+            sheet.Cell(2, 1).SetValue("EU");
+            sheet.Cell(2, 2).SetValue(10);
+            sheet.Cell(2, 3).SetValue(1);
+            sheet.Cell(3, 1).SetValue("US");
+            sheet.Cell(3, 2).SetValue(20);
+            sheet.Cell(3, 3).SetValue(2);
+            sheet.Range("A1:C3").AutoFilter();
+            sheet.Range("A1:C3").AutoFilter().Column("Region").Equals(new[] { "EU", "US" });
+            sheet.Range("A1:C3").AutoFilter().Column("Amount").Between(10, 20);
+            sheet.Range("A1:C3").AutoFilter().Column(2).TopBottom(1, percent: false);
 
             ExcelAutoFilterInfo state = Assert.Single(sheet.GetAutoFilters());
             Assert.Equal("A1:C3", state.Range);
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
             Assert.True(top.Top);
             Assert.False(top.Percent);
             Assert.Equal(1d, top.TopValue);
-            Assert.True(sheet.ClearAutoFilterColumn(2));
+            sheet.Range("A1:C3").AutoFilter().Column(2).Clear();
             Assert.Equal(2, Assert.Single(sheet.GetAutoFilters()).Columns.Count);
         }
     }

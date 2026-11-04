@@ -80,7 +80,8 @@ public sealed partial class OfficeDrawing {
         text.PreparedShaping = prepared;
     }
 
-    internal void SetLastTextOutlineStroke(OfficeColor color, double width, bool fillSuppressed, IReadOnlyList<double>? dashPattern = null, double dashOffset = 0D) {
+    internal void SetLastTextOutlineStroke(OfficeColor color, double width, bool fillSuppressed, IReadOnlyList<double>? dashPattern = null, double dashOffset = 0D,
+        OfficeStrokeLineCap cap = OfficeStrokeLineCap.Butt, OfficeStrokeLineJoin join = OfficeStrokeLineJoin.Miter, double miterLimit = 10D) {
         if (Elements.Count == 0) return;
         OfficeDrawingElement last = Elements[Elements.Count - 1];
         if (last is OfficeDrawingGroup group && group.InnerDrawing.Elements.Count > 0)
@@ -91,6 +92,9 @@ public sealed partial class OfficeDrawing {
         text.FillSuppressed = fillSuppressed;
         text.OutlineStrokeDashPattern = dashPattern == null ? null : new List<double>(dashPattern).AsReadOnly();
         text.OutlineStrokeDashOffset = dashOffset;
+        text.OutlineStrokeLineCap = cap;
+        text.OutlineStrokeLineJoin = join;
+        text.OutlineStrokeMiterLimit = miterLimit;
     }
 
     internal void SetLastTextPaintedProjection(string logicalText, string paintedText) {

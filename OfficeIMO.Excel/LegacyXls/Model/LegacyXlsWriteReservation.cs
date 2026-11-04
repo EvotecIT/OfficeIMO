@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents workbook write-reservation metadata parsed from a BIFF FileSharing record.
     /// </summary>
-    public sealed class LegacyXlsWriteReservation {
+    internal sealed class LegacyXlsWriteReservation {
         /// <summary>
         /// Creates workbook write-reservation metadata.
         /// </summary>

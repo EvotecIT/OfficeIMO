@@ -46,7 +46,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<style>@page{size:240px 160px;margin:12px}body{margin:0;font:14px/20px Arial}"
             + "a{display:" + display + "}a::after{content:' (' attr(href) ')';font-size:90%;overflow-wrap:break-word}</style>"
             + "<a href='" + destination + "'>Summary</a><p>End of contents.</p>";
-        var options = new HtmlToPdfOptions(CssTableOptions());
+        var options = new HtmlPdfExportOptions(CssTableOptions());
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
         HtmlRenderText[] text = rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().ToArray();
         string joined = string.Concat(text.Select(item => item.Text));
@@ -59,8 +59,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.All(generated, item => Assert.Equal(destination, item.LinkUri));
         Assert.DoesNotContain(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.TableValueUnsupported);
 
-        byte[] bytes = HtmlConversionDocument.Parse(html).ToPdfBytes(options);
-        PdfCore.PdfReadDocument saved = PdfCore.PdfReadDocument.Open(bytes);
+        byte[] bytes = (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
+        PdfCore.PdfDocument saved = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(bytes));
         string savedText = string.Concat(saved.Pages.SelectMany(page => page.GetTextSpans()).Select(span => span.Text));
         Assert.Contains("Summary", savedText);
         Assert.Contains("(" + destination + ")", savedText);
@@ -72,8 +72,8 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlCssTable_GeneratedAnonymousRowsHaveDistinctSavedStructureOwners() {
         const string html = "<style>body{margin:0}table{border-spacing:0}table::before{content:'BeforeReference'}"
             + "table::after{content:'AfterReference'}</style><table><tr><td>SourceBody</td></tr></table>";
-        byte[] bytes = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(CssTableOptions()));
-        PdfCore.PdfReadDocument saved = PdfCore.PdfReadDocument.Open(bytes);
+        byte[] bytes = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions(CssTableOptions()))).ToBytes();
+        PdfCore.PdfDocument saved = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(bytes));
         Assert.Single(saved.TaggedContent!.StructureElements, item => item.StructureType == "Table");
         Assert.Equal(3, saved.TaggedContent.StructureElements.Count(item => item.StructureType == "TR"));
         Assert.Equal(3, saved.TaggedContent.StructureElements.Count(item => item.StructureType == "TD"));
@@ -99,7 +99,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, CssTableOptions());
         Assert.Contains("Retained", rendered.Text);
         Assert.DoesNotContain("Unsupported", rendered.Text);
-        Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.TableValueUnsupported
+        Assert.Contains(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.TableValueUnsupported
             && item.LossKind == OfficeConversionLossKind.Omission && item.Source == "div#target::after");
     }
 }

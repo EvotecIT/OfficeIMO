@@ -23,13 +23,24 @@ namespace OfficeIMO.Excel {
     }
 
     /// <summary>Controls creation and persistence of an Excel workbook.</summary>
-    public sealed class ExcelCreateOptions : DocumentCreateOptions {
+    public sealed partial class ExcelCreateOptions : DocumentCreateOptions {
         /// <summary>Controls the Open XML workbook type when no destination extension is available.</summary>
         public ExcelDocumentType DocumentType { get; set; } = ExcelDocumentType.Workbook;
     }
 
     /// <summary>Controls access, persistence, and package behavior when loading an Excel workbook.</summary>
-    public sealed class ExcelLoadOptions : DocumentLoadOptions {
+    public sealed partial class ExcelLoadOptions : DocumentLoadOptions {
+        internal ExcelLoadOptions Snapshot() {
+            var copy = (ExcelLoadOptions)MemberwiseClone();
+            copy.PackageSecurity = PackageSecurity?.Snapshot();
+            copy.OpenSettings = OpenSettings?.Snapshot();
+            copy._xlsbImportOptions = _xlsbImportOptions?.Snapshot();
+            copy.Headers = new Dictionary<string, string>(Headers, StringComparer.OrdinalIgnoreCase);
+            copy.AllowedHosts = new HashSet<string>(AllowedHosts, StringComparer.OrdinalIgnoreCase);
+            copy.AllowedContentTypes = new HashSet<string>(AllowedContentTypes, StringComparer.OrdinalIgnoreCase);
+            return copy;
+        }
+
         /// <summary>Default maximum complete source size (512 MiB).</summary>
         public const long DefaultMaxInputBytes = 512L * 1024L * 1024L;
 
@@ -50,11 +61,15 @@ namespace OfficeIMO.Excel {
         public OfficeOpenXmlLoadSettings? OpenSettings { get; set; }
 
         /// <summary>Provides optional resource limits and reporting controls for XLSB sources.</summary>
-        public XlsbImportOptions? XlsbImportOptions { get; set; }
+        private XlsbImportOptions? _xlsbImportOptions;
+        internal XlsbImportOptions XlsbImportOptions {
+            get => _xlsbImportOptions ??= new XlsbImportOptions();
+            set => _xlsbImportOptions = value;
+        }
     }
 
     /// <summary>Controls creation of a workbook from a template package.</summary>
-    public sealed class ExcelTemplateCreateOptions : DocumentCreateOptions {
+    internal sealed class ExcelTemplateCreateOptions : DocumentCreateOptions {
         /// <summary>Controls whether an existing destination is replaced.</summary>
         public bool Overwrite { get; set; } = true;
 

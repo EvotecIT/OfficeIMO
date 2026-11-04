@@ -11,12 +11,12 @@ Converts a Word document to Markdown.
 ## SYNTAX
 ### Path (Default)
 ```powershell
-ConvertTo-OfficeWordMarkdown [-Path] <string> [-OutputPath <string>] [-FontFamily <string>] [-EnableUnderline] [-EnableHighlight] [-ImageExportMode <ImageExportMode>] [-ImageDirectory <string>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertTo-OfficeWordMarkdown [-Path] <string> [-OutputPath <string>] [-FontFamily <string>] [-EnableUnderline] [-EnableHighlight] [-ImageExportMode <WordMarkdownImageExportMode>] [-ImageDirectory <string>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-ConvertTo-OfficeWordMarkdown -Document <WordDocument> [-OutputPath <string>] [-FontFamily <string>] [-EnableUnderline] [-EnableHighlight] [-ImageExportMode <ImageExportMode>] [-ImageDirectory <string>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertTo-OfficeWordMarkdown -Document <WordDocument> [-OutputPath <string>] [-FontFamily <string>] [-EnableUnderline] [-EnableHighlight] [-ImageExportMode <WordMarkdownImageExportMode>] [-ImageDirectory <string>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -124,7 +124,7 @@ Accept wildcard characters: False
 Controls how images are emitted during Markdown conversion.
 
 ```yaml
-Type: ImageExportMode
+Type: WordMarkdownImageExportMode
 Parameter Sets: Path, Document
 Aliases: None
 Possible values: Base64, File

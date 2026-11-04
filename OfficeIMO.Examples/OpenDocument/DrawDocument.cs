@@ -37,7 +37,7 @@ internal static class DrawDocument {
         File.WriteAllText(Path.Combine(folderPath, "workflow.svg"),
             OfficeDrawingSvgExporter.ToSvg(scene, 1, OfficeSvgSizeUnit.Point));
         PdfDocument.Create().Compose(document => document.Page(pdfPage => pdfPage
-            .Size(scene.Width, scene.Height).Margin(0).Content(content => content.Drawing(scene))))
+            .Size(global::OfficeIMO.OfficeLength.Points(scene.Width), global::OfficeIMO.OfficeLength.Points(scene.Height)).Margin(global::OfficeIMO.OfficeLength.Points(0)).Content(content => content.Drawing(scene))))
             .Save(Path.Combine(folderPath, "workflow.pdf"));
     }
 }

@@ -722,10 +722,10 @@ internal static partial class PdfReaderAdapter {
         return builder.ToString();
     }
 
-    private static string FormatPdfColor(PdfColor color) =>
-        color.R.ToString("R", CultureInfo.InvariantCulture) + "," +
-        color.G.ToString("R", CultureInfo.InvariantCulture) + "," +
-        color.B.ToString("R", CultureInfo.InvariantCulture);
+    private static string FormatPdfColor(global::OfficeIMO.OfficeColor color) =>
+        color.ToNormalizedRgb().R.ToString("R", CultureInfo.InvariantCulture) + "," +
+        color.ToNormalizedRgb().G.ToString("R", CultureInfo.InvariantCulture) + "," +
+        color.ToNormalizedRgb().B.ToString("R", CultureInfo.InvariantCulture);
 
     private static string? FormatNestedPdfNumberLists(IReadOnlyList<IReadOnlyList<double>> paths) {
         if (paths.Count == 0) {

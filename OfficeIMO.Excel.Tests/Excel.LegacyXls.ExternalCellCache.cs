@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
 
             Assert.DoesNotContain(workbook.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
             Assert.DoesNotContain(workbook.Diagnostics, diagnostic =>
-                diagnostic.Code == "XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED"
+                diagnostic.Code == "xls-biff-feature-external-reference-unsupported"
                 && (diagnostic.RecordType == 0x0059 || diagnostic.RecordType == 0x005a));
 
             LegacyXlsExternalReference externalReference = Assert.Single(workbook.ExternalReferences);
@@ -116,7 +116,7 @@ namespace OfficeIMO.Tests {
                 && feature.DetailCode == "ExternalReference:ExternalWorkbook"
                 && feature.RecordType == 0x01ae);
             Assert.DoesNotContain(workbook.Diagnostics, diagnostic =>
-                diagnostic.Code == "XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED"
+                diagnostic.Code == "xls-biff-feature-external-reference-unsupported"
                 && diagnostic.DetailCode == "ExternalReference:ExternalWorkbook"
                 && diagnostic.RecordType == 0x01ae);
             Assert.DoesNotContain(workbook.UnsupportedFeatures, feature => feature.RecordType == 0x0059 || feature.RecordType == 0x005a);

@@ -12,7 +12,7 @@ internal static partial class PdfWriter {
             _diagnosticPaintHidden |= item.Opacity <= 0D;
             try {
                 if (item.Opacity >= 1D && item.BlendMode == OfficeBlendMode.Normal) {
-                    OfficeTransform transform = ConvertTopLeftCanvasTransform(item.Transform, currentOpts.PageHeight);
+                    OfficeTransform transform = ConvertTopLeftCanvasTransform(item.Transform, currentOpts.PageHeight.ToPoints());
                     RenderOpaqueEffectGroupInline(transform, () => RenderCanvasBlock(new PdfCanvasBlock(item.Items)));
                     return;
                 }
@@ -27,7 +27,7 @@ internal static partial class PdfWriter {
             RenderEffectGroup(topLeftPageTransform, opacity, OfficeBlendMode.Normal, renderContent);
 
         private void RenderEffectGroup(OfficeTransform topLeftPageTransform, double opacity, OfficeBlendMode blendMode, Action renderContent, bool forceForm = false) {
-            OfficeTransform transform = ConvertTopLeftCanvasTransform(topLeftPageTransform, currentOpts.PageHeight);
+            OfficeTransform transform = ConvertTopLeftCanvasTransform(topLeftPageTransform, currentOpts.PageHeight.ToPoints());
             if (!forceForm && opacity >= 1D && blendMode == OfficeBlendMode.Normal &&
                 (currentOpts.TaggedStructureMode != PdfTaggedStructureMode.CatalogMarkers ||
                  _suppressCanvasAccessibilityWrappers ||
@@ -120,8 +120,8 @@ internal static partial class PdfWriter {
             out double top) {
             left = 0D;
             bottom = 0D;
-            right = currentOpts.PageWidth;
-            top = currentOpts.PageHeight;
+            right = currentOpts.PageWidth.ToPoints();
+            top = currentOpts.PageHeight.ToPoints();
             // A nested Form is clipped before its own and its ancestors' matrices are applied.
             // Its local bounds must retain everything that the complete transform can expose.
             if (!transform.Then(_canvasEffectToPage).TryInvert(out OfficeTransform inverse)) return;
@@ -129,8 +129,8 @@ internal static partial class PdfWriter {
             (left, bottom, right, top) = inverse.TransformRectangleBounds(
                 0D,
                 0D,
-                currentOpts.PageWidth,
-                currentOpts.PageHeight);
+                currentOpts.PageWidth.ToPoints(),
+                currentOpts.PageHeight.ToPoints());
         }
 
         private static void TransformCanvasPageImageBounds(System.Collections.Generic.List<PageImage> images, int startIndex, OfficeTransform transform) {

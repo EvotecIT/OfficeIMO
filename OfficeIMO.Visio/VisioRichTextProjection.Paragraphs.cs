@@ -85,7 +85,7 @@ internal sealed partial class VisioRichTextProjection {
         XElement row, VisioDocument? document, double scale, OfficeTextAlignment fallback, int remainingCharacters) {
         OfficeTextAlignment alignment = fallback;
         if (TryInt(Cell(row, "HorzAlign"), out int align) && align >= 0 && align <= 3)
-            alignment = VisioDrawingTextAlignment.ToOfficeTextAlignment((VisioTextHorizontalAlignment)align);
+            alignment = VisioDrawingTextAlignment.ToOfficeTextAlignment((OfficeAlignment)align);
         double first = ParagraphLength(row, "IndFirst", scale);
         double left = ParagraphLength(row, "IndLeft", scale);
         double right = ParagraphLength(row, "IndRight", scale);

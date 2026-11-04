@@ -1,7 +1,7 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -10,7 +10,7 @@ public partial class Word {
     [Fact]
     public void LineColorFallsBackForMissingAutomaticAndMalformedValues() {
         using WordDocument document = WordDocument.Create();
-        WordLine line = document.AddParagraph("line").AddLine(0, 0, 20, 0);
+        WordLine line = document.AddParagraph("line").AddLine(OfficeLength.Zero, OfficeLength.Zero, OfficeLength.Points(20), OfficeLength.Zero);
 
         line._line.StrokeColor = "auto";
         Assert.Equal(Color.Black, line.Color);
@@ -63,8 +63,8 @@ public partial class Word {
 
         WordList tableList = targetSection.AddTable(1, 1).Rows[0].Cells[0].AddList(WordListStyle.Bulleted);
         tableList.AddItem("table-list-item");
-        targetSection.AddHeadersAndFooters();
-        WordHeaderFooter header = Assert.IsAssignableFrom<WordHeaderFooter>(targetSection.Header.Default);
+        _ = targetSection.PageSetup.Header;
+        WordHeaderFooter header = Assert.IsAssignableFrom<WordHeaderFooter>(targetSection.PageSetup.GetHeader(WordHeaderFooterType.Default));
         WordList headerList = header.AddList(WordListStyle.Numbered);
         headerList.AddItem("header-list-item");
         int[] removedNumberingIds = { tableList._numberId, headerList._numberId };
@@ -112,7 +112,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("first section");
         WordSection section = document.AddSection();
-        section.AddHeadersAndFooters();
+        _ = section.PageSetup.Header;
         HeaderReference valid = section._sectionProperties.Elements<HeaderReference>().First();
         section._sectionProperties.Append((HeaderReference)valid.CloneNode(true));
         section._sectionProperties.Append(new HeaderReference {
@@ -129,7 +129,7 @@ public partial class Word {
     [Fact]
     public void SelectiveHeaderFooterRemovalToleratesMissingAndDuplicateRelationships() {
         using WordDocument document = WordDocument.Create();
-        document.AddHeadersAndFooters();
+        _ = document.PageSetup.Header;
         SectionProperties section = document.Sections[0]._sectionProperties;
         HeaderReference header = section.Elements<HeaderReference>().First(reference => reference.Type?.Value == HeaderFooterValues.Default);
         FooterReference footer = section.Elements<FooterReference>().First(reference => reference.Type?.Value == HeaderFooterValues.Default);
@@ -152,7 +152,7 @@ public partial class Word {
     public void RemovingShapePreservesTextInItsParagraph() {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = document.AddParagraph("keep this text");
-        WordShape shape = paragraph.AddShape(20, 10);
+        WordShape shape = paragraph.AddShape(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(10));
 
         shape.Remove();
 
@@ -176,9 +176,12 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordList list = document.AddList(WordListStyle.Bulleted);
 
-        list.ColorHex = "auto";
+        list.Color = OfficeColor.Red;
+        var nativeColor = document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!
+            .Descendants<DocumentFormat.OpenXml.Wordprocessing.Color>().First(color => color.Val?.Value == "FF0000");
+        nativeColor.Val = "auto";
         Assert.Null(list.Color);
-        list.ColorHex = "not-a-color";
+        nativeColor.Val = "not-a-color";
         Assert.Null(list.Color);
     }
 

@@ -108,7 +108,7 @@ public sealed class HtmlBackgroundCascadeTests {
                 Assert.Equal(OfficeColor.Red, Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
                     shape => shape.Source == "div#target").Shape.FillColor);
                 if (image.IndexOf("url(", StringComparison.Ordinal) >= 0) {
-                    HtmlDiagnostic pending = Assert.Single(rendered.Diagnostics,
+                    HtmlDiagnostic pending = Assert.Single(rendered.NativeDiagnostics,
                         diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ExternalImagePending);
                     Assert.Equal("https://assets.example.test/x.png", pending.Detail);
                     Assert.Equal("div#target:background-image", pending.Source);
@@ -216,6 +216,17 @@ public sealed class HtmlBackgroundCascadeTests {
                 Assert.Equal("min(10px,20px) 20cqh", computed.GetValue("background-size"));
                 Assert.Equal(OfficeColor.FromRgb(64, 0, 191), OfficeColor.ParseCss(computed.GetValue("background-color")));
             }
+        }
+    }
+
+    [Fact]
+    public void BackgroundProviderLengthMarkersAvoidAuthoredNumericLengths() {
+        foreach (string prefix in new[] { string.Empty, "/*" + new string('a', 5_000) + "*/" }) {
+            HtmlComputedStyle computed = Compute(ForDeclaration(
+                "background:" + prefix + "900001px 0 / min(10px,20px) auto no-repeat red", inline: true));
+
+            Assert.Contains("900001px", computed.GetValue("background-position"), StringComparison.Ordinal);
+            Assert.Contains("min(10px,20px)", computed.GetValue("background-size"), StringComparison.Ordinal);
         }
     }
 

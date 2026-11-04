@@ -34,35 +34,11 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Gets or sets the column width in EMUs.
+        ///     Gets or sets the column width as a physical length.
         /// </summary>
-        public long? WidthEmus {
-            get => Column.Width?.Value;
-            set => Column.Width = value;
-        }
-
-        /// <summary>
-        ///     Gets or sets the column width in points.
-        /// </summary>
-        public double? WidthPoints {
-            get => Column.Width?.Value != null ? PowerPointUnits.ToPoints(Column.Width.Value) : null;
-            set => Column.Width = value != null ? PowerPointUnits.FromPoints(value.Value) : null;
-        }
-
-        /// <summary>
-        ///     Gets or sets the column width in centimeters.
-        /// </summary>
-        public double? WidthCm {
-            get => Column.Width?.Value != null ? PowerPointUnits.ToCentimeters(Column.Width.Value) : null;
-            set => Column.Width = value != null ? PowerPointUnits.FromCentimeters(value.Value) : null;
-        }
-
-        /// <summary>
-        ///     Gets or sets the column width in inches.
-        /// </summary>
-        public double? WidthInches {
-            get => Column.Width?.Value != null ? PowerPointUnits.ToInches(Column.Width.Value) : null;
-            set => Column.Width = value != null ? PowerPointUnits.FromInches(value.Value) : null;
+        public OfficeLength? Width {
+            get => Column.Width?.Value is { } extent ? OfficeLength.Emus(extent) : null;
+            set => Column.Width = value?.ToEmus();
         }
 
         /// <summary>

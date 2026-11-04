@@ -22,7 +22,7 @@ public sealed class PublisherMultiParagraphCreationTests {
         Assert.False(authored.HasFinalParagraphTerminator);
         Assert.True(Assert.Single(document.Pages[0].TextFrames).HasOverflow);
         PublisherNativeCreationPlan plan = PublisherNativeCreationProjection.FrameLayouts(document);
-        byte[] generated = PublisherNativeCreationCodec.Create(plan, new PublisherReadOptions(), MaximumBytes, CancellationToken.None);
+        byte[] generated = PublisherNativeCreationCodec.Create(plan, new PublisherLoadOptions(), MaximumBytes, CancellationToken.None);
         PublisherDocument decoded = PublisherDocument.Load(generated);
         PublisherTextStory story = Assert.Single(decoded.TextStories);
         Assert.Equal(CompleteText(paragraphs) + "\n", story.Text);
@@ -48,7 +48,7 @@ public sealed class PublisherMultiParagraphCreationTests {
         Assert.Equal(CompleteText(paragraphs), Assert.Single(document.TextStories).Text);
         Assert.True(Assert.Single(document.Pages[1].TextFrames).HasOverflow);
         PublisherNativeCreationPlan plan = PublisherNativeCreationProjection.LinkedStories(document);
-        byte[] generated = PublisherNativeCreationCodec.Create(plan, new PublisherReadOptions(), MaximumBytes, CancellationToken.None);
+        byte[] generated = PublisherNativeCreationCodec.Create(plan, new PublisherLoadOptions(), MaximumBytes, CancellationToken.None);
         PublisherDocument decoded = PublisherDocument.Load(generated);
         PublisherTextStory story = Assert.Single(decoded.TextStories);
         Assert.Equal(CompleteText(paragraphs) + "\n", story.Text);
@@ -125,7 +125,7 @@ public sealed class PublisherMultiParagraphCreationTests {
     private static void AssertCarriageReturnTyping(byte[] generated, IReadOnlyList<OfficeRichTextParagraph> paragraphs) {
         Assert.True(OfficeCompoundFileReader.TryRead(generated, out OfficeCompoundFile? compound, out string? error), error);
         var data = new PublisherBinaryData(compound!.Streams["Quill/QuillSub/CONTENTS"], "Quill/QuillSub/CONTENTS");
-        var context = new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None);
+        var context = new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None);
         IReadOnlyList<PublisherQuillChunk> chunks = PublisherQuillDirectory.Read(data, context);
         PublisherQuillChunk text = Assert.Single(chunks, chunk => chunk.Tag == "TEXT");
         PublisherQuillStyles styles = new PublisherQuillStyleReader(data, context, chunks, Array.Empty<OfficeColor?>(), text).Read();

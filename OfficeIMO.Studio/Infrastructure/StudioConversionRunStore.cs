@@ -33,7 +33,7 @@ internal sealed class StudioConversionRunStore {
             foreach (string path in ReportFiles().Take(MaximumEntries)) {
                 try {
                     EnsureRegularFile(path);
-                    entries.Add(new(path, OfficeConversionJobRunReportSerializer.ReadFile(path)));
+                    entries.Add(new(path, OfficeBatchReport.Load(path)));
                 } catch (Exception failure) when (IsStorageError(failure)) {
                     error ??= BoundedError(path, failure);
                 }
@@ -45,11 +45,11 @@ internal sealed class StudioConversionRunStore {
     }
 
     /// <summary>Refreshes an already admitted card without restoring new history while recording is disabled.</summary>
-    internal OfficeConversionJobRunReport ReadReport(string reportPath) {
+    internal OfficeBatchReport ReadReport(string reportPath) {
         string path = RequireOwnedPath(reportPath);
         EnsureDirectory(create: false);
         EnsureRegularFile(path);
-        return OfficeConversionJobRunReportSerializer.ReadFile(path);
+        return OfficeBatchReport.Load(path);
     }
 
     /// <summary>Removes only this store's inactive report. Referenced job, output and checkpoint paths are never followed.</summary>
@@ -59,7 +59,7 @@ internal sealed class StudioConversionRunStore {
             if (!File.Exists(path)) return true;
             EnsureDirectory(create: false);
             EnsureRegularFile(path);
-            return OfficeConversionJobRunReportSerializer.TryDeleteFinished(path);
+            return OfficeBatchReport.TryDeleteFinished(path);
         } catch (Exception failure) when (IsStorageError(failure)) { return false; }
     }
 
@@ -74,8 +74,8 @@ internal sealed class StudioConversionRunStore {
         try {
             foreach (string path in ReportFiles().Skip(keepLatest)) {
                 try {
-                    if (OfficeConversionJobRunReportSerializer.IsActive(path)) continue;
-                    if (!RemoveFinished(path) && !OfficeConversionJobRunReportSerializer.IsActive(path)) succeeded = false;
+                    if (OfficeBatchReport.IsActive(path)) continue;
+                    if (!RemoveFinished(path) && !OfficeBatchReport.IsActive(path)) succeeded = false;
                 } catch (Exception failure) when (IsStorageError(failure)) { succeeded = false; }
             }
         } catch (Exception failure) when (IsStorageError(failure)) { succeeded = false; }
@@ -125,7 +125,7 @@ internal sealed class StudioConversionRunStore {
 }
 
 /// <summary>A report with its app-owned storage path, independent of the locations recorded in its content.</summary>
-internal sealed record StudioConversionRunEntry(string ReportPath, OfficeConversionJobRunReport Report);
+internal sealed record StudioConversionRunEntry(string ReportPath, OfficeBatchReport Report);
 
 /// <summary>The bounded reports and first storage error available to the Jobs surface.</summary>
 internal sealed record StudioConversionRunHistory(IReadOnlyList<StudioConversionRunEntry> Entries, string? Error);

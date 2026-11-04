@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Identifies the source-data kind declared for a legacy XLS PivotCache.
     /// </summary>
-    public enum LegacyXlsPivotCacheSourceType {
+    internal enum LegacyXlsPivotCacheSourceType {
         /// <summary>The PivotCache source is a worksheet range or defined range.</summary>
         Sheet = 0x0001,
 

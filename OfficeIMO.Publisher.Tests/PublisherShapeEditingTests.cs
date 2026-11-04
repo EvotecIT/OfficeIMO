@@ -26,9 +26,9 @@ public sealed class PublisherShapeEditingTests {
         Assert.Equal(new OfficePoint(36, 48), current.PageTransform.TransformPoint(new OfficePoint(0, 0)));
         Assert.Equal(OfficeColor.FromRgb(0, 255, 0), Painted(document.Pages[0], current.Id).Shape.FillColor);
         Assert.Contains("#00FF00", document.ToSvg(), StringComparison.OrdinalIgnoreCase);
-        byte[] pdf = document.ToPdfBytes();
-        Assert.Single(PdfReadDocument.Open(pdf).Pages);
-        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfReadDocument.Open(pdf).Pages[0].ToDrawing());
+        using PdfDocument pdf = PublisherNativeTests.ExportAndReloadPdf(document);
+        Assert.Single(pdf.Pages);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(pdf.Pages[0].ToDrawing());
         Assert.Equal(OfficeColor.FromRgb(0, 255, 0), raster.GetPixel(50, 60));
         Assert.Equal(OfficeColor.White, raster.GetPixel(200, 100));
         Assert.Equal(stories, document.TextStories.Select(story => story.Text));
@@ -65,17 +65,17 @@ public sealed class PublisherShapeEditingTests {
             Assert.Equal(OfficeColor.FromRgb(0, 0, 255), Painted(page, masterShape.Id).Shape.FillColor);
             Assert.Contains("#0000FF", document.ToSvg(document.Pages.ToList().IndexOf(page)), StringComparison.OrdinalIgnoreCase);
         });
-        byte[] pdf = document.ToPdfBytes();
-        Assert.Equal(2, PdfReadDocument.Open(pdf).Pages.Count);
+        using PdfDocument pdf = PublisherNativeTests.ExportAndReloadPdf(document);
+        Assert.Equal(2, pdf.Pages.Count);
         Assert.All(new[] { 1, 2 }, page => Assert.Equal(OfficeColor.FromRgb(0, 0, 255),
-            OfficeDrawingRasterRenderer.Render(PdfReadDocument.Open(pdf).Pages[page - 1].ToDrawing()).GetPixel(60, 260)));
+            OfficeDrawingRasterRenderer.Render(pdf.Pages[page - 1].ToDrawing()).GetPixel(60, 260)));
         Assert.Equal(new uint[] { 101, 102 }, oldPage.Shapes.Select(shape => shape.Id)); Assert.Single(oldMaster.Shapes);
         Assert.Equal(sourceObjects, document.ReadReport.SourceObjectCount);
         Assert.Equal(sourceObjects + 2, document.ReadReport.CurrentObjectCount);
         Assert.Equal(sourceObjects + 2, document.ReadReport.ProjectedObjectCount); Assert.Equal(records, document.ReadReport.InspectedRecordCount);
         document.SetShapeBounds(masterShape.Id, -5, 240, 50, 30);
         Assert.All(document.Pages, page => Assert.Equal(50, Painted(page, masterShape.Id).Shape.Width));
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, diagnostic => diagnostic.Code == "PUB_PAGE_BLEED_CLIPPED"
+        Assert.Contains(document.ReadReport.Diagnostics, diagnostic => diagnostic.Code == "PUB_PAGE_BLEED_CLIPPED"
             && diagnostic.Location == "Contents/object/" + masterShape.Id);
     }
 
@@ -96,7 +96,8 @@ public sealed class PublisherShapeEditingTests {
         Assert.Equal(new OfficePoint(width * 2, 0), painted.Points[0]);
         Assert.Equal(new OfficePoint(0, height * 2), painted.Points[1]);
         Assert.Contains("<line", document.ToSvg());
-        Assert.Equal(2, PdfReadDocument.Open(document.ToPdfBytes()).Pages.Count);
+        using PdfDocument pdf = PublisherNativeTests.ExportAndReloadPdf(document);
+        Assert.Equal(2, pdf.Pages.Count);
         Assert.Throws<ArgumentException>(() => document.SetShapeBounds(created.Id, 30, 110, 0, 0));
     }
 
@@ -190,10 +191,10 @@ public sealed class PublisherShapeEditingTests {
         Assert.Throws<NotSupportedException>(() => document.SetShapeBounds(101, 10, 10, 50, 50));
         Assert.Throws<NotSupportedException>(() => document.SetShapePaint(101, OfficeColor.White, OfficeColor.Black));
         Assert.Same(pages, document.Pages); Assert.Same(report, document.ReadReport); Assert.Equal(before, document.ToSvg());
-        Assert.Contains(report.FidelityDiagnostics, diagnostic => diagnostic.Code == "PUB_SHAPE_EDIT_UNSUPPORTED"
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PUB_SHAPE_EDIT_UNSUPPORTED"
             && diagnostic.Location == "Contents/object/101" && diagnostic.LossKind == OfficeConversionLossKind.None);
         if (restriction == "gradient") Assert.NotNull(Painted(document.Pages[0], 101).Shape.FillGradient);
-        if (restriction == "unknown-preset") Assert.Contains(report.FidelityDiagnostics, diagnostic => diagnostic.Code == "PUB_SHAPE_GEOMETRY_APPROXIMATED");
+        if (restriction == "unknown-preset") Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PUB_SHAPE_GEOMETRY_APPROXIMATED");
         Assert.NotNull(Painted(document.Pages[0], 102));
     }
 
@@ -224,13 +225,14 @@ public sealed class PublisherShapeEditingTests {
         Assert.Equal(Math.Cos(Math.PI / 6), diamond.PageTransform.M11, 6);
         Assert.Equal(Math.Sin(Math.PI / 6), diamond.PageTransform.M12, 6);
         string before = document.ToSvg();
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, diagnostic => diagnostic.Code == "PUB_GRADIENT_INTERPOLATION_APPROXIMATED"
+        Assert.Contains(document.ReadReport.Diagnostics, diagnostic => diagnostic.Code == "PUB_GRADIENT_INTERPOLATION_APPROXIMATED"
             && diagnostic.Location == "Contents/object/294");
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, diagnostic => diagnostic.Code == "PUB_LINE_MARKER_APPROXIMATED"
+        Assert.Contains(document.ReadReport.Diagnostics, diagnostic => diagnostic.Code == "PUB_LINE_MARKER_APPROXIMATED"
             && diagnostic.Location == "Contents/object/295");
         foreach (PublisherShape shape in uneditable) Assert.Throws<NotSupportedException>(() => document.SetShapePaint(shape.Id, OfficeColor.White, OfficeColor.Black));
         Assert.Equal(before, document.ToSvg());
-        Assert.Single(PdfReadDocument.Open(document.ToPdfBytes()).Pages);
+        using PdfDocument pdf = PublisherNativeTests.ExportAndReloadPdf(document);
+        Assert.Single(pdf.Pages);
     }
 
     [Fact]
@@ -261,7 +263,7 @@ public sealed class PublisherShapeEditingTests {
         Assert.Equal(unresolved ? 999 : original.ImageId, picture.ImageId);
         Assert.False(picture.CanEdit);
         Assert.DoesNotContain(document.Pages[0].Shapes, shape => shape.Id == picture.Id);
-        if (unresolved) Assert.Contains(document.ReadReport.FidelityDiagnostics, diagnostic => diagnostic.Code == "PUB_IMAGE_REFERENCE_UNRESOLVED");
+        if (unresolved) Assert.Contains(document.ReadReport.Diagnostics, diagnostic => diagnostic.Code == "PUB_IMAGE_REFERENCE_UNRESOLVED");
         else Assert.Contains(PublisherNativeTests.Elements(document.Pages[0].CreateDrawing()), element => element is OfficeDrawingImage
             && element.SourceElementIds?.Contains("publisher-object-" + picture.Id) == true);
     }

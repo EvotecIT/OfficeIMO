@@ -75,7 +75,7 @@ public sealed class PdfCanvasStructureOptions {
     }
 
     /// <summary>Maximum payload bytes in each file admitted to this structure element. Defaults to 128 MiB.</summary>
-    /// <remarks>Must be positive. Set an explicit larger value for trusted larger files. The document's <see cref="PdfOptions.MaxEmbeddedFileBytes"/> also applies at emission. This does not limit defensive copies or peak process memory.</remarks>
+    /// <remarks>Must be positive. Set an explicit larger value for trusted larger files. The document's <see cref="PdfCreateOptions.MaxEmbeddedFileBytes"/> also applies at emission. This does not limit defensive copies or peak process memory.</remarks>
     public long MaxAssociatedFileBytes {
         get => _maxAssociatedFileBytes;
         set {
@@ -86,7 +86,7 @@ public sealed class PdfCanvasStructureOptions {
     }
 
     /// <summary>Maximum aggregate payload bytes admitted to this structure element. Defaults to 256 MiB.</summary>
-    /// <remarks>Must be positive. The document's <see cref="PdfOptions.MaxTotalEmbeddedFileBytes"/> separately bounds distinct emitted attachments. This does not limit snapshot multiplicity or peak process memory.</remarks>
+    /// <remarks>Must be positive. The document's <see cref="PdfCreateOptions.MaxTotalEmbeddedFileBytes"/> separately bounds distinct emitted attachments. This does not limit snapshot multiplicity or peak process memory.</remarks>
     public long MaxTotalAssociatedFileBytes {
         get => _maxTotalAssociatedFileBytes;
         set {

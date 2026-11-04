@@ -26,7 +26,7 @@ public sealed partial class PdfWorkspaceRecoveryStoreTests {
         Directory.CreateDirectory(root);
         try {
             string source = Path.Combine(root, "source.pdf");
-            PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D))).Save(source);
+            PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D)))).Save(source);
             byte[] original = await File.ReadAllBytesAsync(source);
             string fingerprint = PdfWorkspaceRecoveryStore.Fingerprint(original);
             var store = new PdfWorkspaceRecoveryStore(Path.Combine(root, "recovery"));
@@ -73,10 +73,10 @@ public sealed partial class PdfWorkspaceRecoveryStoreTests {
         try {
             string source = Path.Combine(root, "source.pdf");
             string replacement = Path.Combine(root, "replacement.pdf");
-            PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D))).Save(source);
+            PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D)))).Save(source);
             PdfDocument.Create(compose => {
-                compose.Page(page => page.Size(600D, 800D));
-                compose.Page(page => page.Size(600D, 800D));
+                compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D)));
+                compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D)));
             }).Save(replacement);
             byte[] original = await File.ReadAllBytesAsync(source);
             byte[] edited = await File.ReadAllBytesAsync(replacement);

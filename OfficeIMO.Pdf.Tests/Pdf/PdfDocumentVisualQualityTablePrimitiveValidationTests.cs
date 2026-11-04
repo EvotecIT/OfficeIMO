@@ -15,103 +15,93 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Table_RejectsInvalidStylePrimitiveValues() {
-        var invalidBorder = TableStyles.Minimal();
+        var invalidBorder = PdfTableStyles.Minimal();
 
         var borderException = Assert.Throws<ArgumentException>(() =>
-            invalidBorder.BorderWidth = double.NaN);
+            invalidBorder.BorderWidth = global::OfficeIMO.OfficeLength.Points(-1));
 
         Assert.Contains("Table border width must be a non-negative finite value.", borderException.Message, StringComparison.Ordinal);
 
-        var invalidRowSeparator = TableStyles.Minimal();
+        var invalidRowSeparator = PdfTableStyles.Minimal();
 
         var rowSeparatorException = Assert.Throws<ArgumentException>(() =>
-            invalidRowSeparator.RowSeparatorWidth = double.PositiveInfinity);
+            invalidRowSeparator.RowSeparatorWidth = global::OfficeIMO.OfficeLength.Points(-1));
 
         Assert.Contains("Table row separator width must be a non-negative finite value.", rowSeparatorException.Message, StringComparison.Ordinal);
 
-        var invalidHeaderSeparator = TableStyles.Minimal();
+        var invalidHeaderSeparator = PdfTableStyles.Minimal();
 
         var headerSeparatorException = Assert.Throws<ArgumentException>(() =>
-            invalidHeaderSeparator.HeaderSeparatorWidth = -0.1);
+            invalidHeaderSeparator.HeaderSeparatorWidth = global::OfficeIMO.OfficeLength.Points(-0.1));
 
         Assert.Contains("Table header separator width must be a non-negative finite value.", headerSeparatorException.Message, StringComparison.Ordinal);
 
-        var invalidFooterSeparator = TableStyles.Minimal();
+        var invalidFooterSeparator = PdfTableStyles.Minimal();
 
         var footerSeparatorException = Assert.Throws<ArgumentException>(() =>
-            invalidFooterSeparator.FooterSeparatorWidth = -0.1);
+            invalidFooterSeparator.FooterSeparatorWidth = global::OfficeIMO.OfficeLength.Points(-0.1));
 
         Assert.Contains("Table footer separator width must be a non-negative finite value.", footerSeparatorException.Message, StringComparison.Ordinal);
 
-        var invalidMaxWidth = TableStyles.Minimal();
+        var invalidMaxWidth = PdfTableStyles.Minimal();
 
         var maxWidthException = Assert.Throws<ArgumentException>(() =>
-            invalidMaxWidth.MaxWidth = 0);
+            invalidMaxWidth.MaxWidth = global::OfficeIMO.OfficeLength.Points(0));
 
         Assert.Contains("Table max width must be a positive finite value.", maxWidthException.Message, StringComparison.Ordinal);
 
-        var invalidLeftIndent = TableStyles.Minimal();
-
-        var leftIndentException = Assert.Throws<ArgumentException>(() =>
-            invalidLeftIndent.LeftIndent = double.NaN);
-
-        Assert.Contains("Table left indent must be a finite value.", leftIndentException.Message, StringComparison.Ordinal);
-
-        Assert.Throws<ArgumentException>(() => invalidLeftIndent.HorizontalOffset = double.NaN);
-        Assert.Throws<ArgumentException>(() => invalidLeftIndent.HorizontalOffset = double.NegativeInfinity);
-
-        var invalidHorizontalPadding = TableStyles.Minimal();
+        var invalidHorizontalPadding = PdfTableStyles.Minimal();
 
         var horizontalPaddingException = Assert.Throws<ArgumentException>(() =>
-            invalidHorizontalPadding.CellPaddingX = -1);
+            invalidHorizontalPadding.CellPaddingX = global::OfficeIMO.OfficeLength.Points(-1));
 
         Assert.Contains("Table horizontal cell padding must be a non-negative finite value.", horizontalPaddingException.Message, StringComparison.Ordinal);
 
-        var invalidVerticalPadding = TableStyles.Minimal();
+        var invalidVerticalPadding = PdfTableStyles.Minimal();
 
         var verticalPaddingException = Assert.Throws<ArgumentException>(() =>
-            invalidVerticalPadding.CellPaddingY = double.PositiveInfinity);
+            invalidVerticalPadding.CellPaddingY = global::OfficeIMO.OfficeLength.Points(-1));
 
         Assert.Contains("Table vertical cell padding must be a non-negative finite value.", verticalPaddingException.Message, StringComparison.Ordinal);
 
-        var invalidLeftPadding = TableStyles.Minimal();
+        var invalidLeftPadding = PdfTableStyles.Minimal();
 
         var leftPaddingException = Assert.Throws<ArgumentException>(() =>
-            invalidLeftPadding.CellPaddingLeft = -1);
+            invalidLeftPadding.CellPaddingLeft = global::OfficeIMO.OfficeLength.Points(-1));
 
         Assert.Contains("Table left cell padding must be a non-negative finite value.", leftPaddingException.Message, StringComparison.Ordinal);
 
-        var invalidRightPadding = TableStyles.Minimal();
+        var invalidRightPadding = PdfTableStyles.Minimal();
 
         var rightPaddingException = Assert.Throws<ArgumentException>(() =>
-            invalidRightPadding.CellPaddingRight = double.NaN);
+            invalidRightPadding.CellPaddingRight = global::OfficeIMO.OfficeLength.Points(-1));
 
         Assert.Contains("Table right cell padding must be a non-negative finite value.", rightPaddingException.Message, StringComparison.Ordinal);
 
-        var invalidTopPadding = TableStyles.Minimal();
+        var invalidTopPadding = PdfTableStyles.Minimal();
 
         var topPaddingException = Assert.Throws<ArgumentException>(() =>
-            invalidTopPadding.CellPaddingTop = double.PositiveInfinity);
+            invalidTopPadding.CellPaddingTop = global::OfficeIMO.OfficeLength.Points(-1));
 
         Assert.Contains("Table top cell padding must be a non-negative finite value.", topPaddingException.Message, StringComparison.Ordinal);
 
-        var invalidBottomPadding = TableStyles.Minimal();
+        var invalidBottomPadding = PdfTableStyles.Minimal();
 
         var bottomPaddingException = Assert.Throws<ArgumentException>(() =>
-            invalidBottomPadding.CellPaddingBottom = -0.1);
+            invalidBottomPadding.CellPaddingBottom = global::OfficeIMO.OfficeLength.Points(-0.1));
 
         Assert.Contains("Table bottom cell padding must be a non-negative finite value.", bottomPaddingException.Message, StringComparison.Ordinal);
 
-        var invalidCellSpacing = TableStyles.Minimal();
+        var invalidCellSpacing = PdfTableStyles.Minimal();
 
         var cellSpacingException = Assert.Throws<ArgumentException>(() =>
-            invalidCellSpacing.CellSpacing = -1);
+            invalidCellSpacing.CellSpacing = global::OfficeIMO.OfficeLength.Points(-1));
 
         Assert.Contains("Table cell spacing must be a non-negative finite value.", cellSpacingException.Message, StringComparison.Ordinal);
 
-        var excessiveHorizontalPadding = TableStyles.Minimal();
-        excessiveHorizontalPadding.ColumnWidthPoints = new List<double?> { 12 };
-        excessiveHorizontalPadding.CellPaddingX = 6;
+        var excessiveHorizontalPadding = PdfTableStyles.Minimal();
+        excessiveHorizontalPadding.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(12) };
+        excessiveHorizontalPadding.CellPaddingX = global::OfficeIMO.OfficeLength.Points(6);
 
         var textWidthException = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create()
@@ -123,17 +113,15 @@ public partial class PdfDocumentVisualQualityTests {
 
         Assert.Contains("Table horizontal cell padding must leave a positive text width.", textWidthException.Message, StringComparison.Ordinal);
 
-        var excessiveLeftIndent = TableStyles.Minimal();
-        excessiveLeftIndent.LeftIndent = 400;
+        var excessiveLeftIndent = PdfTableStyles.Minimal();
+        excessiveLeftIndent.LeftIndent = global::OfficeIMO.OfficeLength.Points(400);
 
         var leftIndentWidthException = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create(new PdfOptions {
-                    PageWidth = 180,
-                    PageHeight = 180,
-                    MarginLeft = 30,
-                    MarginRight = 30,
-                    MarginTop = 30,
-                    MarginBottom = 30
+            PdfDocument.Create(new PdfCreateOptions {
+                    PageSetup = {
+                        Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(180), global::OfficeIMO.OfficeLength.Points(180)),
+                        Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                    }
                 })
                 .Table(new[] {
                     new[] { "Only" }
@@ -142,23 +130,16 @@ public partial class PdfDocumentVisualQualityTests {
 
         Assert.Contains("Table left indent must leave a positive table width.", leftIndentWidthException.Message, StringComparison.Ordinal);
 
-        var invalidBaselineOffset = TableStyles.Minimal();
-
-        var baselineException = Assert.Throws<ArgumentException>(() =>
-            invalidBaselineOffset.RowBaselineOffset = double.NaN);
-
-        Assert.Contains("Table row baseline offset must be a finite value.", baselineException.Message, StringComparison.Ordinal);
-
-        var invalidCellFill = TableStyles.Minimal();
+        var invalidCellFill = PdfTableStyles.Minimal();
 
         var fillException = Assert.Throws<ArgumentException>(() =>
-            invalidCellFill.CellFills = new Dictionary<(int Row, int Column), PdfColor> {
-                [(-1, 0)] = PdfColor.Gray
+            invalidCellFill.CellFills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor> {
+                [(-1, 0)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D)
             });
 
         Assert.Contains("Table cell fill coordinates cannot be negative.", fillException.Message, StringComparison.Ordinal);
 
-        var invalidCellDataBar = TableStyles.Minimal();
+        var invalidCellDataBar = PdfTableStyles.Minimal();
 
         var dataBarCoordinateException = Assert.Throws<ArgumentException>(() =>
             invalidCellDataBar.CellDataBars = new Dictionary<(int Row, int Column), PdfCellDataBar> {
@@ -172,7 +153,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         Assert.Contains("PDF table data bar ratio must be a finite value between 0 and 1.", dataBarRatioException.Message, StringComparison.Ordinal);
 
-        var invalidCellIcon = TableStyles.Minimal();
+        var invalidCellIcon = PdfTableStyles.Minimal();
 
         var iconCoordinateException = Assert.Throws<ArgumentException>(() =>
             invalidCellIcon.CellIcons = new Dictionary<(int Row, int Column), PdfCellIcon> {
@@ -182,39 +163,34 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("Table cell icon coordinates cannot be negative.", iconCoordinateException.Message, StringComparison.Ordinal);
 
         var iconSizeException = Assert.Throws<ArgumentException>(() =>
-            new PdfCellIcon { Size = double.PositiveInfinity });
+            new PdfCellIcon { Size = global::OfficeIMO.OfficeLength.Points(-1) });
 
         Assert.Contains("PDF table cell icon size must be a positive finite value.", iconSizeException.Message, StringComparison.Ordinal);
 
-        var iconOffsetException = Assert.Throws<ArgumentException>(() =>
-            new PdfCellIcon { OffsetY = double.NaN });
-
-        Assert.Contains("PDF table cell icon offsets must be finite values.", iconOffsetException.Message, StringComparison.Ordinal);
-
-        var invalidCellPadding = TableStyles.Minimal();
+        var invalidCellPadding = PdfTableStyles.Minimal();
 
         var paddingException = Assert.Throws<ArgumentException>(() =>
             invalidCellPadding.CellPaddings = new Dictionary<(int Row, int Column), PdfCellPadding> {
-                [(-1, 0)] = new PdfCellPadding { Left = 4 }
+                [(-1, 0)] = new PdfCellPadding { Left = global::OfficeIMO.OfficeLength.Points(4) }
             });
 
         Assert.Contains("Table cell padding coordinates cannot be negative.", paddingException.Message, StringComparison.Ordinal);
 
         var invalidCellPaddingValueException = Assert.Throws<ArgumentException>(() =>
-            new PdfCellPadding { Left = double.NaN });
+            new PdfCellPadding { Left = global::OfficeIMO.OfficeLength.Points(-1) });
 
         Assert.Contains("Table cell padding values must be non-negative finite values.", invalidCellPaddingValueException.Message, StringComparison.Ordinal);
 
-        var invalidCellAlignment = TableStyles.Minimal();
+        var invalidCellAlignment = PdfTableStyles.Minimal();
 
         var cellAlignmentException = Assert.Throws<ArgumentException>(() =>
-            invalidCellAlignment.CellAlignments = new Dictionary<(int Row, int Column), PdfColumnAlign> {
-                [(-1, 0)] = PdfColumnAlign.Center
+            invalidCellAlignment.CellAlignments = new Dictionary<(int Row, int Column), OfficeAlignment> {
+                [(-1, 0)] = OfficeAlignment.Center
             });
 
         Assert.Contains("Table cell alignment coordinates cannot be negative.", cellAlignmentException.Message, StringComparison.Ordinal);
 
-        var invalidCellVerticalAlignment = TableStyles.Minimal();
+        var invalidCellVerticalAlignment = PdfTableStyles.Minimal();
 
         var cellVerticalAlignmentException = Assert.Throws<ArgumentException>(() =>
             invalidCellVerticalAlignment.CellVerticalAlignments = new Dictionary<(int Row, int Column), PdfCellVerticalAlign> {
@@ -231,20 +207,20 @@ public partial class PdfDocumentVisualQualityTests {
                 .Table(new[] {
                     new[] { "A", "B" },
                     new[] { "1", "2" }
-                }, align: (PdfAlign)99)
+                }, align: (OfficeAlignment)99)
                 .ToBytes());
 
-        Assert.Contains("Table alignment must be Left, Center, or Right.", invalidTableAlignException.Message, StringComparison.Ordinal);
+        Assert.Contains("Table alignment must be Left, Center, Right, Start, or End.", invalidTableAlignException.Message, StringComparison.Ordinal);
 
         var unsupportedTableAlignException = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create()
                 .Table(new[] {
                     new[] { "A", "B" },
                     new[] { "1", "2" }
-                }, align: PdfAlign.Justify)
+                }, align: OfficeAlignment.Justify)
                 .ToBytes());
 
-        Assert.Contains("Table alignment must be Left, Center, or Right.", unsupportedTableAlignException.Message, StringComparison.Ordinal);
+        Assert.Contains("Table alignment must be Left, Center, Right, Start, or End.", unsupportedTableAlignException.Message, StringComparison.Ordinal);
 
         var composeTableAlignException = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create()
@@ -252,68 +228,54 @@ public partial class PdfDocumentVisualQualityTests {
                     compose.Page(page =>
                         page.Content(content =>
                             content.Column(column =>
-                                column.Item().Table(new[] {
+                                column.Item().AddTable(new[] {
                                     new[] { "A", "B" },
                                     new[] { "1", "2" }
-                                }, align: (PdfAlign)99)))))
+                                }, align: (OfficeAlignment)99)))))
                 .ToBytes());
 
-        Assert.Contains("Table alignment must be Left, Center, or Right.", composeTableAlignException.Message, StringComparison.Ordinal);
+        Assert.Contains("Table alignment must be Left, Center, Right, Start, or End.", composeTableAlignException.Message, StringComparison.Ordinal);
 
-        var tableWithLinksAlignException = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create()
-                .TableWithLinks(
-                    new[] {
-                        new[] { "A", "B" },
-                        new[] { "1", "2" }
-                    },
-                    new Dictionary<(int Row, int Col), string> {
-                        [(1, 0)] = "https://evotec.xyz"
-                    },
-                    align: PdfAlign.Justify));
-
-        Assert.Contains("Table alignment must be Left, Center, or Right.", tableWithLinksAlignException.Message, StringComparison.Ordinal);
-
-        var invalidCaptionAlign = TableStyles.Minimal();
+        var invalidCaptionAlign = PdfTableStyles.Minimal();
         invalidCaptionAlign.Caption = "Caption";
 
         var invalidCaptionAlignException = Assert.Throws<ArgumentException>(() =>
-            invalidCaptionAlign.CaptionAlign = (PdfAlign)99);
+            invalidCaptionAlign.CaptionAlign = (OfficeAlignment)99);
 
-        Assert.Contains("Table caption alignment must be Left, Center, or Right.", invalidCaptionAlignException.Message, StringComparison.Ordinal);
+        Assert.Contains("Table caption alignment must be Left, Center, Right, Start, or End.", invalidCaptionAlignException.Message, StringComparison.Ordinal);
 
-        var unsupportedCaptionAlign = TableStyles.Minimal();
+        var unsupportedCaptionAlign = PdfTableStyles.Minimal();
         unsupportedCaptionAlign.Caption = "Caption";
 
         var unsupportedCaptionAlignException = Assert.Throws<ArgumentException>(() =>
-            unsupportedCaptionAlign.CaptionAlign = PdfAlign.Justify);
+            unsupportedCaptionAlign.CaptionAlign = OfficeAlignment.Justify);
 
-        Assert.Contains("Table caption alignment must be Left, Center, or Right.", unsupportedCaptionAlignException.Message, StringComparison.Ordinal);
+        Assert.Contains("Table caption alignment must be Left, Center, Right, Start, or End.", unsupportedCaptionAlignException.Message, StringComparison.Ordinal);
 
-        var invalidColumnAlign = TableStyles.Minimal();
+        var invalidColumnAlign = PdfTableStyles.Minimal();
 
         var invalidColumnAlignException = Assert.Throws<ArgumentException>(() =>
-            invalidColumnAlign.Alignments = new List<PdfColumnAlign> { (PdfColumnAlign)99 });
+            invalidColumnAlign.Alignments = new List<OfficeAlignment> { (OfficeAlignment)99 });
 
-        Assert.Contains("Table column alignments must be Left, Center, or Right.", invalidColumnAlignException.Message, StringComparison.Ordinal);
+        Assert.Contains("Table column alignments must be Left, Center, Right, Start, or End.", invalidColumnAlignException.Message, StringComparison.Ordinal);
 
-        var invalidVerticalAlign = TableStyles.Minimal();
+        var invalidVerticalAlign = PdfTableStyles.Minimal();
 
         var invalidVerticalAlignException = Assert.Throws<ArgumentException>(() =>
             invalidVerticalAlign.VerticalAlignments = new List<PdfCellVerticalAlign> { (PdfCellVerticalAlign)99 });
 
         Assert.Contains("Table vertical alignments must be defined PDF cell vertical alignment values.", invalidVerticalAlignException.Message, StringComparison.Ordinal);
 
-        var invalidCellAlign = TableStyles.Minimal();
+        var invalidCellAlign = PdfTableStyles.Minimal();
 
         var invalidCellAlignException = Assert.Throws<ArgumentException>(() =>
-            invalidCellAlign.CellAlignments = new Dictionary<(int Row, int Column), PdfColumnAlign> {
-                [(0, 0)] = (PdfColumnAlign)99
+            invalidCellAlign.CellAlignments = new Dictionary<(int Row, int Column), OfficeAlignment> {
+                [(0, 0)] = (OfficeAlignment)99
             });
 
-        Assert.Contains("Table column alignments must be Left, Center, or Right.", invalidCellAlignException.Message, StringComparison.Ordinal);
+        Assert.Contains("Table column alignments must be Left, Center, Right, Start, or End.", invalidCellAlignException.Message, StringComparison.Ordinal);
 
-        var invalidCellVerticalAlign = TableStyles.Minimal();
+        var invalidCellVerticalAlign = PdfTableStyles.Minimal();
 
         var invalidCellVerticalAlignException = Assert.Throws<ArgumentException>(() =>
             invalidCellVerticalAlign.CellVerticalAlignments = new Dictionary<(int Row, int Column), PdfCellVerticalAlign> {

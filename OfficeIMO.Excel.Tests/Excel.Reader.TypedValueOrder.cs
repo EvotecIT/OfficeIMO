@@ -32,7 +32,7 @@ public partial class Excel {
                 </sheetData></worksheet>
                 """;
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.Unicode.GetPreamble().Concat(Encoding.Unicode.GetBytes(xml)).ToArray());
-            using var owner = ExcelDocumentReader.Open(path, new ExcelReadOptions { NumericAsDecimal = kind == "decimal" });
+            using var owner = ExcelDocumentReader.Open(path, new ExcelReaderOptions { NumericAsDecimal = kind == "decimal" });
             using var reader = owner.GetSheet("Data").ReadRangeAsDataReader("A1:B4098", headersInFirstRow: false, schemaSampleRows: 0);
             Assert.True(reader.Read());
             switch (kind) {
@@ -94,7 +94,7 @@ public partial class Excel {
                 """;
             Encoding encoding = utf16 ? Encoding.Unicode : new UTF8Encoding(false);
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", encoding.GetPreamble().Concat(encoding.GetBytes(xml)).ToArray());
-            using var owner = ExcelDocumentReader.Open(path, new ExcelReadOptions {
+            using var owner = ExcelDocumentReader.Open(path, new ExcelReaderOptions {
                 NumericAsDecimal = true,
                 TreatDatesUsingNumberFormat = true,
                 Culture = CultureInfo.InvariantCulture

@@ -99,39 +99,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static readonly byte[] PlainParagraphPapx = { 0x00, 0x01, 0x00, 0x00 };
         private static readonly byte[] FootnoteTextParagraphPapx = { 0x00, 0x01, (byte)NoteTextParagraphStyleIndex, (byte)(NoteTextParagraphStyleIndex >> 8) };
 
-        internal static byte[] WriteDocument(
-            WordDocument document,
-            WordSaveOptions? options = null,
-            bool isTemplate = false) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
-
-            ThrowIfUnsupportedLegacyDocImportState(document, options);
-
-            LegacyDocWritableBody body = BuildBody(document);
-            byte[] wordDocumentStream = PadToRegularOleStream(CreateWordDocumentStream(body, isTemplate));
-            byte[] tableStream = PadToRegularOleStream(CreateTableStream(body));
-            IReadOnlyList<OfficeCompoundStream> propertyStreams = LegacyDocPropertySetWriter.CreateDocumentPropertyStreams(document);
-            var streams = new List<OfficeCompoundStream>(propertyStreams.Count + 2) {
-                new OfficeCompoundStream("WordDocument", wordDocumentStream),
-                new OfficeCompoundStream("1Table", tableStream)
-            };
-            if (body.HasPictures) {
-                streams.Add(new OfficeCompoundStream("Data", body.PictureData));
-            }
-            foreach (OfficeCompoundStream propertyStream in propertyStreams) {
-                streams.Add(new OfficeCompoundStream(propertyStream.Name, PadToRegularOleStream(propertyStream.Bytes)));
-            }
-
-            OfficeCompoundFile? sourceCompoundFile = document.LegacyDocSourceCompoundFile;
-            if (sourceCompoundFile == null) {
-                return OfficeCompoundFileWriter.Write(streams);
-            }
-
-            return OfficeCompoundFileWriter.Rewrite(
-                sourceCompoundFile,
-                streams.ToDictionary(stream => stream.Name, stream => stream.Bytes, StringComparer.OrdinalIgnoreCase));
-        }
-
         private static void ThrowIfUnsupportedLegacyDocImportState(WordDocument document, WordSaveOptions? options) {
             bool hasLegacyDigitalSignature = document.LegacyDocCompoundFeatures.Any(feature =>
                 feature.Kind == LegacyDocCompoundFeatureKind.DigitalSignature);
@@ -196,6 +163,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             var runs = new List<LegacyDocWritableRun>();
             var paragraphFormats = new List<LegacyDocWritableParagraph>();
             var bookmarks = new LegacyDocWritableBookmarksBuilder();
+            var bodyBoundaries = new BodyBlockBoundaryCache();
             var pictures = new LegacyDocWritablePictures(document);
             LegacyDocWritableStyleSheet styleSheet = CreateWritableStyleSheet(mainPart!, body);
             LegacyDocWritableFootnotes footnotes = ReadSupportedFootnotes(mainPart!, pictures, styleSheet.StyleIndexes);
@@ -211,6 +179,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     runs,
                     paragraphFormats,
                     bookmarks,
+                    bodyBoundaries,
                     child,
                     mainPart!,
                     pictures,
@@ -456,6 +425,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             List<LegacyDocWritableRun> runs,
             List<LegacyDocWritableParagraph> paragraphFormats,
             LegacyDocWritableBookmarksBuilder bookmarks,
+            BodyBlockBoundaryCache bodyBoundaries,
             OpenXmlElement child,
             MainDocumentPart mainPart,
             LegacyDocWritablePictures pictures,
@@ -468,7 +438,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             ref int bodyContentCount,
             string containerDescription) {
             if (child is BookmarkStart && text.Length > 0 && text[text.Length - 1] == '\a' &&
-                FindFollowingBodyBlock(child) is Table) {
+                bodyBoundaries.FindFollowing(child) is Table) {
                 // A range starting at the next table excludes its required separator.
                 // Ends closing the preceding table keep their original position.
                 text.Append('\r');
@@ -498,6 +468,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         runs,
                         paragraphFormats,
                         bookmarks,
+                        bodyBoundaries,
                         sdtBlock,
                         mainPart,
                         pictures,
@@ -514,7 +485,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     break;
                 case BookmarkEnd bookmarkEnd:
                     int? precedingTableEnd = text.Length > 1 && text[text.Length - 1] == '\r' && text[text.Length - 2] == '\a' &&
-                        FindPrecedingBodyBlock(child) is Table && FindFollowingBodyBlock(child) is Table
+                        bodyBoundaries.FindPreceding(child) is Table && bodyBoundaries.FindFollowing(child) is Table
                         ? text.Length - 1
                         : null;
                     bookmarks.AddEnd(bookmarkEnd, text.Length, precedingTableEnd);
@@ -532,6 +503,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             List<LegacyDocWritableRun> runs,
             List<LegacyDocWritableParagraph> paragraphFormats,
             LegacyDocWritableBookmarksBuilder bookmarks,
+            BodyBlockBoundaryCache bodyBoundaries,
             SdtBlock sdtBlock,
             MainDocumentPart mainPart,
             LegacyDocWritablePictures pictures,
@@ -553,6 +525,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     runs,
                     paragraphFormats,
                     bookmarks,
+                    bodyBoundaries,
                     child,
                     mainPart,
                     pictures,

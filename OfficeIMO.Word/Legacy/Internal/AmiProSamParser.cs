@@ -79,11 +79,11 @@ internal sealed class AmiProSamParser {
         ParseStyles();
         ParseDocument();
         if (_unknownTags.Count > 0) {
-            _model.Findings.Add(LegacyWordAdapterBase.LossFinding("AMIPRO_INLINE_TAG_UNSUPPORTED", "Formatting", $"{_unknownTags.Count} distinct Ami Pro inline tag kinds were omitted."));
+            _model.Findings.Add(LegacyWordAdapterBase.LossFinding("amipro-inline-tag-unsupported", "Formatting", $"{_unknownTags.Count} distinct Ami Pro inline tag kinds were omitted."));
         }
         if (_missingStyles.Count > 0) {
             _model.Metadata["AmiProMissingStyleCount"] = _missingStyles.Count.ToString(CultureInfo.InvariantCulture);
-            _model.Findings.Add(LegacyWordAdapterBase.LossFinding("AMIPRO_STYLE_MISSING", "Styles", "One or more referenced Ami Pro styles were not defined in parsed [tag] blocks; the distinct total is available in metadata."));
+            _model.Findings.Add(LegacyWordAdapterBase.LossFinding("amipro-style-missing", "Styles", "One or more referenced Ami Pro styles were not defined in parsed [tag] blocks; the distinct total is available in metadata."));
         }
         if (_inferredListCount > 0) _model.Metadata["AmiProInferredListCount"] = _inferredListCount.ToString(CultureInfo.InvariantCulture);
         if (_embeddedSectionCount > 0) _model.Metadata["AmiProEmbeddedSectionCount"] = _embeddedSectionCount.ToString(CultureInfo.InvariantCulture);
@@ -114,14 +114,14 @@ internal sealed class AmiProSamParser {
             index = end - 1;
             if (style == null || string.IsNullOrWhiteSpace(style.Name)) {
                 if (++_malformedStyleBlockCount == 1) {
-                    _model.Findings.Add(LegacyWordAdapterBase.LossFinding("AMIPRO_STYLE_BLOCK_MALFORMED", "Styles", "One or more Ami Pro [tag] style blocks were malformed or outside the bounded style profile and could not be projected; the total is available in metadata."));
+                    _model.Findings.Add(LegacyWordAdapterBase.LossFinding("amipro-style-block-malformed", "Styles", "One or more Ami Pro [tag] style blocks were malformed or outside the bounded style profile and could not be projected; the total is available in metadata."));
                 }
                 continue;
             }
             ConsumeText(style.Name.Length, "style name");
             if (style.FontFamily is { Length: > 0 } fontFamily) ConsumeText(fontFamily.Length, "style font family");
             if (_styles.ContainsKey(style.Name) && ++_duplicateStyleCount == 1) {
-                _model.Findings.Add(LegacyWordAdapterBase.LossFinding("AMIPRO_STYLE_DUPLICATE", "Styles", "One or more duplicate Ami Pro style definitions replaced an earlier definition; the total is available in metadata."));
+                _model.Findings.Add(LegacyWordAdapterBase.LossFinding("amipro-style-duplicate", "Styles", "One or more duplicate Ami Pro style definitions replaced an earlier definition; the total is available in metadata."));
             }
             _styles[style.Name] = style;
             LegacyWordStyle recoveredStyle = style.ToLegacyWordStyle();
@@ -198,7 +198,7 @@ internal sealed class AmiProSamParser {
         if (unsupported == 0) return;
         aggregate |= unsupported;
         if (++_unsupportedStyleFlagCount == 1) {
-            _model.Findings.Add(LegacyWordAdapterBase.LossFinding("AMIPRO_STYLE_FLAGS_UNSUPPORTED", "Styles", "One or more Ami Pro style fields used flag bits outside the bounded profile; supported formatting was retained and per-field unsupported aggregates are available in metadata."));
+            _model.Findings.Add(LegacyWordAdapterBase.LossFinding("amipro-style-flags-unsupported", "Styles", "One or more Ami Pro style fields used flag bits outside the bounded profile; supported formatting was retained and per-field unsupported aggregates are available in metadata."));
         }
     }
 
@@ -223,7 +223,7 @@ internal sealed class AmiProSamParser {
             }
             if (line.StartsWith(">", StringComparison.Ordinal)) {
                 if (++_documentDirectiveCount == 1) {
-                    _model.Findings.Add(LegacyWordAdapterBase.LossFinding("AMIPRO_DOCUMENT_DIRECTIVE_UNSUPPORTED", "Structure", "One or more Ami Pro document directive lines were kept inert and omitted; their total is available in metadata."));
+                    _model.Findings.Add(LegacyWordAdapterBase.LossFinding("amipro-document-directive-unsupported", "Structure", "One or more Ami Pro document directive lines were kept inert and omitted; their total is available in metadata."));
                 }
                 continue;
             }
@@ -243,7 +243,7 @@ internal sealed class AmiProSamParser {
             paragraph.IsList = true;
             TrimPrefix(paragraph.Runs, 2);
             if (++_inferredListCount == 1) {
-                _model.Findings.Add(LegacyWordAdapterBase.LossFinding("AMIPRO_LIST_INFERRED", "Lists", "One or more bullet-list items were inferred from leading source text markers; the total is available in metadata."));
+                _model.Findings.Add(LegacyWordAdapterBase.LossFinding("amipro-list-inferred", "Lists", "One or more bullet-list items were inferred from leading source text markers; the total is available in metadata."));
             }
         }
         _model.Paragraphs.Add(paragraph);
@@ -426,7 +426,7 @@ internal sealed class AmiProSamParser {
 
     private void RecordMalformedInlineTag() {
         if (++_malformedInlineTagCount == 1) {
-            _model.Findings.Add(LegacyWordAdapterBase.LossFinding("AMIPRO_INLINE_TAG_MALFORMED", "Formatting", "One or more recognized Ami Pro inline formatting tags had malformed values and were not fully projected; the total is available in metadata."));
+            _model.Findings.Add(LegacyWordAdapterBase.LossFinding("amipro-inline-tag-malformed", "Formatting", "One or more recognized Ami Pro inline formatting tags had malformed values and were not fully projected; the total is available in metadata."));
         }
     }
 
@@ -480,11 +480,11 @@ internal sealed class AmiProSamParser {
         if (section.Equals("frm", StringComparison.OrdinalIgnoreCase) || section.IndexOf("obj", StringComparison.OrdinalIgnoreCase) >= 0) {
             _model.InertContent |= OfficeLegacyInertContentKind.EmbeddedObjects;
             if (++_embeddedSectionCount == 1) {
-                _model.Findings.Add(LegacyWordAdapterBase.InertFinding("AMIPRO_EMBEDDED_OBJECT_INERT", "EmbeddedObjects", "One or more Ami Pro embedded-object sections were kept inert; the distinct total is available in metadata."));
+                _model.Findings.Add(LegacyWordAdapterBase.InertFinding("amipro-embedded-object-inert", "EmbeddedObjects", "One or more Ami Pro embedded-object sections were kept inert; the distinct total is available in metadata."));
             }
         } else {
             if (++_unsupportedSectionCount == 1) {
-                _model.Findings.Add(LegacyWordAdapterBase.LossFinding("AMIPRO_SECTION_UNSUPPORTED", "Structure", "One or more Ami Pro sections were inventoried but not projected; the distinct total is available in metadata."));
+                _model.Findings.Add(LegacyWordAdapterBase.LossFinding("amipro-section-unsupported", "Structure", "One or more Ami Pro sections were inventoried but not projected; the distinct total is available in metadata."));
             }
         }
     }

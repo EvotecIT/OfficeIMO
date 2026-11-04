@@ -1,6 +1,8 @@
 using System.IO;
 using System.Management.Automation;
+using System.Security;
 using OfficeIMO.Pdf;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Pdf;
@@ -21,7 +23,8 @@ public sealed class SetOfficePdfAnnotationCommand : PSWriteOffice.Cmdlets.Office
 
     /// <summary>Password used to authenticate an encrypted PDF.</summary>
     [Parameter]
-    public string? Password { get; set; }
+    [OfficePasswordTransformation]
+    public SecureString? Password { get; set; }
 
     /// <summary>After successful password authentication, explicitly ignore owner-imposed annotation-modification restrictions.</summary>
     [Parameter]
@@ -69,13 +72,13 @@ public sealed class SetOfficePdfAnnotationCommand : PSWriteOffice.Cmdlets.Office
             return;
         }
 
-        PdfColor? color = PdfCommandUtilities.ParseColor(Color);
+        global::OfficeIMO.OfficeColor? color = PdfCommandUtilities.ParseColor(Color);
         var options = new PdfAnnotationUpdateOptions {
             Contents = Contents,
             Title = Title,
             Name = Name,
             Flags = Flags,
-            Color = color.HasValue ? new[] { color.Value.R, color.Value.G, color.Value.B } : null,
+            Color = color.HasValue ? new[] { color.Value.ToNormalizedRgb().R, color.Value.ToNormalizedRgb().G, color.Value.ToNormalizedRgb().B } : null,
             RemoveActions = RemoveAction.IsPresent
         };
 
@@ -83,7 +86,7 @@ public sealed class SetOfficePdfAnnotationCommand : PSWriteOffice.Cmdlets.Office
         PdfAnnotationEditResult result = PdfDocument
             .Load(inputPath, PdfCommandUtilities.CreateReadOptions(Password, IgnorePermissionRestrictions.IsPresent))
             .Annotations.Update(ObjectNumber, options);
-        result.ToDocument().Save(outputPath).RequireSuccess();
+        result.ToDocument().Save(outputPath);
         if (PassThruReport.IsPresent) {
             WriteObject(result);
             return;

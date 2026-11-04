@@ -20,7 +20,7 @@ public sealed partial class IWorkBoundaryTests {
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
             IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-                new IWorkReadOptions { MaximumEntryCount = nested ? 2 : 1 }));
+                new IWorkReadOptions { MaxEntryCount = nested ? 2 : 1 }));
 
         Assert.Contains("before package entries are opened", exception.Message,
             StringComparison.OrdinalIgnoreCase);
@@ -31,7 +31,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
             slideWidth: 960.0001f, slideHeight: 540f);
 
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult();
 
         Assert.False(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
@@ -47,7 +47,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
             textBoxDrawable: Message(BytesField(1, geometry)));
 
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult();
 
         Assert.False(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
@@ -59,33 +59,33 @@ public sealed partial class IWorkBoundaryTests {
     public void Keynote_table_rows_below_emu_precision_report_editable_quantization() {
         using MemoryStream package = CreateKeynotePackageWithTableDefaults(
             rows: 1, columns: 1,
-            defaultRowHeight: 0.5d / PowerPointUnits.EmusPerPoint,
+            defaultRowHeight: 0.5d / global::OfficeIMO.OfficeLength.Points(1).ToEmus(),
             defaultColumnWidth: 30d, includePreview: true);
 
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult();
 
         Assert.False(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
         Assert.Contains(result.Report.Diagnostics,
             diagnostic => diagnostic.Code == "IWORK_KEYNOTE_PPTX_PRECISION");
         PowerPointTable table = Assert.Single(result.Value.Slides[0].Tables);
-        Assert.True(table.Height > 0);
-        Assert.True(table.GetRowHeight(0) > 0);
+        Assert.True(table.Height.ToEmus() > 0);
+        Assert.True((table.GetRowHeight(0)).ToEmus() > 0);
     }
 
     [Fact]
     public void Keynote_image_extents_below_half_an_emu_remain_editable() {
         using MemoryStream package = CreateKeynotePackageWithTinyImageExtent();
 
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult();
 
         Assert.False(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
         Assert.Contains(result.Report.Diagnostics,
             diagnostic => diagnostic.Code == "IWORK_KEYNOTE_PPTX_PRECISION");
-        PowerPointPicture picture = Assert.Single(result.Value.Slides[0].Pictures);
-        Assert.True(picture.Width > 0);
-        Assert.True(picture.Height > 0);
+        PowerPointImage picture = Assert.Single(result.Value.Slides[0].Images);
+        Assert.True(picture.Width.ToEmus() > 0);
+        Assert.True(picture.Height.ToEmus() > 0);
     }
 
     [Fact]
@@ -149,7 +149,7 @@ public sealed partial class IWorkBoundaryTests {
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
             IWorkSourceDocument.Open(malformed, IWorkDocumentKind.Numbers,
-                new IWorkReadOptions { MaximumEntryCount = 10 }));
+                new IWorkReadOptions { MaxEntryCount = 10 }));
 
         Assert.Contains("declares 2 entries but contains 1", exception.Message,
             StringComparison.OrdinalIgnoreCase);
@@ -164,7 +164,7 @@ public sealed partial class IWorkBoundaryTests {
         const ulong metadataId = 6;
         const ulong dataId = 7;
         const string imageName = "tiny.png";
-        float tinyPoints = (float)(0.49d / PowerPointUnits.EmusPerPoint);
+        float tinyPoints = (float)(0.49d / global::OfficeIMO.OfficeLength.Points(1).ToEmus());
         byte[] geometry = Message(
             BytesField(1, Message(FloatField(1, 10f), FloatField(2, 10f))),
             BytesField(2, Message(FloatField(1, tinyPoints), FloatField(2, tinyPoints))));

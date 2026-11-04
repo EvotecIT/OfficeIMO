@@ -4,7 +4,7 @@ using OfficeIMO.Word;
 using System.Threading.Tasks;
 using VerifyXunit;
 using Xunit;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.VerifyTests.Word;
 
@@ -21,9 +21,9 @@ public class BasicDocumentTests : VerifyTestBase {
     [Fact]
     public async Task BasicEmptyWord() {
         using var document = WordDocument.Create();
-        document.BuiltinDocumentProperties.Title = "This is my title";
-        document.BuiltinDocumentProperties.Creator = "Przemysław Kłys";
-        document.BuiltinDocumentProperties.Keywords = "word, docx, test";
+        document.Properties.Title = "This is my title";
+        document.Properties.Creator = "Przemysław Kłys";
+        document.Properties.Keywords = "word, docx, test";
         _ = document.ToBytes();
 
         await DoTest(document._wordprocessingDocument);
@@ -74,14 +74,14 @@ public class BasicDocumentTests : VerifyTestBase {
     [Fact]
     public async Task BasicWordWithDefaultStyleChange() {
         using var document = WordDocument.Create();
-        document.Settings.FontSize = 30;
+        document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(30);
         document.Settings.FontFamily = "Calibri Light";
         document.Settings.Language = "pl-PL";
         document.Settings.Language = "pt-Br";
         _ = document.AddParagraph("To jest po polsku");
 
         var paragraph = document.AddParagraph("Adding paragraph1 with some text and pressing ENTER");
-        paragraph.FontSize = 15;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(15);
         paragraph.FontFamily = "Courier New";
 
         _ = document.ToBytes();
@@ -92,7 +92,7 @@ public class BasicDocumentTests : VerifyTestBase {
     [Fact]
     public async Task BasicWordWithDefaultFontChange() {
         using var document = WordDocument.Create();
-        document.Settings.FontSize = 30;
+        document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(30);
         document.Settings.FontFamily = "Calibri Light";
         document.Settings.FontFamilyHighAnsi = "Calibri Light";
         document.Settings.Language = "pt-Br";

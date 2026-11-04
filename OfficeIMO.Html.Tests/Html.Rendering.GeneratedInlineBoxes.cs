@@ -165,7 +165,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(new[] { 770, 705, 1083 }, glyphs.Select(glyph => glyph.GlyphId));
         Assert.All(glyphs, glyph => Assert.Equal(OfficeTrueTypeFont.TryLoad(font)!.Fingerprint, glyph.Program.Fingerprint));
         Assert.Single(visuals.OfType<HtmlRenderText>(), t => t.Text == "Host");
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]

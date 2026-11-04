@@ -13,7 +13,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = ListDeclarationPackage(kind,
             Message(BytesField(16, new byte[] { 0xff }), StringField(16, "9.")), aliases: true);
         IWorkTable table = ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind,
-            new IWorkReadOptions { MaximumSourceDeclarationIssues = 1 }), kind).Item1;
+            new IWorkReadOptions { MaxSourceDeclarationIssues = 1 }), kind).Item1;
         Assert.Equal(2, table.Cells.Count);
         foreach (IWorkTableCell cell in table.Cells) {
             IWorkTextParagraph paragraph = Assert.Single(cell.RichText!.Paragraphs);
@@ -25,10 +25,10 @@ public sealed partial class IWorkBoundaryTests {
         package.Position = 0;
         IWorkConversionReport report = ConvertUnitReport(package, kind, visual: true,
             readOptions: new IWorkReadOptions { PreserveSourceRecords = false,
-                MaximumSourceDeclarationIssues = 1 });
+                MaxSourceDeclarationIssues = 1 });
         AssertListDeclaration(Assert.Single(report.SourceDeclarationIssues), "16", 2);
         Assert.Empty(report.PreservedRecords);
-        Assert.Contains(report.FidelityDiagnostics, diagnostic => diagnostic.Code == "IWORK_SOURCE_DECLARATIONS_UNASSESSED"
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_SOURCE_DECLARATIONS_UNASSESSED"
             && diagnostic.LossKind == OfficeConversionLossKind.Unassessed);
     }
 
@@ -97,7 +97,7 @@ public sealed partial class IWorkBoundaryTests {
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         using var saved = new MemoryStream();
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = source.ToWordDocumentResult(policy);
+            using var result = source.ToWordResult(policy);
             Assert.True(result.Report.IsPartialEditableReconstruction);
             AssertListDeclaration(Assert.Single(result.Report.SourceDeclarationIssues), "16", 2);
             result.Value.Save(saved); saved.Position = 0;
@@ -114,11 +114,11 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal(NumberFormatValues.Bullet, level.NumberingFormat!.Val!.Value);
             Assert.Equal("c", level.LevelText!.Val!.Value);
         } else {
-            using var result = source.ToPowerPointPresentationResult(policy);
+            using var result = source.ToPowerPointResult(policy);
             Assert.True(result.Report.IsPartialEditableReconstruction);
             AssertListDeclaration(Assert.Single(result.Report.SourceDeclarationIssues), "16", 2);
             result.Value.Save(saved); saved.Position = 0;
-            using var reopened = OfficeIMO.PowerPoint.PowerPointPresentation.Load(saved);
+            using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
             var paragraph = Assert.Single(Assert.Single(reopened.Slides).Tables).GetCell(0, 0).Paragraphs[0];
             Assert.Equal("Value", paragraph.Text);
             Assert.Equal(1, paragraph.Level);
@@ -137,8 +137,8 @@ public sealed partial class IWorkBoundaryTests {
             _ => Message(BytesField(16, new byte[] { 0xff }), StringField(16, new string('X', 100)))
         };
         var options = limit switch {
-            "declaration" => new IWorkReadOptions { MaximumSourceDeclarationIssues = 1 },
-            _ => new IWorkReadOptions { MaximumProjectedTextCharacters = 10 }
+            "declaration" => new IWorkReadOptions { MaxSourceDeclarationIssues = 1 },
+            _ => new IWorkReadOptions { MaxProjectedTextCharacters = 10 }
         };
         using MemoryStream package = ListDeclarationPackage(IWorkDocumentKind.Numbers, fields);
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, options);
@@ -194,13 +194,13 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = ListDeclarationPackage(IWorkDocumentKind.Keynote,
             Message(VarintField(11, 3), BytesField(15, new byte[] { 0 })),
             inherited: false, indent: 0);
-        using var result = IWorkSourceDocument.Open(package).ToPowerPointPresentationResult(
+        using var result = IWorkSourceDocument.Open(package).ToPowerPointResult(
             new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly,
                 AllowPartialEditableReconstruction = true });
         Assert.True(result.Report.IsPartialEditableReconstruction);
         using var saved = new MemoryStream();
         result.Value.Save(saved); saved.Position = 0;
-        using var reopened = OfficeIMO.PowerPoint.PowerPointPresentation.Load(saved);
+        using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
         var paragraph = Assert.Single(Assert.Single(reopened.Slides).Tables).GetCell(0, 0).Paragraphs[0];
         Assert.Equal("Value", paragraph.Text);
         Assert.Equal(OfficeIMO.PowerPoint.PowerPointNumberingScheme.ArabicPeriod, paragraph.NumberingScheme);

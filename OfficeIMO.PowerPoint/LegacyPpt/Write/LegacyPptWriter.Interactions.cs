@@ -16,7 +16,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private const ushort RecordInteractiveInfo = 0x0FF2;
         private const ushort RecordInteractiveInfoAtom = 0x0FF3;
 
-        internal static bool TryReadInteractions(PowerPointPresentation presentation,
+        internal static bool TryReadInteractions(PowerPointDocument presentation,
             out LegacyPptWriterInteractionCatalog catalog, out string? reason) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
             return TryReadInteractions(presentation.Slides,

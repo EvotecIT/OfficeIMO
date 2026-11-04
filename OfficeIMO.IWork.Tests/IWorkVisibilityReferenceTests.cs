@@ -33,14 +33,14 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(1, issue.ReferenceIndex);
         Assert.Equal(30ul, issue.TargetIdentifier);
         Assert.Equal(IWorkSourceReferenceIssueKind.UnexpectedTargetType, issue.Kind);
-        Assert.Equal(OfficeConversionLossKind.Unassessed, Assert.Single(report.FidelityDiagnostics,
+        Assert.Equal(OfficeConversionLossKind.Unassessed, Assert.Single(report.Diagnostics,
             item => item.Code == "IWORK_SOURCE_REFERENCES_UNRESOLVED").LossKind);
     }
 
     [Fact]
     public void Shared_wrong_type_position_map_retains_one_physical_reference_across_axes_and_models() {
         using var package = MappedHiddenPackage(IWorkDocumentKind.Numbers, mapType: 2021, repeatModel: true);
-        var projection = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaximumSourceReferenceIssues = 1 }).ReadNumbers();
+        var projection = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxSourceReferenceIssues = 1 }).ReadNumbers();
         Assert.Equal(2, Assert.Single(projection.Sheets).Tables.Count);
         Assert.Equal("46", Assert.Single(projection.SourceReferenceIssues).FieldPath);
     }
@@ -52,7 +52,7 @@ public sealed partial class IWorkBoundaryTests {
         using var package = HiddenStatePackage(IWorkDocumentKind.Numbers,
             HiddenOwner(rowFields: ReferenceField(8, 30), columnFields: ReferenceField(8, 30)),
             modelFields: ReferenceField(38, 30), records: ArchiveRecord(30, 2021, Message()), repeatModel: true);
-        var source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaximumSourceReferenceIssues = limit });
+        var source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxSourceReferenceIssues = limit });
         if (limit == 2) {
             Assert.Contains("reference issues", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
             return;

@@ -28,17 +28,36 @@ public class PdfMergeApiScalingBenchmarks {
                 .Select(page => PdfBenchmarkValidation.ExpectedPage(secondScenario, page)))
             .ToArray();
         IReadOnlyList<IReadOnlyList<PdfExpectedPage>> expected = new[] { expectedPages };
-        PdfManipulationValidation.Validate(new[] { MergeBytes() }, expected, nameof(MergeBytes));
+        PdfManipulationValidation.Validate(new[] { MergeDocuments() }, expected, nameof(MergeDocuments));
         PdfManipulationValidation.Validate(new[] { MergeWithBytes() }, expected, nameof(MergeWithBytes));
         PdfManipulationValidation.Validate(new[] { MergeWithDocument() }, expected, nameof(MergeWithDocument));
     }
 
     [Benchmark(Baseline = true)]
-    public byte[] MergeBytes() => PdfDocument.MergeBytes(new[] { _first, _second }).ToBytes();
+    public byte[] MergeDocuments() {
+        using var firstInput = new MemoryStream(_first, writable: false);
+        using var secondInput = new MemoryStream(_second, writable: false);
+        using PdfDocument first = PdfDocument.Load(firstInput);
+        using PdfDocument second = PdfDocument.Load(secondInput);
+        using PdfDocument merged = PdfDocument.Merge(new[] { first, second });
+        return merged.ToBytes();
+    }
 
     [Benchmark]
-    public byte[] MergeWithBytes() => PdfDocument.Load(_first).MergeWith(_second).ToBytes();
+    public byte[] MergeWithBytes() {
+        using var input = new MemoryStream(_first, writable: false);
+        using PdfDocument first = PdfDocument.Load(input);
+        using PdfDocument merged = first.MergeWith(_second);
+        return merged.ToBytes();
+    }
 
     [Benchmark]
-    public byte[] MergeWithDocument() => PdfDocument.Load(_first).MergeWith(PdfDocument.Load(_second)).ToBytes();
+    public byte[] MergeWithDocument() {
+        using var firstInput = new MemoryStream(_first, writable: false);
+        using var secondInput = new MemoryStream(_second, writable: false);
+        using PdfDocument first = PdfDocument.Load(firstInput);
+        using PdfDocument second = PdfDocument.Load(secondInput);
+        using PdfDocument merged = first.MergeWith(second);
+        return merged.ToBytes();
+    }
 }

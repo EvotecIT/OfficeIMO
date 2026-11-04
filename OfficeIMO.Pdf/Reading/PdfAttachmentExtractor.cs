@@ -40,7 +40,7 @@ internal static class PdfAttachmentExtractor {
     }
 
     /// <summary>Extracts embedded file attachments from a parsed PDF document.</summary>
-    public static IReadOnlyList<PdfExtractedAttachment> ExtractAttachments(PdfReadDocument document) {
+    internal static IReadOnlyList<PdfExtractedAttachment> ExtractAttachments(PdfReadDocument document) {
         Guard.NotNull(document, nameof(document));
         return document.ExtractAttachments();
     }

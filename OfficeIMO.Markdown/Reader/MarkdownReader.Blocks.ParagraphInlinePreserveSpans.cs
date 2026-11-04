@@ -1,6 +1,6 @@
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     private readonly struct ParagraphInlinePreserveRange {
         public ParagraphInlinePreserveRange(int contentStart, int contentEnd) {
             ContentStart = contentStart;
@@ -14,7 +14,7 @@ public static partial class MarkdownReader {
             offset >= ContentStart && offset < ContentEnd;
     }
 
-    private static bool[] FindParagraphLineBreaksInsideMatchedInlinePreserveSpans(IReadOnlyList<string> lines, MarkdownReaderOptions options) {
+    private static bool[] FindParagraphLineBreaksInsideMatchedInlinePreserveSpans(IReadOnlyList<string> lines, MarkdownLoadOptions options) {
         if (lines == null || lines.Count <= 1) {
             return Array.Empty<bool>();
         }

@@ -19,8 +19,8 @@ public sealed partial class HtmlRenderingTests {
             + (scoped ? "Proof" : "Courier") + ";" + (tracked ? "letter-spacing:2px" : "") + "}</style>"
             + "<div style='height:" + top + "px'></div><p>BoundaryExtractionMarker</p>"
             + "<div style='height:80px'></div><p>TrailingExtractionMarker</p>";
-        var options = new HtmlToPdfOptions { ViewportWidth = 400D, ViewportHeight = 400D,
-            PageSize = new OfficePageSize(400D / 96D, 400D / 96D), Margins = HtmlRenderMargins.All(0D),
+        var options = new HtmlPdfExportOptions { ViewportWidth = 400D, ViewportHeight = 400D,
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(400D / 96D), global::OfficeIMO.OfficeLength.Inches(400D / 96D)), Margins = HtmlRenderMargins.All(0D),
             HonorCssPageRules = false, AllowSystemFontFallback = false,
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
         HtmlPdfRenderRequestResult result = HtmlConversionDocument.Parse(html).RenderToPdfResult(

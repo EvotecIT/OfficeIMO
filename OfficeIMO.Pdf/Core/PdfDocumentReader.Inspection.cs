@@ -14,21 +14,21 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to read document-level inspection information, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocumentInfo> DocumentInfoResult(PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocumentInfo> DocumentInfoResult(PdfLoadOptions? options = null) {
         return _document.TryOperation("Read document info", PdfPreflightCapability.ReadLogicalObjects, () => DocumentInfo(options), ResolveReadOptions(options));
     }
 
     /// <summary>
     /// Reads PDF document metadata from the Info dictionary.
     /// </summary>
-    public PdfMetadata Metadata(PdfLoadOptions? readOptions = null) {
+    public PdfDocumentProperties Metadata(PdfLoadOptions? readOptions = null) {
         return DocumentInfo(readOptions).Metadata;
     }
 
     /// <summary>
     /// Attempts to read PDF document metadata, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfMetadata> MetadataResult(PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocumentProperties> MetadataResult(PdfLoadOptions? options = null) {
         return _document.TryOperation("Read metadata", PdfPreflightCapability.ReadLogicalObjects, () => Metadata(options), ResolveReadOptions(options));
     }
 
@@ -42,7 +42,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to read security, signature, and revision markers, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocumentSecurityInfo> SecurityResult(PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocumentSecurityInfo> SecurityResult(PdfLoadOptions? options = null) {
         return _document.TryOperation("Read security markers", PdfPreflightCapability.ReadLogicalObjects, () => Security(options), ResolveReadOptions(options));
     }
 
@@ -56,7 +56,7 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Attempts to read page geometry and page-level metadata for all pages, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfPageInfo>> PagesResult(PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<PdfPageInfo>> PagesResult(PdfLoadOptions? options = null) {
         return _document.TryOperation("Read page info", PdfPreflightCapability.ReadLogicalObjects, () => Pages(options), ResolveReadOptions(options));
     }
 

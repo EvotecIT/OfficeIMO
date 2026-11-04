@@ -11,8 +11,7 @@ public sealed partial class IWorkBoundaryTests {
         var fixture = Assert.Single(manifest.RootElement.GetProperty("fixtures").EnumerateArray());
         foreach (var artifact in fixture.GetProperty("artifacts").EnumerateArray())
             Assert.Equal(artifact.GetProperty("sha256").GetString(), HashFile(CorpusFixture("native-exports/" + artifact.GetProperty("path").GetString())));
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(CorpusFixture("native-exports/" + fixture.GetProperty("source").GetString()),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(CorpusFixture("native-exports/" + fixture.GetProperty("source").GetString()), IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         var sourceSheet = Assert.Single(result.Projection.Sheets);
         Assert.Single(sourceSheet.Drawables); // No unrelated text boxes in the native fixture.
         var table = Assert.Single(sourceSheet.Tables);
@@ -28,8 +27,8 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal("=" + formula, cell.Formula);
             Assert.Equal(formula, sheet.GetFormulaText(row, 2));
             var cache = expected.GetProperty("nativeNumericCache");
-            if (cache.ValueKind == JsonValueKind.Number) Assert.Equal(cache.GetDouble(), sheet.CellAt(row, 2).GetValue<double>());
-            else Assert.Equal("#ERROR", sheet.CellAt(row, 2).GetValue<string>());
+            if (cache.ValueKind == JsonValueKind.Number) Assert.Equal(cache.GetDouble(), sheet.Cell(row, 2).GetValue<double>());
+            else Assert.Equal("#ERROR", sheet.Cell(row, 2).GetValue<string>());
         }
         Assert.Equal(9, reopened.Calculate()); // Seven nonempty intersections, two reversed intervals.
         foreach (var expected in fixture.GetProperty("cells").EnumerateArray()) {
@@ -40,17 +39,17 @@ public sealed partial class IWorkBoundaryTests {
                 Assert.True(sheet.TryGetCachedFormulaValue(row, 2, out string? error)); Assert.Equal("#NUM!", error);
             } else {
                 double native = expected.GetProperty("nativeNumericCache").GetDouble();
-                Assert.Equal(native, sheet.CellAt(row, 2).GetValue<double>());
+                Assert.Equal(native, sheet.Cell(row, 2).GetValue<double>());
                 if (profile == "integer-interval") Assert.Equal(native, expected.GetProperty("nativeExcelCache").GetDouble());
             }
         }
         // An edit within the supported operand profile produces a fresh result.
-        sheet.CellValue(10, 3, -2.9d); sheet.CellValue(10, 4, -1.1d);
-        sheet.CellFormula(10, 2, "RANDBETWEEN(C10,D10)"); reopened.Calculate();
-        Assert.Equal(-2d, sheet.CellAt(10, 2).GetValue<double>());
+        sheet.Cell(10, 3).SetValue(-2.9d); sheet.Cell(10, 4).SetValue(-1.1d);
+        sheet.Cell(10, 2).SetFormula("RANDBETWEEN(C10,D10)"); reopened.Calculate();
+        Assert.Equal(-2d, sheet.Cell(10, 2).GetValue<double>());
         using var calculated = new MemoryStream(); reopened.Save(calculated); calculated.Position = 0;
         using var final = ExcelDocument.Load(calculated);
-        Assert.Equal(-2d, final.Sheets[0].CellAt(10, 2).GetValue<double>());
+        Assert.Equal(-2d, final.Sheets[0].Cell(10, 2).GetValue<double>());
         Assert.Empty(final.ValidateOpenXml());
     }
 }

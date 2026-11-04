@@ -1,6 +1,8 @@
 using System.IO;
 using System.Management.Automation;
+using System.Security;
 using OfficeIMO.Pdf;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Pdf;
@@ -16,7 +18,7 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 ///   <prefix>PS&gt; </prefix>
 ///   <code>Add-OfficePdfCanvas -Path .\Report.pdf -OutputPath .\Stamped.pdf -PageRange '1,last' -Content {
 ///     param($canvas, $page)
-///     $null = $canvas.Text("Review copy $($page.PageNumber)/$($page.PageCount)", 36, 24, $page.Width - 72, 24, 10)
+///     $null = $canvas.Text("Review copy $($page.PageNumber)/$($page.PageCount)", 36, 24, $page.Width.ToPoints() - 72, 24, 10)
 /// }</code>
 ///   <para>The callback runs once for every selected page and may mix any supported visual canvas primitives.</para>
 /// </example>
@@ -51,13 +53,14 @@ public sealed class AddOfficePdfCanvasCommand : PSWriteOffice.Cmdlets.OfficeMuta
     public double Opacity { get; set; } = 1D;
 
     /// <summary>Configures native generated-PDF rendering options for canvas content, including embedded fonts and text shaping.</summary>
-    /// <remarks>The callback receives a <see cref="PdfOptions"/> instance. Page geometry, margins, and encryption remain controlled by the stamping operation.</remarks>
+    /// <remarks>The callback receives a <see cref="PdfCreateOptions"/> instance. Page geometry, margins, and encryption remain controlled by the stamping operation.</remarks>
     [Parameter]
     public ScriptBlock? ConfigureRendering { get; set; }
 
     /// <summary>Password used to authenticate an encrypted input PDF.</summary>
     [Parameter]
-    public string? Password { get; set; }
+    [OfficePasswordTransformation]
+    public SecureString? Password { get; set; }
 
     /// <summary>
     /// After successful password authentication, explicitly ignore owner-imposed usage restrictions.
@@ -75,9 +78,9 @@ public sealed class AddOfficePdfCanvasCommand : PSWriteOffice.Cmdlets.OfficeMuta
 
         var readOptions = PdfCommandUtilities.CreateReadOptions(Password, IgnorePermissionRestrictions.IsPresent);
         var document = PdfDocument.Load(PdfCommandUtilities.ResolvePath(this, Path), readOptions);
-        PdfOptions? renderingOptions = null;
+        PdfCreateOptions? renderingOptions = null;
         if (ConfigureRendering is not null) {
-            renderingOptions = new PdfOptions();
+            renderingOptions = new PdfCreateOptions();
             _ = ConfigureRendering.Invoke(renderingOptions);
         }
 
@@ -99,7 +102,7 @@ public sealed class AddOfficePdfCanvasCommand : PSWriteOffice.Cmdlets.OfficeMuta
             options,
             readOptions);
         PdfCommandUtilities.EnsureDirectory(outputPath);
-        result.Save(outputPath).RequireSuccess();
+        result.Save(outputPath);
         WritePassThru(new FileInfo(outputPath));
     }
 }

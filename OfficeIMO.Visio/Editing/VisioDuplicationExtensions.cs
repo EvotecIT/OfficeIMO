@@ -61,7 +61,7 @@ namespace OfficeIMO.Visio {
         private static VisioPage DuplicatePageCore(VisioDocument document, VisioPage sourcePage, string? name, VisioPage? backgroundPageOverride) {
             var sourceIdentifiers = VisioDocument.AssignPageElementIdentifiers(sourcePage);
             string duplicateName = ResolveDuplicatePageName(document, sourcePage, name);
-            VisioPage clone = document.AddPage(duplicateName, sourcePage.Width, sourcePage.Height);
+            VisioPage clone = document.AddPageInches(duplicateName, sourcePage.WidthInches, sourcePage.HeightInches);
             clone.NameU = duplicateName;
             CopyPageSettings(sourcePage, clone);
             CopyLayers(sourcePage, clone);
@@ -653,10 +653,10 @@ namespace OfficeIMO.Visio {
 
             if (source.HasExplicitMargins) {
                 target.SetLoadedMargins(
-                    source.LeftMargin,
-                    source.RightMargin,
-                    source.TopMargin,
-                    source.BottomMargin,
+                    source.LeftMarginInches,
+                    source.RightMarginInches,
+                    source.TopMarginInches,
+                    source.BottomMarginInches,
                     source.MarginUnit);
             }
 

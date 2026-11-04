@@ -13,7 +13,7 @@ public sealed class PdfSelectedComparisonCommandTests {
         Directory.CreateDirectory(root);
         try {
             string first = Path.Combine(root, "first.pdf"), second = Path.Combine(root, "second.pdf");
-            PdfDocument.Create(document => { for (int i = 0; i < 4; i++) document.Page(page => page.Size(150, 180)); }).Save(first);
+            PdfDocument.Create(document => { for (int i = 0; i < 4; i++) document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(150), global::OfficeIMO.OfficeLength.Points(180))); }).Save(first);
             File.Copy(first, second); byte[] before = File.ReadAllBytes(first);
             string cli = Path.Combine(root, "cli.html");
             using var stdout = new MemoryStream(); var stderr = new StringWriter();
@@ -48,13 +48,13 @@ public sealed class PdfSelectedComparisonCommandTests {
                 Assert.True((await client.CallToolAsync("officeimo_pdf_compare", arguments, cancellationToken: timeout.Token)).IsError);
             }
             Assert.Equal(before, File.ReadAllBytes(first)); Assert.Equal(before, File.ReadAllBytes(second));
-            PdfDocument.Create(document => document.Page(page => page.Size(160, 190))).Save(second);
+            PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(160), global::OfficeIMO.OfficeLength.Points(190)))).Save(second);
             string stale = Path.Combine(root, "stale.html"); arguments["outputPath"] = stale;
             Assert.True((await client.CallToolAsync("officeimo_pdf_compare", arguments, cancellationToken: timeout.Token)).IsError);
             Assert.False(File.Exists(stale));
             var refreshedActual = await client.CallToolAsync("officeimo_inspect", new Dictionary<string, object?> { ["path"] = second }, cancellationToken: timeout.Token);
             arguments["comparisonSourceId"] = refreshedActual.StructuredContent!.Value.GetProperty("sourceId").GetString()!;
-            PdfDocument.Create(document => document.Page(page => page.Size(170, 200))).Save(first);
+            PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(170), global::OfficeIMO.OfficeLength.Points(200)))).Save(first);
             Assert.True((await client.CallToolAsync("officeimo_pdf_compare", arguments, cancellationToken: timeout.Token)).IsError);
             Assert.False(File.Exists(stale));
         } finally { Directory.Delete(root, true); }

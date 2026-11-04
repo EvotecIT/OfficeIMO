@@ -3,6 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Line-level text block extracted from a PDF page.
 /// </summary>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfLogicalTextBlock : IPdfLogicalElement {
     internal PdfLogicalTextBlock(
         int pageNumber,
@@ -41,13 +42,13 @@ public sealed class PdfLogicalTextBlock : IPdfLogicalElement {
     /// <summary>Extracted text for the line-level block.</summary>
     public string Text { get; }
 
-    /// <summary>Leftmost X coordinate in PDF points.</summary>
+    /// <summary>Leftmost X coordinate in page user-space units.</summary>
     public double XStart { get; }
 
-    /// <summary>Rightmost X coordinate in PDF points.</summary>
+    /// <summary>Rightmost X coordinate in page user-space units.</summary>
     public double XEnd { get; }
 
-    /// <summary>Baseline Y coordinate in PDF points from the bottom of the page.</summary>
+    /// <summary>Baseline Y coordinate in page user-space units from the bottom of the page.</summary>
     public double BaselineY { get; }
 
     /// <summary>Largest font size represented by this line-level block.</summary>
@@ -197,6 +198,7 @@ public sealed class PdfLogicalTextBlock : IPdfLogicalElement {
 /// <summary>
 /// Semantic text fragment aligned with one positioned PDF text span.
 /// </summary>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfLogicalTextRun {
     internal PdfLogicalTextRun(string text, PdfTextSpan? sourceSpan) {
         Text = text ?? string.Empty;
@@ -218,11 +220,11 @@ public sealed class PdfLogicalTextRun {
     /// <summary>Raw source PDF font descriptor flags, when declared.</summary>
     public int? FontDescriptorFlags => SourceSpan?.FontDescriptorFlags;
 
-    /// <summary>Source font size in points, or zero when no source span was aligned.</summary>
+    /// <summary>Source font size in page user-space units, or zero when no source span was aligned.</summary>
     public double FontSize => SourceSpan?.FontSize ?? 0D;
 
     /// <summary>Source text color, when available.</summary>
-    public OfficeIMO.Drawing.OfficeColor? Color => SourceSpan?.Color;
+    public OfficeIMO.OfficeColor? Color => SourceSpan?.Color;
 
     /// <summary>Bold classification from declared weight, with a legacy font-name fallback.</summary>
     public bool IsBold => SourceSpan?.IsBold == true;
@@ -234,6 +236,7 @@ public sealed class PdfLogicalTextRun {
 /// <summary>
 /// Heuristic heading line inferred from text size and geometry.
 /// </summary>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfLogicalHeading {
     internal PdfLogicalHeading(
         int pageNumber,
@@ -250,7 +253,7 @@ public sealed class PdfLogicalHeading {
         Line = line;
         Confidence = PdfInference.Clamp(confidence);
         Evidence = evidence is null
-            ? new[] { new PdfInferenceEvidence("heading.font-tier", "The line was assigned to a larger-font heading tier relative to nearby body text.", 0.8D) }
+            ? new[] { new PdfInferenceEvidence("heading-font-tier", "The line was assigned to a larger-font heading tier relative to nearby body text.", 0.8D) }
             : PdfInference.Snapshot(evidence);
     }
 
@@ -263,7 +266,7 @@ public sealed class PdfLogicalHeading {
     /// <summary>Heading text.</summary>
     public string Text { get; }
 
-    /// <summary>Representative font size in points.</summary>
+    /// <summary>Representative font size in page user-space units.</summary>
     public double FontSize { get; }
 
     /// <summary>Line-level text block that produced the heading.</summary>
@@ -273,9 +276,27 @@ public sealed class PdfLogicalHeading {
     /// <summary>Evidence supporting the heading classification.</summary>
     public IReadOnlyList<PdfInferenceEvidence> Evidence { get; }
 
+    /// <summary>Further source lines of a heading that wraps; <see cref="Line"/> is the first.</summary>
+    internal IReadOnlyList<PdfLogicalTextBlock> ContinuationLines { get; private set; } = Array.Empty<PdfLogicalTextBlock>();
+
+    /// <summary>
+    /// Source lines of the heading in reading order: <see cref="Line"/> followed by the lines of a heading that
+    /// wraps (a long title, or one set beside a logo).
+    /// </summary>
+    public IReadOnlyList<PdfLogicalTextBlock> Lines => ContinuationLines.Count == 0
+        ? new[] { Line }
+        : new[] { Line }.Concat(ContinuationLines).ToArray();
+
+    internal PdfLogicalHeading WithContinuation(PdfLogicalHeading continuation) {
+        var joined = new PdfLogicalHeading(PageNumber, Level, Text.TrimEnd() + " " + continuation.Text.TrimStart(),
+            FontSize, Line, Confidence, Evidence);
+        joined.ContinuationLines = ContinuationLines.Concat(continuation.Lines).ToArray();
+        return joined;
+    }
+
     internal bool CanApplyDocumentFontTier => !Evidence.Any(static item =>
-        string.Equals(item.Code, "semantic.outline-heading", StringComparison.Ordinal) ||
-        string.Equals(item.Code, "semantic.tagged-pdf-role", StringComparison.Ordinal));
+        string.Equals(item.Code, "semantic-outline-heading", StringComparison.Ordinal) ||
+        string.Equals(item.Code, "semantic-tagged-pdf-role", StringComparison.Ordinal));
 
     internal void ApplyDocumentFontTier(int level) {
         if (!CanApplyDocumentFontTier) return;
@@ -321,7 +342,7 @@ public sealed class PdfLogicalListItem {
         Runs = sourceRuns is null ? BuildRuns(Lines, lineTexts) : Array.AsReadOnly(sourceRuns.ToArray());
         Confidence = PdfInference.Clamp(confidence ?? (string.IsNullOrWhiteSpace(marker) ? 0.55D : 0.9D));
         Evidence = evidence is null
-            ? new[] { new PdfInferenceEvidence(string.IsNullOrWhiteSpace(marker) ? "list.indentation" : "list.marker", string.IsNullOrWhiteSpace(marker) ? "List membership was inferred from indentation and neighboring items." : "The line begins with a recognized list marker: " + marker + ".", string.IsNullOrWhiteSpace(marker) ? 0.3D : 0.9D) }
+            ? new[] { new PdfInferenceEvidence(string.IsNullOrWhiteSpace(marker) ? "list-indentation" : "list-marker", string.IsNullOrWhiteSpace(marker) ? "List membership was inferred from indentation and neighboring items." : "The line begins with a recognized list marker: " + marker + ".", string.IsNullOrWhiteSpace(marker) ? 0.3D : 0.9D) }
             : PdfInference.Snapshot(evidence);
     }
 
@@ -407,6 +428,7 @@ public sealed class PdfLogicalListItem {
 /// <summary>
 /// Heuristic paragraph group built from nearby line-level text blocks.
 /// </summary>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfLogicalParagraph {
     private PdfLogicalParagraph(
         int pageNumber,
@@ -434,19 +456,19 @@ public sealed class PdfLogicalParagraph {
     /// <summary>Line-level blocks that make up this paragraph.</summary>
     public IReadOnlyList<PdfLogicalTextBlock> Lines { get; }
 
-    /// <summary>Leftmost X coordinate in PDF points.</summary>
+    /// <summary>Leftmost X coordinate in page user-space units.</summary>
     public double XStart { get; }
 
-    /// <summary>Rightmost X coordinate in PDF points.</summary>
+    /// <summary>Rightmost X coordinate in page user-space units.</summary>
     public double XEnd { get; }
 
-    /// <summary>Top baseline Y coordinate in PDF points.</summary>
+    /// <summary>Top baseline Y coordinate in page user-space units.</summary>
     public double YTop { get; }
 
-    /// <summary>Bottom baseline Y coordinate in PDF points.</summary>
+    /// <summary>Bottom baseline Y coordinate in page user-space units.</summary>
     public double YBottom { get; }
 
-    internal static PdfLogicalParagraph From(int pageNumber, StructuredParagraph paragraph, IReadOnlyList<PdfLogicalTextBlock> lines) {
+    internal static PdfLogicalParagraph From(int pageNumber, PdfStructuredParagraph paragraph, IReadOnlyList<PdfLogicalTextBlock> lines) {
         return new PdfLogicalParagraph(
             pageNumber,
             paragraph.Text,

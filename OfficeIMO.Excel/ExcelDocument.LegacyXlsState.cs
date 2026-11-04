@@ -134,6 +134,7 @@ namespace OfficeIMO.Excel {
             SourceFormat = ExcelFileFormat.Xls;
             _legacyXlsSourcePath = sourcePath;
             _legacyXlsImportDiagnostics = workbook.Diagnostics.ToArray();
+            CaptureLegacyLoadDiagnostics(workbook);
             _legacyXlsUnsupportedFeatures = workbook.UnsupportedFeatures.ToArray();
             _legacyXlsPreservedFeatures = workbook.PreservedFeatureRecords.ToArray();
             _legacyXlsUnsupportedSheets = workbook.UnsupportedSheets.ToArray();
@@ -163,6 +164,7 @@ namespace OfficeIMO.Excel {
             _xlsbAdvancedWorkbook = workbook;
             _xlsbPreservationGuard = OfficeIMO.Excel.Xlsb.Write.XlsbProjectionPreservationGuard.Capture(this);
             _xlsbImportDiagnostics = workbook.Diagnostics.ToArray();
+            CaptureBinaryLoadDiagnostics(workbook);
             _xlsbPreservedRecords = workbook.PreservedRecords.ToArray();
             _packageDirty = false;
             _packagePropertiesDirty = false;
@@ -370,11 +372,17 @@ namespace OfficeIMO.Excel {
                 preserveLinkedVbaProject: true,
                 preserveNativeRecords: true);
             cancellationToken.ThrowIfCancellationRequested();
-            byte[] xlsBytes = BuildNativeLegacyXls(options, cancellationToken, out bool directWrite, out bool preservedWrite);
+            // Imported workbooks must validate their candidate for adoption; cancellation and
+            // timing callbacks also retain their original completion-before-publication boundary.
+            Stream? directDestination = SourceFormat != ExcelFileFormat.Xls
+                && !cancellationToken.CanBeCanceled && Execution.OnTiming == null ? destination : null;
+            byte[] xlsBytes = BuildNativeLegacyXls(options, cancellationToken, out bool directWrite, out bool preservedWrite, directDestination);
             var adoptedWorkbook = PrepareNativeLegacyXlsAdoption(xlsBytes, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
-            PrepareDestinationStreamForWrite(destination);
-            destination.Write(xlsBytes, 0, xlsBytes.Length);
+            if (!directWrite || directDestination == null) {
+                PrepareDestinationStreamForWrite(destination);
+                destination.Write(xlsBytes, 0, xlsBytes.Length);
+            }
             try { destination.Flush(); } catch (NotSupportedException) { }
             MarkPackageClean(null);
             DisablePackageCopyBackAfterNativeLegacyXlsSave(destination);
@@ -412,13 +420,14 @@ namespace OfficeIMO.Excel {
         private bool TryBuildDirectTabularLegacyXls(
             ExcelSaveOptions? options,
             CancellationToken cancellationToken,
-            out byte[] xlsBytes) {
+            out byte[] xlsBytes,
+            Stream? destination = null) {
             xlsBytes = Array.Empty<byte>();
             if (!TryGetDirectTabularSaveSource(options, cancellationToken, "Xls", out ExcelDirectTabularSource source)) {
                 return false;
             }
 
-            if (!OfficeIMO.Excel.LegacyXls.Write.LegacyXlsWriter.TryWriteDirectTabularWorkbook(this, source, cancellationToken, out xlsBytes)) {
+            if (!OfficeIMO.Excel.LegacyXls.Write.LegacyXlsWriter.TryWriteDirectTabularWorkbook(this, source, cancellationToken, out xlsBytes, destination)) {
                 Execution.ReportInfo("Save.Xls.Direct skipped: the tabular values require the general BIFF8 value encoder.");
                 return false;
             }
@@ -471,7 +480,7 @@ namespace OfficeIMO.Excel {
                 || sheet.AutoFitColumns
                 || sheet.Metadata?.IsEmpty == false
                 || sheet.ColumnNumberFormats != null
-                || !A1.TryParseRange(sheet.Range, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)
+                || !ExcelA1.TryParseRange(sheet.Range, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)
                 || firstRow != 1
                 || firstColumn != 1
                 || lastRow != sheet.Table.RowCount + (sheet.IncludeHeaders ? 1 : 0)

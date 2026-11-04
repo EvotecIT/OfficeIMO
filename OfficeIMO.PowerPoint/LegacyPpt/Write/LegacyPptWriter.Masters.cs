@@ -12,7 +12,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private const ushort RecordHandoutForWrite = 0x0FC9;
 
         private static LegacyPptWriterMasterCatalog ReadMasterCatalog(
-            PowerPointPresentation presentation,
+            PowerPointDocument presentation,
             LegacyPptRecord templateDocument,
             IReadOnlyList<LegacyPptRecord> prototypes,
             LegacyPptRecord notesMasterPrototype,

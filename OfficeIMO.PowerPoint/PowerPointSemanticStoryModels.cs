@@ -185,7 +185,7 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>Editable chart plus its narrative and accessibility context.</summary>
     public sealed class PowerPointChartStoryContent {
         /// <summary>Creates a chart story from the shared dependency-free chart contract.</summary>
-        public PowerPointChartStoryContent(OfficeChartKind chartKind, OfficeChartData data,
+        public PowerPointChartStoryContent(OfficeChartType chartKind, OfficeChartData data,
             IEnumerable<string>? insights = null) {
             ChartKind = chartKind;
             SharedData = data ?? throw new ArgumentNullException(nameof(data));
@@ -193,7 +193,7 @@ namespace OfficeIMO.PowerPoint {
                 .Where(value => !string.IsNullOrWhiteSpace(value)).ToList());
         }
         /// <summary>Shared chart family.</summary>
-        public OfficeChartKind ChartKind { get; }
+        public OfficeChartType ChartKind { get; }
         /// <summary>Shared chart data used by native authoring and fixed-layout renderers.</summary>
         public OfficeChartData SharedData { get; }
         /// <summary>Narrative insights displayed beside or below the chart.</summary>

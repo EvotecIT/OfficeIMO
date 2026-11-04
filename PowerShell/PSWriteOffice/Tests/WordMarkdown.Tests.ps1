@@ -56,7 +56,7 @@ Describe 'Word Markdown conversions' {
         ($paragraphs.Text -join "`n") | Should -Match 'Title'
         ($paragraphs.Text -join "`n") | Should -Match 'Body text'
 
-        $markdownDocument = Get-OfficeMarkdown -Text "## Pipeline`n`nGenerated"
+        $markdownDocument = Open-OfficeMarkdown -Text "## Pipeline`n`nGenerated"
         $document = $markdownDocument | ConvertFrom-OfficeWordMarkdown
         try {
             $document.Paragraphs.Count | Should -BeGreaterThan 0
@@ -73,7 +73,7 @@ Describe 'Word Markdown conversions' {
         try {
             ConvertFrom-OfficeWordMarkdown -Markdown "![Remote image]($($server.Url))" -AllowRemoteImages -OutputPath $docPath | Out-Null
 
-            $document = Get-OfficeWord -Path $docPath -ReadOnly
+            $document = Open-OfficeWord -Path $docPath -ReadOnly
             try {
                 $document.Images.Count | Should -Be 1
             } finally {

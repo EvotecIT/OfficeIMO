@@ -111,11 +111,11 @@ public sealed partial class HtmlRenderingTests {
                 + family + ";content:'A'}</style><p>Body</p>"), options);
         }
         HtmlRenderDocument control = Render("system-ui");
-        Assert.Contains(control.Diagnostics, item => item.Code == "InstalledFontResolved" && item.Source == "system-ui");
+        Assert.Contains(control.NativeDiagnostics, item => item.Code == "InstalledFontResolved" && item.Source == "system-ui");
 
         HtmlRenderDocument inheritedReset = Render("initial");
 
-        Assert.Contains(inheritedReset.Diagnostics, item => item.Code == "InstalledFontResolved" && item.Source == "system-ui");
+        Assert.Contains(inheritedReset.NativeDiagnostics, item => item.Code == "InstalledFontResolved" && item.Source == "system-ui");
         Assert.Equal(control.Fonts.Faces.Count, inheritedReset.Fonts.Faces.Count);
         HtmlRenderText expected = Assert.Single(EnumerateRenderVisuals(Assert.Single(control.Pages).Scene)
             .OfType<HtmlRenderText>(), item => item.Text == "A");

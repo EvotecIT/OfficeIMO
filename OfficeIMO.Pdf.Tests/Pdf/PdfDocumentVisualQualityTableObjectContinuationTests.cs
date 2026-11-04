@@ -27,19 +27,21 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     private static byte[] CreateTableWithRequiredRowHeight(bool inColumn, bool fixedHeight, int lineCount) {
-        var options = new PdfOptions { PageWidth = 360, PageHeight = 210, MarginLeft = 30, MarginRight = 30,
-            MarginTop = 30, MarginBottom = 30, DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 9 };
-        var style = TableStyles.Minimal();
+        var options = new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(210)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+        }, DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9) };
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0; style.RepeatHeaderRowCount = 0;
         style.MinimumBodyRowsOnFirstPage = 0; style.MinimumBodyRowsOnLastPage = 0;
-        style.CellPaddingY = 2; style.SpacingBefore = 0; style.SpacingAfter = 0; style.CellSpacing = 0;
-        if (fixedHeight) style.FixedRowHeights = new List<double?> { null, 100 };
-        else style.RowMinHeights = new List<double?> { null, 100 };
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(2); style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0); style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0); style.CellSpacing = global::OfficeIMO.OfficeLength.Points(0);
+        if (fixedHeight) style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { null, global::OfficeIMO.OfficeLength.Points(100) };
+        else style.RowMinHeights = new List<global::OfficeIMO.OfficeLength?> { null, global::OfficeIMO.OfficeLength.Points(100) };
         var rows = new[] { new[] { "Filler" }, new[] { string.Join("\n", Enumerable.Range(1, lineCount).Select(line => "Unique" + line.ToString("D2"))) } };
         var document = PdfDocument.Create(options);
         if (inColumn) document.Compose(compose => compose.Page(page => page.Content(content =>
-            content.Row(row => row.PercentColumn(100, column => column.Paragraph(p => p.Text("BeforeTable")).Spacer(55).Table(rows, style: style))))));
-        else document.Paragraph(p => p.Text("BeforeTable")).Spacer(55).Table(rows, style: style);
+            content.Row(row => row.PercentColumn(100, column => column.AddParagraph(p => p.AddText("BeforeTable")).Spacer(global::OfficeIMO.OfficeLength.Points(55)).AddTable(rows, style: style))))));
+        else document.Paragraph(p => p.AddText("BeforeTable")).Spacer(55).Table(rows, style: style);
         return document.ToBytes();
     }
 
@@ -47,14 +49,16 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(false)]
     [InlineData(true)]
     public void Table_RowHeightRequirementCannotOverflowItsContinuationFrame(bool inColumn) {
-        var options = new PdfOptions { PageWidth = 260, PageHeight = 180, MarginLeft = 20, MarginRight = 20,
-            MarginTop = 20, MarginBottom = 20 };
-        var style = TableStyles.Minimal();
-        style.HeaderRowCount = 0; style.RepeatHeaderRowCount = 0; style.MinRowHeight = 141;
+        var options = new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(180)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+        } };
+        var style = PdfTableStyles.Minimal();
+        style.HeaderRowCount = 0; style.RepeatHeaderRowCount = 0; style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(141);
         var document = PdfDocument.Create(options);
         var rows = new[] { new[] { "Required row height" } };
         if (inColumn) document.Compose(compose => compose.Page(page => page.Content(content =>
-            content.Row(row => row.PercentColumn(100, column => column.Table(rows, style: style))))));
+            content.Row(row => row.PercentColumn(100, column => column.AddTable(rows, style: style))))));
         else document.Table(rows, style: style);
         ArgumentException error = Assert.Throws<ArgumentException>(() => document.ToBytes());
         Assert.Contains("row height requirement", error.Message);
@@ -64,15 +68,17 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(false)]
     [InlineData(true)]
     public void Table_PartiallyRenderedRowDoesNotRestartOnItsContinuationPage(bool inColumn) {
-        var options = new PdfOptions { PageWidth = 360, PageHeight = 210, MarginLeft = 30, MarginRight = 30,
-            MarginTop = 30, MarginBottom = 30, DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 9 };
-        var style = TableStyles.Minimal();
+        var options = new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(210)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+        }, DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9) };
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 1; style.RepeatHeaderRowCount = 1;
-        style.CellPaddingY = 2;
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(2);
         var rows = new[] { new[] { "Heading" }, new[] { string.Join("\n", Enumerable.Range(1, 11).Select(line => "Unique" + line.ToString("D2"))) } };
         var document = PdfDocument.Create(options);
         if (inColumn) document.Compose(compose => compose.Page(page => page.Content(content =>
-            content.Row(row => row.PercentColumn(100, column => column.Spacer(50).Table(rows, style: style))))));
+            content.Row(row => row.PercentColumn(100, column => column.Spacer(global::OfficeIMO.OfficeLength.Points(50)).AddTable(rows, style: style))))));
         else document.Spacer(50).Table(rows, style: style);
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         Assert.Equal(2, pdf.NumberOfPages);
@@ -105,20 +111,22 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     private static byte[] CreateTableWithFirstSegmentImage(bool inColumn) {
-        var options = new PdfOptions { PageWidth = 260, PageHeight = 180, MarginLeft = 20, MarginRight = 20,
-            MarginTop = 20, MarginBottom = 20, DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 9 };
-        var style = TableStyles.Minimal();
+        var options = new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(180)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+        }, DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9) };
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 1; style.RepeatHeaderRowCount = 1;
-        style.CellPaddingX = 2; style.CellPaddingY = 2;
-        style.ColumnWidthPoints = new List<double?> { 60, null };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(2); style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(2);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60), null };
         var cells = new[] {
             new[] { new PdfTableCell("Heading"), new PdfTableCell("Description") },
-            new[] { PdfTableCell.WithImages("", new[] { new PdfTableCellImage(CreateMinimalRgbPng(), 30, 130) }),
+            new[] { PdfTableCell.WithImages("", new[] { new PdfTableCellImage(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(130)) }),
                 new PdfTableCell(string.Join("\n", Enumerable.Range(1, 45).Select(line => "Line" + line.ToString("D2")))) }
         };
         var document = PdfDocument.Create(options);
         if (inColumn) document.Compose(compose => compose.Page(page => page.Content(content =>
-            content.Row(row => row.PercentColumn(100, column => column.Table(cells, style: style))))));
+            content.Row(row => row.PercentColumn(100, column => column.AddTable(cells, style: style))))));
         else document.Table(cells, style: style);
         return document.ToBytes();
     }

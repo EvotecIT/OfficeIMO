@@ -6,19 +6,19 @@ namespace OfficeIMO.Markup;
 /// Resolves markup chart tokens to the shared chart contract used by PowerPoint surfaces.
 /// </summary>
 internal static class OfficeMarkupChartKindResolver {
-    internal static OfficeChartKind Resolve(string chartType) {
+    internal static OfficeChartType Resolve(string chartType) {
         string normalized = new string((chartType ?? string.Empty)
             .Where(char.IsLetterOrDigit).Select(char.ToLowerInvariant).ToArray());
         return normalized switch {
-            "line" => OfficeChartKind.Line,
-            "bar" or "clusteredbar" => OfficeChartKind.BarClustered,
-            "stackedbar" => OfficeChartKind.BarStacked,
-            "stackedcolumn" => OfficeChartKind.ColumnStacked,
-            "pie" => OfficeChartKind.Pie,
-            "doughnut" or "donut" => OfficeChartKind.Doughnut,
-            "scatter" => OfficeChartKind.Scatter,
-            "area" => OfficeChartKind.Area,
-            _ => OfficeChartKind.ColumnClustered
+            "line" => OfficeChartType.Line,
+            "bar" or "clusteredbar" => OfficeChartType.BarClustered,
+            "stackedbar" => OfficeChartType.BarStacked,
+            "stackedcolumn" => OfficeChartType.ColumnStacked,
+            "pie" => OfficeChartType.Pie,
+            "doughnut" or "donut" => OfficeChartType.Doughnut,
+            "scatter" => OfficeChartType.Scatter,
+            "area" => OfficeChartType.Area,
+            _ => OfficeChartType.ColumnClustered
         };
     }
 }

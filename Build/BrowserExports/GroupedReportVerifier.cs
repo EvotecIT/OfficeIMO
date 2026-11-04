@@ -85,7 +85,7 @@ internal static class GroupedReportVerifier {
     }
 
     private static object VerifyPdf(string path, JsonElement contract) {
-        var document = PdfReadDocument.Open(path);
+        using var document = PdfDocument.Load(path);
         Require(!document.RepairReport.HasRepairs, "Grouped PDF required repairs.");
         string[] pageTexts = document.Pages.Select(page => string.Concat(page.GetTextSpans().Select(span => span.Text))).ToArray();
         string text = string.Concat(pageTexts);

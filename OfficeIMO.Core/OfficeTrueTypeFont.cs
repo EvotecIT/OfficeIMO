@@ -128,6 +128,8 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         _mathGlyphData = !_variationModel.IsVariable && tables.TryGetValue("MATH", out int glyphMathOffset)
             ? OfficeOpenTypeMathGlyphs.TryRead(data, glyphMathOffset, tableLengths["MATH"], _numGlyphs) : null;
         _colorGlyphs = reader == null ? null : OfficeOpenTypeColorGlyphs.TryParse(reader);
+        _hasUnreadColorTable = tables.ContainsKey("sbix") || tables.ContainsKey("CBDT") || tables.ContainsKey("SVG ")
+            || tables.ContainsKey("COLR") && _colorGlyphs == null;
         _variations = variationModel != null && variationModel.IsVariable
             ? OfficeTrueTypeVariations.Parse(data, tables, variationModel, _numGlyphs)
             : null;
@@ -377,6 +379,21 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
 
     /// <inheritdoc />
     public double Measure(string text, double fontSize) {
+        if (_variations != null || text.Length > MaximumMeasuredTextLength) return MeasureText(text, fontSize);
+        var key = (text, fontSize);
+        if (_measuredWidths.TryGetValue(key, out double measured)) return measured;
+        measured = MeasureText(text, fontSize);
+        _measuredWidths.TryAdd(key, measured);
+        return measured;
+    }
+
+    // Layout measures the same words repeatedly, for intrinsic sizes and again for line breaking.
+    private const int MaximumMeasuredTextLength = 128;
+    private const int MaximumMeasuredTexts = 8192;
+    private readonly OfficeBoundedCache<(string, double), double> _measuredWidths =
+        new OfficeBoundedCache<(string, double), double>(MaximumMeasuredTexts);
+
+    private double MeasureText(string text, double fontSize) {
         var scale = ScaleFor(fontSize);
         var width = 0.0;
         double tracking = HorizontalTracking(fontSize);
@@ -528,16 +545,19 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     /// <summary>Collection index when the font was loaded from a TrueType collection.</summary>
     public int? CollectionIndex => _collectionIndex;
 
-    internal bool HasGlyphs(string value) {
-        return OfficeOpenTypeCmap.HasGlyphs(
-            value,
-            scalar => MapGlyph(scalar),
-            MapVariationGlyph,
-            HasPaintedNotdefMapping);
-    }
+    internal bool HasGlyphs(string value) =>
+        OfficeOpenTypeCmap.HasGlyphs(value, GlyphMapper, VariationGlyphMapper, PaintedNotdefTest);
 
     private int ReadMappedGlyph(string text, ref int index, out int scalar) =>
-        OfficeOpenTypeCmap.ReadMappedGlyph(text, ref index, scalarValue => MapGlyph(scalarValue), MapVariationGlyph, out scalar);
+        OfficeOpenTypeCmap.ReadMappedGlyph(text, ref index, GlyphMapper, VariationGlyphMapper, out scalar);
+
+    // Glyph mapping runs for every text check, so its delegates are created once.
+    private Func<int, int>? _glyphMapper;
+    private Func<int, int, int>? _variationGlyphMapper;
+    private Func<int, bool>? _paintedNotdefTest;
+    private Func<int, int> GlyphMapper => _glyphMapper ??= scalar => MapGlyph(scalar);
+    private Func<int, int, int> VariationGlyphMapper => _variationGlyphMapper ??= MapVariationGlyph;
+    private Func<int, bool> PaintedNotdefTest => _paintedNotdefTest ??= HasPaintedNotdefMapping;
 
     private int MapVariationGlyph(int scalar, int selector) => OfficeOpenTypeCmap.MapVariationSequence(
         _data,
@@ -546,7 +566,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         _numGlyphs,
         scalar,
         selector,
-        mappedScalar => MapGlyph(mappedScalar));
+        GlyphMapper);
 
     private bool MatchesName(string? faceName) {
         if (string.IsNullOrWhiteSpace(faceName)) return true;
@@ -843,7 +863,26 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         ref int expandedPointCount,
         CancellationToken cancellationToken,
         List<OfficePoint>? attachmentPoints) {
+        int componentVisits = 0;
+        return ReadGlyphContoursCore(glyph, transform, depth, variationWorkBudget, maximumPointCount,
+            ref expandedPointCount, ref componentVisits, cancellationToken, attachmentPoints);
+    }
+
+    private List<List<OfficePoint>> ReadGlyphContoursCore(
+        ushort glyph,
+        FontTransform transform,
+        int depth,
+        OfficeTrueTypeVariations.WorkBudget? variationWorkBudget,
+        int maximumPointCount,
+        ref int expandedPointCount,
+        ref int componentVisits,
+        CancellationToken cancellationToken,
+        List<OfficePoint>? attachmentPoints) {
         cancellationToken.ThrowIfCancellationRequested();
+        // Empty glyphs do not consume the point budget, but can expand exponentially
+        // when repeatedly referenced by nested composite glyphs.
+        if (++componentVisits > 65536)
+            throw new InvalidOperationException("Font outline expansion exceeded the composite visit budget.");
         var contours = new List<List<OfficePoint>>();
         if (glyph >= _numGlyphs || depth > 8) return contours;
         var glyphStart = GlyphOffset(glyph);
@@ -862,6 +901,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
                 variationWorkBudget,
                 maximumPointCount,
                 ref expandedPointCount,
+                ref componentVisits,
                 cancellationToken,
                 attachmentPoints);
             return contours;
@@ -947,6 +987,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         OfficeTrueTypeVariations.WorkBudget? variationWorkBudget,
         int maximumPointCount,
         ref int expandedPointCount,
+        ref int componentVisits,
         CancellationToken cancellationToken,
         List<OfficePoint>? attachmentPoints) {
         const ushort argWords = 1;
@@ -1053,13 +1094,14 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         var compositePoints = new List<OfficePoint>();
         foreach (GlyphComponent component in components) {
             var componentPoints = new List<OfficePoint>();
-            List<List<OfficePoint>> componentContours = ReadGlyphContours(
+            List<List<OfficePoint>> componentContours = ReadGlyphContoursCore(
                 component.Glyph,
                 transform.Compose(component.A, component.B, component.C, component.D, 0, 0),
                 depth + 1,
                 variationWorkBudget,
                 maximumPointCount,
                 ref expandedPointCount,
+                ref componentVisits,
                 cancellationToken,
                 componentPoints);
 

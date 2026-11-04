@@ -16,7 +16,7 @@ public sealed class PdfLogicalParagraphContinuationOptions {
     public int MaximumSegmentsPerParagraph { get; init; } = 16;
 
     /// <summary>Maximum horizontal geometry difference in visual PDF points. Default: 24.</summary>
-    public double GeometryTolerancePoints { get; init; } = 24D;
+    public OfficeLength GeometryTolerance { get; init; } = OfficeLength.Points(24D);
 
     /// <summary>Minimum normalized continuation confidence required for a merge. Default: 0.75.</summary>
     public double MinimumConfidence { get; init; } = 0.75D;
@@ -26,10 +26,8 @@ public sealed class PdfLogicalParagraphContinuationOptions {
         if (effective.MaximumSegmentsPerParagraph <= 0) {
             throw new ArgumentOutOfRangeException(nameof(options), effective.MaximumSegmentsPerParagraph, "Maximum paragraph segments must be positive.");
         }
-        if (double.IsNaN(effective.GeometryTolerancePoints) ||
-            double.IsInfinity(effective.GeometryTolerancePoints) ||
-            effective.GeometryTolerancePoints < 0D) {
-            throw new ArgumentOutOfRangeException(nameof(options), effective.GeometryTolerancePoints, "Paragraph geometry tolerance must be finite and nonnegative.");
+        if (effective.GeometryTolerance.ToEmus() < 0) {
+            throw new ArgumentOutOfRangeException(nameof(options), effective.GeometryTolerance, "Paragraph geometry tolerance must be nonnegative.");
         }
         if (double.IsNaN(effective.MinimumConfidence) ||
             double.IsInfinity(effective.MinimumConfidence) ||
@@ -103,7 +101,7 @@ public sealed class PdfLogicalParagraphContinuationGroup {
 }
 
 /// <summary>Conservative, bounded cross-page paragraph continuation analysis.</summary>
-public static class PdfLogicalParagraphContinuations {
+internal static class PdfLogicalParagraphContinuations {
     /// <summary>
     /// Returns every paragraph in document order, grouping only adjacent page-edge segments whose
     /// geometry, typography, and text-boundary evidence meet the configured confidence threshold.
@@ -168,7 +166,7 @@ public static class PdfLogicalParagraphContinuations {
         if (previousBounds.Bottom < previousPageHeight * 0.78D ||
             currentBounds.Top > Math.Max(18D, currentPageHeight * 0.22D)) return false;
 
-        if (Math.Abs(previousBounds.Left - currentBounds.Left) > options.GeometryTolerancePoints) return false;
+        if (Math.Abs(previousBounds.Left - currentBounds.Left) > options.GeometryTolerance.ToPoints()) return false;
 
         double previousFontSize = BoundaryFontSize(previous, useLastLine: true);
         double currentFontSize = BoundaryFontSize(current, useLastLine: false);
@@ -194,7 +192,7 @@ public static class PdfLogicalParagraphContinuations {
             evidence |= PdfLogicalParagraphContinuationEvidence.SoftHyphenBreak;
             confidence += 0.1D;
         }
-        if (Math.Abs(previousBounds.Left - currentBounds.Left) <= options.GeometryTolerancePoints * 0.5D) confidence += 0.05D;
+        if (Math.Abs(previousBounds.Left - currentBounds.Left) <= options.GeometryTolerance.ToPoints() * 0.5D) confidence += 0.05D;
         if (fontDifference <= 0.5D) confidence += 0.05D;
         confidence = Math.Min(1D, confidence);
         if (confidence < options.MinimumConfidence) return false;

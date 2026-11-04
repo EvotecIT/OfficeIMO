@@ -39,10 +39,10 @@ public sealed class PublisherMasterCreationTests {
                         paragraph.Alignment, paragraph.LineHeight, paragraph.Margins, paragraph.Indent, paragraph.LineHeightFactor).WithTabStops(paragraph.TabStops)
                 });
             }
-            var saved = document.ToPubBytesResult(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
-            Assert.False(saved.Report.HasErrors);
-            PublisherNativeWritingTests.AssertPreservedStorage(source, saved.Value, "Quill/QuillSub/CONTENTS", "Escher/EscherStm");
-            PublisherDocument reopened = PublisherDocument.Load(saved.Value);
+            byte[] savedBytes = document.ToBytes(new PublisherSaveOptions { AllowLoss = true }, out PublisherSaveReport saveReport);
+            Assert.False(saveReport.HasErrors);
+            PublisherNativeWritingTests.AssertPreservedStorage(source, savedBytes, "Quill/QuillSub/CONTENTS", "Escher/EscherStm");
+            PublisherDocument reopened = PublisherDocument.Load(savedBytes);
             Assert.Equal(masters, reopened.MasterPages.Select(page => page.Id));
             Assert.Equal(sides, reopened.MasterPages.Select(page => page.MasterSide));
             Assert.Equal(assignments, reopened.Pages.Select(page => page.MasterPageId));
@@ -57,7 +57,7 @@ public sealed class PublisherMasterCreationTests {
             Assert.All(reopened.Pages, page => Assert.Single(page.TextFrames));
             Assert.All(reopened.MasterPages, page => Assert.Single(page.TextFrames));
             Assert.Equal(sides, oldMasters.Select(page => page.MasterSide));
-            source = saved.Value;
+            source = savedBytes;
             document = reopened;
         }
     }

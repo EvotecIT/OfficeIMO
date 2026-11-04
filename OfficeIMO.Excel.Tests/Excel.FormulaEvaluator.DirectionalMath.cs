@@ -20,14 +20,14 @@ namespace OfficeIMO.Tests {
         [InlineData("ROUNDUP(5e-324,-15)", 1e15d)]
         public void Directional_math_keeps_decimal_boundaries_and_finite_saved_caches(string formula, double expected) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Math");
-            sheet.CellFormula(1, 1, formula);
+            var sheet = document.AddSheet("Math");
+            sheet.Cell(1, 1).SetFormula(formula);
             Assert.Equal(1, document.Calculate());
-            Assert.Equal(expected, sheet.CellAt(1, 1).GetValue<double>());
+            Assert.Equal(expected, sheet.Cell(1, 1).GetValue<double>());
             using var saved = new MemoryStream(); document.Save(saved); saved.Position = 0;
             using var reopened = ExcelDocument.Load(saved);
             Assert.Equal(formula, reopened.Sheets[0].GetFormulaText(1, 1));
-            Assert.Equal(expected, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+            Assert.Equal(expected, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
             Assert.Empty(reopened.ValidateOpenXml());
         }
 
@@ -40,9 +40,9 @@ namespace OfficeIMO.Tests {
         [InlineData("IFERROR(TRUNC(#REF!,16),99)")]
         public void Directional_math_preserves_caches_for_unsupported_operands_and_arities(string formula) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Math");
-            sheet.CellValue(1, 1, 1d); sheet.CellValue(2, 1, 2d);
-            sheet.CellValue(1, 2, 42d); sheet.CellFormula(1, 2, formula);
+            var sheet = document.AddSheet("Math");
+            sheet.Cell(1, 1).SetValue(1d); sheet.Cell(2, 1).SetValue(2d);
+            sheet.Cell(1, 2).SetValue(42d); sheet.Cell(1, 2).SetFormula(formula);
             Assert.Equal(0, document.Calculate());
             Assert.Equal("42", Assert.Single(sheet.InspectFormulas().Formulas).CachedValue);
         }

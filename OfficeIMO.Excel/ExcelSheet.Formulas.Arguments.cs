@@ -36,8 +36,22 @@ namespace OfficeIMO.Excel {
             if (value.IsUnresolvedFormula) {
                 return false;
             }
+            // Keep the typed error in this expression's scope while the caller
+            // qualifies its remaining arguments. It must never become ordinary text.
+            if (value.IsError && !_formulaReferenceError.IsError) _formulaReferenceError = value;
 
             text = FormulaValueToText(value);
+            return true;
+        }
+
+        private bool TryGetTextWholeNumberArgument(string token, out int number) {
+            if (!TryGetLookupIntegerArgument(token, out number, out FormulaArgumentValue error)) return false;
+            if (error.IsError) {
+                if (!_formulaReferenceError.IsError) _formulaReferenceError = error;
+                // A harmless positive selector lets the owner qualify the other
+                // operands before the expression publishes the pending error.
+                number = 1;
+            }
             return true;
         }
 
@@ -69,6 +83,12 @@ namespace OfficeIMO.Excel {
         private bool TryResolveFormulaArgument(string token, out FormulaArgumentValue value, bool allowScalarExpression = true) {
             string trimmed = token.Trim();
             if (allowScalarExpression) return TryEvaluateFormulaValue(trimmed, out value);
+            // A built-in call is no literal, name or reference unless it selects one.
+            if (ExcelFormulaExpressionParser.TryParseSupportedFunctionCall(trimmed, out ExcelFormulaFunctionCallSyntax? call)
+                && !call!.Name.Equals("OFFSET", StringComparison.OrdinalIgnoreCase)
+                && !call.Name.Equals("INDEX", StringComparison.OrdinalIgnoreCase)) {
+                return TryEvaluateFormulaValue(trimmed, out value, allowScalarExpression: false);
+            }
             if (ExcelFormulaExpressionParser.TryParseTextLiteral(trimmed, out string literalText)) {
                 value = new FormulaArgumentValue(null, literalText);
                 return true;
@@ -87,13 +107,6 @@ namespace OfficeIMO.Excel {
             if (TryParseFormulaErrorLiteral(trimmed, out string errorCode)) {
                 value = FormulaArgumentValue.Error(errorCode);
                 return true;
-            }
-
-            // A scalar OFFSET owns blank-to-zero coercion. Do not consume its
-            // reference as a plain cell before dispatching the function.
-            if (ExcelFormulaExpressionParser.TryParseSupportedFunctionCall(trimmed, out ExcelFormulaFunctionCallSyntax? call)
-                && call!.Name.Equals("OFFSET", StringComparison.OrdinalIgnoreCase)) {
-                return TryEvaluateFormulaValue(trimmed, out value, allowScalarExpression: false);
             }
 
             if (TryParseQualifiedFormulaCellReference(trimmed, out ExcelSheet sheet, out int row, out int column)) {
@@ -123,11 +136,6 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool IsExactLookupMode(string token) {
-            string value = token.Trim();
-            return value == "0" || value.Equals("FALSE", StringComparison.OrdinalIgnoreCase);
-        }
-
         private static bool FormulaValuesEqual(FormulaArgumentValue left, FormulaArgumentValue right) {
             if (left.Number.HasValue && right.Number.HasValue) {
                 return left.Number.Value == right.Number.Value;
@@ -139,7 +147,7 @@ namespace OfficeIMO.Excel {
         }
 
         private bool TryResolveFormulaArguments(string args, out List<FormulaArgumentValue> values,
-            bool skipBlankScalarReferences = false) {
+            bool skipBlankScalarReferences = false, bool coerceScalarValues = true) {
             values = new List<FormulaArgumentValue>();
             int remainingCellBudget = MaxResolvedFormulaRangeCells;
             foreach (string trimmed in SplitFormulaArguments(args)) {
@@ -164,6 +172,14 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (TryResolveFormulaArgument(trimmed, out var argumentValue)) {
+                    if (coerceScalarValues && argumentValue.SourceCellKind == null) {
+                        argumentValue = NormalizeLookupResult(argumentValue);
+                        if (!argumentValue.Number.HasValue && !argumentValue.IsError
+                            && TryParseValueFunctionNumber(argumentValue.Text ?? string.Empty, out double scalarNumber)) {
+                            argumentValue = new FormulaArgumentValue(scalarNumber, argumentValue.Text,
+                                isUnevaluatedFormulaCache: argumentValue.IsUnevaluatedFormulaCache);
+                        }
+                    }
                     values.Add(argumentValue);
                     continue;
                 }
@@ -177,7 +193,7 @@ namespace OfficeIMO.Excel {
 
         private static IReadOnlyList<string> SplitFormulaArguments(string args, bool preserveEmpty = false) {
             var tokens = new List<string>();
-            var builder = new StringBuilder();
+            int tokenStart = 0;
             int depth = 0;
             int bracketDepth = 0;
             int arrayDepth = 0;
@@ -187,25 +203,21 @@ namespace OfficeIMO.Excel {
             for (int index = 0; index < args.Length; index++) {
                 char ch = args[index];
                 if (!inString && bracketDepth > 0 && ch == '\'' && index + 1 < args.Length) {
-                    builder.Append(ch);
-                    builder.Append(args[++index]);
+                    index++;
                     continue;
                 }
                 if (!inString && bracketDepth == 0 && ch == '\'') {
-                    builder.Append(ch);
                     if (inQuotedQualifier && index + 1 < args.Length && args[index + 1] == '\'') {
-                        builder.Append(args[++index]);
+                        index++;
                     } else {
                         inQuotedQualifier = !inQuotedQualifier;
                     }
                     continue;
                 }
-                if (inQuotedQualifier) { builder.Append(ch); continue; }
+                if (inQuotedQualifier) continue;
                 if (bracketDepth == 0 && ch == '"') {
-                    builder.Append(ch);
                     if (inString && index + 1 < args.Length && args[index + 1] == '"') {
                         index++;
-                        builder.Append(args[index]);
                         continue;
                     }
 
@@ -215,7 +227,6 @@ namespace OfficeIMO.Excel {
 
                 if (!inString && ch == '(') {
                     depth++;
-                    builder.Append(ch);
                     continue;
                 }
 
@@ -225,13 +236,11 @@ namespace OfficeIMO.Excel {
                         return Array.Empty<string>();
                     }
 
-                    builder.Append(ch);
                     continue;
                 }
 
                 if (!inString && ch == '[') {
                     bracketDepth++;
-                    builder.Append(ch);
                     continue;
                 }
 
@@ -241,7 +250,6 @@ namespace OfficeIMO.Excel {
                         return Array.Empty<string>();
                     }
 
-                    builder.Append(ch);
                     continue;
                 }
 
@@ -251,28 +259,28 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (!inString && ch == ',' && depth == 0 && bracketDepth == 0 && arrayDepth == 0) {
-                    AddToken(tokens, builder, preserveEmpty);
+                    AddToken(tokens, args, tokenStart, index, preserveEmpty);
+                    tokenStart = index + 1;
                     continue;
                 }
 
-                builder.Append(ch);
             }
 
             if (depth != 0 || bracketDepth != 0 || arrayDepth != 0 || inString || inQuotedQualifier) {
                 return Array.Empty<string>();
             }
 
-            AddToken(tokens, builder, preserveEmpty);
+            AddToken(tokens, args, tokenStart, args.Length, preserveEmpty);
             return tokens;
         }
 
-        private static void AddToken(List<string> tokens, StringBuilder builder, bool preserveEmpty = false) {
-            string token = builder.ToString().Trim();
-            if (token.Length > 0 || preserveEmpty) {
-                tokens.Add(token);
+        /// <summary>Adds the trimmed argument between two top-level separators; every argument character is kept as written.</summary>
+        private static void AddToken(List<string> tokens, string args, int start, int end, bool preserveEmpty = false) {
+            while (start < end && char.IsWhiteSpace(args[start])) start++;
+            while (end > start && char.IsWhiteSpace(args[end - 1])) end--;
+            if (end > start || preserveEmpty) {
+                tokens.Add(start == 0 && end == args.Length ? args : args.Substring(start, end - start));
             }
-
-            builder.Clear();
         }
 
     }

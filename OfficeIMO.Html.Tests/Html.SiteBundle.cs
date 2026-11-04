@@ -25,8 +25,8 @@ public sealed class HtmlSiteBundleTests {
             new HtmlSiteBundleOptions { ArchiveBaseUri = new Uri("https://archive.example.test/site/") });
         HtmlRenderRequest prepared = bundle.CreateRenderRequest(HtmlRenderRequest.Create(
             HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Svg,
-            new HtmlToPdfOptions { ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic() }));
-        var options = (HtmlToPdfOptions)prepared.Options;
+            HtmlPdfExportOptions.ForImageExport(new HtmlPdfExportOptions { ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic() })));
+        var options = (HtmlPdfExportOptions)prepared.Options;
         options.ResourcePolicy.AllowEmbeddedPackageResources = false;
         HtmlRenderRequest request = prepared.WithOptions(options).WithEncoder(encoder);
         HtmlRenderResult rendered;
@@ -58,7 +58,7 @@ public sealed class HtmlSiteBundleTests {
             ("photo.png", PdfPngTestImages.CreateRgbPng(2, 2)));
         HtmlSiteBundle bundle = HtmlSiteBundle.Load(zip);
         int hostCalls = 0;
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
             ResourceResolver = (resource, token) => { hostCalls++; return Task.FromResult<HtmlResolvedResource?>(null); }
         };
@@ -72,7 +72,7 @@ public sealed class HtmlSiteBundleTests {
         var visuals = result.Document.Pages.SelectMany(page => page.Visuals).ToArray();
         Assert.Equal(allowEmbedded ? 1 : 0, visuals.OfType<HtmlRenderImage>().Count());
         if (allowEmbedded) Assert.Contains(visuals.OfType<HtmlRenderText>(),
-            text => text.Text == "ARCHIVED" && text.Color == OfficeIMO.Drawing.OfficeColor.FromRgb(0x12, 0x34, 0x56));
+            text => text.Text == "ARCHIVED" && text.Color == OfficeIMO.OfficeColor.FromRgb(0x12, 0x34, 0x56));
     }
 
     [Theory]
@@ -96,10 +96,10 @@ public sealed class HtmlSiteBundleTests {
         Assert.Equal(new Uri("https://archive.example.test/site/articles/index.html"), bundle.BaseUri);
 
         HtmlRenderOptions options = pdfPolicy
-            ? new HtmlToPdfOptions { ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic() }
+            ? new HtmlPdfExportOptions { ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic() }
             : new HtmlRenderOptions();
         options.Margins = HtmlRenderMargins.All(0);
-        HtmlRenderRequest original = HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Svg, options);
+        HtmlRenderRequest original = HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Svg, HtmlPdfExportOptions.ForImageExport(options));
         HtmlRenderResult rendered = asynchronous
             ? await HtmlRenderEngine.ExecuteAsync(bundle.HtmlDocument, bundle.CreateRenderRequest(original))
             : HtmlRenderEngine.Execute(bundle.HtmlDocument, bundle.CreateRenderRequest(original));
@@ -107,14 +107,14 @@ public sealed class HtmlSiteBundleTests {
         var svgDrawing = HtmlSvgPaintAssertions.Read(Encoding.UTF8.GetBytes(svg));
         var imageVisual = Assert.Single(rendered.Document.Pages[0].Visuals.OfType<HtmlRenderImage>());
         var raster = OfficeIMO.Drawing.OfficeDrawingRasterRenderer.Render(svgDrawing);
-        Assert.Equal(OfficeIMO.Drawing.OfficeColor.FromRgb(0x1F, 0x1D, 0x1E),
+        Assert.Equal(OfficeIMO.OfficeColor.FromRgb(0x1F, 0x1D, 0x1E),
             raster.GetPixel((int)imageVisual.X + 6, (int)imageVisual.Y + 6));
         Assert.Contains("#123456", svg, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
         Assert.Null(original.Options.ResourceResolver);
         Assert.Null(original.Options.BaseUri);
 
-        var pdfOptions = new HtmlToPdfOptions { ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic() };
+        var pdfOptions = new HtmlPdfExportOptions { ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic() };
         Assert.True(pdfOptions.ResourcePolicy.AllowEmbeddedPackageResources);
         Assert.False(pdfOptions.ResourcePolicy.AllowRemoteResourceResolution);
         Assert.False(pdfOptions.ResourcePolicy.AllowLocalFileAccess);
@@ -142,7 +142,7 @@ public sealed class HtmlSiteBundleTests {
             ("photo.png", PdfPngTestImages.CreateRgbPng(2, 2)));
         HtmlSiteBundle bundle = HtmlSiteBundle.Load(zip);
         int hostCalls = 0;
-        var options = new HtmlToPdfOptions { ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
+        var options = new HtmlPdfExportOptions { ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
             ResourceResolver = (request, token) => { hostCalls++; return Task.FromResult<HtmlResolvedResource?>(null); } };
         options.ResourcePolicy.AllowEmbeddedPackageResources = false;
         HtmlRenderRequest request = HtmlRenderRequest.Create(
@@ -225,7 +225,7 @@ public sealed class HtmlSiteBundleTests {
         Assert.Equal(synchronous.EntryNames, asynchronous.EntryNames);
         foreach (HtmlSiteBundle bundle in new[] { synchronous, asynchronous }) {
             HtmlRenderResult rendered = HtmlRenderEngine.Execute(bundle.HtmlDocument, bundle.CreateRenderRequest(
-                HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Svg)));
+                HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Svg, HtmlPdfExportOptions.ForImageExport(null))));
             Assert.Contains("#123456", Encoding.UTF8.GetString(rendered.ExportImage().Bytes), StringComparison.OrdinalIgnoreCase);
         }
     }
@@ -301,12 +301,12 @@ public sealed class HtmlSiteBundleTests {
         HtmlSiteBundle bundle = HtmlSiteBundle.Load(zip);
         HtmlRenderRequest request = bundle.CreateRenderRequest(HtmlRenderRequest.Create(
             HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Png,
-            new HtmlRenderOptions { Margins = HtmlRenderMargins.All(0) }));
+            HtmlPdfExportOptions.ForImageExport(new HtmlRenderOptions { Margins = HtmlRenderMargins.All(0) })));
         HtmlRenderResult result = asynchronous
             ? await HtmlRenderEngine.ExecuteAsync(bundle.HtmlDocument, request)
             : HtmlRenderEngine.Execute(bundle.HtmlDocument, request);
         Assert.True(OfficeIMO.Drawing.OfficePngReader.TryDecode(result.ExportImage().Bytes, out var image));
-        Assert.Equal(OfficeIMO.Drawing.OfficeColor.FromRgb(255, 0, 0), image!.GetPixel(4, 4));
+        Assert.Equal(OfficeIMO.OfficeColor.FromRgb(255, 0, 0), image!.GetPixel(4, 4));
     }
 
     [Theory]

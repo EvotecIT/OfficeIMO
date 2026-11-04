@@ -5,6 +5,7 @@ using ExcelReader.Arrow;
 using ExcelReader.Core.Reader;
 using OfficeIMO.Benchmarks;
 using OfficeIMO.Data.Arrow;
+using ArrowReadOptions = OfficeIMO.Data.Arrow.ArrowReadOptions;
 using ExcelReaderApi = ExcelReader.Core.Reader.Excel;
 
 namespace OfficeIMO.Excel.Benchmarks;
@@ -110,12 +111,21 @@ public class ExcelArrowConversionBenchmarks {
 
     public ArrowConversionObservation ExcelReaderNet_InferredSchema() {
 #if NET10_0_OR_GREATER
-        using IExcelRowReader reader = ExcelReaderApi.FromXlsxFile(MarkPflug65KFixture.XlsxPath);
+        using var workbook = ExcelReaderApi.FromXlsxFile(MarkPflug65KFixture.XlsxPath);
+        var reader = workbook.FirstSheet;
 #else
         using IExcelRowReader reader = ExcelReaderApi.FromFile(MarkPflug65KFixture.XlsxPath);
 #endif
+#if NET10_0_OR_GREATER
+        var schema = ExcelReaderApi.InferSchema(reader, new SchemaInferenceOptions { HeaderRow = 1, SampleSize = SchemaSampleRows });
+#else
         ExcelColumnSchema[] schema = ExcelReaderApi.InferSchema(reader, headerRow: 1, SchemaSampleRows);
+#endif
+#if NET10_0_OR_GREATER
+        using RecordBatch batch = reader.ToArrowRecordBatch(new ExcelReader.Arrow.ArrowReadOptions { Schema = schema, HeaderRow = 1 });
+#else
         using RecordBatch batch = reader.ToArrowRecordBatch(schema, headerRow: 1);
+#endif
         _excelReaderInferredSchemaDescription ??= DescribeSchema(batch.Schema);
         return Observe(batch, batches: 1);
     }
@@ -143,9 +153,9 @@ public class ExcelArrowConversionBenchmarks {
     }
 
     private ArrowConversionObservation ConvertOfficeIMO(bool inferSchema, int batchSize) {
-        using DbDataReader reader = ExcelDocument.OpenDataReader(
+        using DbDataReader reader = ExcelDocument.OpenReader(
             MarkPflug65KFixture.XlsxPath,
-            new ExcelReadOptions {
+            new ExcelReaderOptions {
                 InferSchema = inferSchema,
                 SchemaSampleRows = SchemaSampleRows,
                 NumericAsDecimal = false
@@ -183,11 +193,16 @@ public class ExcelArrowConversionBenchmarks {
 
     private ArrowConversionObservation ConvertExcelReader(ExcelColumnSchema[] schema) {
 #if NET10_0_OR_GREATER
-        using IExcelRowReader reader = ExcelReaderApi.FromXlsxFile(MarkPflug65KFixture.XlsxPath);
+        using var workbook = ExcelReaderApi.FromXlsxFile(MarkPflug65KFixture.XlsxPath);
+        var reader = workbook.FirstSheet;
 #else
         using IExcelRowReader reader = ExcelReaderApi.FromFile(MarkPflug65KFixture.XlsxPath);
 #endif
+#if NET10_0_OR_GREATER
+        using RecordBatch batch = reader.ToArrowRecordBatch(new ExcelReader.Arrow.ArrowReadOptions { Schema = schema, HeaderRow = 1 });
+#else
         using RecordBatch batch = reader.ToArrowRecordBatch(schema, headerRow: 1);
+#endif
         return Observe(batch, batches: 1);
     }
 

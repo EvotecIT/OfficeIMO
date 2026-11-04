@@ -9,6 +9,8 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Word {
     public partial class WordDocument {
+        private const int MaxLegacyDocProjectedTableCells = 100_000;
+
         private static void AddLegacyDocTable(WordSection section, LegacyDocTableBlock tableBlock, LegacyDocStyleSheet styleSheet, LegacyDocNoteProjection notes) {
             AddLegacyDocTableCore((rows, columns) => section.AddTable(rows, columns, WordTableStyle.TableNormal), tableBlock, styleSheet, notes);
         }
@@ -20,6 +22,9 @@ namespace OfficeIMO.Word {
                 : tableBlock.Rows.Max(row => row.Cells.Count);
             if (rowCount == 0 || columnCount == 0) {
                 return;
+            }
+            if ((long)rowCount * columnCount > MaxLegacyDocProjectedTableCells) {
+                throw new InvalidDataException("The legacy DOC table exceeds the supported projected-cell limit.");
             }
 
             WordTable table = createTable(rowCount, columnCount);
@@ -57,74 +62,77 @@ namespace OfficeIMO.Word {
                 .Select(row => row.DefaultCellSpacingTwips)
                 .FirstOrDefault(spacing => spacing.HasValue);
             if (tableCellSpacingTwips != null) {
-                table.StyleDetails!.CellSpacing = checked((short)tableCellSpacingTwips.Value);
+                table.StyleDetails!.CellSpacing = global::OfficeIMO.OfficeLength.Points((checked((short)tableCellSpacingTwips.Value)) / 20D);
             }
 
+            List<WordTableRow> targetRows = table.Rows;
             for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
                 LegacyDocTableRow sourceRow = tableBlock.Rows[rowIndex];
-                ApplyLegacyDocTableRowFormatting(table.Rows[rowIndex], sourceRow);
+                WordTableRow targetRow = targetRows[rowIndex];
+                List<WordTableCell> targetCells = targetRow.Cells;
+                ApplyLegacyDocTableRowFormatting(targetRow, sourceRow);
                 for (int columnIndex = 0; columnIndex < sourceRow.Cells.Count && columnIndex < columnCount; columnIndex++) {
-                    AddLegacyDocTableCell(table.Rows[rowIndex].Cells[columnIndex], sourceRow.Cells[columnIndex], styleSheet, notes, projectNestedTables);
+                    WordTableCell targetCell = targetCells[columnIndex];
+                    AddLegacyDocTableCell(targetCell, sourceRow.Cells[columnIndex], styleSheet, notes, projectNestedTables);
                     if (columnIndex < sourceRow.CellWidthsTwips.Count) {
-                        table.Rows[rowIndex].Cells[columnIndex].WidthType = WordTableWidthUnit.Dxa;
-                        table.Rows[rowIndex].Cells[columnIndex].Width = sourceRow.CellWidthsTwips[columnIndex];
+                        targetCell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus((long)sourceRow.CellWidthsTwips[columnIndex] * 635));
                     }
 
                     if (columnIndex < sourceRow.CellHorizontalMerges.Count) {
-                        ApplyLegacyDocTableCellHorizontalMerge(table.Rows[rowIndex].Cells[columnIndex], sourceRow.CellHorizontalMerges[columnIndex]);
+                        ApplyLegacyDocTableCellHorizontalMerge(targetCell, sourceRow.CellHorizontalMerges[columnIndex]);
                     }
 
                     if (columnIndex < sourceRow.CellVerticalMerges.Count) {
-                        ApplyLegacyDocTableCellVerticalMerge(table.Rows[rowIndex].Cells[columnIndex], sourceRow.CellVerticalMerges[columnIndex]);
+                        ApplyLegacyDocTableCellVerticalMerge(targetCell, sourceRow.CellVerticalMerges[columnIndex]);
                     }
 
                     if (columnIndex < sourceRow.CellVerticalAlignments.Count) {
-                        ApplyLegacyDocTableCellVerticalAlignment(table.Rows[rowIndex].Cells[columnIndex], sourceRow.CellVerticalAlignments[columnIndex]);
+                        ApplyLegacyDocTableCellVerticalAlignment(targetCell, sourceRow.CellVerticalAlignments[columnIndex]);
                     }
 
                     if (columnIndex < sourceRow.CellTextDirections.Count) {
-                        ApplyLegacyDocTableCellTextDirection(table.Rows[rowIndex].Cells[columnIndex], sourceRow.CellTextDirections[columnIndex]);
+                        ApplyLegacyDocTableCellTextDirection(targetCell, sourceRow.CellTextDirections[columnIndex]);
                     }
 
                     if (columnIndex < sourceRow.CellFitTexts.Count && sourceRow.CellFitTexts[columnIndex]) {
-                        table.Rows[rowIndex].Cells[columnIndex].FitText = true;
+                        targetCell.FitText = true;
                     }
 
                     if (columnIndex < sourceRow.CellNoWraps.Count && sourceRow.CellNoWraps[columnIndex]) {
-                        table.Rows[rowIndex].Cells[columnIndex].WrapText = false;
+                        targetCell.WrapText = false;
                     }
 
                     if (columnIndex < sourceRow.CellHideMarks.Count && sourceRow.CellHideMarks[columnIndex]) {
-                        table.Rows[rowIndex].Cells[columnIndex].HideMark = true;
+                        targetCell.HideMark = true;
                     }
 
                     if (columnIndex < sourceRow.CellMargins.Count) {
-                        ApplyLegacyDocTableCellMargins(table.Rows[rowIndex].Cells[columnIndex], sourceRow.CellMargins[columnIndex]);
+                        ApplyLegacyDocTableCellMargins(targetCell, sourceRow.CellMargins[columnIndex]);
                     }
 
                     if (columnIndex < sourceRow.CellShadings.Count) {
-                        ApplyLegacyDocTableCellShading(table.Rows[rowIndex].Cells[columnIndex], sourceRow.CellShadings[columnIndex]);
+                        ApplyLegacyDocTableCellShading(targetCell, sourceRow.CellShadings[columnIndex]);
                     }
 
                     if (columnIndex < sourceRow.CellBorders.Count) {
-                        ApplyLegacyDocTableCellBorders(table.Rows[rowIndex].Cells[columnIndex], sourceRow.CellBorders[columnIndex]);
+                        ApplyLegacyDocTableCellBorders(targetCell, sourceRow.CellBorders[columnIndex]);
                     }
                 }
             }
 
-            AddLegacyDocTableRowBoundaryBookmarks(table, tableBlock);
+            AddLegacyDocTableRowBoundaryBookmarks(table, targetRows, tableBlock);
             AddLegacyDocTableBlockBookmarks(table, tableBlock);
         }
 
-        private static void AddLegacyDocTableRowBoundaryBookmarks(WordTable table, LegacyDocTableBlock tableBlock) {
-            int rowCount = Math.Min(table.Rows.Count, tableBlock.Rows.Count);
+        private static void AddLegacyDocTableRowBoundaryBookmarks(WordTable table, IReadOnlyList<WordTableRow> targetRows, LegacyDocTableBlock tableBlock) {
+            int rowCount = Math.Min(targetRows.Count, tableBlock.Rows.Count);
             for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
                 LegacyDocTableRow sourceRow = tableBlock.Rows[rowIndex];
                 if (sourceRow.BookmarksBefore.Count == 0) {
                     continue;
                 }
 
-                TableRow row = table.Rows[rowIndex]._tableRow;
+                TableRow row = targetRows[rowIndex]._tableRow;
                 foreach (LegacyDocBookmark bookmark in sourceRow.BookmarksBefore.OrderBy(bookmark => bookmark.Name, StringComparer.Ordinal)) {
                     table._table.InsertBefore(new BookmarkStart { Id = bookmark.ProjectionId, Name = bookmark.Name }, row);
                     table._table.InsertBefore(new BookmarkEnd { Id = bookmark.ProjectionId }, row);
@@ -170,16 +178,13 @@ namespace OfficeIMO.Word {
         private static void ApplyLegacyDocTablePreferredWidth(WordTable table, LegacyDocTablePreferredWidth preferredWidth) {
             switch (preferredWidth.Unit) {
                 case LegacyDocTablePreferredWidthUnit.Auto:
-                    table.WidthType = WordTableWidthUnit.Auto;
-                    table.Width = 0;
+                    table.Width = WordTableWidth.Auto;
                     break;
                 case LegacyDocTablePreferredWidthUnit.Percent:
-                    table.WidthType = WordTableWidthUnit.Pct;
-                    table.Width = preferredWidth.Value;
+                    table.Width = WordTableWidth.Percent(preferredWidth.Value / 50d);
                     break;
                 case LegacyDocTablePreferredWidthUnit.Dxa:
-                    table.WidthType = WordTableWidthUnit.Dxa;
-                    table.Width = preferredWidth.Value;
+                    table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus((long)preferredWidth.Value * 635));
                     break;
             }
         }
@@ -208,25 +213,25 @@ namespace OfficeIMO.Word {
 
         private static void ApplyLegacyDocTableCellMargins(WordTableCell cell, LegacyDocTableCellMargins margins) {
             if (margins.TopTwips != null) {
-                cell.MarginTopWidth = checked((short)margins.TopTwips.Value);
+                cell.MarginTop = global::OfficeIMO.OfficeLength.Points((checked((short)margins.TopTwips.Value)) / 20D);
             }
 
             if (margins.RightTwips != null) {
-                cell.MarginRightWidth = checked((short)margins.RightTwips.Value);
+                cell.MarginRight = global::OfficeIMO.OfficeLength.Points((checked((short)margins.RightTwips.Value)) / 20D);
             }
 
             if (margins.BottomTwips != null) {
-                cell.MarginBottomWidth = checked((short)margins.BottomTwips.Value);
+                cell.MarginBottom = global::OfficeIMO.OfficeLength.Points((checked((short)margins.BottomTwips.Value)) / 20D);
             }
 
             if (margins.LeftTwips != null) {
-                cell.MarginLeftWidth = checked((short)margins.LeftTwips.Value);
+                cell.MarginLeft = global::OfficeIMO.OfficeLength.Points((checked((short)margins.LeftTwips.Value)) / 20D);
             }
         }
 
         private static void ApplyLegacyDocTableCellShading(WordTableCell cell, LegacyDocTableCellShading shading) {
             if (!string.IsNullOrEmpty(shading.FillColorHex)) {
-                cell.ShadingFillColorHex = shading.FillColorHex!;
+                cell.ShadingFillValue = shading.FillColorHex!;
             }
         }
 
@@ -234,27 +239,27 @@ namespace OfficeIMO.Word {
             ApplyLegacyDocTableCellBorder(
                 borders.Top,
                 style => cell.Borders.TopStyle = style.ToOfficeEnum(),
-                color => cell.Borders.TopColorHex = color,
-                size => cell.Borders.TopSize = size,
-                space => cell.Borders.TopSpace = space);
+                color => cell.Borders.TopColorValue = color,
+                size => cell.Borders.TopSize = WordBorderLengths.FromSize(size),
+                space => cell.Borders.TopSpace = WordBorderLengths.FromSpace(space));
             ApplyLegacyDocTableCellBorder(
                 borders.Left,
                 style => cell.Borders.LeftStyle = style.ToOfficeEnum(),
-                color => cell.Borders.LeftColorHex = color,
-                size => cell.Borders.LeftSize = size,
-                space => cell.Borders.LeftSpace = space);
+                color => cell.Borders.LeftColorValue = color,
+                size => cell.Borders.LeftSize = WordBorderLengths.FromSize(size),
+                space => cell.Borders.LeftSpace = WordBorderLengths.FromSpace(space));
             ApplyLegacyDocTableCellBorder(
                 borders.Bottom,
                 style => cell.Borders.BottomStyle = style.ToOfficeEnum(),
-                color => cell.Borders.BottomColorHex = color,
-                size => cell.Borders.BottomSize = size,
-                space => cell.Borders.BottomSpace = space);
+                color => cell.Borders.BottomColorValue = color,
+                size => cell.Borders.BottomSize = WordBorderLengths.FromSize(size),
+                space => cell.Borders.BottomSpace = WordBorderLengths.FromSpace(space));
             ApplyLegacyDocTableCellBorder(
                 borders.Right,
                 style => cell.Borders.RightStyle = style.ToOfficeEnum(),
-                color => cell.Borders.RightColorHex = color,
-                size => cell.Borders.RightSize = size,
-                space => cell.Borders.RightSpace = space);
+                color => cell.Borders.RightColorValue = color,
+                size => cell.Borders.RightSize = WordBorderLengths.FromSize(size),
+                space => cell.Borders.RightSpace = WordBorderLengths.FromSpace(space));
         }
 
         private static void ApplyLegacyDocTableCellBorder(

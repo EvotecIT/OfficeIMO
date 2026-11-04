@@ -16,6 +16,13 @@ namespace PSWriteOffice.Cmdlets.Visuals;
 [OutputType(typeof(OfficeVisualConversionResult))]
 public sealed class ConvertToOfficeVisualCommand : OfficeVisualCommandBase
 {
+    /// <summary>Accessible description for the visual or placed image.</summary>
+    [Parameter]
+    public string? AlternativeText { get; set; }
+
+    /// <inheritdoc />
+    protected override string? VisualAlternativeText => AlternativeText;
+
     /// <summary>ChartForgeX VisualArtifact, OfficeVisualSource, prepared conversion, or portable SVG file path.</summary>
     [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true)]
     public object InputObject { get; set; } = null!;

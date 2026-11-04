@@ -156,12 +156,12 @@
       "seoDescription": "Convert a PDF to an editable Word document in your browser. Review the conversion report and download the DOCX without uploading the original file.",
       "input": { "kind": "file", "accept": ".pdf", "label": "PDF", "sample": "samples/showcase-dashboard.pdf", "sampleName": "OfficeIMO-Showcase.pdf" },
       "options": [],
-      "engine": { "kind": "convert", "target": "pdf-docx", "action": "convert", "assemblies": ["OfficeIMO.Word.wasm", "DocumentFormat.OpenXml.wasm", "OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm", "OfficeIMO.Web.Fonts.Fallback.wasm", "OfficeIMO.Word.Pdf.wasm"] },
+      "engine": { "kind": "convert", "target": "pdf-docx", "action": "convert", "assemblies": ["OfficeIMO.Word.wasm", "DocumentFormat.OpenXml.wasm", "OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm", "OfficeIMO.Web.Fonts.Fallback.wasm", "OfficeIMO.Pdf.Word.wasm"] },
       "run": { "label": "Convert to Word", "busy": ["Reading the PDF", "Rebuilding paragraphs and tables", "Writing the document"] },
       "expect": "A PDF stores where things sit on a page, not the original document. Columns, fonts and complex graphics can come out differently. Scanned pages need OCR, which this tool doesn't do.",
       "next": [],
       "legacy": ["route=pdf-docx"],
-      "guide": "/convert/pdf-to-word/", "package": "OfficeIMO.Word.Pdf"
+      "guide": "/convert/pdf-to-word/", "package": "OfficeIMO.Pdf.Word"
     },
     {
       "id": "pdf-to-excel", "group": "convert", "from": "PDF", "to": "XLSX",
@@ -171,12 +171,12 @@
       "seoDescription": "Extract tables from a PDF into an Excel workbook in your browser. Review the detected rows and columns, then download the workbook without uploads.",
       "input": { "kind": "file", "accept": ".pdf", "label": "PDF", "sample": "samples/showcase-dashboard.pdf", "sampleName": "OfficeIMO-Showcase.pdf" },
       "options": [],
-      "engine": { "kind": "convert", "target": "pdf-xlsx", "action": "convert", "assemblies": ["OfficeIMO.Excel.wasm", "DocumentFormat.OpenXml.wasm", "OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm", "OfficeIMO.Web.Fonts.Fallback.wasm", "OfficeIMO.Excel.Pdf.wasm"] },
+      "engine": { "kind": "convert", "target": "pdf-xlsx", "action": "convert", "assemblies": ["OfficeIMO.Excel.wasm", "DocumentFormat.OpenXml.wasm", "OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm", "OfficeIMO.Web.Fonts.Fallback.wasm", "OfficeIMO.Pdf.Excel.wasm"] },
       "run": { "label": "Find tables", "busy": ["Reading the PDF", "Detecting tables", "Writing the workbook"] },
       "expect": "Only detected tables are copied, not the rest of the page. Scanned pages need OCR.",
       "next": [],
       "legacy": ["route=pdf-xlsx"],
-      "guide": "/convert/pdf-tables-to-excel/", "package": "OfficeIMO.Excel.Pdf"
+      "guide": "/convert/pdf-tables-to-excel/", "package": "OfficeIMO.Pdf.Excel"
     },
     {
       "id": "pdf-to-powerpoint", "group": "convert", "from": "PDF", "to": "PPTX",
@@ -193,12 +193,12 @@
           { "value": "tables", "label": "Tables only", "hint": "Just the detected tables, one per slide." }
         ] }
       ],
-      "engine": { "kind": "convert", "target": "pdf-pptx", "action": "convert", "assemblies": ["OfficeIMO.PowerPoint.wasm", "DocumentFormat.OpenXml.wasm", "OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm", "OfficeIMO.Web.Fonts.Fallback.wasm", "OfficeIMO.PowerPoint.Pdf.wasm"] },
+      "engine": { "kind": "convert", "target": "pdf-pptx", "action": "convert", "assemblies": ["OfficeIMO.PowerPoint.wasm", "DocumentFormat.OpenXml.wasm", "OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm", "OfficeIMO.Web.Fonts.Fallback.wasm", "OfficeIMO.Pdf.PowerPoint.wasm"] },
       "run": { "label": "Convert to PowerPoint", "busy": ["Reading the PDF", "Building slides", "Writing the presentation"] },
       "expect": "A PDF doesn't contain the original slides, animations or transitions.",
       "next": [],
       "legacy": ["route=pdf-pptx"],
-      "guide": "/convert/pdf-to-powerpoint/", "package": "OfficeIMO.PowerPoint.Pdf"
+      "guide": "/convert/pdf-to-powerpoint/", "package": "OfficeIMO.Pdf.PowerPoint"
     },
     {
       "id": "pdf-to-html", "group": "convert", "from": "PDF", "to": "HTML",

@@ -13,8 +13,7 @@ public sealed partial class IWorkBoundaryTests {
         var expected = decoded.RootElement;
         Assert.Equal(expected.GetProperty("sourceSha256").GetString(), BorderCorpusHash(source));
         Assert.Equal(expected.GetProperty("nativeDocxSha256").GetString(), BorderCorpusHash(reference));
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(source,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(source, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.Report.IsPartialEditableReconstruction);
         Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_PAGES_DOCX_PRECISION");
         Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_PAGES_TABLE_LAYOUT_APPROXIMATED");
@@ -56,7 +55,7 @@ public sealed partial class IWorkBoundaryTests {
                 Assert.Equal(width == 0 ? WordBorderStyle.Nil : WordBorderStyle.Single, actual.Style);
                 Assert.Equal(exported.Style, actual.Style);
                 if (width > 0) {
-                    Assert.Equal(checked((uint)(width * 8)), actual.Size);
+                    Assert.Equal(OfficeLength.Points(width), actual.Size);
                     Assert.Equal(exported.Size, actual.Size);
                     Assert.Equal(rgb, actual.Color, ignoreCase: true);
                     Assert.Equal(exported.Color, actual.Color, ignoreCase: true);
@@ -69,11 +68,11 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(expected.GetProperty("sourceSha256").GetString(), BorderCorpusHash(source));
     }
 
-    private static (WordBorderStyle? Style, uint? Size, string? Color) PagesBorderSide(WordTableCellBorder border, string side) => side switch {
-        "left" => (border.LeftStyle, border.LeftSize, border.LeftColorHex),
-        "right" => (border.RightStyle, border.RightSize, border.RightColorHex),
-        "top" => (border.TopStyle, border.TopSize, border.TopColorHex),
-        "bottom" => (border.BottomStyle, border.BottomSize, border.BottomColorHex),
+    private static (WordBorderStyle? Style, OfficeLength? Size, string? Color) PagesBorderSide(WordTableCellBorder border, string side) => side switch {
+        "left" => (border.LeftStyle, border.LeftSize, border.LeftColor?.ToRgbHex()),
+        "right" => (border.RightStyle, border.RightSize, border.RightColor?.ToRgbHex()),
+        "top" => (border.TopStyle, border.TopSize, border.TopColor?.ToRgbHex()),
+        "bottom" => (border.BottomStyle, border.BottomSize, border.BottomColor?.ToRgbHex()),
         _ => throw new InvalidDataException("Unknown reference edge: " + side)
     };
 }

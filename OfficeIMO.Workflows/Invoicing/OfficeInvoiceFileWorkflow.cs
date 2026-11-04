@@ -1,7 +1,9 @@
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Invoicing;
 using OfficeIMO.Invoicing.Pdf;
+#if NET8_0_OR_GREATER
 using OfficeIMO.Invoicing.Validation;
+#endif
 using OfficeIMO.Pdf;
 
 namespace OfficeIMO.Workflows;
@@ -15,16 +17,16 @@ public sealed class OfficeInvoiceOutputException : IOException {
 /// <summary>Local-file invoice request. Existing destinations are never overwritten.</summary>
 public sealed class OfficeInvoiceFileWorkflowRequest {
     internal readonly InvoicePdfLayoutOptions Layout;
-    internal readonly PdfOptions? PdfOptions;
+    internal readonly PdfCreateOptions? PdfOptions;
     /// <summary>Captures explicit source, operation, target and rendering settings. Writing requires an output path.</summary>
     public OfficeInvoiceFileWorkflowRequest(string inputPath, OfficeInvoiceWorkflowOperation operation = OfficeInvoiceWorkflowOperation.Inspect,
         string? outputPath = null, InvoiceXmlOptions? target = null, InvoiceSpecificationRelease? validationRelease = null,
-        InvoicePdfLayoutOptions? layout = null, PdfOptions? pdfOptions = null)
+        InvoicePdfLayoutOptions? layout = null, PdfCreateOptions? pdfOptions = null)
         : this(inputPath, operation, outputPath, target, validationRelease, layout, pdfOptions, null) { }
 
     private OfficeInvoiceFileWorkflowRequest(string inputPath, OfficeInvoiceWorkflowOperation operation,
         string? outputPath, InvoiceXmlOptions? target, InvoiceSpecificationRelease? validationRelease,
-        InvoicePdfLayoutOptions? layout, PdfOptions? pdfOptions, InvoiceSourceEdits? sourceEdits) {
+        InvoicePdfLayoutOptions? layout, PdfCreateOptions? pdfOptions, InvoiceSourceEdits? sourceEdits) {
         InputPath = Path.GetFullPath(inputPath);
         OutputPath = outputPath == null ? null : Path.GetFullPath(outputPath);
         OfficeInvoiceWorkflowRequest.ValidateContract(operation, target, validationRelease, sourceEdits);
@@ -36,7 +38,7 @@ public sealed class OfficeInvoiceFileWorkflowRequest {
     /// <summary>Captures source edits for publication to a new XML file. Source syntax/profile and unmapped XML are retained.</summary>
     public static OfficeInvoiceFileWorkflowRequest ForSourceEdit(string inputPath, string outputPath, InvoiceSourceEdits edits,
         InvoiceSpecificationRelease? validationRelease = null) {
-        ArgumentNullException.ThrowIfNull(edits);
+        if (edits == null) throw new ArgumentNullException(nameof(edits));
         return new(inputPath, OfficeInvoiceWorkflowOperation.EditSource, outputPath, null, validationRelease, null, null, edits);
     }
     /// <summary>Absolute input path.</summary>
@@ -62,22 +64,65 @@ public sealed record OfficeInvoiceFileWorkflowResult(
 
 /// <summary>Thin local-file adapter over the memory workflow and shared atomic file commit owner.</summary>
 public static class OfficeInvoiceFileWorkflow {
+    /// <summary>Reads and executes one bounded invoice without a standards provider.</summary>
+    public static Task<OfficeInvoiceFileWorkflowResult> RunAsync(OfficeInvoiceFileWorkflowRequest request,
+        CancellationToken cancellationToken = default) => RunCoreAsync(request,
+#if NET8_0_OR_GREATER
+            null,
+#endif
+            cancellationToken);
+
+#if NET8_0_OR_GREATER
+    /// <summary>Reads and executes one bounded invoice with an explicit standards provider.</summary>
+    public static Task<OfficeInvoiceFileWorkflowResult> RunAsync(OfficeInvoiceFileWorkflowRequest request,
+        InvoiceValidator? validator, CancellationToken cancellationToken = default) =>
+        RunCoreAsync(request, validator, cancellationToken);
+#endif
+
     /// <summary>Reads bounded XML and atomically creates a new output file after successful execution.</summary>
-    public static async Task<OfficeInvoiceFileWorkflowResult> RunAsync(OfficeInvoiceFileWorkflowRequest request,
-        InvoiceValidator? validator = null, CancellationToken cancellationToken = default) =>
-        (await RunBatchAsync([request], validator: validator, cancellationToken: cancellationToken).ConfigureAwait(false))[0];
+    private static async Task<OfficeInvoiceFileWorkflowResult> RunCoreAsync(OfficeInvoiceFileWorkflowRequest request,
+
+#if NET8_0_OR_GREATER
+        InvoiceValidator? validator,
+#endif
+        CancellationToken cancellationToken = default) =>
+        (await RunBatchCoreAsync([request], null,
+#if NET8_0_OR_GREATER
+            validator: validator,
+#endif
+            cancellationToken: cancellationToken).ConfigureAwait(false))[0];
+
+    /// <summary>Executes a bounded invoice batch without a standards provider.</summary>
+    public static Task<IReadOnlyList<OfficeInvoiceFileWorkflowResult>> RunBatchAsync(IEnumerable<OfficeInvoiceFileWorkflowRequest> requests,
+        OfficeInvoiceWorkflowBatchOptions? options = null, CancellationToken cancellationToken = default) =>
+        RunBatchCoreAsync(requests, options,
+#if NET8_0_OR_GREATER
+            null,
+#endif
+            cancellationToken);
+
+#if NET8_0_OR_GREATER
+    /// <summary>Executes a bounded invoice batch with an explicit standards provider.</summary>
+    public static Task<IReadOnlyList<OfficeInvoiceFileWorkflowResult>> RunBatchAsync(IEnumerable<OfficeInvoiceFileWorkflowRequest> requests,
+        OfficeInvoiceWorkflowBatchOptions? options, InvoiceValidator? validator, CancellationToken cancellationToken = default) =>
+        RunBatchCoreAsync(requests, options, validator, cancellationToken);
+#endif
 
     /// <summary>Preflights and captures all bounded inputs before sequential execution. Outputs cannot overwrite existing files, sources or another planned output. Publication is per item, not a batch transaction.</summary>
-    public static async Task<IReadOnlyList<OfficeInvoiceFileWorkflowResult>> RunBatchAsync(IEnumerable<OfficeInvoiceFileWorkflowRequest> requests,
-        OfficeInvoiceWorkflowBatchOptions? options = null, InvoiceValidator? validator = null, CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(requests);
+    private static async Task<IReadOnlyList<OfficeInvoiceFileWorkflowResult>> RunBatchCoreAsync(IEnumerable<OfficeInvoiceFileWorkflowRequest> requests,
+        OfficeInvoiceWorkflowBatchOptions? options,
+#if NET8_0_OR_GREATER
+        InvoiceValidator? validator,
+#endif
+        CancellationToken cancellationToken = default) {
+        if (requests == null) throw new ArgumentNullException(nameof(requests));
         cancellationToken.ThrowIfCancellationRequested();
         var limits = (options ?? new()).Snapshot();
         var captured = new List<OfficeInvoiceFileWorkflowRequest>();
         var outputs = new SortedSet<string>(StringComparer.Ordinal);
         foreach (var request in requests) {
             cancellationToken.ThrowIfCancellationRequested();
-            ArgumentNullException.ThrowIfNull(request);
+            if (request == null) throw new ArgumentNullException(nameof(request));
             if (captured.Count >= limits.MaximumRequests) throw new ArgumentException("Invoice batch exceeds the request limit.", nameof(requests));
             if (request.OutputPath != null) {
                 string identity = OfficeWorkflowPathIdentity.Normalize(request.OutputPath);
@@ -103,14 +148,18 @@ public static class OfficeInvoiceFileWorkflow {
             if (length == 0 || length > InvoiceProfileDeclaration.MaximumXmlBytes || length > limits.MaximumInputBytes - inputBytes)
                 throw new InvalidDataException("Invoice input exceeds the individual or combined input limit.");
             byte[] xml = new byte[(int)length];
-            await stream.ReadExactlyAsync(xml.AsMemory(), cancellationToken).ConfigureAwait(false);
+            await stream.ReadExactlyAsync(xml, cancellationToken).ConfigureAwait(false);
             if (stream.ReadByte() != -1) throw new InvalidDataException("Invoice input changed while being captured.");
             inputBytes += length;
             memory.Add(request.Operation == OfficeInvoiceWorkflowOperation.EditSource
                 ? OfficeInvoiceWorkflowRequest.ForSourceEdit(xml, request.SourceEdits!, request.ValidationRelease, request.InputPath)
                 : new(xml, request.Operation, request.Target, request.ValidationRelease, request.Layout, request.PdfOptions, request.InputPath));
         }
-        var executions = await OfficeInvoiceBufferWorkflow.RunBatchAsync(memory, limits, validator, cancellationToken).ConfigureAwait(false);
+        var executions = await OfficeInvoiceBufferWorkflow.RunBatchAsync(memory, limits,
+#if NET8_0_OR_GREATER
+            validator,
+#endif
+            cancellationToken).ConfigureAwait(false);
         var results = new List<OfficeInvoiceFileWorkflowResult>();
         for (int i = 0; i < executions.Count; i++) {
             var request = captured[i]; var execution = executions[i];

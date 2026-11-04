@@ -72,6 +72,8 @@ final class DocumentSession {
     private var pendingEdits = 0
     var isWorking: Bool { isRunningOperation || pendingEdits > 0 }
     var errorMessage: String?
+    /// A short message over the pages that goes away by itself.
+    var transientNotice: String?
 
     var task = StudioTask.read
     /// The page at the middle of the page view, numbered from 1.

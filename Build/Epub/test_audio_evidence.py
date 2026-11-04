@@ -94,6 +94,22 @@ class AudioEvidenceTests(unittest.TestCase):
             with zipfile.ZipFile(io.BytesIO(self.publication(extras={"EPUB/overlays/read.smil": xml}))) as archive, self.assertRaises(UncheckedAudio):
                 collect_clips(archive)
 
+    def test_xml_namespace_and_element_amplification_is_rejected_before_tree_building(self):
+        cases = (
+            ('<smil xmlns="http://www.w3.org/ns/SMIL" xmlns:x="' + 'n' * 2048 + '">' + '<x:a/>' * 1000 + '</smil>', "namespace"),
+            ('<smil xmlns="http://www.w3.org/ns/SMIL">' + '<a/>' * 10001 + '</smil>', "structure"),
+        )
+        for malicious, reason in cases:
+            with self.subTest(reason=reason), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                source = root / "book.epub"
+                source.write_bytes(self.publication(extras={"EPUB/overlays/read.smil": malicious}))
+                with patch("audio_evidence.subprocess.run") as probe:
+                    result = inspect_audio(source, root, Path("ffprobe"), None, 10)
+                self.assertEqual("not-checked", result["status"])
+                self.assertIn(reason, result["reason"])
+                probe.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -10,9 +10,9 @@ public sealed class DrawingChartSeriesJoinTests {
     private static readonly OfficeColor Ink = OfficeColor.Parse("#D900AA");
 
     [Theory]
-    [InlineData(OfficeChartKind.Line)]
-    [InlineData(OfficeChartKind.Scatter)]
-    public void ExplicitJoinConnectsVerticesInSvgAndChangesCornerPixels(OfficeChartKind kind) {
+    [InlineData(OfficeChartType.Line)]
+    [InlineData(OfficeChartType.Scatter)]
+    public void ExplicitJoinConnectsVerticesInSvgAndChangesCornerPixels(OfficeChartType kind) {
         var images = new List<byte[]>();
         foreach (OfficeStrokeLineJoin join in new[] { OfficeStrokeLineJoin.Bevel, OfficeStrokeLineJoin.Round, OfficeStrokeLineJoin.Miter }) {
             OfficeDrawing drawing = Render(kind, new[] { 2d, 8d, 2d, 6d }, join);
@@ -39,9 +39,9 @@ public sealed class DrawingChartSeriesJoinTests {
     }
 
     [Theory]
-    [InlineData(OfficeChartKind.Line)]
-    [InlineData(OfficeChartKind.Scatter)]
-    public void JoinedRunsStopAtGapsAndOutsideExcursions(OfficeChartKind kind) {
+    [InlineData(OfficeChartType.Line)]
+    [InlineData(OfficeChartType.Scatter)]
+    public void JoinedRunsStopAtGapsAndOutsideExcursions(OfficeChartType kind) {
         double[] values = { 2, 8, 2, double.NaN, 2, 8, 2, 20, 20, 2, 8, 2 };
         OfficeDrawing drawing = Render(kind, values, OfficeStrokeLineJoin.Round, bounded: true);
         OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>(), candidate => SeriesInk(candidate.Drawing).Any());
@@ -63,10 +63,10 @@ public sealed class DrawingChartSeriesJoinTests {
     [InlineData(false)]
     [InlineData(true)]
     public void JoinedScatterSafelyClipsOppositeFiniteExtremes(bool diagonal) {
-        var series = new OfficeChartSeries("Series", diagonal ? new[] { -double.MaxValue, double.MaxValue } : new[] { 5d, 5d },
+        var series = new OfficeSeries("Series", diagonal ? new[] { -double.MaxValue, double.MaxValue } : new[] { 5d, 5d },
             new[] { -double.MaxValue, double.MaxValue }, Ink, null, showMarkers: false)
             .WithSeriesStyle(Paint(OfficeStrokeLineJoin.Bevel));
-        OfficeDrawing drawing = Render(OfficeChartKind.Scatter, series, 2, new OfficeChartLayout(showLegend: false,
+        OfficeDrawing drawing = Render(OfficeChartType.Scatter, series, 2, new OfficeChartLayout(showLegend: false,
             horizontalAxisMinimum: 0, horizontalAxisMaximum: 10, verticalAxisMinimum: 0, verticalAxisMaximum: 10));
         OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>(), candidate => SeriesInk(candidate.Drawing).Any());
         OfficeDrawingShape path = Assert.Single(SeriesInk(group.Drawing));
@@ -76,11 +76,11 @@ public sealed class DrawingChartSeriesJoinTests {
     }
 
     [Theory]
-    [InlineData(OfficeChartKind.Area, false)]
-    [InlineData(OfficeChartKind.Area, true)]
-    [InlineData(OfficeChartKind.Radar, false)]
-    [InlineData(OfficeChartKind.Radar, true)]
-    public void ClosedSeriesKeepsClosingJoinAndIndependentFill(OfficeChartKind kind, bool noFill) {
+    [InlineData(OfficeChartType.Area, false)]
+    [InlineData(OfficeChartType.Area, true)]
+    [InlineData(OfficeChartType.Radar, false)]
+    [InlineData(OfficeChartType.Radar, true)]
+    public void ClosedSeriesKeepsClosingJoinAndIndependentFill(OfficeChartType kind, bool noFill) {
         OfficeDrawing drawing = Render(kind, new[] { 2d, 8d, 2d, 6d }, OfficeStrokeLineJoin.Bevel, noFill: noFill);
         OfficeDrawingShape outline = Assert.Single(SeriesInk(drawing));
         Assert.Equal(OfficeStrokeLineJoin.Bevel, outline.Shape.StrokeLineJoin);
@@ -93,7 +93,7 @@ public sealed class DrawingChartSeriesJoinTests {
             "The series boundary must be closed so its first vertex receives a closing join.");
         Assert.Equal(!noFill, Shapes(drawing).Any(shape => shape.Shape.FillColor == Ink));
 
-        var series = new OfficeChartSeries("Series", new[] { 2d, 8d, 2d, 6d }, null, Ink, null, false)
+        var series = new OfficeSeries("Series", new[] { 2d, 8d, 2d, 6d }, null, Ink, null, false)
             .WithSeriesStyle(new OfficeChartPointStyle(fillColor: Ink, showOutline: false, outlineJoin: OfficeStrokeLineJoin.Bevel));
         OfficeDrawing filled = Render(kind, series, 4, new OfficeChartLayout(showLegend: false));
         Assert.Empty(SeriesInk(filled));
@@ -102,7 +102,7 @@ public sealed class DrawingChartSeriesJoinTests {
 
     [Fact]
     public void ClippedAreaJoinsOriginalLowerCornersWithoutInventingAnUpperEdge() {
-        OfficeDrawing drawing = Render(OfficeChartKind.Area, new[] { 20d, 20d }, OfficeStrokeLineJoin.Bevel, bounded: true);
+        OfficeDrawing drawing = Render(OfficeChartType.Area, new[] { 20d, 20d }, OfficeStrokeLineJoin.Bevel, bounded: true);
         OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>(), candidate => SeriesInk(candidate.Drawing).Any());
         OfficeDrawingShape outline = Assert.Single(SeriesInk(group.Drawing));
         Assert.Equal(3, outline.Shape.PathCommands.Count(command => command.Kind == OfficePathCommandKind.LineTo));
@@ -118,7 +118,7 @@ public sealed class DrawingChartSeriesJoinTests {
     [InlineData(OfficeStrokeLineJoin.Round)]
     [InlineData(null)]
     public void RadarGapKeepsSeamEdgeWithoutBridgingMissingPoint(OfficeStrokeLineJoin? join) {
-        OfficeDrawing drawing = Render(OfficeChartKind.Radar, new[] { 4d, 6d, 5d, double.NaN, 7d }, join);
+        OfficeDrawing drawing = Render(OfficeChartType.Radar, new[] { 4d, 6d, 5d, double.NaN, 7d }, join);
         OfficeDrawingShape[] paths = SeriesInk(drawing).ToArray();
         Assert.Equal(3, paths.Sum(path => path.Shape.Kind == OfficeShapeKind.Line ? 1 :
             path.Shape.PathCommands.Count(command => command.Kind == OfficePathCommandKind.LineTo)));
@@ -126,11 +126,11 @@ public sealed class DrawingChartSeriesJoinTests {
     }
 
     private static OfficeChartPointStyle Paint(OfficeStrokeLineJoin? join, bool noFill = true) =>
-        new(noFill: noFill, outlineColor: Ink, outlineWidth: 16, showOutline: true, outlineJoin: join);
+        new(noFill: noFill, outlineColor: Ink, outlineWidth: global::OfficeIMO.OfficeLength.Points(16), showOutline: true, outlineJoin: join);
 
-    private static OfficeDrawing Render(OfficeChartKind kind, double[] values, OfficeStrokeLineJoin? join,
+    private static OfficeDrawing Render(OfficeChartType kind, double[] values, OfficeStrokeLineJoin? join,
         bool bounded = false, bool noFill = true) {
-        var series = new OfficeChartSeries("Series", values, Enumerable.Range(0, values.Length).Select(index => (double)index),
+        var series = new OfficeSeries("Series", values, Enumerable.Range(0, values.Length).Select(index => (double)index),
             Ink, null, showMarkers: false).WithSeriesStyle(Paint(join, noFill));
         var layout = bounded ? new OfficeChartLayout(showLegend: false, horizontalAxisMinimum: 0,
             horizontalAxisMaximum: values.Length - 1, verticalAxisMinimum: 0, verticalAxisMaximum: 10)
@@ -138,10 +138,10 @@ public sealed class DrawingChartSeriesJoinTests {
         return Render(kind, series, values.Length, layout);
     }
 
-    private static OfficeDrawing Render(OfficeChartKind kind, OfficeChartSeries series, int count, OfficeChartLayout layout) =>
+    private static OfficeDrawing Render(OfficeChartType kind, OfficeSeries series, int count, OfficeChartLayout layout) =>
         OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null, kind,
             new OfficeChartData(Enumerable.Range(0, count).Select(index => index.ToString()), new[] { series }),
-            400, 300, layout: layout));
+            global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(300), layout: layout));
 
     private static IEnumerable<OfficeDrawingShape> SeriesInk(OfficeDrawing drawing) =>
         Shapes(drawing).Where(shape => shape.Shape.StrokeColor == Ink);

@@ -12,7 +12,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <code>Add-OfficeWordParagraph -Text 'Service availability' { Add-OfficeWordFootnote -Text 'Measured from successful health probes.' }</code>
 ///   <para>Creates a footnote reference on the current paragraph.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeWordFootnote")]
+[Cmdlet(VerbsCommon.Add, "OfficeWordFootnote", DefaultParameterSetName = "Default")]
 [Alias("WordFootnote")]
 [OutputType(typeof(WordParagraph))]
 public sealed class AddOfficeWordFootnoteCommand : PSCmdlet
@@ -38,7 +38,7 @@ public sealed class AddOfficeWordFootnoteCommand : PSCmdlet
         }
 
         var paragraph = ResolveParagraph();
-        var note = paragraph.AddFootNote(Text.Trim());
+        var note = paragraph.AddFootNote(Text.Trim()).Paragraph;
 
         if (PassThru.IsPresent)
         {

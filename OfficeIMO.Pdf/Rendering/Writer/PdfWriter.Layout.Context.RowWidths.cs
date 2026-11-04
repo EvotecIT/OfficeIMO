@@ -37,7 +37,7 @@ internal static partial class PdfWriter {
                         break;
                     case PdfColumnWidthUnit.Auto:
                         double preferred = MeasureRowColumnPreferredWidth(row.Columns[index], availableWidth);
-                        result[index] = Math.Max(width.Minimum, Math.Min(width.Maximum ?? availableWidth, preferred));
+                        result[index] = Math.Max(width.Minimum.ToPoints(), Math.Min((width.Maximum?.ToPoints()) ?? availableWidth, preferred));
                         committed += result[index];
                         automaticIndexes.Add(index);
                         break;
@@ -53,7 +53,7 @@ internal static partial class PdfWriter {
             if (overflow > 0.001D && automaticIndexes.Count > 0) {
                 for (int autoIndex = automaticIndexes.Count - 1; autoIndex >= 0 && overflow > 0.001D; autoIndex--) {
                     int index = automaticIndexes[autoIndex];
-                    double minimum = row.Columns[index].Width.Minimum;
+                    double minimum = row.Columns[index].Width.Minimum.ToPoints();
                     double reduction = Math.Min(overflow, result[index] - minimum);
                     result[index] -= reduction;
                     committed -= reduction;
@@ -95,9 +95,9 @@ internal static partial class PdfWriter {
             switch (block) {
                 case ContainerBlock container:
                     if (container.FrameTable != null) return ResolveContainerFrame(container, container.Style, 0D, availableWidth).Width;
-                    double inset = ResolveContainerStyle(container).PaddingX * 2D;
+                    double inset = ResolveContainerStyle(container).PaddingX.ToPoints() * 2D;
                     double content = container.Blocks.Count == 0 ? 0D : container.Blocks.Max(child => MeasureBlockPreferredWidth(child, Math.Max(0D, availableWidth - inset)));
-                    return Math.Min(ResolveContainerStyle(container).MaxWidth ?? availableWidth, content + inset);
+                    return Math.Min((ResolveContainerStyle(container).MaxWidth?.ToPoints()) ?? availableWidth, content + inset);
                 case SemanticBlock semantic:
                     return semantic.Blocks.Count == 0 ? 0D : semantic.Blocks.Max(child => MeasureBlockPreferredWidth(child, availableWidth));
                 case FlowBlock flow when flow.StaticBlocks != null:
@@ -109,7 +109,7 @@ internal static partial class PdfWriter {
                         CreateHeadingTextRuns(heading, headingStyle, heading.Color ?? headingStyle?.Color),
                         headingSize);
                 case RichParagraphBlock paragraph:
-                    return MeasureRunsPreferredWidth(paragraph.Runs, EffectiveParagraphStyle(paragraph)?.FontSize);
+                    return MeasureRunsPreferredWidth(paragraph.Runs, EffectiveParagraphStyle(paragraph)?.FontSize?.ToPoints());
                 case PdfListBlock list:
                     return MeasureListPreferredWidth(list);
                 case ImageBlock image:
@@ -125,7 +125,7 @@ internal static partial class PdfWriter {
                 case CheckBoxBlock checkBox:
                     return checkBox.Size;
                 case RadioButtonGroupBlock radioButtons:
-                    return radioButtons.Options.Max(option => EstimateSimpleTextWidthForOptions(option, currentOpts.DefaultFont, currentOpts.DefaultFontSize, currentOpts)) + radioButtons.Size + radioButtons.Gap;
+                    return radioButtons.Options.Max(option => EstimateSimpleTextWidthForOptions(option, currentOpts.DefaultFont, currentOpts.DefaultFontSize.ToPoints(), currentOpts)) + radioButtons.Size + radioButtons.Gap;
                 case TextAnnotationBlock annotation:
                     return annotation.Width;
                 case FreeTextAnnotationBlock annotation:
@@ -137,7 +137,7 @@ internal static partial class PdfWriter {
                 case DeferredTableBlock:
                     return availableWidth;
                 default:
-                    return Math.Min(availableWidth, currentOpts.DefaultFontSize * 4D);
+                    return Math.Min(availableWidth, currentOpts.DefaultFontSize.ToPoints() * 4D);
             }
         }
 
@@ -151,11 +151,11 @@ internal static partial class PdfWriter {
                 preferred = Math.Max(preferred, MeasureRunsPreferredWidth(list.RichItems[itemIndex].Runs));
             }
 
-            return preferred + currentOpts.DefaultFontSize * list.PreferredMarkerWidthFactor;
+            return preferred + currentOpts.DefaultFontSize.ToPoints() * list.PreferredMarkerWidthFactor;
         }
 
         private double MeasureRunsPreferredWidth(IReadOnlyList<PdfTextRun> runs, double? fontSize = null) {
-            double size = fontSize ?? currentOpts.DefaultFontSize;
+            double size = fontSize ?? currentOpts.DefaultFontSize.ToPoints();
             var layout = WrapRichRunsIntrinsic(
                 runs, double.MaxValue, size, ChooseNormal(currentOpts.DefaultFont), size * 1.4D,
                 null, DefaultParagraphTabStopWidth, currentOpts);

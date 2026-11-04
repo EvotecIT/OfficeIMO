@@ -1,0 +1,10 @@
+{
+  "solution": {
+    "path": "OfficeIMO.slnx",
+    "projects": [
+      "OfficeIMO.Core\\OfficeIMO.Core.csproj",
+      "OfficeIMO.Project.Tests\\OfficeIMO.Project.Tests.csproj",
+      "OfficeIMO.Project\\OfficeIMO.Project.csproj"
+    ]
+  }
+}

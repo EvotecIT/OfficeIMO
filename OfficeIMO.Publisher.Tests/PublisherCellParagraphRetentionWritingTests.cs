@@ -33,8 +33,8 @@ public sealed class PublisherCellParagraphRetentionWritingTests {
                 : cell.Paragraphs[i]).ToArray();
             document.ReplaceTableCellParagraphs(table.Id, cell.RowIndex, cell.ColumnIndex, selected);
         }
-        Assert.Throws<OfficeConversionException>(() => document.ToPubBytes());
-        byte[] bytes = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        Assert.Throws<OfficeConversionException>(() => document.ToBytes());
+        byte[] bytes = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         PublisherDocument saved = PublisherDocument.Load(bytes);
         foreach (PublisherTable before in originals) {
             PublisherTable after = saved.Pages.SelectMany(p => p.Tables).Single(t => t.Id == before.Id);
@@ -69,12 +69,12 @@ public sealed class PublisherCellParagraphRetentionWritingTests {
         byte[] source = File.ReadAllBytes(PublisherNativeTests.Fixture(Fixture));
         PublisherDocument document = PublisherDocument.Load(source);
         PublisherTable table = document.Pages[6].Tables.Single(); PublisherTableCell cell = table.Cells[cellIndex];
-        Assert.True(table.CanEditCellText); Assert.Equal(source, document.ToPubBytes());
+        Assert.True(table.CanEditCellText); Assert.Equal(source, document.ToBytes());
         Assert.Equal(cell.Paragraphs[0].Runs[0].Text, cell.Paragraphs[1].Runs[0].Text);
         OfficeRichTextParagraph paragraph = cell.Paragraphs[0];
         document.ReplaceTableCellParagraphs(table.Id, cell.RowIndex, cell.ColumnIndex,
             new[] { paragraph.WithTabStops(paragraph.TabStops), cell.Paragraphs[2] });
-        var error = Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        var error = Assert.Throws<OfficeConversionException>(() => document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         Assert.True(Assert.IsType<PublisherSaveReport>(error.Report).HasErrors);
         Assert.Equal(3, cell.Paragraphs.Count);
     }

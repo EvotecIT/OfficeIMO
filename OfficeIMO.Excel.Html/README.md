@@ -13,34 +13,34 @@ using OfficeIMO.Excel.Html;
 using ExcelDocument workbook = ExcelDocument.Load("report.xlsx", new ExcelLoadOptions {
     AccessMode = DocumentAccessMode.ReadOnly
 });
-string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
+string html = workbook.ToHtml(new ExcelHtmlExportOptions {
     HeaderMode = ExcelHtmlHeaderMode.FirstRow
 });
 
 HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
-HtmlToExcelResult result = source.ToExcelDocumentResult();
-using ExcelDocument imported = result.RequireValue();
-imported.Save("report-roundtrip.xlsx");
+OfficeConversionReport report = source.SaveAsExcel("report-roundtrip.xlsx");
 ```
 
 Semantic output carries a versioned OfficeIMO envelope and preserves worksheet names and visibility, used-range coordinates, typed text/number/boolean/date-time values, formulas, comments, merged ranges, embedded image inventory, supported chart inventory, and inert pivot-definition review metadata. HTML `rowspan` and `colspan` values become native Excel merged ranges. Pivot refresh, drill, caches, slicers, and timelines remain native workbook behavior and are not executed in HTML.
 
 Named Excel tables export as worksheet cells without their native table definitions. Table names, table-scoped filters, table styles and totals metadata are not restored; workbook and worksheet export reports mark this omission. Ordinary HTML table IDs do not create named Excel tables.
 
+Semantic tables show the worksheet as it reads in Excel: cell and table-style fills with their font colours, conditional fills and data bars, number formats (dates, percentages, grouping), Excel's general alignment for numbers, dates and Boolean values, and charts drawn as inline SVG with their data in a collapsible table. The raw value of every cell stays in `data-officeimo-value` for round trips. Set `ApplyCellPresentation = false` for raw cell text, and `RenderCharts = false` to keep charts as data tables only. The formula inventory (`IncludeFormulaInventory`) and visible object metadata such as chart type, anchor cell and pixel size (`IncludeObjectMetadata`) are opt-in; formulas still travel with their cells. The page title uses the `Title` option, then the workbook's title property, then the file name.
+
 `HeaderMode` makes the first-row assumption explicit. `FirstRow` is the compatibility default and emits a real `thead` with column headers. Use `None` when every row is data.
 
-`ToExcelDocument()` is the convenience API. It throws `HtmlConversionException` when no semantic `section.officeimo-sheet` envelope exists. Use `ToExcelDocumentResult()` to receive the workbook plus structured diagnostics and loss classification. Export callers can use `ToHtmlResult()` for the same evidence shape; pivot simplification, truncation, unavailable chart or image content, and visual-renderer fallbacks are operation-scoped diagnostics rather than HTML-only prose.
+`ToExcel(options, out report)` returns the workbook with its `OfficeConversionReport` and throws `HtmlConversionException` when no semantic `section.officeimo-sheet` envelope exists; `SaveAsExcel` writes it and returns the report. Set `FailOnLoss` to make reported loss an error. Export callers use `ToHtml(options, out report)` or `SaveAsHtml` for the same report.
 
 Ordinary HTML tables are available explicitly through the shared generic projector:
 
 ```csharp
-HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
-    .ToExcelDocumentResult(new HtmlToExcelOptions {
+using ExcelDocument workbook = HtmlConversionDocument.Parse(html)
+    .ToExcel(new HtmlExcelExportOptions {
         Mode = HtmlImportMode.Auto
-    });
+    }, out OfficeConversionReport report);
 ```
 
-`Semantic` remains the default for strict round-trip compatibility. `Auto` selects a supported semantic envelope when present and otherwise maps ordinary tables to worksheets; `Generic` always uses the ordinary HTML path. `HtmlToExcelOptions.Limits` bounds worksheets, tables, cells, images, chart dimensions, metadata, and geometry before native allocations. `MaxTableCells` remains as a forwarding compatibility property.
+`Semantic` remains the default for strict round-trip compatibility. `Auto` selects a supported semantic envelope when present and otherwise maps ordinary tables to worksheets; `Generic` always uses the ordinary HTML path. `HtmlExcelExportOptions.Limits` bounds worksheets, tables, cells, images, chart dimensions, metadata, and geometry before native allocations. `MaxTableCells` remains as a forwarding compatibility property.
 
 Generic table worksheets fit their columns to imported text within bounded widths, wrap longer values, and fit row heights. Two-column term/definition tables retain their printable layout. HTML spans remain native merged ranges; ordinary grids do not become named Excel table objects. This default presentation does not reproduce CSS table geometry.
 
@@ -48,7 +48,7 @@ On the ordinary HTML path, bounded positioned, floating, flex, and grid regions 
 
 Embedded static WebP and AVIF pictures are decoded by the shared managed Core engine and stored as PNG in the workbook. Generic images, semantic inventories, and layout-region pictures use the same preparation path. `Limits.MaxDecodedImagePixels` bounds normalization, while `MaxImageBytes` and `MaxTotalImageBytes` bound source payloads and the retained native PNG. Independently, `MaxImages` and `MaxTotalImageBytes` cap admitted normalization attempts and their total input bytes; a failed normalization releases its output slot but retains its work charge. Animated, malformed, unsupported, or over-limit images produce omission diagnostics; PNG normalization produces an approximation diagnostic because the original compressed format is replaced. Native image placement and alternative text are retained.
 
-`SaveAsHtml` and `SaveAsHtmlAsync` write UTF-8 without a byte-order mark to paths or caller-owned streams. For import I/O, use `HtmlConversionDocument.Load(...)` or `LoadAsync(...)`, then call `ToExcelDocument()` or `ToExcelDocumentResult()` on the prepared document. Stream overloads leave caller-owned streams open.
+`SaveAsHtml` and `SaveAsHtmlAsync` write UTF-8 without a byte-order mark to paths or caller-owned streams. For import I/O, use `HtmlConversionDocument.Load(...)` or `LoadAsync(...)`, then call `ToExcel` or `SaveAsExcel` on the prepared document. Stream overloads leave caller-owned streams open.
 
 ## Typed values in ordinary report tables
 
@@ -65,12 +65,10 @@ The first three cells become a number, boolean, and date in Excel. The reference
 
 ```csharp
 var report = HtmlConversionDocument.Load("service-review.html");
-var result = report.ToExcelDocumentResult(new HtmlToExcelOptions {
+report.SaveAsExcel("service-review.xlsx", new HtmlExcelExportOptions {
     Mode = HtmlImportMode.Generic,
     ImportTypedCellValues = true
 });
-using var workbook = result.RequireValue();
-workbook.Save("service-review.xlsx");
 ```
 
 See the [text formatting support matrix](../Docs/officeimo.text-formatting-support-matrix.md#typed-html-table-values) for scalar formatting and display limits.
@@ -79,7 +77,7 @@ The [multi-format report example](../OfficeIMO.Examples/Converters/Html/HtmlMult
 
 ## Visual review
 
-Use `ExcelHtmlSaveOptions.CreateVisualReviewProfile()` or set `ExportProfile = ExcelHtmlExportProfile.VisualReview` to emit review HTML through OfficeIMO's dependency-free SVG renderer. `SharedProfile` exposes the corresponding generic engine lane. `DocumentOutput` controls full-document versus fragment output, title, language, theme, default styles, and newlines. Visual-review HTML is presentation evidence; use semantic tables when the HTML must be imported back into Excel.
+Use `ExcelHtmlExportOptions.CreateVisualReviewProfile()` or set `ExportProfile = ExcelHtmlExportProfile.VisualReview` to emit review HTML through OfficeIMO's dependency-free SVG renderer. `SharedProfile` exposes the corresponding generic engine lane. `DocumentOutput` controls full-document versus fragment output, title, language, theme, default styles, and newlines. Visual-review HTML is presentation evidence; use semantic tables when the HTML must be imported back into Excel.
 
 ## Targets
 

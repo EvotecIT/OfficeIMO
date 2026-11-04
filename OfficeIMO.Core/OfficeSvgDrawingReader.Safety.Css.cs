@@ -24,9 +24,13 @@ public static partial class OfficeSvgDrawingReader {
     };
 
     private static bool HasStylesheetRasterGeometryDeclaration(XElement root) {
+        var fontImports = new SvgEmbeddedFontImports(new OfficeFontFaceCollection(), System.Threading.CancellationToken.None);
+        int declarations = 0;
+        int rules = 0;
         foreach (XElement style in root.DescendantsAndSelf()
                      .Where(element => element.Name.LocalName.Equals("style", StringComparison.Ordinal))) {
-            if (ContainsStylesheetRasterGeometryDeclaration(style.Value)) return true;
+            if (!IsSupportedSvgStylesheetElement(style) ||
+                ContainsStylesheetRasterGeometryDeclaration(style.Value, fontImports, ref declarations, ref rules)) return true;
         }
         return false;
     }
@@ -48,10 +52,6 @@ public static partial class OfficeSvgDrawingReader {
                     UnsupportedInlineRasterGeometryCssProperties)) return true;
         }
         return false;
-    }
-
-    private static bool ContainsStylesheetRasterGeometryDeclaration(string? stylesheet) {
-        return ContainsStylesheetRasterDeclaration(stylesheet, RasterGeometryCssProperties);
     }
 
     private static bool ContainsStylesheetRasterDeclaration(string? stylesheet, ISet<string> relevantProperties) {
@@ -167,7 +167,10 @@ public static partial class OfficeSvgDrawingReader {
 
     // Keep safety inspection aligned with ChartForgeX's stylesheet parser, which removes
     // comments before parsing selectors and declarations (including comments between tokens).
-    private static string StripCssComments(string value) {
+    private static string StripCssComments(string value) => StripCssComments(value, out _);
+
+    private static string StripCssComments(string value, out bool complete) {
+        complete = true;
         var result = new StringBuilder(value.Length);
         char quote = '\0';
         for (int index = 0; index < value.Length; index++) {
@@ -186,11 +189,13 @@ public static partial class OfficeSvgDrawingReader {
                 index += 2;
                 while (index + 1 < value.Length && !(value[index] == '*' && value[index + 1] == '/')) index++;
                 if (index + 1 < value.Length) index++;
+                else complete = false;
                 result.Append(' ');
                 continue;
             }
             result.Append(current);
         }
+        complete &= quote == '\0';
         return result.ToString();
     }
 

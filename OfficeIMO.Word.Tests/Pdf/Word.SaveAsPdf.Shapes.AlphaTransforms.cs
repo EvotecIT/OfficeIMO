@@ -24,7 +24,7 @@ public partial class Word {
     [InlineData("gradient", "modulate-offset", 0.3D)]
     public void SaveAsPdf_DrawingMlFillAndOutlineShareOrderedAlphaTransforms(string colorKind, string transforms, double expected) {
         using WordDocument document = WordDocument.Create();
-        document.AddParagraph().AddShapeDrawing(WordShapeType.Rectangle, 112D, 48D);
+        document.AddParagraph().AddShapeDrawing(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(112D), OfficeIMO.OfficeLength.Points(48D));
         OpenXmlElement color;
         if (colorKind == "scheme" || colorKind == "theme-alpha") {
             var accent = document.MainDocumentPartRoot.ThemePart!.Theme!.ThemeElements!.ColorScheme!.Accent1Color!;
@@ -72,7 +72,7 @@ public partial class Word {
         properties.RemoveAllChildren<A.Outline>();
         properties.AddChild(new A.Outline(new A.SolidFill(color)) { Width = 50800 }, true);
 
-        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false });
+        byte[] bytes = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         var page = PdfCore.PdfReadDocument.Open(bytes).Pages[0];
         var paint = Assert.Single(page.GetIdentityVisualPrimitives(), primitive => primitive.StrokeWidth == 4D);
         if (colorKind == "gradient") {
@@ -91,7 +91,7 @@ public partial class Word {
             Directory.CreateDirectory(output);
             string stem = Path.Combine(output, colorKind + "-" + transforms);
             File.WriteAllBytes(stem + ".pdf", bytes);
-            File.WriteAllBytes(stem + ".png", document.ToPng(new WordImageExportOptions { Scale = 1D }));
+            File.WriteAllBytes(stem + ".png", document.ToImage(new WordImageExportOptions { Scale = 1D }));
         }
     }
 }

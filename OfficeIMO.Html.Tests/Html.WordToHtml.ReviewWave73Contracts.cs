@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("value=\"Same label\" data-word-value=\"id-b\"", html,
                 StringComparison.OrdinalIgnoreCase);
-            using WordDocument roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+            using WordDocument roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
             WordComboBox imported = Assert.Single(roundTrip.ComboBoxes);
             ListItem[] importedItems = imported._sdtRun.SdtProperties!
                 .GetFirstChild<SdtContentComboBox>()!
@@ -49,7 +49,7 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain("value=\"Red\" selected", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("value=\"X\" selected", html, StringComparison.OrdinalIgnoreCase);
             Assert.Equal(1, html.Split(new[] { " selected" }, StringSplitOptions.None).Length - 1);
-            using WordDocument roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+            using WordDocument roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
             WordDropDownList imported = Assert.Single(roundTrip.DropDownLists);
             ListItem[] importedItems = imported._sdtRun.SdtProperties!
                 .GetFirstChild<SdtContentDropDownList>()!
@@ -65,7 +65,7 @@ namespace OfficeIMO.Tests {
                 + "<option value='id-b' selected>Same label</option></select>";
             using WordDocument document =
                 OfficeIMO.Html.HtmlConversionDocument.Parse(html)
-                    .ToWordDocument();
+                    .ToWord();
             WordDropDownList dropDown = Assert.Single(document.DropDownLists);
 
             string exported = document.ToHtml();
@@ -77,7 +77,7 @@ namespace OfficeIMO.Tests {
                 StringSplitOptions.None).Length - 1);
             using WordDocument roundTrip =
                 OfficeIMO.Html.HtmlConversionDocument.Parse(exported)
-                    .ToWordDocument();
+                    .ToWord();
             Assert.Equal("id-b", Assert.Single(roundTrip.DropDownLists)
                 .SelectedValue);
         }
@@ -88,7 +88,7 @@ namespace OfficeIMO.Tests {
                 + "<option value='id-b'>Same label</option></select>";
             using WordDocument document =
                 OfficeIMO.Html.HtmlConversionDocument.Parse(html)
-                    .ToWordDocument();
+                    .ToWord();
             WordDropDownList dropDown = Assert.Single(document.DropDownLists);
 
             string exported = document.ToHtml();

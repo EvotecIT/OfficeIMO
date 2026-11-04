@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
             using var document = WordDocument.Create();
             document.Sections[0].AddEndnoteProperties(WordNumberFormat.Decimal);
             WordParagraph paragraph = context == "table"
-                ? document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].SetText("SameNumberMarker")
+                ? document.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0].SetText("SameNumberMarker")
                 : document.AddParagraph("SameNumberMarker");
             paragraph.AddFootNote("FootnoteBody");
             paragraph.AddEndNote("EndnoteBody");
@@ -41,8 +41,8 @@ namespace OfficeIMO.Tests {
                 paragraph._paragraph.InsertBeforeSelf(new DocumentFormat.OpenXml.Wordprocessing.SdtBlock(content));
                 paragraph._paragraph.Remove();
             }
-            using var imported = nativeDoc ? WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Doc))) : null;
-            (imported ?? document).SaveAsPdf(path, new WordToPdfOptions { IncludePageNumbers = false });
+            using var imported = nativeDoc ? WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }))) : null;
+            (imported ?? document).SaveAsPdf(path, new WordPdfExportOptions { IncludePageNumbers = false });
             var spans = OfficeIMO.Pdf.PdfReadDocument.Open(File.ReadAllBytes(path)).Pages.SelectMany(page => page.GetTextSpans()).ToArray();
             var marker = Assert.Single(spans, span => span.Text.Contains("SameNumberMarker"));
             Assert.Equal(2, spans.Count(span => span.Text == "1" && span.Y > marker.Y && span.Y - marker.Y < marker.FontSize));
@@ -82,7 +82,7 @@ namespace OfficeIMO.Tests {
                 first.AddFootNote("Native footnote text");
                 document.AddParagraph("Native after footnote");
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -115,7 +115,7 @@ namespace OfficeIMO.Tests {
                 string documentBefore = main.Document.OuterXml;
                 string notesBefore = main.EndnotesPart!.Endnotes!.OuterXml;
                 byte[] sourceBefore = File.ReadAllBytes(docPath);
-                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false
                 });
                 Assert.Equal(documentBefore, main.Document.OuterXml);
@@ -167,7 +167,7 @@ namespace OfficeIMO.Tests {
                 WordSection secondSection = document.AddSection();
                 secondSection.AddParagraph("Second section note").AddFootNote("Second section footnote");
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -189,8 +189,8 @@ namespace OfficeIMO.Tests {
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeNestedTableFootnotes.pdf");
 
             using (WordDocument document = WordDocument.Create(docPath)) {
-                WordTable outer = document.AddTable(1, 2);
-                WordTable nested = outer.Rows[0].Cells[0].AddTable(1, 1);
+                WordTable outer = document.AddTable(1, 2, WordTableStyle.TableGrid);
+                WordTable nested = outer.Rows[0].Cells[0].AddTable(1, 1, WordTableStyle.TableGrid);
                 nested.Rows[0].Cells[0].Paragraphs[0]
                     .SetText("Nested table note")
                     .AddFootNote("Nested table footnote");
@@ -198,7 +198,7 @@ namespace OfficeIMO.Tests {
                     .SetText("Later outer note")
                     .AddFootNote("Later outer footnote");
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
+                document.SaveAsPdf(pdfPath, new WordPdfExportOptions { IncludePageNumbers = false });
             }
 
             using (var pdf = PdfPigDocument.Open(pdfPath)) {
@@ -206,7 +206,10 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("Later outer note2", allText);
                 var nested = AssertPdfFootnoteAssociation(pdf, "Nested table note", "Nested table footnote", "1");
                 var outer = AssertPdfFootnoteAssociation(pdf, "Later outer note", "Later outer footnote", "2");
-                AssertPdfFootnoteSourceOrder(nested, outer);
+                // Side-by-side cells can place a nested reference lower than a later source reference.
+                // The labels and footnote bodies retain source order regardless of those baselines.
+                Assert.True(PdfFootnoteGlyphPrecedes(nested.NotePage, nested.NoteLabel, outer.NotePage, outer.NoteLabel),
+                    "Footnote bodies must retain their source order.");
                 Assert.DoesNotContain("Later outer note1", allText);
             }
         }

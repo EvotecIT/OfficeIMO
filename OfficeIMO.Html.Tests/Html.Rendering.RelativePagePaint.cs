@@ -81,9 +81,9 @@ public sealed partial class HtmlRenderingTests {
         OfficeRasterImage last = OfficeDrawingRasterRenderer.Render(rendered.Pages[3].CreateDrawing());
         Assert.Equal(OfficeColor.FromRgb(0, 0, 255), last.GetPixel(100, offset < 0 ? 10 : 150));
 
-        byte[] pdf = input.ToPdfBytes(new HtmlToPdfOptions {
+        byte[] pdf = (input.ToPdf(new HtmlPdfExportOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
-        });
+        })).ToBytes();
         var links = PdfCore.PdfInspector.Inspect(pdf).LinkAnnotations.Where(link => link.Uri == "https://example.test/relative-image").ToArray();
         Assert.Equal(offset < 0 ? new[] { 1, 2, 3, 4 } : new[] { 2, 3, 4 },
             links.Select(link => link.PageNumber!.Value).Distinct().OrderBy(page => page));
@@ -114,9 +114,9 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(2, Assert.Single(RelativeTextPlacements(rendered, "TailMarker")).Page.PageNumber);
         OfficeRasterImage first = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         Assert.Equal(OfficeColor.FromRgb(255, 255, 0), first.GetPixel(1, 321));
-        var links = PdfCore.PdfInspector.Inspect(input.ToPdfBytes(new HtmlToPdfOptions {
+        var links = PdfCore.PdfInspector.Inspect((input.ToPdf(new HtmlPdfExportOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
-        })).LinkAnnotations.Where(link => link.Uri == uri).ToArray();
+        })).ToBytes()).LinkAnnotations.Where(link => link.Uri == uri).ToArray();
         Assert.Single(links);
         Assert.Equal(1, links[0].PageNumber);
         Assert.InRange(links[0].Y1, 40D, 65D);
@@ -179,7 +179,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void RelativePagePaint_ProjectsNamedFontAscentAndItsShadowAboveTheFrame() {
         byte[] font = OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithVerticalMetrics('A', 1069, -200, 1040);
-        var options = new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0D) };
+        var options = new HtmlPdfExportOptions { Margins = HtmlRenderMargins.All(0D) };
         options.ResourcePolicy.AllowDocumentFontEmbedding = true;
         options.PdfOptions.RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily("Arial", font));
         string html = "<style>@page{size:400px 400px;margin:0}body{margin:0}</style><div style='height:400px'></div>"
@@ -198,7 +198,7 @@ public sealed partial class HtmlRenderingTests {
     [InlineData(true)]
     public void RelativePagePaint_ProjectsNamedFontAndShadowBelowThePage(bool precedingNormalText) {
         byte[] font = OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithVerticalMetrics('A', 800, -100, 700);
-        var options = new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0D) };
+        var options = new HtmlPdfExportOptions { Margins = HtmlRenderMargins.All(0D) };
         options.ResourcePolicy.AllowDocumentFontEmbedding = true;
         options.PdfOptions.RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily("Arial", font));
         string html = "<style>@page{size:400px 400px;margin:0}body{margin:0}</style>"

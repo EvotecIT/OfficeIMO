@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Access;
 ///   <summary>Closes a native database without implicitly saving it.</summary>
 ///   <code>$database | Close-OfficeAccess</code>
 /// </example>
-[Cmdlet(VerbsCommon.Close, "OfficeAccess")]
+[Cmdlet(VerbsCommon.Close, "OfficeAccess", DefaultParameterSetName = "Document")]
 public sealed class CloseOfficeAccessCommand : PSCmdlet {
     /// <summary>Live database document.</summary>
     [Parameter(Mandatory = true, ValueFromPipeline = true)]

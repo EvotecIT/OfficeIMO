@@ -19,12 +19,12 @@ public sealed partial class ExportOfficeExcelCommand
             return false;
         }
 
-        var options = new ExcelTabularWriteOptions
+        var options = new ExcelWriterOptions
         {
             SheetName = WorksheetName,
             IncludeHeaders = !NoHeader.IsPresent,
             CreateTable = !NoTable.IsPresent,
-            TableName = TableName,
+            TableName = string.IsNullOrWhiteSpace(TableName) ? "ReaderData" : TableName,
             TableStyle = style,
             IncludeAutoFilter = !NoAutoFilter.IsPresent,
             IncludeCellReferences = false,

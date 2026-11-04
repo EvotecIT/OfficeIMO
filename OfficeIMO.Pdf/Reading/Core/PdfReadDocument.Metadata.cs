@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfReadDocument {
+internal sealed partial class PdfReadDocument {
     private string ToRaw() {
         // Reconstruct raw text for simple metadata extraction without reserialization; ok for small files.
         var sb = new StringBuilder();
@@ -19,13 +19,13 @@ public sealed partial class PdfReadDocument {
         return sb.ToString();
     }
 
-    private PdfMetadata ExtractMetadata(System.Threading.CancellationToken cancellationToken = default) {
+    private PdfDocumentProperties ExtractMetadata(System.Threading.CancellationToken cancellationToken = default) {
         // Trailer has /Info N G R when present.
         if (!PdfSyntax.TryGetTrailerReference(_trailerRaw, "Info", _options.Limits, out PdfReference infoReference, cancellationToken)) {
-            return new PdfMetadata();
+            return new PdfDocumentProperties();
         }
         if (!PdfObjectLookup.TryGet(_objects, infoReference, out var infoObj) ||
-            infoObj.Value is not PdfDictionary dict) return new PdfMetadata();
+            infoObj.Value is not PdfDictionary dict) return new PdfDocumentProperties();
         string? GetText(string key) =>
             dict.Items.TryGetValue(key, out PdfObject? value) && ResolveObject(value) is PdfStringObj text
                 ? text.Value
@@ -38,7 +38,7 @@ public sealed partial class PdfReadDocument {
         string? modificationDate = GetText("ModDate");
         bool creationDateIsProductionPrecise = PdfDateCodec.TryParseProductionDate(creationDate, out DateTimeOffset parsedCreationDate);
         bool modificationDateIsProductionPrecise = PdfDateCodec.TryParseProductionDate(modificationDate, out DateTimeOffset parsedModificationDate);
-        var metadata = new PdfMetadata {
+        var metadata = new PdfDocumentProperties {
             Title = GetText("Title"),
             Author = GetText("Author"),
             Subject = GetText("Subject"),

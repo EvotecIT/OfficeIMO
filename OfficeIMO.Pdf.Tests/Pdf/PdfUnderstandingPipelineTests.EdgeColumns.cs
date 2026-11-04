@@ -6,7 +6,7 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfUnderstandingPipelineTests {
     [Fact]
     public void RightAlignedLeftColumnContinuationDoesNotBecomeCenteredFooter() {
-        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.AddText("placeholder")).ToBytes();
         var options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = new FixedGlyphStage(new[] {
             new PdfTextSpan("LeftOne", "F1", 12, 50, 700, 230),
@@ -24,7 +24,7 @@ public partial class PdfUnderstandingPipelineTests {
     [InlineData(false)]
     [InlineData(true)]
     public void SeparatedColumnContinuationRetainsItsColumn(bool rightToLeft) {
-        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.AddText("placeholder")).ToBytes();
         var options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = new FixedGlyphStage(new[] {
             new PdfTextSpan("Left one", "F1", 12, 50, 700, 110),

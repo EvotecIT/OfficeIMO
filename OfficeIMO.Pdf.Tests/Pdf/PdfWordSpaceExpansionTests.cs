@@ -17,8 +17,8 @@ public sealed class PdfWordSpaceExpansionTests {
     [InlineData(PdfTextWhitespaceMode.Preserve, 12D)]
     [InlineData(PdfTextWhitespaceMode.Collapse, 12D)]
     public void SourceSpaceAdvancesOwnPreferredExpansionBeforeEqualRemainder(PdfTextWhitespaceMode whitespace, double adjustment) {
-        var runs = new[] { new PdfTextRun("Alpha"), new PdfTextRun(" ", fontSize: 12D),
-            new PdfTextRun("beta"), new PdfTextRun(" ", fontSize: 24D), new PdfTextRun("gamma") };
+        var runs = new[] { new PdfTextRun("Alpha"), new PdfTextRun(" ", fontSize: global::OfficeIMO.OfficeLength.Points(12D)),
+            new PdfTextRun("beta"), new PdfTextRun(" ", fontSize: global::OfficeIMO.OfficeLength.Points(24D)), new PdfTextRun("gamma") };
         string label = whitespace + "-" + adjustment.ToString("0.0", CultureInfo.InvariantCulture);
         List<Letter> natural = Letters(Render(runs, 300D, false, false, whitespace), label + "-natural");
         double width = Span(natural) + adjustment;
@@ -43,8 +43,8 @@ public sealed class PdfWordSpaceExpansionTests {
 
     [Fact]
     public void PreservedSourceSpacesRetainIndividualEqualRemainderShares() {
-        var runs = new[] { new PdfTextRun("Alpha"), new PdfTextRun("   ", fontSize: 8D),
-            new PdfTextRun("beta"), new PdfTextRun(" ", fontSize: 16D), new PdfTextRun("gamma") };
+        var runs = new[] { new PdfTextRun("Alpha"), new PdfTextRun("   ", fontSize: global::OfficeIMO.OfficeLength.Points(8D)),
+            new PdfTextRun("beta"), new PdfTextRun(" ", fontSize: global::OfficeIMO.OfficeLength.Points(16D)), new PdfTextRun("gamma") };
         List<Letter> natural = Letters(Render(runs, 300D, false, false, PdfTextWhitespaceMode.Preserve), "group-natural");
         const double adjustment = 12D;
         List<Letter> actual = Letters(Render(runs, Span(natural) + adjustment, true, true, PdfTextWhitespaceMode.Preserve), "group-native");
@@ -61,25 +61,27 @@ public sealed class PdfWordSpaceExpansionTests {
     public void ImportedWordExpansionAfterALeftTabMatchesTheSameIndentedWordField() {
         // Native Word preserves the body-word positions when an equal left-tab
         // field replaces a paragraph indent, including differently sized spaces.
-        var runs = new[] { new PdfTextRun("Alpha"), new PdfTextRun(" ", fontSize: 12D),
-            new PdfTextRun("beta"), new PdfTextRun(" ", fontSize: 24D),
-            new PdfTextRun("gamma"), new PdfTextRun(" ", fontSize: 12D), new PdfTextRun("delta") };
+        var runs = new[] { new PdfTextRun("Alpha"), new PdfTextRun(" ", fontSize: global::OfficeIMO.OfficeLength.Points(12D)),
+            new PdfTextRun("beta"), new PdfTextRun(" ", fontSize: global::OfficeIMO.OfficeLength.Points(24D)),
+            new PdfTextRun("gamma"), new PdfTextRun(" ", fontSize: global::OfficeIMO.OfficeLength.Points(12D)), new PdfTextRun("delta") };
         byte[] Render(bool anchored) {
             var style = new PdfParagraphStyle {
                 UseWordJustificationSpacing = true, JustificationMode = PdfJustificationMode.Words,
                 JustifyExplicitLineBreaks = true, JustifyLastLine = false,
-                LeftIndent = anchored ? 0D : 36D, LineSpacing = PdfLineSpacing.Exactly(36D),
+                LeftIndent = global::OfficeIMO.OfficeLength.Points(anchored ? 0D : 36D), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(36D)),
                 TextWhitespaceMode = PdfTextWhitespaceMode.Preserve
             };
-            if (anchored) style.AddTabStop(36D, PdfTabAlignment.Left);
-            return PdfDocument.Create(new PdfOptions {
-                PageWidth = 612D, PageHeight = 792D, MarginLeft = 72D, MarginRight = 360D,
-                MarginTop = 72D, MarginBottom = 72D, DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 12D, CompressContentStreams = false
-            }).Compose(document => document.Content(content => content.Paragraph(paragraph => {
-                if (anchored) paragraph.Text("TAG").Tab();
-                paragraph.Runs(runs).LineBreak().Text("NEXT");
-            }, PdfAlign.Justify, style: style))).ToBytes();
+            if (anchored) style.AddTabStop(global::OfficeIMO.OfficeLength.Points(36D), PdfTabAlignment.Left);
+            return PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(612D), global::OfficeIMO.OfficeLength.Points(792D)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(72D), Right = global::OfficeIMO.OfficeLength.Points(360D), Top = global::OfficeIMO.OfficeLength.Points(72D), Bottom = global::OfficeIMO.OfficeLength.Points(72D) }
+                }, DefaultFont = PdfStandardFont.Helvetica,
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D), CompressContentStreams = false
+            }).Compose(document => document.Content(content => content.AddParagraph(paragraph => {
+                if (anchored) { paragraph.AddText("TAG"); paragraph.AddTab(); }
+                paragraph.AddRuns(runs); paragraph.AddLineBreak(); paragraph.AddText("NEXT");
+            }, OfficeAlignment.Justify, style: style))).ToBytes();
         }
         List<List<Letter>> Lines(byte[] bytes) {
             using var pdf = PdfPigDocument.Open(bytes);
@@ -118,10 +120,12 @@ public sealed class PdfWordSpaceExpansionTests {
     }
 
     private static byte[] Render(PdfTextRun[] runs, double width, bool native, bool lastLine, PdfTextWhitespaceMode whitespace) =>
-        PdfDocument.Create(new PdfOptions { PageWidth = width + 40D, PageHeight = 300D,
-            MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D,
-            DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 12D, CompressContentStreams = false })
-        .Paragraph(p => p.Runs(runs), PdfAlign.Justify, style: new PdfParagraphStyle {
+        PdfDocument.Create(new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(width + 40D), global::OfficeIMO.OfficeLength.Points(300D)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(20D), Right = global::OfficeIMO.OfficeLength.Points(20D), Top = global::OfficeIMO.OfficeLength.Points(20D), Bottom = global::OfficeIMO.OfficeLength.Points(20D) }
+        },
+            DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D), CompressContentStreams = false })
+        .Paragraph(p => p.AddRuns(runs), OfficeAlignment.Justify, style: new PdfParagraphStyle {
             UseWordJustificationSpacing = native, JustifyLastLine = lastLine, TextWhitespaceMode = whitespace }).ToBytes();
 
     private static double Span(IReadOnlyList<Letter> letters) => letters[letters.Count - 1].EndBaseLine.X - letters[0].StartBaseLine.X;

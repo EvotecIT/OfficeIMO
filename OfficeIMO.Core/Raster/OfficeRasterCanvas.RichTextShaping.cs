@@ -13,7 +13,11 @@ public sealed partial class OfficeRasterCanvas {
         if (font is not IOfficeBoundedFontProgram || resolved != style
             || !TryGetShapedTextRun(text, font, features, OfficeTextDirection.LeftToRight, out var shaped)) return null;
         if (shaped.Direction is not (OfficeTextDirection.Auto or OfficeTextDirection.LeftToRight)) return null;
-        try { return new OfficePreparedTextShaping(font, text, shaped, _cancellationToken); }
+        try {
+            // Prepared CFF slices also paint through the SVG path without a canvas.
+            var cffBudget = font is IOfficeCffBoundedFontProgram ? _cffOperationBudget : null;
+            return new OfficePreparedTextShaping(font, text, shaped, _cancellationToken, cffBudget);
+        }
         catch (ArgumentException) { return null; } // Unsupported clusters/color glyphs keep the ordinary rendering path.
     }
 

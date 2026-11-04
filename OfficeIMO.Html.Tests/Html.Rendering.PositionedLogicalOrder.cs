@@ -184,7 +184,7 @@ public sealed partial class HtmlRenderingTests {
         string html = PositionedLogicalStyles + PositionedLogicalParagraphs("Lead", 4)
             + PositionedLogicalFrame(PositionedLogicalParagraphs("Frame", 6)) + "<p>Tail</p>";
         HtmlRenderOptions options = PositionedLogicalOptions();
-        options.PageSize = new OfficePageSize(300D / HtmlRenderOptions.CssPixelsPerInch, 120D / HtmlRenderOptions.CssPixelsPerInch);
+        options.PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(300D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(120D / HtmlRenderOptions.CssPixelsPerInch));
         HtmlRenderDocument rendered = HtmlRenderEngine.Execute(HtmlConversionDocument.Parse(html),
             HtmlRenderRequest.Create(profile, options: options)).Document;
 
@@ -302,7 +302,7 @@ public sealed partial class HtmlRenderingTests {
         Mode = HtmlRenderMode.Continuous,
         ViewportWidth = 300D,
         ViewportHeight = 240D,
-        PageSize = new OfficePageSize(300D / HtmlRenderOptions.CssPixelsPerInch, 240D / HtmlRenderOptions.CssPixelsPerInch),
+        PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(300D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(240D / HtmlRenderOptions.CssPixelsPerInch)),
         HonorCssPageRules = false,
         Margins = HtmlRenderMargins.All(0D)
     };

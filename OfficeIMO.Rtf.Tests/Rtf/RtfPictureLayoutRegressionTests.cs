@@ -36,7 +36,7 @@ public class RtfPictureLayoutRegressionTests {
         inline.AddText(" tail");
         string native = document.ToRtf();
         Assert.Contains("}\\par", native, StringComparison.Ordinal);
-        RtfDocument reopened = RtfDocument.Read(native).Document;
+        RtfDocument reopened = RtfDocument.ParseResult(native).Document;
         Assert.Collection(reopened.Blocks,
             block => Assert.Equal("Before", Assert.IsType<RtfParagraph>(block).ToPlainText()),
             block => Assert.IsType<RtfImage>(block),
@@ -52,7 +52,7 @@ public class RtfPictureLayoutRegressionTests {
     public void Native_Picture_Transforms_Survive_Normalization_Cloning_And_Image_Replacement() {
         RtfDocument document = CreatePicture();
         RtfImage source = Assert.IsType<RtfImage>(document.Blocks[0]);
-        RtfImage reopened = Assert.IsType<RtfImage>(RtfDocument.Read(document.ToRtf()).Document.Blocks[0]);
+        RtfImage reopened = Assert.IsType<RtfImage>(RtfDocument.ParseResult(document.ToRtf()).Document.Blocks[0]);
         Assert.Equal(150, reopened.ScaleXPercent);
         Assert.Equal(200, reopened.ScaleYPercent);
         Assert.Equal(200, reopened.CropLeftTwips);
@@ -64,7 +64,7 @@ public class RtfPictureLayoutRegressionTests {
         RtfImage clone = Assert.IsType<RtfImage>(document.Clone().Blocks[0]);
         clone.CropLeftTwips = 0;
         Assert.Equal(200, source.CropLeftTwips);
-        RtfLosslessEditor editor = RtfDocument.Read(document.ToRtf()).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(document.ToRtf()).EditLossless();
         Assert.True(editor.ReplaceImage(0, source));
         Assert.Equal(2100, Assert.IsType<RtfImage>(editor.ToReadResult().Document.Blocks[0]).ResolveLayout().VisibleWidthTwips);
     }
@@ -74,23 +74,23 @@ public class RtfPictureLayoutRegressionTests {
     [InlineData(true, 2700d)]
     public void Html_And_Saved_Word_Preserve_Visible_Crop_Geometry(bool padding, double visibleWidth) {
         RtfDocument document = CreatePicture(padding);
-        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
+        string html = document.ToHtml(RtfHtmlExportOptions.CreateRoundTripProfile());
         AngleSharp.Dom.IElement rendered = Assert.Single(new AngleSharp.Html.Parser.HtmlParser().ParseDocument(html).QuerySelectorAll("img"));
         Assert.Contains("overflow:hidden", rendered.ParentElement!.GetAttribute("style"), StringComparison.Ordinal);
-        RtfImage htmlImage = Assert.Single(HtmlConversionDocument.Parse(html).ToRtfDocument().Paragraphs.SelectMany(paragraph => paragraph.Inlines).OfType<RtfImage>());
+        RtfImage htmlImage = Assert.Single(HtmlConversionDocument.Parse(html).ToRtf().Paragraphs.SelectMany(paragraph => paragraph.Inlines).OfType<RtfImage>());
         Assert.Equal(visibleWidth, htmlImage.ResolveLayout().VisibleWidthTwips);
         Assert.Equal(padding ? -200 : 200, htmlImage.CropLeftTwips);
-        using WordDocument word = document.ToWordDocument();
+        using WordDocument word = document.ToWord();
         Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator().Validate(word._wordprocessingDocument));
         WordImage output = Assert.Single(word.Images);
-        Assert.Equal(visibleWidth / 15d, output.Width);
-        Assert.Equal(padding ? -10000 : 10000, output.CropLeft);
-        Assert.Equal(20000, output.CropRight);
+        Assert.Equal(visibleWidth / 15d, (output.Width?.ToPixels()));
+        Assert.Equal(padding ? -10000 : 10000, (output.CropLeftRatio is double cropRatio3 ? (int?)System.Math.Round(cropRatio3 * 100000D, System.MidpointRounding.AwayFromZero) : null));
+        Assert.Equal(20000, (output.CropRightRatio is double cropRatio5 ? (int?)System.Math.Round(cropRatio5 * 100000D, System.MidpointRounding.AwayFromZero) : null));
         using var bytes = new MemoryStream();
         word.Save(bytes);
         bytes.Position = 0;
         using WordDocument opened = WordDocument.Load(bytes);
-        RtfImage native = Assert.IsType<RtfImage>(opened.ToRtfDocument().Blocks[0]);
+        RtfImage native = Assert.IsType<RtfImage>(opened.ToRtf().Blocks[0]);
         Assert.Equal(visibleWidth, native.ResolveLayout().VisibleWidthTwips);
         Assert.Equal(2000, native.ResolveLayout().VisibleHeightTwips);
         Assert.Equal(100, native.SourceWidth);
@@ -101,7 +101,7 @@ public class RtfPictureLayoutRegressionTests {
     public void Pdf_Handles_Cropping_And_Padding_And_Rejects_Empty_Visible_Areas() {
         foreach (bool padding in new[] { false, true }) {
             RtfDocument document = CreatePicture(padding);
-            var result = document.ToPdfDocumentResult();
+            var result = document.ConvertToPdfWithEvidence();
             Assert.DoesNotContain(result.Warnings, warning => warning.Code is "ImageCropPaddingFlattened" or "ImageCropDecodeFailed" or "ImageLayoutInvalid");
             using var pdf = UglyToad.PdfPig.PdfDocument.Open(result.Value.ToBytes());
             Assert.Single(pdf.GetPage(1).GetImages());
@@ -116,8 +116,8 @@ public class RtfPictureLayoutRegressionTests {
         }
         RtfDocument invalid = CreatePicture();
         Assert.IsType<RtfImage>(invalid.Blocks[0]).CropLeftTwips = 2000;
-        Assert.Contains(invalid.ToHtmlResult(RtfToHtmlOptions.CreateRoundTripProfile()).RtfReport.Diagnostics, item => item.Code == "RtfHtmlImageLayoutInvalid" && item.Action == RtfConversionAction.Blocked);
-        Assert.Contains(invalid.ToPdfDocumentResult().Warnings, item => item.Code == "ImageLayoutInvalid");
-        Assert.Contains(invalid.ToWordDocumentResult().Report.Diagnostics, item => item.Code == "RtfWordImagesOmitted" && item.Action == RtfConversionAction.Omitted);
+        Assert.Contains(invalid.ConvertToHtmlWithEvidence(RtfHtmlExportOptions.CreateRoundTripProfile()).RtfReport.NativeDiagnostics, item => item.Code == "RtfHtmlImageLayoutInvalid" && item.Action == RtfConversionAction.Blocked);
+        Assert.Contains(invalid.ConvertToPdfWithEvidence().Warnings, item => item.Code == "ImageLayoutInvalid");
+        Assert.Contains(invalid.ConvertToWordWithEvidence().Report.NativeDiagnostics, item => item.Code == "RtfWordImagesOmitted" && item.Action == RtfConversionAction.Omitted);
     }
 }

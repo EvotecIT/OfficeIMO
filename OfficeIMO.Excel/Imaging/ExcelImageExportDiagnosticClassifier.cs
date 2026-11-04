@@ -42,6 +42,7 @@ namespace OfficeIMO.Excel {
                 case ExcelImageExportDiagnosticCodes.DrawingShapeTextAutoFitUnsupported:
                 case ExcelImageExportDiagnosticCodes.DrawingShapeTextVerticalOrientationUnsupported:
                 case ExcelImageExportDiagnosticCodes.ChartBubbleSettingsApproximated:
+                case OfficeDiagnosticCodes.ChartFlattened:
                 case ExcelImageExportDiagnosticCodes.ChartKindApproximated:
                 case ExcelImageExportDiagnosticCodes.ChartDataLabelPointOverridesApproximated:
                 case ExcelImageExportDiagnosticCodes.ChartAreaStyleApproximation:

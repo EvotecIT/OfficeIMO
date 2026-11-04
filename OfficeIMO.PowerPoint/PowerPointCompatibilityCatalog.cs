@@ -4,7 +4,7 @@ using OfficeIMO.PowerPoint.LegacyPpt.Capabilities;
 namespace OfficeIMO.PowerPoint;
 
 /// <summary>Versioned capability contract for PowerPoint 97-2003 PPT/POT/PPS interoperability.</summary>
-public static class PowerPointCompatibilityCatalog {
+internal static class PowerPointCompatibilityCatalog {
     /// <summary>Gets the current machine-readable binary PowerPoint contract.</summary>
     public static OfficeCapabilityCatalog Current { get; } = new(
         "OfficeIMO.PowerPoint.LegacyPpt",

@@ -100,7 +100,7 @@ public sealed partial class PdfStaticFormRecognizerTests {
         byte[] pdf = StaticPdf("0 g 0 G 1 w 80 80 120 20 re S " + (placement == 0 ? text : "/Fm1 Do"),
             "/Resources << " + resources + " /XObject << /Fm1 5 0 R >> >> ", objects);
         PdfTextSpan span = Assert.Single(PdfReadDocument.Open(pdf).Pages[0].GetTextSpans());
-        Assert.Equal(OfficeIMO.Drawing.OfficeColor.White, span.Color);
+        Assert.Equal(OfficeIMO.OfficeColor.White, span.Color);
         Assert.Empty(PdfDocument.Load(pdf).Forms.RecognizeStaticLayout().Proposals);
     }
 

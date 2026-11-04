@@ -32,7 +32,7 @@ public sealed class PublisherFormattingTopologyWritingTests {
                 var cell = table!.Cells[n]; document.ReplaceTableCellParagraphs(table.Id, cell.RowIndex, cell.ColumnIndex, Select(cell.Paragraphs));
             }
         } else document.ReplaceStoryParagraphs(story.Id, Select(story.Paragraphs));
-        byte[] output = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        byte[] output = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         PublisherDocument saved = PublisherDocument.Load(output);
         if (operation == "resource-growth") {
             Assert.Contains("Consolas", saved.SourceStyleCatalog.Fonts);
@@ -90,7 +90,7 @@ public sealed class PublisherFormattingTopologyWritingTests {
         var requested = finalOnly ? new[] { replacement } : new[] { replacement, values[2] };
         if (cells) document.ReplaceTableCellParagraphs(table!.Id, 0, 0, requested);
         else document.ReplaceStoryParagraphs(story.Id, requested);
-        var error = Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        var error = Assert.Throws<OfficeConversionException>(() => document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         Assert.True(Assert.IsType<PublisherSaveReport>(error.Report).HasErrors);
     }
 
@@ -142,7 +142,7 @@ public sealed class PublisherFormattingTopologyWritingTests {
 
     private static byte[]? Field(byte[] definition, byte id) {
         var data = new Internal.PublisherBinaryData(definition, "test/native-definition");
-        var context = new Internal.PublisherParseContext(new PublisherReadOptions(), CancellationToken.None);
+        var context = new Internal.PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None);
         var fields = new Internal.PublisherBlockReader(data, context).Chunk(0, definition.Length).Where(f => f.Id == id).ToArray();
         if (fields.Length == 0) return null;
         var field = Assert.Single(fields);

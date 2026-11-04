@@ -41,7 +41,7 @@ public sealed class AddOfficePdfSpacerCommand : PSCmdlet
     protected override void ProcessRecord()
     {
         var document = PdfCommandUtilities.ComposeContent(this, Document, ParameterSetName, ParameterSetDocument,
-            content => content.Spacer(Height));
+            content => content.Spacer(global::OfficeIMO.OfficeLength.Points(Height)));
         if (PassThru.IsPresent && document != null)
         {
             WriteObject(document);

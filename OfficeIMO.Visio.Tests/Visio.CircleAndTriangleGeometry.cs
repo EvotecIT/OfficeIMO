@@ -13,9 +13,9 @@ namespace OfficeIMO.Tests {
         public void CircleAndTriangleEmitExpectedGeometry() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             var doc = VisioDocument.Create(filePath);
-            doc.AsFluent().Page("Page-1", p => p
-                .Circle("C1", x: 2, y: 2, diameter: 1)
-                .Triangle("T1", x: 4, y: 4, width: 2, height: 1));
+            doc.AsFluent().AddPage("Page-1", p => p
+                .AddCircle("C1", x:OfficeLength.Inches( 2), y:OfficeLength.Inches( 2), diameter:OfficeLength.Inches( 1))
+                .AddTriangle("T1", x:OfficeLength.Inches( 4), y:OfficeLength.Inches( 4), width:OfficeLength.Inches( 2), height:OfficeLength.Inches( 1)));
             doc.Save();
 
             using Package package = Package.Open(filePath, FileMode.Open, FileAccess.Read);

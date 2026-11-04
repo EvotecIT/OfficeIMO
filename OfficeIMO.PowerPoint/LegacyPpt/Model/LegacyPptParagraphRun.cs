@@ -1,6 +1,6 @@
 namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Specifies a binary PowerPoint paragraph alignment.</summary>
-    public enum LegacyPptTextAlignment : ushort {
+    internal enum LegacyPptTextAlignment : ushort {
         /// <summary>Left for horizontal text or top for vertical text.</summary>
         Left = 0,
         /// <summary>Centered.</summary>
@@ -18,7 +18,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     }
 
     /// <summary>Specifies how characters align within a line height.</summary>
-    public enum LegacyPptFontAlignment : ushort {
+    internal enum LegacyPptFontAlignment : ushort {
         /// <summary>Align on the font baseline.</summary>
         Baseline = 0,
         /// <summary>Hang characters from the top of the line.</summary>
@@ -30,7 +30,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     }
 
     /// <summary>Specifies paragraph text direction.</summary>
-    public enum LegacyPptTextDirection : ushort {
+    internal enum LegacyPptTextDirection : ushort {
         /// <summary>Left-to-right text.</summary>
         LeftToRight = 0,
         /// <summary>Right-to-left text.</summary>
@@ -38,7 +38,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     }
 
     /// <summary>Specifies a classic PowerPoint automatic-numbering scheme.</summary>
-    public enum LegacyPptAutoNumberScheme : ushort {
+    internal enum LegacyPptAutoNumberScheme : ushort {
         /// <summary>Lowercase Latin letter followed by a period.</summary>
         AlphaLowerPeriod = 0x0000,
         /// <summary>Uppercase Latin letter followed by a period.</summary>
@@ -124,7 +124,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     }
 
     /// <summary>Specifies how text aligns at a binary PowerPoint tab stop.</summary>
-    public enum LegacyPptTabAlignment : ushort {
+    internal enum LegacyPptTabAlignment : ushort {
         /// <summary>Text starts at the tab stop.</summary>
         Left = 0,
         /// <summary>Text is centered on the tab stop.</summary>
@@ -136,7 +136,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     }
 
     /// <summary>Represents one tab stop from binary PowerPoint paragraph formatting.</summary>
-    public sealed class LegacyPptTabStop {
+    internal sealed class LegacyPptTabStop {
         internal LegacyPptTabStop(short position, LegacyPptTabAlignment alignment) {
             Position = position;
             Alignment = alignment;
@@ -150,7 +150,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     }
 
     /// <summary>Represents one paragraph-formatting run from a binary PowerPoint text box.</summary>
-    public sealed class LegacyPptParagraphRun {
+    internal sealed class LegacyPptParagraphRun {
         internal LegacyPptParagraphRun(int start, int length, ushort indentLevel,
             bool? hasBullet, bool? bulletHasFont, bool? bulletHasColor, bool? bulletHasSize,
             char? bulletCharacter, ushort? bulletFontIndex, string? bulletTypeface,

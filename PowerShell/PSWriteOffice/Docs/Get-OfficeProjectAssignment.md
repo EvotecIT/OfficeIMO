@@ -9,7 +9,7 @@ schema: 2.0.0
 Returns project assignments.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
 Get-OfficeProjectAssignment -Document <ProjectDocument> [-Uid <int[]>] [<CommonParameters>]
 ```
@@ -32,7 +32,7 @@ Project document.
 
 ```yaml
 Type: ProjectDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -48,7 +48,7 @@ Optional stable identities.
 
 ```yaml
 Type: Int32[]
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 

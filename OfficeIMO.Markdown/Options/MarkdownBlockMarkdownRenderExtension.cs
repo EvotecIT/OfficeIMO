@@ -4,7 +4,7 @@ namespace OfficeIMO.Markdown;
 /// Delegate used to override markdown emitted for a specific block type during document serialization.
 /// Returning <see langword="null"/> falls back to the block's built-in markdown rendering.
 /// </summary>
-public delegate string? MarkdownBlockMarkdownRenderer(IMarkdownBlock block, MarkdownWriteOptions options);
+public delegate string? MarkdownBlockMarkdownRenderer(IMarkdownBlock block, MarkdownSaveOptions options);
 
 /// <summary>
 /// Delegate used to override markdown emitted for a specific block type during document serialization with access

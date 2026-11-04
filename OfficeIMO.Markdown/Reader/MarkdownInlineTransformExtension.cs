@@ -8,7 +8,7 @@ public sealed class MarkdownInlineTransformContext {
 
     internal MarkdownInlineTransformContext(
         string sourceText,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState? state,
         bool isNestedSequence) {
         SourceText = sourceText ?? string.Empty;
@@ -24,7 +24,7 @@ public sealed class MarkdownInlineTransformContext {
     public string SourceText { get; }
 
     /// <summary>Reader options active for the current parse.</summary>
-    public MarkdownReaderOptions Options { get; }
+    public MarkdownLoadOptions Options { get; }
 
     /// <summary>
     /// Returns <see langword="true"/> when the transform is visiting a nested inline container sequence.
@@ -81,7 +81,7 @@ public sealed class MarkdownInlineTransformExtension {
     public MarkdownInlineTransformExtension(
         string name,
         MarkdownInlineTransform transform,
-        Func<MarkdownReaderOptions, bool>? isEnabled = null) {
+        Func<MarkdownLoadOptions, bool>? isEnabled = null) {
         if (string.IsNullOrWhiteSpace(name)) {
             throw new ArgumentException("Extension name cannot be null or whitespace.", nameof(name));
         }
@@ -98,8 +98,8 @@ public sealed class MarkdownInlineTransformExtension {
     public MarkdownInlineTransform Transform { get; }
 
     /// <summary>Optional predicate that decides whether the extension should apply for a specific options instance.</summary>
-    public Func<MarkdownReaderOptions, bool>? IsEnabled { get; }
+    public Func<MarkdownLoadOptions, bool>? IsEnabled { get; }
 
     /// <summary>Returns <see langword="true"/> when the extension should participate in inline transformation.</summary>
-    public bool AppliesTo(MarkdownReaderOptions options) => IsEnabled?.Invoke(options) ?? true;
+    public bool AppliesTo(MarkdownLoadOptions options) => IsEnabled?.Invoke(options) ?? true;
 }

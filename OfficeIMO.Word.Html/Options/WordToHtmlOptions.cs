@@ -5,21 +5,24 @@ namespace OfficeIMO.Word.Html {
     /// <summary>
     /// Options controlling Word to HTML conversion.
     /// </summary>
-    public class WordToHtmlOptions {
+    public class WordHtmlExportOptions {
+        /// <summary>Rejects a converted target when completed stages report fidelity loss.</summary>
+        public bool FailOnLoss { get; set; }
+
         private WordHtmlExportProfile _exportProfile = WordHtmlExportProfile.SemanticDocument;
         private OfficeHtmlDocumentOptions _documentOutput = new() {
             Title = null,
             Language = null,
             Theme = OfficeVisualThemeKind.WordLike,
-            IncludeDefaultStyles = false,
+            IncludeDefaultStyles = true,
             BodyClass = "officeimo-html officeimo-word-html"
         };
 
         /// <summary>
         /// Creates a readable semantic-document export with shared OfficeIMO document styling.
         /// </summary>
-        public static WordToHtmlOptions CreateSemanticDocumentProfile(OfficeVisualThemeKind theme = OfficeVisualThemeKind.WordLike) =>
-            new WordToHtmlOptions {
+        public static WordHtmlExportOptions CreateSemanticDocumentProfile(OfficeVisualThemeKind theme = OfficeVisualThemeKind.WordLike) =>
+            new WordHtmlExportOptions {
                 ExportProfile = WordHtmlExportProfile.SemanticDocument,
                 Theme = theme,
                 IncludeDefaultCss = true,
@@ -30,15 +33,15 @@ namespace OfficeIMO.Word.Html {
                 IncludeParagraphIndentationStyles = true,
                 IncludeTableColumnGroups = true,
                 IncludeDrawingReviewMetadata = true,
-                TrackedChangePolicy = WordTrackedChangeExportPolicy.Final,
+                TrackedChangePolicy = WordTrackedChangeExportPolicy.Markup,
                 FieldPolicy = WordFieldExportPolicy.VisibleResult
             };
 
         /// <summary>
         /// Creates a trusted editable round-trip export with document structure and private review metadata enabled.
         /// </summary>
-        public static WordToHtmlOptions CreateDocumentRoundTripProfile(OfficeVisualThemeKind theme = OfficeVisualThemeKind.Report) =>
-            new WordToHtmlOptions {
+        public static WordHtmlExportOptions CreateDocumentRoundTripProfile(OfficeVisualThemeKind theme = OfficeVisualThemeKind.Report) =>
+            new WordHtmlExportOptions {
                 ExportProfile = WordHtmlExportProfile.DocumentRoundTrip,
                 Theme = theme,
                 IncludeDefaultCss = true,
@@ -63,8 +66,8 @@ namespace OfficeIMO.Word.Html {
         /// <summary>
         /// Creates a print-oriented review export with section, header, footer, and generated print styling.
         /// </summary>
-        public static WordToHtmlOptions CreatePrintReviewProfile(OfficeVisualThemeKind theme = OfficeVisualThemeKind.WordLike) =>
-            new WordToHtmlOptions {
+        public static WordHtmlExportOptions CreatePrintReviewProfile(OfficeVisualThemeKind theme = OfficeVisualThemeKind.WordLike) =>
+            new WordHtmlExportOptions {
                 ExportProfile = WordHtmlExportProfile.PrintReview,
                 Theme = theme,
                 IncludeDefaultCss = true,
@@ -79,7 +82,7 @@ namespace OfficeIMO.Word.Html {
                 IncludeSectionMetadata = true,
                 IncludeTableColumnGroups = true,
                 IncludeDrawingReviewMetadata = true,
-                TrackedChangePolicy = WordTrackedChangeExportPolicy.Final,
+                TrackedChangePolicy = WordTrackedChangeExportPolicy.Markup,
                 FieldPolicy = WordFieldExportPolicy.VisibleResultWithReviewMetadata
             };
 
@@ -140,8 +143,8 @@ namespace OfficeIMO.Word.Html {
         /// <summary>Newline sequence used between generated document-shell constructs.</summary>
         public string NewLine { get => DocumentOutput.NewLine; set => DocumentOutput.NewLine = value; }
 
-        /// <summary>Tracked-change view projected into static HTML. Defaults to the final document view.</summary>
-        public WordTrackedChangeExportPolicy TrackedChangePolicy { get; set; } = WordTrackedChangeExportPolicy.Final;
+        /// <summary>Tracked-change view projected into static HTML. Defaults to markup, matching the PDF export, so insertions and deletions stay visible.</summary>
+        public WordTrackedChangeExportPolicy TrackedChangePolicy { get; set; } = WordTrackedChangeExportPolicy.Markup;
 
         /// <summary>Field representation used by the static HTML export.</summary>
         public WordFieldExportPolicy FieldPolicy { get; set; } = WordFieldExportPolicy.VisibleResult;
@@ -291,8 +294,8 @@ namespace OfficeIMO.Word.Html {
         public List<(string Rel, string Href)> AdditionalLinkTags { get; } = new();
 
         /// <summary>
-        /// When true, injects a small, built-in "Word-like" CSS into the HTML &lt;head&gt; to make output readable out-of-the-box.
-        /// Default is false to preserve legacy behavior.
+        /// Includes the default OfficeIMO theme CSS for readable standalone output. Enabled by default.
+        /// Set to false when the host page supplies its own styles.
         /// </summary>
         public bool IncludeDefaultCss { get => DocumentOutput.IncludeDefaultStyles; set => DocumentOutput.IncludeDefaultStyles = value; }
 
@@ -304,8 +307,9 @@ namespace OfficeIMO.Word.Html {
 
         internal OfficeIMO.Html.HtmlDiagnosticReport ConversionReport { get; } = new OfficeIMO.Html.HtmlDiagnosticReport();
 
-        internal WordToHtmlOptions CloneForConversion() {
-            var clone = new WordToHtmlOptions {
+        internal WordHtmlExportOptions CloneForConversion() {
+            var clone = new WordHtmlExportOptions {
+                FailOnLoss = FailOnLoss,
                 ExportProfile = ExportProfile,
                 DocumentOutput = DocumentOutput.Clone(),
                 TrackedChangePolicy = TrackedChangePolicy,

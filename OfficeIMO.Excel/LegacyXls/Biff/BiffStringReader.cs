@@ -3,6 +3,8 @@ using OfficeIMO.Excel.LegacyXls.Model;
 
 namespace OfficeIMO.Excel.LegacyXls.Biff {
     internal static class BiffStringReader {
+        private static readonly Encoding CompressedUnicodeEncoding = Encoding.GetEncoding(28591);
+
         internal static string ReadShortUnicodeString(byte[] bytes, ref int offset) {
             if (offset >= bytes.Length) throw new InvalidDataException("Unexpected end of BIFF short string.");
             int charCount = bytes[offset++];
@@ -94,7 +96,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (payloads.Count == 0 || payloads[0].Length < 8) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-SST-SHORT",
+                    "xls-biff-sst-short",
                     "The shared string table record is too short.",
                     recordOffset: recordOffset,
                     recordType: (ushort)BiffRecordType.Sst));
@@ -117,7 +119,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 } catch (InvalidDataException ex) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Warning,
-                        "XLS-BIFF-SST-STRING-INVALID",
+                        "xls-biff-sst-string-invalid",
                         FormattableString.Invariant($"Shared string index {index} could not be read. {ex.Message}"),
                         recordOffset: recordOffset,
                         recordType: (ushort)BiffRecordType.Sst));
@@ -137,7 +139,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 } catch (InvalidDataException ex) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Warning,
-                        "XLS-BIFF-SST-STRING-INVALID",
+                        "xls-biff-sst-string-invalid",
                         FormattableString.Invariant($"Shared string index {index} could not be read. {ex.Message}"),
                         recordOffset: recordOffset,
                         recordType: (ushort)BiffRecordType.Sst));
@@ -147,7 +149,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if ((uint)strings.Count != uniqueCount && diagnostics.Count == 0) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-SST-STRING-INVALID",
+                    "xls-biff-sst-string-invalid",
                     FormattableString.Invariant(
                         $"The shared string table ended after {strings.Count} of {uniqueCount} declared unique strings."),
                     recordOffset: recordOffset,
@@ -161,7 +163,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (payloads.Count == 0 || payloads[0].Length < 8) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-SST-SHORT",
+                    "xls-biff-sst-short",
                     "The shared string table record is too short.",
                     recordOffset: recordOffset,
                     recordType: (ushort)BiffRecordType.Sst));
@@ -180,7 +182,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 } catch (InvalidDataException ex) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Warning,
-                        "XLS-BIFF-SST-STRING-INVALID",
+                        "xls-biff-sst-string-invalid",
                         FormattableString.Invariant($"Shared string index {i} could not be read. {ex.Message}"),
                         recordOffset: recordOffset,
                         recordType: (ushort)BiffRecordType.Sst));
@@ -439,8 +441,21 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     throw new InvalidDataException("The BIFF string character count is invalid.");
                 }
 
-                var builder = new StringBuilder(charCount);
+                if (charCount == 0) return string.Empty;
                 bool currentUtf16 = isUtf16;
+                EnsureStringVariableDataAvailable(ref currentUtf16);
+                byte[] firstSegment = _segments[_segmentIndex];
+                int bytesPerCharacter = currentUtf16 ? 2 : 1;
+                if (charCount <= (firstSegment.Length - _offset) / bytesPerCharacter) {
+                    int byteCount = charCount * bytesPerCharacter;
+                    string text = (currentUtf16 ? Encoding.Unicode : CompressedUnicodeEncoding)
+                        .GetString(firstSegment, _offset, byteCount);
+                    _offset += byteCount;
+                    return text;
+                }
+
+                // Only strings crossing a CONTINUE boundary need incremental assembly.
+                var builder = new StringBuilder(charCount);
                 int remaining = charCount;
                 while (remaining > 0) {
                     EnsureStringVariableDataAvailable(ref currentUtf16);

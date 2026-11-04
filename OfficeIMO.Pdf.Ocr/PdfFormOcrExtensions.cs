@@ -17,7 +17,7 @@ public static class PdfFormOcrExtensions {
         PdfOcrMergeOptions? options = null, CancellationToken cancellationToken = default) {
         Guard.NotNull(document, nameof(document)); Guard.NotNull(engine, nameof(engine));
         cancellationToken.ThrowIfCancellationRequested();
-        var snapshot = PdfDocument.Load(document.ToBytes(cancellationToken), document.ReadOptions);
+        var snapshot = PdfDocument.Load(document.SerializeBytes(cancellationToken), document.ReadOptions);
         var effective = options?.Clone() ?? new PdfOcrMergeOptions();
         effective.AwaitProviderSettlement = true;
         var info = snapshot.Inspect(snapshot.ReadOptions, cancellationToken);

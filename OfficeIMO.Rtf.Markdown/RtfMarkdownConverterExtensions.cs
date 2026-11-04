@@ -1,180 +1,155 @@
 using System;
 using System.IO;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text;
 using OfficeIMO.Markdown;
 using OfficeIMO.Rtf;
 using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Rtf.Markdown;
 
-/// <summary>
-/// Semantic conversion helpers between OfficeIMO RTF and Markdown document models.
-/// </summary>
+/// <summary>Semantic conversion between OfficeIMO RTF and Markdown document models.</summary>
 public static partial class RtfMarkdownConverterExtensions {
-    /// <summary>
-    /// Converts an RTF document into a Markdown document model.
-    /// </summary>
-    public static MarkdownDoc ToMarkdownDocument(this RtfDocument document, RtfToMarkdownOptions? options = null) {
-        return document.ToMarkdownDocumentResult(options).Value;
-    }
-
-    /// <summary>Converts an RTF document into Markdown together with per-operation fidelity diagnostics.</summary>
-    public static RtfConversionResult<MarkdownDoc> ToMarkdownDocumentResult(this RtfDocument document, RtfToMarkdownOptions? options = null) {
+    internal static RtfConversionResult<MarkdownDocument> ConvertToMarkdownWithEvidence(this RtfDocument document, RtfMarkdownExportOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        var context = new RtfToMarkdownConversionContext(options ?? new RtfToMarkdownOptions());
+        var context = new RtfToMarkdownConversionContext(options ?? new RtfMarkdownExportOptions());
         context.ConversionReport.Merge(document.GetStyleConversionDiagnostics());
-        MarkdownDoc value = RtfToMarkdownConverter.Convert(document, context);
-        return new RtfConversionResult<MarkdownDoc>(value, context.ConversionReport);
+        MarkdownDocument value = RtfToMarkdownConverter.Convert(document, context);
+        return new RtfConversionResult<MarkdownDocument>(value, context.ConversionReport);
     }
 
-    /// <summary>
-    /// Converts an RTF document into Markdown text.
-    /// </summary>
-    public static string ToMarkdown(this RtfDocument document, RtfToMarkdownOptions? options = null) {
-        return document.ToMarkdownResult(options).Value;
+    internal static RtfConversionResult<string> ConvertToMarkdownTextWithEvidence(this RtfDocument document, RtfMarkdownExportOptions? options = null) {
+        RtfConversionResult<MarkdownDocument> converted = document.ConvertToMarkdownWithEvidence(options);
+        return new RtfConversionResult<string>(converted.Value.ToMarkdown(options?.MarkdownWriteOptions), converted.Report);
     }
 
-    /// <summary>Converts an RTF document into Markdown text with per-operation fidelity diagnostics.</summary>
-    public static RtfConversionResult<string> ToMarkdownResult(this RtfDocument document, RtfToMarkdownOptions? options = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        var effectiveOptions = options ?? new RtfToMarkdownOptions();
-        RtfConversionResult<MarkdownDoc> converted = document.ToMarkdownDocumentResult(effectiveOptions);
-        string value = converted.Value.ToMarkdown(effectiveOptions.MarkdownWriteOptions);
-        return new RtfConversionResult<string>(value, converted.Report);
-    }
-
-    /// <summary>Converts an RTF document into encoded Markdown bytes.</summary>
-    public static byte[] ToMarkdownBytes(
-        this RtfDocument document,
-        RtfToMarkdownOptions? options = null,
-        Encoding? encoding = null) =>
-        (encoding ?? new UTF8Encoding(false)).GetBytes(document.ToMarkdown(options));
-
-    /// <summary>Converts an RTF document into a writable Markdown stream positioned at the beginning.</summary>
-    public static MemoryStream ToMarkdownStream(
-        this RtfDocument document,
-        RtfToMarkdownOptions? options = null,
-        Encoding? encoding = null) =>
-        new MemoryStream(document.ToMarkdownBytes(options, encoding));
-
-    /// <summary>
-    /// Writes an RTF document as Markdown text.
-    /// </summary>
-    public static void SaveAsMarkdown(this RtfDocument document, string path, RtfToMarkdownOptions? options = null, Encoding? encoding = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Output path is required.", nameof(path));
-
-        OfficeFileCommit.WriteAllBytes(path, document.ToMarkdownBytes(options, encoding));
-    }
-
-    /// <summary>Writes an RTF document as Markdown to a caller-owned stream.</summary>
-    public static void SaveAsMarkdown(
-        this RtfDocument document,
-        Stream stream,
-        RtfToMarkdownOptions? options = null,
-        Encoding? encoding = null) =>
-        OfficeStreamWriter.WriteAllBytes(stream, document.ToMarkdownBytes(options, encoding));
-
-    /// <summary>Asynchronously writes an RTF document as Markdown to a path.</summary>
-    public static Task SaveAsMarkdownAsync(
-        this RtfDocument document,
-        string path,
-        RtfToMarkdownOptions? options = null,
-        Encoding? encoding = null,
-        CancellationToken cancellationToken = default) =>
-        OfficeFileCommit.WriteAllBytesAsync(path, document.ToMarkdownBytes(options, encoding), cancellationToken: cancellationToken);
-
-    /// <summary>Asynchronously writes an RTF document as Markdown to a caller-owned stream.</summary>
-    public static Task SaveAsMarkdownAsync(
-        this RtfDocument document,
-        Stream stream,
-        RtfToMarkdownOptions? options = null,
-        Encoding? encoding = null,
-        CancellationToken cancellationToken = default) =>
-        OfficeStreamWriter.WriteAllBytesAsync(stream, document.ToMarkdownBytes(options, encoding), cancellationToken);
-
-    /// <summary>
-    /// Converts a Markdown document model into an RTF document.
-    /// </summary>
-    public static RtfDocument ToRtfDocument(this MarkdownDoc markdown, MarkdownToRtfOptions? options = null) {
-        return markdown.ToRtfDocumentResult(options).Value;
-    }
-
-    /// <summary>Converts Markdown into an RTF document together with per-operation fidelity diagnostics.</summary>
-    public static RtfConversionResult<RtfDocument> ToRtfDocumentResult(this MarkdownDoc markdown, MarkdownToRtfOptions? options = null) {
+    internal static RtfConversionResult<RtfDocument> ConvertToRtfWithEvidence(this MarkdownDocument markdown, MarkdownRtfExportOptions? options = null) {
         if (markdown == null) throw new ArgumentNullException(nameof(markdown));
-        var context = new MarkdownToRtfConversionContext(options ?? new MarkdownToRtfOptions());
+        var context = new MarkdownToRtfConversionContext(options ?? new MarkdownRtfExportOptions());
         RtfDocument value = MarkdownToRtfConverter.Convert(markdown, context);
         return new RtfConversionResult<RtfDocument>(value, context.ConversionReport);
     }
 
-    /// <summary>Converts a parsed Markdown document into RTF text.</summary>
-    public static string ToRtf(this MarkdownDoc markdown, MarkdownToRtfOptions? options = null, RtfWriteOptions? writeOptions = null) {
-        return markdown.ToRtfResult(options, writeOptions).Value;
+    /// <summary>Converts an RTF document into a Markdown document model.</summary>
+    public static MarkdownDocument ToMarkdown(this RtfDocument document, RtfMarkdownExportOptions? options = null, CancellationToken cancellationToken = default) =>
+        document.ToMarkdown(options, out _, cancellationToken);
+
+    /// <summary>Converts an RTF document into a Markdown document model and returns the completed conversion report.</summary>
+    public static MarkdownDocument ToMarkdown(this RtfDocument document, RtfMarkdownExportOptions? options, out OfficeConversionReport report,
+        CancellationToken cancellationToken = default) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        cancellationToken.ThrowIfCancellationRequested();
+        RtfConversionResult<MarkdownDocument> result = document.ConvertToMarkdownWithEvidence(options);
+        MarkdownDocument value = result.Value;
+        OfficeConversionReport source = result.Report;
+        return OfficeConversionOutput.Complete(value, source, options?.FailOnLoss == true, out report);
     }
 
-    /// <summary>Converts a parsed Markdown document into RTF text with per-operation fidelity diagnostics.</summary>
-    public static RtfConversionResult<string> ToRtfResult(
-        this MarkdownDoc markdown,
-        MarkdownToRtfOptions? options = null,
-        RtfWriteOptions? writeOptions = null) {
-        RtfConversionResult<RtfDocument> converted = markdown.ToRtfDocumentResult(options);
-        return new RtfConversionResult<string>(converted.Value.ToRtf(writeOptions), converted.Report);
+    /// <summary>Converts an RTF document into a Markdown document model, returning the value and report together.</summary>
+    /// <remarks>Conversion is CPU-bound and runs on the thread pool so the caller is not blocked.</remarks>
+    public static Task<OfficeConversionResult<MarkdownDocument>> ToMarkdownAsync(this RtfDocument document, RtfMarkdownExportOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        options = options?.Clone();
+        return OfficeConversionOutput.RunAsync(() => (document.ToMarkdown(options, out OfficeConversionReport report, cancellationToken), report), cancellationToken);
     }
 
-    /// <summary>Converts a parsed Markdown document into encoded RTF bytes.</summary>
-    public static byte[] ToRtfBytes(
-        this MarkdownDoc markdown,
-        MarkdownToRtfOptions? options = null,
-        RtfWriteOptions? writeOptions = null,
-        Encoding? encoding = null) =>
-        (encoding ?? new UTF8Encoding(false)).GetBytes(markdown.ToRtf(options, writeOptions));
+    /// <summary>Writes the converted output to a path and returns the conversion report.</summary>
+    public static OfficeConversionReport SaveAsMarkdown(this RtfDocument document, string path, RtfMarkdownExportOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        MarkdownDocument value = document.ToMarkdown(options, out OfficeConversionReport report, cancellationToken);
+        return OfficeConversionOutput.Save(report, path, OfficeConversionOutput.Text(value.ToMarkdown(options?.MarkdownWriteOptions), options?.Encoding));
+    }
 
-    /// <summary>Converts a parsed Markdown document into a writable RTF stream positioned at the beginning.</summary>
-    public static MemoryStream ToRtfStream(
-        this MarkdownDoc markdown,
-        MarkdownToRtfOptions? options = null,
-        RtfWriteOptions? writeOptions = null,
-        Encoding? encoding = null) =>
-        new MemoryStream(markdown.ToRtfBytes(options, writeOptions, encoding));
+    /// <summary>Writes the converted output to a caller-owned stream, which stays open and returns the conversion report.</summary>
+    public static OfficeConversionReport SaveAsMarkdown(this RtfDocument document, Stream stream, RtfMarkdownExportOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        MarkdownDocument value = document.ToMarkdown(options, out OfficeConversionReport report, cancellationToken);
+        return OfficeConversionOutput.Save(report, stream, OfficeConversionOutput.Text(value.ToMarkdown(options?.MarkdownWriteOptions), options?.Encoding));
+    }
 
-    /// <summary>Saves a parsed Markdown document as RTF to a path.</summary>
-    public static void SaveAsRtf(
-        this MarkdownDoc markdown,
-        string path,
-        MarkdownToRtfOptions? options = null,
-        RtfWriteOptions? writeOptions = null,
-        Encoding? encoding = null) =>
-        OfficeFileCommit.WriteAllBytes(path, markdown.ToRtfBytes(options, writeOptions, encoding));
+    /// <summary>Asynchronously writes the converted output to a path and returns the conversion report.</summary>
+    /// <remarks>Conversion is CPU-bound and runs on the thread pool; the output is written asynchronously.</remarks>
+    public static async Task<OfficeConversionReport> SaveAsMarkdownAsync(this RtfDocument document, string path, RtfMarkdownExportOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        options = options?.Clone();
+        var (bytes, report) = await Task.Run(() => {
+            MarkdownDocument value = document.ToMarkdown(options, out OfficeConversionReport converted, cancellationToken);
+            return (OfficeConversionOutput.Text(value.ToMarkdown(options?.MarkdownWriteOptions), options?.Encoding), converted);
+        }, cancellationToken).ConfigureAwait(false);
+        return await OfficeConversionOutput.SaveAsync(report, path, bytes, cancellationToken).ConfigureAwait(false);
+    }
 
-    /// <summary>Saves a parsed Markdown document as RTF to a caller-owned stream.</summary>
-    public static void SaveAsRtf(
-        this MarkdownDoc markdown,
-        Stream stream,
-        MarkdownToRtfOptions? options = null,
-        RtfWriteOptions? writeOptions = null,
-        Encoding? encoding = null) =>
-        OfficeStreamWriter.WriteAllBytes(stream, markdown.ToRtfBytes(options, writeOptions, encoding));
+    /// <summary>Asynchronously writes the converted output to a caller-owned stream and returns the conversion report.</summary>
+    /// <remarks>Conversion is CPU-bound and runs on the thread pool; the output is written asynchronously.</remarks>
+    public static async Task<OfficeConversionReport> SaveAsMarkdownAsync(this RtfDocument document, Stream stream, RtfMarkdownExportOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        options = options?.Clone();
+        var (bytes, report) = await Task.Run(() => {
+            MarkdownDocument value = document.ToMarkdown(options, out OfficeConversionReport converted, cancellationToken);
+            return (OfficeConversionOutput.Text(value.ToMarkdown(options?.MarkdownWriteOptions), options?.Encoding), converted);
+        }, cancellationToken).ConfigureAwait(false);
+        return await OfficeConversionOutput.SaveAsync(report, stream, bytes, cancellationToken).ConfigureAwait(false);
+    }
 
-    /// <summary>Asynchronously saves a parsed Markdown document as RTF to a path.</summary>
-    public static Task SaveAsRtfAsync(
-        this MarkdownDoc markdown,
-        string path,
-        MarkdownToRtfOptions? options = null,
-        RtfWriteOptions? writeOptions = null,
-        Encoding? encoding = null,
-        CancellationToken cancellationToken = default) =>
-        OfficeFileCommit.WriteAllBytesAsync(path, markdown.ToRtfBytes(options, writeOptions, encoding), cancellationToken: cancellationToken);
+    /// <summary>Converts a Markdown document into an RTF document model.</summary>
+    public static RtfDocument ToRtf(this MarkdownDocument markdown, MarkdownRtfExportOptions? options = null, CancellationToken cancellationToken = default) =>
+        markdown.ToRtf(options, out _, cancellationToken);
 
-    /// <summary>Asynchronously saves a parsed Markdown document as RTF to a caller-owned stream.</summary>
-    public static Task SaveAsRtfAsync(
-        this MarkdownDoc markdown,
-        Stream stream,
-        MarkdownToRtfOptions? options = null,
-        RtfWriteOptions? writeOptions = null,
-        Encoding? encoding = null,
-        CancellationToken cancellationToken = default) =>
-        OfficeStreamWriter.WriteAllBytesAsync(stream, markdown.ToRtfBytes(options, writeOptions, encoding), cancellationToken);
+    /// <summary>Converts a Markdown document into an RTF document model and returns the completed conversion report.</summary>
+    public static RtfDocument ToRtf(this MarkdownDocument markdown, MarkdownRtfExportOptions? options, out OfficeConversionReport report,
+        CancellationToken cancellationToken = default) {
+        if (markdown == null) throw new ArgumentNullException(nameof(markdown));
+        cancellationToken.ThrowIfCancellationRequested();
+        RtfConversionResult<RtfDocument> result = markdown.ConvertToRtfWithEvidence(options);
+        RtfDocument value = result.Value;
+        OfficeConversionReport source = result.Report;
+        return OfficeConversionOutput.Complete(value, source, options?.FailOnLoss == true, out report);
+    }
+
+    /// <summary>Converts a Markdown document into an RTF document model, returning the value and report together.</summary>
+    /// <remarks>Conversion is CPU-bound and runs on the thread pool so the caller is not blocked.</remarks>
+    public static Task<OfficeConversionResult<RtfDocument>> ToRtfAsync(this MarkdownDocument markdown, MarkdownRtfExportOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        options = options?.Clone();
+        return OfficeConversionOutput.RunAsync(() => (markdown.ToRtf(options, out OfficeConversionReport report, cancellationToken), report), cancellationToken);
+    }
+
+    /// <summary>Writes the converted output to a path and returns the conversion report.</summary>
+    public static OfficeConversionReport SaveAsRtf(this MarkdownDocument markdown, string path, MarkdownRtfExportOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        RtfDocument value = markdown.ToRtf(options, out OfficeConversionReport report, cancellationToken);
+        return OfficeConversionOutput.Save(report, path, value.ToBytes(options?.SaveOptions, options?.Encoding));
+    }
+
+    /// <summary>Writes the converted output to a caller-owned stream, which stays open and returns the conversion report.</summary>
+    public static OfficeConversionReport SaveAsRtf(this MarkdownDocument markdown, Stream stream, MarkdownRtfExportOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        RtfDocument value = markdown.ToRtf(options, out OfficeConversionReport report, cancellationToken);
+        return OfficeConversionOutput.Save(report, stream, value.ToBytes(options?.SaveOptions, options?.Encoding));
+    }
+
+    /// <summary>Asynchronously writes the converted output to a path and returns the conversion report.</summary>
+    /// <remarks>Conversion is CPU-bound and runs on the thread pool; the output is written asynchronously.</remarks>
+    public static async Task<OfficeConversionReport> SaveAsRtfAsync(this MarkdownDocument markdown, string path, MarkdownRtfExportOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        options = options?.Clone();
+        var (bytes, report) = await Task.Run(() => {
+            RtfDocument value = markdown.ToRtf(options, out OfficeConversionReport converted, cancellationToken);
+            return (value.ToBytes(options?.SaveOptions, options?.Encoding), converted);
+        }, cancellationToken).ConfigureAwait(false);
+        return await OfficeConversionOutput.SaveAsync(report, path, bytes, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Asynchronously writes the converted output to a caller-owned stream and returns the conversion report.</summary>
+    /// <remarks>Conversion is CPU-bound and runs on the thread pool; the output is written asynchronously.</remarks>
+    public static async Task<OfficeConversionReport> SaveAsRtfAsync(this MarkdownDocument markdown, Stream stream, MarkdownRtfExportOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        options = options?.Clone();
+        var (bytes, report) = await Task.Run(() => {
+            RtfDocument value = markdown.ToRtf(options, out OfficeConversionReport converted, cancellationToken);
+            return (value.ToBytes(options?.SaveOptions, options?.Encoding), converted);
+        }, cancellationToken).ConfigureAwait(false);
+        return await OfficeConversionOutput.SaveAsync(report, stream, bytes, cancellationToken).ConfigureAwait(false);
+    }
 }

@@ -18,7 +18,7 @@ public partial class Excel {
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml));
             using var document = workbookReader ? null : ExcelDocumentReader.Open(path);
             using IDataReader reader = workbookReader
-                ? ExcelDocument.OpenDataReader(path)
+                ? ExcelDocument.OpenReader(path)
                 : document!.GetSheet("Data").ReadRangeAsDataReader("A1:C3", schemaSampleRows: 0);
             Assert.Equal(3, reader.FieldCount);
             Assert.Equal("Value", reader.GetName(0));
@@ -44,7 +44,7 @@ public partial class Excel {
             string xml = PrefixedWorksheetXml("x").Replace("<x:v>43</x:v>",
                 "<other:v xmlns:other=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">43</other:v>");
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml));
-            using var reader = ExcelDocument.OpenDataReader(path);
+            using var reader = ExcelDocument.OpenReader(path);
             Assert.True(reader.Read());
             Assert.Equal(42, reader.GetInt32(0));
             Assert.True(reader.Read());
@@ -71,7 +71,7 @@ public partial class Excel {
             Assert.True(start >= 0);
             xml = xml.Insert(start + tag.Length - 1, " xmlns:x=\"urn:foreign\"");
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml));
-            Assert.Throws<InvalidDataException>(() => ExcelDocument.OpenDataReader(path));
+            Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
         } finally {
             File.Delete(path);
         }
@@ -83,7 +83,7 @@ public partial class Excel {
         try {
             string xml = PrefixedWorksheetXml("x").Replace("</x:worksheet>", "<!--invalid--comment--></x:worksheet>");
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml));
-            Assert.Throws<XmlException>(() => ExcelDocument.OpenDataReader(path));
+            Assert.Throws<XmlException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
         } finally {
             File.Delete(path);
         }

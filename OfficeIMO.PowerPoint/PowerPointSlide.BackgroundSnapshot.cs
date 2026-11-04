@@ -28,7 +28,10 @@ namespace OfficeIMO.PowerPoint {
             return GetBackgroundCore(maximumImageBytes: null, imageReadLimit);
         }
 
-        private PowerPointSlideBackground GetBackgroundCore(int? maximumImageBytes, Func<int>? imageReadLimit = null) {
+        /// <summary>Resolves fill colors for semantic exporters without opening or copying image part streams.</summary>
+        internal PowerPointSlideBackground GetBackgroundColors() => GetBackgroundCore(maximumImageBytes: null, includeImageData: false);
+
+        private PowerPointSlideBackground GetBackgroundCore(int? maximumImageBytes, Func<int>? imageReadLimit = null, bool includeImageData = true) {
             (BackgroundProperties? properties, OpenXmlPart? ownerPart) = GetResolvedBackgroundProperties();
             if (properties == null || !properties.HasChildren) {
                 BackgroundStyleReference? styleReference = GetResolvedBackgroundStyleReference().StyleReference;
@@ -53,7 +56,9 @@ namespace OfficeIMO.PowerPoint {
 
             A.BlipFill? blipFill = properties.GetFirstChild<A.BlipFill>();
             if (blipFill != null) {
-                return GetBackgroundImage(blipFill, ownerPart ?? _slidePart, imageReadLimit?.Invoke() ?? maximumImageBytes);
+                return includeImageData
+                    ? GetBackgroundImage(blipFill, ownerPart ?? _slidePart, imageReadLimit?.Invoke() ?? maximumImageBytes)
+                    : PowerPointSlideBackground.None();
             }
 
             A.GradientFill? gradientFill = properties.GetFirstChild<A.GradientFill>();
@@ -172,7 +177,7 @@ namespace OfficeIMO.PowerPoint {
             byte[] imageBytes = maximumImageBytes.HasValue
                 ? OfficeIMO.Core.Internal.OfficeStreamReader.ReadAllBytes(source, maximumImageBytes.Value)
                 : OfficeIMO.Core.Internal.OfficeStreamReader.ReadAllBytes(source);
-            PowerPointPictureCrop crop = ReadSourceCrop(blipFill.SourceRectangle);
+            PowerPointImageCrop crop = ReadSourceCrop(blipFill.SourceRectangle);
             if (blipFill.GetFirstChild<A.Tile>() != null) {
                 return PowerPointSlideBackground.Unsupported("The slide background image uses tiled placement, which is not currently supported by OfficeIMO exporters.");
             }
@@ -180,12 +185,12 @@ namespace OfficeIMO.PowerPoint {
             return PowerPointSlideBackground.Image(imageBytes, imagePart.ContentType, crop);
         }
 
-        private static PowerPointPictureCrop ReadSourceCrop(A.SourceRectangle? rect) {
+        private static PowerPointImageCrop ReadSourceCrop(A.SourceRectangle? rect) {
             if (rect == null) {
-                return PowerPointPictureCrop.None;
+                return PowerPointImageCrop.None;
             }
 
-            return new PowerPointPictureCrop(
+            return new PowerPointImageCrop(
                 ToCropFraction(rect.Left?.Value),
                 ToCropFraction(rect.Top?.Value),
                 ToCropFraction(rect.Right?.Value),

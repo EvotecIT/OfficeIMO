@@ -128,7 +128,7 @@ internal static class ExcelBenchmarkSnapshotRunner {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
             document.Execution.SaveWorksheetAfterAutoFit = false;
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             ExcelBenchmarkScenarioFactory.PopulateOfficeImoWorksheet(sheet, rows);
             document.Save(stream);
         }
@@ -180,7 +180,7 @@ internal static class ExcelBenchmarkSnapshotRunner {
     }
 
     private static int OfficeImoReadRows(byte[] workbookBytes) {
-        using var reader = ExcelDocument.OpenDataReader(workbookBytes);
+        using var reader = ExcelDocument.OpenReader(workbookBytes);
         int count = 0;
         while (reader.Read()) {
             _ = reader.GetInt32(0);
@@ -213,11 +213,11 @@ internal static class ExcelBenchmarkSnapshotRunner {
 
         using (var document = ExcelDocument.Load(input)) {
             var sheet = document["Data"];
-            sheet.CellValue(1, 9, "ReviewStatus");
+            sheet.Cell(1, 9).SetValue("ReviewStatus");
 
             int limit = Math.Min(rowCount + 1, 101);
             for (int row = 2; row <= limit; row++) {
-                sheet.CellValue(row, 9, "Reviewed");
+                sheet.Cell(row, 9).SetValue("Reviewed");
             }
 
             document.Save(output);

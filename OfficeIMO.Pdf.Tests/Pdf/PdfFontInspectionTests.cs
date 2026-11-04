@@ -115,9 +115,9 @@ public sealed class PdfFontInspectionTests {
     [Fact]
     public void Fonts_InspectsEmbeddedTrueTypeProgramWithoutRetainingBytes() {
         byte[] fontBytes = ManagedTextShapingTestAssets.CreateFont(' ', 'A', 'B');
-        byte[] pdf = PdfDocument.Create(new PdfOptions { CompressEmbeddedFonts = true })
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { CompressEmbeddedFonts = true })
             .EmbedStandardFont(PdfStandardFont.Helvetica, fontBytes, "OfficeIMO Inspection")
-            .Paragraph(paragraph => paragraph.Text("AB"))
+            .Paragraph(paragraph => paragraph.AddText("AB"))
             .ToBytes();
 
         PdfFontInfo font = Assert.Single(PdfDocument.Load(pdf).Resources.Fonts().Fonts, static candidate => candidate.IsEmbedded);
@@ -137,7 +137,7 @@ public sealed class PdfFontInspectionTests {
         byte[] fontBytes = ManagedTextShapingTestAssets.CreateFont(' ', 'A');
         byte[] pdf = PdfDocument.Create()
             .EmbedStandardFont(PdfStandardFont.Helvetica, fontBytes, "OfficeIMO Inspection")
-            .Paragraph(paragraph => paragraph.Text("A"))
+            .Paragraph(paragraph => paragraph.AddText("A"))
             .ToBytes();
 
         PdfFontInfo font = Assert.Single(PdfDocument.Load(pdf).Resources.Fonts(new PdfFontInspectionOptions {

@@ -5,7 +5,7 @@ using System.Text;
 namespace OfficeIMO.Drawing.Binary;
 
 /// <summary>Reads the fixed and complex portions of an OfficeArt FOPT property table.</summary>
-public static class OfficeArtPropertyTableReader {
+internal static class OfficeArtPropertyTableReader {
     /// <summary>
     /// Reads up to <paramref name="propertyCount"/> entries from a bounded FOPT payload.
     /// A truncated fixed table produces an empty result; truncated complex data is returned at its

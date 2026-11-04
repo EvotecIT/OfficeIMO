@@ -16,7 +16,7 @@ Add-OfficeMarkdownHorizontalRule [-PassThru] [<CommonParameters>]
 
 ### Document
 ```powershell
-Add-OfficeMarkdownHorizontalRule -Document <MarkdownDoc> [-PassThru] [<CommonParameters>]
+Add-OfficeMarkdownHorizontalRule -Document <MarkdownDocument> [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -42,7 +42,7 @@ Appends a horizontal rule between sections of the current Markdown document.
 Markdown document to update outside the DSL context.
 
 ```yaml
-Type: MarkdownDoc
+Type: MarkdownDocument
 Parameter Sets: Document
 Aliases: None
 Possible values:
@@ -75,11 +75,11 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.Markdown.MarkdownDoc`
+- `OfficeIMO.Markdown.MarkdownDocument`
 
 ## OUTPUTS
 
-- `OfficeIMO.Markdown.MarkdownDoc`
+- `OfficeIMO.Markdown.MarkdownDocument`
 
 ## RELATED LINKS
 

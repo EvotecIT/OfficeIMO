@@ -17,11 +17,11 @@ public sealed class EmailDiagnosticFidelityContracts {
 
         Assert.Equal(OfficeConversionLossKind.Unassessed, simple.LossKind);
         Assert.Equal(OfficeConversionLossKind.Unassessed, actionable.LossKind);
-        Assert.All(report.FidelityDiagnostics, diagnostic =>
+        Assert.All(report.Diagnostics, diagnostic =>
             Assert.Equal(OfficeConversionLossKind.Unassessed, diagnostic.LossKind));
         Assert.True(report.HasLoss);
         Assert.True(report.CanWrite);
-        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => report.ThrowIfLoss());
     }
 
     [Theory]
@@ -34,7 +34,7 @@ public sealed class EmailDiagnosticFidelityContracts {
 
         Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
         Assert.False(report.CanWrite);
-        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => report.ThrowIfLoss());
     }
 
     [Theory]

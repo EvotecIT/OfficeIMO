@@ -1,3 +1,4 @@
+using OfficeIMO.Internal;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Security.Cryptography;
@@ -19,8 +20,8 @@ public static class OfficeProvenanceReportSerializer {
     /// <summary>Creates a workflow result for already inspected memory-only bytes without reading a path.</summary>
     public static OfficeProvenanceWorkflowResult FromBuffer(string fileName, byte[] input, OfficeProvenanceReport inspection,
         OfficeProvenanceRemovalResult? removal = null) {
-        ArgumentNullException.ThrowIfNull(input);
-        ArgumentNullException.ThrowIfNull(inspection);
+        if (input == null) throw new ArgumentNullException(nameof(input));
+        if (inspection == null) throw new ArgumentNullException(nameof(inspection));
         return new OfficeProvenanceWorkflowResult(Guid.NewGuid().ToString("N"),
             removal == null ? OfficeProvenanceWorkflowOperation.Inspect : OfficeProvenanceWorkflowOperation.Remove,
             OfficeWorkflowStatus.Completed, OfficeWorkflowFailureKind.None,
@@ -31,8 +32,8 @@ public static class OfficeProvenanceReportSerializer {
             before: removal?.Before, after: removal?.After, changes: removal?.Changes,
             wasReserialized: removal?.WasReserialized ?? false,
             wereInvalidatedSignaturesRemoved: removal?.WereInvalidatedSignaturesRemoved ?? false,
-            inputPath: fileName, inputSha256: Convert.ToHexString(SHA256.HashData(input)).ToLowerInvariant(),
-            outputSha256: removal == null ? null : Convert.ToHexString(removal.ComputeDataSha256()).ToLowerInvariant());
+            inputPath: fileName, inputSha256: OfficeRuntimeCompatibility.ToHexString(OfficeRuntimeCompatibility.HashSha256(input)).ToLowerInvariant(),
+            outputSha256: removal == null ? null : OfficeRuntimeCompatibility.ToHexString(removal.ComputeDataSha256()).ToLowerInvariant());
     }
 
     /// <summary>Creates a transport document retaining evidence, diagnostic detail and check coverage.</summary>

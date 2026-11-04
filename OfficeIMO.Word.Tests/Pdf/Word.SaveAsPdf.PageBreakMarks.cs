@@ -15,8 +15,8 @@ public partial class Word {
     public void SaveAsPdf_PageBreakMarkAddsOnlyTheLegacyTrailingMark(WordCompatibilityMode mode, bool precedingText) {
         using WordDocument disabled = CreatePageBreakMarkDocument(mode, false, precedingText);
         using WordDocument enabled = CreatePageBreakMarkDocument(mode, true, precedingText);
-        using PdfPigDocument first = PdfPigDocument.Open(disabled.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
-        using PdfPigDocument second = PdfPigDocument.Open(enabled.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using PdfPigDocument first = PdfPigDocument.Open(disabled.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        using PdfPigDocument second = PdfPigDocument.Open(enabled.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(2, first.NumberOfPages);
         Assert.Equal(2, second.NumberOfPages);
         Assert.Equal(first.GetPage(1).Text, second.GetPage(1).Text);
@@ -29,12 +29,12 @@ public partial class Word {
     [Fact]
     public void SaveAsPdf_PageBreakMarkNativeImportAndDocxProjectionKeepTheSameLayout() {
         using WordDocument source = CreatePageBreakMarkDocument(WordCompatibilityMode.Word2003, true, true);
-        using WordDocument native = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
-        using WordDocument projected = WordDocument.Load(new MemoryStream(native.ToBytes(WordFileFormat.Docx)));
+        using WordDocument native = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
+        using WordDocument projected = WordDocument.Load(new MemoryStream(native.ToBytes(new WordSaveOptions { Format = WordFileFormat.Docx })));
         Assert.True(native.CompatibilitySettings.SplitPageBreakAndParagraphMark);
         Assert.Equal(WordCompatibilityMode.Word2003, projected.CompatibilitySettings.CompatibilityMode);
-        using PdfPigDocument first = PdfPigDocument.Open(native.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
-        using PdfPigDocument second = PdfPigDocument.Open(projected.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using PdfPigDocument first = PdfPigDocument.Open(native.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        using PdfPigDocument second = PdfPigDocument.Open(projected.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(2, first.NumberOfPages);
         Assert.Equal(2, second.NumberOfPages);
         for (int page = 1; page <= 2; page++) {
@@ -48,8 +48,8 @@ public partial class Word {
     public void SaveAsPdf_PageBreakMarkDoesNotDuplicateAContentContinuation() {
         using WordDocument disabled = CreatePageBreakMarkDocument(WordCompatibilityMode.Word2003, false, true, true);
         using WordDocument enabled = CreatePageBreakMarkDocument(WordCompatibilityMode.Word2003, true, true, true);
-        using PdfPigDocument first = PdfPigDocument.Open(disabled.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
-        using PdfPigDocument second = PdfPigDocument.Open(enabled.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using PdfPigDocument first = PdfPigDocument.Open(disabled.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        using PdfPigDocument second = PdfPigDocument.Open(enabled.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(2, first.NumberOfPages);
         Assert.Equal(2, second.NumberOfPages);
         Assert.Contains("AFTER", second.GetPage(2).Text);

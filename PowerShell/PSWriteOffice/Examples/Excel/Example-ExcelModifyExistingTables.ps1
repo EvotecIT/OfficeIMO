@@ -10,7 +10,7 @@ $initialRows = @(
 
 New-OfficeExcel -Path $path {
     ExcelSheet 'Readiness' {
-        ExcelTable -Data $initialRows -TableName 'ServiceReadiness' -AutoFit
+        ExcelTable -Data $initialRows -Name 'ServiceReadiness' -AutoFit
     }
     ExcelSheet 'Notes' {
         Set-OfficeExcelCell -Address A1 -Value 'This workbook is modified after it is created.'
@@ -18,7 +18,7 @@ New-OfficeExcel -Path $path {
 }
 
 # Second pass: append rows to the named table without rebuilding the workbook through the DSL.
-$workbook = Get-OfficeExcel -Path $path
+$workbook = Open-OfficeExcel -Path $path
 try {
     $workbook |
         Add-OfficeExcelTableRow -Sheet Readiness -TableName ServiceReadiness -InputObject ([PSCustomObject]@{
@@ -35,7 +35,8 @@ try {
     $workbook |
         Add-OfficeExcelTableRow -Sheet Readiness -TableName ServiceReadiness -InputObject $moreRows
 } finally {
-    Close-OfficeExcel -Document $workbook -Save
+    $workbook | Save-OfficeExcel
+    Close-OfficeExcel -Document $workbook
 }
 
 Write-Host "Updated Excel workbook saved to $path"

@@ -15,7 +15,7 @@ public partial class PdfExternalEngineProofTests {
     [InlineData("Résumé 😀", false, 0)]
     [InlineData("moons", false, 1)]
     public void BoundedLogicalSpansPreserveAdjacentPunctuationAndAuthoredSpace(string word, bool textPaint, int embeddedFont) {
-        var options = new PdfOptions { CompressContentStreams = false }.EnableTaggedPdfCatalogMarkers();
+        var options = new PdfCreateOptions { CompressContentStreams = false }.EnableTaggedPdfCatalogMarkers();
         if (embeddedFont != 0) {
             byte[] data = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ');
             options.EmbedStandardFont(PdfStandardFont.Helvetica, data);
@@ -27,12 +27,12 @@ public partial class PdfExternalEngineProofTests {
             return shape;
         }
         byte[] pdf = PdfDocument.Create(document => document.Content(content => content.Canvas(canvas => {
-            canvas.ActualText(word, 10D, 28D, 50D, height, paint => {
-                if (textPaint) paint.Text("PaintOnly", 10D, 28D, 50D, 12D);
-                else paint.Shape(FilledRectangle(50D, height), 10D, 28D);
+            canvas.ActualText(word, global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(28D), global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(height), paint => {
+                if (textPaint) paint.Text("PaintOnly", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(28D), global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(12D));
+                else paint.Shape(FilledRectangle(50D, height), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(28D));
             });
-            canvas.ActualText(".", 60D, 28D, 5D, height, paint => paint.Shape(FilledRectangle(5D, height), 60D, 28D));
-            canvas.ActualText(" next", 65D, 28D, 40D, height, paint => paint.Shape(FilledRectangle(40D, height), 65D, 28D));
+            canvas.ActualText(".", global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(28D), global::OfficeIMO.OfficeLength.Points(5D), global::OfficeIMO.OfficeLength.Points(height), paint => paint.Shape(FilledRectangle(5D, height), global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(28D)));
+            canvas.ActualText(" next", global::OfficeIMO.OfficeLength.Points(65D), global::OfficeIMO.OfficeLength.Points(28D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(height), paint => paint.Shape(FilledRectangle(40D, height), global::OfficeIMO.OfficeLength.Points(65D), global::OfficeIMO.OfficeLength.Points(28D)));
         })), options).ToBytes();
         string expected = word + ". next";
         var read = PdfReadDocument.Open(pdf);
@@ -66,8 +66,8 @@ public partial class PdfExternalEngineProofTests {
     [Fact]
     public void BoundedLogicalSpanCannotBeEditedSeparatelyFromItsPaint() {
         byte[] pdf = PdfDocument.Create(document => document.Content(content => content.Canvas(canvas =>
-            canvas.ActualText("logical", 10D, 28D, 50D, 12D,
-                paint => paint.Text("PaintOnly", 10D, 28D, 50D, 12D))))).ToBytes();
+            canvas.ActualText("logical", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(28D), global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(12D),
+                paint => paint.Text("PaintOnly", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(28D), global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(12D)))))).ToBytes();
         var document = PdfDocument.Load(pdf);
         PdfTextSpan span = Assert.Single(PdfReadDocument.Open(pdf).Pages[0].GetTextSpans());
         Assert.Throws<NotSupportedException>(() => document.Text.Replace(
@@ -82,17 +82,17 @@ public partial class PdfExternalEngineProofTests {
         OfficeShape shape = OfficeShape.Rectangle(50D, 12D);
         shape.FillColor = OfficeColor.Blue;
         void Paint(PdfPageCanvas paint) => paint
-            .Shape(shape, 10D, 28D, linkUri: "https://example.test/formula", linkContents: "logical")
-            .Text("PaintOnly", 10D, 28D, 50D, 12D, 9D);
+            .Shape(shape, global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(28D), linkUri: "https://example.test/formula", linkContents: "logical")
+            .Text("PaintOnly", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(28D), global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(12D), global::OfficeIMO.OfficeLength.Points(9D));
         byte[] pdf = PdfDocument.Create(document => document.Content(content => content.Canvas(canvas =>
             canvas.Structure(PdfCanvasStructureRole.Formula, formula => {
-                if (replacementOutsideEffect) formula.ActualText("logical", 10D, 28D, 50D, 12D,
+                if (replacementOutsideEffect) formula.ActualText("logical", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(28D), global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(12D),
                     logical => logical.Effect(OfficeTransform.Translate(20D, 10D), .5D, Paint));
                 else formula.Effect(OfficeTransform.Translate(20D, 10D), .5D,
-                    effect => effect.ActualText("logical", 10D, 28D, 50D, 12D, Paint));
+                    effect => effect.ActualText("logical", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(28D), global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(12D), Paint));
             },
                 new PdfCanvasStructureOptions { AlternativeText = "A logical expression" }))),
-            new PdfOptions { CompressContentStreams = false }.EnableTaggedPdfCatalogMarkers()).ToBytes();
+            new PdfCreateOptions { CompressContentStreams = false }.EnableTaggedPdfCatalogMarkers()).ToBytes();
         var read = PdfReadDocument.Open(pdf);
         Assert.Equal("logical", read.ExtractText().Trim());
         PdfTextSpan span = Assert.Single(read.Pages[0].GetTextSpans());

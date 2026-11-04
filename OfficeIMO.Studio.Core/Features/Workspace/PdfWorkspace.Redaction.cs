@@ -48,25 +48,26 @@ internal sealed partial class PdfWorkspace {
             var search = new PdfRedactionSearchOptions {
                 MatchCase = matchCase, MaximumCandidates = 2000,
                 TextSelection = textSelection, ContentScope = contentScope,
-                RegexTimeout = TimeSpan.FromMilliseconds(250), CancellationToken = cancellationToken,
+                RegexTimeout = TimeSpan.FromMilliseconds(250),
                 RegexOptions = System.Text.RegularExpressions.RegexOptions.CultureInvariant |
                     (matchCase ? System.Text.RegularExpressions.RegexOptions.None : System.Text.RegularExpressions.RegexOptions.IgnoreCase)
             };
             if (regex) search.AddRegex(text); else search.AddLiteral(text);
             if (pages is not null) foreach (int page in pages) search.PageNumbers.Add(page);
-            PdfRedactionPlan plan = snapshot.Redactions.Search(search);
+            PdfRedactionPlan plan = snapshot.Redactions.Search(search, cancellationToken: cancellationToken);
             if (!plan.IsReviewable) {
                 throw new InvalidOperationException(string.Join(" ", plan.Findings
                     .Where(finding => finding.Severity == PdfDiagnosticSeverity.Error)
                     .Select(finding => finding.Message)));
             }
-            PdfDocumentReadResult logical = snapshot.Read(new PdfReadOptions { Profile = PdfReadProfile.Fast });
+            PdfDocumentReadResult logical = snapshot.Read(new PdfLoadOptions { Profile = PdfReadProfile.Fast });
             return plan.Areas.Select(area => {
                     cancellationToken.ThrowIfCancellationRequested();
                     PdfLogicalPage page = logical.Pages.Single(candidate => candidate.PageNumber == area.PageNumber);
                     PdfSelectionQuad bounds = page.MapUserSpaceRectangleToVisual(area.X, area.Y, area.Right, area.Top);
                     string preview = string.Join(" ", plan.Matches.Where(match => ReferenceEquals(match.Area, area) && match.Text is not null)
                         .Select(match => match.Text).Distinct());
+                    if (string.IsNullOrWhiteSpace(preview)) preview = text;
                     if (preview.Length > 180) preview = preview[..180] + "…";
                     return new PdfRedactionCandidate(area,
                         new StudioRectangle(bounds.TopLeft.X, bounds.TopLeft.Y,
@@ -78,7 +79,7 @@ internal sealed partial class PdfWorkspace {
     internal Task<PdfRedactionPlan> PlanRedactionsAsync(IReadOnlyList<PdfRedactionArea> areas, CancellationToken cancellationToken) {
         PdfDocument snapshot = CreateDocumentSnapshot();
         PdfRedactionArea[] selection = areas.ToArray();
-        return Task.Run(() => snapshot.Redactions.Plan(selection, cancellationToken), cancellationToken);
+        return Task.Run(() => snapshot.Redactions.Plan(selection, cancellationToken: cancellationToken), cancellationToken);
     }
     [System.Text.Json.Serialization.JsonSerializable(typeof(PdfRedactionShareableSummary))]
     private sealed partial class RedactionJsonContext : System.Text.Json.Serialization.JsonSerializerContext;

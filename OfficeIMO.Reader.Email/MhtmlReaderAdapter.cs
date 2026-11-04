@@ -122,14 +122,14 @@ internal static class MhtmlReaderAdapter {
 
     private static ReaderHtmlOptions PrepareHtmlOptions(ReaderHtmlOptions? source, MhtmlDocument archive) {
         ReaderHtmlOptions options = ReaderHtmlOptionsCloner.CloneOrDefault(source);
-        var projection = options.HtmlToMarkdownOptions ?? OfficeIMO.Markdown.Html.HtmlToMarkdownOptions.CreateOfficeIMOProfile();
+        var projection = options.HtmlToMarkdownOptions ?? OfficeIMO.Markdown.Html.HtmlMarkdownExportOptions.CreateOfficeIMOProfile();
         projection.BaseUri ??= archive.BaseUri;
         if (projection.UrlPolicy.RestrictUrlSchemes) {
             projection.UrlPolicy.AllowedUrlSchemes.Add("cid");
             projection.UrlPolicy.AllowedUrlSchemes.Add(archive.BaseUri.Scheme);
         }
         options.HtmlToMarkdownOptions = projection;
-        var conversion = options.ConversionOptions?.Clone() ?? OfficeIMO.Html.HtmlConversionDocumentOptions.CreateUntrustedProfile();
+        var conversion = options.ConversionOptions?.Clone() ?? OfficeIMO.Html.HtmlConversionDocumentOptions.UntrustedDefaults;
         conversion.BaseUri ??= archive.BaseUri;
         if (conversion.ResourceUrlPolicy.RestrictUrlSchemes) {
             conversion.ResourceUrlPolicy.AllowedUrlSchemes.Add("cid");

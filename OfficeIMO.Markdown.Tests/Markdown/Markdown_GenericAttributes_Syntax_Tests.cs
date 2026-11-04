@@ -7,7 +7,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void ParseWithSyntaxTree_Captures_Block_GenericAttribute_Tokens() {
         const string markdown = "# Heading {#title .hero}\n\nAlpha paragraph {#intro .lead}\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
@@ -42,34 +42,37 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void Paragraph_GenericAttributes_Preserve_Consumed_Separator_Whitespace() {
         const string markdown = "Alpha paragraph  {#intro .lead}\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true
         };
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal("  ", paragraph.GenericAttributeConsumedWhitespace);
         Assert.Equal("Alpha paragraph  {#intro .lead}", ((IMarkdownBlock)paragraph).RenderMarkdown());
         Assert.Equal(
             "<p id=\"intro\" class=\"lead\">Alpha paragraph  </p>",
-            document.ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
+            document.ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
                 BodyClass = null,
-                EscapeNonAsciiText = false
+                EscapeNonAsciiText = false,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             }));
     }
 
     [Fact]
     public void Standalone_GenericAttributes_Attach_To_Following_Heading_With_Source_Backup() {
         const string markdown = "{#intro .wide}\n# Heading\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
         var headingBlock = Assert.IsType<HeadingBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal("intro", headingBlock.Attributes.ElementId);
@@ -111,12 +114,12 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void Standalone_GenericAttributes_Merge_With_Following_Heading_TrailingAttributes() {
         const string markdown = "{#outer .pending data-role=outer}\n# Heading {#inner .local data-role=inner data-extra=value}\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
         var headingBlock = Assert.IsType<HeadingBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal("inner", headingBlock.Attributes.ElementId);
@@ -124,11 +127,14 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         Assert.Equal("inner", headingBlock.Attributes.GetAttribute("data-role"));
         Assert.Equal("value", headingBlock.Attributes.GetAttribute("data-extra"));
 
-        var html = document.ToHtmlFragment(new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var html = document.ToHtml(new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
-            AutoHeadingIdentifiers = false
+            AutoHeadingIdentifiers = false,
+
+            Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
         });
 
         Assert.Contains("<h1", html, StringComparison.Ordinal);
@@ -147,12 +153,12 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         int headingTextLine,
         int underlineLine,
         string expectedEditedMarkdown) {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
         var headingBlock = Assert.IsType<HeadingBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal(1, headingBlock.Level);
@@ -197,11 +203,11 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void AtxHeading_GenericAttributes_After_ClosingMarker_Are_SourceBacked() {
         const string markdown = "# Heading # {#intro .wide}\n";
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.GenericAttributes = true;
         options.PreserveTrivia = true;
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
         var headingBlock = Assert.IsType<HeadingBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal("Heading", headingBlock.Text);
@@ -247,12 +253,12 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void SingleCharacterId_GenericAttributes_Attach_Metadata() {
         const string markdown = "# Heading {#h .wide}\n\nParagraph {#p .lead}\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
         var headingBlock = Assert.IsType<HeadingBlock>(document.Blocks[0]);
         var paragraphBlock = Assert.IsType<ParagraphBlock>(document.Blocks[1]);
 
@@ -264,11 +270,14 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         Assert.Equal("Paragraph", paragraphBlock.Inlines.RenderMarkdown());
         Assert.Equal(
             "<h1 id=\"h\" class=\"wide\">Heading</h1><p id=\"p\" class=\"lead\">Paragraph </p>",
-            document.ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
+            document.ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
                 BodyClass = null,
-                EscapeNonAsciiText = false
+                EscapeNonAsciiText = false,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             }));
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
@@ -289,7 +298,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void Standalone_GenericAttributes_Before_ReferenceDefinition_Create_Attributed_Paragraph() {
         const string markdown = "{#ref .wide}\n[id]: https://example.com\n\n[site][id]\n";
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.GenericAttributes = true;
         options.PreserveTrivia = true;
 
@@ -326,12 +335,12 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void Standalone_GenericAttributes_Attach_To_Following_List_With_Source_Backup() {
         const string markdown = "{#list .wide}\n- item\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
         var listBlock = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal("list", listBlock.Attributes.ElementId);
@@ -374,12 +383,12 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void BlockquoteContained_Standalone_GenericAttributes_Attach_To_Following_List_With_Source_Backup() {
         const string markdown = "> {#list .wide}\n> - item\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
         var quoteBlock = Assert.IsType<QuoteBlock>(Assert.Single(document.Blocks));
         var listBlock = Assert.IsType<UnorderedListBlock>(Assert.Single(quoteBlock.ChildBlocks));
 
@@ -387,11 +396,14 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         Assert.Equal(new[] { "wide" }, listBlock.Attributes.Classes);
         Assert.Equal(
             "<blockquote><ul id=\"list\" class=\"wide\"><li>item</li></ul></blockquote>",
-            document.ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
+            document.ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
                 BodyClass = null,
-                EscapeNonAsciiText = false
+                EscapeNonAsciiText = false,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             }));
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
@@ -433,7 +445,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         string markdown,
         MarkdownSyntaxKind expectedListKind,
         string expectedRoundtrip) {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true,
             TaskLists = true
@@ -471,11 +483,11 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void Standalone_GenericAttributes_Attach_To_Following_PipeTable_With_Source_Backup() {
         const string markdown = "{#tbl .wide}\n| A |\n|---|\n| B |\n";
-        var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        var options = MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile();
         options.GenericAttributes = true;
         options.PreserveTrivia = true;
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
         var tableBlock = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal("tbl", tableBlock.Attributes.ElementId);
@@ -485,11 +497,14 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             ((IMarkdownBlock)tableBlock).RenderMarkdown().Replace("\r\n", "\n"));
         Assert.Equal(
             "<table id=\"tbl\" class=\"wide\"><thead><tr><th>A</th></tr></thead><tbody><tr><td>B</td></tr></tbody></table>",
-            document.ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
+            document.ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
                 BodyClass = null,
-                EscapeNonAsciiText = false
+                EscapeNonAsciiText = false,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             }));
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
@@ -530,11 +545,11 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void Blockquote_Standalone_GenericAttributes_Attach_To_Following_PipeTable_With_Source_Backup() {
         const string markdown = "> {#tbl .wide}\n> | A |\n> |---|\n> | B |\n";
-        var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        var options = MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile();
         options.GenericAttributes = true;
         options.PreserveTrivia = true;
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
         var quote = Assert.IsType<QuoteBlock>(Assert.Single(document.Blocks));
         var tableBlock = Assert.IsType<TableBlock>(Assert.Single(quote.ChildBlocks));
 
@@ -573,11 +588,11 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void List_Standalone_GenericAttributes_Attach_To_Following_PipeTable_With_Source_Backup() {
         const string markdown = "- item\n\n  {#tbl .wide}\n  | A |\n  |---|\n  | B |\n";
-        var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        var options = MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile();
         options.GenericAttributes = true;
         options.PreserveTrivia = true;
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
         var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
         var tableBlock = Assert.IsType<TableBlock>(Assert.Single(list.Items[0].NestedBlocks));
 
@@ -617,11 +632,11 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void List_Standalone_GenericAttributes_Attach_To_Following_NestedTaskList_With_Source_Backup() {
         const string markdown = "- outer\n\n  {#tasks .wide}\n  - [x] done\n";
-        var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        var options = MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile();
         options.GenericAttributes = true;
         options.PreserveTrivia = true;
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
         var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
         var nestedList = Assert.IsType<UnorderedListBlock>(Assert.Single(list.Items[0].NestedBlocks));
 
@@ -661,11 +676,11 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void Standalone_GenericAttributes_After_PipeTableLookingParagraph_Stay_Paragraph_Without_Metadata() {
         const string markdown = "| A |\n|---|\n| B |\n{#tbl .wide}\n";
-        var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        var options = MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile();
         options.GenericAttributes = true;
         options.PreserveTrivia = true;
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
         var block = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
 
         Assert.True(block.Attributes.IsEmpty);
@@ -693,12 +708,12 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void Standalone_GenericAttributes_Attach_To_Following_FencedCode_With_Source_Backup() {
         const string markdown = "{#code .wide}\n```cs\nvar x = 1;\n```\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
         var codeBlock = Assert.IsType<CodeBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal("code", codeBlock.Attributes.ElementId);
@@ -708,11 +723,14 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             ((IMarkdownBlock)codeBlock).RenderMarkdown().Replace("\r\n", "\n"));
         Assert.Equal(
             "<pre><code id=\"code\" class=\"language-cs wide\">var x = 1;\n</code></pre>",
-            document.ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
+            document.ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
                 BodyClass = null,
-                EscapeNonAsciiText = false
+                EscapeNonAsciiText = false,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             }));
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
@@ -756,12 +774,12 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void ListContained_Standalone_GenericAttributes_Attach_To_Following_FencedCode_With_Source_Backup() {
         const string markdown = "- item\n\n  {#code .wide}\n  ```cs\n  x\n  ```\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
         var listBlock = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
         var item = Assert.Single(listBlock.Items);
         var codeBlock = Assert.IsType<CodeBlock>(Assert.Single(item.NestedBlocks));
@@ -770,11 +788,14 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         Assert.Equal(new[] { "wide" }, codeBlock.Attributes.Classes);
         Assert.Equal(
             "<ul><li><p>item</p><pre><code id=\"code\" class=\"language-cs wide\">x\n</code></pre></li></ul>",
-            document.ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
+            document.ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
                 BodyClass = null,
-                EscapeNonAsciiText = false
+                EscapeNonAsciiText = false,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             }));
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
@@ -822,12 +843,12 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void BlockquoteContained_Standalone_GenericAttributes_Attach_To_Following_FencedCode_With_Source_Backup() {
         const string markdown = "> {#code .wide}\n> ```cs\n> x\n> ```\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
         var quoteBlock = Assert.IsType<QuoteBlock>(Assert.Single(document.Blocks));
         var codeBlock = Assert.IsType<CodeBlock>(Assert.Single(quoteBlock.ChildBlocks));
 
@@ -835,11 +856,14 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         Assert.Equal(new[] { "wide" }, codeBlock.Attributes.Classes);
         Assert.Equal(
             "<blockquote><pre><code id=\"code\" class=\"language-cs wide\">x\n</code></pre></blockquote>",
-            document.ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
+            document.ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
                 BodyClass = null,
-                EscapeNonAsciiText = false
+                EscapeNonAsciiText = false,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             }));
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
@@ -887,12 +911,12 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void FencedCode_InfoString_GenericAttributes_Attach_To_Code_With_Source_Info() {
         const string markdown = "```{#code .wide}\nvar x = 1;\n```\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
         var codeBlock = Assert.IsType<CodeBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal(string.Empty, codeBlock.Language);
@@ -904,11 +928,14 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             ((IMarkdownBlock)codeBlock).RenderMarkdown().Replace("\r\n", "\n"));
         Assert.Equal(
             "<pre><code id=\"code\" class=\"wide\">var x = 1;\n</code></pre>",
-            document.ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
+            document.ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
                 BodyClass = null,
-                EscapeNonAsciiText = false
+                EscapeNonAsciiText = false,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             }));
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
@@ -967,12 +994,12 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void FencedCode_InfoString_SingleCharacterId_Attaches_Metadata() {
         const string markdown = "```{#h .wide}\nvar x = 1;\n```\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
         var codeBlock = Assert.IsType<CodeBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal(string.Empty, codeBlock.Language);
@@ -983,11 +1010,14 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         Assert.Equal(new[] { "wide" }, codeBlock.FenceInfo.GenericAttributes.Classes);
         Assert.Equal(
             "<pre><code id=\"h\" class=\"wide\">var x = 1;\n</code></pre>",
-            document.ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
+            document.ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
                 BodyClass = null,
-                EscapeNonAsciiText = false
+                EscapeNonAsciiText = false,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             }));
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
@@ -1029,12 +1059,12 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void FencedCode_InfoString_GenericAttributes_With_Language_Render_On_Code() {
         const string markdown = "```cs {#code .wide}\nvar x = 1;\n```\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
         var codeBlock = Assert.IsType<CodeBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal("cs", codeBlock.Language);
@@ -1043,11 +1073,14 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         Assert.Equal(new[] { "wide" }, codeBlock.Attributes.Classes);
         Assert.Equal(
             "<pre><code id=\"code\" class=\"wide language-cs\">var x = 1;\n</code></pre>",
-            document.ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
+            document.ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
                 BodyClass = null,
-                EscapeNonAsciiText = false
+                EscapeNonAsciiText = false,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             }));
 
         var native = MarkdownNativeDocument.Parse(markdown, options);
@@ -1081,12 +1114,12 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void FencedCode_InfoString_GenericAttributes_Ignore_Opaque_Metadata_For_Code_Html() {
         const string markdown = "```cs linenums {#code .wide}\nvar x = 1;\n```\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
         var codeBlock = Assert.IsType<CodeBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal("cs", codeBlock.Language);
@@ -1098,11 +1131,14 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         Assert.False(codeBlock.FenceInfo.GenericAttributes.TryGetAttribute("linenums", out _));
         Assert.Equal(
             "<pre><code id=\"code\" class=\"wide language-cs\">var x = 1;\n</code></pre>",
-            document.ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
+            document.ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
                 BodyClass = null,
-                EscapeNonAsciiText = false
+                EscapeNonAsciiText = false,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             }));
 
         var native = MarkdownNativeDocument.Parse(markdown, options);
@@ -1140,12 +1176,12 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void Standalone_GenericAttributes_Attach_To_Following_ImageBlock_With_Source_Backup() {
         const string markdown = "{#img .wide}\n![Alt](image.png \"Title\")\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
         var imageBlock = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal("img", imageBlock.Attributes.ElementId);
@@ -1153,11 +1189,14 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         Assert.Equal("![Alt](image.png \"Title\"){#img .wide}", ((IMarkdownBlock)imageBlock).RenderMarkdown());
         Assert.Equal(
             "<img src=\"image.png\" alt=\"Alt\" title=\"Title\" id=\"img\" class=\"wide\" />",
-            document.ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
+            document.ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
                 BodyClass = null,
-                EscapeNonAsciiText = false
+                EscapeNonAsciiText = false,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             }));
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
@@ -1198,11 +1237,11 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void BareUrl_Paragraph_GenericAttributes_Preserve_NoSpace_Source_And_Literal_Text() {
         const string markdown = "https://example.com{#auto .wide}\n";
-        var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        var options = MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile();
         options.GenericAttributes = true;
         options.PreserveTrivia = true;
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
         var paragraphBlock = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal("auto", paragraphBlock.Attributes.ElementId);
@@ -1241,7 +1280,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void Paragraph_StandaloneGenericAttributeContinuation_Is_Consumed_Without_Metadata() {
         const string markdown = "Paragraph\n{#literal .wide}\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
@@ -1268,17 +1307,17 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void PlainText_Paragraph_GenericAttributes_Preserve_NoSpace_Source_And_Target_Paragraph() {
         const string markdown = "word{#plain .wide}\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
         var paragraphBlock = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal("plain", paragraphBlock.Attributes.ElementId);
         Assert.Equal(new[] { "wide" }, paragraphBlock.Attributes.Classes);
-        Assert.Equal("word{#plain .wide}", document.ToMarkdown(new MarkdownWriteOptions { OutputLineEnding = "\n" }).TrimEnd('\n'));
+        Assert.Equal("word{#plain .wide}", document.ToMarkdown(new MarkdownSaveOptions { OutputLineEnding = "\n" }).TrimEnd('\n'));
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
@@ -1317,7 +1356,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         string expectedText,
         int attributeStartColumn,
         int attributeEndColumn) {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
@@ -1356,7 +1395,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     public void EscapedPunctuation_Paragraph_GenericAttributes_Preserve_NoSpace_Source_And_Target_Paragraph(
         string markdown,
         string expectedText) {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
@@ -1393,12 +1432,12 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     public void SingleCharacterId_CharacterReference_Paragraph_GenericAttributes_Are_Consumed_Without_Metadata(
         string markdown,
         string expectedText) {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
         var block = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
 
         Assert.True(block.Attributes.IsEmpty);
@@ -1428,12 +1467,12 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     public void CharacterReference_Paragraph_GenericAttributes_Are_Consumed_Without_Metadata(
         string markdown,
         string expectedText) {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
         var block = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
 
         Assert.True(block.Attributes.IsEmpty);
@@ -1459,7 +1498,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void EscapedCharacterReference_Paragraph_GenericAttributes_Target_Paragraph() {
         const string markdown = "\\&copy;{#copy .wide}\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
@@ -1491,7 +1530,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void AbbreviationEnding_Paragraph_GenericAttributes_Preserve_NoSpace_Source_And_Target_Paragraph() {
         const string markdown = "*[HTML]: Hyper Text Markup Language\n\nHTML{#abbr .wide}\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             Abbreviations = true,
             GenericAttributes = true,
             PreserveTrivia = true
@@ -1525,14 +1564,14 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         Assert.Equal(new MarkdownSourceSpan(3, 5, 3, 17), field.SourceSpan);
         Assert.Empty(native.EnumerateInlineMetadata("attributes"));
 
-        Assert.Equal("*[HTML]: Hyper Text Markup Language\n\nHTML{#abbr .wide}", result.Document.ToMarkdown(new MarkdownWriteOptions { OutputLineEnding = "\n" }).TrimEnd('\n'));
+        Assert.Equal("*[HTML]: Hyper Text Markup Language\n\nHTML{#abbr .wide}", result.Document.ToMarkdown(new MarkdownSaveOptions { OutputLineEnding = "\n" }).TrimEnd('\n'));
     }
 
     [Theory]
     [InlineData("[site{#txt .wide}](https://example.com)\n", "txt", "site", "{#txt .wide}", 1, 6, 1, 17)]
     [InlineData("![alt{#alt .wide}](img.png)\n", "alt", "alt", "{#alt .wide}", 1, 6, 1, 17)]
     public void NestedInlineContent_GenericAttributes_Promote_To_Paragraph(string markdown, string expectedId, string expectedText, string expectedSourceText, int startLine, int startColumn, int endLine, int endColumn) {
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.GenericAttributes = true;
         options.PreserveTrivia = true;
 
@@ -1574,7 +1613,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void ParseWithSyntaxTree_Captures_Inline_GenericAttribute_Tokens_Without_Duplicating_Native_Metadata() {
         const string markdown = "See [docs](old.md){#docs .primary} now\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
@@ -1618,7 +1657,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void ParseWithSyntaxTree_Captures_Reference_Image_And_Autolink_GenericAttribute_Tokens() {
         const string markdown = "[site][id]{#lnk .primary} ![alt][img]{#img .wide} <https://example.com>{#auto .wide}\n\n[id]: https://example.com\n[img]: img.png\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
@@ -1661,7 +1700,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         int startColumn,
         int endColumn,
         string expectedHtml) {
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true,
             Subscript = true
@@ -1692,17 +1731,20 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             roundtrip.Markdown.TrimEnd('\r', '\n'));
 
         Assert.Equal(markdown, result.Document.ToMarkdown().TrimEnd('\r', '\n'));
-        Assert.Equal(expectedHtml, result.Document.ToHtmlFragment(new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
-            BodyClass = null
+        Assert.Equal(expectedHtml, result.Document.ToHtml(new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
+            BodyClass = null,
+
+            Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
         }));
     }
 
     [Fact]
     public void ParseWithSyntaxTree_Renders_StrongEmphasis_GenericAttributes_Like_Markdig_Without_Duplicating_Markdown() {
         const string markdown = "***both***{#both .mix} tail";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
@@ -1736,17 +1778,20 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         Assert.Equal("***both***{#changed .edited} tail", roundtrip.Markdown.TrimEnd('\r', '\n'));
 
         Assert.Equal(markdown, result.Document.ToMarkdown().TrimEnd('\r', '\n'));
-        Assert.Equal("<p><em><strong id=\"both\" class=\"mix\">both</strong></em> tail</p>", result.Document.ToHtmlFragment(new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
-            BodyClass = null
+        Assert.Equal("<p><em><strong id=\"both\" class=\"mix\">both</strong></em> tail</p>", result.Document.ToHtml(new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
+            BodyClass = null,
+
+            Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
         }));
     }
 
     [Fact]
     public void ParseWithSyntaxTree_Attaches_Extra_Emphasis_GenericAttributes() {
         const string markdown = "~~gone~~{#s .strike} ==mark=={#m .mark} ++ins++{#i .insert}\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
@@ -1778,7 +1823,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void FootnoteReference_GenericAttributes_Are_Consumed_Without_Metadata() {
         const string markdown = "See note[^a]{#ref .wide} tail\n\n[^a]: Footnote\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             Footnotes = true,
             GenericAttributes = true,
             PreserveTrivia = true
@@ -1810,11 +1855,14 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         Assert.Equal(" tail", nativeTrailingTextSlice.Text);
         Assert.DoesNotContain(
             "{#ref .wide}",
-            result.Document.ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
+            result.Document.ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
                 BodyClass = null,
-                GitHubFootnoteHtml = true
+                GitHubFootnoteHtml = true,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             }),
             StringComparison.Ordinal);
     }
@@ -1822,7 +1870,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void InlineHtmlWrapper_GenericAttributes_Are_Consumed_Without_Metadata_And_Preserve_Trailing_Text_Source() {
         const string markdown = "<u>hi</u>{#under .wide} tail\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
@@ -1865,17 +1913,20 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         Assert.Equal(" tail", nativeTrailingTextSlice.Text);
         Assert.Equal(
             "<p><u>hi</u> tail</p>",
-            result.Document.ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
-                BodyClass = null
+            result.Document.ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
+                BodyClass = null,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             }));
     }
 
     [Fact]
     public void InlineHtmlBreak_GenericAttributes_Are_Consumed_Without_Metadata_And_Preserve_Trailing_Text_Source() {
         const string markdown = "<br>{#br .wide} tail\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
@@ -1916,17 +1967,20 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         Assert.Equal(" tail", nativeTrailingTextSlice.Text);
         Assert.Equal(
             "<p><br> tail</p>",
-            result.Document.ToHtmlFragment(new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
-                BodyClass = null
+            result.Document.ToHtml(new MarkdownHtmlExportOptions
+            {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
+                BodyClass = null,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             }));
     }
 
     [Fact]
     public void Standalone_GenericAttributes_Before_Footnote_Definition_Attach_With_Metadata() {
         const string markdown = "{#fn .wide}\n[^a]: note\n\ntext[^a]\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             Footnotes = true,
             GenericAttributes = true,
             PreserveTrivia = true
@@ -1954,23 +2008,26 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 11), attributeField.SourceSpan);
         Assert.Empty(native.EnumerateInlineMetadata("attributes"));
 
-        var html = result.Document.ToHtmlFragment(new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var html = result.Document.ToHtml(new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
             EscapeNonAsciiText = false,
-            GitHubFootnoteHtml = true
+            GitHubFootnoteHtml = true,
+
+            Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
         });
         Assert.DoesNotContain("{#fn .wide}", html, StringComparison.Ordinal);
         Assert.DoesNotContain("id=\"fn\" class=\"wide\"", html, StringComparison.Ordinal);
 
-        Assert.Equal("[^a]: note\n\ntext[^a]", result.Document.ToMarkdown(new MarkdownWriteOptions { OutputLineEnding = "\n" }).TrimEnd('\n'));
+        Assert.Equal("[^a]: note\n\ntext[^a]", result.Document.ToMarkdown(new MarkdownSaveOptions { OutputLineEnding = "\n" }).TrimEnd('\n'));
     }
 
     [Fact]
     public void Footnote_Continuation_Paragraph_GenericAttributes_Stay_Literal() {
         const string markdown = "[^a]: first\n\n    second {#p .wide}\n\ntext[^a]\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             Footnotes = true,
             GenericAttributes = true,
             PreserveTrivia = true
@@ -2003,7 +2060,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void ParseWithSyntaxTree_Keeps_Blockquote_Block_GenericAttributes_Literal() {
         const string markdown = "> quote {#q .lead}\n> # Heading {#h .wide}\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
@@ -2017,11 +2074,14 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             result.FinalSyntaxTree.Descendants(),
             node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
 
-        var html = result.Document.ToHtmlFragment(new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var html = result.Document.ToHtml(new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
-            EscapeNonAsciiText = false
+            EscapeNonAsciiText = false,
+
+            Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
         });
 
         Assert.Contains("quote {#q .lead}", html, StringComparison.Ordinal);
@@ -2036,7 +2096,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void Standalone_GenericAttributes_Before_Blockquote_Remain_Literal_Paragraph() {
         const string markdown = "{#q .wide}\n> quote\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
@@ -2060,11 +2120,14 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
         Assert.Empty(MarkdownNativeDocument.Parse(markdown, options).EnumerateBlockSourceFields("attributes"));
 
-        var html = result.Document.ToHtmlFragment(new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var html = result.Document.ToHtml(new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
-            EscapeNonAsciiText = false
+            EscapeNonAsciiText = false,
+
+            Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
         });
 
         Assert.Equal("<p>{#q .wide}</p><blockquote><p>quote</p></blockquote>", html);
@@ -2073,7 +2136,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void Standalone_GenericAttributes_On_Callout_CustomContainer_And_Details_Are_SourceBacked_And_Rendered() {
         const string markdown = "{#notice .wide}\n> [!NOTE] Heads up\n> Body\n\n{#panel .framed}\n::: note\nInside\n:::\n\n{#more .expanded}\n<details open>\n<summary>More</summary>\n\nHidden\n</details>\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             CustomContainers = true,
             PreserveTrivia = true
@@ -2097,11 +2160,14 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         Assert.Equal(3, fields.Length);
         Assert.Equal(new[] { "{#notice .wide}", "{#panel .framed}", "{#more .expanded}" }, fields.Select(field => field.Value));
 
-        var html = result.Document.ToHtmlFragment(new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var html = result.Document.ToHtml(new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
-            EscapeNonAsciiText = false
+            EscapeNonAsciiText = false,
+
+            Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
         });
         Assert.Contains("<blockquote id=\"notice\" class=\"callout note wide\"", html, StringComparison.Ordinal);
         Assert.Contains("<div id=\"panel\" class=\"note framed\">", html, StringComparison.Ordinal);
@@ -2121,7 +2187,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void Standalone_GenericAttributes_Before_HtmlBlock_Attach_With_Metadata() {
         const string markdown = "{#html .wide}\n<div>raw</div>\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true,
             HtmlBlocks = true
@@ -2144,11 +2210,14 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         var attributeField = Assert.Single(MarkdownNativeDocument.Parse(markdown, options).EnumerateBlockSourceFields("attributes"));
         Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 13), attributeField.SourceSpan);
 
-        var html = result.Document.ToHtmlFragment(new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var html = result.Document.ToHtml(new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
-            EscapeNonAsciiText = false
+            EscapeNonAsciiText = false,
+
+            Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
         });
 
         Assert.Equal("<div>raw</div>\n", html);
@@ -2157,7 +2226,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void Standalone_GenericAttributes_Before_ThematicBreak_Create_Attributed_Empty_SetextHeading() {
         const string markdown = "{#rule .wide}\n---\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
@@ -2201,7 +2270,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void Standalone_GenericAttributes_Before_IndentedCode_Create_Attributed_Paragraph() {
         const string markdown = "{#code .wide}\n    var x = 1;\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true,
             IndentedCodeBlocks = true
@@ -2243,7 +2312,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void ParseWithSyntaxTree_Captures_ListItem_GenericAttribute_Tokens() {
         const string markdown = "- item {#li .selected}\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
@@ -2268,12 +2337,12 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void ListItem_GenericAttributes_Preserve_Consumed_Separator_Whitespace_In_Markdown_Writer() {
         const string markdown = "- item  {#li .selected}\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
         var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
         var item = Assert.Single(list.Items);
 
@@ -2283,13 +2352,13 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             ((IMarkdownBlock)list).RenderMarkdown().Replace("\r\n", "\n"));
         Assert.Equal(
             "- item  {#li .selected}\n",
-            document.ToMarkdown(new MarkdownWriteOptions { OutputLineEnding = "\n" }));
+            document.ToMarkdown(new MarkdownSaveOptions { OutputLineEnding = "\n" }));
     }
 
     [Fact]
     public void ListItem_Heading_GenericAttributes_Remain_Literal_While_FencedCode_Attributes_Stay_SourceBacked() {
         const string markdown = "- # Heading {#h .wide}\n- ```cs {#code .wide}\n  x\n  ```\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
@@ -2310,11 +2379,14 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         Assert.Equal("code", code.Attributes.ElementId);
         Assert.Equal(new[] { "wide" }, code.Attributes.Classes);
 
-        var html = result.Document.ToHtmlFragment(new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var html = result.Document.ToHtml(new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
-            EscapeNonAsciiText = false
+            EscapeNonAsciiText = false,
+
+            Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
         });
 
         Assert.Contains("<h1>Heading {#h .wide}</h1>", html, StringComparison.Ordinal);
@@ -2341,7 +2413,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void DefinitionListTerm_GenericAttributes_Are_SourceBacked() {
         const string markdown = "Term {#term .wide}\n:   Definition {#def .wide}\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             DefinitionLists = true,
             GenericAttributes = true,
             PreserveTrivia = true
@@ -2387,7 +2459,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void Standalone_GenericAttributes_Before_DefinitionList_Render_On_Dl() {
         const string markdown = "{#glossary .wide}\nTerm\n:   Definition\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             DefinitionLists = true,
             GenericAttributes = true,
             PreserveTrivia = true
@@ -2402,10 +2474,13 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         Assert.Equal("glossary", definitionList.Attributes.ElementId);
         Assert.Equal(new[] { "wide" }, definitionList.Attributes.Classes);
 
-        var html = result.Document.ToHtmlFragment(new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
-            BodyClass = null
+        var html = result.Document.ToHtml(new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
+            BodyClass = null,
+
+            Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
         });
 
         Assert.Contains("<dl id=\"glossary\" class=\"wide\">", html, StringComparison.Ordinal);
@@ -2414,7 +2489,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [Fact]
     public void DefinitionList_Continuation_Paragraph_GenericAttributes_Stay_Literal() {
         const string markdown = "Term\n:   first\n\n    second {#p .wide}\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             DefinitionLists = true,
             GenericAttributes = true,
             PreserveTrivia = true
@@ -2446,7 +2521,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     }
 
     private static void AssertGenericAttributeToken(
-        MarkdownParseResult result,
+        MarkdownParseInfo result,
         MarkdownSyntaxNode owner,
         string expectedLiteral,
         MarkdownSourceSpan expectedSpan) {

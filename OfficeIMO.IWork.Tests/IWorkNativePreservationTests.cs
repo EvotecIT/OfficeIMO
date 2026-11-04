@@ -62,11 +62,10 @@ public sealed class IWorkNativePreservationTests {
             Assert.Equal(record.Versions, output.Versions); Assert.Equal(record.ObjectReferences, output.ObjectReferences); Assert.Equal(record.DataReferences, output.DataReferences);
             if (record.Identifier != image.SourceIdentity.RecordIdentifier) Assert.Equal(record.GetPayload(), output.GetPayload());
         }
-        using var converted = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(new MemoryStream(result.GetPackageBytes()),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Open(new MemoryStream(result.GetPackageBytes()), IWorkDocumentKind.Keynote).ToPowerPointResult(new() { Mode = IWorkConversionMode.EditableOnly });
         converted.RequireCompleteEditableReconstruction();
         using var outputStream = new MemoryStream(); converted.Value.Save(outputStream); outputStream.Position = 0;
-        using var reopened = PowerPointPresentation.Load(outputStream);
+        using var reopened = PowerPointDocument.Load(outputStream);
         Assert.Empty(reopened.ValidateDocument()); Assert.Equal(source.ReadKeynote().Slides.Count, reopened.Slides.Count);
         session.MoveKeynoteImage(image.SourceIdentity, (float)image.Geometry.LeftPoints, (float)image.Geometry.TopPoints);
         Assert.Equal(source.ComputePackageContentHash(), session.SaveBytesResult().Report.OutputPackageContentHash);
@@ -135,9 +134,9 @@ public sealed class IWorkNativePreservationTests {
         foreach (var image in images) session.MoveKeynoteImage(image.SourceIdentity!, (float)image.Geometry!.LeftPoints + 1, (float)image.Geometry.TopPoints);
         var limits = AcceptCaches();
         switch (boundary) {
-            case "package": limits.MaximumPackageBytes = 100; break;
-            case "archive": limits.MaximumEditedArchiveBytes = 100; break;
-            case "records": limits.MaximumEditedRecords = 1; break;
+            case "package": limits.MaxPackageBytes = 100; break;
+            case "archive": limits.MaxEditedArchiveBytes = 100; break;
+            case "records": limits.MaxEditedRecords = 1; break;
             case "caches": limits.AllowUnassessedVisualCaches = false; break;
         }
         byte[] sentinel = { 9, 8, 7 }; using var stream = new MemoryStream(); stream.Write(sentinel);
@@ -178,7 +177,7 @@ public sealed class IWorkNativePreservationTests {
     [Fact]
     public void Output_carrier_overhead_is_bounded_after_all_input_entries_fit() {
         var source = IWorkSourceDocument.Open(Fixture("nim-iwork/simple.pages"));
-        var limit = new IWorkNativeSaveOptions { MaximumPackageBytes = (int)source.Entries.Sum(entry => (long)entry.Length) };
+        var limit = new IWorkNativeSaveOptions { MaxPackageBytes = (int)source.Entries.Sum(entry => (long)entry.Length) };
         using var destination = new MemoryStream(); destination.WriteByte(9);
         Assert.Throws<InvalidDataException>(() => source.BeginEdit().Save(destination, limit));
         Assert.Equal(new byte[] { 9 }, destination.ToArray());
@@ -195,9 +194,9 @@ public sealed class IWorkNativePreservationTests {
         var nativeImages = native.ReadKeynote().Slides.SelectMany(slide => slide.Images).ToArray();
         Assert.Equal(originalImages.Length, nativeImages.Length);
         for (int i = 0; i < originalImages.Length; i++) Assert.Equal(originalImages[i].GetBytes(), nativeImages[i].GetBytes());
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(path, conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Keynote).ToPowerPointResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction(); using var stream = new MemoryStream(); result.Value.Save(stream); stream.Position = 0;
-        using var saved = PowerPointPresentation.Load(stream); Assert.Equal(3, saved.Slides.Count); Assert.Empty(saved.ValidateDocument());
+        using var saved = PowerPointDocument.Load(stream); Assert.Equal(3, saved.Slides.Count); Assert.Empty(saved.ValidateDocument());
     }
 
     [Fact]
@@ -223,11 +222,11 @@ public sealed class IWorkNativePreservationTests {
     public void Saving_adapts_carrier_verification_to_valid_tight_read_bounds_without_relaxing_decompression(bool translate) {
         string path = Fixture("native-exports/keynote-created-images-edited-v15.4.key");
         var source = IWorkSourceDocument.Open(path, options: new() {
-            MaximumPackageBytes = new FileInfo(path).Length,
-            MaximumEntryBytes = 92_000, MaximumTotalEntryBytes = 92_000,
-            MaximumIwaBytes = 32_768, MaximumDecompressedIwaBytes = 32_768,
-            MaximumSnappyChunkBytes = 32_768, MaximumTotalDecompressedIwaBytes = 50_000,
-            MaximumRecordCount = 205
+            MaxPackageBytes = new FileInfo(path).Length,
+            MaxEntryBytes = 92_000, MaxTotalEntryBytes = 92_000,
+            MaxIwaBytes = 32_768, MaxDecompressedIwaBytes = 32_768,
+            MaxSnappyChunkBytes = 32_768, MaxTotalDecompressedIwaBytes = 50_000,
+            MaxRecordCount = 205
         });
         Assert.Equal(91_998, source.Entries.Sum(entry => entry.Length));
         var session = source.BeginEdit();

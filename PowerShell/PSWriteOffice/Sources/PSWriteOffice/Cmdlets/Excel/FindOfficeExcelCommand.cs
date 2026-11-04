@@ -67,7 +67,7 @@ public sealed class FindOfficeExcelCommand : PSCmdlet {
         using var workbook = ExcelWorkbookCommandService.ResolveWorkbook(this, ParameterSetName, Path, Document, readOnly: true);
         var document = workbook.Document;
         foreach (var sheet in ExcelWorkbookCommandService.ResolveSheets(this, document, ParameterSetName, Sheet, SheetIndex)) {
-            var range = string.IsNullOrWhiteSpace(Range) ? sheet.UsedRangeA1 : Range!;
+            var range = string.IsNullOrWhiteSpace(Range) ? sheet.UsedRange.Address : Range!;
             foreach (var cell in sheet.EnumerateRange(range)) {
                 var cellText = Convert.ToString(cell.Value, CultureInfo.InvariantCulture) ?? string.Empty;
                 if (IsMatch(cellText)) {
@@ -92,7 +92,7 @@ public sealed class FindOfficeExcelCommand : PSCmdlet {
     private static PSObject CreateRecord(string sheetName, int row, int column, object? value) {
         var record = new PSObject();
         record.Properties.Add(new PSNoteProperty("Sheet", sheetName));
-        record.Properties.Add(new PSNoteProperty("Address", A1.CellReference(row, column)));
+        record.Properties.Add(new PSNoteProperty("Address", ExcelA1.CellReference(row, column)));
         record.Properties.Add(new PSNoteProperty("Row", row));
         record.Properties.Add(new PSNoteProperty("Column", column));
         record.Properties.Add(new PSNoteProperty("Value", value));

@@ -367,7 +367,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static void AddParagraphShadingSprm(List<byte> grpprl, LegacyDocParagraphShading shading) {
-            if (!LegacyDocColorPalette.TryGetIcoForHex(shading.FillColorHex, out byte backgroundIco) || backgroundIco == 0) {
+            if (!LegacyDocPaletteProjection.TryResolveColor(shading.FillColorHex, "paragraph shading", out byte backgroundIco) || backgroundIco == 0) {
                 throw new NotSupportedException("Native DOC saving supports paragraph shading only for Word 97-2003 palette fill colors.");
             }
 
@@ -403,7 +403,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 throw new NotSupportedException($"Native DOC saving does not support paragraph border style '{border.Style}'.");
             }
 
-            if (!LegacyDocColorPalette.TryGetIcoForHex(border.ColorHex, out byte colorIndex)) {
+            if (!LegacyDocPaletteProjection.TryResolveColor(border.ColorHex, "paragraph border", out byte colorIndex)) {
                 throw new NotSupportedException("Native DOC saving supports paragraph borders only with Word 97-2003 palette colors.");
             }
 
@@ -648,7 +648,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     continue;
                 }
 
-                if (!LegacyDocColorPalette.TryGetIcoForHex(shading.FillColorHex, out byte backgroundIco) || backgroundIco == 0) {
+                if (!LegacyDocPaletteProjection.TryResolveColor(shading.FillColorHex, "table cell shading", out byte backgroundIco) || backgroundIco == 0) {
                     throw new NotSupportedException("Native DOC saving supports table cell shading only for Word 97-2003 palette fill colors.");
                 }
 
@@ -741,7 +741,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 throw new NotSupportedException($"Native DOC saving does not support table cell border style '{border.Style}'.");
             }
 
-            if (!LegacyDocColorPalette.TryGetIcoForHex(border.ColorHex, out byte colorIndex)) {
+            if (!LegacyDocPaletteProjection.TryResolveColor(border.ColorHex, "table cell border", out byte colorIndex)) {
                 throw new NotSupportedException("Native DOC saving supports table cell borders only with Word 97-2003 palette colors.");
             }
 

@@ -12,8 +12,10 @@ public sealed class PdfGradientColorInterpolationTests {
         first.FillRadialGradient = OfficeRadialGradient.Centered(OfficeColor.Red, OfficeColor.Blue);
         var second = OfficeShape.Rectangle(80, 40); second.StrokeWidth = 0;
         second.FillRadialGradient = first.FillRadialGradient.WithColorInterpolation(OfficeGradientColorInterpolation.LinearRgb);
-        byte[] pdf = PdfDocument.Create(new PdfOptions { PageWidth = 100, PageHeight = 100,
-            MarginTop = 0, MarginLeft = 0, MarginRight = 0, MarginBottom = 0 })
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(100)),
+            Margins = { Top = global::OfficeIMO.OfficeLength.Points(0), Left = global::OfficeIMO.OfficeLength.Points(0), Right = global::OfficeIMO.OfficeLength.Points(0), Bottom = global::OfficeIMO.OfficeLength.Points(0) }
+        } })
             .Compose(c => c.Page(p => p.Content(content => content.Shape(first).Shape(second)))).ToBytes();
         var raster = OfficeDrawingRasterRenderer.Render(PdfReadDocument.Open(pdf).Pages[0].ToDrawing());
         var srgb = raster.GetPixel(60, 20); var linear = raster.GetPixel(60, 60);

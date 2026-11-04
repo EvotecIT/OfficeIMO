@@ -8,7 +8,7 @@ public sealed class PdfRedactionEvidenceTests {
     [Fact]
     public void ApplyWithEvidenceReturnsVerifiedNoOpForSearchWithoutMatches() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Retained ordinary content"))
+            .Paragraph(paragraph => paragraph.AddText("Retained ordinary content"))
             .ToBytes();
         PdfDocument document = PdfDocument.Load(source);
         PdfRedactionPlan plan = document.Redactions.Search(
@@ -27,8 +27,8 @@ public sealed class PdfRedactionEvidenceTests {
     [Fact]
     public void ApplyWithEvidenceReturnsSourceBoundActualVersusPlannedProof() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Remove evidence marker"))
-            .Paragraph(paragraph => paragraph.Text("Retain ordinary content"))
+            .Paragraph(paragraph => paragraph.AddText("Remove evidence marker"))
+            .Paragraph(paragraph => paragraph.AddText("Retain ordinary content"))
             .ToBytes();
         PdfDocument document = PdfDocument.Load(source);
         PdfRedactionPlan plan = document.Redactions.Search(
@@ -82,7 +82,7 @@ public sealed class PdfRedactionEvidenceTests {
     [Fact]
     public void ApplyWithEvidenceMarksItemsInconclusiveWhenConfiguredProofFails() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Remove this marker"))
+            .Paragraph(paragraph => paragraph.AddText("Remove this marker"))
             .ToBytes();
         PdfDocument document = PdfDocument.Load(source);
         PdfRedactionPlan plan = document.Redactions.Search(
@@ -217,8 +217,8 @@ public sealed class PdfRedactionEvidenceTests {
     [Fact]
     public void ApplyWithEvidenceExpandsSourceTightLimitsForGeneratedOutput() {
         byte[] source = PdfDocument.Create(pdf => pdf.Content(content => content
-                .Paragraph(paragraph => paragraph.Text("Retained source content"))),
-                new PdfOptions { CompressContentStreams = false })
+                .AddParagraph(paragraph => paragraph.AddText("Retained source content"))),
+                new PdfCreateOptions { CompressContentStreams = false })
             .ToBytes();
         PdfStream[] sourceStreams = PdfSyntax.ParseObjects(source).Map.Values
             .Select(static item => item.Value)
@@ -313,7 +313,7 @@ public sealed class PdfRedactionEvidenceTests {
     }
 
     [Fact]
-    public void GeneratedGrowthDoesNotDecodeOrCountUntouchedRetainedStreams() {
+    public void GeneratedGrowthDoesNotCountUntouchedRetainedStreams() {
         byte[] retainedDecoded = new byte[1024 * 1024];
         byte[] retainedCompressed = OfficeZlibCodec.Compress(retainedDecoded);
         const string pageContent = "BT /F1 12 Tf 20 100 Td (REMOVE-ME) Tj ET";
@@ -339,7 +339,8 @@ public sealed class PdfRedactionEvidenceTests {
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
             "endobj",
             "7 0 obj",
-            "<< /Length " + retainedCompressed.Length + " /Filter /FlateDecode >>",
+            // The growth estimate excludes retained raster bytes; residue verification still inspects any bytes after the raster.
+            "<< /Type /XObject /Subtype /Image /Width 1024 /Height 1024 /ColorSpace /DeviceGray /BitsPerComponent 8 /Length " + retainedCompressed.Length + " /Filter /FlateDecode >>",
             "stream"
         }) + "\n");
         sourceBuffer.Write(retainedCompressed, 0, retainedCompressed.Length);
@@ -349,8 +350,8 @@ public sealed class PdfRedactionEvidenceTests {
             Limits = new PdfReadLimits {
                 MaxInputBytes = source.LongLength,
                 MaxRawStreamBytes = Math.Max(pageContent.Length, retainedCompressed.Length),
-                MaxDecodedStreamBytes = 1024,
-                MaxTotalDecodedStreamBytes = 2048,
+                MaxDecodedStreamBytes = retainedDecoded.Length,
+                MaxTotalDecodedStreamBytes = retainedDecoded.Length * 2L,
                 MaxPageContentBytes = 1024,
                 MaxRetainedContentBytes = 2048
             }

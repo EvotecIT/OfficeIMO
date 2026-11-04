@@ -57,7 +57,12 @@ internal static class LatexReaderTextSplitter {
             if (segment.IsAnchor || segment.Language != null) {
                 FlushPlain(markdown, plain);
                 markdown.Append("\n\n");
-                markdown.Append(segment.IsAnchor ? fragment : MarkdownDoc.Create().Add(new CodeBlock(segment.Language!, fragment)).ToMarkdown().TrimEnd());
+                if (segment.IsAnchor) markdown.Append(fragment);
+                else {
+                    using var codeDocument = MarkdownDocument.Create();
+                    codeDocument.Add(new CodeBlock(segment.Language!, fragment));
+                    markdown.Append(codeDocument.ToMarkdown().TrimEnd());
+                }
                 markdown.Append("\n\n");
             } else plain.Append(fragment);
         }

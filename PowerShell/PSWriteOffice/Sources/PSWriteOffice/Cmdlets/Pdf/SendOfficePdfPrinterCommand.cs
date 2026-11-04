@@ -7,6 +7,8 @@ using OfficeIMO.Pdf;
 using OfficeIMO.Workflows;
 #endif
 using PSWriteOffice.Services.Pdf;
+using System.Security;
+using PSWriteOffice.Foundation;
 
 namespace PSWriteOffice.Cmdlets.Pdf;
 
@@ -47,9 +49,11 @@ public sealed class SendOfficePdfPrinterCommand : AsyncPSCmdlet {
     [Parameter] [ValidateSet("Fit", "ActualSize", "Fill")]
     public string ScaleMode { get; set; } = "Fit";
     /// <summary>PDF paper size, default A4.</summary>
-    [Parameter] public PageSize PaperSize { get; set; } = PageSizes.A4;
+    [Parameter] public PdfPageSize PaperSize { get; set; } = PdfPageSizes.A4;
     /// <summary>Password for an encrypted PDF; printing permissions remain enforced.</summary>
-    [Parameter] public string? Password { get; set; }
+    [Parameter]
+    [OfficePasswordTransformation]
+    public SecureString? Password { get; set; }
     /// <inheritdoc />
     protected override async Task ProcessRecordAsync() {
 #if FRAMEWORK
@@ -59,7 +63,7 @@ public sealed class SendOfficePdfPrinterCommand : AsyncPSCmdlet {
         string input = PdfCommandUtilities.ResolveExistingFilePath(this, Path);
         string? output = OutputFilePath == null ? null : PdfCommandUtilities.ResolvePath(this, OutputFilePath);
         if (!ShouldProcess(PrinterName, "Submit prepared PDF sheets to the printer queue")) return;
-        PdfDocument document = await PdfDocument.LoadAsync(input, new PdfLoadOptions { Password = Password }, cancellationToken: CancelToken);
+        PdfDocument document = await PdfDocument.LoadAsync(input, new PdfLoadOptions { Password = Password.ToPlainText() }, cancellationToken: CancelToken);
         PdfPreparedPrintDocument sheets = PdfPrintRenderer.Prepare(document, new PdfPrintPlanRequest {
             InputPath = input, Pages = Pages, PagesPerSheet = PagesPerSheet, Margin = Margin,
             Orientation = (PdfPrintOrientation)Enum.Parse(typeof(PdfPrintOrientation), Orientation, true),

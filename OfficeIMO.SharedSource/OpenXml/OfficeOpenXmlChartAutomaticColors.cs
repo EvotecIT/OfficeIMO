@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
@@ -105,19 +107,42 @@ internal static class OfficeOpenXmlChartAutomaticColors {
 
     /// <summary>Resolves the automatic colour of one series element from its chart's style and theme.</summary>
     internal static OfficeColor? ResolveSeries(OpenXmlElement series, A.ColorScheme? scheme,
-        bool useSpreadsheetDefaultTheme = false) {
+        bool useSpreadsheetDefaultTheme = false) =>
+        ResolveSeries(series, scheme, new SeriesResolutionContext(), useSpreadsheetDefaultTheme);
+
+    /// <summary>Reuses plot metadata for the series in one chart projection.</summary>
+    internal sealed class SeriesResolutionContext {
+        private readonly Dictionary<C.PlotArea, int> _counts = new(PlotReferenceComparer.Instance);
+
+        internal int Count(C.PlotArea? plot, int minimum) {
+            if (plot == null) return minimum;
+            if (!_counts.TryGetValue(plot, out int count)) {
+                count = 0;
+                foreach (C.Index item in plot.ChildElements.SelectMany(group => group.ChildElements)
+                    .Where(element => element.LocalName == "ser").Select(element => element.GetFirstChild<C.Index>())
+                    .OfType<C.Index>()) {
+                    if (item.Val?.Value is uint value && value < int.MaxValue)
+                        count = Math.Max(count, (int)value + 1);
+                }
+                _counts.Add(plot, count);
+            }
+            return Math.Max(count, minimum);
+        }
+    }
+
+    private sealed class PlotReferenceComparer : IEqualityComparer<C.PlotArea> {
+        internal static readonly PlotReferenceComparer Instance = new();
+        public bool Equals(C.PlotArea? left, C.PlotArea? right) => ReferenceEquals(left, right);
+        public int GetHashCode(C.PlotArea value) => RuntimeHelpers.GetHashCode(value);
+    }
+
+    internal static OfficeColor? ResolveSeries(OpenXmlElement series, A.ColorScheme? scheme,
+        SeriesResolutionContext context, bool useSpreadsheetDefaultTheme = false) {
         C.ChartSpace? chartSpace = series.Ancestors<C.ChartSpace>().FirstOrDefault();
         uint index = series.GetFirstChild<C.Index>()?.Val?.Value ?? 0U;
         if (index > int.MaxValue - 1) return null;
-        int count = (int)index + 1;
         C.PlotArea? plot = series.Ancestors<C.PlotArea>().FirstOrDefault();
-        if (plot != null) {
-            foreach (C.Index item in plot.ChildElements.SelectMany(group => group.ChildElements)
-                .Where(element => element.LocalName == "ser").Select(element => element.GetFirstChild<C.Index>())
-                .OfType<C.Index>()) {
-                if (item.Val?.Value is uint value && value < int.MaxValue) count = Math.Max(count, (int)value + 1);
-            }
-        }
+        int count = context.Count(plot, (int)index + 1);
         return Resolve(ReadStyle(chartSpace), (int)index, count, scheme, ResolveColorMap(chartSpace),
             useSpreadsheetDefaultTheme);
     }

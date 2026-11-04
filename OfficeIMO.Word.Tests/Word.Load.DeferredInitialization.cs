@@ -45,7 +45,7 @@ public sealed class WordLoadDeferredInitializationTests {
 
         Assert.Null(mainPart.DocumentSettingsPart);
 
-        document.Sections[0].DifferentOddAndEvenPages = true;
+        document.Sections[0].PageSetup.DifferentOddAndEvenPages = true;
 
         Assert.NotNull(mainPart.DocumentSettingsPart?.Settings?.GetFirstChild<EvenAndOddHeaders>());
     }
@@ -60,12 +60,12 @@ public sealed class WordLoadDeferredInitializationTests {
         Assert.Empty(mainPart.HeaderParts);
         Assert.Empty(mainPart.FooterParts);
 
-        document.Sections[0].DifferentOddAndEvenPages = false;
+        document.Sections[0].PageSetup.DifferentOddAndEvenPages = false;
 
         Assert.Null(mainPart.DocumentSettingsPart);
         Assert.Empty(mainPart.HeaderParts);
         Assert.Empty(mainPart.FooterParts);
-        Assert.False(document.Sections[0].DifferentOddAndEvenPages);
+        Assert.False(document.Sections[0].PageSetup.DifferentOddAndEvenPages);
     }
 
     [Fact]
@@ -74,13 +74,13 @@ public sealed class WordLoadDeferredInitializationTests {
         using WordDocument document = WordDocument.Load(stream);
         MainDocumentPart mainPart = document._wordprocessingDocument.MainDocumentPart!;
 
-        document.Sections[0].DifferentOddAndEvenPages = true;
+        document.Sections[0].PageSetup.DifferentOddAndEvenPages = true;
         Assert.NotNull(mainPart.DocumentSettingsPart?.Settings?.GetFirstChild<EvenAndOddHeaders>());
 
-        document.Sections[0].DifferentOddAndEvenPages = false;
+        document.Sections[0].PageSetup.DifferentOddAndEvenPages = false;
 
         Assert.Null(mainPart.DocumentSettingsPart?.Settings?.GetFirstChild<EvenAndOddHeaders>());
-        Assert.False(document.Sections[0].DifferentOddAndEvenPages);
+        Assert.False(document.Sections[0].PageSetup.DifferentOddAndEvenPages);
     }
 
     [Theory]
@@ -90,7 +90,7 @@ public sealed class WordLoadDeferredInitializationTests {
         using var stream = CreateMinimalDocument();
         using WordDocument document = WordDocument.Load(stream);
         WordSection section = document.Sections[0];
-        section.DifferentOddAndEvenPages = true;
+        section.PageSetup.DifferentOddAndEvenPages = true;
 
         if (removeHeaderReference) {
             Assert.Single(section._sectionProperties.Elements<HeaderReference>(), reference =>
@@ -100,8 +100,8 @@ public sealed class WordLoadDeferredInitializationTests {
                 reference.Type?.Value == HeaderFooterValues.Even).Remove();
         }
 
-        Assert.True(section.DifferentOddAndEvenPages);
-        Assert.True(Assert.Single(document.CreateInspectionSnapshot().Sections).DifferentOddAndEvenPages);
+        Assert.True(section.PageSetup.DifferentOddAndEvenPages);
+        Assert.True(Assert.Single(document.Inspect().Sections).DifferentOddAndEvenPages);
     }
 
     [Fact]
@@ -109,9 +109,9 @@ public sealed class WordLoadDeferredInitializationTests {
         using var stream = CreateMinimalDocument();
         using WordDocument document = WordDocument.Load(stream);
         WordSection firstSection = document.Sections[0];
-        firstSection.DifferentOddAndEvenPages = true;
-        firstSection.Header.Even!.AddParagraph("Inherited even header");
-        firstSection.Footer.Even!.AddParagraph("Inherited even footer");
+        firstSection.PageSetup.DifferentOddAndEvenPages = true;
+        firstSection.PageSetup.EvenPageHeader.AddParagraph("Inherited even header");
+        firstSection.PageSetup.EvenPageFooter.AddParagraph("Inherited even footer");
 
         WordSection inheritedSection = document.AddSection();
 
@@ -119,8 +119,8 @@ public sealed class WordLoadDeferredInitializationTests {
             reference.Type?.Value == HeaderFooterValues.Even);
         Assert.DoesNotContain(inheritedSection._sectionProperties.Elements<FooterReference>(), reference =>
             reference.Type?.Value == HeaderFooterValues.Even);
-        Assert.True(inheritedSection.DifferentOddAndEvenPages);
-        WordSectionSnapshot inheritedSnapshot = document.CreateInspectionSnapshot().Sections[1];
+        Assert.True(inheritedSection.PageSetup.DifferentOddAndEvenPages);
+        WordSectionInfo inheritedSnapshot = document.Inspect().Sections[1];
         Assert.True(inheritedSnapshot.DifferentOddAndEvenPages);
         Assert.Equal("Inherited even header", Assert.Single(inheritedSnapshot.EvenHeader!.Paragraphs).Text);
         Assert.Equal("Inherited even footer", Assert.Single(inheritedSnapshot.EvenFooter!.Paragraphs).Text);
@@ -131,22 +131,22 @@ public sealed class WordLoadDeferredInitializationTests {
             .GetFirstChild<EvenAndOddHeaders>()!;
         setting.Val = false;
 
-        Assert.False(firstSection.DifferentOddAndEvenPages);
-        Assert.False(inheritedSection.DifferentOddAndEvenPages);
-        WordSectionSnapshot disabledSnapshot = document.CreateInspectionSnapshot().Sections[1];
+        Assert.False(firstSection.PageSetup.DifferentOddAndEvenPages);
+        Assert.False(inheritedSection.PageSetup.DifferentOddAndEvenPages);
+        WordSectionInfo disabledSnapshot = document.Inspect().Sections[1];
         Assert.False(disabledSnapshot.DifferentOddAndEvenPages);
         Assert.Equal("Inherited even header", Assert.Single(disabledSnapshot.EvenHeader!.Paragraphs).Text);
         Assert.Equal("Inherited even footer", Assert.Single(disabledSnapshot.EvenFooter!.Paragraphs).Text);
 
-        firstSection.DifferentOddAndEvenPages = true;
+        firstSection.PageSetup.DifferentOddAndEvenPages = true;
         Assert.True(setting.Val!.Value);
-        Assert.True(inheritedSection.DifferentOddAndEvenPages);
+        Assert.True(inheritedSection.PageSetup.DifferentOddAndEvenPages);
 
         using var reloadedStream = new MemoryStream(document.ToBytes(), writable: false);
         using WordDocument reloaded = WordDocument.Load(reloadedStream);
-        Assert.True(reloaded.Sections[1].DifferentOddAndEvenPages);
+        Assert.True(reloaded.Sections[1].PageSetup.DifferentOddAndEvenPages);
         Assert.Equal("Inherited even header", Assert.Single(
-            reloaded.CreateInspectionSnapshot().Sections[1].EvenHeader!.Paragraphs).Text);
+            reloaded.Inspect().Sections[1].EvenHeader!.Paragraphs).Text);
     }
 
     [Fact]
@@ -167,8 +167,8 @@ public sealed class WordLoadDeferredInitializationTests {
         Assert.False(paragraph.AvoidWidowAndOrphan);
         Assert.False(paragraph.BiDi);
 
-        WordParagraphSnapshot snapshot = Assert.IsType<WordParagraphSnapshot>(
-            Assert.Single(Assert.Single(document.CreateInspectionSnapshot().Sections).Elements));
+        WordParagraphInfo snapshot = Assert.IsType<WordParagraphInfo>(
+            Assert.Single(Assert.Single(document.Inspect().Sections).Elements));
         Assert.False(snapshot.PageBreakBefore);
         Assert.False(snapshot.KeepWithNext);
         Assert.False(snapshot.KeepLinesTogether);
@@ -184,8 +184,8 @@ public sealed class WordLoadDeferredInitializationTests {
         Run run = Assert.Single(paragraph._paragraph.Elements<Run>());
         run.RunProperties = new RunProperties(new Vanish());
 
-        WordParagraphSnapshot snapshot = Assert.IsType<WordParagraphSnapshot>(
-            Assert.Single(Assert.Single(document.CreateInspectionSnapshot().Sections).Elements));
+        WordParagraphInfo snapshot = Assert.IsType<WordParagraphInfo>(
+            Assert.Single(Assert.Single(document.Inspect().Sections).Elements));
 
         Assert.Equal("Minimal document", snapshot.Text);
         Assert.Equal("Minimal document", Assert.Single(snapshot.Runs).Text);
@@ -202,7 +202,7 @@ public sealed class WordLoadDeferredInitializationTests {
 
         Assert.Null(mainPart.DocumentSettingsPart);
 
-        document.Background.SetImage(imageStream, "background.png", 1, 1);
+        document.Background.SetImage(imageStream, "background.png", OfficeLength.Pixels(1), OfficeLength.Pixels(1));
 
         Assert.NotNull(mainPart.DocumentSettingsPart?.Settings?.DisplayBackgroundShape);
         Assert.NotNull(mainPart.Document?.DocumentBackground);
@@ -216,11 +216,11 @@ public sealed class WordLoadDeferredInitializationTests {
 
         Assert.Null(mainPart.StyleDefinitionsPart);
 
-        document.Settings.FontSize = 13;
+        document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(13);
         document.Settings.FontFamily = "Aptos";
 
         Assert.NotNull(mainPart.StyleDefinitionsPart?.Styles);
-        Assert.Equal(13, document.Settings.FontSize);
+        Assert.Equal(13, document.Settings.FontSize?.ToPoints());
         Assert.Equal("Aptos", document.Settings.FontFamily);
         Assert.Empty(new OpenXmlValidator().Validate(document._wordprocessingDocument));
     }

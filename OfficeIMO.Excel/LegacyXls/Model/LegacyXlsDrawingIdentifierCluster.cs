@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes an OfficeArtIDCL shape identifier cluster inside document-wide drawing metadata.
     /// </summary>
-    public sealed class LegacyXlsDrawingIdentifierCluster {
+    internal sealed class LegacyXlsDrawingIdentifierCluster {
         /// <summary>
         /// Creates preserve-only metadata for an OfficeArtIDCL record.
         /// </summary>

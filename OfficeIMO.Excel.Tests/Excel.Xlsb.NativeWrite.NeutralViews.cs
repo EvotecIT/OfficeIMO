@@ -11,17 +11,17 @@ namespace OfficeIMO.Tests {
         [InlineData(2)]
         public async Task Xlsb_DirectTabularSave_PreservesValuesAfterNeutralViewPreflight(int route) {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             document.PreflightWorkbook();
             var table = new DataTable("Input");
             table.Columns.Add("Label", typeof(string));
             table.Columns.Add("Count", typeof(int));
             table.Rows.Add("Retained label", 42);
-            sheet.InsertDataTable(table, includeHeaders: true);
+            sheet.WriteData(table, includeHeaders: true);
 
             byte[] bytes;
             if (route == 0) {
-                bytes = document.ToBytes(ExcelFileFormat.Xlsb);
+                bytes = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
             } else {
                 using var output = new MemoryStream();
                 if (route == 1) document.Save(output, ExcelFileFormat.Xlsb);
@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
             }
 
             Assert.Equal(ExcelSavePackageWriter.NativeBinaryDirectPackage, document.LastSaveDiagnostics.Writer);
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(bytes);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(bytes);
             Assert.Equal(2, reader.FieldCount);
             Assert.Equal("Label", reader.GetName(0));
             Assert.Equal("Count", reader.GetName(1));

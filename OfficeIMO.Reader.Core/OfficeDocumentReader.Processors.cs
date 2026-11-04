@@ -154,18 +154,6 @@ public sealed partial class OfficeDocumentReader {
         }
     }
 
-    private async Task<IReadOnlyList<ReaderChunk>> ExecuteProcessedChunksAsync(
-        Func<Task<OfficeDocumentReadResult>> read,
-        bool computeHashes,
-        CancellationToken cancellationToken,
-        ReaderOptions? options = null) {
-        OfficeDocumentReadResult document = await ExecuteProcessedDocumentAsync(
-            read,
-            computeHashes,
-            cancellationToken, options).ConfigureAwait(false);
-        return document.Chunks ?? Array.Empty<ReaderChunk>();
-    }
-
     private static OfficeDocumentSource SnapshotSource(OfficeDocumentReadResult document) {
         OfficeDocumentSource source = document.Source ?? new OfficeDocumentSource();
         return new OfficeDocumentSource {

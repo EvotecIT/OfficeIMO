@@ -52,11 +52,14 @@ public sealed class PdfLogicalTableData {
     /// Reports whether the normalized table column has a numeric profile.
     /// </summary>
     /// <param name="columnIndex">Zero-based column index.</param>
-    /// <returns>True when the column profile is numeric; otherwise false.</returns>
+    /// <returns>
+    /// True when the column profile is numeric, or when every body value is an amount with a currency symbol or
+    /// code such as "31,80 PLN"; otherwise false.
+    /// </returns>
     public bool IsNumericColumn(int columnIndex) {
-        return columnIndex >= 0 &&
-            columnIndex < ColumnProfiles.Count &&
-            ColumnProfiles[columnIndex].IsNumeric;
+        if (columnIndex < 0 || columnIndex >= ColumnProfiles.Count) return false;
+        return ColumnProfiles[columnIndex].IsNumeric ||
+            columnIndex < NumericColumns.Count && NumericColumns[columnIndex];
     }
 
     private static System.Collections.ObjectModel.ReadOnlyCollection<bool> SnapshotNumericColumns(IReadOnlyList<bool> numericColumns) {

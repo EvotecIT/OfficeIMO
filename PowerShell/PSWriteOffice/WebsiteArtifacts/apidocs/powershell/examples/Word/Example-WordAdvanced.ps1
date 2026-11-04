@@ -8,7 +8,7 @@ $data = @(
     [pscustomobject]@{ Item = 'Gamma'; Total = 1500 }
 )
 
-WordNew -Path $path {
+New-OfficeWord -Path $path {
     WordSection {
         WordHeader { WordParagraph -Text 'Project Status' -Style Heading2 }
         WordFooter { WordPageNumber }

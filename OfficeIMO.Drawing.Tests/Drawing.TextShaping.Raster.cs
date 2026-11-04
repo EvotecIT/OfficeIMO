@@ -243,22 +243,6 @@ public partial class DrawingTests {
     }
 
     [Fact]
-    public void SharedImageBuilders_ConfigureAndCloneTextShaping() {
-        var provider = new RasterMappingTextShapingProvider(
-            new OfficeShapedGlyph(1, "A", 0, advanceWidth: 500));
-        var singleOptions = new TestImageExportOptions();
-        var batchOptions = new TestImageExportOptions();
-
-        new TestImageExportBuilder(singleOptions).WithTextShaping(provider, " ar-SA ");
-        new TestImageExportBatchBuilder(batchOptions, "page").WithTextShaping(provider, " pl-PL ");
-
-        Assert.Same(provider, singleOptions.TextShapingProvider);
-        Assert.Equal("ar-SA", singleOptions.TextShapingLanguage);
-        Assert.Same(provider, batchOptions.TextShapingProvider);
-        Assert.Equal("pl-PL", batchOptions.TextShapingLanguage);
-    }
-
-    [Fact]
     public void ManagedFallback_ContextualizesArabicAndProducesVisualGlyphOrder() {
         OfficeManagedTextFallback fallback = OfficeManagedTextShaper.Resolve(
             "اب",

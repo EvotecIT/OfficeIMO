@@ -13,7 +13,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (currentExternalReference == null) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-XCT-ORPHANED",
+                    "xls-biff-xct-orphaned",
                     "An XCT external cell cache record appeared before a SupBook supporting link.",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -23,7 +23,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (record.Payload.Length < 2) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-XCT-SHORT",
+                    "xls-biff-xct-short",
                     "An XCT external cell cache record was too short to parse.",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -42,7 +42,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 } else {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Warning,
-                        "XLS-BIFF-XCT-SHEET-INDEX-INVALID",
+                        "xls-biff-xct-sheet-index-invalid",
                         "An XCT external cell cache record references a sheet index outside the preceding SupBook sheet table.",
                         recordOffset: record.Offset,
                         recordType: record.Type,
@@ -62,7 +62,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (currentCache == null) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-CRN-ORPHANED",
+                    "xls-biff-crn-orphaned",
                     "A CRN external cell cache record appeared before an XCT cache section.",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -74,7 +74,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             } catch (Exception ex) when (ex is InvalidDataException || ex is OverflowException) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-CRN-INVALID",
+                    "xls-biff-crn-invalid",
                     $"A CRN external cell cache record could not be parsed. {ex.Message}",
                     recordOffset: record.Offset,
                     recordType: record.Type));

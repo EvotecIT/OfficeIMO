@@ -37,8 +37,7 @@ public sealed class PublisherPictureEditingTests {
         Assert.Contains(Convert.ToBase64String(expected), document.ToSvg());
         Assert.NotEqual(before, document.ToSvg());
         Assert.Same(sourceReport, document.SourceReadReport);
-        byte[] pdf = document.ToPdfBytes();
-        PdfReadDocument readPdf = PdfReadDocument.Open(pdf);
+        using PdfDocument readPdf = PublisherNativeTests.ExportAndReloadPdf(document);
         PdfImagePlacement placement = Assert.Single(Assert.Single(readPdf.Pages).GetImagePlacements());
         Assert.Equal(36, placement.X, 4); Assert.Equal(120, placement.Width, 4); Assert.Equal(84, placement.Height, 4);
         Assert.Single(readPdf.ExtractImages());
@@ -83,7 +82,8 @@ public sealed class PublisherPictureEditingTests {
         Assert.Equal(300, document.Pages[0].Width); Assert.Equal(300, document.MasterPages[0].Height);
         Assert.Contains(Convert.ToBase64String(blue), document.ToSvg(0));
         Assert.Contains(Convert.ToBase64String(blue), document.ToSvg(1));
-        Assert.Equal(2, PdfReadDocument.Open(document.ToPdfBytes()).Pages.Count);
+        using PdfDocument pdf = PublisherNativeTests.ExportAndReloadPdf(document);
+        Assert.Equal(2, pdf.Pages.Count);
     }
 
     [Theory]
@@ -101,7 +101,7 @@ public sealed class PublisherPictureEditingTests {
         PublisherDocument document = PublisherPictureEditingFixture.Create(restriction: restriction);
         PublisherPicture picture = document.Pages[0].Pictures.Single(item => item.Id == 101);
         Assert.False(picture.CanEdit); Assert.False(string.IsNullOrEmpty(picture.EditLimitation));
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, diagnostic => diagnostic.Code == "PUB_PICTURE_EDIT_UNSUPPORTED"
+        Assert.Contains(document.ReadReport.Diagnostics, diagnostic => diagnostic.Code == "PUB_PICTURE_EDIT_UNSUPPORTED"
             && diagnostic.Location == "Contents/object/101" && diagnostic.Message == picture.EditLimitation);
         var pages = document.Pages; var images = document.Images; string before = document.ToSvg();
         Assert.Throws<NotSupportedException>(() => document.SetPictureBounds(101, 10, 10, 50, 50));
@@ -131,7 +131,7 @@ public sealed class PublisherPictureEditingTests {
         Assert.Equal(before, document.ToSvg());
         document.SetPictureBounds(101, -12, 40, 60, 60);
         Assert.Equal(-12, document.Pages[0].Pictures[0].X);
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, diagnostic => diagnostic.Code == "PUB_PAGE_BLEED_CLIPPED"
+        Assert.Contains(document.ReadReport.Diagnostics, diagnostic => diagnostic.Code == "PUB_PAGE_BLEED_CLIPPED"
             && diagnostic.Location == "Contents/object/101");
     }
 
@@ -148,7 +148,7 @@ public sealed class PublisherPictureEditingTests {
         Assert.Equal(2, document.Pages[0].Pictures.Single(picture => picture.Id == 102).ImageId);
         Assert.DoesNotContain(PublisherNativeTests.Elements(document.Pages[0].CreateDrawing()).OfType<OfficeDrawingImage>(),
             image => image.SourceElementIds?.Contains("publisher-object-102") == true);
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, diagnostic => diagnostic.Code == "PUB_IMAGE_REFERENCE_UNRESOLVED"
+        Assert.Contains(document.ReadReport.Diagnostics, diagnostic => diagnostic.Code == "PUB_IMAGE_REFERENCE_UNRESOLVED"
             && diagnostic.Location == "Contents/object/102");
     }
 
@@ -172,7 +172,7 @@ public sealed class PublisherPictureEditingTests {
 
     [Fact]
     public void Replacement_obeys_pixel_and_projection_budgets_and_releases_superseded_edit_assets() {
-        PublisherDocument document = PublisherPictureEditingFixture.Create(new PublisherReadOptions { MaximumRasterPixels = 4 });
+        PublisherDocument document = PublisherPictureEditingFixture.Create(new PublisherLoadOptions { MaxRasterPixels = 4 });
         var pages = document.Pages;
         Assert.Throws<ArgumentException>(() => document.ReplacePictureImage(101, PublisherPictureEditingFixture.Image(OfficeColor.Black, 3, 2)));
         Assert.Same(pages, document.Pages);
@@ -185,13 +185,13 @@ public sealed class PublisherPictureEditingTests {
         Assert.Equal(1, document.Pages[0].Pictures[1].ImageId);
 
         int sourceBytes = PublisherPictureEditingFixture.Image(OfficeColor.FromRgb(255, 0, 0)).Length;
-        PublisherDocument bounded = PublisherPictureEditingFixture.Create(new PublisherReadOptions { MaximumTotalImageBytes = sourceBytes * 12 });
+        PublisherDocument bounded = PublisherPictureEditingFixture.Create(new PublisherLoadOptions { MaxTotalImageBytes = sourceBytes * 12 });
         byte[] padded = PublisherPictureWorkFixture.PaddedPng();
         var boundedPages = bounded.Pages; string before = bounded.ToSvg();
         Assert.ThrowsAny<ArgumentException>(() => bounded.ReplacePictureImage(101, padded));
         Assert.Same(boundedPages, bounded.Pages); Assert.Equal(before, bounded.ToSvg());
 
-        PublisherDocument projectionBounded = PublisherPictureEditingFixture.Create(new PublisherReadOptions { MaximumTotalImageBytes = sourceBytes * 9 });
+        PublisherDocument projectionBounded = PublisherPictureEditingFixture.Create(new PublisherLoadOptions { MaxTotalImageBytes = sourceBytes * 9 });
         var projectionPages = projectionBounded.Pages; var projectionImages = projectionBounded.Images;
         string projectionBefore = projectionBounded.ToSvg();
         Assert.Throws<InvalidDataException>(() => projectionBounded.ReplacePictureImage(101, PublisherPictureEditingFixture.Image(OfficeColor.White)));

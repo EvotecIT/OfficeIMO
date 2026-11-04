@@ -17,8 +17,7 @@ internal static class NativeNumbersBlankReferenceSmoke {
         for (int state = 0; state < 2; state++) {
             string path = Path.Combine(AppContext.BaseDirectory, names[state]);
             Require(Hash(path) == hashes[state], "Native blank-reference source changed.");
-            using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(path,
-                conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+            using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
             IWorkTable checks = result.Projection.Sheets[1].Tables.Single();
             int qualified = state == 0 ? 10 : 14;
             Require(!result.IsVisualFallback && result.Report.IsPartialEditableReconstruction
@@ -31,13 +30,13 @@ internal static class NativeNumbersBlankReferenceSmoke {
             Verify(nativeValues[state], sourceToo: true);
             Require(reopened.Calculate() == qualified, "Saved native blank formulas did not recalculate.");
             Verify(nativeValues[state], sourceToo: false);
-            reopened.Sheets[0].CellValue(4, 3, 18d);
+            reopened.Sheets[0].Cell(4, 3).SetValue(18d);
             Require(reopened.Calculate() == qualified, "Edited blank operand changed the qualified formula count.");
             Verify(nativeValues[1], sourceToo: false);
             using var finalBytes = new MemoryStream(); reopened.Save(finalBytes); finalBytes.Position = 0;
             using var final = ExcelDocument.Load(finalBytes);
-            Require(final.Sheets[1].CellAt(3, 4).GetValue<double>() == 18
-                && final.Sheets[1].CellAt(4, 4).GetValue<double>() == 90 && !final.ValidateOpenXml().Any()
+            Require(final.Sheets[1].Cell(3, 4).GetValue<double>() == 18
+                && final.Sheets[1].Cell(4, 4).GetValue<double>() == 90 && !final.ValidateOpenXml().Any()
                 && Hash(path) == hashes[state], "Saved blank edits, OpenXML validation or source immutability failed.");
 
             void Verify(double?[] expected, bool sourceToo) {
@@ -61,10 +60,10 @@ internal static class NativeNumbersBlankReferenceSmoke {
                             : source.ValueKind == IWorkCellKind.Error && (string)source.Value! == "#ERROR"),
                         "Native blank cache or typed all-blank error changed.");
                     if (editable) Require(reopened.Sheets[1].GetFormulaText(row, column) == function + "(" + arguments + ")"
-                        && reopened.Sheets[1].CellAt(row, column).GetValue<double>() == expected[index],
+                        && reopened.Sheets[1].Cell(row, column).GetValue<double>() == expected[index],
                         "Saved blank scalar/range semantics disagree with native Numbers.");
                     else Require(reopened.Sheets[1].GetFormulaText(row, column) == null
-                        && reopened.Sheets[1].CellAt(row, column).GetValue<string>() == "#ERROR",
+                        && reopened.Sheets[1].Cell(row, column).GetValue<string>() == "#ERROR",
                         "An all-blank native error cache became an editable formula.");
                 }
             }
@@ -76,14 +75,14 @@ internal static class NativeNumbersBlankReferenceSmoke {
 
     private static void VerifyAllBlankExcelArguments() {
         using var document = ExcelDocument.Create();
-        var inputs = document.AddWorksheet("Inputs");
-        var checks = document.AddWorksheet("Checks");
+        var inputs = document.AddSheet("Inputs");
+        var checks = document.AddSheet("Checks");
         string[] formulas = { "GCD(Inputs!A1)", "LCM(Inputs!A1)",
             "GCD(Inputs!A1,Inputs!A1)", "LCM(Inputs!A1,Inputs!A1)", "IFERROR(LCM(Inputs!A1),99)" };
-        for (int row = 0; row < formulas.Length; row++) checks.CellFormula(row + 1, 1, formulas[row]);
+        for (int row = 0; row < formulas.Length; row++) checks.Cell(row + 1, 1).SetFormula(formulas[row]);
         foreach (bool filled in new[] { false, true, false }) {
-            if (filled) inputs.CellValue(1, 1, 18d);
-            else inputs.ClearRange("A1:A1", ExcelClearOptions.Values);
+            if (filled) inputs.Cell(1, 1).SetValue(18d);
+            else inputs.Range("A1:A1").Clear(ExcelClearOptions.Values);
             Require(document.Calculate() == formulas.Length, "All-blank direct integer arguments were not evaluated.");
             using var bytes = new MemoryStream(); document.Save(bytes); bytes.Position = 0;
             using var saved = ExcelDocument.Load(bytes);

@@ -3,15 +3,18 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Options used when updating or flattening parsed AcroForm fields.
 /// </summary>
-public sealed class PdfFormFillerOptions {
+public sealed class PdfFormFillerOptions : IPdfOperationCancellation {
     private PdfEmbeddedFontFamily? _appearanceFontFamily;
     private PdfEmbeddedFontFallbackSet? _appearanceFontFallbacks;
     private PdfConversionReport? _diagnosticsReport;
     private string _diagnosticsConverter = "OfficeIMO.Pdf";
 
-    /// <summary>Cooperatively cancels source reading, field changes, appearance generation, and output verification.</summary>
-    /// <remarks>Cancellation leaves the source unchanged. A caller-owned destination stream can retain bytes already written.</remarks>
-    public System.Threading.CancellationToken CancellationToken { get; set; }
+    // Operation cancellation; public methods take it as a parameter and bind it to a per-call copy.
+    System.Threading.CancellationToken IPdfOperationCancellation.CancellationToken { get => CancellationToken; set => CancellationToken = value; }
+
+    internal System.Threading.CancellationToken CancellationToken { get; set; }
+
+    object IPdfOperationCancellation.CloneForOperation() => MemberwiseClone();
 
     /// <summary>Maximum XFDF source length accepted before XML materialization.</summary>
     public int MaxXfdfDocumentCharacters { get; set; } = PdfFormDataSet.DefaultMaxXfdfDocumentCharacters;

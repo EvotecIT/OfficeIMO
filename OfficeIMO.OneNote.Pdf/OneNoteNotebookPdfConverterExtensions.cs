@@ -1,70 +1,108 @@
-using PdfCore = OfficeIMO.Pdf;
+using System;
+using System.Diagnostics;
+using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
+using OfficeIMO.Pdf;
 
 namespace OfficeIMO.OneNote.Pdf;
 
 /// <summary>Converts offline OneNote notebooks to semantic PDF documents.</summary>
 public static class OneNoteNotebookPdfConverterExtensions {
-    /// <summary>Converts a notebook to a first-party PDF document.</summary>
-    public static PdfCore.PdfDocument ToPdfDocument(this OneNoteNotebook notebook, OneNoteToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
-        notebook.ToPdfDocumentResult(options, cancellationToken).Value;
+    private const string Source = "OneNote";
 
-    /// <summary>Converts a notebook and returns explicit source, projection, and PDF diagnostics.</summary>
-    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this OneNoteNotebook notebook, OneNoteToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
+    internal static PdfDocumentConversionResult ConvertToPdfWithEvidence(this OneNoteNotebook notebook, OneNotePdfExportOptions? options,
+        CancellationToken cancellationToken) =>
         OneNotePdfConversionEngine.Convert(notebook, options, cancellationToken);
 
-    /// <summary>Converts a notebook to PDF bytes.</summary>
-    public static byte[] ToPdfBytes(this OneNoteNotebook notebook, OneNoteToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
-        notebook.ToPdfDocumentResult(options, cancellationToken).ToBytes(cancellationToken);
+    /// <summary>Converts the OneNote notebook to a PDF model.</summary>
+    public static PdfDocument ToPdf(this OneNoteNotebook notebook, OneNotePdfExportOptions? options = null,
+        CancellationToken cancellationToken = default) =>
+        notebook.ToPdf(options, out _, cancellationToken);
 
-    /// <summary>Saves a notebook as PDF and returns conversion diagnostics.</summary>
-    public static PdfCore.PdfSaveResult SaveAsPdf(this OneNoteNotebook notebook, string path, OneNoteToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
-        notebook.ToPdfDocumentResult(options, cancellationToken).Save(path, cancellationToken);
-
-    /// <summary>Writes a notebook as PDF to a caller-owned stream.</summary>
-    public static PdfCore.PdfSaveResult SaveAsPdf(this OneNoteNotebook notebook, Stream stream, OneNoteToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
-        notebook.ToPdfDocumentResult(options, cancellationToken).Save(stream, cancellationToken);
-
-    /// <summary>Attempts to save a notebook as PDF and returns structured failure evidence.</summary>
-    public static PdfCore.PdfSaveResult SaveAsPdfResult(this OneNoteNotebook notebook, string path, OneNoteToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+    /// <summary>Converts the OneNote notebook and returns its completed conversion findings.</summary>
+    public static PdfDocument ToPdf(this OneNoteNotebook notebook, OneNotePdfExportOptions? options,
+        out OfficeConversionReport report, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        try { return notebook.ToPdfDocumentResult(options, cancellationToken).SaveResult(path, cancellationToken); }
-        catch (OperationCanceledException) { throw; }
-        catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(path, exception); }
+        var timer = Stopwatch.StartNew();
+        PdfDocumentConversionResult converted = notebook.ConvertToPdfWithEvidence(options, cancellationToken);
+        return PdfConversionEvidence.CompleteModel(converted, Source, options?.FailOnLoss == true,
+            timer, cancellationToken, out report);
     }
 
-    /// <summary>Attempts to write a notebook as PDF to a caller-owned stream.</summary>
-    public static PdfCore.PdfSaveResult SaveAsPdfResult(this OneNoteNotebook notebook, Stream stream, OneNoteToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+    /// <summary>Converts the OneNote notebook, returning the model and report together.</summary>
+    /// <remarks>Conversion is CPU-bound and runs on the thread pool so the caller is not blocked.</remarks>
+    public static async Task<OfficeConversionResult<PdfDocument>> ToPdfAsync(this OneNoteNotebook notebook,
+        OneNotePdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        try { return notebook.ToPdfDocumentResult(options, cancellationToken).SaveResult(stream, cancellationToken); }
-        catch (OperationCanceledException) { throw; }
-        catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(null, exception); }
+        options = (options ?? new OneNotePdfExportOptions()).Clone();
+        var timer = Stopwatch.StartNew();
+        PdfDocumentConversionResult converted = await Task.Run(
+            () => notebook.ConvertToPdfWithEvidence(options, cancellationToken), cancellationToken).ConfigureAwait(false);
+        PdfDocument value = PdfConversionEvidence.CompleteModel(converted, Source, options.FailOnLoss,
+            timer, cancellationToken, out OfficeConversionReport report);
+        return new OfficeConversionResult<PdfDocument>(value, report);
     }
 
-    /// <summary>Converts synchronously, then asynchronously writes a notebook PDF to a path.</summary>
-    public static Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(this OneNoteNotebook notebook, string path, OneNoteToPdfOptions? options = null, CancellationToken cancellationToken = default) {
+    /// <summary>Writes the OneNote notebook as a PDF file and returns the complete conversion report.</summary>
+    public static OfficeConversionReport SaveAsPdf(this OneNoteNotebook notebook, string path,
+        OneNotePdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        return notebook.ToPdfDocumentResult(options, cancellationToken).SaveAsync(path, cancellationToken);
+        PdfConversionEvidence.ValidateDestination(path);
+        var timer = Stopwatch.StartNew();
+        PdfDocumentConversionResult converted = notebook.ConvertToPdfWithEvidence(options, cancellationToken);
+        using PdfDocument model = converted.Value;
+        PdfSaveResult saved = options?.FailOnLoss == true
+            ? PdfConversionEvidence.SaveLossless(converted, Source, path, timer, cancellationToken)
+            : PdfConversionEvidence.RunOutput(converted, Source, () => converted.Save(path, cancellationToken));
+        return PdfConversionEvidence.CreateReport(Source, saved.ConversionReports, saved.OutputPath, timer.Elapsed, saved.Pipeline.Output?.PageCount ?? 0);
     }
 
-    /// <summary>Converts synchronously, then asynchronously writes a notebook PDF to a caller-owned stream.</summary>
-    public static Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(this OneNoteNotebook notebook, Stream stream, OneNoteToPdfOptions? options = null, CancellationToken cancellationToken = default) {
+    /// <summary>Writes the OneNote notebook as PDF to a caller-owned stream and returns the complete conversion report.</summary>
+    public static OfficeConversionReport SaveAsPdf(this OneNoteNotebook notebook, Stream stream,
+        OneNotePdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        return notebook.ToPdfDocumentResult(options, cancellationToken).SaveAsync(stream, cancellationToken);
+        PdfConversionEvidence.ValidateDestination(stream);
+        var timer = Stopwatch.StartNew();
+        PdfDocumentConversionResult converted = notebook.ConvertToPdfWithEvidence(options, cancellationToken);
+        using PdfDocument model = converted.Value;
+        PdfSaveResult saved = options?.FailOnLoss == true
+            ? PdfConversionEvidence.SaveLossless(converted, Source, stream, timer, cancellationToken)
+            : PdfConversionEvidence.RunOutput(converted, Source, () => converted.Save(stream, cancellationToken));
+        return PdfConversionEvidence.CreateReport(Source, saved.ConversionReports, elapsed: timer.Elapsed, itemsWritten: saved.Pipeline.Output?.PageCount ?? 0);
     }
 
-    /// <summary>Converts synchronously, then attempts to asynchronously save a notebook PDF.</summary>
-    public static async Task<PdfCore.PdfSaveResult> SaveAsPdfResultAsync(this OneNoteNotebook notebook, string path, OneNoteToPdfOptions? options = null, CancellationToken cancellationToken = default) {
+    /// <summary>Asynchronously writes the OneNote notebook as a PDF file and returns the complete conversion report.</summary>
+    /// <remarks>Conversion is CPU-bound and runs on the thread pool so the caller is not blocked. The file is written asynchronously.</remarks>
+    public static async Task<OfficeConversionReport> SaveAsPdfAsync(this OneNoteNotebook notebook, string path,
+        OneNotePdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        try { return await notebook.ToPdfDocumentResult(options, cancellationToken).SaveResultAsync(path, cancellationToken).ConfigureAwait(false); }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
-        catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(path, exception); }
+        PdfConversionEvidence.ValidateDestination(path);
+        options = (options ?? new OneNotePdfExportOptions()).Clone();
+        var timer = Stopwatch.StartNew();
+        PdfDocumentConversionResult converted = await Task.Run(
+            () => notebook.ConvertToPdfWithEvidence(options, cancellationToken), cancellationToken).ConfigureAwait(false);
+        using PdfDocument model = converted.Value;
+        PdfSaveResult saved = options.FailOnLoss
+            ? await PdfConversionEvidence.SaveLosslessAsync(converted, Source, path, timer, cancellationToken).ConfigureAwait(false)
+            : await PdfConversionEvidence.RunOutputAsync(converted, Source, () => converted.SaveAsync(path, cancellationToken)).ConfigureAwait(false);
+        return PdfConversionEvidence.CreateReport(Source, saved.ConversionReports, saved.OutputPath, timer.Elapsed, saved.Pipeline.Output?.PageCount ?? 0);
     }
 
-    /// <summary>Converts synchronously, then attempts to asynchronously write a notebook PDF.</summary>
-    public static async Task<PdfCore.PdfSaveResult> SaveAsPdfResultAsync(this OneNoteNotebook notebook, Stream stream, OneNoteToPdfOptions? options = null, CancellationToken cancellationToken = default) {
+    /// <summary>Asynchronously writes the OneNote notebook as PDF to a caller-owned stream and returns the complete conversion report.</summary>
+    /// <remarks>Conversion is CPU-bound and runs on the thread pool so the caller is not blocked. The stream is written asynchronously.</remarks>
+    public static async Task<OfficeConversionReport> SaveAsPdfAsync(this OneNoteNotebook notebook, Stream stream,
+        OneNotePdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        try { return await notebook.ToPdfDocumentResult(options, cancellationToken).SaveResultAsync(stream, cancellationToken).ConfigureAwait(false); }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
-        catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(null, exception); }
+        PdfConversionEvidence.ValidateDestination(stream);
+        options = (options ?? new OneNotePdfExportOptions()).Clone();
+        var timer = Stopwatch.StartNew();
+        PdfDocumentConversionResult converted = await Task.Run(
+            () => notebook.ConvertToPdfWithEvidence(options, cancellationToken), cancellationToken).ConfigureAwait(false);
+        using PdfDocument model = converted.Value;
+        PdfSaveResult saved = options.FailOnLoss
+            ? await PdfConversionEvidence.SaveLosslessAsync(converted, Source, stream, timer, cancellationToken).ConfigureAwait(false)
+            : await PdfConversionEvidence.RunOutputAsync(converted, Source, () => converted.SaveAsync(stream, cancellationToken)).ConfigureAwait(false);
+        return PdfConversionEvidence.CreateReport(Source, saved.ConversionReports, elapsed: timer.Elapsed, itemsWritten: saved.Pipeline.Output?.PageCount ?? 0);
     }
 }

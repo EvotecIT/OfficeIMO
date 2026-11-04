@@ -21,8 +21,8 @@ public static partial class WordRtfConverterExtensions {
             ? CreateDetachedWordParagraph(wordRun._document, firstParagraph, rtfDocument, numbering)
             : new WordParagraph(wordRun._document, newParagraph: true, newRun: true);
         WordParagraph referenceRun = projectedKind == RtfNoteKind.Endnote
-            ? WordEndNote.AddEndNote(wordRun._document, wordRun, noteParagraph)
-            : WordFootNote.AddFootNote(wordRun._document, wordRun, noteParagraph);
+            ? WordEndNote.AddEndNote(wordRun._document, wordRun, noteParagraph).Paragraph
+            : WordFootNote.AddFootNote(wordRun._document, wordRun, noteParagraph).Paragraph;
         AppendAdditionalNoteParagraphs(referenceRun, note, projectedKind, rtfDocument, numbering);
     }
 

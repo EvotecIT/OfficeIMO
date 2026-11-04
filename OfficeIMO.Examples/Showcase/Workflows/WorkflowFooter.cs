@@ -1,0 +1,24 @@
+using OfficeIMO.Word;
+
+namespace OfficeIMO.Examples.Showcase.Workflows;
+
+/// <summary>Adds the running footer every Word workflow shares: the document title on the left and "Internal · Page N of M" on the right.</summary>
+internal static class WorkflowFooter {
+    internal static void Add(WordDocument document, string title) {
+        WordSection section = document.Sections[0];
+        OfficeLength textWidth = section.PageSetup.Size.Width!.Value - section.PageSetup.Margins.Left!.Value - section.PageSetup.Margins.Right!.Value;
+
+        // One paragraph with a right tab at the text width keeps the line from splitting.
+        WordParagraph footer = document.PageSetup.Footer.AddParagraph(title);
+        footer.AddTabStop(textWidth, WordTabAlignment.Right);
+        footer.AddTab();
+        footer.AddText("Internal · Page ");
+        footer.AddField(WordFieldType.Page);
+        footer.AddText(" of ");
+        footer.AddField(WordFieldType.NumPages);
+        foreach (WordParagraph run in footer.GetRuns()) {
+            run.FontSize = OfficeLength.Points(8.5);
+            run.Color = OfficeColor.Parse("5B6575");
+        }
+    }
+}

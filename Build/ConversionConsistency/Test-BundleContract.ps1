@@ -16,12 +16,17 @@ $bundle = Get-Content -LiteralPath (Join-Path $BundlePath 'bundle.json') -Raw | 
 $sourceCase = $bundle.cases | Where-Object { $_.contract.id -eq 'native-pptx' } | Select-Object -First 1
 if ($null -eq $sourceCase) { throw 'Expected the native-pptx fixture in the source bundle.' }
 
-foreach ($failure in @('missing-label', 'missing-image', 'missing-format', 'changed-image', 'duplicate-page')) {
+foreach ($failure in @('missing-label', 'missing-image', 'missing-format', 'changed-image', 'duplicate-page', 'unexpected-odf-approximation')) {
+    $proofCase = $sourceCase
+    if ($failure -eq 'unexpected-odf-approximation') {
+        $proofCase = $bundle.cases | Where-Object { $_.contract.id -eq 'native-ods' } | Select-Object -First 1
+        if ($null -eq $proofCase) { throw 'Expected the native-ods fixture for the ODF loss policy.' }
+    }
     $target = Join-Path $OutputPath $failure
     New-Item -ItemType Directory -Path $target | Out-Null
-    Copy-Item -LiteralPath (Join-Path $BundlePath $sourceCase.contract.id) -Destination $target -Recurse
+    Copy-Item -LiteralPath (Join-Path $BundlePath $proofCase.contract.id) -Destination $target -Recurse
     $candidate = $bundle | ConvertTo-Json -Depth 100 | ConvertFrom-Json -Depth 100
-    $candidate.cases = @($candidate.cases | Where-Object { $_.contract.id -eq $sourceCase.contract.id })
+    $candidate.cases = @($candidate.cases | Where-Object { $_.contract.id -eq $proofCase.contract.id })
     $entry = $candidate.cases[0]
     switch ($failure) {
         'missing-label' { $entry.contract.pages[0].text += 'REQUIRED-BUT-ABSENT' }
@@ -29,12 +34,17 @@ foreach ($failure in @('missing-label', 'missing-image', 'missing-format', 'chan
         'missing-format' { $entry.images = @($entry.images | Where-Object { $_.format -ne 'Webp' }) }
         'changed-image' { [IO.File]::AppendAllText((Join-Path $target $entry.images[0].path), 'tampered') }
         'duplicate-page' { $entry.images += $entry.images[0] }
+        'unexpected-odf-approximation' { $entry.diagnostics += 'ODF_APPROXIMATED:unexpected-feature' }
     }
     $candidate | ConvertTo-Json -Depth 100 | Set-Content -LiteralPath (Join-Path $target 'bundle.json') -Encoding utf8
     & dotnet $ToolPath verify --output $target *> (Join-Path $target 'verification.log')
     if ($LASTEXITCODE -ne 1) { throw "$failure did not return a structured verification failure." }
     $report = Get-Content -LiteralPath (Join-Path $target 'consistency-result.json') -Raw | ConvertFrom-Json -Depth 100
     if ($report.passed -or $report.cases[0].passed) { throw "$failure was incorrectly accepted." }
+    if ($failure -eq 'unexpected-odf-approximation' -and
+        $report.cases[0].errors -notcontains 'Unaccepted diagnostic: ODF_APPROXIMATED:unexpected-feature') {
+        throw 'An unexpected ODF feature approximation was not rejected by the diagnostic policy.'
+    }
     if ($failure -eq 'missing-format' -and $report.cases[0].errors -notcontains 'Webp page sequence is missing, duplicated, or unexpected.') {
         throw 'The missing WebP format was not rejected by the required page-sequence contract.'
     }

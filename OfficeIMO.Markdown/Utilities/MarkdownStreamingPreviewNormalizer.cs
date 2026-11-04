@@ -14,7 +14,7 @@ namespace OfficeIMO.Markdown;
 /// Use this only for partial or still-streaming transcript text where the host wants a conservative preview-safe cleanup pass.
 /// For full document ingestion, prefer <see cref="MarkdownTranscriptPreparation"/> or <see cref="MarkdownInputNormalizer"/>.
 /// </example>
-public static class MarkdownStreamingPreviewNormalizer {
+internal static class MarkdownStreamingPreviewNormalizer {
     private static readonly Regex ZeroWidthWhitespaceRegex = new(
         @"[\u200B\u2060\uFEFF]",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);

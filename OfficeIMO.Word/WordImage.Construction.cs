@@ -8,7 +8,6 @@ using ShapeProperties = DocumentFormat.OpenXml.Drawing.Pictures.ShapeProperties;
 using V = DocumentFormat.OpenXml.Vml;
 using OfficeIMO.Drawing;
 
-#nullable enable annotations
 using DocumentFormat.OpenXml.Office2010.Word.Drawing;
 using Pic = DocumentFormat.OpenXml.Drawing.Pictures;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -21,7 +20,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Initializes a new image from a file path.
         /// </summary>
-        public WordImage(WordDocument document, WordParagraph paragraph, string filePath, double? width, double? height, WordImageTextWrapping wrapImage = WordImageTextWrapping.InLineWithText, string description = "", OfficePresetShapeType? shape = null, WordImageCompressionQuality? compressionQuality = null) {
+        internal WordImage(WordDocument document, WordParagraph paragraph, string filePath, double? width, double? height, WordImageTextWrapping wrapImage = WordImageTextWrapping.InLineWithText, string description = "", OfficePresetShapeType? shape = null, WordImageCompressionQuality? compressionQuality = null) {
             FilePath = filePath;
             var fileName = System.IO.Path.GetFileName(filePath);
             using var imageStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -33,7 +32,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Initializes a new image from a stream.
         /// </summary>
-        public WordImage(WordDocument document, WordParagraph paragraph, Stream imageStream, string fileName, double? width, double? height, WordImageTextWrapping wrapImage = WordImageTextWrapping.InLineWithText, string description = "", OfficePresetShapeType? shape = null, WordImageCompressionQuality? compressionQuality = null) {
+        internal WordImage(WordDocument document, WordParagraph paragraph, Stream imageStream, string fileName, double? width, double? height, WordImageTextWrapping wrapImage = WordImageTextWrapping.InLineWithText, string description = "", OfficePresetShapeType? shape = null, WordImageCompressionQuality? compressionQuality = null) {
             FilePath = fileName;
             shape ??= OfficePresetShapeType.Rectangle;
             compressionQuality ??= WordImageCompressionQuality.Print;
@@ -43,7 +42,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Initializes a new image from a base64 string.
         /// </summary>
-        public WordImage(WordDocument document, WordParagraph paragraph, string base64String, string fileName, double? width, double? height, WordImageTextWrapping wrapImage = WordImageTextWrapping.InLineWithText, string description = "", OfficePresetShapeType? shape = null, WordImageCompressionQuality? compressionQuality = null) {
+        internal WordImage(WordDocument document, WordParagraph paragraph, string base64String, string fileName, double? width, double? height, WordImageTextWrapping wrapImage = WordImageTextWrapping.InLineWithText, string description = "", OfficePresetShapeType? shape = null, WordImageCompressionQuality? compressionQuality = null) {
             FilePath = fileName;
             shape ??= OfficePresetShapeType.Rectangle;
             compressionQuality ??= WordImageCompressionQuality.Print;
@@ -55,7 +54,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Initializes an image linked to an external URI.
         /// </summary>
-        public WordImage(WordDocument document, WordParagraph paragraph, Uri externalUri, double width, double height, WordImageTextWrapping wrapImage = WordImageTextWrapping.InLineWithText, string description = "", OfficePresetShapeType? shape = null, WordImageCompressionQuality? compressionQuality = null)
+        internal WordImage(WordDocument document, WordParagraph paragraph, Uri externalUri, double width, double height, WordImageTextWrapping wrapImage = WordImageTextWrapping.InLineWithText, string description = "", OfficePresetShapeType? shape = null, WordImageCompressionQuality? compressionQuality = null)
             : this(document, paragraph, externalUri, width, height, wrapImage, description, shape, compressionQuality, allowFileUri: false) {
         }
 
@@ -115,8 +114,8 @@ namespace OfficeIMO.Word {
             if (_fixedOpacity != null) {
                 blip.Append(new AlphaReplace() { Alpha = _fixedOpacity.Value * 1000 });
             }
-            if (_alphaInversionColorHex != null) {
-                blip.Append(new AlphaInverse(new RgbColorModelHex { Val = _alphaInversionColorHex }));
+            if (_alphaInversionColorValue != null) {
+                blip.Append(new AlphaInverse(new RgbColorModelHex { Val = _alphaInversionColorValue }));
             }
             if (_blackWhiteThreshold != null) {
                 blip.Append(new BiLevel { Threshold = _blackWhiteThreshold.Value * 1000 });
@@ -124,19 +123,19 @@ namespace OfficeIMO.Word {
             if (_blurRadius != null || _blurGrow != null) {
                 blip.Append(new Blur { Radius = _blurRadius ?? 0, Grow = _blurGrow ?? false });
             }
-            if (_colorChangeFromHex != null || _colorChangeToHex != null) {
+            if (_colorChangeFromValue != null || _colorChangeToValue != null) {
                 var cc = new ColorChange();
-                if (_colorChangeFromHex != null) cc.ColorFrom = new ColorFrom(new RgbColorModelHex { Val = _colorChangeFromHex });
-                if (_colorChangeToHex != null) cc.ColorTo = new ColorTo(new RgbColorModelHex { Val = _colorChangeToHex });
+                if (_colorChangeFromValue != null) cc.ColorFrom = new ColorFrom(new RgbColorModelHex { Val = _colorChangeFromValue });
+                if (_colorChangeToValue != null) cc.ColorTo = new ColorTo(new RgbColorModelHex { Val = _colorChangeToValue });
                 blip.Append(cc);
             }
-            if (_colorReplacementHex != null) {
-                blip.Append(new ColorReplacement(new RgbColorModelHex { Val = _colorReplacementHex }));
+            if (_colorReplacementValue != null) {
+                blip.Append(new ColorReplacement(new RgbColorModelHex { Val = _colorReplacementValue }));
             }
-            if (_duotoneColor1Hex != null || _duotoneColor2Hex != null) {
+            if (_duotoneColor1Value != null || _duotoneColor2Value != null) {
                 var duo = new Duotone();
-                if (_duotoneColor1Hex != null) duo.Append(new RgbColorModelHex { Val = _duotoneColor1Hex });
-                if (_duotoneColor2Hex != null) duo.Append(new RgbColorModelHex { Val = _duotoneColor2Hex });
+                if (_duotoneColor1Value != null) duo.Append(new RgbColorModelHex { Val = _duotoneColor1Value });
+                if (_duotoneColor2Value != null) duo.Append(new RgbColorModelHex { Val = _duotoneColor2Value });
                 blip.Append(duo);
             }
             if (_grayScale == true) {

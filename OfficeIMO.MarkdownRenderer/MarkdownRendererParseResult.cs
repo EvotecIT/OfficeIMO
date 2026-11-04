@@ -7,7 +7,7 @@ namespace OfficeIMO.MarkdownRenderer;
 /// </summary>
 public sealed class MarkdownRendererParseResult {
     /// <summary>The final renderer-owned markdown document after parsing and renderer transforms.</summary>
-    public MarkdownDoc Document { get; }
+    public MarkdownDocument Document { get; }
 
     /// <summary>The final markdown text after renderer preprocessing and before parsing.</summary>
     public string PreprocessedMarkdown { get; }
@@ -35,7 +35,7 @@ public sealed class MarkdownRendererParseResult {
     public IReadOnlyList<MarkdownAbbreviationDefinition> AbbreviationDefinitions { get; }
 
     internal MarkdownRendererParseResult(
-        MarkdownDoc document,
+        MarkdownDocument document,
         string preprocessedMarkdown,
         string sourceMarkdown,
         MarkdownSyntaxNode syntaxTree,

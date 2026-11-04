@@ -52,14 +52,14 @@ internal sealed class PdfGeneratedDocumentComplianceEvidence {
 }
 
 internal sealed class PdfGeneratedFontComplianceEvidence {
-    public PdfGeneratedFontComplianceEvidence(PdfStandardFont font, PdfOptions options) {
+    public PdfGeneratedFontComplianceEvidence(PdfStandardFont font, PdfCreateOptions options) {
         Guard.StandardFont(font, nameof(font), "Generated standard-font usage contains an unsupported PDF font.");
         Guard.NotNull(options, nameof(options));
         StandardFont = font;
         Options = options;
     }
 
-    public PdfGeneratedFontComplianceEvidence(PdfNamedFontFace font, PdfOptions options) {
+    public PdfGeneratedFontComplianceEvidence(PdfNamedFontFace font, PdfCreateOptions options) {
         Guard.NotNull(options, nameof(options));
         NamedFont = font;
         Options = options;
@@ -71,5 +71,5 @@ internal sealed class PdfGeneratedFontComplianceEvidence {
 
     public string DisplayName => NamedFont?.FaceKey ?? StandardFont?.ToBaseFontName() ?? "unknown";
 
-    public PdfOptions Options { get; }
+    public PdfCreateOptions Options { get; }
 }

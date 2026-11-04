@@ -38,7 +38,7 @@ Marks TOC fields as dirty and updates the document settings so Word refreshes th
 
 ### EXAMPLE 2
 ```powershell
-PS> $doc = Get-OfficeWord -Path .\Report.docx
+PS> $doc = Open-OfficeWord -Path .\Report.docx
 $doc | Update-OfficeWordTableOfContents -Regenerate
 $doc | Save-OfficeWord -Path .\Report-RegeneratedToc.docx
 ```

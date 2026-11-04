@@ -19,6 +19,7 @@ namespace OfficeIMO.Excel {
 
         internal sealed class FormulaEvaluationGuardState {
             internal bool DependencyGuardBlocked { get; set; }
+            internal HashSet<string> ActiveDefinedNames { get; } = new(StringComparer.OrdinalIgnoreCase);
         }
 
         internal sealed class FormulaEvaluationDepthFrame {
@@ -61,16 +62,16 @@ namespace OfficeIMO.Excel {
                 var arrays = WorksheetRoot.Descendants<CellFormula>()
                     .Where(formula => formula.FormulaType?.Value == CellFormulaValues.Array)
                     .Select(formula => formula.Reference?.Value).Where(reference => reference != null)
-                    .Select(reference => A1.TryParseRange(reference!, out int top, out int left, out int bottom, out int right)
+                    .Select(reference => ExcelA1.TryParseRange(reference!, out int top, out int left, out int bottom, out int right)
                         ? (Top: top, Left: left, Bottom: bottom, Right: right) : default).ToArray();
                 var arrayIndex = new ExcelCellRangeIndex<bool>(arrays.Select(range => (range.Top, range.Left, range.Bottom, range.Right, true)));
-                foreach (var cell in WorksheetRoot.Descendants<Cell>()) {
-                    bool arrayMember = cell.CellFormula == null && arrays.Length != 0
+                foreach (var cell in ExcelWorksheetScan.Cells(WorksheetRoot)) {
+                    bool arrayMember = ExcelWorksheetScan.FindFormula(cell) == null && arrays.Length != 0
                         && cell.CellReference?.Value is string address
                         && TryParseCellReference(address, out int row, out int column)
                         && arrayIndex.At(row, column).Any();
-                    if (cell.CellFormula == null && !arrayMember) continue;
-                    if (cell.CellValue != null || cell.ValueMetaIndex != null) {
+                    if (ExcelWorksheetScan.FindFormula(cell) == null && !arrayMember) continue;
+                    if (ExcelWorksheetScan.FindValue(cell) != null || cell.ValueMetaIndex != null) {
                         cell.CellValue = null;
                         ClearCellValueMetadataAttribute(cell);
                         changed = true;
@@ -89,7 +90,10 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Evaluates supported formulas on this sheet and writes cached results.
         /// </summary>
-        public int RecalculateSupportedFormulas() => RecalculateSupportedFormulas(new FormulaCalculationContext());
+        public int RecalculateSupportedFormulas() {
+            using var context = new FormulaCalculationContext();
+            return RecalculateSupportedFormulas(context);
+        }
 
         internal int RecalculateSupportedFormulas(FormulaCalculationContext context) {
             MaterializePendingDirectCellValues();
@@ -97,9 +101,12 @@ namespace OfficeIMO.Excel {
             int count = 0;
             WriteLock(() => {
                 MaterializePendingDirectCellValues();
+                // Formulas reach other sheets too, whose buffered cells must be in their worksheets by then.
+                MaterializeDeferredDataSetImportIfNeeded();
                 long formulaInputMutationVersion = _excelDocument.CaptureFormulaInputMutationVersion();
 
                 var previousCache = _formulaEvaluationCache;
+                var previousCalculationContext = _formulaCalculationContext;
                 var previousDepthCache = _formulaEvaluationDepthCache;
                 var previousStack = _formulaEvaluationStack;
                 var previousDepthFrames = _formulaEvaluationDepthFrames;
@@ -107,6 +114,7 @@ namespace OfficeIMO.Excel {
                 var previousSharedDefinitions = _formulaEvaluationSharedDefinitions;
                 var previousSharedDefinitionsBySheet = _formulaEvaluationSharedDefinitionsBySheet;
                 _formulaEvaluationCache = context.Cache;
+                _formulaCalculationContext = context;
                 _formulaEvaluationDepthCache = context.DepthCache;
                 _formulaEvaluationStack = context.Stack;
                 _formulaEvaluationDepthFrames = context.DepthFrames;
@@ -118,22 +126,24 @@ namespace OfficeIMO.Excel {
                 };
                 bool changed = false;
                 bool allFormulasEvaluated = true;
+                bool passCompleted = false;
+                var recalculatedCells = new List<string>();
 
                 try {
                     if (_excelDocument.WorkbookPartRoot.CellMetadataPart != null) PlanDynamicArrayOwners();
-                    foreach (var cell in WorksheetRoot.Descendants<Cell>().Where(c => c.CellFormula != null).ToList()) {
+                    foreach (var cell in ExcelWorksheetScan.FormulaCells(WorksheetRoot).ToList()) {
                         _formulaEvaluationGuardState.DependencyGuardBlocked = false;
                         if (!TryEvaluateFormulaCellValue(cell, out FormulaArgumentValue result)) {
                             allFormulasEvaluated = false;
                             if (_formulaEvaluationGuardState.DependencyGuardBlocked) {
-                                if (cell.CellValue != null || cell.ValueMetaIndex != null) {
+                                if (ExcelWorksheetScan.FindValue(cell) != null || cell.ValueMetaIndex != null) {
                                     cell.CellValue = null;
                                     ClearCellValueMetadataAttribute(cell);
                                     changed = true;
                                 }
 
-                                if (cell.CellFormula!.CalculateCell?.Value != true) {
-                                    cell.CellFormula.CalculateCell = true;
+                                if (ExcelWorksheetScan.FindFormula(cell)!.CalculateCell?.Value != true) {
+                                    ExcelWorksheetScan.FindFormula(cell)!.CalculateCell = true;
                                     changed = true;
                                 }
                             }
@@ -147,16 +157,22 @@ namespace OfficeIMO.Excel {
                             SetFormulaCachedValue(cell, result);
                             if (TryGetCalculatedArray(cell, out FormulaArrayValue array)) WriteFixedArrayFormulaCache(cell, array);
                         }
-                        cell.CellFormula!.CalculateCell = false;
-                        _excelDocument.MarkFormulaCellRecalculated(
-                            _worksheetPart,
-                            cell.CellReference?.Value ?? string.Empty,
-                            formulaInputMutationVersion);
+                        ExcelWorksheetScan.FindFormula(cell)!.CalculateCell = false;
+                        recalculatedCells.Add(cell.CellReference?.Value ?? string.Empty);
                         changed = true;
                         count++;
                     }
+                    passCompleted = true;
                 } finally {
+                    // A sheet whose every formula was evaluated is marked as a whole below, which answers each of its
+                    // cells as their own marks would; otherwise, or when the pass stops early, each cell keeps its mark.
+                    if (!passCompleted || !allFormulasEvaluated) {
+                        foreach (string reference in recalculatedCells) {
+                            _excelDocument.MarkFormulaCellRecalculated(_worksheetPart, reference, formulaInputMutationVersion);
+                        }
+                    }
                     _formulaEvaluationCache = previousCache;
+                    _formulaCalculationContext = previousCalculationContext;
                     _formulaEvaluationDepthCache = previousDepthCache;
                     _formulaEvaluationStack = previousStack;
                     _formulaEvaluationDepthFrames = previousDepthFrames;
@@ -195,7 +211,7 @@ namespace OfficeIMO.Excel {
             out FormulaArgumentValue result,
             IReadOnlyDictionary<uint, SharedFormulaDefinition>? sharedFormulaDefinitions = null) {
             result = default;
-            if (cell.CellFormula == null) {
+            if (ExcelWorksheetScan.FindFormula(cell) == null) {
                 return false;
             }
 
@@ -216,9 +232,11 @@ namespace OfficeIMO.Excel {
                     || _formulaEvaluationDepthCache == null
                     || _formulaEvaluationStack == null
                     || _formulaEvaluationDepthFrames == null) {
-                    return cell.CellFormula.FormulaType?.Value == CellFormulaValues.Array
+                    bool supported = ExcelWorksheetScan.FindFormula(cell)!.FormulaType?.Value == CellFormulaValues.Array
                         ? TryEvaluateAuthoredFormulaCell(cell, formula, out result)
                         : TryEvaluateFormulaValue(formula, out result);
+                    if (supported) result = NormalizeLookupResult(result);
+                    return supported;
                 }
 
                 string cacheKey = GetFormulaEvaluationCacheKey(reference);
@@ -254,7 +272,7 @@ namespace OfficeIMO.Excel {
                 bool evaluated = false;
                 int evaluationDepth = 0;
                 try {
-                    if (!(cell.CellFormula.FormulaType?.Value == CellFormulaValues.Array
+                    if (!(ExcelWorksheetScan.FindFormula(cell)!.FormulaType?.Value == CellFormulaValues.Array
                         ? TryEvaluateAuthoredFormulaCell(cell, formula, out result)
                         : TryEvaluateFormulaValue(formula, out result))) {
                         return false;
@@ -263,6 +281,9 @@ namespace OfficeIMO.Excel {
                         return false;
                     }
 
+                    // A blank reference remains blank inside an expression. A formula
+                    // cell stores its value, so dependants see the displayed numeric zero.
+                    result = NormalizeLookupResult(result);
                     if (depthFrame.UsedUnevaluatedFormulaCache)
                         result = result.WithUnevaluatedFormulaCache();
 
@@ -299,35 +320,36 @@ namespace OfficeIMO.Excel {
         }
 
         private void SetFormulaCachedValue(Cell cell, FormulaArgumentValue result) {
-            cell.ValueMetaIndex = null;
+            // Each write goes through the element's own value and type, which allocate nothing when unchanged; the
+            // typed setters would replace the value element and build a new attribute value on every pass.
+            if (cell.ValueMetaIndex != null) cell.ValueMetaIndex = null;
             if (result.IsError && TryWriteRichFormulaError(cell, result.ErrorCode)) return;
             if (result.IsBoolean) {
-                cell.CellValue = new CellValue(result.Number == 0 ? "0" : "1");
-                cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean;
+                SetFormulaCachedText(cell, result.Number == 0 ? "0" : "1", DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean);
                 return;
             }
             if (!result.IsError && result.SourceCellKind == ExcelCellDataKind.Text && result.Text != null) {
-                cell.CellValue = new CellValue(result.Text);
-                cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.String;
+                SetFormulaCachedText(cell, result.Text, DocumentFormat.OpenXml.Spreadsheet.CellValues.String);
                 return;
             }
             if (result.Number.HasValue) {
-                cell.CellValue = new CellValue(InvariantNumberText.Get(result.Number.Value));
-                cell.DataType = result.IsBoolean ? DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean
-                    : DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
+                SetFormulaCachedText(cell, InvariantNumberText.Get(result.Number.Value), DocumentFormat.OpenXml.Spreadsheet.CellValues.Number);
                 return;
             }
 
             if (result.IsError) {
-                cell.CellValue = new CellValue(result.ErrorCode ?? "#VALUE!");
-                cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Error;
+                SetFormulaCachedText(cell, result.ErrorCode ?? "#VALUE!", DocumentFormat.OpenXml.Spreadsheet.CellValues.Error);
                 return;
             }
 
             if (result.Text != null) {
-                cell.CellValue = new CellValue(result.Text);
-                cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.String;
+                SetFormulaCachedText(cell, result.Text, DocumentFormat.OpenXml.Spreadsheet.CellValues.String);
             }
+        }
+
+        private static void SetFormulaCachedText(Cell cell, string text, DocumentFormat.OpenXml.Spreadsheet.CellValues type) {
+            ExcelWorksheetScan.SetValueText(cell, text);
+            if (cell.DataType?.Value != type) cell.DataType = type;
         }
 
         /// <summary>
@@ -346,7 +368,7 @@ namespace OfficeIMO.Excel {
                 FormulaDependencyAliasCatalog dependencyAliases = GetFormulaDependencyAliases();
                 FormulaDependencyTableCatalog dependencyTables = GetFormulaDependencyTables();
                 IReadOnlyDictionary<uint, SharedFormulaDefinition> sharedFormulaDefinitions = BuildSharedFormulaDefinitions();
-                List<Cell> formulaCells = WorksheetRoot.Descendants<Cell>().Where(c => c.CellFormula != null).ToList();
+                List<Cell> formulaCells = ExcelWorksheetScan.FormulaCells(WorksheetRoot).ToList();
                 var dependencyInspectionContext = new FormulaDependencyInspectionContext(
                     this,
                     formulaCells,
@@ -360,6 +382,8 @@ namespace OfficeIMO.Excel {
                 bool packageRequestsRecalculation = calculation?.FullCalculationOnLoad?.Value == true
                     || calculation?.ForceFullCalculation?.Value == true
                     || WorksheetRoot.GetFirstChild<SheetCalculationProperties>()?.FullCalculationOnLoad?.Value == true;
+                using var context = new FormulaCalculationContext();
+                var previousCalculationContext = _formulaCalculationContext;
                 var previousCache = _formulaEvaluationCache;
                 var previousDepthCache = _formulaEvaluationDepthCache;
                 var previousStack = _formulaEvaluationStack;
@@ -367,7 +391,8 @@ namespace OfficeIMO.Excel {
                 var previousGuardState = _formulaEvaluationGuardState;
                 var previousSharedDefinitions = _formulaEvaluationSharedDefinitions;
                 var previousSharedDefinitionsBySheet = _formulaEvaluationSharedDefinitionsBySheet;
-                _formulaEvaluationCache = new Dictionary<string, FormulaArgumentValue>(StringComparer.OrdinalIgnoreCase);
+                _formulaEvaluationCache = context.Cache;
+                _formulaCalculationContext = context;
                 _formulaEvaluationDepthCache = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
                 _formulaEvaluationStack = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 _formulaEvaluationDepthFrames = new Stack<FormulaEvaluationDepthFrame>();
@@ -398,9 +423,9 @@ namespace OfficeIMO.Excel {
                             Name,
                             cellReference,
                             formula,
-                            cell.CellValue?.Text,
+                            ExcelWorksheetScan.FindValue(cell)?.Text,
                             packageRequestsRecalculation
-                                || (cell.CellFormula!.CalculateCell?.Value ?? false)
+                                || (ExcelWorksheetScan.FindFormula(cell)!.CalculateCell?.Value ?? false)
                                 || _excelDocument.HasFormulaInputMutationsAfterFormulaBaseline(_worksheetPart, cellReference)
                                 || HasFormulaDependencyMutationsAfterBaseline(cellReference, dependencies),
                             supported,
@@ -411,6 +436,7 @@ namespace OfficeIMO.Excel {
                     }
                 } finally {
                     _formulaEvaluationCache = previousCache;
+                    _formulaCalculationContext = previousCalculationContext;
                     _formulaEvaluationDepthCache = previousDepthCache;
                     _formulaEvaluationStack = previousStack;
                     _formulaEvaluationDepthFrames = previousDepthFrames;
@@ -455,7 +481,7 @@ namespace OfficeIMO.Excel {
         private static ExcelFormulaArrayInfo? CreateFormulaArrayInfo(
             Cell cell,
             Metadata? metadata) {
-            CellFormula? formula = cell.CellFormula;
+            CellFormula? formula = ExcelWorksheetScan.FindFormula(cell);
             if (formula?.FormulaType?.Value != CellFormulaValues.Array
                 || string.IsNullOrWhiteSpace(formula.Reference?.Value)) {
                 return null;
@@ -512,16 +538,17 @@ namespace OfficeIMO.Excel {
         /// Returns the formula text from a cell, if present.
         /// </summary>
         public string? GetFormulaText(int row, int column) {
-            Cell? cell = TryGetExistingCell(row, column);
-            return cell?.CellFormula == null ? null : ResolveCellFormulaText(cell);
+            Cell? cell = TryGetDomCell(row, column);
+            return (cell == null ? null : ExcelWorksheetScan.FindFormula(cell!)) == null ? null : ResolveCellFormulaText(cell!);
         }
 
         /// <summary>
         /// Tries to return a formula cell's cached value.
         /// </summary>
         public bool TryGetCachedFormulaValue(int row, int column, out string? value) {
-            var cell = TryGetExistingCell(row, column);
-            value = cell?.CellFormula == null ? null : ResolveRichValueError(cell, cell.CellValue?.Text);
+            // A formula cell is always a DOM cell, so a stored cell stays stored.
+            var cell = TryGetDomCell(row, column);
+            value = (cell == null ? null : ExcelWorksheetScan.FindFormula(cell!)) == null ? null : ResolveRichValueError(cell!, ExcelWorksheetScan.FindValue(cell!)?.Text);
             return value != null;
         }
 
@@ -534,20 +561,20 @@ namespace OfficeIMO.Excel {
         /// Authors a dynamic array at one anchor cell. Calculation determines its bounded spill range.
         /// </summary>
         public void SetDynamicArrayFormula(string a1Cell, string formula) {
-            var (row, column) = A1.ParseCellRef(a1Cell);
-            if (row < 1 || row > A1.MaxRows || column < 1 || column > A1.MaxColumns)
+            var (row, column) = ExcelA1.ParseCellRef(a1Cell);
+            if (row < 1 || row > ExcelA1.MaxRows || column < 1 || column > ExcelA1.MaxColumns)
                 throw new ArgumentOutOfRangeException(nameof(a1Cell));
-            string anchor = A1.CellReference(row, column);
+            string anchor = ExcelA1.CellReference(row, column);
             SetArrayFormulaCore(anchor + ":" + anchor, formula, dynamic: true);
         }
 
         private void SetArrayFormulaCore(string a1Range, string formula, bool dynamic) {
             if (string.IsNullOrWhiteSpace(formula)) throw new ArgumentNullException(nameof(formula));
             string safeFormula = Utilities.ExcelSanitizer.SanitizeFormula(formula, qualifyArrayFunctions: true);
-            var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
+            var (r1, c1, r2, c2) = ExcelA1.ParseRange(a1Range);
             WriteLock(() => {
-                foreach (var cell in WorksheetRoot.Descendants<Cell>().Where(c => c.CellFormula?.FormulaType?.Value == CellFormulaValues.Array).ToList()) {
-                    string? reference = cell.CellFormula?.Reference?.Value;
+                foreach (var cell in ExcelWorksheetScan.FormulaCells(WorksheetRoot).Where(c => ExcelWorksheetScan.FindFormula(c)?.FormulaType?.Value == CellFormulaValues.Array).ToList()) {
+                    string? reference = ExcelWorksheetScan.FindFormula(cell)?.Reference?.Value;
                     if (!string.IsNullOrWhiteSpace(reference)
                         && TryFixedArrayBounds(reference!, out int existingR1, out int existingC1, out int existingR2, out int existingC2)
                         && RangesOverlapInclusive((r1, c1, r2, c2), (existingR1, existingC1, existingR2, existingC2))) {
@@ -556,7 +583,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 var topLeft = GetCell(r1, c1);
-                bool retainsCachedValue = topLeft.CellValue != null;
+                bool retainsCachedValue = ExcelWorksheetScan.FindValue(topLeft) != null;
                 ClearCellValueMetadata(topLeft);
                 topLeft.CellMetaIndex = dynamic ? EnsureDynamicArrayMetadata() : null;
                 topLeft.CellFormula = new CellFormula(safeFormula) {
@@ -564,11 +591,11 @@ namespace OfficeIMO.Excel {
                     Reference = a1Range
                 };
                 if (retainsCachedValue) {
-                    topLeft.CellFormula.CalculateCell = true;
+                    ExcelWorksheetScan.FindFormula(topLeft)!.CalculateCell = true;
                 }
                 _excelDocument.MarkFormulaAuthored(
                     _worksheetPart,
-                    A1.CellReference(r1, c1),
+                    ExcelA1.CellReference(r1, c1),
                     retainedCachedValue: retainsCachedValue);
                 for (int row = r1; row <= r2; row++) {
                     for (int column = c1; column <= c2; column++) {
@@ -584,13 +611,13 @@ namespace OfficeIMO.Excel {
             });
         }
 
-        internal void SetLegacyArrayFormula(string a1Range, string formula) {
+        internal void SetLegacyArrayFormula(string a1Range, string formula, System.Threading.CancellationToken cancellationToken = default) {
             if (string.IsNullOrWhiteSpace(formula)) throw new ArgumentNullException(nameof(formula));
             string safeFormula = Utilities.ExcelSanitizer.SanitizeFormula(formula);
             int r2;
             int c2;
-            if (!A1.TryParseRange(a1Range, out int r1, out int c1, out r2, out c2)) {
-                (r1, c1) = A1.ParseCellRef(a1Range);
+            if (!ExcelA1.TryParseRange(a1Range, out int r1, out int c1, out r2, out c2)) {
+                (r1, c1) = ExcelA1.ParseCellRef(a1Range);
                 if (r1 <= 0 || c1 <= 0) {
                     throw new ArgumentException($"Invalid A1 range '{a1Range}'.", nameof(a1Range));
                 }
@@ -601,23 +628,24 @@ namespace OfficeIMO.Excel {
             WriteLock(() => {
                 for (int row = r1; row <= r2; row++) {
                     for (int column = c1; column <= c2; column++) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         var member = GetCell(row, column);
                         ClearCellValueMetadata(member);
                         if (row != r1 || column != c1) member.CellFormula = null;
                     }
                 }
                 var topLeft = GetCell(r1, c1);
-                bool retainsCachedValue = topLeft.CellValue != null;
+                bool retainsCachedValue = ExcelWorksheetScan.FindValue(topLeft) != null;
                 topLeft.CellFormula = new CellFormula(safeFormula) {
                     FormulaType = CellFormulaValues.Array,
                     Reference = a1Range
                 };
                 if (retainsCachedValue) {
-                    topLeft.CellFormula.CalculateCell = true;
+                    ExcelWorksheetScan.FindFormula(topLeft)!.CalculateCell = true;
                 }
                 _excelDocument.MarkFormulaAuthored(
                     _worksheetPart,
-                    A1.CellReference(r1, c1),
+                    ExcelA1.CellReference(r1, c1),
                     retainedCachedValue: retainsCachedValue);
             });
         }
@@ -627,16 +655,16 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public void ClearArrayFormula(string a1RangeOrCell) {
             var bounds = a1RangeOrCell.IndexOf(':') >= 0
-                ? A1.ParseRange(a1RangeOrCell)
+                ? ExcelA1.ParseRange(a1RangeOrCell)
                 : CellAsRange(a1RangeOrCell);
 
             WriteLock(() => {
-                foreach (var cell in WorksheetRoot.Descendants<Cell>().Where(c => c.CellFormula?.FormulaType?.Value == CellFormulaValues.Array).ToList()) {
-                    string? reference = cell.CellFormula?.Reference?.Value;
+                foreach (var cell in ExcelWorksheetScan.FormulaCells(WorksheetRoot).Where(c => ExcelWorksheetScan.FindFormula(c)?.FormulaType?.Value == CellFormulaValues.Array).ToList()) {
+                    string? reference = ExcelWorksheetScan.FindFormula(cell)?.Reference?.Value;
                     if (!string.IsNullOrWhiteSpace(reference)
                         && TryFixedArrayBounds(reference!, out int existingR1, out int existingC1, out int existingR2, out int existingC2)
                         && RangesOverlapInclusive(bounds, (existingR1, existingC1, existingR2, existingC2))) {
-                        foreach (Cell spillCell in WorksheetRoot.Descendants<Cell>().ToList()) {
+                        foreach (Cell spillCell in ExcelWorksheetScan.Cells(WorksheetRoot).ToList()) {
                             if (!TryParseCellReference(spillCell.CellReference?.Value ?? "", out int row, out int column)
                                 || row < existingR1 || row > existingR2 || column < existingC1 || column > existingC2)
                                 continue;
@@ -688,6 +716,7 @@ namespace OfficeIMO.Excel {
                     if (function is "INT" or "MOD" or "SQRT" or "SIGN" or "TRUNC" or "ROUNDUP" or "ROUNDDOWN" or "EXP" or "LN" or "LOG" or "LOG10" or "CEILING" or "FLOOR" or "EVEN" or "ODD" or "FACT" or "COMBIN") return TryEvaluateScalarMathValue(function, args, out result);
                     if (function is "GCD" or "LCM") return TryEvaluateIntegerAggregateValue(function, args, out result);
                     if (function == "PROB") return TryEvaluateProbabilityValue(args, out result);
+                    if (function == "SUMPRODUCT") return TryEvaluateSumProductValue(args, out result);
                     if (function is "IPMT" or "PPMT") return TryEvaluatePaymentSplitValue(function, args, out result);
                     if (function is "RATE" or "IRR" or "XIRR" or "XNPV") return TryEvaluateCashFlowValue(function, args, out result);
                     if (function == "RANDBETWEEN") return TryEvaluateRandomBetweenValue(args, out result);
@@ -731,7 +760,8 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            if (TryEvaluateSingleReferenceFormulaValue(formula, out result)) {
+            // INDEX and OFFSET, the only calls that yield a reference, returned above.
+            if (functionCall == null && TryEvaluateSingleReferenceFormulaValue(formula, out result)) {
                 return true;
             }
 
@@ -763,6 +793,10 @@ namespace OfficeIMO.Excel {
             if (functionCall != null) {
                     string function = functionCall.Name.ToUpperInvariant();
                     string args = functionCall.Arguments;
+                    if (IsRangeAggregateFunction(function)) {
+                        bool aggregated = TryEvaluateRangeAggregate(function, args, out result, out error, out bool handled);
+                        if (handled) return aggregated;
+                    }
                     if (function is "INT" or "MOD" or "SQRT" or "SIGN" or "TRUNC" or "ROUNDUP" or "ROUNDDOWN" or "EXP" or "LN" or "LOG" or "LOG10" or "CEILING" or "FLOOR" or "EVEN" or "ODD" or "FACT" or "COMBIN") {
                         if (!TryEvaluateScalarMathValue(function, args, out FormulaArgumentValue value)) return false;
                         if (value.IsError) { error = value; return false; }
@@ -969,7 +1003,8 @@ namespace OfficeIMO.Excel {
 
 
                     bool numericReferencesOnly = function is "SUM" or "AVERAGE" or "MIN" or "MAX" or "COUNT" or "PRODUCT" or "MEDIAN" or "SUMSQ";
-                    var numbers = values.Where(v => v.Number.HasValue && (!numericReferencesOnly || v.IsNumericAggregateValue))
+                    var numericValues = numericReferencesOnly ? values : values.Select(NormalizeLookupResult);
+                    var numbers = numericValues.Where(v => v.Number.HasValue && (!numericReferencesOnly || v.IsNumericAggregateValue))
                         .Select(v => v.Number!.Value).ToList();
                     if (function == "COUNT") {
                         result = numbers.Count;

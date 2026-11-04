@@ -11,7 +11,7 @@ public sealed partial class PdfTextRun {
     internal PdfTextRun WithPaintedGlyphPreservation(bool preservePaintedGlyphs = true) {
         if (InlineElement != null || PreservesPaintedGlyphs == preservePaintedGlyphs) return this;
         var copy = CopyRunFormattingTo(new PdfTextRun(Text, Bold, Underline, Color, Italic, Strike,
-            FontSize, Font, LinkUri, LinkContents, Baseline, LinkDestinationName, TabLeader,
+            FontSize, StandardFont, LinkUri, LinkContents, Baseline, LinkDestinationName, TabLeader,
             TabAlignment, BackgroundColor, FontFamily, UnderlineStyle, StrikeStyle, DecorationColor));
         copy.PreservesPaintedGlyphs = preservePaintedGlyphs;
         return copy;

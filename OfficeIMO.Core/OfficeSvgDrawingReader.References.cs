@@ -143,6 +143,10 @@ public static partial class OfficeSvgDrawingReader {
         }
 
         internal bool TryChargeNestedViewportExpansion(double extraPixels) {
+            return TryChargeIntermediateSurfaceExpansion(extraPixels);
+        }
+
+        internal bool TryChargeIntermediateSurfaceExpansion(double extraPixels) {
             return !double.IsNaN(extraPixels) && !double.IsInfinity(extraPixels)
                 && (extraPixels <= 0D || TryChargeIntermediatePixels(extraPixels));
         }

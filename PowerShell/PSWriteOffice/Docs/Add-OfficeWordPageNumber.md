@@ -9,9 +9,9 @@ schema: 2.0.0
 Adds a PAGE field to the current header/footer.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
-Add-OfficeWordPageNumber [-IncludeTotalPages] [-PassThru] [<CommonParameters>]
+Add-OfficeWordPageNumber [-IncludeTotal] [-Format <WordFieldFormat>] [-Separator <string>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -21,19 +21,35 @@ Typically used inside WordFooter to render “Page X of Y”.
 
 ### EXAMPLE 1
 ```powershell
-PS> WordFooter { Add-OfficeWordPageNumber -IncludeTotalPages }
+PS> WordFooter { Add-OfficeWordPageNumber -IncludeTotal }
 ```
 
 Outputs “Page # of #” in the footer.
 
 ## PARAMETERS
 
-### -IncludeTotalPages
+### -Format
+Optional number format.
+
+```yaml
+Type: WordFieldFormat
+Parameter Sets: Default
+Aliases: None
+Possible values: Lower, Upper, FirstCap, Caps, MergeFormat, UpperRoman, LowerRoman, Arabic, LowerLetter, UpperLetter, Ordinal, OrdText, CardText, DollarText, Hex, CharFormat
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -IncludeTotal
 Include “of N” when true.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -49,7 +65,23 @@ Emit the object created or changed by the command.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Separator
+Separator when totals are included.
+
+```yaml
+Type: String
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

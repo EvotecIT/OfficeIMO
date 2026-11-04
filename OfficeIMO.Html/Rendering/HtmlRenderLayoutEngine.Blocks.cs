@@ -99,7 +99,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentWidth = Math.Max(1D, boxWidth - style.HorizontalInsets);
         bool ownsFloatContext = surroundingFloats == null || EstablishesIndependentFloatContext(style);
         InlineFloatContext contentFloats = ownsFloatContext
-            ? new InlineFloatContext(contentWidth, inheritedFloats)
+            ? new InlineFloatContext(contentWidth,
+                count => ChargeLayoutOperations(count, "inline float placement scans"), inheritedFloats)
             : surroundingFloats!.At(contentWidth, style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft,
                 style.MarginTop + style.BorderTopWidth + style.PaddingTop);
         double positionedContainingWidth = Math.Max(1D, boxWidth - style.BorderLeftWidth - style.BorderRightWidth);

@@ -9,7 +9,7 @@ schema: 2.0.0
 Captures a portable report from a current calculated schedule.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
 Get-OfficeProjectView -Document <ProjectDocument> [-Schedule <ProjectScheduleResult>] [-Kind <ProjectViewKind>] [-Options <ProjectViewOptions>] [<CommonParameters>]
 ```
@@ -32,7 +32,7 @@ Project document.
 
 ```yaml
 Type: ProjectDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -48,7 +48,7 @@ Report presentation.
 
 ```yaml
 Type: ProjectViewKind
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values: Gantt, TaskUsage, ResourceUsage, ResourceHistogram, Network, Timeline, Table
 
@@ -64,7 +64,7 @@ Optional explicit report settings.
 
 ```yaml
 Type: ProjectViewOptions
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -80,7 +80,7 @@ Current schedule result for this project revision. Omission calculates a report 
 
 ```yaml
 Type: ProjectScheduleResult
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 

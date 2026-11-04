@@ -1,0 +1,105 @@
+{
+  "package": "OfficeIMO.Excel.Html",
+  "summary": "Image adapter consumers use the single options type from their rendering package.",
+  "changes": [
+    {
+      "old": "OfficeIMO.Excel.Html.ExcelHtmlSaveOptions.VisualOptions : ExcelWorkbookImageExportOptions",
+      "new": "OfficeIMO.Excel.Html.ExcelHtmlExportOptions.VisualOptions : ExcelImageExportOptions",
+      "file": "OfficeIMO.Excel.Html/ExcelHtmlSaveOptions.cs",
+      "kind": "property",
+      "action": "merge",
+      "category": "options",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "reason": "The rendering package now exposes one image options type. The adapter preserves source conversion, selection, diagnostic attachment and cancellation behavior."
+    },
+    {
+      "old": "OfficeIMO.Excel.Html.ExcelHtmlCapabilityGalleryOptions.VisualOptions : ExcelWorkbookImageExportOptions",
+      "new": "OfficeIMO.Excel.Html.ExcelHtmlCapabilityGalleryOptions.VisualOptions : ExcelImageExportOptions",
+      "file": "OfficeIMO.Excel.Html/ExcelHtmlCapabilityGalleryOptions.cs",
+      "kind": "property",
+      "action": "merge",
+      "category": "options",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "reason": "The rendering package now exposes one image options type. The adapter preserves source conversion, selection, diagnostic attachment and cancellation behavior."
+    },
+    {
+      "old": "OfficeIMO.Excel.Html.ExcelHtmlSaveOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.Html.ExcelHtmlExportOptions",
+      "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
+      "category": "options",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Excel.Html.HtmlToExcelOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.Html.HtmlExcelExportOptions",
+      "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
+      "category": "options",
+      "applied": true
+    },
+    {
+      "old": "ExcelDocument/ExcelSheet.ToHtmlResult(ExcelHtmlExportOptions) : HtmlTextConversionResult",
+      "kind": "method",
+      "action": "merge",
+      "new": "ExcelDocument/ExcelSheet.ToHtml(ExcelHtmlExportOptions options, out OfficeConversionReport report, CancellationToken) : string",
+      "reason": "Converters use the shared shape: To{Target}(options[, out OfficeConversionReport], ct), To{Target}Async returning OfficeConversionResult<T>, and SaveAs{Target}(path | stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "ExcelDocument/ExcelSheet.SaveAsHtml(string | Stream, ExcelHtmlExportOptions) : void / SaveAsHtmlAsync : Task",
+      "kind": "method",
+      "action": "change",
+      "new": "ExcelDocument/ExcelSheet.SaveAsHtml(string path | Stream stream, ExcelHtmlExportOptions options = null, CancellationToken) : OfficeConversionReport; SaveAsHtmlAsync : Task<OfficeConversionReport>",
+      "reason": "Converters use the shared shape: To{Target}(options[, out OfficeConversionReport], ct), To{Target}Async returning OfficeConversionResult<T>, and SaveAs{Target}(path | stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "HtmlConversionDocument.ToExcelDocument(HtmlExcelExportOptions) / ToExcelDocumentResult : HtmlToExcelResult",
+      "kind": "method",
+      "action": "merge",
+      "new": "HtmlConversionDocument.ToExcel(HtmlExcelExportOptions options[, out OfficeConversionReport report], CancellationToken) : ExcelDocument; ToExcelAsync; SaveAsExcel(path | stream); SaveAsExcelAsync",
+      "reason": "Converters use the shared shape: To{Target}(options[, out OfficeConversionReport], ct), To{Target}Async returning OfficeConversionResult<T>, and SaveAs{Target}(path | stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "(Excel HTML options) no loss policy",
+      "kind": "property",
+      "action": "change",
+      "new": "ExcelHtmlExportOptions.FailOnLoss / HtmlExcelExportOptions.FailOnLoss; HtmlExcelExportOptions.Clone() is public",
+      "reason": "Conversions use FailOnLoss.",
+      "category": "options",
+      "applied": true
+    }
+  ],
+  "extraChanges": [
+    {
+      "old": "Partial workbook-to-worksheet visual options copy",
+      "new": "ExcelImageExportOptions.Clone()",
+      "action": "remove",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "file": "OfficeIMO.Excel.Html/ExcelHtmlConverterExtensions.cs",
+      "reason": "Use the canonical options snapshot after the options-type merge. The old manual field list dropped font, DPI and safety-limit settings."
+    },
+    {
+      "change": "Retain native worksheet image geometry through HTML conversion",
+      "reason": "The worksheet image model now uses OfficeLength. Semantic inventories carry bounded exact EMUs alongside pixel presentation values, retain signed native positions and marker offsets on import, and use valid pixel fallbacks when native metadata is invalid. Editable-layout image collision bounds use physical exclusive endpoints.",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Excel.Html/ExcelHtmlConverterExtensions.cs",
+        "OfficeIMO.Excel.Html/HtmlExcelConverterExtensions.cs",
+        "OfficeIMO.Excel.Html/HtmlExcelConverterExtensions.Generic.cs",
+        "OfficeIMO.Excel.Html/HtmlExcelConverterExtensions.ImageGeometry.cs"
+      ]
+    }
+  ]
+}

@@ -1,34 +1,24 @@
+[CmdletBinding()]
+param([string] $OutputDirectory = (Join-Path $PSScriptRoot '..\Documents'))
+
 Import-Module PSWriteOffice -ErrorAction Stop
-$documents = Join-Path $PSScriptRoot '..\Documents'
-$null = New-Item -Path $documents -ItemType Directory -Force
-$path = Join-Path $documents 'PowerPoint-ThemeAndLayout.pptx'
-$ppt = New-OfficePowerPoint -Path $path -NoSave
+$null = New-Item -Path $OutputDirectory -ItemType Directory -Force
+$path = Join-Path $OutputDirectory 'PowerPoint-ThemeAndLayout.pptx'
+$deck = New-OfficePowerPoint -Path $path
+try {
+    $slide = Add-OfficePowerPointSlide -Document $deck -TemplateLayout 1 -Title 'Theme Demo' -PassThru
+    $layouts = Get-OfficePowerPointLayout -Document $deck
+    $targetLayout = $layouts | Where-Object LayoutIndex -ne $slide.LayoutIndex | Select-Object -First 1
 
-$slide = Add-OfficePowerPointSlide -Presentation $ppt -Layout 1 -PassThru
-Set-OfficePowerPointSlideTitle -Slide $slide -Title 'Theme Demo'
+    Set-OfficePowerPointTheme -Document $deck -Colors @{
+        Accent1 = '#C00000'
+        Accent2 = '#00B0F0'
+    } -HeadingFont 'Aptos' -BodyFont 'Calibri' -Name 'Contoso Theme' -AllMasters
 
-$layouts = Get-OfficePowerPointLayout -Presentation $ppt
-$targetLayout = $layouts | Where-Object LayoutIndex -ne $slide.LayoutIndex | Select-Object -First 1
-
-Set-OfficePowerPointThemeColor -Presentation $ppt -Colors @{
-    Accent1 = '#C00000'
-    Accent2 = '#00B0F0'
-} -AllMasters
-Set-OfficePowerPointThemeFonts -Presentation $ppt -MajorLatin 'Aptos' -MinorLatin 'Calibri' -AllMasters
-Set-OfficePowerPointThemeName -Presentation $ppt -Name 'Contoso Theme' -AllMasters
-
-if ($targetLayout.Type) {
-    $slide | Set-OfficePowerPointSlideLayout -LayoutType $targetLayout.Type -Master $targetLayout.MasterIndex
-} elseif ($targetLayout.Name) {
-    $slide | Set-OfficePowerPointSlideLayout -LayoutName $targetLayout.Name -Master $targetLayout.MasterIndex
-} else {
-    $slide | Set-OfficePowerPointSlideLayout -Layout $targetLayout.LayoutIndex -Master $targetLayout.MasterIndex
+    $slide | Set-OfficePowerPointSlide -Document $deck -TemplateLayout $targetLayout
+    Get-OfficePowerPointTheme -Document $deck | Format-List
+    Save-OfficePowerPoint -Document $deck
+} finally {
+    Close-OfficePowerPoint -Document $deck
 }
-
-$theme = Get-OfficePowerPointTheme -Presentation $ppt
-$theme | Format-List
-
-Save-OfficePowerPoint -Presentation $ppt
-$ppt | Close-OfficePowerPoint
-
 Write-Host "Presentation saved to $path"

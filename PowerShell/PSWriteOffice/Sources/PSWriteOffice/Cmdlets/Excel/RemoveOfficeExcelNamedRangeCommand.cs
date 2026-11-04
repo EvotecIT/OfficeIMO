@@ -9,7 +9,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// <example>
 ///   <summary>Remove a stale sheet-scoped named range from a workbook.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$workbook = Get-OfficeExcel -Path .\Report.xlsx
+///   <code>$workbook = Open-OfficeExcel -Path .\Report.xlsx
 /// $removed = $workbook | Remove-OfficeExcelNamedRange -Sheet Data -Name OldCriteria -PassThru
 /// Save-OfficeExcel -Document $workbook</code>
 ///   <para>Uses the thin PowerShell surface over OfficeIMO named-range removal and saves the updated workbook.</para>

@@ -3,7 +3,7 @@ using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptPreservingWriter {
         private static bool TryRewriteVbaProject(
-            PowerPointPresentation presentation, LegacyPptPackage package,
+            PowerPointDocument presentation, LegacyPptPackage package,
             LegacyPptProjectionMap projectionMap,
             IDictionary<uint, byte[]> rewritten) {
             if (!projectionMap.VbaProject.TryGetChange(

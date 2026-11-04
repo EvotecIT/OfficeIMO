@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 using OfficeIMO.Word;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Examples.Word;
 
@@ -11,9 +11,9 @@ internal static partial class Paragraphs {
         string filePath = Path.Combine(folderPath, "CustomParagraphStyle.docx");
 
         var custom = new WordParagraphStyleDefinition("MyStyle") {
-            FontName = "Courier New",
-            ColorHex = Color.Red.ToRgbHex(),
-            FontSizePoints = 14
+            FontFamily = "Courier New",
+            Color = Color.Red,
+            FontSize = global::OfficeIMO.OfficeLength.Points(14)
         };
 
         WordParagraphStyle.RegisterCustomStyle("MyStyle", custom);
@@ -31,14 +31,14 @@ internal static partial class Paragraphs {
 
         var centeredRed = new WordParagraphStyleDefinition("CenteredRed") {
             Alignment = WordParagraphAlignment.Center,
-            ColorHex = "FF0000",
+            Color = OfficeColor.Parse("FF0000"),
             Bold = true
         };
         WordParagraphStyle.RegisterCustomStyle("CenteredRed", centeredRed);
 
         var greenIndented = new WordParagraphStyleDefinition("GreenIndented") {
-            LeftIndentTwips = 720,
-            ColorHex = "00AA00",
+            LeftIndent = global::OfficeIMO.OfficeLength.Emus(720L * 635),
+            Color = OfficeColor.Parse("00AA00"),
             Italic = true
         };
         WordParagraphStyle.RegisterCustomStyle("GreenIndented", greenIndented);
@@ -57,7 +57,7 @@ internal static partial class Paragraphs {
         var original = WordParagraphStyle.GetStyleDefinition(WordParagraphStyles.Normal) ?? throw new InvalidOperationException("Normal style definition was not found.");
 
         var custom = new WordParagraphStyleDefinition("Normal") {
-            ColorHex = "0000FF",
+            Color = OfficeColor.Parse("0000FF"),
             Bold = true
         };
         WordParagraphStyle.OverrideBuiltInStyle(WordParagraphStyles.Normal, custom);

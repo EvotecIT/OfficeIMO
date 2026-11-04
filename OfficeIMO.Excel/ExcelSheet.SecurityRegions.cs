@@ -188,7 +188,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>Adds ignored-error metadata for one or more regions.</summary>
-        public void AddIgnoredErrorRegion(IEnumerable<string> ranges, ExcelIgnoredErrorKind errors) {
+        public ExcelIgnoredErrorRegionInfo AddIgnoredErrorRegion(IEnumerable<string> ranges, ExcelIgnoredErrorKind errors) {
             IReadOnlyList<string> normalized = NormalizeRegionReferences(ranges);
             if (errors == ExcelIgnoredErrorKind.None || (errors & ~AllIgnoredErrorKinds) != 0) {
                 throw new ArgumentOutOfRangeException(nameof(errors));
@@ -203,6 +203,7 @@ namespace OfficeIMO.Excel {
                 EnsureWorksheetElementOrder();
                 WorksheetRoot.Save();
             });
+            return new ExcelIgnoredErrorRegionInfo(normalized, errors);
         }
 
         /// <summary>Removes every standard ignored-error region overlapping the supplied A1 cell or range.</summary>

@@ -45,10 +45,9 @@ public sealed class NumbersToExcelResult : IDisposable {
     }
 
     /// <summary>Returns the converted workbook or throws when the conversion was lossy.</summary>
-    public ExcelDocument RequireNoLoss() {
+    public void ThrowIfLoss() {
         try {
-            Report.RequireNoLoss();
-            return Value;
+            Report.ThrowIfLoss();
         } catch {
             Value.Dispose();
             throw;

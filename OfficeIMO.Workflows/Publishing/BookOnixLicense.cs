@@ -30,8 +30,8 @@ public sealed record BookOnixLicense {
     public required IReadOnlyList<BookOnixLicenseName> Names { get; init; }
     /// <summary>Up to 16 distinct format/link pairs. Each link uses the existing 4096-character ONIX field bound.</summary>
     public IReadOnlyList<BookOnixLicenseExpression> Expressions { get; init; } = [];
-    /// <summary>Optional inclusive first effective date (role 14).</summary>
-    public DateOnly? ValidFrom { get; init; }
-    /// <summary>Optional inclusive last effective date (role 15). Must not precede ValidFrom.</summary>
-    public DateOnly? ValidUntil { get; init; }
+    /// <summary>Optional inclusive first effective date (role 14). Time of day is ignored during export.</summary>
+    public DateTime? ValidFrom { get; init; }
+    /// <summary>Optional inclusive last effective date (role 15). Must not precede ValidFrom. Time of day is ignored during export.</summary>
+    public DateTime? ValidUntil { get; init; }
 }

@@ -368,7 +368,7 @@ public sealed class HtmlEditableLayoutProjectionTests {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
 
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(source, new HtmlRenderOptions());
-        string pdfText = PdfCore.PdfReadDocument.Open(source.ToPdfBytes()).ExtractText();
+        string pdfText = PdfCore.PdfReadDocument.Open((source.ToPdf()).ToBytes()).ExtractText();
 
         Assert.Contains("Authored marker content", rendered.Text, StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Pages.SelectMany(page => page.Scene), visual =>
@@ -478,7 +478,7 @@ public sealed class HtmlEditableLayoutProjectionTests {
             "<span style='height:420px'>Tall A</span><span style='height:420px'>Tall B</span></div></section>";
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(4D, 3D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(4D), global::OfficeIMO.OfficeLength.Inches(3D)),
             Margins = HtmlRenderMargins.All(12D)
         };
 

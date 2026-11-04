@@ -45,7 +45,7 @@ public sealed class PublisherFrameLayoutTests {
         document.ReplaceStoryParagraphs(story.Id, PublisherAuthoringTests.Paragraphs("Short"));
         Assert.Equal(0, Assert.Single(document.Pages[1].TextFrames).TextLength);
         Assert.Equal("Short", Assert.Single(document.TextStories).Text); Assert.Equal("Column heading\n" + body, story.Text);
-        PdfReadDocument pdf = PdfReadDocument.Open(document.ToPdfBytes());
+        using PdfDocument pdf = PublisherNativeTests.ExportAndReloadPdf(document);
         Assert.Equal(2, pdf.Pages.Count); Assert.Contains("Short", pdf.Pages[0].ExtractText());
     }
 
@@ -71,7 +71,7 @@ public sealed class PublisherFrameLayoutTests {
         });
         Assert.Empty(Painted(document.Pages[1], master.Id));
         Assert.Equal(OfficeTextVerticalAlignment.Top, master.VerticalAlignment);
-        PdfReadDocument pdf = PdfReadDocument.Open(document.ToPdfBytes());
+        using PdfDocument pdf = PublisherNativeTests.ExportAndReloadPdf(document);
         Assert.Contains("Master Alpha", pdf.Pages[0].ExtractText()); Assert.Contains("Master Alpha", pdf.Pages[2].ExtractText());
         Assert.DoesNotContain("Master Alpha", pdf.Pages[1].ExtractText());
     }
@@ -89,7 +89,7 @@ public sealed class PublisherFrameLayoutTests {
             OfficeDrawingRichText paint = Assert.Single(Painted(document.Pages[0], frame.Id));
             Assert.Equal(26, paint.X); Assert.Equal(38, paint.Y); Assert.Equal(224, paint.Width); Assert.Equal(100, paint.Height);
             Assert.Equal(alignment, paint.VerticalAlignment);
-            PdfReadDocument pdf = PdfReadDocument.Open(document.ToPdfBytes());
+            using PdfDocument pdf = PublisherNativeTests.ExportAndReloadPdf(document);
             PdfTextSpan span = Assert.Single(pdf.Pages[0].GetTextSpans(), item => item.IsVisible && item.Text == "Alignment marker");
             Assert.InRange(span.X, 26, 26.1); baselines.Add(span.Y);
         }
@@ -119,11 +119,11 @@ public sealed class PublisherFrameLayoutTests {
         collapsed.SetTextFrameBounds(original.Id, original.X, original.Y, 120, original.Height);
         PublisherTextFrame narrow = Assert.Single(collapsed.Pages[0].TextFrames);
         Assert.True(narrow.CanEditLayout, narrow.LayoutEditLimitation); Assert.True(narrow.HasOverflow);
-        Assert.Contains(collapsed.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_TEXT_FRAME_HAS_NO_CONTENT_AREA");
+        Assert.Contains(collapsed.ReadReport.Diagnostics, item => item.Code == "PUB_TEXT_FRAME_HAS_NO_CONTENT_AREA");
         collapsed.SetTextFrameLayout(original.Id, 1, 0, OfficeTextPadding.Empty, OfficeTextVerticalAlignment.Top);
         Assert.False(Assert.Single(collapsed.Pages[0].TextFrames).HasOverflow);
         Assert.Contains("Publisher text", collapsed.ToSvg());
-        Assert.DoesNotContain(collapsed.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_TEXT_FRAME_HAS_NO_CONTENT_AREA");
+        Assert.DoesNotContain(collapsed.ReadReport.Diagnostics, item => item.Code == "PUB_TEXT_FRAME_HAS_NO_CONTENT_AREA");
     }
 
     [Theory]
@@ -138,7 +138,7 @@ public sealed class PublisherFrameLayoutTests {
             fixture: "NativeComparison/Text/native-text.pub");
         PublisherDocument document = PublisherDocument.Load(input); PublisherTextFrame frame = Assert.Single(document.Pages[0].TextFrames);
         Assert.False(frame.CanEditLayout); Assert.NotNull(frame.LayoutEditLimitation); Assert.Contains("Publisher text", document.ToSvg());
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_TEXT_FRAME_LAYOUT_EDIT_UNSUPPORTED" && item.Message == frame.LayoutEditLimitation);
+        Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == "PUB_TEXT_FRAME_LAYOUT_EDIT_UNSUPPORTED" && item.Message == frame.LayoutEditLimitation);
         var pages = document.Pages; var report = document.ReadReport;
         Assert.Throws<NotSupportedException>(() => document.SetTextFrameLayout(frame.Id, 2, 12, OfficeTextPadding.Empty, OfficeTextVerticalAlignment.Top));
         Assert.Same(pages, document.Pages); Assert.Same(report, document.ReadReport);
@@ -200,7 +200,7 @@ public sealed class PublisherFrameLayoutTests {
         Assert.Throws<OperationCanceledException>(() => document.SetTextFrameLayout(frame.Id, 1, 0, OfficeTextPadding.Empty, OfficeTextVerticalAlignment.Top, new CancellationToken(true)));
         Assert.Same(pages, document.Pages); Assert.Same(stories, document.TextStories); Assert.Same(report, document.ReadReport); Assert.Equal(svg, document.ToSvg());
 
-        PublisherDocument bounded = PublisherDocument.Create(300, 400, new PublisherReadOptions { Limits = new OfficeLegacyImportLimits { MaxTextCharacters = 512 } });
+        PublisherDocument bounded = PublisherDocument.Create(300, 400, new PublisherLoadOptions { Limits = new OfficeLegacyImportLimits { MaxTextCharacters = 512 } });
         string body = string.Concat(Enumerable.Repeat("Bounded continuation text. ", 16));
         PublisherTextFrame narrow = bounded.AddTextFrame(bounded.Pages[0].Id, 20, 20, 40, 32, PublisherAuthoringTests.Paragraphs(body));
         var boundedPages = bounded.Pages; var boundedReport = bounded.ReadReport; string before = bounded.ToSvg();
@@ -210,7 +210,7 @@ public sealed class PublisherFrameLayoutTests {
         bounded.SetTextFrameLayout(narrow.Id, 1, 0, new OfficeTextPadding(2, 2, 2, 2), OfficeTextVerticalAlignment.Top);
         Assert.Equal(1, Assert.Single(bounded.Pages[0].TextFrames).ColumnCount);
 
-        PublisherDocument items = PublisherDocument.Create(300, 400, new PublisherReadOptions { Limits = new OfficeLegacyImportLimits { MaxItems = 2 } });
+        PublisherDocument items = PublisherDocument.Create(300, 400, new PublisherLoadOptions { Limits = new OfficeLegacyImportLimits { MaxItems = 2 } });
         PublisherTextFrame empty = items.AddTextFrame(items.Pages[0].Id, 0, 0, 200, 100, Array.Empty<OfficeRichTextParagraph>());
         var itemPages = items.Pages;
         Assert.Throws<InvalidDataException>(() => items.SetTextFrameLayout(empty.Id, 3, 0, OfficeTextPadding.Empty, OfficeTextVerticalAlignment.Top));

@@ -8,7 +8,7 @@ internal static class EmailStoreMessageReader {
         bool includeEmbeddedMessages = true) {
         try {
             return new EmailDocumentReader(CreateOptions(options, includeAttachmentContent, maxDecodedPropertyBytes, includeEmbeddedMessages))
-                .Read(bytes, cancellationToken);
+                .ReadDocument(bytes, cancellationToken);
         } catch (EmailLimitExceededException exception) {
             throw ConvertLimit(exception);
         }
@@ -20,8 +20,8 @@ internal static class EmailStoreMessageReader {
         try {
             var reader = new EmailDocumentReader(CreateOptions(options, includeAttachmentContent, maxDecodedPropertyBytes, includeEmbeddedMessages));
             return preferStreamingAttachmentContent || !(includeAttachmentContent ?? options.RetainAttachmentContent)
-                ? reader.ReadStreaming(stream, cancellationToken: cancellationToken)
-                : reader.Read(stream, cancellationToken);
+                ? reader.ReadDocument(stream, OfficeIMO.Email.EmailReadContentStorage.TemporaryFiles, cancellationToken: cancellationToken)
+                : reader.ReadDocument(stream, cancellationToken);
         } catch (EmailLimitExceededException exception) {
             throw ConvertLimit(exception);
         }

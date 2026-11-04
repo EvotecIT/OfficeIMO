@@ -5,29 +5,29 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 internal static partial class PdfComplianceAnalyzer {
     /// <summary>Analyzes the compliance profile requested by the supplied options.</summary>
-    public static PdfComplianceReadinessReport Assess(PdfOptions options) {
+    public static PdfComplianceReadinessReport Assess(PdfCreateOptions options) {
         Guard.NotNull(options, nameof(options));
         return Assess(options.ComplianceProfile, options);
     }
 
     /// <summary>Analyzes the supplied options against a requested formal compliance profile.</summary>
-    public static PdfComplianceReadinessReport Assess(PdfComplianceProfile profile, PdfOptions options) {
+    public static PdfComplianceReadinessReport Assess(PdfComplianceProfile profile, PdfCreateOptions options) {
         return Assess(profile, options, generatedStandardFonts: null);
     }
 
     /// <summary>
     /// Analyzes the supplied options against a requested formal compliance profile, including generated standard-font usage evidence when available.
     /// </summary>
-    public static PdfComplianceReadinessReport Assess(PdfComplianceProfile profile, PdfOptions options, IEnumerable<PdfStandardFont>? generatedStandardFonts) {
+    public static PdfComplianceReadinessReport Assess(PdfComplianceProfile profile, PdfCreateOptions options, IEnumerable<PdfStandardFont>? generatedStandardFonts) {
         return AssessCore(profile, options, generatedStandardFonts, generatedFontUsages: null, documentTitle: null, hasDocumentMetadataEvidence: false, generatedImages: null, generatedDrawings: null, generatedForms: null, generatedEvidence: null);
     }
 
-    internal static PdfComplianceReadinessReport AssessDocument(PdfComplianceProfile profile, PdfOptions options, PdfGeneratedDocumentComplianceEvidence evidence, string? documentTitle) {
+    internal static PdfComplianceReadinessReport AssessDocument(PdfComplianceProfile profile, PdfCreateOptions options, PdfGeneratedDocumentComplianceEvidence evidence, string? documentTitle) {
         Guard.NotNull(evidence, nameof(evidence));
         return AssessCore(profile, options, evidence.StandardFonts, evidence.FontUsages, documentTitle, hasDocumentMetadataEvidence: true, generatedImages: evidence.Images, generatedDrawings: evidence.Drawings, generatedForms: evidence.Forms, generatedEvidence: evidence);
     }
 
-    private static PdfComplianceReadinessReport AssessCore(PdfComplianceProfile profile, PdfOptions options, IEnumerable<PdfStandardFont>? generatedStandardFonts, IEnumerable<PdfGeneratedFontComplianceEvidence>? generatedFontUsages, string? documentTitle, bool hasDocumentMetadataEvidence, IEnumerable<PdfGeneratedImageAccessibilityEvidence>? generatedImages, IEnumerable<PdfGeneratedDrawingAccessibilityEvidence>? generatedDrawings, IEnumerable<PdfGeneratedFormAccessibilityEvidence>? generatedForms, PdfGeneratedDocumentComplianceEvidence? generatedEvidence) {
+    private static PdfComplianceReadinessReport AssessCore(PdfComplianceProfile profile, PdfCreateOptions options, IEnumerable<PdfStandardFont>? generatedStandardFonts, IEnumerable<PdfGeneratedFontComplianceEvidence>? generatedFontUsages, string? documentTitle, bool hasDocumentMetadataEvidence, IEnumerable<PdfGeneratedImageAccessibilityEvidence>? generatedImages, IEnumerable<PdfGeneratedDrawingAccessibilityEvidence>? generatedDrawings, IEnumerable<PdfGeneratedFormAccessibilityEvidence>? generatedForms, PdfGeneratedDocumentComplianceEvidence? generatedEvidence) {
         Guard.ComplianceProfile(profile, nameof(profile));
         Guard.NotNull(options, nameof(options));
 
@@ -92,7 +92,7 @@ internal static partial class PdfComplianceAnalyzer {
             "Set PdfOptions.FileVersion or PdfDocument.FileVersion(...) to PdfFileVersion.Pdf17 for PDF/A-2, PDF/A-3, PDF/UA-1, and e-invoice profile groundwork.");
     }
 
-    private static void AddUnicodeRequirements(List<PdfComplianceRequirement> requirements, PdfOptions options, PdfGeneratedFontComplianceEvidence[]? generatedFontUsages) {
+    private static void AddUnicodeRequirements(List<PdfComplianceRequirement> requirements, PdfCreateOptions options, PdfGeneratedFontComplianceEvidence[]? generatedFontUsages) {
         bool hasEmbeddedUnicodeCoverage = HasEmbeddedGeneratedFontUnicodeCoverage(generatedFontUsages);
         Add(requirements, "standard-font-to-unicode", "Standard-font ToUnicode maps",
             options.IncludeStandardFontToUnicodeMaps || hasEmbeddedUnicodeCoverage,

@@ -152,11 +152,11 @@ internal static partial class TextLayoutEngine {
         PdfTextLayoutOptions options,
         Action<long>? consumeWork,
         Action? cancellationCheck) {
-        if (options.IgnoreHeaderHeight <= 0D && options.IgnoreFooterHeight <= 0D) return spans;
+        if (options.IgnoreHeaderHeight.ToPoints() <= 0D && options.IgnoreFooterHeight.ToPoints() <= 0D) return spans;
         double visualHeight = page.GetVisualPageSize().Height;
         Matrix2D visualTransform = page.GetVisualPageTransform();
-        double bodyTop = options.IgnoreHeaderHeight;
-        double bodyBottom = visualHeight - options.IgnoreFooterHeight;
+        double bodyTop = options.IgnoreHeaderHeight.ToPoints();
+        double bodyBottom = visualHeight - options.IgnoreFooterHeight.ToPoints();
         var filtered = new List<PdfTextSpan>(spans.Count);
         for (int index = 0; index < spans.Count; index++) {
             cancellationCheck?.Invoke();
@@ -164,8 +164,8 @@ internal static partial class TextLayoutEngine {
             PdfTextSpan span = spans[index];
             double visualBaselineFromBottom = visualTransform.Transform(span.X, span.Y).Y;
             double visualBaselineFromTop = visualHeight - visualBaselineFromBottom;
-            if ((options.IgnoreHeaderHeight <= 0D || visualBaselineFromTop > bodyTop) &&
-                (options.IgnoreFooterHeight <= 0D || visualBaselineFromTop < bodyBottom)) {
+            if ((options.IgnoreHeaderHeight.ToPoints() <= 0D || visualBaselineFromTop > bodyTop) &&
+                (options.IgnoreFooterHeight.ToPoints() <= 0D || visualBaselineFromTop < bodyBottom)) {
                 filtered.Add(span);
             }
         }
@@ -298,7 +298,7 @@ internal static partial class TextLayoutEngine {
             var span = ordered[i];
             double previousEnd = coordinates.Along(previous) + Math.Max(0, previous.LogicalLayoutAdvance);
             double gap = coordinates.Along(span) - previousEnd;
-            if (gap >= minimumRunGap) {
+            if (gap >= minimumRunGap && !IsListMarkerHangingBeforeText(runs, current, gap)) {
                 runs.Add(current);
                 current = new List<PdfTextSpan>();
             }
@@ -311,6 +311,11 @@ internal static partial class TextLayoutEngine {
         }
 
         return runs;
+    }
+
+    // A bullet set at a hanging indent starts its line, so the wide gap after it is the indent and not a gutter.
+    private static bool IsListMarkerHangingBeforeText(List<List<PdfTextSpan>> runs, List<PdfTextSpan> current, double gap) {
+        return runs.Count == 0 && ContentStructureExtractor.IsHangingListMarker(string.Concat(current.Select(static span => span.Text)), gap);
     }
 
     internal static TextLine BuildLine(List<PdfTextSpan> spans, Options? options,
@@ -528,7 +533,7 @@ internal static partial class TextLayoutEngine {
 /// <summary>
 /// Convenience helpers for callers to get column-aware text from a PdfReadPage.
 /// </summary>
-public static class PdfReadPageExtensions {
+internal static class PdfReadPageExtensions {
     /// <summary>
     /// Extracts text from a page with simple two-column detection when present.
     /// </summary>
@@ -556,19 +561,19 @@ public static class PdfReadPageExtensions {
     /// </summary>
     /// <param name="page">Source page.</param>
     /// <param name="options">Optional layout options.</param>
-    public static StructuredPage ExtractStructured(this PdfReadPage page, PdfTextLayoutOptions? options = null) {
+    public static PdfStructuredPage ExtractStructured(this PdfReadPage page, PdfTextLayoutOptions? options = null) {
         var spans = page.GetTextSpans();
         return ExtractStructured(page, spans, options, CancellationToken.None);
     }
 
-    internal static StructuredPage ExtractStructured(
+    internal static PdfStructuredPage ExtractStructured(
         this PdfReadPage page,
         IReadOnlyList<PdfTextSpan> spans,
         PdfTextLayoutOptions? options,
         CancellationToken cancellationToken,
         Action<long>? consumeWork = null,
         Action? cancellationCheck = null,
-        IReadOnlyList<StructuredTable>? precomputedTables = null) {
+        IReadOnlyList<PdfStructuredTable>? precomputedTables = null) {
         cancellationToken.ThrowIfCancellationRequested();
         cancellationCheck?.Invoke();
         var (_, pageHeight) = page.GetPageSize();
@@ -582,7 +587,7 @@ public static class PdfReadPageExtensions {
         }
 
         var engineOpts = options?.ToEngineOptions();
-        StructuredPage result = ContentStructureExtractor.Extract(
+        PdfStructuredPage result = ContentStructureExtractor.Extract(
             spans,
             engineOpts ?? new TextLayoutEngine.Options(),
             pageHeight,

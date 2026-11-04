@@ -26,7 +26,7 @@ namespace OfficeIMO.Visio {
 
             int? fontFaceId = null;
             string? fontFamily = null;
-            OfficeIMO.Drawing.OfficeColor? color = null;
+            OfficeIMO.OfficeColor? color = null;
             double? size = null;
             bool? bold = null;
             bool? italic = null;
@@ -118,15 +118,15 @@ namespace OfficeIMO.Visio {
                 return false;
             }
 
-            VisioTextHorizontalAlignment? horizontalAlignment = null;
+            OfficeAlignment? horizontalAlignment = null;
             foreach (XElement cell in rows[0].Elements(ns + "Cell")) {
                 string? name = cell.Attribute("N")?.Value;
                 string? value = cell.Attribute("V")?.Value;
                 switch (name) {
                     case "HorzAlign":
                         if (TryParseCellIntValue(value, out int horizontalAlign) &&
-                            Enum.IsDefined(typeof(VisioTextHorizontalAlignment), horizontalAlign)) {
-                            horizontalAlignment = (VisioTextHorizontalAlignment)horizontalAlign;
+                            VisioDrawingTextAlignment.TryFromHorzAlignCell(horizontalAlign, out OfficeAlignment parsedAlignment)) {
+                            horizontalAlignment = parsedAlignment;
                         } else {
                             return false;
                         }
@@ -149,7 +149,7 @@ namespace OfficeIMO.Visio {
 
             int? fontFaceId = null;
             string? fontFamily = null;
-            OfficeIMO.Drawing.OfficeColor? color = null;
+            OfficeIMO.OfficeColor? color = null;
             double? size = null;
             bool? bold = null;
             bool? italic = null;
@@ -260,15 +260,15 @@ namespace OfficeIMO.Visio {
                 return false;
             }
 
-            VisioTextHorizontalAlignment? horizontalAlignment = null;
+            OfficeAlignment? horizontalAlignment = null;
             foreach (XElement cell in rows[0].Elements(ns + "Cell")) {
                 string? name = cell.Attribute("N")?.Value;
                 string? value = cell.Attribute("V")?.Value;
                 switch (name) {
                     case "HorzAlign":
                         if (TryParseCellIntValue(value, out int horizontalAlign) &&
-                            Enum.IsDefined(typeof(VisioTextHorizontalAlignment), horizontalAlign)) {
-                            horizontalAlignment = (VisioTextHorizontalAlignment)horizontalAlign;
+                            VisioDrawingTextAlignment.TryFromHorzAlignCell(horizontalAlign, out OfficeAlignment parsedAlignment)) {
+                            horizontalAlignment = parsedAlignment;
                         } else {
                             return false;
                         }

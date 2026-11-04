@@ -31,6 +31,7 @@ public sealed partial class PdfReadPage {
             maxOperations: _limits.MaxContentOperations,
             maxNestingDepth: _limits.MaxContentNestingDepth,
             maxOperands: _limits.MaxContentOperands,
+            strokeDashProjectionConsumer: pageContentBudget.ChargeStrokeDashProjection,
             retainPrimitiveData: false,
             unsupportedOperatorVisitor: operationName => {
                 if (operationName != "cs" && operationName != "CS" && operationName != "sh" && operationName != "Do") {

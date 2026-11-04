@@ -6,7 +6,7 @@ namespace OfficeIMO.Markdown.Pdf;
 
 // First-party Markdown to PDF conversion helpers.
 public static partial class MarkdownPdfConverterExtensions {
-    private static void RenderQuoteBlock(PdfCore.PdfDocument pdf, QuoteBlock quote, MarkdownDoc document, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
+    private static void RenderQuoteBlock(PdfCore.PdfDocument pdf, QuoteBlock quote, MarkdownDocument document, MarkdownPdfExportOptions options, MarkdownPdfStyle visualTheme) {
         if (quote.ChildBlocks.Count > 0) {
             RenderBlocksWithPanelRuns(pdf, quote.ChildBlocks, document, options, visualTheme, visualTheme.QuotePanelStyleSnapshot);
             return;
@@ -16,17 +16,17 @@ public static partial class MarkdownPdfConverterExtensions {
 
         if (!string.IsNullOrWhiteSpace(text)) {
             pdf.PanelParagraph(builder => {
-                builder.Italic(true);
+                builder.RunDefaults.Italic = true;
                 AppendTextWithLineBreaks(builder, text);
-            }, visualTheme.QuotePanelStyleSnapshot);
+            }, FitPanelStyle(visualTheme.QuotePanelStyleSnapshot, options, out _));
         }
     }
 
     private static void RenderBlocksWithPanelRuns(
         PdfCore.PdfDocument pdf,
         IReadOnlyList<IMarkdownBlock> blocks,
-        MarkdownDoc document,
-        MarkdownToPdfOptions options,
+        MarkdownDocument document,
+        MarkdownPdfExportOptions options,
         MarkdownPdfStyle visualTheme,
         PdfCore.PdfPanelStyle panelStyle,
         Action<PdfCore.PdfContentBuilder>? renderFirstPanelHeader = null) {
@@ -42,7 +42,7 @@ public static partial class MarkdownPdfConverterExtensions {
 
             FlushPanelBlocks(pdf, panelBlocks, document, options, visualTheme, panelStyle, renderFirstPanelHeader, ref renderedHeader);
             if (!renderedHeader && renderFirstPanelHeader != null) {
-                pdf.Panel(panel => renderFirstPanelHeader(panel), panelStyle);
+                RenderPanel(pdf, panelStyle, options, panel => renderFirstPanelHeader(panel));
                 renderedHeader = true;
             }
 
@@ -55,8 +55,8 @@ public static partial class MarkdownPdfConverterExtensions {
     private static void FlushPanelBlocks(
         PdfCore.PdfDocument pdf,
         List<IMarkdownBlock> panelBlocks,
-        MarkdownDoc document,
-        MarkdownToPdfOptions options,
+        MarkdownDocument document,
+        MarkdownPdfExportOptions options,
         MarkdownPdfStyle visualTheme,
         PdfCore.PdfPanelStyle panelStyle,
         Action<PdfCore.PdfContentBuilder>? renderFirstPanelHeader,
@@ -69,14 +69,66 @@ public static partial class MarkdownPdfConverterExtensions {
         panelBlocks.Clear();
         Action<PdfCore.PdfContentBuilder>? header = !renderedHeader ? renderFirstPanelHeader : null;
 
-        pdf.Panel(panel => {
+        RenderPanel(pdf, panelStyle, options, panel => {
             if (header != null) {
                 header(panel);
             }
 
             RenderBlocks(pdf, batch, document, options, visualTheme);
-        }, panelStyle);
+        });
         renderedHeader = true;
+    }
+
+    // Nested panels each take width from the frame. Valid Markdown can nest deeper than a page is wide,
+    // so indentation stops at this text width instead of failing the export.
+    private const double MinimumPanelTextWidth = 72D;
+
+    private static void RenderPanel(
+        PdfCore.PdfDocument pdf,
+        PdfCore.PdfPanelStyle style,
+        MarkdownPdfExportOptions options,
+        Action<PdfCore.PdfContentBuilder> content) {
+        PdfCore.PdfPanelStyle fitted = FitPanelStyle(style, options, out double reservedWidth);
+        options.PanelReservedWidth += reservedWidth;
+        try {
+            pdf.Panel(content, fitted);
+        } finally {
+            options.PanelReservedWidth -= reservedWidth;
+        }
+    }
+
+    private static double GetPanelFrameWidth(MarkdownPdfExportOptions options) =>
+        TryGetAvailablePdfContentWidth(options, out double pageWidth) ? pageWidth - options.PanelReservedWidth : 0D;
+
+    private static PdfCore.PdfPanelStyle FitPanelStyle(PdfCore.PdfPanelStyle style, MarkdownPdfExportOptions options, out double reservedWidth) {
+        double requested = style.LeftInset.ToPoints() + style.RightInset.ToPoints() + 2D * style.PaddingX.ToPoints();
+        double spare = Math.Max(0D, GetPanelFrameWidth(options) - MinimumPanelTextWidth);
+        if (requested <= spare) {
+            reservedWidth = requested;
+            return style;
+        }
+
+        double scale = spare / requested;
+        style.LeftInset = OfficeLength.Points(style.LeftInset.ToPoints() * scale);
+        style.RightInset = OfficeLength.Points(style.RightInset.ToPoints() * scale);
+        style.PaddingX = OfficeLength.Points(style.PaddingX.ToPoints() * scale);
+        reservedWidth = spare;
+        AddLayoutClampWarning(options, "panel-indent-reduced", "Nested content", "Nested content is deeper than the page width allows, so its indentation was reduced to keep the text readable.");
+        return style;
+    }
+
+    private static void FitTableColumns(PdfCore.PdfTableStyle style, int columnCount, MarkdownPdfExportOptions options) {
+        style.DropPaddingInNarrowColumns = true;
+        double padding = (style.CellPaddingLeft ?? style.CellPaddingX).ToPoints() + (style.CellPaddingRight ?? style.CellPaddingX).ToPoints();
+        if (GetPanelFrameWidth(options) / columnCount <= padding) {
+            AddLayoutClampWarning(options, "table-cell-padding-dropped", "Table", "The table has more columns than the page width allows with cell padding, so the padding was removed from its narrow columns.");
+        }
+    }
+
+    private static void AddLayoutClampWarning(MarkdownPdfExportOptions options, string code, string source, string message) {
+        if (options.Warnings.All(warning => warning.Code != code)) {
+            AddWarning(options, code, source, message);
+        }
     }
 
     private static bool CanRenderBlocksInsidePanel(IReadOnlyList<IMarkdownBlock> blocks) {

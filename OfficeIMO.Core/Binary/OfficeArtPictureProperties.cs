@@ -7,7 +7,7 @@ namespace OfficeIMO.Drawing.Binary;
 /// <summary>
 /// Decodes OfficeArt picture-frame properties that can be shared by binary Office consumers.
 /// </summary>
-public sealed class OfficeArtPictureProperties {
+internal sealed class OfficeArtPictureProperties {
     /// <summary>Encodes a visible source crop using the native signed 16.16 edge fractions.</summary>
     internal static IReadOnlyList<OfficeArtProperty> EncodeCrop(OfficeImageSourceCrop crop, out OfficeImageSourceCrop encoded) {
         if (!crop.HasVisibleSourceArea) throw new ArgumentException("The crop must leave a visible source area.", nameof(crop));

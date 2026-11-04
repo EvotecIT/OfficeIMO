@@ -1,3 +1,4 @@
+using OfficeIMO.Spreadsheet;
 using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
@@ -43,28 +44,21 @@ namespace OfficeIMO.Excel {
             }
 #endif
 
-            var workbook = WorkbookRoot;
-            var definedNames = workbook.DefinedNames ??= new DefinedNames();
-
-            // Validate or sanitize the defined name
             name = NormalizeDefinedName(name, validationMode);
+            string reference = scope == null ? NormalizeRange(range, validationMode)
+                : NormalizeLocalNamedRange(scope, range, validationMode);
+            StoreDefinedName(name, reference, scope, save, hidden);
+        }
 
-            if (scope == null) {
-                string reference = NormalizeRange(range, validationMode); // may already contain a sheet prefix
-                // Workbook-global name: remove any existing global with same name
-                foreach (var dn in definedNames.Elements<DefinedName>().Where(d => d.Name == name && d.LocalSheetId == null).ToList())
-                    dn.Remove();
-                var dnNew = new DefinedName { Name = name, Text = reference, Hidden = hidden ? true : (bool?)null };
-                definedNames.Append(dnNew);
-            } else {
-                // Sheet-local name: remove existing with same name for this sheet
-                ushort sheetPos = GetSheetPositionIndex(scope);
-                string localRef = NormalizeLocalNamedRange(scope, range, validationMode);
-                foreach (var dn in definedNames.Elements<DefinedName>().Where(d => d.Name == name && d.LocalSheetId != null && d.LocalSheetId.Value == sheetPos).ToList())
-                    dn.Remove();
-                var dnNew = new DefinedName { Name = name, Text = localRef, LocalSheetId = sheetPos, Hidden = hidden ? true : (bool?)null };
-                definedNames.Append(dnNew);
-            }
+        private void StoreDefinedName(string name, string expression, ExcelSheet? scope, bool save, bool hidden) {
+            uint? sheetIndex = scope == null ? null : GetSheetPositionIndex(scope);
+            var definedNames = WorkbookRoot.DefinedNames ??= new DefinedNames();
+            foreach (var existing in definedNames.Elements<DefinedName>().Where(definition => string.Equals(definition.Name?.Value, name, StringComparison.OrdinalIgnoreCase)
+                && definition.LocalSheetId?.Value == sheetIndex).ToList()) existing.Remove();
+            var definition = new DefinedName { Name = name, Text = expression, Hidden = hidden ? true : (bool?)null };
+            if (sheetIndex.HasValue) definition.LocalSheetId = sheetIndex.Value;
+            definedNames.Append(definition);
+            InvalidateDefinedNameInputs();
             MarkPackageDirty();
             SaveWorkbookScopedChange(save);
         }
@@ -73,7 +67,7 @@ namespace OfficeIMO.Excel {
         /// Sets the print area for a given sheet by creating a sheet-local defined name _xlnm.Print_Area.
         /// Separate areas with commas; commas inside quoted worksheet names are preserved.
         /// </summary>
-        public void SetPrintArea(ExcelSheet sheet, string range, bool save = true) {
+        internal void SetPrintAreaCore(ExcelSheet sheet, string range, bool save = true) {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             if (string.IsNullOrWhiteSpace(range)) throw new ArgumentException("Range cannot be null or whitespace.", nameof(range));
 
@@ -86,8 +80,8 @@ namespace OfficeIMO.Excel {
                 if (ExcelReference.TryParse(part, out ExcelReference? reference) && reference != null) {
                     string prefix = "'" + EscapeSheetName(sheet.Name) + "'!";
                     if (reference.Kind == ExcelReferenceKind.WholeColumn) {
-                        return prefix + "$" + A1.ColumnIndexToLetters(Math.Min(reference.Start.Column, reference.End.Column))
-                            + ":$" + A1.ColumnIndexToLetters(Math.Max(reference.Start.Column, reference.End.Column));
+                        return prefix + "$" + ExcelA1.ColumnIndexToLetters(Math.Min(reference.Start.Column, reference.End.Column))
+                            + ":$" + ExcelA1.ColumnIndexToLetters(Math.Max(reference.Start.Column, reference.End.Column));
                     }
                     if (reference.Kind == ExcelReferenceKind.WholeRow) {
                         return prefix + "$" + Math.Min(reference.Start.Row, reference.End.Row).ToString(System.Globalization.CultureInfo.InvariantCulture)
@@ -116,12 +110,43 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Returns the A1 range for a defined name. If <paramref name="scope"/> is supplied, searches a sheet‑local name first.
+        /// Returns the range a defined name refers to, on the worksheet the name points at. When
+        /// <paramref name="scope"/> is supplied, a name local to that sheet wins over a workbook name.
         /// </summary>
         /// <param name="name">Defined name to resolve.</param>
         /// <param name="scope">Optional sheet scope to resolve a local name.</param>
-        /// <returns>A1 range string or null if not found.</returns>
-        public string? GetNamedRange(string name, ExcelSheet? scope = null) {
+        /// <returns>
+        /// The range, or null when the name does not exist or does not refer to one rectangular cell range on an
+        /// existing worksheet (for example a constant, a formula or a <c>#REF!</c> reference). Use
+        /// <see cref="ListNamedRanges"/> for the stored text of every name.
+        /// </returns>
+        public ExcelRange? GetNamedRange(string name, ExcelSheet? scope = null) {
+            string? text = GetNamedRangeText(name, scope);
+            return text == null ? null : ResolveNamedRangeTarget(text, scope);
+        }
+
+        private ExcelRange? ResolveNamedRangeTarget(string text, ExcelSheet? scope) {
+            if (!SpreadsheetRangeReference.TryParse(text, SpreadsheetAddressDialect.ExcelA1, out SpreadsheetRangeReference? syntax)
+                || syntax == null) return null;
+            SpreadsheetCellReference end = syntax.End ?? syntax.Start;
+            if (!syntax.Start.IsCell || !end.IsCell) return null;
+            string? sheetName = syntax.Start.SheetName ?? end.SheetName;
+            if (end.SheetName != null && !string.Equals(end.SheetName, sheetName, StringComparison.OrdinalIgnoreCase)) return null;
+
+            ExcelSheet? sheet = scope;
+            if (sheetName != null) {
+                if (!TryGetSheet(sheetName, out sheet)) return null;
+            }
+            if (sheet == null) return null;
+
+            int firstRow = checked((int)syntax.Start.Row!.Value), lastRow = checked((int)end.Row!.Value);
+            int firstColumn = syntax.Start.Column!.Value, lastColumn = end.Column!.Value;
+            return sheet.Range(Math.Min(firstRow, lastRow), Math.Min(firstColumn, lastColumn),
+                Math.Max(firstRow, lastRow), Math.Max(firstColumn, lastColumn));
+        }
+
+        /// <summary>Returns the stored reference text of a defined name, or null when it is not defined.</summary>
+        internal string? GetNamedRangeText(string name, ExcelSheet? scope = null) {
 #if NET8_0_OR_GREATER
             ArgumentNullException.ThrowIfNullOrWhiteSpace(name);
 #else
@@ -134,16 +159,16 @@ namespace OfficeIMO.Excel {
 
             if (scope != null) {
                 ushort pos = GetSheetPositionIndex(scope);
-                var dnLocal = definedNames.Elements<DefinedName>().FirstOrDefault(d => d.Name == name && d.LocalSheetId != null && d.LocalSheetId.Value == pos);
+                var dnLocal = definedNames.Elements<DefinedName>().FirstOrDefault(d => string.Equals(d.Name?.Value, name, StringComparison.OrdinalIgnoreCase) && d.LocalSheetId != null && d.LocalSheetId.Value == pos);
                 var text = dnLocal?.Text;
                 if (!string.IsNullOrEmpty(text)) {
                     return StripSheetPrefixIfMatches(text!, scope);
                 }
 
-                var dnGlobal = definedNames.Elements<DefinedName>().FirstOrDefault(d => d.Name == name && d.LocalSheetId == null);
+                var dnGlobal = definedNames.Elements<DefinedName>().FirstOrDefault(d => string.Equals(d.Name?.Value, name, StringComparison.OrdinalIgnoreCase) && d.LocalSheetId == null);
                 return dnGlobal?.Text;
             } else {
-                var dnGlobal = definedNames.Elements<DefinedName>().FirstOrDefault(d => d.Name == name && d.LocalSheetId == null);
+                var dnGlobal = definedNames.Elements<DefinedName>().FirstOrDefault(d => string.Equals(d.Name?.Value, name, StringComparison.OrdinalIgnoreCase) && d.LocalSheetId == null);
                 return dnGlobal?.Text;
             }
         }
@@ -153,7 +178,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public IReadOnlyDictionary<string, string> GetAllNamedRanges(ExcelSheet? scope = null) {
             var definedNames = WorkbookRoot.DefinedNames;
-            var result = new System.Collections.Generic.Dictionary<string, string>();
+            var result = new System.Collections.Generic.Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             if (definedNames == null) return result;
 
             if (scope != null) {
@@ -194,18 +219,26 @@ namespace OfficeIMO.Excel {
             DefinedName? target = null;
             if (scope != null) {
                 ushort pos = GetSheetPositionIndex(scope);
-                target = definedNames.Elements<DefinedName>().FirstOrDefault(d => d.Name == name && d.LocalSheetId != null && d.LocalSheetId.Value == pos);
+                target = definedNames.Elements<DefinedName>().FirstOrDefault(d => string.Equals(d.Name?.Value, name, StringComparison.OrdinalIgnoreCase) && d.LocalSheetId != null && d.LocalSheetId.Value == pos);
             } else {
-                target = definedNames.Elements<DefinedName>().FirstOrDefault(d => d.Name == name && d.LocalSheetId == null);
+                target = definedNames.Elements<DefinedName>().FirstOrDefault(d => string.Equals(d.Name?.Value, name, StringComparison.OrdinalIgnoreCase) && d.LocalSheetId == null);
             }
             if (target == null) return false;
             target.Remove();
             if (!definedNames.Elements<DefinedName>().Any()) {
                 WorkbookRoot.DefinedNames = null;
             }
+            InvalidateDefinedNameInputs();
             MarkPackageDirty();
             SaveWorkbookScopedChange(save);
             return true;
+        }
+
+        private void InvalidateDefinedNameInputs() {
+            MarkFormulaInputMutation();
+            // Persist freshness on the cells as well as in the in-memory version.
+            // Do not set the user's explicit full-calculation-on-open policy.
+            foreach (var sheet in Sheets) sheet.InvalidateFormulas();
         }
 
         private uint GetSheetIndex(ExcelSheet sheet) {
@@ -230,6 +263,25 @@ namespace OfficeIMO.Excel {
             throw new ArgumentException("Worksheet not found in workbook.", nameof(sheet));
         }
 
+        /// <summary>Removes the sheet-local print area.</summary>
+        internal void RemovePrintArea(ExcelSheet sheet, bool save = true) {
+            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            DefinedNames? definedNames = WorkbookRoot.DefinedNames;
+            if (definedNames == null) return;
+            ushort sheetPos = GetSheetPositionIndex(sheet);
+            bool removed = false;
+            foreach (var dn in definedNames.Elements<DefinedName>().Where(d => d.Name == "_xlnm.Print_Area").ToList()) {
+                if (dn.LocalSheetId != null && dn.LocalSheetId.Value == sheetPos) {
+                    dn.Remove();
+                    removed = true;
+                }
+            }
+
+            if (!removed) return;
+            MarkPackageDirty();
+            SaveWorkbookScopedChange(save);
+        }
+
         /// <summary>
         /// Sets rows/columns to repeat at top/left when printing a specific sheet by creating a sheet-local
         /// defined name _xlnm.Print_Titles. Pass nulls to clear existing print titles.
@@ -240,7 +292,7 @@ namespace OfficeIMO.Excel {
         /// <param name="firstCol">First column to repeat (1-based), or null.</param>
         /// <param name="lastCol">Last column to repeat (1-based), or null.</param>
         /// <param name="save">Whether to save the workbook after the change.</param>
-        public void SetPrintTitles(ExcelSheet sheet, int? firstRow, int? lastRow, int? firstCol, int? lastCol, bool save = true) {
+        internal void SetPrintTitlesCore(ExcelSheet sheet, int? firstRow, int? lastRow, int? firstCol, int? lastCol, bool save = true) {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
 
             var workbook = WorkbookRoot;
@@ -268,8 +320,8 @@ namespace OfficeIMO.Excel {
                 rowsPart = $"'{EscapeSheetName(sheet.Name)}'!${firstRow.GetValueOrDefault()}:${lastRow.GetValueOrDefault()}";
             }
             if (hasCols) {
-                string c1 = A1.ColumnIndexToLetters(firstCol.GetValueOrDefault());
-                string c2 = A1.ColumnIndexToLetters(lastCol.GetValueOrDefault());
+                string c1 = ExcelA1.ColumnIndexToLetters(firstCol.GetValueOrDefault());
+                string c2 = ExcelA1.ColumnIndexToLetters(lastCol.GetValueOrDefault());
                 colsPart = $"'{EscapeSheetName(sheet.Name)}'!${c1}:${c2}";
             }
 
@@ -337,6 +389,8 @@ namespace OfficeIMO.Excel {
             }
 
             if (toRemove.Count > 0) {
+                if (toRemove.Any(definition => !(definition.Name?.Value ?? string.Empty).StartsWith("_xlnm.", StringComparison.OrdinalIgnoreCase)))
+                    InvalidateDefinedNameInputs();
                 foreach (var dn in toRemove) dn.Remove();
                 if (!definedNames.Elements<DocumentFormat.OpenXml.Spreadsheet.DefinedName>().Any()) {
                     wb.DefinedNames = null;
@@ -420,10 +474,10 @@ namespace OfficeIMO.Excel {
             a1 = a1.Replace("$", string.Empty);
 
             int r1, c1, r2, c2;
-            if (!A1.TryParseRangeCoordinates(a1,
+            if (!ExcelA1.TryParseRangeCoordinates(a1,
                     out r1, out c1, out r2, out c2)) {
                 bool containsColon = a1.IndexOf(':') >= 0;
-                if (!A1.TryParseCellReferenceCoordinates(a1,
+                if (!ExcelA1.TryParseCellReferenceCoordinates(a1,
                         out int cellRow, out int cellColumn)) {
                     string message = containsColon
                         ? "Range must be a valid A1 reference such as 'A1:B2'."
@@ -435,17 +489,17 @@ namespace OfficeIMO.Excel {
             }
 
             // Bounds check: Excel supports 1..1,048,576 rows and 1..16,384 columns (XFD)
-            bool outOfBounds = (r1 < 1 || c1 < 1 || r2 > A1.MaxRows || c2 > A1.MaxColumns || c1 > A1.MaxColumns || r1 > A1.MaxRows);
+            bool outOfBounds = (r1 < 1 || c1 < 1 || r2 > ExcelA1.MaxRows || c2 > ExcelA1.MaxColumns || c1 > ExcelA1.MaxColumns || r1 > ExcelA1.MaxRows);
             if (outOfBounds && validationMode == ExcelDefinedNameValidationMode.Strict)
                 throw new ArgumentOutOfRangeException(nameof(range), "A1 range exceeds Excel bounds (rows ≤ 1,048,576; cols ≤ 16,384). Use Sanitize to clamp.");
             // Sanitize: clamp into valid range
-            r1 = Math.Max(1, Math.Min(A1.MaxRows, r1));
-            r2 = Math.Max(1, Math.Min(A1.MaxRows, r2));
-            c1 = Math.Max(1, Math.Min(A1.MaxColumns, c1));
-            c2 = Math.Max(1, Math.Min(A1.MaxColumns, c2));
+            r1 = Math.Max(1, Math.Min(ExcelA1.MaxRows, r1));
+            r2 = Math.Max(1, Math.Min(ExcelA1.MaxRows, r2));
+            c1 = Math.Max(1, Math.Min(ExcelA1.MaxColumns, c1));
+            c2 = Math.Max(1, Math.Min(ExcelA1.MaxColumns, c2));
 
-            string start = A1.AbsoluteCellReference(r1, c1);
-            string end = A1.AbsoluteCellReference(r2, c2);
+            string start = ExcelA1.AbsoluteCellReference(r1, c1);
+            string end = ExcelA1.AbsoluteCellReference(r2, c2);
 
             string normalized = start;
             if (start != end) {
@@ -474,7 +528,9 @@ namespace OfficeIMO.Excel {
             }
 
             string effectiveSheetName = validationMode == ExcelDefinedNameValidationMode.Sanitize
-                ? SheetNameLookup.ResolveExistingOrRequested(Sheets, requestedSheetName)
+                ? SheetNameLookup.ResolveExistingOrRequested(
+                    HasPendingDirectCellValues ? Locking.ExecuteWrite(EnsureLock(), GetSheetsForLockedOperation) : Sheets,
+                    requestedSheetName)
                 : requestedSheetName;
 
             return $"'{EscapeSheetName(effectiveSheetName)}'";
@@ -508,21 +564,6 @@ namespace OfficeIMO.Excel {
                 name = "_";
             }
 
-            bool LooksLikeA1(string value) {
-                var parsed = OfficeIMO.Excel.A1.ParseCellRef(value);
-                return parsed.Row > 0 && parsed.Col > 0;
-            }
-            bool LooksLikeR1C1(string value) {
-                if (value.Length < 3 || (value[0] != 'R' && value[0] != 'r')) return false;
-                int index = 1;
-                while (index < value.Length && char.IsDigit(value[index])) index++;
-                if (index == 1 || index >= value.Length || (value[index] != 'C' && value[index] != 'c')) return false;
-                index++;
-                int digitStart = index;
-                while (index < value.Length && char.IsDigit(value[index])) index++;
-                return index > digitStart && index == value.Length;
-            }
-
             if (mode == ExcelDefinedNameValidationMode.Strict) {
                 if (name.Length > MaximumDefinedNameLength)
                     throw new System.ArgumentException($"Defined name '{name}' exceeds maximum length of {MaximumDefinedNameLength} characters (actual {name.Length}).", nameof(name));
@@ -533,7 +574,7 @@ namespace OfficeIMO.Excel {
                 if (string.Equals(name, "TRUE", System.StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(name, "FALSE", System.StringComparison.OrdinalIgnoreCase))
                     throw new System.ArgumentException($"Defined name '{name}' cannot be TRUE or FALSE.", nameof(name));
-                if (LooksLikeA1(name) || LooksLikeR1C1(name))
+                if (ExcelA1.IsCellReferenceName(name))
                     throw new System.ArgumentException($"Defined name '{name}' cannot be a cell address or R1C1 reference.", nameof(name));
                 return name;
             }
@@ -554,7 +595,7 @@ namespace OfficeIMO.Excel {
                 normalized = "_" + normalized;
             }
 
-            if (LooksLikeA1(normalized) || LooksLikeR1C1(normalized)) {
+            if (ExcelA1.IsCellReferenceName(normalized)) {
                 normalized = "_" + normalized;
             }
 

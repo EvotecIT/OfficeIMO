@@ -6,7 +6,7 @@ namespace OfficeIMO.Markdown.Pdf;
 
 // First-party Markdown to PDF conversion helpers.
 public static partial class MarkdownPdfConverterExtensions {
-    private static void RenderFrontMatter(PdfCore.PdfDocument pdf, FrontMatterBlock frontMatter, MarkdownDoc document, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
+    private static void RenderFrontMatter(PdfCore.PdfDocument pdf, FrontMatterBlock frontMatter, MarkdownDocument document, MarkdownPdfExportOptions options, MarkdownPdfStyle visualTheme) {
         if (frontMatter.Entries.Count == 0) {
             return;
         }
@@ -29,7 +29,7 @@ public static partial class MarkdownPdfConverterExtensions {
         RenderFrontMatterTable(pdf, frontMatter, visualTheme);
     }
 
-    private static bool RenderFrontMatterDocumentHeader(PdfCore.PdfDocument pdf, FrontMatterBlock frontMatter, MarkdownDoc document, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
+    private static bool RenderFrontMatterDocumentHeader(PdfCore.PdfDocument pdf, FrontMatterBlock frontMatter, MarkdownDocument document, MarkdownPdfExportOptions options, MarkdownPdfStyle visualTheme) {
         string? title = GetFrontMatterMetadata(frontMatter, "title");
         if (title == null) {
             return false;
@@ -40,11 +40,11 @@ public static partial class MarkdownPdfConverterExtensions {
             options.Anchors?.RegisterNamed(pdf, anchor!);
         }
 
-        pdf.H1(title, PdfCore.PdfAlign.Left, visualTheme.DocumentHeaderTitleColorSnapshot, style: new PdfCore.PdfHeadingStyle {
+        pdf.H1(title, global::OfficeIMO.OfficeAlignment.Left, visualTheme.DocumentHeaderTitleColorSnapshot, style: new PdfCore.PdfHeadingStyle {
             FontSize = visualTheme.DocumentHeaderTitleFontSizeSnapshot,
             LineHeight = 1.12,
-            SpacingBefore = 0,
-            SpacingAfter = 3,
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(0),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(3),
             Color = visualTheme.DocumentHeaderTitleColorSnapshot,
             KeepWithNext = true
         });
@@ -54,37 +54,31 @@ public static partial class MarkdownPdfConverterExtensions {
             ?? GetFrontMatterMetadata(frontMatter, "summary")
             ?? GetFrontMatterMetadata(frontMatter, "subject");
         if (subtitle != null) {
-            pdf.Paragraph(builder => builder
-                    .FontSize(visualTheme.DocumentHeaderSubtitleFontSizeSnapshot)
-                    .Color(visualTheme.DocumentHeaderSubtitleColorSnapshot)
-                    .Text(subtitle),
-                defaultColor: visualTheme.DocumentHeaderSubtitleColorSnapshot,
+            pdf.Paragraph(builder => builder.AddText(subtitle).SetColor(visualTheme.DocumentHeaderSubtitleColorSnapshot).SetFontSize(visualTheme.DocumentHeaderSubtitleFontSizeSnapshot),
+                color: visualTheme.DocumentHeaderSubtitleColorSnapshot,
                 style: new PdfCore.PdfParagraphStyle {
                     LineHeight = 1.25,
-                    SpacingAfter = 4,
+                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(4),
                     KeepWithNext = true
                 });
         }
 
         string? metadataLine = BuildFrontMatterMetadataLine(frontMatter);
         if (metadataLine != null) {
-            pdf.Paragraph(builder => builder
-                    .FontSize(visualTheme.DocumentHeaderMetadataFontSizeSnapshot)
-                    .Color(visualTheme.DocumentHeaderMetadataColorSnapshot)
-                    .Text(metadataLine),
-                defaultColor: visualTheme.DocumentHeaderMetadataColorSnapshot,
+            pdf.Paragraph(builder => builder.AddText(metadataLine).SetColor(visualTheme.DocumentHeaderMetadataColorSnapshot).SetFontSize(visualTheme.DocumentHeaderMetadataFontSizeSnapshot),
+                color: visualTheme.DocumentHeaderMetadataColorSnapshot,
                 style: new PdfCore.PdfParagraphStyle {
                     LineHeight = 1.2,
-                    SpacingAfter = 6,
+                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(6),
                     KeepWithNext = true
                 });
         }
 
         pdf.HR(style: new PdfCore.PdfHorizontalRuleStyle {
             Color = visualTheme.DocumentHeaderRuleColorSnapshot,
-            Thickness = 0.8,
-            SpacingBefore = 2,
-            SpacingAfter = 12,
+            Thickness = global::OfficeIMO.OfficeLength.Points(0.8),
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(2),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(12),
             KeepWithNext = false
         });
         return true;

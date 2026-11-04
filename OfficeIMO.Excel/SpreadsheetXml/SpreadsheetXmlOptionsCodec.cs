@@ -23,7 +23,7 @@ internal static partial class SpreadsheetXmlOptionsCodec {
             double horizontal = Number(source.Element(X + "SplitHorizontal")?.Value ?? "0", 65536), vertical = Number(source.Element(X + "SplitVertical")?.Value ?? "0", 256);
             uint top = Integer(source.Element(X + "TopRowBottomPane")?.Value ?? horizontal.ToString(CultureInfo.InvariantCulture), 0, 65535);
             uint left = Integer(source.Element(X + "LeftColumnRightPane")?.Value ?? vertical.ToString(CultureInfo.InvariantCulture), 0, 255);
-            view.Pane = new Pane { State = PaneStateValues.Frozen, HorizontalSplit = vertical, VerticalSplit = horizontal, TopLeftCell = A1.CellReference((int)top + 1, (int)left + 1), ActivePane = Pane(source.Element(X + "ActivePane")?.Value ?? (vertical > 0 && horizontal > 0 ? "0" : vertical > 0 ? "1" : "2")) };
+            view.Pane = new Pane { State = PaneStateValues.Frozen, HorizontalSplit = vertical, VerticalSplit = horizontal, TopLeftCell = ExcelA1.CellReference((int)top + 1, (int)left + 1), ActivePane = Pane(source.Element(X + "ActivePane")?.Value ?? (vertical > 0 && horizontal > 0 ? "0" : vertical > 0 ? "1" : "2")) };
             if (source.Element(X + "Panes") != null) context.Omitted("pane selections");
         } else if (source.Element(X + "SplitHorizontal") != null || source.Element(X + "SplitVertical") != null) context.Omitted("unfrozen split panes");
         if (worksheetSource.Attribute(Ss + "RightToLeft") is XAttribute rtl) view.RightToLeft = SpreadsheetXmlGeometry.Flag(rtl.Value);

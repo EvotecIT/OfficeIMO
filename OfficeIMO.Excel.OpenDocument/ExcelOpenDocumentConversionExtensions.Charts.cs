@@ -22,8 +22,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             if (chartFramesTruncated) truncated = true;
             foreach (OdsChart chart in charts) {
                 if (!TryCreateExcelChartData(source, odsSheet.Name, chart, options, readers,
-                    out ExcelChartData? data, out ExcelChartType chartType, out int row, out int column,
-                    out int width, out int height, out bool sourceLimitExceeded)) {
+                    out ExcelChartData? data, out OfficeChartType chartType, out int row, out int column,
+                    out OfficeLength width, out OfficeLength height, out bool sourceLimitExceeded)) {
                     if (sourceLimitExceeded) truncated = true;
                     continue;
                 }
@@ -41,11 +41,10 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                     truncated = true;
                     continue;
                 }
-                ExcelChart convertedChart = excelSheet.AddChart(data!, row, column, width, height,
-                    chartType, chart.Title);
+                ExcelChart convertedChart = excelSheet.AddChart(chartType, data!, new OfficeIMO.Excel.ExcelChartOptions { Row = row, Column = column, Width = width, Height = height, Title = chart.Title });
                 if (data.Series.Any(item => item.PointStyles != null)) {
                     convertedChart.ApplySharedPointStyles(data.Series.Select(item =>
-                        new OfficeChartSeries(item.Name, item.Values)
+                        new OfficeSeries(item.Name, item.Values)
                             .WithPointStyles(item.PointStyles)).ToArray());
                 }
                 expandedCells += chartCells;
@@ -59,11 +58,12 @@ public static partial class ExcelOpenDocumentConversionExtensions {
     private static bool TryCreateExcelChartData(OdsDocument document, string hostSheetName, OdsChart chart,
         ExcelOpenDocumentConversionOptions options, Dictionary<string, ChartCellReader> readers,
         out ExcelChartData? data,
-        out ExcelChartType type, out int row, out int column, out int width, out int height,
+        out OfficeChartType type, out int row, out int column, out OfficeLength width, out OfficeLength height,
         out bool sourceLimitExceeded) {
         data = null;
-        type = ExcelChartType.ColumnClustered;
-        row = column = width = height = 0;
+        type = OfficeChartType.ColumnClustered;
+        row = column = 0;
+        width = height = OfficeLength.Zero;
         sourceLimitExceeded = false;
         if (chart.AnchorRow.HasValue && chart.AnchorColumn.HasValue &&
             (chart.AnchorRow.Value >= options.MaximumRows || chart.AnchorColumn.Value >= options.MaximumColumns)) {
@@ -80,17 +80,17 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             || widthPoints > 1500 || heightPoints > 1500) return false;
         switch (chart.ChartClass) {
             case "chart:bar":
-                type = chart.VerticalBars == true ? ExcelChartType.BarClustered : ExcelChartType.ColumnClustered;
+                type = chart.VerticalBars == true ? OfficeChartType.BarClustered : OfficeChartType.ColumnClustered;
                 break;
-            case "chart:line": type = ExcelChartType.Line; break;
+            case "chart:line": type = OfficeChartType.Line; break;
             case "chart:circle":
                 if (chart.Series.Count != 1) return false;
-                type = ExcelChartType.Pie;
+                type = OfficeChartType.Pie;
                 break;
-            case "chart:ring": type = ExcelChartType.Doughnut; break;
+            case "chart:ring": type = OfficeChartType.Doughnut; break;
             default: return false;
         }
-        if (type == ExcelChartType.Line && chart.Series.Any(series =>
+        if (type == OfficeChartType.Line && chart.Series.Any(series =>
                 series.PointStyles?.Any(style => style != null) == true)) return false;
         if (!TryReadChartCells(document, hostSheetName, chart.CategoriesAddress, options, readers,
             out OdsCellValue[] categories, out bool categoryLimitExceeded)) {
@@ -140,8 +140,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         data = new ExcelChartData(labels, series);
         row = checked((int)chart.AnchorRow.Value + 1);
         column = checked((int)chart.AnchorColumn.Value + 1);
-        width = Math.Max(1, (int)Math.Round(widthPoints * 96D / 72D));
-        height = Math.Max(1, (int)Math.Round(heightPoints * 96D / 72D));
+        width = OfficeLength.Points(widthPoints);
+        height = OfficeLength.Points(heightPoints);
         return true;
     }
 

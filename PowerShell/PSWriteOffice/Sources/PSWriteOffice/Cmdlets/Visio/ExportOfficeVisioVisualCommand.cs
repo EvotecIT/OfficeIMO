@@ -14,7 +14,7 @@ namespace PSWriteOffice.Cmdlets.Visio;
 ///   <code>$topology | ConvertTo-ImageVisualArtifact | Export-OfficeVisioVisual -Path .\Topology.vsdx</code>
 ///   <para>Creates native Visio shapes, containers, connectors, Shape Data, and hyperlinks from the portable CFX semantics.</para>
 /// </example>
-[Cmdlet(VerbsData.Export, "OfficeVisioVisual", SupportsShouldProcess = true)]
+[Cmdlet(VerbsData.Export, "OfficeVisioVisual", SupportsShouldProcess = true, DefaultParameterSetName = "InputObject")]
 [OutputType(typeof(OfficeVisioVisualConversionResult), typeof(FileInfo))]
 public sealed class ExportOfficeVisioVisualCommand : OfficeVisioVisualCommandBase {
     private object? _bufferedInput;

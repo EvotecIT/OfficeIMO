@@ -16,12 +16,12 @@ public sealed partial class MarkdownPdfStyle {
     }
 
     private static void ApplySharedPalette(MarkdownPdfStyle pdfTheme, MarkdownVisualPalette palette, MarkdownTableVisualStyle table) {
-        PdfCore.PdfColor accent = ToPdfColorOrNull(palette.Accent) ?? pdfTheme.LinkColorSnapshot;
-        PdfCore.PdfColor heading = ToPdfColorOrNull(palette.Heading) ?? pdfTheme.DocumentHeaderTitleColorSnapshot;
-        PdfCore.PdfColor text = ToPdfColorOrNull(palette.Text) ?? pdfTheme.CodeBlockTextColorSnapshot;
-        PdfCore.PdfColor muted = ToPdfColorOrNull(palette.MutedText) ?? pdfTheme.DocumentHeaderMetadataColorSnapshot;
-        PdfCore.PdfColor? surface = ToPdfColorOrNull(palette.Surface);
-        PdfCore.PdfColor? border = ToPdfColorOrNull(palette.Border);
+        global::OfficeIMO.OfficeColor accent = ToPdfColorOrNull(palette.Accent) ?? pdfTheme.LinkColorSnapshot;
+        global::OfficeIMO.OfficeColor heading = ToPdfColorOrNull(palette.Heading) ?? pdfTheme.DocumentHeaderTitleColorSnapshot;
+        global::OfficeIMO.OfficeColor text = ToPdfColorOrNull(palette.Text) ?? pdfTheme.CodeBlockTextColorSnapshot;
+        global::OfficeIMO.OfficeColor muted = ToPdfColorOrNull(palette.MutedText) ?? pdfTheme.DocumentHeaderMetadataColorSnapshot;
+        global::OfficeIMO.OfficeColor? surface = ToPdfColorOrNull(palette.Surface);
+        global::OfficeIMO.OfficeColor? border = ToPdfColorOrNull(palette.Border);
 
         ApplySharedDocumentTheme(pdfTheme, heading, text);
         ApplySharedPageBackground(pdfTheme, palette.Background);
@@ -63,12 +63,12 @@ public sealed partial class MarkdownPdfStyle {
         frontMatterStyle.TextColor = text;
         pdfTheme.FrontMatterTableStyle = frontMatterStyle;
 
-        pdfTheme.CodeBlockPanelStyle = PanelFromShared(palette.CodeBackground, palette.Border, table.BorderWidth, 9, 7, 4, 8);
-        pdfTheme.SemanticBlockPanelStyle = PanelFromShared(palette.Surface, palette.Accent, table.BorderWidth, 9, 7, 4, 8);
+        pdfTheme.CodeBlockPanelStyle = PanelFromShared(palette.CodeBackground, palette.Border, table.BorderWidth.ToPoints(), 9, 7, 4, 8);
+        pdfTheme.SemanticBlockPanelStyle = PanelFromShared(palette.Surface, palette.Accent, table.BorderWidth.ToPoints(), 9, 7, 4, 8);
         pdfTheme.QuotePanelStyle = PanelWithLeftRuleFromShared(palette.Background, palette.Border, palette.Accent, 0.0, 3, 10, 8, 2, 9);
-        pdfTheme.CalloutPanelStyle = PanelFromShared(palette.Surface, palette.Accent, Math.Max(0.7, table.BorderWidth), 10, 8, 4, 9);
-        pdfTheme.TocPanelStyle = PanelWithLeftRuleFromShared(palette.Surface, palette.Border, palette.Accent, table.BorderWidth, 3, 11, 8, 4, 10);
-        MarkdownPdfFigureStyle figureStyle = MarkdownPdfFigureStyle.Framed(surface ?? PdfCore.PdfColor.White, border ?? PdfCore.PdfColor.LightGray, accent, muted, table.BorderWidth);
+        pdfTheme.CalloutPanelStyle = PanelFromShared(palette.Surface, palette.Accent, Math.Max(0.7, table.BorderWidth.ToPoints()), 10, 8, 4, 9);
+        pdfTheme.TocPanelStyle = PanelWithLeftRuleFromShared(palette.Surface, palette.Border, palette.Accent, table.BorderWidth.ToPoints(), 3, 11, 8, 4, 10);
+        MarkdownPdfFigureStyle figureStyle = MarkdownPdfFigureStyle.Framed(surface ?? global::OfficeIMO.OfficeColor.White, border ?? global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.9D, 0.9D, 0.9D), accent, muted, table.BorderWidth.ToPoints());
         if (surface == null && figureStyle.PdfPanelStyle != null) {
             PdfCore.PdfPanelStyle panelStyle = figureStyle.PdfPanelStyle;
             panelStyle.Background = null;
@@ -89,7 +89,7 @@ public sealed partial class MarkdownPdfStyle {
         pdfTheme.PageDecoration = decoration;
     }
 
-    private static void ApplySharedDocumentTheme(MarkdownPdfStyle pdfTheme, PdfCore.PdfColor heading, PdfCore.PdfColor text) {
+    private static void ApplySharedDocumentTheme(MarkdownPdfStyle pdfTheme, global::OfficeIMO.OfficeColor heading, global::OfficeIMO.OfficeColor text) {
         PdfCore.PdfTheme documentTheme = pdfTheme.DocumentThemeSnapshot ?? PdfCore.PdfTheme.WordLike();
         PdfCore.PdfTextStyle textStyle = documentTheme.TextStyle ?? new PdfCore.PdfTextStyle();
         textStyle.Color = text;
@@ -103,7 +103,7 @@ public sealed partial class MarkdownPdfStyle {
         pdfTheme.DocumentTheme = documentTheme;
     }
 
-    private static void ApplyHeadingColor(PdfCore.PdfHeadingStyles headingStyles, int level, PdfCore.PdfColor color) {
+    private static void ApplyHeadingColor(PdfCore.PdfHeadingStyles headingStyles, int level, global::OfficeIMO.OfficeColor color) {
         PdfCore.PdfHeadingStyle style = level switch {
             1 => headingStyles.Level1 ?? new PdfCore.PdfHeadingStyle(),
             2 => headingStyles.Level2 ?? new PdfCore.PdfHeadingStyle(),
@@ -126,11 +126,11 @@ public sealed partial class MarkdownPdfStyle {
     private static PdfCore.PdfPanelStyle PanelFromShared(OfficeColor background, OfficeColor border, double borderWidth, double paddingX, double paddingY, double spacingBefore, double spacingAfter) => new PdfCore.PdfPanelStyle {
         Background = ToPdfColorOrNull(background),
         BorderColor = ToPdfColorOrNull(border),
-        BorderWidth = borderWidth,
-        PaddingX = paddingX,
-        PaddingY = paddingY,
-        SpacingBefore = spacingBefore,
-        SpacingAfter = spacingAfter,
+        BorderWidth = global::OfficeIMO.OfficeLength.Points(borderWidth),
+        PaddingX = global::OfficeIMO.OfficeLength.Points(paddingX),
+        PaddingY = global::OfficeIMO.OfficeLength.Points(paddingY),
+        SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore),
+        SpacingAfter = global::OfficeIMO.OfficeLength.Points(spacingAfter),
         KeepTogether = false
     };
 
@@ -138,12 +138,12 @@ public sealed partial class MarkdownPdfStyle {
         PdfCore.PdfPanelStyle style = PanelFromShared(background, border, borderWidth, paddingX, paddingY, spacingBefore, spacingAfter);
         style.LeftBorder = new PdfCore.PdfPanelBorder {
             Color = ToPdfColorOrNull(left),
-            Width = leftWidth
+            Width = global::OfficeIMO.OfficeLength.Points(leftWidth)
         };
         return style;
     }
 
-    private static PdfCore.PdfColor ToPdfColor(OfficeColor color) => PdfCore.PdfColor.FromRgb(color.R, color.G, color.B);
+    private static global::OfficeIMO.OfficeColor ToPdfColor(OfficeColor color) => global::OfficeIMO.OfficeColor.FromRgb(color.R, color.G, color.B);
 
-    private static PdfCore.PdfColor? ToPdfColorOrNull(OfficeColor color) => color.A == 0 ? null : ToPdfColor(color);
+    private static global::OfficeIMO.OfficeColor? ToPdfColorOrNull(OfficeColor color) => color.A == 0 ? null : ToPdfColor(color);
 }

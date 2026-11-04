@@ -5,7 +5,7 @@ namespace OfficeIMO.Publisher.Internal;
 internal sealed partial class PublisherModelState {
     internal PublisherModelState AddPage(bool isMaster, string name, uint? masterId, CancellationToken token, out uint id) {
         token.ThrowIfCancellationRequested();
-        if (_publication.Pages.Count >= _decoded.Options.MaximumPages) throw new InvalidDataException("Publisher page limit exceeded.");
+        if (_publication.Pages.Count >= _decoded.Options.MaxPages) throw new InvalidDataException("Publisher page limit exceeded.");
         PublisherStoryEditor.ValidatePageName(name, _decoded.Options);
         if (_publication.Pages.Sum(page => (long)page.Name.Length) + name.Length > _decoded.Options.Limits.MaxTextCharacters)
             throw new ArgumentException("Publication page names exceed the configured character limit.", nameof(name));
@@ -17,7 +17,7 @@ internal sealed partial class PublisherModelState {
 
     internal PublisherModelState AddMasterPagePair(string name, CancellationToken token, out uint leftId, out uint rightId) {
         token.ThrowIfCancellationRequested();
-        if ((long)_publication.Pages.Count + 2 > _decoded.Options.MaximumPages) throw new InvalidDataException("Publisher page limit exceeded.");
+        if ((long)_publication.Pages.Count + 2 > _decoded.Options.MaxPages) throw new InvalidDataException("Publisher page limit exceeded.");
         PublisherStoryEditor.ValidatePageName(name, _decoded.Options);
         if (_publication.Pages.Sum(page => (long)page.Name.Length) + 2L * name.Length > _decoded.Options.Limits.MaxTextCharacters)
             throw new ArgumentException("Publication page names exceed the configured character limit.", nameof(name));

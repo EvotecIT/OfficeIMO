@@ -53,6 +53,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double intrinsicHeight = hasIntrinsicSize
             ? sourceHeight * HtmlRenderOptions.CssPixelsPerInch / Math.Max(1D, style.ImageResolutionDpi ?? sourceDpiY)
             : 150D;
+        ApplyBrokenImageIntrinsicSize(element, style, hasIntrinsicSize, bytes, ref intrinsicWidth, ref intrinsicHeight);
         ReplacedContentSize size = ResolveReplacedContentSize(style, intrinsicWidth, intrinsicHeight, hasIntrinsicSize);
         double boxWidth = size.Width + style.HorizontalInsets;
         double boxHeight = size.Height + style.VerticalInsets;

@@ -179,6 +179,7 @@ public sealed partial class EmailStoreSession : IDisposable {
     /// </summary>
     public EmailStoreReadResult ReadAll(CancellationToken cancellationToken = default) {
         ThrowIfDisposed();
+        using IDisposable? bulkRead = (_backend as MboxStoreSessionBackend)?.BeginBulkRead(cancellationToken);
         var store = new EmailStore { Format = Format, DisplayName = DisplayName };
         var folders = new Dictionary<string, EmailStoreFolder>(StringComparer.Ordinal);
         foreach (EmailStoreFolderInfo info in Folders) {

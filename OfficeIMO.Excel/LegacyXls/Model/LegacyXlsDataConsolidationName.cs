@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes a BIFF DConName record that points a consolidation source at a defined name.
     /// </summary>
-    public sealed class LegacyXlsDataConsolidationName {
+    internal sealed class LegacyXlsDataConsolidationName {
         /// <summary>
         /// Creates decoded DConName metadata.
         /// </summary>

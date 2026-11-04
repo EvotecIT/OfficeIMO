@@ -11,7 +11,7 @@ Prepares PDF sheets and submits them to an explicitly named printer. Requires Po
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Send-OfficePdfPrinter [-Path] <string> -PrinterName <string> [-Pages <string>] [-PagesPerSheet <int>] [-Copies <int>] [-Duplex <string>] [-PaperSourceId <string>] [-OutputFilePath <string>] [-Dpi <double>] [-Margin <double>] [-Orientation <string>] [-ScaleMode <string>] [-PaperSize <PageSize>] [-Password <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Send-OfficePdfPrinter [-Path] <string> -PrinterName <string> [-Pages <string>] [-PagesPerSheet <int>] [-Copies <int>] [-Duplex <string>] [-PaperSourceId <string>] [-OutputFilePath <string>] [-Dpi <double>] [-Margin <double>] [-Orientation <string>] [-ScaleMode <string>] [-PaperSize <PdfPageSize>] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -159,7 +159,7 @@ Accept wildcard characters: False
 PDF paper size, default A4.
 
 ```yaml
-Type: PageSize
+Type: PdfPageSize
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -191,7 +191,7 @@ Accept wildcard characters: False
 Password for an encrypted PDF; printing permissions remain enforced.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

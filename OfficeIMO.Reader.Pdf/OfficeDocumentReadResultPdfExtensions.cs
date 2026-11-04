@@ -23,10 +23,10 @@ using ReaderRegion = OfficeIMO.Reader.OfficeDocumentRegion;
 
 namespace OfficeIMO.Reader;
 
-/// <summary>Thin compatibility bridge from Reader results to the PDF-owned neutral-model projection.</summary>
+/// <summary>Maps Reader results to the PDF-owned neutral-model projection.</summary>
 public static class OfficeDocumentReadResultPdfExtensions {
     /// <summary>Projects a Reader result into PDF through <see cref="OfficeIMO.Pdf.OfficeDocumentModelPdfExtensions"/>.</summary>
-    public static OfficeIMO.Pdf.PdfDocumentConversionResult ToPdfDocumentResult(
+    internal static OfficeIMO.Pdf.PdfDocumentConversionResult ToPdfDocumentResult(
         this OfficeDocumentReadResult source,
         OfficeIMO.Pdf.PdfProjectionOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();

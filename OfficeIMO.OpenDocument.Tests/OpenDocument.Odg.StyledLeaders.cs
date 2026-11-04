@@ -33,7 +33,7 @@ public sealed class OpenDocumentOdgStyledLeaderTests {
         foreach (var read in reads) {
             string[] readBefore = Parts(read);
             var text = Text(read.Pages[0]); var leader = text.Paragraphs[0].TabStops!.Stops[0];
-            Assert.Equal("A\tB", text.PlainText); Assert.Equal(30, leader.LeaderStyle!.FontSizePoints); Assert.True(leader.LeaderStyle.Bold);
+            Assert.Equal("A\tB", text.PlainText); Assert.Equal(OfficeLength.Points(30), leader.LeaderStyle!.FontSize); Assert.True(leader.LeaderStyle.Bold);
             Assert.Equal(OfficeColor.Blue, leader.LeaderStyle.Color);
             var svg = XDocument.Parse(OfficeDrawingSvgExporter.ToSvg(read.Pages[0].ToDrawing().Value));
             var glyph = Assert.Single(svg.Descendants(), e => e.Name.LocalName == "text" && e.Value.Length > 0 && e.Value.All(c => c == '.'));
@@ -43,6 +43,33 @@ public sealed class OpenDocumentOdgStyledLeaderTests {
             var target = OdgDocument.Create(); target.AddPage(); target.Styles.CreateNamed("Leader", OdfStyleFamily.Text).Color = OdfColor.Parse("#ffff00");
             var imported = target.ImportPage(read, 0); Assert.Equal(OfficeColor.Blue, Text(imported).Paragraphs[0].TabStops!.Stops[0].LeaderStyle!.Color);
         }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PositiveSubEmuLeaderSizesPreserveNativeDeclarationsAndProjectAtOneEmu(bool textual) {
+        var source = OdgDocument.Create();
+        var paragraph = source.AddPage().Shapes.AddTextBox(Bounds(), "A\tB").Paragraphs[0];
+        var stop = new OdfTabStop(OdfLength.Points(100));
+        if (textual) {
+            var style = source.Styles.CreateNamed("TinyLeader", OdfStyleFamily.Text);
+            style.FontSize = OdfLength.Parse("0.000001pt");
+            stop = stop.WithLeader(".").WithLeaderTextStyle(style);
+        } else {
+            stop = stop.WithLineLeader(new OdfTabLineLeader(width: "0.000001pt"));
+        }
+        paragraph.SetTabStops(new[] { stop });
+        var reopened = OdgDocument.Load(new MemoryStream(source.ToBytes()));
+        string[] before = Parts(reopened);
+        var result = reopened.Pages[0].ToDrawing(OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported);
+        var text = Assert.Single(result.Value.Elements.OfType<OfficeDrawingRichText>());
+        var projected = text.Paragraphs[0].TabStops!.Stops[0];
+        Assert.Equal(OfficeLength.Emus(1), textual ? projected.LeaderStyle!.FontSize : projected.LineLeader!.Width);
+        Assert.Equal("A\tB", text.PlainText);
+        Assert.Equal(100D, projected.Position);
+        Assert.Contains(result.Report.Mappings, mapping => mapping.Status == OdfConversionMappingStatus.Approximated);
+        Assert.Equal(before, Parts(reopened));
     }
 
     [Fact]

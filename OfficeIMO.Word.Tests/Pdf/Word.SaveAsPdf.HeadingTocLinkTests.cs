@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Native body after linked heading");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Native body after bookmark linked heading");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -82,7 +82,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Native body after whitespace heading");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -112,7 +112,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Native body after bookmarked run-only heading");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -143,7 +143,7 @@ namespace OfficeIMO.Tests {
                 internalLink.AddHyperLink("Native paragraph bookmark link", "NativeParagraphTarget", addStyle: true, tooltip: "Native paragraph bookmark metadata");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -178,10 +178,12 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Native TOC second heading").SetStyle(WordParagraphStyles.Heading2);
                 document.AddParagraph("Native TOC second body");
 
-                document.Save();
-                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+                // Export before saving: saving writes the TOC entries and their _Toc
+                // heading bookmarks, which then name the PDF destinations instead.
+                document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false
                 });
+                document.Save();
             }
 
             Assert.True(File.Exists(pdfPath));
@@ -263,7 +265,7 @@ namespace OfficeIMO.Tests {
                 secondSection.AddParagraph("Native TOC second section body");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -291,7 +293,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Native appendix body");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -325,7 +327,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Native body after normal heading");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -347,11 +349,12 @@ namespace OfficeIMO.Tests {
 
             using WordDocument document = WordDocument.Create(docPath);
             document.AddParagraph("Native heading theme font").SetStyle(WordParagraphStyles.Heading3);
+            // The default theme uses one family for headings and body, so headings follow the minor font.
             document._wordprocessingDocument.MainDocumentPart!.ThemePart!.Theme!.ThemeElements!.FontScheme!
-                .MajorFont!.LatinFont!.Typeface = "Times New Roman";
-            using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+                .MinorFont!.LatinFont!.Typeface = "Times New Roman";
+            using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
                 IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
-            }));
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
             Assert.All(pdf.GetPage(1).Letters, letter => Assert.Contains("Times", letter.FontName, StringComparison.OrdinalIgnoreCase));
         }
 
@@ -377,7 +380,7 @@ namespace OfficeIMO.Tests {
             var registeredFontSlots = new HashSet<PdfStandardFont> { PdfStandardFont.Helvetica };
             registerMethod.Invoke(null, new object[] {
                 document,
-                new PdfOptions(),
+                new PdfCreateOptions(),
                 registeredFontSlots,
                 true,
                 nativeFontMap
@@ -410,11 +413,11 @@ namespace OfficeIMO.Tests {
                 "CreateNativeOptions",
                 BindingFlags.NonPublic | BindingFlags.Static)!;
 
-            var saveOptions = new WordToPdfOptions {
+            var saveOptions = new WordPdfExportOptions {
                 ResourcePolicy = PdfResourcePolicy.CreateTrustedHost(),
                 TextFallbacks = PdfTextFallbackFeatures.Default
             };
-            PdfOptions pdfOptions = Assert.IsType<PdfOptions>(createOptions.Invoke(null, new object[] {
+            PdfCreateOptions pdfOptions = Assert.IsType<PdfCreateOptions>(createOptions.Invoke(null, new object[] {
                 document,
                 saveOptions,
                 nativeFontMap,
@@ -436,12 +439,11 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create();
             WordParagraph heading = document.AddParagraph(string.Join(" ", Enumerable.Repeat("Native declared heading formatting", 12)))
                 .SetStyle(WordParagraphStyles.Heading1);
-            heading.FontSize = 30;
-            heading.LineSpacingBeforePoints = 12D;
-            heading.LineSpacingAfterPoints = 3D;
-            heading.LineSpacingPoints = 36D;
-            heading.LineSpacingRule = WordLineSpacingRule.Exact;
-            using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+            heading.FontSize = global::OfficeIMO.OfficeLength.Points(30);
+            heading.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(12D);
+            heading.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(3D);
+            heading.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(36D));
+            using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
             var letters = pdf.GetPage(1).Letters;
             Assert.All(letters, letter => Assert.Equal(30D, letter.FontSize, 3));
             double[] baselines = letters.Select(letter => letter.StartBaseLine.Y).Distinct().ToArray();

@@ -85,7 +85,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddPdfHandler()
     .Build();
 
-foreach (var chunk in reader.Read("manual.pdf")) {
+foreach (var chunk in reader.Enumerate("manual.pdf")) {
     Console.WriteLine($"Page {chunk.Location.Page}: {chunk.Id}");
     Console.WriteLine(chunk.Markdown ?? chunk.Text);
 }
@@ -127,7 +127,7 @@ semantic pipeline limit explicitly when a larger document is expected:
 ```csharp
 OfficeDocumentReader largePdfReader = new OfficeDocumentReaderBuilder()
     .AddPdfHandler(new ReaderPdfOptions {
-        ReadOptions = new PdfReadOptions {
+        ReadOptions = new PdfLoadOptions {
             Pipeline = new PdfUnderstandingPipelineOptions { MaxPages = 2_500 }
         }
     })
@@ -154,7 +154,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .Build();
 
 using var stream = File.OpenRead("large-report.pdf");
-var chunks = reader.Read(stream, "large-report.pdf", new ReaderOptions {
+var chunks = reader.Enumerate(stream, "large-report.pdf", new ReaderOptions {
     MaxChars = 12_000,
     MaxInputBytes = 100L * 1024L * 1024L
 }).ToList();
@@ -166,25 +166,28 @@ foreach (var chunk in chunks.Where(chunk => chunk.Diagnostics != null)) {
 
 ### Project a normalized document into PDF
 
+Install the `OfficeIMO` front-door package for source-model conversion extensions.
+
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using OfficeIMO.Reader;
 
 OfficeDocumentReadResult normalized = reader.ReadDocument("manual.pdf");
-PdfDocumentConversionResult conversion = normalized.ToPdfDocumentResult(
+using PdfDocument conversion = normalized.ToPdf(
     new PdfProjectionOptions {
         PagePolicy = PdfProjectionPagePolicy.PreserveSourcePages,
         AssetPolicy = PdfProjectionAssetPolicy.EmbedSupportedImages,
         RasterDecodeOptions = new OfficeRasterDecodeOptions {
-            AnimationPolicy = OfficeRasterAnimationPolicy.RejectAnimated
+            FrameLossPolicy = OfficeRasterFrameLossPolicy.RejectMultipleFrames
         },
         LinkPolicy = PdfProjectionLinkPolicy.PreserveUriLinks,
         FormPolicy = PdfProjectionFormPolicy.RenderCurrentValues
-    });
+    }, out OfficeConversionReport report);
 
-PdfSaveResult save = conversion.Save("normalized-manual.pdf");
-foreach (PdfConversionWarning warning in save.Warnings) {
+conversion.Save("normalized-manual.pdf", new PdfSaveOptions { AllowLoss = true });
+foreach (OfficeDiagnostic warning in report.Diagnostics) {
     Console.WriteLine($"{warning.Code}: {warning.Message}");
 }
 ```
@@ -214,7 +217,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddZipHandler()
     .Build();
 
-var chunks = reader.ReadFolder("KnowledgeBase", new ReaderFolderOptions {
+var chunks = reader.EnumerateFolder("KnowledgeBase", new ReaderFolderOptions {
     Recurse = true,
     DeterministicOrder = true,
     MaxFiles = 500

@@ -288,6 +288,8 @@ internal static class WordBenchmarkCorpus {
     private static string ReadText(XElement element) =>
         string.Concat(element.Descendants(WordNamespace + "t").Select(text => text.Value));
 
+    internal static void EnsureConformance(byte[] payload) => EnsureOpenXmlSdkConformance(payload);
+
     private static void EnsureOpenXmlSdkConformance(byte[] payload) {
         using var stream = new MemoryStream(payload, writable: false);
         using WordprocessingDocument document = WordprocessingDocument.Open(stream, isEditable: false);

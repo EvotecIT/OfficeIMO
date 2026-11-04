@@ -10,7 +10,7 @@ namespace OfficeIMO.Excel {
             private static void WriteWorksheet(ZipArchive archive, DirectDataSetSheetModel sheet, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, ExcelDateSystem dateSystem, DirectSharedStringTable? sharedStrings, DirectStylePlan stylePlan, DirectColumnWritePlan columnWritePlan, CancellationToken ct, string? worksheetPath = null, string? tableRelationshipId = null) {
                 var entry = archive.CreateEntry(worksheetPath ?? "xl/worksheets/sheet" + InvariantNumberText.Get(sheet.Index) + ".xml", CompressionLevel.Fastest);
                 using var stream = entry.Open();
-                using var writer = new PooledUtf8TextWriter(stream, Utf8NoBom, XmlWriterBufferSize);
+                using var writer = new PooledUtf8TextWriter(stream, Utf8NoBom, XmlWriterBufferSize, leaveOpen: true);
 
                 writer.Write("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
                 writer.Write("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">");
@@ -35,6 +35,10 @@ namespace OfficeIMO.Excel {
                 }
 
                 WriteDeclaredColumns(writer, sheet.ColumnWidths, stylePlan.TabularStyles);
+                if (!string.IsNullOrEmpty(metadata?.Structure?.ColumnsXml)) {
+                    writer.Write(metadata!.Structure!.ColumnsXml);
+                }
+
                 writer.Write("<sheetData>");
                 int columnCount = sheet.Table.ColumnCount;
                 int rowCount = sheet.Table.RowCount;
@@ -66,6 +70,9 @@ namespace OfficeIMO.Excel {
                 if (stylePlan.TabularStyles != null) {
                     WriteDeclaredRows(writer, sheet, rowIndex, cellReferencePrefixes, columnWritePlan,
                         stylePlan.TabularStyles, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings, ct);
+                    rowIndex += rowCount;
+                } else if (sheet.Table.CellValueBuffer is { } cellValueBuffer && !hasInlineOverlayCells) {
+                    WriteCellValueBuffer(writer, cellValueBuffer, cellReferencePrefixes, styleAttributes, stylePlan, metadata?.Structure?.RowAttributes, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings, ct);
                     rowIndex += rowCount;
                 } else if (hasObjectRows && !hasInlineOverlayCells && !sheet.OmitBlankCells) {
                     WriteObjectRows(writer, objectRows, rowIndex, sheet.IncludeCellReferences, cellReferencePrefixes, styleAttributes, valueStyleColumns, sheet.UseCellValueNumberFormats, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings, ct);
@@ -313,6 +320,10 @@ namespace OfficeIMO.Excel {
                     writer.Write(metadata!.AutoFilterXml);
                 }
 
+                if (!string.IsNullOrEmpty(metadata?.Structure?.MergeCellsXml)) {
+                    writer.Write(metadata!.Structure!.MergeCellsXml);
+                }
+
                 if (metadata != null) {
                     for (int i = 0; i < metadata.ConditionalFormattingXml.Count; i++) {
                         writer.Write(metadata.ConditionalFormattingXml[i]);
@@ -323,6 +334,10 @@ namespace OfficeIMO.Excel {
                     writer.Write(metadata!.DataValidationsXml);
                 }
 
+                if (!string.IsNullOrEmpty(metadata?.Structure?.HyperlinksXml)) {
+                    writer.Write(metadata!.Structure!.HyperlinksXml);
+                }
+
                 if (metadata != null) {
                     for (int i = 0; i < metadata.PostDataValidationXml.Count; i++) {
                         writer.Write(metadata.PostDataValidationXml[i]);
@@ -331,6 +346,14 @@ namespace OfficeIMO.Excel {
 
                 if (!string.IsNullOrEmpty(metadata?.DrawingXml)) {
                     writer.Write(metadata!.DrawingXml);
+                }
+
+                if (!string.IsNullOrEmpty(metadata?.Structure?.LegacyDrawingXml)) {
+                    writer.Write(metadata!.Structure!.LegacyDrawingXml);
+                }
+
+                if (!string.IsNullOrEmpty(metadata?.Structure?.TablePartsXml)) {
+                    writer.Write(metadata!.Structure!.TablePartsXml);
                 }
 
                 if (sheet.HasTable) {
@@ -611,6 +634,10 @@ namespace OfficeIMO.Excel {
             private static string GetWorksheetDimension(DirectDataSetSheetModel sheet) {
                 var overlayCells = sheet.Metadata?.OverlayCells;
                 if (overlayCells == null || overlayCells.Count == 0) {
+                    if (sheet.Table.CellValueBuffer is { } cellValueBuffer) {
+                        return cellValueBuffer.Dimension;
+                    }
+
                     return sheet.Range.Length == 0 ? "A1" : sheet.Range;
                 }
 
@@ -625,7 +652,7 @@ namespace OfficeIMO.Excel {
                     lastColumn = Math.Max(lastColumn, overlayCells[i].Column);
                 }
 
-                return "A1:" + A1.CellReference(lastRow, lastColumn);
+                return "A1:" + ExcelA1.CellReference(lastRow, lastColumn);
             }
 
             private static void WriteOverlayCells(
@@ -661,7 +688,7 @@ namespace OfficeIMO.Excel {
                     WriteCell(
                         writer,
                         InvariantNumberText.Get(cell.Row),
-                        "<c r=\"" + A1.ColumnIndexToLetters(cell.Column),
+                        "<c r=\"" + ExcelA1.ColumnIndexToLetters(cell.Column),
                         cell.Value,
                         CreateOverlayStyleAttribute(cell, stylePlan),
                         dateTimeOffsetWriteStrategy,
@@ -723,7 +750,7 @@ namespace OfficeIMO.Excel {
                     WriteCell(
                         writer,
                         rowReference,
-                        "<c r=\"" + A1.ColumnIndexToLetters(cell.Column),
+                        "<c r=\"" + ExcelA1.ColumnIndexToLetters(cell.Column),
                         cell.Value,
                         CreateOverlayStyleAttribute(cell, stylePlan),
                         dateTimeOffsetWriteStrategy,
@@ -749,7 +776,7 @@ namespace OfficeIMO.Excel {
 
                 var columns = new string[columnCount];
                 for (int i = 0; i < columnCount; i++) {
-                    columns[i] = "<c r=\"" + A1.ColumnIndexToLetters(i + 1);
+                    columns[i] = "<c r=\"" + ExcelA1.ColumnIndexToLetters(i + 1);
                 }
 
                 return columns;
@@ -761,7 +788,7 @@ namespace OfficeIMO.Excel {
                 for (int columnCount = 1; columnCount < cache.Length; columnCount++) {
                     var columns = new string[columnCount];
                     for (int i = 0; i < columnCount; i++) {
-                        columns[i] = "<c r=\"" + A1.ColumnIndexToLetters(i + 1);
+                        columns[i] = "<c r=\"" + ExcelA1.ColumnIndexToLetters(i + 1);
                     }
 
                     cache[columnCount] = columns;

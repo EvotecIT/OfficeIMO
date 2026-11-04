@@ -12,8 +12,8 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void PageBackground_RendersBeforePageContent() {
             byte[] pdfBytes = PdfDocument.Create()
-                .Background(PdfColor.FromRgb(240, 248, 255))
-                .Paragraph(paragraph => paragraph.Text("DocBackgroundMarker"))
+                .Background(global::OfficeIMO.OfficeColor.FromRgb(240, 248, 255))
+                .Paragraph(paragraph => paragraph.AddText("DocBackgroundMarker"))
                 .ToBytes();
 
             string content = PdfTestContentText.JoinTextArrays(PdfTestContentText.ReadDecoded(pdfBytes));
@@ -26,13 +26,13 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void PageBackground_CanBeOverriddenPerComposedPage() {
-            byte[] pdfBytes = PdfDocument.Create(new PdfOptions {
-                    BackgroundColor = PdfColor.White
+            byte[] pdfBytes = PdfDocument.Create(new PdfCreateOptions {
+                    BackgroundColor = global::OfficeIMO.OfficeColor.White
                 })
                 .Page(page => page
-                    .Size(300, 400)
-                    .Background(PdfColor.FromRgb(238, 242, 255))
-                    .Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("PageBackgroundMarker")))))
+                    .Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400))
+                    .Background(global::OfficeIMO.OfficeColor.FromRgb(238, 242, 255))
+                    .Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("PageBackgroundMarker")))))
                 .ToBytes();
 
             string content = PdfTestContentText.ReadDecoded(pdfBytes);
@@ -43,21 +43,21 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void ComposeContent_ItemAndSpacerProvideDirectWordLikeFlow() {
-            byte[] pdfBytes = PdfDocument.Create(new PdfOptions {
+            byte[] pdfBytes = PdfDocument.Create(new PdfCreateOptions {
                     DefaultFont = PdfStandardFont.Helvetica,
-                    DefaultFontSize = 12
+                    DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
                 })
                 .Compose(compose => compose.Page(page => page
-                    .Margin(72)
+                    .Margin(global::OfficeIMO.OfficeLength.Points(72))
                     .Content(content => content
                         .Item(item => item
                             .H1("DirectComposeTitle")
-                            .Paragraph(paragraph => paragraph.Text("DirectComposeLead")))
-                        .Spacer(24)
+                            .AddParagraph(paragraph => paragraph.AddText("DirectComposeLead")))
+                        .Spacer(global::OfficeIMO.OfficeLength.Points(24))
                         .Column(column => column
-                            .Item(item => item.Paragraph(paragraph => paragraph.Text("ColumnComposeTop")))
-                            .Spacer(18)
-                            .Item(item => item.Paragraph(paragraph => paragraph.Text("ColumnComposeBottom")))))))
+                            .Item(item => item.AddParagraph(paragraph => paragraph.AddText("ColumnComposeTop")))
+                            .Spacer(global::OfficeIMO.OfficeLength.Points(18))
+                            .Item(item => item.AddParagraph(paragraph => paragraph.AddText("ColumnComposeBottom")))))))
                 .ToBytes();
 
             string text = PdfReadDocument.Open(pdfBytes).ExtractText();
@@ -78,19 +78,19 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void ComposeContent_PageBreaksProvideDirectWordLikeFlow() {
-            byte[] pdfBytes = PdfDocument.Create(new PdfOptions {
+            byte[] pdfBytes = PdfDocument.Create(new PdfCreateOptions {
                     DefaultFont = PdfStandardFont.Helvetica,
-                    DefaultFontSize = 12
+                    DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
                 })
                 .Compose(compose => compose.Page(page => page
-                    .Margin(72)
+                    .Margin(global::OfficeIMO.OfficeLength.Points(72))
                     .Content(content => content
-                        .Item(item => item.Paragraph(paragraph => paragraph.Text("DirectPageOne")))
+                        .Item(item => item.AddParagraph(paragraph => paragraph.AddText("DirectPageOne")))
                         .PageBreak()
                         .Column(column => column
-                            .Item(item => item.Paragraph(paragraph => paragraph.Text("ColumnPageTwo")))
+                            .Item(item => item.AddParagraph(paragraph => paragraph.AddText("ColumnPageTwo")))
                             .PageBreak()
-                            .Item(item => item.Paragraph(paragraph => paragraph.Text("ColumnPageThree")))))))
+                            .Item(item => item.AddParagraph(paragraph => paragraph.AddText("ColumnPageThree")))))))
                 .ToBytes();
 
             using var pdf = PdfPigDocument.Open(new MemoryStream(pdfBytes));
@@ -104,19 +104,19 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void ComposeItem_ElementPageBreakProvidesNestedWordLikeFlow() {
-            byte[] pdfBytes = PdfDocument.Create(new PdfOptions {
+            byte[] pdfBytes = PdfDocument.Create(new PdfCreateOptions {
                     DefaultFont = PdfStandardFont.Helvetica,
-                    DefaultFontSize = 12
+                    DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
                 })
                 .Compose(compose => compose.Page(page => page
-                    .Margin(72)
+                    .Margin(global::OfficeIMO.OfficeLength.Points(72))
                     .Content(content => content
                         .Column(column => column
                             .Item(item => item
-                                .Paragraph(paragraph => paragraph.Text("NestedPageOne"))
+                                .AddParagraph(paragraph => paragraph.AddText("NestedPageOne"))
                                 .Element(element => element.Content(nested => nested
                                     .PageBreak()
-                                    .Paragraph(paragraph => paragraph.Text("NestedPageTwo")))))))))
+                                    .AddParagraph(paragraph => paragraph.AddText("NestedPageTwo")))))))))
                 .ToBytes();
 
             using var pdf = PdfPigDocument.Open(new MemoryStream(pdfBytes));

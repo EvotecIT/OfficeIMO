@@ -20,7 +20,7 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeMarkdownCode", DefaultParameterSetName = ParameterSetContext)]
 [Alias("MarkdownCode")]
-[OutputType(typeof(MarkdownDoc))]
+[OutputType(typeof(MarkdownDocument))]
 public sealed class AddOfficeMarkdownCodeCommand : PSCmdlet
 {
     private const string ParameterSetContext = "Context";
@@ -28,7 +28,7 @@ public sealed class AddOfficeMarkdownCodeCommand : PSCmdlet
 
     /// <summary>Markdown document to update outside the DSL context.</summary>
     [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public MarkdownDoc Document { get; set; } = null!;
+    public MarkdownDocument Document { get; set; } = null!;
 
     /// <summary>Code language identifier.</summary>
     [Parameter(Position = 0)]
@@ -54,7 +54,7 @@ public sealed class AddOfficeMarkdownCodeCommand : PSCmdlet
         }
     }
 
-    private MarkdownDoc ResolveDocument()
+    private MarkdownDocument ResolveDocument()
     {
         if (ParameterSetName == ParameterSetDocument)
         {

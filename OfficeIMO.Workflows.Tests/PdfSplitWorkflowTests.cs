@@ -24,6 +24,26 @@ public sealed class PdfSplitWorkflowTests {
     }
 
     [Fact]
+    public async Task PasswordProtectedSourceSplitsIntoPartsThatOpenWithThatPassword() {
+        string root = NewRoot();
+        try {
+            string plain = Path.Combine(root, "plain.pdf"), source = Path.Combine(root, "source.pdf");
+            File.WriteAllBytes(plain, CreatePdf(2));
+            File.WriteAllBytes(source, PdfDocument.Load(plain).Security.Encrypt(new PdfStandardEncryptionOptions("reader") {
+                OwnerPassword = "owner", Algorithm = PdfStandardEncryptionAlgorithm.Aes128
+            }).Pdf);
+            var result = await new OfficeWorkflowRunner().SplitPdfAsync(new() {
+                InputPath = source, OutputDirectory = Path.Combine(root, "parts"), PdfPassword = "reader", PagesPerDocument = 1
+            });
+            Assert.Equal(OfficeWorkflowStatus.Completed, result.Status);
+            Assert.All(result.Files, file => {
+                Assert.ThrowsAny<Exception>(() => PdfDocument.Load(file.Path).Inspect());
+                Assert.Equal(1, PdfDocument.Load(file.Path, new PdfLoadOptions { Password = "reader" }).Inspect().PageCount);
+            });
+        } finally { Directory.Delete(root, true); }
+    }
+
+    [Fact]
     public async Task ExplicitPlansProduceOneVerifiedFilePerPart() {
         string root = NewRoot();
         try {
@@ -79,7 +99,7 @@ public sealed class PdfSplitWorkflowTests {
             File.WriteAllText(Path.Combine(output, "current.txt"), "current");
             File.WriteAllText(Path.Combine(recovery, "previous.txt"), "previous");
             var result = await new OfficeWorkflowRunner().SplitPdfAsync(new() {
-                InputPath = source, OutputDirectory = output, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                InputPath = source, OutputDirectory = output, ConflictPolicy = OfficePublicationPolicy.Replace
             });
             Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
             var diagnostic = Assert.Single(result.Diagnostics, item => item.Code == "PdfSplitFailed");
@@ -160,10 +180,10 @@ public sealed class PdfSplitWorkflowTests {
             using var cancel = new CancellationTokenSource();
             string output = Path.Combine(root, "parts");
             var request = new PdfSplitWorkflowRequest { InputPath = source, OutputDirectory = output,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Fail };
+                ConflictPolicy = OfficePublicationPolicy.Fail };
             if (failure == "part-limit") request.MaximumParts = 2;
             if (failure == "byte-limit") request.Limits.MaximumOutputBytes = 10;
-            if (failure == "source-folder") { request.OutputDirectory = root; request.ConflictPolicy = OfficeWorkflowConflictPolicy.Replace; }
+            if (failure == "source-folder") { request.OutputDirectory = root; request.ConflictPolicy = OfficePublicationPolicy.Replace; }
             var progress = new ProgressInline(item => {
                 if (item.Stage != "publish") return;
                 if (failure == "source-change") File.WriteAllBytes(source, CreatePdf(1));
@@ -188,7 +208,7 @@ public sealed class PdfSplitWorkflowTests {
             int writes = 0;
             var request = new PdfSplitWorkflowRequest {
                 InputPath = "content://split/input", InputStream = new("input.pdf", _ => Task.FromResult<Stream>(new MemoryStream(CreatePdf()))),
-                OutputDirectory = "content://split/output", PagesPerDocument = 2, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                OutputDirectory = "content://split/output", PagesPerDocument = 2, ConflictPolicy = OfficePublicationPolicy.Replace,
                 DirectoryOutput = new((name, _) => {
                     string path = "content://split/output/" + name;
                     return Task.FromResult(new OfficeWorkflowDirectoryOutputFile(path, new(name,
@@ -210,7 +230,7 @@ public sealed class PdfSplitWorkflowTests {
 
     private static string NewRoot() => Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "officeimo-split-tests-" + Guid.NewGuid().ToString("N"))).FullName;
     private static byte[] CreatePdf(int count = 5) => PdfDocument.Create(document => {
-        for (int index = 0; index < count; index++) { int width = 200 + index; document.Page(page => page.Size(width, 350)); }
+        for (int index = 0; index < count; index++) { int width = 200 + index; document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(350))); }
     }).ToBytes();
     private sealed class ProgressInline(Action<OfficeWorkflowProgress> report) : IProgress<OfficeWorkflowProgress> {
         public void Report(OfficeWorkflowProgress value) => report(value);

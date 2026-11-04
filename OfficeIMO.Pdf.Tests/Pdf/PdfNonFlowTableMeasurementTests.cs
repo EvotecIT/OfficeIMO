@@ -13,16 +13,16 @@ public sealed class PdfNonFlowTableMeasurementTests {
         var document = PdfDocument.Create(Options());
         document.Footer(footer => footer.Content(content => {
             void AddStory(PdfContentBuilder story) {
-                story.Table(new[] { new[] { "OVERLAY" } }, PdfAlign.Right, OverlayStyle(60D));
-                story.Paragraph(paragraph => paragraph.Text("FOOTER"), style: ParagraphStyle());
+                story.AddTable(new[] { new[] { "OVERLAY" } }, OfficeAlignment.Right, OverlayStyle(60D));
+                story.AddParagraph(paragraph => paragraph.AddText("FOOTER"), style: ParagraphStyle());
             }
             if (layout == "row") content.Row(row => row.PercentColumn(100D, AddStory));
             else if (layout == "panel") content.Panel(AddStory, new PdfPanelStyle {
-                PaddingX = 0, PaddingY = 0, SpacingBefore = 0, SpacingAfter = 0, KeepTogether = true
+                PaddingX = global::OfficeIMO.OfficeLength.Points(0), PaddingY = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), KeepTogether = true
             });
             else AddStory(content);
-        }, 36D));
-        document.Paragraph(paragraph => paragraph.Text("BODY"));
+        }, global::OfficeIMO.OfficeLength.Points(36D)));
+        document.Paragraph(paragraph => paragraph.AddText("BODY"));
 
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         var page = Assert.Single(pdf.GetPages());
@@ -42,16 +42,16 @@ public sealed class PdfNonFlowTableMeasurementTests {
             var document = PdfDocument.Create(Options());
             document.Footer(footer => footer.Content(content => {
                 void AddStory(PdfContentBuilder story) {
-                    if (overlay) story.Table(new[] { new[] { "OVERLAY" } }, PdfAlign.Right, OverlayStyle(36D));
-                    story.Paragraph(paragraph => paragraph.Text("FOOTER"), style: ParagraphStyle());
+                    if (overlay) story.AddTable(new[] { new[] { "OVERLAY" } }, OfficeAlignment.Right, OverlayStyle(36D));
+                    story.AddParagraph(paragraph => paragraph.AddText("FOOTER"), style: ParagraphStyle());
                 }
                 if (layout == "row") content.Row(row => row.PercentColumn(100D, AddStory));
                 else if (layout == "panel") content.Panel(AddStory, new PdfPanelStyle {
-                    PaddingX = 0, PaddingY = 0, SpacingBefore = 0, SpacingAfter = 0, KeepTogether = true
+                    PaddingX = global::OfficeIMO.OfficeLength.Points(0), PaddingY = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), KeepTogether = true
                 });
                 else AddStory(content);
-            }, 48D));
-            return document.Paragraph(paragraph => paragraph.Text("BODY")).ToBytes();
+            }, global::OfficeIMO.OfficeLength.Points(48D)));
+            return document.Paragraph(paragraph => paragraph.AddText("BODY")).ToBytes();
         }
 
         using var control = PdfPigDocument.Open(Render(false));
@@ -71,10 +71,10 @@ public sealed class PdfNonFlowTableMeasurementTests {
     public void ZeroFlowTableOnlyRunningContentStillPaints(bool header) {
         var document = PdfDocument.Create(Options());
         if (header) document.Header(story => story.Content(content =>
-            content.Table(new[] { new[] { "OVERLAY" } }, style: OverlayStyle(18D)), 48D));
+            content.AddTable(new[] { new[] { "OVERLAY" } }, style: OverlayStyle(18D)), global::OfficeIMO.OfficeLength.Points(48D)));
         else document.Footer(story => story.Content(content =>
-            content.Table(new[] { new[] { "OVERLAY" } }, style: OverlayStyle(18D)), 48D));
-        document.Paragraph(paragraph => paragraph.Text("BODY"));
+            content.AddTable(new[] { new[] { "OVERLAY" } }, style: OverlayStyle(18D)), global::OfficeIMO.OfficeLength.Points(48D)));
+        document.Paragraph(paragraph => paragraph.AddText("BODY"));
 
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         var page = Assert.Single(pdf.GetPages());
@@ -92,14 +92,14 @@ public sealed class PdfNonFlowTableMeasurementTests {
         style.KeepWithNext = true;
         var document = PdfDocument.Create(Options());
         document.Compose(compose => compose.Page(page => page.Content(content => {
-            content.Spacer(leadingSpace);
+            content.Spacer(global::OfficeIMO.OfficeLength.Points(leadingSpace));
             void AddSequence(PdfContentBuilder flow) {
-                flow.Paragraph(paragraph => paragraph.Text("LEAD"), style: new PdfParagraphStyle {
-                    FontSize = 10D, LineSpacing = PdfLineSpacing.Exactly(12D),
-                    SpacingBefore = 0, SpacingAfter = 0, KeepWithNext = true
+                flow.AddParagraph(paragraph => paragraph.AddText("LEAD"), style: new PdfParagraphStyle {
+                    FontSize = global::OfficeIMO.OfficeLength.Points(10D), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(12D)),
+                    SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), KeepWithNext = true
                 });
-                flow.Table(new[] { new[] { "OVERLAY" } }, PdfAlign.Right, style);
-                flow.Paragraph(paragraph => paragraph.Text("FOLLOWING"), style: ParagraphStyle());
+                flow.AddTable(new[] { new[] { "OVERLAY" } }, OfficeAlignment.Right, style);
+                flow.AddParagraph(paragraph => paragraph.AddText("FOLLOWING"), style: ParagraphStyle());
             }
             if (row) content.Row(columns => columns.PercentColumn(100D, AddSequence));
             else AddSequence(content);
@@ -121,18 +121,18 @@ public sealed class PdfNonFlowTableMeasurementTests {
     public void KeptColumnGroupsRetainOverlayPaintWithoutAddingItsFlow(string grouping) {
         var document = PdfDocument.Create(Options());
         document.Compose(compose => compose.Page(page => page.Content(content => {
-            content.Spacer(194D);
+            content.Spacer(global::OfficeIMO.OfficeLength.Points(194D));
             void AddSequence(PdfContentBuilder flow) {
-                flow.Paragraph(paragraph => paragraph.Text("LEAD"), style: ParagraphStyle());
-                flow.Table(new[] { new[] { "OVERLAY" } }, PdfAlign.Right, OverlayStyle(36D));
-                flow.Paragraph(paragraph => paragraph.Text("FOLLOWING"), style: ParagraphStyle());
+                flow.AddParagraph(paragraph => paragraph.AddText("LEAD"), style: ParagraphStyle());
+                flow.AddTable(new[] { new[] { "OVERLAY" } }, OfficeAlignment.Right, OverlayStyle(36D));
+                flow.AddParagraph(paragraph => paragraph.AddText("FOLLOWING"), style: ParagraphStyle());
             }
             content.Row(columns => {
                 if (grouping == "row") {
                     columns.Style(new PdfRowStyle { KeepTogether = true }).PercentColumn(100D, AddSequence);
                 } else {
                     columns.PercentColumn(100D, flow => flow.Panel(AddSequence, new PdfPanelStyle {
-                        PaddingX = 0, PaddingY = 0, SpacingBefore = 0, SpacingAfter = 0, KeepTogether = true
+                        PaddingX = global::OfficeIMO.OfficeLength.Points(0), PaddingY = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), KeepTogether = true
                     }));
                 }
             });
@@ -153,23 +153,23 @@ public sealed class PdfNonFlowTableMeasurementTests {
     public void KeptGroupsReserveOverlayExtentWhileFollowingTextUsesRestoredFlow(bool rowKeepsNext, int leadingSpace) {
         var document = PdfDocument.Create(Options());
         document.Compose(compose => compose.Page(page => page.Content(content => {
-            content.Spacer(leadingSpace);
+            content.Spacer(global::OfficeIMO.OfficeLength.Points(leadingSpace));
             content.Row(columns => {
                 if (rowKeepsNext) columns.Style(new PdfRowStyle { KeepWithNext = true });
                 columns.PercentColumn(100D, flow => {
-                    flow.Paragraph(paragraph => paragraph.Text("LEAD"), style: new PdfParagraphStyle {
-                        FontSize = 10D, LineSpacing = PdfLineSpacing.Exactly(12D),
-                        SpacingBefore = 0, SpacingAfter = 0, KeepWithNext = !rowKeepsNext
+                    flow.AddParagraph(paragraph => paragraph.AddText("LEAD"), style: new PdfParagraphStyle {
+                        FontSize = global::OfficeIMO.OfficeLength.Points(10D), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(12D)),
+                        SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), KeepWithNext = !rowKeepsNext
                     });
-                    if (rowKeepsNext) flow.Table(new[] { new[] { "OVERLAY" } }, PdfAlign.Right, OverlayStyle(36D));
-                    else flow.Panel(panel => panel.Table(new[] { new[] { "OVERLAY" } }, PdfAlign.Right, OverlayStyle(36D)),
+                    if (rowKeepsNext) flow.AddTable(new[] { new[] { "OVERLAY" } }, OfficeAlignment.Right, OverlayStyle(36D));
+                    else flow.Panel(panel => panel.AddTable(new[] { new[] { "OVERLAY" } }, OfficeAlignment.Right, OverlayStyle(36D)),
                         new PdfPanelStyle {
-                            PaddingX = 0, PaddingY = 0, SpacingBefore = 0, SpacingAfter = 0, KeepWithNext = true
+                            PaddingX = global::OfficeIMO.OfficeLength.Points(0), PaddingY = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), KeepWithNext = true
                         });
-                    if (!rowKeepsNext) flow.Paragraph(paragraph => paragraph.Text("FOLLOWING"), style: ParagraphStyle());
+                    if (!rowKeepsNext) flow.AddParagraph(paragraph => paragraph.AddText("FOLLOWING"), style: ParagraphStyle());
                 });
             });
-            if (rowKeepsNext) content.Paragraph(paragraph => paragraph.Text("FOLLOWING"), style: ParagraphStyle());
+            if (rowKeepsNext) content.AddParagraph(paragraph => paragraph.AddText("FOLLOWING"), style: ParagraphStyle());
         })));
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         var pages = pdf.GetPages().ToArray();
@@ -181,20 +181,22 @@ public sealed class PdfNonFlowTableMeasurementTests {
         Assert.Equal(12D, lead.Letters[0].StartBaseLine.Y - following.Letters[0].StartBaseLine.Y, 3);
     }
 
-    private static PdfOptions Options() => new() {
-        PageWidth = 300D, PageHeight = 300D,
-        MarginLeft = 32D, MarginRight = 32D, MarginTop = 32D, MarginBottom = 32D,
-        DefaultFontSize = 10D
+    private static PdfCreateOptions Options() => new() {
+        PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300D), global::OfficeIMO.OfficeLength.Points(300D)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(32D), Right = global::OfficeIMO.OfficeLength.Points(32D), Top = global::OfficeIMO.OfficeLength.Points(32D), Bottom = global::OfficeIMO.OfficeLength.Points(32D) }
+        },
+        DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10D)
     };
 
     private static PdfParagraphStyle ParagraphStyle() => new() {
-        FontSize = 10D, LineSpacing = PdfLineSpacing.Exactly(12D), SpacingBefore = 0, SpacingAfter = 0
+        FontSize = global::OfficeIMO.OfficeLength.Points(10D), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(12D)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
     };
 
     private static PdfTableStyle OverlayStyle(double height) => new() {
-        HeaderRowCount = 0, ConsumesVerticalFlow = false, FontSize = 10D,
-        ColumnWidthPoints = new List<double?> { 80D }, FixedRowHeights = new List<double?> { height },
-        CellPaddingX = 0, CellPaddingY = 0, BorderWidth = 0,
-        SpacingBefore = 0, SpacingAfter = 0
+        HeaderRowCount = 0, ConsumesVerticalFlow = false, FontSize = global::OfficeIMO.OfficeLength.Points(10D),
+        ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(80D) }, FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(height) },
+        CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0), BorderWidth = global::OfficeIMO.OfficeLength.Points(0),
+        SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
     };
 }

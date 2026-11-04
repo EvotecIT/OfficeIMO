@@ -2,8 +2,6 @@
   <PropertyGroup>
     <Description>Explicit ODT and Word conversion adapter with feature-mapping reports.</Description>
     <PackageId>OfficeIMO.Word.OpenDocument</PackageId>
-    <AssemblyName>OfficeIMO.Word.OpenDocument</AssemblyName>
-    <AssemblyTitle>OfficeIMO.Word.OpenDocument</AssemblyTitle>
     <VersionPrefix>3.5.3</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
@@ -38,5 +36,14 @@
     <Using Include="System.Collections.Generic" />
     <Using Include="System.IO" />
     <Using Include="System.Linq" />
+  </ItemGroup>
+  <ItemGroup><ProjectReference Include="..\OfficeIMO.Word.Pdf\OfficeIMO.Word.Pdf.csproj" /></ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.OpenDocument.Converters.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Workflows" />
+    <InternalsVisibleTo Include="OfficeIMO" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.OpenDocument.Odt.Pdf" />
   </ItemGroup>
 </Project>

@@ -129,8 +129,8 @@ public partial class PdfReadStreamTests {
     public void RewriteApis_RouteFormPdfsByOperationCapability() {
         byte[] form = PdfDocument.Create().TextField("Name", value: "OfficeIMO").ToBytes();
 
-        AssertFormBlocked(() => PdfPageExtractor.ExtractPages(form, 1));
-        AssertFormBlocked(() => PdfPageExtractor.SplitPages(form));
+        AssertFormPreserved(PdfPageExtractor.ExtractPages(form, 1));
+        AssertFormPreserved(Assert.Single(PdfPageExtractor.SplitPages(form)));
         AssertFormBlocked(() => PdfMetadataEditor.UpdateMetadata(form, title: "Updated"));
         AssertFormPreserved(PdfMerger.Merge(form));
         AssertFormBlocked(() => PdfStamper.StampText(form, "STAMP"));
@@ -138,7 +138,7 @@ public partial class PdfReadStreamTests {
         static void AssertFormPreserved(byte[] rewritten) => Assert.Single(PdfInspector.Inspect(rewritten).FormFields);
         static void AssertFormBlocked(Action action) {
             var exception = Assert.ThrowsAny<NotSupportedException>(action);
-            Assert.Contains("PDF form fields are not supported for rewriting by OfficeIMO.Pdf yet.", exception.Message, StringComparison.Ordinal);
+            Assert.Contains("FullRewrite.Forms", exception.Message, StringComparison.Ordinal);
         }
     }
 

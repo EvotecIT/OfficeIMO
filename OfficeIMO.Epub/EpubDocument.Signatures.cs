@@ -5,7 +5,7 @@ namespace OfficeIMO.Epub;
 
 public sealed partial class EpubDocument {
     /// <summary>Validates META-INF/signatures.xml and signed EPUB entry digests through an explicit provider.</summary>
-    public static OfficeXmlPackageSignatureValidationReport ValidatePackageSignatures(
+    public static OfficeXmlPackageSignatureValidationReport ValidateSignatures(
         string filePath,
         IOfficeSecurityProvider securityProvider,
         OfficeXmlPackageSignatureOptions? options = null) =>

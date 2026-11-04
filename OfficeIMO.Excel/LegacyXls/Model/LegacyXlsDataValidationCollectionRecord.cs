@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes a BIFF DVal data-validation collection header discovered during legacy XLS import.
     /// </summary>
-    public sealed class LegacyXlsDataValidationCollectionRecord {
+    internal sealed class LegacyXlsDataValidationCollectionRecord {
         /// <summary>
         /// Creates parsed BIFF DVal collection metadata.
         /// </summary>

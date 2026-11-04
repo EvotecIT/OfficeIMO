@@ -384,19 +384,7 @@ public sealed partial class PdfReadPage {
         }
         if (!IsUsableTilingPatternMatrix(matrix)) return false;
         PdfDictionary resolvedResources = resources!;
-        var sourceIdentityKey = (Stream: stream, Resources: resolvedResources);
-        if (!resourceCache.SourceIdentities.TryGetValue(sourceIdentityKey, out string? sourceIdentity)) {
-            using var fingerprint = new PdfObjectGraphFingerprint(
-                _objects,
-                _limits.MaxObjectNestingDepth,
-                Math.Min(1_000_000, Math.Max(16_384, _limits.MaxIndirectObjects)),
-                cancellationToken: resourceCache.CancellationToken);
-            fingerprint.AppendRoot(stream);
-            fingerprint.AppendRoot(resolvedResources);
-            sourceIdentity = Convert.ToBase64String(fingerprint.Complete());
-            resourceCache.SourceIdentities[sourceIdentityKey] = sourceIdentity;
-        }
-        pattern = new PdfPageTilingPatternResource(tile, Math.Abs(xStep.Value), Math.Abs(yStep.Value), matrix, box.X1, box.Y2, uncolored, consumesInheritedLineState, hasMalformedStrictInvocation, sourceIdentity);
+        pattern = new PdfPageTilingPatternResource(tile, Math.Abs(xStep.Value), Math.Abs(yStep.Value), matrix, box.X1, box.Y2, uncolored, consumesInheritedLineState, hasMalformedStrictInvocation, stream, resolvedResources);
         return true;
     }
 
@@ -641,7 +629,7 @@ public sealed partial class PdfReadPage {
             pageContentBudget.PaintedGlyphMaps,
             pageContentBudget, pageContentBudget.CancellationToken);
         var softMasks = new Dictionary<(PdfStream Group, PdfDictionary? ParentResources, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height, OfficeIccRenderingIntent Intent), OfficeDrawingSoftMask>();
-        var activeSoftMasks = new HashSet<PdfStream>();
+        var activeSoftMasks = pageContentBudget.ActiveSoftMasks;
         ReplayDrawingElements(drawing, elements, actualTextScopes, (destination, element) =>
             AddDrawingElement(destination, height, transform, element, softMasks, activeSoftMasks, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget,
                 cancellationToken: pageContentBudget.CancellationToken), pageContentBudget.CancellationToken);
@@ -828,7 +816,5 @@ public sealed partial class PdfReadPage {
         internal HashSet<(PdfStream Stream, PdfDictionary Resources)> Active { get; } =
             new HashSet<(PdfStream Stream, PdfDictionary Resources)>();
 
-        internal Dictionary<(PdfStream Stream, PdfDictionary Resources), string> SourceIdentities { get; } =
-            new Dictionary<(PdfStream Stream, PdfDictionary Resources), string>();
     }
 }

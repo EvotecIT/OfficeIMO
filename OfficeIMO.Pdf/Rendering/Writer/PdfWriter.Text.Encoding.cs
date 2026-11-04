@@ -17,7 +17,7 @@ internal static partial class PdfWriter {
         return new string(hex);
     }
 
-    private static PdfTextShowCommand EncodeTextShowCommand(string text, PdfStandardFont font, PdfOptions? options,
+    private static PdfTextShowCommand EncodeTextShowCommand(string text, PdfStandardFont font, PdfCreateOptions? options,
         OfficeTextFeatureSettings? featureSettings = null,
         OfficeTextDirection textDirection = OfficeTextDirection.Auto, double fontMetricScale = 1D, double layoutHorizontalScaling = 100D,
         bool preservesPaintedGlyphs = false, bool requireGlyphClusters = false) {
@@ -113,7 +113,8 @@ internal static partial class PdfWriter {
         for (int index = 0; index + 1 < text.Length; index++) {
             int value = PdfStandardFontWidths.GetKerning1000(font, text[index], text[index + 1]);
             if (value == 0) continue;
-            (kerning ??= new int[text.Length])[index] = value;
+            if (kerning == null) kerning = new int[text.Length];
+            kerning[index] = value;
             total += value;
         }
         return kerning;
@@ -125,8 +126,9 @@ internal static partial class PdfWriter {
         return total * fontSize / 1000D;
     }
 
-    private static PdfTextShowCommand EncodeActualTextAnchor(PdfStandardFont font, PdfOptions options, int count = 1) {
-        PdfTextShowCommand command = EncodeTextShowCommand(new string(' ', count), font, options);
+    private static PdfTextShowCommand EncodeActualTextAnchor(PdfStandardFont font, PdfCreateOptions options, int count = 1) {
+        // The invisible carrier owns the caller's semantic bounds, not shaped paint.
+        PdfTextShowCommand command = EncodeTextShowCommand(new string(' ', count), font, options, preservesPaintedGlyphs: true);
         return command.ActualText == null ? command
             : new PdfTextShowCommand(command.GlyphHex, command.PositionedGlyphs, tracking: command.Tracking,
                 advanceWidth1000: command.AdvanceWidth1000, wordSpaceCount: command.WordSpaceCount,
@@ -138,7 +140,7 @@ internal static partial class PdfWriter {
         string text,
         PdfStandardFont fallbackFont,
         PdfNamedFontFace? namedFont,
-        PdfOptions? options,
+        PdfCreateOptions? options,
         OfficeTextFeatureSettings? featureSettings = null,
         OfficeTextDirection textDirection = OfficeTextDirection.Auto, double fontMetricScale = 1D, double layoutHorizontalScaling = 100D,
         bool preservesPaintedGlyphs = false, bool requireGlyphClusters = false) {
@@ -236,7 +238,7 @@ internal static partial class PdfWriter {
         return diagnostic.WithIndex(sourceIndex);
     }
 
-    private static PdfTextEncodingDiagnostic? GetFirstTextEncodingDiagnostic(string text, PdfStandardFont font, PdfOptions? options, OfficeTextFeatureSettings? featureSettings, OfficeTextDirection direction, bool preservesPaintedGlyphs) {
+    private static PdfTextEncodingDiagnostic? GetFirstTextEncodingDiagnostic(string text, PdfStandardFont font, PdfCreateOptions? options, OfficeTextFeatureSettings? featureSettings, OfficeTextDirection direction, bool preservesPaintedGlyphs) {
         System.Collections.Generic.IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = options == null
             ? PdfTextDiagnostics.AnalyzeWinAnsiText(text, "generated text")
             : PdfTextDiagnostics.AnalyzeGeneratedEncoding(text, options, font, "generated text", featureSettings, direction, preservesPaintedGlyphs);

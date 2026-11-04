@@ -6,7 +6,7 @@ using OfficeIMO.Core.Internal;
 namespace OfficeIMO.Drawing;
 
 /// <summary>Detects and safely unwraps reusable web-font containers into OpenType bytes.</summary>
-public static class OfficeFontContainerDecoder {
+internal static class OfficeFontContainerDecoder {
     private const uint WoffSignature = 0x774F4646;
     private const uint Woff2Signature = 0x774F4632;
     private const int WoffHeaderLength = 44;

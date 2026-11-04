@@ -123,7 +123,7 @@ public partial class PdfPageEditorTests {
             Assert.Equal(0, rotatedRangesInfo.Pages[1].RotationDegrees);
             Assert.Equal(270, rotatedRangesInfo.Pages[2].RotationDegrees);
 
-            byte[] resized = PdfPageEditor.ResizePages(inputPath, PageSizes.Letter, 3);
+            byte[] resized = PdfPageEditor.ResizePages(inputPath, PdfPageSizes.Letter, 3);
             PdfDocumentInfo resizedInfo = PdfInspector.Inspect(resized);
             Assert.Equal(3, resizedInfo.PageCount);
             Assert.Equal(595, Math.Round(resizedInfo.Pages[0].Width));

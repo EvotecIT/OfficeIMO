@@ -28,8 +28,8 @@ public sealed class ReaderMixedCorpusTests {
             }
 
             using (ExcelDocument document = ExcelDocument.Create(excelPath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
-                sheet.Cell(1, 1, "Synthetic contract in Excel");
+                ExcelSheet sheet = document.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Synthetic contract in Excel");
                 document.Save();
             }
 

@@ -128,7 +128,7 @@ public static class PdfLongTermValidationEnricher {
         Guard.NotNull(cryptographyProvider, nameof(cryptographyProvider));
         cancellationToken.ThrowIfCancellationRequested();
         if (fetchEvidence is not null) {
-            pdf = (byte[])pdf.Clone();
+            pdf = PdfDocumentSource.FromCallerBytes(pdf, readOptions).Bytes;
             PdfSignatureValidationResult target = FindVerifiedTarget(
                 PdfSignatureValidator.Validate(pdf, cryptographyProvider, readOptions), evidence.SignatureObjectNumber);
             PdfLongTermValidationEvidence fetched = await fetchEvidence(target, cancellationToken).ConfigureAwait(false)

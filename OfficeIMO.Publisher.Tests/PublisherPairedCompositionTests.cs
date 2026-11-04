@@ -18,7 +18,7 @@ public sealed class PublisherPairedCompositionTests {
         PublisherTextFrame columns = document.Pages[0].TextFrames.Single(frame => frame.ColumnCount == 2);
 
         byte[] generated = PublisherNativeCreationCodec.Create(PublisherNativeCreationProjection.ComposedContent(document),
-            new PublisherReadOptions(), MaximumBytes, CancellationToken.None);
+            new PublisherLoadOptions(), MaximumBytes, CancellationToken.None);
         PublisherDocument decoded = PublisherDocument.Load(generated);
 
         Assert.Equal(document.MasterPages.Select(page => (page.Name, page.MasterSide)),
@@ -123,11 +123,11 @@ public sealed class PublisherPairedCompositionTests {
         PublisherPicture authoredPicture = Assert.Single(authored.MasterPages.Single(page => page.MasterSide == PublisherMasterPageSide.Left).Pictures);
         authored.SetPictureBounds(authoredPicture.Id, 144, authoredPicture.Y, authoredPicture.Width, authoredPicture.Height);
         byte[] generated = PublisherNativeCreationCodec.Create(PublisherNativeCreationProjection.ComposedContent(authored),
-            new PublisherReadOptions(), MaximumBytes, CancellationToken.None);
+            new PublisherLoadOptions(), MaximumBytes, CancellationToken.None);
         PublisherDocument decoded = PublisherDocument.Load(generated);
 
         Assert.True(OfficeCompoundFileReader.TryRead(generated, out OfficeCompoundFile? compound, out string? error), error);
-        var context = new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None);
+        var context = new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None);
         PublisherContents contents = new PublisherContentsReader(new PublisherBinaryData(compound!.Streams["Contents"], "Contents"), context).Read();
         PublisherEscherData artwork = new PublisherEscherReader(
             new PublisherBinaryData(compound.Streams["Escher/EscherStm"], "Escher/EscherStm"),
@@ -144,7 +144,7 @@ public sealed class PublisherPairedCompositionTests {
             PublisherBlock mode = Assert.Single(source.Fields, field => field.Id == 4);
             Assert.Equal((0x10, 0x100U), ((int)mode.Type, mode.Value));
         }
-        Assert.Equal(generated, decoded.ToPubBytes());
+        Assert.Equal(generated, decoded.ToBytes());
 
         PublisherPage left = decoded.MasterPages.Single(page => page.MasterSide == PublisherMasterPageSide.Left);
         PublisherPicture original = Assert.Single(left.Pictures);
@@ -153,14 +153,14 @@ public sealed class PublisherPairedCompositionTests {
         var owners = decoded.MasterPages.Concat(decoded.Pages).Select(page => (page.Id, page.MasterPageId, page.MasterSide, page.Name)).ToArray();
         decoded.SetPictureBounds(original.Id, original.X + 12, original.Y, original.Width, original.Height);
 
-        OfficeConversionException refusal = Assert.Throws<OfficeConversionException>(() => decoded.ToPubBytes());
+        OfficeConversionException refusal = Assert.Throws<OfficeConversionException>(() => decoded.ToBytes());
         PublisherSaveReport strict = Assert.IsType<PublisherSaveReport>(refusal.Report);
         Assert.False(strict.HasErrors);
-        OfficeConversionFidelityDiagnostic qualification = Assert.Single(strict.FidelityDiagnostics, item => item.LossKind != OfficeConversionLossKind.None);
+        OfficeDiagnostic qualification = Assert.Single(strict.Diagnostics, item => item.LossKind != OfficeConversionLossKind.None);
         Assert.Equal(("PUB_NATIVE_FIXED_PATCH_UNQUALIFIED", OfficeConversionLossKind.Unassessed), (qualification.Code, qualification.LossKind));
-        var saved = decoded.ToPubBytesResult(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
-        Assert.False(saved.Report.HasErrors);
-        PublisherDocument reopened = PublisherDocument.Load(saved.Value);
+        byte[] savedBytes = decoded.ToBytes(new PublisherSaveOptions { AllowLoss = true }, out PublisherSaveReport saveReport);
+        Assert.False(saveReport.HasErrors);
+        PublisherDocument reopened = PublisherDocument.Load(savedBytes);
         Assert.Equal(owners, reopened.MasterPages.Concat(reopened.Pages).Select(page => (page.Id, page.MasterPageId, page.MasterSide, page.Name)));
         Assert.Equal(semanticIds, reopened.MasterPages.Concat(reopened.Pages).SelectMany(page => page.ObjectIds));
         Assert.Equal(stories, reopened.TextStories.Select(story => (story.Id, story.Text)));
@@ -175,7 +175,7 @@ public sealed class PublisherPairedCompositionTests {
             Assert.Equal((picture.X + (picture.Id == original.Id ? 12 : 0), picture.Y, picture.Width, picture.Height),
                 (actual.X, actual.Y, actual.Width, actual.Height));
         }
-        Assert.Equal(saved.Value, reopened.ToPubBytes());
+        Assert.Equal(savedBytes, reopened.ToBytes());
     }
 
     [Fact]
@@ -208,8 +208,8 @@ public sealed class PublisherPairedCompositionTests {
             rectangle.StrokeColor = null;
             document.AddShape(masterId, rectangle, 36 + index * 12, 36 + index * 6);
             PublisherPicture picture = imageId.HasValue
-                ? document.AddPicture(masterId, imageId.Value, 504, 36, 36, 36)
-                : document.AddPicture(masterId, image, 504, 36, 36, 36);
+                ? document.AddImage(masterId, imageId.Value, 504, 36, 36, 36)
+                : document.AddImage(masterId, image, 504, 36, 36, 36);
             imageId = picture.ImageId;
         }
 

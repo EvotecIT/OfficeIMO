@@ -42,8 +42,8 @@ namespace OfficeIMO.Word {
         /// <summary>Adds or replaces a VBA project from a readable stream.</summary>
         /// <param name="stream">Stream containing <c>vbaProject.bin</c>.</param>
         /// <param name="maxBytes">Optional maximum number of bytes accepted from the stream.</param>
-        public void AddMacro(Stream stream, long? maxBytes = null) {
-            AddMacro(OfficeStreamReader.ReadAllBytes(stream, maxBytes));
+        public WordMacroProject AddMacro(Stream stream, long? maxBytes = null) {
+            return AddMacro(OfficeStreamReader.ReadAllBytes(stream, maxBytes));
         }
 
         /// <summary>Gets embedded package, OLE, and ActiveX payload metadata.</summary>

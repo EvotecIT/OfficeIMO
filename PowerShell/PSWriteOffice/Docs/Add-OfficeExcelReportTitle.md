@@ -9,7 +9,7 @@ schema: 2.0.0
 Adds a title block to the current Excel report sheet.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Add-OfficeExcelReportTitle [-Title] <string> [[-Subtitle] <string>] [-PassThru] [<CommonParameters>]
 ```
@@ -38,7 +38,7 @@ Emit the object created or changed by the command.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -54,7 +54,7 @@ Optional subtitle text.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -70,7 +70,7 @@ Title text.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

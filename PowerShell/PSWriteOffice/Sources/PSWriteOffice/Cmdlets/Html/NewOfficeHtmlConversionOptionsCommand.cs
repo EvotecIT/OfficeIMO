@@ -11,7 +11,7 @@ namespace PSWriteOffice.Cmdlets.Html;
 ///   <code>$document = New-OfficeHtmlConversionOptions -BaseUri (Resolve-Path .\Assets) -UseBodyContentsOnly
 /// Export-OfficeHtmlImage -Path .\Report.html -OutputPath .\Report.svg -DocumentOptions $document</code>
 /// </example>
-[Cmdlet(VerbsCommon.New, "OfficeHtmlConversionOptions")]
+[Cmdlet(VerbsCommon.New, "OfficeHtmlConversionOptions", DefaultParameterSetName = "Default")]
 [OutputType(typeof(HtmlConversionDocumentOptions))]
 public sealed class NewOfficeHtmlConversionOptionsCommand : PSCmdlet {
     /// <summary>Built-in conversion profile.</summary>

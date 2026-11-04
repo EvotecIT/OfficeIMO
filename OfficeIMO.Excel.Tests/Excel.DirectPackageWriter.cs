@@ -20,10 +20,15 @@ namespace OfficeIMO.Excel.Tests {
             for (int row = 0; row < rowCount; row++) table.Rows.Add(source);
 
             using var output = new MemoryStream();
-            using (var reader = table.CreateDataReader()) {
-                ExcelDocument.WriteDataReader(output, reader, compact
-                    ? new ExcelTabularWriteOptions { IncludeCellReferences = false, UseSharedStrings = false }
-                    : null);
+            if (compact) {
+                using var writer = ExcelDocument.CreateWriter(output,
+                    new ExcelWriterOptions { IncludeCellReferences = false }, leaveOpen: true);
+                writer.WriteTable("Data", table);
+            }
+            else {
+                using var document = ExcelDocument.Create();
+                document.AddSheet("Data").InsertDataTable(table);
+                document.Save(output);
             }
 
             output.Position = 0;
@@ -62,7 +67,7 @@ namespace OfficeIMO.Excel.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.InsertObjects(rows,
                     ("Id", row => row.Id),
                     ("Region", row => row.Region),
@@ -90,7 +95,7 @@ namespace OfficeIMO.Excel.Tests {
             Assert.Equal("München", GetDirectCellText(cells["C3"]));
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet));
 
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(output.ToArray());
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(output.ToArray());
             Assert.True(reader.Read());
             Assert.Equal("Zażółć", reader.GetString(1));
             Assert.True(reader.Read());

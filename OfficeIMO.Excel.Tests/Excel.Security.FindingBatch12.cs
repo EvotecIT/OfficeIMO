@@ -77,8 +77,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task QueryBackedTable_TracksExactAuthoredPartAcrossConnectionIdCollision() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet importedSheet = document.AddWorksheet("Imported");
-            importedSheet.CellValue(1, 1, "Value");
+            ExcelSheet importedSheet = document.AddSheet("Imported");
+            importedSheet.Cell(1, 1).SetValue("Value");
             importedSheet.AddTable(
                 "A1:A1",
                 hasHeader: true,
@@ -93,7 +93,7 @@ namespace OfficeIMO.Tests {
             };
             importedQueryPart.QueryTable.Save();
 
-            ExcelSheet authoredSheet = document.AddWorksheet("Authored");
+            ExcelSheet authoredSheet = document.AddSheet("Authored");
             ExcelQueryBackedTableInfo authored = document.AddQueryBackedTable(
                 new ExcelQueryBackedTableOptions {
                     ConnectionName = "TrustedQuery",
@@ -122,9 +122,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PackageWorksheetCopy_EnforcesInCellImageCountAndByteBudgets() {
             using var sourceDocument = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet source = sourceDocument.AddWorksheet("Images");
+            ExcelSheet source = sourceDocument.AddSheet("Images");
             source.SetInCellImage(1, 1, TinyPng, altText: "Shared A");
-            source.CellValue(1, 2, "placeholder");
+            source.Cell(1, 2).SetValue("placeholder");
             Cell first = source.WorksheetPart.Worksheet!.Descendants<Cell>()
                 .Single(cell => cell.CellReference?.Value == "A1");
             Cell second = source.WorksheetPart.Worksheet.Descendants<Cell>()
@@ -183,12 +183,12 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void WorkbookMerge_ReusesSharedInCellImagePartsAcrossSheets() {
             using var sourceDocument = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet source = sourceDocument.AddWorksheet("First");
+            ExcelSheet source = sourceDocument.AddSheet("First");
             source.SetInCellImage(1, 1, TinyPng, altText: "Shared");
             sourceDocument.CopyWorksheet("First", "Second");
 
             using var targetDocument = ExcelDocument.Create(new MemoryStream());
-            targetDocument.AddWorksheet("Existing");
+            targetDocument.AddSheet("Existing");
             targetDocument.MergeWorkbookFrom(sourceDocument, new ExcelWorkbookMergeOptions {
                 CopyMode = ExcelWorksheetCopyMode.Package,
                 SheetNames = new[] { "First", "Second" }
@@ -206,8 +206,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void CellSmartTagMutation_DoesNotRemoveAnUnrelatedParent() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(2, 1, "delete");
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(2, 1).SetValue("delete");
             const string extensionNamespace = "urn:officeimo:untrusted-extension";
             var unrelatedParent = new OpenXmlUnknownElement(
                 string.Empty,
@@ -241,7 +241,7 @@ namespace OfficeIMO.Tests {
             ExcelWorksheetCopyOptions options,
             string expectedMessage) {
             using var targetDocument = ExcelDocument.Create(new MemoryStream());
-            targetDocument.AddWorksheet("Existing");
+            targetDocument.AddSheet("Existing");
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
                 targetDocument.CopyWorksheetFrom(

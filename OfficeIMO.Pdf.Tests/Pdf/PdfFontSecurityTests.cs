@@ -11,8 +11,8 @@ namespace OfficeIMO.Tests.Pdf;
 public class PdfFontSecurityTests {
     [Fact]
     public void NamedFontRegistrationRejectsUnboundedDistinctFamilies() {
-        var options = new PdfOptions();
-        for (int index = 0; index < PdfOptions.MaximumNamedFontFamilies; index++) {
+        var options = new PdfCreateOptions();
+        for (int index = 0; index < PdfCreateOptions.MaximumNamedFontFamilies; index++) {
             options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
                 "SecurityFont" + index.ToString(), new byte[] { 1 }));
         }
@@ -24,7 +24,7 @@ public class PdfFontSecurityTests {
         Assert.True(options.TryRegisterNamedFontFamily(
             new PdfEmbeddedFontFamily("SecurityFont0", new byte[] { 2 })));
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("SecurityFont0", new byte[] { 2 }));
-        Assert.Equal(PdfOptions.MaximumNamedFontFamilies, options.NamedFontFamilies.Count);
+        Assert.Equal(PdfCreateOptions.MaximumNamedFontFamilies, options.NamedFontFamilies.Count);
     }
 
     [Fact]

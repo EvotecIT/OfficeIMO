@@ -30,20 +30,29 @@ public static partial class HtmlResourcePipeline {
         RewriteCssResourceUrls(css, rewrite, includeFragmentReferences: false);
 
     /// <summary>Rewrites CSS resource URLs, optionally including local fragment references when relocating document content.</summary>
-    public static string RewriteCssResourceUrls(string css, Func<string, HtmlResourceKind, string> rewrite, bool includeFragmentReferences) {
+    public static string RewriteCssResourceUrls(string css, Func<string, HtmlResourceKind, string> rewrite, bool includeFragmentReferences) =>
+        RewriteCssResourceUrls(css, rewrite, includeFragmentReferences, int.MaxValue);
+
+    /// <summary>Bounds staged URL replacements and final source before constructing a rewritten stylesheet.</summary>
+    internal static string RewriteCssResourceUrls(string css, Func<string, HtmlResourceKind, string> rewrite,
+        bool includeFragmentReferences, long maximumOutputCharacters) {
         if (css == null) throw new ArgumentNullException(nameof(css));
         if (rewrite == null) throw new ArgumentNullException(nameof(rewrite));
+        if (maximumOutputCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(maximumOutputCharacters));
+        maximumOutputCharacters = Math.Min(maximumOutputCharacters, int.MaxValue);
+        if (css.Length > maximumOutputCharacters) throw OutputLimit();
         // Analyze a length-preserving mask, then edit the original source. Comments can
         // separate CSS tokens without introducing a descendant combinator or whitespace.
         string normalized = MaskCssComments(css).Replace(CssCommentMask, ' ');
         var replacements = new List<(int Start, int End, string Value)>();
+        long stagedCharacters = 0;
         var imports = ExtractCssImports(normalized).ToArray();
         foreach (CssImportReference import in imports) {
             string source = DecodeCssEscapes(import.Source);
             string value = rewrite(source, HtmlResourceKind.Stylesheet);
             if (value == source) continue;
-            replacements.Add(value.Length == 0 ? (import.Start, import.End, string.Empty) :
-                (import.SourceStart, import.SourceEnd, "url(" + Quote(value) + ")"));
+            if (value.Length == 0) AddReplacement(import.Start, import.End, string.Empty);
+            else AddReplacement(import.SourceStart, import.SourceEnd, "url(" + Quote(value) + ")");
         }
         foreach (Match match in CssUrlExpression.Matches(normalized)) {
             if (!IsValidCssUrlMatch(normalized, match) || !IsCssFunctionNameAt(normalized, match.Index, "url") ||
@@ -51,22 +60,43 @@ public static partial class HtmlResourcePipeline {
             string source = DecodeCssEscapes(match.Groups["url"].Value.Trim().Trim('\'', '"'));
             if (!includeFragmentReferences && IsFragmentOnlyReference(source)) continue;
             string value = rewrite(source, ClassifyCssUrl(normalized, match.Index));
-            if (value != source) replacements.Add((match.Index, match.Index + match.Length, "url(" + Quote(value) + ")"));
+            if (value != source) AddReplacement(match.Index, match.Index + match.Length, "url(" + Quote(value) + ")");
         }
         foreach (CssStringUrlReference image in ExtractImageSetStringUrls(normalized)) {
             if (!includeFragmentReferences && IsFragmentOnlyReference(image.Source)) continue;
             string source = DecodeCssEscapes(image.Source);
             string value = rewrite(source, HtmlResourceKind.Image);
-            if (value != source) replacements.Add((image.SourceStart - 1, image.End, Quote(value)));
+            if (value != source) AddReplacement(image.SourceStart - 1, image.End, Quote(value));
         }
-        var output = new StringBuilder(css);
+        var accepted = new List<(int Start, int End, string Value)>();
         int lastStart = normalized.Length;
         foreach (var item in replacements.OrderByDescending(item => item.Start)) {
             if (item.End > lastStart) continue;
-            output.Remove(item.Start, item.End - item.Start).Insert(item.Start, item.Value);
+            accepted.Add(item);
             lastStart = item.Start;
         }
+        if (accepted.Count == 0) return css;
+        long outputCharacters = css.Length;
+        foreach (var item in accepted) outputCharacters += item.Value.Length - (item.End - item.Start);
+        if (outputCharacters > maximumOutputCharacters) throw OutputLimit();
+        var output = new StringBuilder(checked((int)outputCharacters));
+        int copied = 0;
+        for (int index = accepted.Count - 1; index >= 0; index--) {
+            var item = accepted[index];
+            output.Append(css, copied, item.Start - copied).Append(item.Value);
+            copied = item.End;
+        }
+        output.Append(css, copied, css.Length - copied);
         return output.ToString();
+
+        void AddReplacement(int start, int end, string value) {
+            if (value.Length > maximumOutputCharacters - stagedCharacters) throw OutputLimit();
+            stagedCharacters += value.Length;
+            replacements.Add((start, end, value));
+        }
+
+        static InvalidDataException OutputLimit() =>
+            new InvalidDataException("Rewritten stylesheet exceeds the output character limit.");
 
         static string Quote(string value) => "\"" + value.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\r", "\\d ").Replace("\n", "\\a ").Replace("\f", "\\c ") + "\"";
     }

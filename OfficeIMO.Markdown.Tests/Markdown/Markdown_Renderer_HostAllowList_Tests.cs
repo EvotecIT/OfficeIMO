@@ -57,7 +57,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void UrlOriginPolicy_RespectsHostAllowList_ForAbsoluteHttpLinksAndImages() {
-            var o = new HtmlOptions();
+            var o = new MarkdownHtmlExportOptions();
             o.AllowedHttpLinkHosts.Add("example.com");
             o.AllowedHttpImageHosts.Add(".img.example.com");
 
@@ -71,7 +71,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void UrlOriginPolicy_HostAllowList_DoesNotBlockRelativeUrls() {
-            var o = new HtmlOptions { BaseUri = new System.Uri("https://base.example/") };
+            var o = new MarkdownHtmlExportOptions { BaseUri = new System.Uri("https://base.example/") };
             o.AllowedHttpLinkHosts.Add("example.com");
             o.AllowedHttpImageHosts.Add("example.com");
 
@@ -82,7 +82,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void UrlOriginPolicy_HostAllowList_AppliesToProtocolRelativeUrls() {
-            var o = new HtmlOptions { BaseUri = new System.Uri("https://base.example/") };
+            var o = new MarkdownHtmlExportOptions { BaseUri = new System.Uri("https://base.example/") };
             o.AllowedHttpLinkHosts.Add("example.com");
 
             Assert.True(UrlOriginPolicy.IsAllowedHttpLink(o, "//example.com/a"));

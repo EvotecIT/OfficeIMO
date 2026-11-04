@@ -16,9 +16,9 @@ namespace OfficeIMO.Tests {
         public void Test_ConcurrentWrites() {
             string filePath = Path.Combine(_directoryWithFiles, "ConcurrentWrites.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 Parallel.For(1, 1001, i => {
-                    sheet.CellValue(i, 1, $"Value {i}");
+                    sheet.Cell(i, 1).SetValue($"Value {i}");
                 });
                 document.Save();
             }

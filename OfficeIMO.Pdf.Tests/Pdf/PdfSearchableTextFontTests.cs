@@ -15,7 +15,7 @@ public sealed class PdfSearchableTextFontTests {
     [InlineData(1, true)]
     [InlineData(2, true)]
     public void SearchableUnicodeDoesNotDependOnActualTextReplacement(int fontKind, bool crossFontBank) {
-        var options = new PdfOptions { CompressContentStreams = false };
+        var options = new PdfCreateOptions { CompressContentStreams = false };
         if (crossFontBank) {
             options.FileVersion = PdfFileVersion.Pdf17;
             options.ObjectSerializationMode = PdfObjectSerializationMode.ForwardOnly;

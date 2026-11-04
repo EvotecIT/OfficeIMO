@@ -22,15 +22,15 @@ public sealed class PublisherMergedTableWritingTests {
         Assert.Equal(12, table.Cells.Sum(cell => cell.RowSpan * cell.ColumnSpan));
         Assert.Equal(fills, table.Cells.Count(cell => cell.FillColor.HasValue));
         Assert.Equal(edges, table.BorderSegments.Count);
-        Assert.DoesNotContain(document.ReadReport.FidelityDiagnostics, finding => finding.LossKind == OfficeConversionLossKind.Omission);
-        Assert.Equal(source, document.ToPubBytes());
+        Assert.DoesNotContain(document.ReadReport.Diagnostics, finding => finding.LossKind == OfficeConversionLossKind.Omission);
+        Assert.Equal(source, document.ToBytes());
         if (control == "TableMergedDecoration") {
             Assert.Equal(OfficeColor.FromRgb(255, 224, 160), Cell(table, 0, 0).FillColor);
             Assert.Equal(OfficeColor.FromRgb(160, 224, 255), Cell(table, 1, 0).FillColor);
             Assert.Equal(OfficeColor.FromRgb(180, 240, 180), Cell(table, 1, 2).FillColor);
             Assert.Null(Cell(table, 2, 1).FillColor);
             Assert.Throws<ArgumentException>(() => document.SetTableCellFillColor(table.Id, 0, 1, OfficeColor.Black));
-            Assert.Equal(source, document.ToPubBytes());
+            Assert.Equal(source, document.ToBytes());
         }
     }
 
@@ -42,7 +42,7 @@ public sealed class PublisherMergedTableWritingTests {
         byte[] source = Fixture("TableMergedDecoration");
         PublisherDocument document = PublisherDocument.Load(source);
         ApplyEdited(document, styles, text);
-        byte[] saved = document.ToPubBytes(Allow());
+        byte[] saved = document.ToBytes(Allow());
         PublisherTable actual = PublisherDocument.Load(saved).Pages[0].Tables.Single();
         PublisherTable expected = PublisherDocument.Load(Fixture(control)).Pages[0].Tables.Single();
         Compare(expected, actual);
@@ -53,7 +53,7 @@ public sealed class PublisherMergedTableWritingTests {
         }
         PublisherNativeWritingTests.AssertPreservedStorage(source, saved, "Escher/EscherStm",
             text ? new[] { "Quill/QuillSub/CONTENTS" } : Array.Empty<string>());
-        Assert.Equal(saved, PublisherDocument.Load(saved).ToPubBytes());
+        Assert.Equal(saved, PublisherDocument.Load(saved).ToBytes());
     }
 
     [Fact]
@@ -64,7 +64,7 @@ public sealed class PublisherMergedTableWritingTests {
         PublisherTableCell horizontal = Cell(table, 0, 0);
         Assert.Equal((3, 4, 7), (table.RowCount, table.ColumnCount, table.Cells.Count));
         Assert.Equal((1, 2, "Native Horizontal"), (horizontal.RowSpan, horizontal.ColumnSpan, horizontal.Text));
-        Assert.Equal(source, document.ToPubBytes());
+        Assert.Equal(source, document.ToBytes());
         Compare(PublisherDocument.Load(Fixture("GeneratedDecoratedMergedTable", "native-control-edited.pub")).Pages[0].Tables.Single(), table);
         OfficeRichTextParagraph paragraph = Assert.Single(horizontal.Paragraphs);
         OfficeRichTextRun run = Assert.Single(paragraph.Runs);
@@ -77,7 +77,7 @@ public sealed class PublisherMergedTableWritingTests {
             }, paragraph.Alignment, paragraph.LineHeight, paragraph.Margins, paragraph.Indent, paragraph.LineHeightFactor)
                 .WithTabStops(paragraph.TabStops)
         });
-        byte[] saved = document.ToPubBytes(Allow());
+        byte[] saved = document.ToBytes(Allow());
         PublisherDocument restored = PublisherDocument.Load(saved);
         PublisherTable restoredTable = restored.Pages[0].Tables.Single();
         Compare(PublisherDocument.Load(Fixture("TableMergedDecoration")).Pages[0].Tables.Single(), restoredTable);
@@ -91,7 +91,7 @@ public sealed class PublisherMergedTableWritingTests {
         Assert.Equal((paragraph.Alignment, paragraph.LineHeight, paragraph.Margins, paragraph.Indent, paragraph.LineHeightFactor),
             (restoredParagraph.Alignment, restoredParagraph.LineHeight, restoredParagraph.Margins, restoredParagraph.Indent, restoredParagraph.LineHeightFactor));
         PublisherNativeWritingTests.AssertPreservedStorage(source, saved, "Quill/QuillSub/CONTENTS");
-        Assert.Equal(saved, restored.ToPubBytes());
+        Assert.Equal(saved, restored.ToBytes());
     }
 
     [Fact]
@@ -102,7 +102,7 @@ public sealed class PublisherMergedTableWritingTests {
         Assert.Equal(7, original.Cells.Count); Assert.All(original.Cells, cell => Assert.Null(cell.FillColor));
         Assert.Empty(original.BorderSegments);
         ApplyBase(document);
-        byte[] saved = document.ToPubBytes(Allow());
+        byte[] saved = document.ToBytes(Allow());
         Compare(PublisherDocument.Load(Fixture("TableMergedDecoration")).Pages[0].Tables.Single(), PublisherDocument.Load(saved).Pages[0].Tables.Single());
         var artwork = Artwork(saved);
         Assert.Equal(7, artwork.TableArtwork.Count(item => item.Value(0x2001) == 0));
@@ -114,10 +114,10 @@ public sealed class PublisherMergedTableWritingTests {
     public void Missing_merged_cell_utilities_follow_logical_definition_indices_and_preserve_existing_edges() {
         byte[] source = Fixture("TableMergedMissingCells", "missing-merged-cells.pub");
         PublisherDocument document = PublisherDocument.Load(source);
-        Assert.Equal(source, document.ToPubBytes());
+        Assert.Equal(source, document.ToBytes());
         var before = EdgeBytes(source);
         ApplyBase(document, borders: false);
-        byte[] saved = document.ToPubBytes(Allow());
+        byte[] saved = document.ToBytes(Allow());
         Compare(PublisherDocument.Load(Fixture("TableMergedDecoration")).Pages[0].Tables.Single(), PublisherDocument.Load(saved).Pages[0].Tables.Single());
         var artwork = Artwork(saved);
         Assert.Equal(Enumerable.Range(0, 7).Select(index => (uint)index), artwork.TableArtwork.Where(item => item.Value(0x2001) == 0)
@@ -175,7 +175,7 @@ public sealed class PublisherMergedTableWritingTests {
         }
     }
     private static OfficeColor Green => OfficeColor.FromRgb(0, 128, 0);
-    private static PublisherSaveOptions Allow() => new() { LossPolicy = OfficeConversionLossPolicy.Allow };
+    private static PublisherSaveOptions Allow() => new() { AllowLoss = true };
     private static PublisherTableCell Cell(PublisherTable table, int row, int column) => table.Cells.Single(cell => cell.RowIndex == row && cell.ColumnIndex == column);
     private static (int, int, int, int) Key(PublisherTableBorderSegment edge) => (edge.FirstRow, edge.FirstColumn, edge.LastRow, edge.LastColumn);
     private static void Compare(PublisherTable expected, PublisherTable actual) {
@@ -189,7 +189,7 @@ public sealed class PublisherMergedTableWritingTests {
     private static byte[] Fixture(string name, string? file = null) => File.ReadAllBytes(PublisherNativeTests.Fixture(
         "NativeComparison/" + name + "/" + (file ?? "native-" + name.ToLowerInvariant() + ".pub")));
     private static PublisherEscherReader Reader(byte[] art) => new(new PublisherBinaryData(art, "Escher/EscherStm"), null,
-        new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None));
+        new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None));
     private static PublisherEscherData Artwork(byte[] source) => Reader(Compound(source).Streams["Escher/EscherStm"]).Read();
     private static Dictionary<uint, byte[]> EdgeBytes(byte[] source) {
         byte[] art = Compound(source).Streams["Escher/EscherStm"];

@@ -92,7 +92,7 @@ public class PdfIncrementalAnnotationEditorTests {
     public void UnsignedMarkupUpdateRewritesGeometryAndRegeneratesAppearance() {
         byte[] pdf = PdfDocument.Create()
             .HighlightAnnotation("Review", width: 120, height: 14)
-            .Paragraph(paragraph => paragraph.Text("Source"))
+            .Paragraph(paragraph => paragraph.AddText("Source"))
             .ToBytes();
         int objectNumber = Assert.Single(PdfInspector.Inspect(pdf).GetAnnotationsBySubtype("Highlight")).ObjectNumber!.Value;
 
@@ -110,7 +110,7 @@ public class PdfIncrementalAnnotationEditorTests {
 
     [Fact]
     public void AnnotationCreationAndUpdateRoundTripRicherVisualStyles() {
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Styled annotation")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Styled annotation")).ToBytes();
         PdfAnnotationEditResult created = PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {
             Subtype = "Square",
             Rectangle = new[] { 20D, 30D, 140D, 80D },
@@ -186,7 +186,7 @@ public class PdfIncrementalAnnotationEditorTests {
     }
 
     private static (byte[] Pdf, int AnnotationObjectNumber) BuildCertifiedHighlightPdf() {
-        byte[] source = PdfDocument.Create().HighlightAnnotation("Review", 120, 14).Paragraph(p => p.Text("Source")).ToBytes();
+        byte[] source = PdfDocument.Create().HighlightAnnotation("Review", 120, 14).Paragraph(p => p.AddText("Source")).ToBytes();
         int objectNumber = Assert.Single(PdfInspector.Inspect(source).GetAnnotationsBySubtype("Highlight")).ObjectNumber!.Value;
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(source, new PdfExternalSignatureOptions {
             Profile = PdfSignatureProfile.Certification,
@@ -200,7 +200,7 @@ public class PdfIncrementalAnnotationEditorTests {
     private static byte[] BuildAnnotatedPdf(out int annotationObjectNumber) {
         byte[] pdf = PdfDocument.Create()
             .TextAnnotation("Original review note", width: 24, height: 24)
-            .Paragraph(paragraph => paragraph.Text("Annotated source"))
+            .Paragraph(paragraph => paragraph.AddText("Annotated source"))
             .ToBytes();
         annotationObjectNumber = Assert.Single(PdfInspector.Inspect(pdf).GetAnnotationsBySubtype("Text")).ObjectNumber!.Value;
         return pdf;

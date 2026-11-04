@@ -1,5 +1,5 @@
 $path = '.\Pdf-Approval-Form.pdf'
-PdfNew -Path $path {
+New-OfficePdf -Path $path {
     PdfHeading 'Change approval'
     PdfParagraph 'Complete the fields before submitting the document.'
     PdfText 'Reviewer name'

@@ -7,6 +7,9 @@ using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
+using A = DocumentFormat.OpenXml.Drawing;
+using X = DocumentFormat.OpenXml.Spreadsheet;
+using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 using Xunit;
 using PdfCore = OfficeIMO.Pdf;
 
@@ -15,32 +18,77 @@ namespace OfficeIMO.Tests;
 public partial class Excel {
 
     [Fact]
+    public void SaveAsPdf_Rejects_Drawing_Anchors_Beyond_The_Resolver_Span() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfOversizedDrawingAnchor.xlsx");
+        using (ExcelDocument source = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Drawings" })) {
+            ExcelSheet sheet = source.Sheets[0];
+            sheet.Cell(2, 2).SetValue("Visible cell");
+            sheet.PageSetup.PrintArea = "B2";
+            source.Save();
+        }
+        using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(workbookPath, true)) {
+            WorksheetPart worksheet = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+            DrawingsPart drawings = worksheet.AddNewPart<DrawingsPart>();
+            worksheet.Worksheet!.Append(new X.Drawing { Id = worksheet.GetIdOfPart(drawings) });
+            drawings.WorksheetDrawing = new Xdr.WorksheetDrawing(new Xdr.TwoCellAnchor(
+                new Xdr.FromMarker(new Xdr.ColumnId("1"), new Xdr.ColumnOffset("0"), new Xdr.RowId("1"), new Xdr.RowOffset("0")),
+                new Xdr.ToMarker(new Xdr.ColumnId("3"), new Xdr.ColumnOffset("0"), new Xdr.RowId("1048575"), new Xdr.RowOffset("0")),
+                new Xdr.Shape(
+                    new Xdr.NonVisualShapeProperties(
+                        new Xdr.NonVisualDrawingProperties { Id = 2U, Name = "Oversized drawing" },
+                        new Xdr.NonVisualShapeDrawingProperties()),
+                    new Xdr.ShapeProperties(new A.PresetGeometry { Preset = A.ShapeTypeValues.RoundRectangle }),
+                    new Xdr.TextBody(new A.BodyProperties(), new A.ListStyle(), new A.Paragraph(new A.Run(new A.Text("Oversized drawing"))))),
+                new Xdr.ClientData()));
+            drawings.WorksheetDrawing.Save();
+            worksheet.Worksheet.Save();
+        }
+
+        using var document = ExcelDocument.Load(workbookPath, new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
+        var result = document.ConvertToPdfWithEvidence(new ExcelPdfExportOptions {
+            WorksheetLayout = ExcelPdfWorksheetLayoutMode.WorksheetCanvas,
+            UseWorksheetImages = true,
+            MaxRowsPerSheet = 1
+        });
+        Assert.Contains(result.Warnings, warning => warning.Code == "WorksheetDrawingObject"
+            && warning.Message.Contains("anchor exceeds the supported span", StringComparison.Ordinal));
+        using var pdf = PdfPigDocument.Open(result.ToBytes());
+        Assert.Contains("Visible cell", pdf.GetPage(1).Text);
+    }
+
+    [Fact]
     public void SaveAsPdf_ExcelWorkbook_Exports_Worksheet_Images() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfImages.xlsx");
 
         byte[] imageBytes = CreateMinimalRgbPng();
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Images")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Images" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "ImageMarker");
-            sheet.AddImage(2, 1, imageBytes, "image/png", widthPixels: 24, heightPixels: 16, name: "Pdf Logo", altText: "PDF logo");
+            sheet.Cell(1, 1).SetValue("ImageMarker");
+            sheet.AddImage(2, 1, imageBytes, new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(24),
+                Height = OfficeIMO.OfficeLength.Pixels(16),
+                Name = "Pdf Logo",
+                Description = "PDF logo"
+            });
 
             ExcelImage image = Assert.Single(sheet.Images);
             Assert.Equal("Pdf Logo", image.Name);
             Assert.Equal("PDF logo", image.Description);
             Assert.Equal(2, image.RowIndex);
             Assert.Equal(1, image.ColumnIndex);
-            Assert.Equal(24, image.WidthPixels);
-            Assert.Equal(16, image.HeightPixels);
+            Assert.Equal(24, image.Width.ToPixels());
+            Assert.Equal(16, image.Height.ToPixels());
             Assert.Equal("image/png", image.ContentType);
             Assert.Equal(imageBytes, image.ToBytes());
 
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0
-            });
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -62,16 +110,21 @@ public partial class Excel {
 
         byte[] imageBytes = CreateMinimalRgbPng();
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Images")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Images" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "ImageMarker");
-            sheet.AddImage(2, 1, imageBytes, "image/png", widthPixels: 24, heightPixels: 16, name: "Rotated Logo").SetRotation(30);
+            sheet.Cell(1, 1).SetValue("ImageMarker");
+            sheet.AddImage(2, 1, imageBytes, new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(24),
+                Height = OfficeIMO.OfficeLength.Pixels(16),
+                Name = "Rotated Logo"
+            }).SetRotation(30);
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0
-            });
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         PdfCore.PdfImagePlacement placement = Assert.Single(PdfCore.PdfImageExtractor.ExtractImagePlacements(bytes));
@@ -86,18 +139,24 @@ public partial class Excel {
 
         byte[] imageBytes = CreateMinimalRgbPng();
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Images")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Images" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "VisibleMarker");
-            sheet.Cell(2, 1, "HiddenImageMarker");
-            sheet.AddImage(2, 1, imageBytes, "image/png", widthPixels: 24, heightPixels: 16, name: "Hidden Logo", altText: "Hidden logo");
+            sheet.Cell(1, 1).SetValue("VisibleMarker");
+            sheet.Cell(2, 1).SetValue("HiddenImageMarker");
+            sheet.AddImage(2, 1, imageBytes, new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(24),
+                Height = OfficeIMO.OfficeLength.Pixels(16),
+                Name = "Hidden Logo",
+                Description = "Hidden logo"
+            });
             sheet.SetRowHidden(2, true);
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 RespectWorksheetHiddenRowsAndColumns = true
-            });
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -122,44 +181,54 @@ public partial class Excel {
             73, 69, 78, 68,
             0, 0, 0, 0
         };
-        var options = new ExcelToPdfOptions {
+        var options = new ExcelPdfExportOptions {
             IncludeSheetHeadings = false
         };
 
         byte[] bytes;
         PdfCore.PdfDocumentConversionResult result;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Images")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Images" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "ImageMarker");
-            sheet.AddImage(2, 1, invalidPngBytes, "image/png", widthPixels: 24, heightPixels: 16, name: "Invalid PNG");
+            sheet.Cell(1, 1).SetValue("ImageMarker");
+            sheet.AddImage(2, 1, invalidPngBytes, new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(24),
+                Height = OfficeIMO.OfficeLength.Pixels(16),
+                Name = "Invalid PNG"
+            });
             document.Save();
 
-            result = document.ToPdfDocumentResult(options);
+            result = document.ConvertToPdfWithEvidence(options);
             bytes = result.ToBytes();
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         Assert.Contains("ImageMarker", pdf.GetPage(1).Text);
         Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(bytes));
-        Assert.Contains(result.Warnings, warning => warning.Source == "Images" && warning.Code == "WorksheetImage");
+        Assert.Contains(result.Warnings, warning => warning.Source == "Images" && warning.Code == "worksheet-image");
     }
 
     [Fact]
     public void SaveAsPdf_ExcelWorkbook_Warns_And_Skips_Worksheet_Image_When_Declared_Type_Differs_From_Bytes() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfMismatchedImageType.xlsx");
-        var options = new ExcelToPdfOptions {
+        var options = new ExcelPdfExportOptions {
             IncludeSheetHeadings = false
         };
 
         byte[] bytes;
         PdfCore.PdfDocumentConversionResult result;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Images")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Images" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "ImageMarker");
-            sheet.AddImage(2, 1, CreateMinimalRgbPng(), "image/jpeg", widthPixels: 24, heightPixels: 16, name: "Declared JPEG");
+            sheet.Cell(1, 1).SetValue("ImageMarker");
+            sheet.AddImage(2, 1, CreateMinimalRgbPng(), new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/jpeg",
+                Width = OfficeIMO.OfficeLength.Pixels(24),
+                Height = OfficeIMO.OfficeLength.Pixels(16),
+                Name = "Declared JPEG"
+            });
             document.Save();
 
-            result = document.ToPdfDocumentResult(options);
+            result = document.ConvertToPdfWithEvidence(options);
             bytes = result.ToBytes();
         }
 
@@ -168,7 +237,7 @@ public partial class Excel {
         Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(bytes));
         Assert.Contains(result.Warnings, warning =>
             warning.Source == "Images" &&
-            warning.Code == "WorksheetImage" &&
+            warning.Code == "worksheet-image" &&
             warning.Message.Contains("Image bytes were declared as JPEG but were detected as Png.", StringComparison.Ordinal));
     }
 
@@ -178,23 +247,32 @@ public partial class Excel {
 
         byte[] imageBytes = CreateMinimalRgbPng();
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Images")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Images" })) {
+            // The placement assertions use Calibri 11 character-width units.
+            Font nativeFont = document.WorkbookPartRoot.WorkbookStylesPart!.Stylesheet.Fonts!.Elements<Font>().First();
+            nativeFont.FontName!.Val = "Calibri";
+            nativeFont.FontSize!.Val = 11D;
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Label");
-            sheet.Cell(1, 2, "Visual");
-            sheet.Cell(2, 1, "BeforeRow");
-            sheet.Cell(3, 1, "AnchorRow");
-            sheet.Cell(4, 1, "AfterRow");
-            sheet.AddImage(3, 2, imageBytes, "image/png", widthPixels: 72, heightPixels: 72, name: "Anchored Cell Image");
+            sheet.Cell(1, 1).SetValue("Label");
+            sheet.Cell(1, 2).SetValue("Visual");
+            sheet.Cell(2, 1).SetValue("BeforeRow");
+            sheet.Cell(3, 1).SetValue("AnchorRow");
+            sheet.Cell(4, 1).SetValue("AfterRow");
+            sheet.AddImage(3, 2, imageBytes, new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(72),
+                Height = OfficeIMO.OfficeLength.Pixels(72),
+                Name = "Anchored Cell Image"
+            });
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 TextFallbacks = PdfCore.PdfTextFallbackFeatures.None,
-                PageSize = new PdfCore.PageSize(420, 360),
-                Margins = PdfCore.PageMargins.Uniform(24)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(360)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -221,23 +299,28 @@ public partial class Excel {
     public void SaveAsPdf_ExcelWorkbook_FlowTable_Mode_Embeds_Images_In_Anchored_Cells() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfFlowAnchoredImageCell.xlsx");
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Images")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Images" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Label");
-            sheet.Cell(1, 2, "Visual");
-            sheet.Cell(2, 1, "BeforeImageRow");
-            sheet.Cell(3, 1, "AnchoredImageRow");
-            sheet.Cell(4, 1, "AfterImageRow");
-            sheet.AddImage(3, 2, CreateMinimalRgbPng(), "image/png", widthPixels: 72, heightPixels: 72, name: "Anchored Cell Image");
+            sheet.Cell(1, 1).SetValue("Label");
+            sheet.Cell(1, 2).SetValue("Visual");
+            sheet.Cell(2, 1).SetValue("BeforeImageRow");
+            sheet.Cell(3, 1).SetValue("AnchoredImageRow");
+            sheet.Cell(4, 1).SetValue("AfterImageRow");
+            sheet.AddImage(3, 2, CreateMinimalRgbPng(), new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(72),
+                Height = OfficeIMO.OfficeLength.Pixels(72),
+                Name = "Anchored Cell Image"
+            });
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 WorksheetLayout = ExcelPdfWorksheetLayoutMode.FlowTable,
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PageSize(420, 360),
-                Margins = PdfCore.PageMargins.Uniform(24)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(360)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -255,20 +338,25 @@ public partial class Excel {
     public void SaveAsPdf_ExcelWorkbook_Renders_A_Paginated_Image_Only_On_Its_Owning_Page() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfPaginatedImage.xlsx");
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Images")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Images" })) {
             ExcelSheet sheet = document.Sheets[0];
             for (int row = 1; row <= 45; row++) {
-                sheet.Cell(row, 1, "Row " + row.ToString(CultureInfo.InvariantCulture));
+                sheet.Cell(row, 1).SetValue("Row " + row.ToString(CultureInfo.InvariantCulture));
             }
-            sheet.AddImage(42, 2, CreateMinimalRgbPng(), "image/png", widthPixels: 48, heightPixels: 32, name: "Late page image");
+            sheet.AddImage(42, 2, CreateMinimalRgbPng(), new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(48),
+                Height = OfficeIMO.OfficeLength.Pixels(32),
+                Name = "Late page image"
+            });
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PageSize(300, 220),
-                Margins = PdfCore.PageMargins.Uniform(24)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -281,20 +369,25 @@ public partial class Excel {
     public void SaveAsPdf_ExcelWorkbook_Positions_Terminal_Media_After_The_Final_Body_Chunk() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfTerminalMedia.xlsx");
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Images")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Images" })) {
             ExcelSheet sheet = document.Sheets[0];
             for (int row = 1; row <= 45; row++) {
-                sheet.Cell(row, 1, "Row " + row.ToString(CultureInfo.InvariantCulture));
+                sheet.Cell(row, 1).SetValue("Row " + row.ToString(CultureInfo.InvariantCulture));
             }
-            sheet.AddImage(55, 2, CreateMinimalRgbPng(), "image/png", widthPixels: 72, heightPixels: 32, name: "Terminal image");
+            sheet.AddImage(55, 2, CreateMinimalRgbPng(), new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(72),
+                Height = OfficeIMO.OfficeLength.Pixels(32),
+                Name = "Terminal image"
+            });
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PageSize(300, 220),
-                Margins = PdfCore.PageMargins.Uniform(24)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -309,19 +402,29 @@ public partial class Excel {
     public void SaveAsPdf_ExcelWorkbook_Preserves_Separate_Anchors_On_A_Media_Only_Sheet() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfMediaOnlyAnchors.xlsx");
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Images")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Images" })) {
             ExcelSheet sheet = document.Sheets[0];
             byte[] image = CreateMinimalRgbPng();
-            sheet.AddImage(2, 2, image, "image/png", widthPixels: 24, heightPixels: 16, name: "Upper image");
-            sheet.AddImage(8, 4, image, "image/png", widthPixels: 24, heightPixels: 16, name: "Lower image");
+            sheet.AddImage(2, 2, image, new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(24),
+                Height = OfficeIMO.OfficeLength.Pixels(16),
+                Name = "Upper image"
+            });
+            sheet.AddImage(8, 4, image, new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(24),
+                Height = OfficeIMO.OfficeLength.Pixels(16),
+                Name = "Lower image"
+            });
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
-                PageSize = new PdfCore.PageSize(360, 300),
-                Margins = PdfCore.PageMargins.Uniform(24)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(300)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         IReadOnlyList<PdfCore.PdfImagePlacement> placements = PdfCore.PdfImageExtractor.ExtractImagePlacements(bytes);

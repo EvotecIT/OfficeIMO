@@ -29,10 +29,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 decryptedWorkbookStream = BiffRc4RecordStreamCipher.Transform(workbookStream, session);
                 return true;
             } catch (CryptographicException) {
-                AddError(diagnostics, filePassRecord, "XLS-BIFF-FILEPASS-PASSWORD-INVALID",
+                AddError(diagnostics, filePassRecord, "xls-biff-filepass-password-invalid",
                     "The supplied legacy XLS password did not match the workbook FilePass verifier.");
             } catch (Exception error) when (error is InvalidDataException or NotSupportedException or ArgumentException or OverflowException) {
-                AddError(diagnostics, filePassRecord, "XLS-BIFF-FILEPASS-INVALID",
+                AddError(diagnostics, filePassRecord, "xls-biff-filepass-invalid",
                     "The RC4 CryptoAPI FilePass descriptor could not be read. " + error.Message);
             }
             return false;

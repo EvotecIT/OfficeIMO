@@ -1,11 +1,13 @@
 using System.Management.Automation;
+using System.Security;
 using OfficeIMO.Pdf;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Pdf;
 
 /// <summary>Creates a proof report for user-visible signals preserved by a PDF rewrite.</summary>
-[Cmdlet(VerbsDiagnostic.Test, "OfficePdfRewrite")]
+[Cmdlet(VerbsDiagnostic.Test, "OfficePdfRewrite", DefaultParameterSetName = "Path")]
 [OutputType(typeof(PdfRewritePreservationReport))]
 public sealed class TestOfficePdfRewriteCommand : PSCmdlet
 {
@@ -27,7 +29,8 @@ public sealed class TestOfficePdfRewriteCommand : PSCmdlet
 
     /// <summary>Password used to authenticate the original PDF.</summary>
     [Parameter]
-    public string? ReferencePassword { get; set; }
+    [OfficePasswordTransformation]
+    public SecureString? ReferencePassword { get; set; }
 
     /// <summary>After authentication, explicitly ignore restrictions on the original PDF.</summary>
     [Parameter]
@@ -35,7 +38,8 @@ public sealed class TestOfficePdfRewriteCommand : PSCmdlet
 
     /// <summary>Password used to authenticate the rewritten PDF.</summary>
     [Parameter]
-    public string? DifferencePassword { get; set; }
+    [OfficePasswordTransformation]
+    public SecureString? DifferencePassword { get; set; }
 
     /// <summary>After authentication, explicitly ignore restrictions on the rewritten PDF.</summary>
     [Parameter]

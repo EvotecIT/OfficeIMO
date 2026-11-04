@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Calculation settings parsed from BIFF calculation records.
     /// </summary>
-    public sealed class LegacyXlsCalculationSettings {
+    internal sealed class LegacyXlsCalculationSettings {
         private readonly List<LegacyXlsCalculationSettingRecord> _records = new();
 
         /// <summary>Gets the source calculation records in workbook order.</summary>

@@ -36,10 +36,9 @@ internal static class NativePreservationSmoke {
         Require(moved.Geometry!.LeftPoints == 100 && moved.Geometry.TopPoints == 130 && moved.GetBytes().SequenceEqual(image.GetBytes())
             && image.Geometry!.LeftPoints == 80 && translated.Report.UpdatedRecords.Count == 1,
             "Image translation lost geometry, image bytes, immutable source or edit reporting.");
-        using var conversion = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(new MemoryStream(translated.GetPackageBytes()),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var conversion = IWorkSourceDocument.Open(new MemoryStream(translated.GetPackageBytes()), IWorkDocumentKind.Keynote).ToPowerPointResult(new() { Mode = IWorkConversionMode.EditableOnly });
         conversion.RequireCompleteEditableReconstruction(); using var saved = new MemoryStream(); conversion.Value.Save(saved); saved.Position = 0;
-        using var presentation = PowerPointPresentation.Load(saved);
+        using var presentation = PowerPointDocument.Load(saved);
         Require(presentation.Slides.Count == 3 && !presentation.ValidateDocument().Any(), "Translated source failed saved PowerPoint reconstruction.");
         using var cancellation = new CancellationTokenSource(); cancellation.Cancel();
         byte[] before = saved.ToArray();
@@ -48,9 +47,9 @@ internal static class NativePreservationSmoke {
         Console.WriteLine("PASS | native Keynote image translation | D9F69DD9C3511CC34AA9B9766061308F29DC7871DB8F8F1FA23036A8122A800F | exact package, resources, cache acceptance, immutable source, strict saved/reopened PPTX and cancellation");
         byte[] tightInput = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "preservation.key"));
         var tight = IWorkSourceDocument.Open(tightInput, options: new() {
-            MaximumPackageBytes = tightInput.Length, MaximumEntryBytes = 92_000, MaximumTotalEntryBytes = 92_000,
-            MaximumIwaBytes = 32_768, MaximumDecompressedIwaBytes = 32_768, MaximumSnappyChunkBytes = 32_768,
-            MaximumTotalDecompressedIwaBytes = 50_000, MaximumRecordCount = 205
+            MaxPackageBytes = tightInput.Length, MaxEntryBytes = 92_000, MaxTotalEntryBytes = 92_000,
+            MaxIwaBytes = 32_768, MaxDecompressedIwaBytes = 32_768, MaxSnappyChunkBytes = 32_768,
+            MaxTotalDecompressedIwaBytes = 50_000, MaxRecordCount = 205
         });
         Require(tight.BeginEdit().SaveBytesResult().Report.OutputPackageContentHash == tight.ComputePackageContentHash(),
             "Valid tight read bounds prevented unchanged preservation.");

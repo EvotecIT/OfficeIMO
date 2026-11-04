@@ -29,12 +29,14 @@ public sealed class PublisherEditingTests {
         OfficeRichTextRun run = Assert.Single(Assert.Single(paint.Paragraphs).Runs);
         Assert.True(run.Bold); Assert.Equal(18, run.FontSize); Assert.Equal(OfficeColor.FromRgb(180, 20, 30), run.Color);
         Assert.Contains("Edited publication", document.ToSvg());
-        Assert.Contains("Edited publication", PdfReadDocument.Open(document.ToPdfBytes()).ExtractText());
+        using PdfDocument editedPdf = PublisherNativeTests.ExportAndReloadPdf(document);
+        Assert.Contains("Edited publication", editedPdf.ExtractText());
 
         document.ReplaceStoryParagraphs(story.Id, Paragraphs("Second version"));
         Assert.Contains("Second version", document.ToSvg());
         Assert.DoesNotContain("Edited publication", document.ToSvg());
-        Assert.Contains("Second version", PdfReadDocument.Open(document.ToPdfBytes()).ExtractText());
+        using PdfDocument updatedPdf = PublisherNativeTests.ExportAndReloadPdf(document);
+        Assert.Contains("Second version", updatedPdf.ExtractText());
     }
 
     [Theory]
@@ -51,7 +53,7 @@ public sealed class PublisherEditingTests {
         Assert.Equal(before.Select(frame => (frame.Id, frame.StoryId, frame.PageId, frame.PreviousFrameId, frame.NextFrameId)),
             longer.Select(frame => (frame.Id, frame.StoryId, frame.PageId, frame.PreviousFrameId, frame.NextFrameId)));
         Assert.True(longer[longer.Length - 1].HasOverflow);
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_TEXT_FRAME_OVERFLOW");
+        Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == "PUB_TEXT_FRAME_OVERFLOW");
         AssertRanges(document, storyId);
 
         document.ReplaceStoryParagraphs(storyId, Paragraphs("Short"));
@@ -59,7 +61,7 @@ public sealed class PublisherEditingTests {
         Assert.False(shorter[shorter.Length - 1].HasOverflow);
         AssertRanges(document, storyId);
         Assert.All(shorter.Skip(1), frame => Assert.Equal(0, frame.TextLength));
-        Assert.DoesNotContain(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_TEXT_FRAME_OVERFLOW"
+        Assert.DoesNotContain(document.ReadReport.Diagnostics, item => item.Code == "PUB_TEXT_FRAME_OVERFLOW"
             && shorter.Any(frame => item.Location == "Contents/object/" + frame.Id));
     }
 
@@ -171,7 +173,7 @@ public sealed class PublisherEditingTests {
     [Fact]
     public void Edited_labels_count_toward_the_publication_character_limit() {
         PublisherDocument document = PublisherDocument.Load(PublisherNativeTests.Fixture("NativeComparison/Newsletter/native-newsletter.pub"),
-            new PublisherReadOptions { Limits = new OfficeLegacyImportLimits { MaxTextCharacters = 12000 } });
+            new PublisherLoadOptions { Limits = new OfficeLegacyImportLimits { MaxTextCharacters = 12000 } });
         Assert.True(document.TextStories.Count >= 2);
         uint[] ids = document.TextStories.Take(2).Select(story => story.Id).ToArray();
         // Unplaced labels still belong to the publication's retained content;
@@ -190,7 +192,7 @@ public sealed class PublisherEditingTests {
     [Fact]
     public void Projection_budget_failure_from_labels_leaves_previous_state_usable() {
         PublisherDocument document = PublisherDocument.Load(PublisherNativeTests.Fixture("NativeComparison/Text/native-text.pub"),
-            new PublisherReadOptions { Limits = new OfficeLegacyImportLimits { MaxTextCharacters = 200 } });
+            new PublisherLoadOptions { Limits = new OfficeLegacyImportLimits { MaxTextCharacters = 200 } });
         var label = OfficeTextParagraphLabel.AtPosition(new OfficeRichTextRun(new string('x', 100), 1, OfficeColor.Black), 0);
         var paragraph = new OfficeRichTextParagraph(new[] { new OfficeRichTextRun("Body", 12, OfficeColor.Black) }, label);
         var stories = document.TextStories; var pages = document.Pages; string svg = document.ToSvg();

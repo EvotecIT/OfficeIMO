@@ -117,7 +117,7 @@ public sealed partial class PdfEmptyAppearanceTests {
     [Fact]
     public void AppearanceAdmissionDoesNotRequireCopyPermissionForAuthorizedRefill() {
         PdfDocument original = PdfDocument.Create(pdf => pdf.Content(content => content.Canvas(canvas =>
-            canvas.TextField("Name", "Ada", 20, 20, 160, 24))));
+            canvas.TextField("Name", "Ada", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(160), global::OfficeIMO.OfficeLength.Points(24)))));
         byte[] source = original.Security.Encrypt(new PdfStandardEncryptionOptions("reader") {
             OwnerPassword = "owner", AllowedPermissions = PdfStandardPermissions.ModifyContents | PdfStandardPermissions.ModifyAnnotations
         }).Pdf;

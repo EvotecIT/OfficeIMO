@@ -4,7 +4,7 @@ $services = @(
     [pscustomobject]@{ Service = 'Messaging'; Owner = 'Collaboration'; Status = 'Review' }
 )
 
-WordNew -Path $path {
+New-OfficeWord -Path $path {
     WordSection {
         WordParagraph -Text 'Service Readiness' -Style Heading1
         WordParagraph -Text 'Review the Messaging service before publication.'
@@ -12,7 +12,7 @@ WordNew -Path $path {
     }
 }
 
-$document = Get-OfficeWord -Path $path -ReadOnly
+$document = Open-OfficeWord -Path $path -ReadOnly
 Get-OfficeWordStatistics -Document $document
 $document | Get-OfficeWordParagraph | Select-Object Index, Text
 $document | Get-OfficeWordTable | Select-Object Index, RowCount, ColumnCount

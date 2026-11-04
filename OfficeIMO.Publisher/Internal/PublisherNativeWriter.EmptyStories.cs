@@ -5,7 +5,7 @@ namespace OfficeIMO.Publisher.Internal;
 internal sealed partial class PublisherNativeWriter {
     /// <summary>Produces the observed native empty-CR representation without changing the public edited model.</summary>
     private static PublisherPublicationState NormalizeEmptyStories(PublisherPublicationState current, PublisherPublicationState baseline,
-        long maximumCharacters, CancellationToken token, out List<OfficeConversionFidelityDiagnostic> diagnostics) {
+        long maximumCharacters, CancellationToken token, out List<OfficeDiagnostic> diagnostics) {
         diagnostics = new(); long? characters = null;
         foreach (PublisherTextStory story in current.Text.Stories.Values) {
             token.ThrowIfCancellationRequested();

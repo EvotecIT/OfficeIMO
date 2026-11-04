@@ -59,7 +59,7 @@ public sealed class IWorkNumericFormatNativeExportTests {
         }
         using var output = new MemoryStream();
         if (kind == IWorkDocumentKind.Numbers) {
-            using var converted = source.ToExcelDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly,
+            using var converted = source.ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly,
                 AllowPartialEditableReconstruction = true });
             Assert.Contains(converted.Report.Diagnostics, item => item.Code == "IWORK_NUMBERS_CELL_PADDING_OMITTED");
             converted.Value.Save(output); output.Position = 0;
@@ -77,16 +77,16 @@ public sealed class IWorkNumericFormatNativeExportTests {
                 Assert.Equal(row.GetProperty("excelFormatCode").GetString(), codes[formatId]);
             }
             output.Position = 0; using var reopened = ExcelDocument.Load(output);
-            Assert.Equal(edited ? -9876d : 1234.5, reopened.Sheets[0].CellAt(4, 2).GetValue<double>());
+            Assert.Equal(edited ? -9876d : 1234.5, reopened.Sheets[0].Cell(4, 2).GetValue<double>());
         } else if (kind == IWorkDocumentKind.Pages) {
-            using var converted = source.ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+            using var converted = source.ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
             converted.RequireCompleteEditableReconstruction(); converted.Value.Save(output); output.Position = 0;
             using var saved = WordprocessingDocument.Open(output, false); Assert.Empty(new OpenXmlValidator().Validate(saved));
             var rows = saved.MainDocumentPart!.Document!.Body!.Elements<W.Table>().Single().Elements<W.TableRow>().ToArray();
             VerifyText(root, edited, rows.Select(row => row.Elements<W.TableCell>().Last().InnerText).ToArray());
             Assert.Contains(rows[6].Descendants<W.Color>(), color => color.Val?.Value == "FF0000");
         } else {
-            using var converted = source.ToPowerPointPresentationResult(new() { Mode = IWorkConversionMode.EditableOnly });
+            using var converted = source.ToPowerPointResult(new() { Mode = IWorkConversionMode.EditableOnly });
             converted.RequireCompleteEditableReconstruction(); converted.Value.Save(output); output.Position = 0;
             using var saved = PresentationDocument.Open(output, false); Assert.Empty(new OpenXmlValidator().Validate(saved));
             var rows = saved.PresentationPart!.SlideParts.Single().Slide!.Descendants<A.Table>().Single().Elements<A.TableRow>().ToArray();
@@ -99,7 +99,7 @@ public sealed class IWorkNumericFormatNativeExportTests {
     public void Native_editable_exports_and_PDFs_retain_all_edited_numeric_values_and_displays() {
         using var manifest = Manifest(); var root = manifest.RootElement;
         foreach (JsonElement family in root.GetProperty("families").EnumerateArray()) {
-            var pdf = PdfReadDocument.Open(File.ReadAllBytes(Corpus(family.GetProperty("nativePdf").GetString()!)));
+            var pdf = PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(Corpus(family.GetProperty("nativePdf").GetString()!))));
             Assert.Single(pdf.Pages); string text = Compact(pdf.ExtractText());
             foreach (JsonElement row in root.GetProperty("expectedRows").EnumerateArray())
                 Assert.Contains(Compact(row.GetProperty("label").GetString()! + row.GetProperty("nativeEditedDisplay").GetString()), text);
@@ -108,7 +108,7 @@ public sealed class IWorkNumericFormatNativeExportTests {
                 using var workbook = ExcelDocument.Load(file);
                 foreach (JsonElement row in root.GetProperty("expectedRows").EnumerateArray())
                     Assert.Equal(row.GetProperty("editedValue").GetDouble(),
-                        workbook.Sheets[0].CellAt(row.GetProperty("row").GetInt32() + 1, 3).GetValue<double>());
+                        workbook.Sheets[0].Cell(row.GetProperty("row").GetInt32() + 1, 3).GetValue<double>());
             } else {
                 string[] values;
                 if (file.EndsWith("docx", StringComparison.Ordinal)) {

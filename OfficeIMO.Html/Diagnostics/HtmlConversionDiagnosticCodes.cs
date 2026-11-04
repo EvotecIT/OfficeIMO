@@ -7,43 +7,43 @@ namespace OfficeIMO.Html;
 /// </summary>
 public static class HtmlConversionDiagnosticCodes {
     /// <summary>The expected format-specific semantic envelope was not present.</summary>
-    public const string SemanticContentMissing = "SemanticContentMissing";
+    public const string SemanticContentMissing = global::OfficeIMO.OfficeDiagnosticCodes.SemanticContentMissing;
 
     /// <summary>An expected semantic table or content block was not present.</summary>
-    public const string SemanticBlockMissing = "SemanticBlockMissing";
+    public const string SemanticBlockMissing = global::OfficeIMO.OfficeDiagnosticCodes.SemanticBlockMissing;
 
     /// <summary>A semantic scalar value could not be parsed as its declared type.</summary>
-    public const string SemanticValueInvalid = "SemanticValueInvalid";
+    public const string SemanticValueInvalid = global::OfficeIMO.OfficeDiagnosticCodes.SemanticValueInvalid;
 
     /// <summary>An embedded resource could not be decoded.</summary>
-    public const string ResourceDecodeFailed = "ResourceDecodeFailed";
+    public const string ResourceDecodeFailed = global::OfficeIMO.OfficeDiagnosticCodes.ResourceDecodeFailed;
 
     /// <summary>A resource media type is not supported by the target adapter.</summary>
-    public const string ResourceTypeUnsupported = "ResourceTypeUnsupported";
+    public const string ResourceTypeUnsupported = global::OfficeIMO.OfficeDiagnosticCodes.ResourceTypeUnsupported;
 
     /// <summary>Content was restored through an approximate fallback.</summary>
-    public const string ContentApproximated = "ContentApproximated";
+    public const string ContentApproximated = global::OfficeIMO.OfficeDiagnosticCodes.ContentApproximated;
 
     /// <summary>Content could not be represented in the target and was omitted.</summary>
-    public const string ContentOmitted = "ContentOmitted";
+    public const string ContentOmitted = global::OfficeIMO.OfficeDiagnosticCodes.ContentOmitted;
 
     /// <summary>Target artifact construction failed.</summary>
-    public const string ArtifactCreationFailed = "ArtifactCreationFailed";
+    public const string ArtifactCreationFailed = global::OfficeIMO.OfficeDiagnosticCodes.ArtifactCreationFailed;
 
     /// <summary>Input exceeded a target format grid or structural limit.</summary>
-    public const string TargetLimitExceeded = "TargetLimitExceeded";
+    public const string TargetLimitExceeded = global::OfficeIMO.OfficeDiagnosticCodes.TargetLimitExceeded;
 
     /// <summary>An invalid or overlapping table span was normalized.</summary>
-    public const string TableSpanInvalid = "TableSpanInvalid";
+    public const string TableSpanInvalid = global::OfficeIMO.OfficeDiagnosticCodes.TableSpanInvalid;
 
     /// <summary>HTML nesting exceeded the shared pre-analysis depth budget.</summary>
     public const string HtmlDepthLimitExceeded = "HtmlDepthLimitExceeded";
 
     /// <summary>One embedded stylesheet exceeded the configured byte budget.</summary>
-    public const string CssSizeLimitExceeded = "CssSizeLimitExceeded";
+    public const string CssSizeLimitExceeded = global::OfficeIMO.OfficeDiagnosticCodes.CssSizeLimitExceeded;
 
     /// <summary>Embedded stylesheets exceeded the operation-wide byte budget.</summary>
-    public const string CssTotalSizeLimitExceeded = "CssTotalSizeLimitExceeded";
+    public const string CssTotalSizeLimitExceeded = global::OfficeIMO.OfficeDiagnosticCodes.CssTotalSizeLimitExceeded;
 
     /// <summary>Active CSS rules exceeded the configured complexity budget.</summary>
     public const string CssRuleLimitExceeded = "CssRuleLimitExceeded";
@@ -66,16 +66,16 @@ public static class HtmlConversionDiagnosticCodes {
     public const string CssSelectorEvaluationLimitExceeded = "CssSelectorEvaluationLimitExceeded";
 
     /// <summary>A semantic envelope or metadata field exceeded its configured limit.</summary>
-    public const string SemanticMetadataLimitExceeded = "SemanticMetadataLimitExceeded";
+    public const string SemanticMetadataLimitExceeded = global::OfficeIMO.OfficeDiagnosticCodes.SemanticMetadataLimitExceeded;
 
     /// <summary>A versioned semantic envelope declared an unsupported source or schema version.</summary>
-    public const string SemanticSchemaUnsupported = "SemanticSchemaUnsupported";
+    public const string SemanticSchemaUnsupported = global::OfficeIMO.OfficeDiagnosticCodes.SemanticSchemaUnsupported;
 
     /// <summary>A legacy semantic envelope did not declare a schema version.</summary>
-    public const string SemanticSchemaLegacy = "SemanticSchemaLegacy";
+    public const string SemanticSchemaLegacy = global::OfficeIMO.OfficeDiagnosticCodes.SemanticSchemaLegacy;
 
     /// <summary>A v2 envelope requested target-specific restoration without caller trust.</summary>
-    public const string SemanticRestorationTrustRequired = "SemanticRestorationTrustRequired";
+    public const string SemanticRestorationTrustRequired = global::OfficeIMO.OfficeDiagnosticCodes.SemanticRestorationTrustRequired;
 
     /// <summary>Media filtering could not safely parse or transform an active stylesheet.</summary>
     public const string MediaFilterFailed = "MediaFilterFailed";

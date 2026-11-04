@@ -104,12 +104,12 @@ public sealed class PublisherTableParagraphWritingTests {
         paragraphs[1] = new OfficeRichTextParagraph(new[] { new OfficeRichTextRun("Different", 14, OfficeColor.Blue,
             bold: true, italic: true, fontFamily: "Times New Roman") }, p.Alignment, p.LineHeight, p.Margins, p.Indent, p.LineHeightFactor).WithTabStops(p.TabStops);
         original.ReplaceTableCellParagraphs(table.Id, 0, 0, paragraphs);
-        byte[] input = original.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        byte[] input = original.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         PublisherDocument source = PublisherDocument.Load(input);
         PublisherTable reloaded = Tables(source).Single(t => t.Id == table.Id);
         Assert.Equal(14D, reloaded.Cells[0].Paragraphs[1].Runs[0].FontSize);
         source.ReplaceTableCellParagraphs(table.Id, 0, 0, new[] { Paragraph(reloaded.Cells[0].Paragraphs[0], "Retained") });
-        byte[] output = source.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        byte[] output = source.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         PublisherDocument saved = PublisherDocument.Load(output);
         PublisherTable actual = Tables(saved).Single(t => t.Id == table.Id);
         Assert.Equal("Retained", actual.Cells[0].Text);
@@ -130,8 +130,8 @@ public sealed class PublisherTableParagraphWritingTests {
     }
 
     private static PublisherDocument SaveAndCheck(PublisherDocument document, PublisherTable original, byte[] source) {
-        Assert.Throws<OfficeConversionException>(() => document.ToPubBytes());
-        byte[] bytes = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        Assert.Throws<OfficeConversionException>(() => document.ToBytes());
+        byte[] bytes = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         PublisherDocument saved = PublisherDocument.Load(bytes);
         PublisherTable expected = Tables(document).Single(t => t.Id == original.Id), actual = Tables(saved).Single(t => t.Id == original.Id);
         Assert.Equal((original.Id, original.StoryId, original.PageId, original.X, original.Y, original.Width, original.Height),

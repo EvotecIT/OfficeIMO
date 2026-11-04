@@ -9,7 +9,7 @@ namespace OfficeIMO.Reader;
 /// </summary>
 internal static class ReaderFileCommit {
     /// <summary>Publishes completed bytes, preserving existing destinations when overwrite is disabled.</summary>
-    internal static void WriteAllBytes(string path, byte[] bytes, bool overwrite = true) {
+        internal static bool WriteAllBytes(string path, byte[] bytes, bool overwrite = true) {
         if (path == null) throw new ArgumentNullException(nameof(path));
         if (bytes == null) throw new ArgumentNullException(nameof(bytes));
 
@@ -26,17 +26,20 @@ internal static class ReaderFileCommit {
         try {
             File.WriteAllBytes(temporaryPath, bytes);
             if (!overwrite) {
-                using (OfficeFileCommitClaim claim = OfficeFileCommitClaim.Acquire(fullPath)) {
+                if (!OfficeFileCommitClaim.TryAcquire(fullPath, out OfficeFileCommitClaim? claim)) return false;
+                using (claim) {
                     if (File.Exists(fullPath)) {
-                        throw new IOException("Destination file '" + fullPath + "' already exists.");
+                        return false;
                     }
-                    File.Move(temporaryPath, fullPath);
+                    try { File.Move(temporaryPath, fullPath); }
+                    catch (IOException) when (File.Exists(fullPath)) { return false; }
                 }
             } else if (File.Exists(fullPath)) {
                 File.Replace(temporaryPath, fullPath, null);
             } else {
                 File.Move(temporaryPath, fullPath);
             }
+            return true;
         } finally {
             try {
                 if (File.Exists(temporaryPath)) File.Delete(temporaryPath);

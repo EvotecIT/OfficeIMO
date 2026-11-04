@@ -12,7 +12,7 @@ The current Excel DSL is more explicit than the legacy pipeline helpers. A simpl
 
 | PSWriteExcel | PSWriteOffice | Migration note |
 | --- | --- | --- |
-| `New-ExcelDocument` | `New-OfficeExcel` | Use `-NoSave` only when the document must remain open for later operations. |
+| `New-ExcelDocument` | `New-OfficeExcel` | Leave out the content block to return a live workbook for later operations. |
 | `Get-ExcelDocument` | `Get-OfficeExcel` | Inspect worksheets, ranges, tables, formulas, comments, and workbook metadata with targeted commands. |
 | `Add-ExcelWorkSheet` | `Add-OfficeExcelSheet` | Add it inside a `New-OfficeExcel` or active workbook context. |
 | `Add-ExcelWorkSheetCell` | `Set-OfficeExcelCell` | Address cells by A1 address or row and column. |
@@ -22,7 +22,7 @@ The current Excel DSL is more explicit than the legacy pipeline helpers. A simpl
 | `Set-ExcelWorkSheetAutoFit` | `Invoke-OfficeExcelAutoFit` | Apply it to the intended sheet or range. |
 | `Set-ExcelWorkSheetFreezePane` | `Set-OfficeExcelFreeze` | Recheck pane coordinates after migration. |
 | `Set-ExcelWorkSheetAutoFilter` | `Set-OfficeExcelAutoFilter` | Tables can also own their filtering behavior. |
-| `Save-ExcelDocument` | `Save-OfficeExcel` | `New-OfficeExcel` saves automatically unless `-NoSave` is used. |
+| `Save-ExcelDocument` | `Save-OfficeExcel` | `New-OfficeExcel` publishes a completed content block; without a block, save the live workbook explicitly. |
 
 ## Before: PSWriteExcel
 

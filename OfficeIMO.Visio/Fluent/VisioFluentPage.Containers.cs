@@ -7,14 +7,9 @@ namespace OfficeIMO.Visio.Fluent {
         /// <summary>
         /// Adds a Visio-native container around existing shapes using inline option configuration.
         /// </summary>
-        public VisioFluentPage Container(string id, string text, IEnumerable<string> memberIds, Action<VisioContainerOptions> configure) {
-            if (configure == null) {
-                throw new ArgumentNullException(nameof(configure));
-            }
-
-            VisioContainerOptions options = new();
-            configure(options);
-            return Container(id, text, memberIds, options);
+        public VisioFluentPage AddContainer(string id, string text, IEnumerable<string> memberIds, Action<VisioContainerOptions> configure) {
+            RegisterShape(_page.AddContainer(id, text, memberIds, configure));
+            return this;
         }
 
         /// <summary>

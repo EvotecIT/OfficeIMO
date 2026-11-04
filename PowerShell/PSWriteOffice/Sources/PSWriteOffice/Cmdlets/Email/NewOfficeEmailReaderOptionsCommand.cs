@@ -10,7 +10,7 @@ namespace PSWriteOffice.Cmdlets.Email;
 ///   <code>$options = New-OfficeEmailReaderOptions -ExcludeAttachmentContent -MaxAttachmentBytes 25MB
 /// Get-OfficeEmail -Path .\Message.msg -Options $options -AsResult</code>
 /// </example>
-[Cmdlet(VerbsCommon.New, "OfficeEmailReaderOptions")]
+[Cmdlet(VerbsCommon.New, "OfficeEmailReaderOptions", DefaultParameterSetName = "Options")]
 [OutputType(typeof(EmailReaderOptions))]
 public sealed class NewOfficeEmailReaderOptionsCommand : PSCmdlet {
     /// <summary>Maximum artifact size accepted by the reader.</summary>

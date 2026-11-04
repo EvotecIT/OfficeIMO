@@ -28,7 +28,7 @@ internal sealed partial class HtmlToMarkdownConverter {
 
         string preferredSrc = ResolvePictureSource(element, context);
         bool hasUnsafePictureCandidate = HasRejectedPictureSourceCandidate(element, context)
-                                         || (context.Options.Base64Images != HtmlBase64ImageHandling.Include
+                                         || (context.Options.Base64Images != MarkdownHtmlBase64ImageHandling.Include
                                              && HasBase64PictureCandidate(element, context));
         var imageElement = FindFirstDescendantByEffectiveTagName(element, context, "IMG");
         if (imageElement != null && TryCreateImageBlock(imageElement, context, out var imageBlock)) {
@@ -322,7 +322,7 @@ internal sealed partial class HtmlToMarkdownConverter {
     }
 
     private static bool HasBlockedBase64MediaSourceCandidate(IElement element, ConversionContext context) {
-        if (element == null || context == null || context.Options.Base64Images == HtmlBase64ImageHandling.Include) {
+        if (element == null || context == null || context.Options.Base64Images == MarkdownHtmlBase64ImageHandling.Include) {
             return false;
         }
 
@@ -454,7 +454,7 @@ internal sealed partial class HtmlToMarkdownConverter {
         return string.IsNullOrWhiteSpace(HtmlUrlPolicyEvaluator.ResolveUrl(
             source,
             context.Options.BaseUri,
-            context.Options.ResourceUrlPolicy ?? context.Options.UrlPolicy));
+            context.EffectiveResourcePolicy));
     }
 
     private static bool IsBlockedBase64ImageSource(string? source, ConversionContext context) {

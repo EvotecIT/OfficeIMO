@@ -15,14 +15,14 @@ internal sealed partial class CslEvaluator {
     internal CancellationToken CancellationToken => _token;
     internal void PerformOperation() {
         _token.ThrowIfCancellationRequested();
-        if (_operations++ >= _options.MaximumRenderingOperations) throw new InvalidDataException("CSL rendering exceeds MaximumRenderingOperations.");
+        if (_operations++ >= _options.MaxRenderingOperations) throw new InvalidDataException("CSL rendering exceeds MaxRenderingOperations.");
     }
     private CslText Join(IEnumerable<CslText> values, string delimiter, bool suppressEmptyVariables = false) =>
-        CslText.Join(values, delimiter, suppressEmptyVariables, _options.MaximumIntermediateCharacters);
+        CslText.Join(values, delimiter, suppressEmptyVariables, _options.MaxIntermediateCharacters);
 
     internal CslText Evaluate(XElement element, CslContext context, int depth = 0) {
         PerformOperation();
-        if (depth >= _style.MaximumDepth) throw new InvalidDataException("CSL rendering exceeds MaximumNestingDepth.");
+        if (depth >= _style.MaxDepth) throw new InvalidDataException("CSL rendering exceeds MaxNestingDepth.");
         CslText value;
         bool captureNames = element.Name.LocalName == "names" && context.NamesDepth == 0 && context.Cite?.AuthorOnly == true && context.NarrativeNames == null;
         switch (element.Name.LocalName) {
@@ -61,8 +61,8 @@ internal sealed partial class CslEvaluator {
         }
         value = LinkBibliographyText(value, element, context, ref formatting);
         CslText decorated = value.Decorate(formatting, _locale, context.Sorting, textCulture: textCulture, cancellationToken: _token);
-        if (decorated.Html.Length > _options.MaximumIntermediateCharacters || decorated.Plain.Length > _options.MaximumIntermediateCharacters)
-            throw new InvalidDataException("CSL rendering exceeds MaximumIntermediateCharacters.");
+        if (decorated.Html.Length > _options.MaxIntermediateCharacters || decorated.Plain.Length > _options.MaxIntermediateCharacters)
+            throw new InvalidDataException("CSL rendering exceeds MaxIntermediateCharacters.");
         if (!decorated.IsEmpty && (element.Name.LocalName == "text" || element.Name.LocalName == "number" || element.Name.LocalName == "date") &&
             Attr(element, "variable") is string renderedVariable)
             context.RegisterRenderedVariable(renderedVariable);
@@ -134,7 +134,7 @@ internal sealed partial class CslEvaluator {
         string variable = Attr(element, "variable") ?? string.Empty;
         string value = context.Variable(variable);
         if (!IsNumeric(value)) return CslText.Literal(variable == "locator" ? value.Replace("-", "–") : value, true);
-        value = CslNumberSyntax.NormalizeSeparators(value, _options.MaximumIntermediateCharacters, _token);
+        value = CslNumberSyntax.NormalizeSeparators(value, _options.MaxIntermediateCharacters, _token);
         string form = Attr(element, "form") ?? "numeric";
         string ConvertNumber(string digits) {
             if (!int.TryParse(digits, NumberStyles.None, CultureInfo.InvariantCulture, out int number)) return digits;
@@ -147,12 +147,12 @@ internal sealed partial class CslEvaluator {
         }
         // Convert resolved source endpoints before inserting literal locale delimiters or generated suffixes.
         if (variable == "page" && form != "numeric" && Attr(_style.Root, "page-range-format") != null) {
-            string pages = CslPageRangeFormatter.FormatNumbers(value, Attr(_style.Root, "page-range-format")!, _locale.Term("page-range-delimiter"), ConvertNumber, LocalizeNumberConnectors, _token, _options.MaximumIntermediateCharacters);
+            string pages = CslPageRangeFormatter.FormatNumbers(value, Attr(_style.Root, "page-range-format")!, _locale.Term("page-range-delimiter"), ConvertNumber, LocalizeNumberConnectors, _token, _options.MaxIntermediateCharacters);
             return CslText.Literal(pages, true);
         }
         if (variable == "page" && form == "numeric") return CslText.Literal(PageRange(value, Attr(_style.Root, "page-range-format"), true), true);
         string rendered = CslNumberFormatter.Format(value, ConvertNumber, _locale.Term("and", "symbol"), variable == "locator",
-            variable != "page" && form == "numeric", _options.MaximumIntermediateCharacters, _token);
+            variable != "page" && form == "numeric", _options.MaxIntermediateCharacters, _token);
         return CslText.Literal(rendered, true);
     }
 
@@ -213,7 +213,7 @@ internal sealed partial class CslEvaluator {
 
     private bool IsNumeric(string value) => CslNumberSyntax.IsNumeric(value, _token);
     private string LocalizeNumberConnectors(string value) => value.IndexOf('&') < 0 ? value :
-        CslNumberSyntax.LocalizeAmpersands(value, _locale.Term("and", "symbol"), _options.MaximumIntermediateCharacters, _token);
+        CslNumberSyntax.LocalizeAmpersands(value, _locale.Term("and", "symbol"), _options.MaxIntermediateCharacters, _token);
     private string? Gender(string variable) => _locale.Gender(variable);
     internal static string? Attr(XElement element, string name) => (string?)element.Attribute(name);
 
@@ -234,6 +234,6 @@ internal sealed partial class CslEvaluator {
     private string PageRange(string value, string? format, bool literal = false) {
         if (format == null) return LocalizeNumberConnectors(value);
         return CslPageRangeFormatter.Format(value, format, _locale.Term("page-range-delimiter"), _token,
-            value.IndexOf('&') < 0 ? null : LocalizeNumberConnectors, literal ? _options.MaximumIntermediateCharacters : int.MaxValue);
+            value.IndexOf('&') < 0 ? null : LocalizeNumberConnectors, literal ? _options.MaxIntermediateCharacters : int.MaxValue);
     }
 }

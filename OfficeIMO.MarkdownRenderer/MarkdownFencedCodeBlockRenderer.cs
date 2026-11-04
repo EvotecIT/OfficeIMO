@@ -12,7 +12,7 @@ public delegate string? MarkdownFencedCodeBlockHtmlRenderer(MarkdownFencedCodeBl
 /// Builds optional HTML to append into the shell document head for a fenced code block renderer.
 /// Returning <see langword="null"/> emits nothing.
 /// </summary>
-public delegate string? MarkdownRendererShellHeadBuilder(MarkdownRendererOptions options, AssetMode assetMode);
+public delegate string? MarkdownRendererShellHeadBuilder(MarkdownRendererOptions options, MarkdownAssetMode assetMode);
 
 /// <summary>
 /// Builds optional JavaScript fragments inserted into the shell update pipeline.

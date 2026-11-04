@@ -3,7 +3,7 @@ using System;
 namespace OfficeIMO.Drawing;
 
 /// <summary>Dependency-free Unicode presentation-ligature helpers for text renderers.</summary>
-public static class OfficeTextLigatures {
+internal static class OfficeTextLigatures {
     /// <summary>
     /// Resolves the standard Latin <c>ff</c>, <c>fi</c>, <c>fl</c>, <c>ffi</c>, or <c>ffl</c>
     /// presentation form at a UTF-16 index, preferring the longest match.

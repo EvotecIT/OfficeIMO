@@ -1,3 +1,4 @@
+using OfficeIMO;
 using System;
 using System.IO;
 using System.Management.Automation;
@@ -76,14 +77,12 @@ public sealed class ConvertToOfficeExcelWorkbookCommand : PSCmdlet
             }
 
             PdfCommandUtilities.EnsureDirectory(outputPath);
-            ExcelDocument.Convert(sourcePath, outputPath, new ExcelDocumentConversionOptions
+            OfficeConverter.Convert(sourcePath, outputPath, new OfficeConversionOptions
             {
                 FileConflictPolicy = Force.IsPresent
-                    ? OfficeConversionFileConflictPolicy.Replace
-                    : OfficeConversionFileConflictPolicy.FailIfExists,
-                LossPolicy = AllowLossyLegacyConversion.IsPresent
-                    ? OfficeConversionLossPolicy.Allow
-                    : OfficeConversionLossPolicy.Block
+                    ? OfficePublicationPolicy.Replace
+                    : OfficePublicationPolicy.Fail,
+                FailOnLoss = !AllowLossyLegacyConversion.IsPresent
             });
 
             if (Open.IsPresent)

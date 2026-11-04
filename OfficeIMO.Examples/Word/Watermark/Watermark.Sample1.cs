@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using OfficeIMO.Word;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class Watermark {
@@ -19,28 +19,26 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Section 0");
-                document.AddHeadersAndFooters();
 
                 var section0 = document.Sections[0];
                 var section0Header = GetRequiredHeader(section0);
                 section0Header.AddParagraph("Section 0 - In header");
-                section0.SetMargins(WordMargin.Normal);
+                section0.PageSetup.Margins.Type = WordMargin.Normal;
 
-                Console.WriteLine(document.Sections[0].Margins.Left);
-                Console.WriteLine(document.Sections[0].Margins.Right);
+                Console.WriteLine(checked((uint)(document.Sections[0].PageSetup.Margins.Left.GetValueOrDefault().ToTwips())));
+                Console.WriteLine(checked((uint)(document.Sections[0].PageSetup.Margins.Right.GetValueOrDefault().ToTwips())));
 
-                Console.WriteLine(document.Sections[0].Margins.Type);
+                Console.WriteLine(document.Sections[0].PageSetup.Margins.Type);
 
-                document.Sections[0].Margins.Type = WordMargin.Wide;
+                document.Sections[0].PageSetup.Margins.Type = WordMargin.Wide;
 
-                Console.WriteLine(document.Sections[0].Margins.Type);
+                Console.WriteLine(document.Sections[0].PageSetup.Margins.Type);
 
                 Console.WriteLine("----");
                 var watermark = section0Header.AddWatermark(WordWatermarkStyle.Text, "Watermark");
                 watermark.Color = Color.Red;
 
-                // ColorHex normally returns hex colors, but for watermark it returns string as the underlying value is in string name, not hex
-                Console.WriteLine(watermark.ColorHex);
+                Console.WriteLine(watermark.Color);
 
                 Console.WriteLine(watermark.Rotation);
 
@@ -54,8 +52,8 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine(watermark.Width);
 
                 // width and height in points (HTML wise)
-                watermark.Height = 100.15;
-                watermark.Width = 500.18;
+                watermark.Height = global::OfficeIMO.OfficeLength.Points(100.15);
+                watermark.Width = global::OfficeIMO.OfficeLength.Points(500.18);
 
                 document.AddPageBreak();
                 document.AddPageBreak();
@@ -65,10 +63,9 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph("Section 1");
 
                 var section1 = document.Sections[1];
-                section1.AddHeadersAndFooters();
                 var section1Header = GetRequiredHeader(section1);
                 section1Header.AddParagraph("Section 1 - In header");
-                section1.Margins.Type = WordMargin.Narrow;
+                section1.PageSetup.Margins.Type = WordMargin.Narrow;
                 Console.WriteLine("----");
 
                 Console.WriteLine("Section 0 - Paragraphs Count: " + section0Header.Paragraphs.Count);
@@ -78,25 +75,23 @@ namespace OfficeIMO.Examples.Word {
                 section1.AddParagraph("Test");
                 section1Header.AddWatermark(WordWatermarkStyle.Text, "Draft");
 
-                Console.WriteLine(document.Sections[0].Margins.Left);
-                Console.WriteLine(document.Sections[0].Margins.Right);
+                Console.WriteLine(checked((uint)(document.Sections[0].PageSetup.Margins.Left.GetValueOrDefault().ToTwips())));
+                Console.WriteLine(checked((uint)(document.Sections[0].PageSetup.Margins.Right.GetValueOrDefault().ToTwips())));
 
-                Console.WriteLine(document.Sections[1].Margins.Left);
-                Console.WriteLine(document.Sections[1].Margins.Right);
+                Console.WriteLine(checked((uint)(document.Sections[1].PageSetup.Margins.Left.GetValueOrDefault().ToTwips())));
+                Console.WriteLine(checked((uint)(document.Sections[1].PageSetup.Margins.Right.GetValueOrDefault().ToTwips())));
 
-                Console.WriteLine(document.Sections[1].Margins.Type);
+                Console.WriteLine(document.Sections[1].PageSetup.Margins.Type);
 
 
                 document.Settings.SetBackgroundColor(Color.Azure);
 
                 Console.WriteLine("----");
 
-                var documentHeaders = document.Header ?? throw new InvalidOperationException("Document headers must exist when inspecting watermarks.");
-                var documentDefaultHeader = documentHeaders.Default ?? throw new InvalidOperationException("The default document header must exist when inspecting watermarks.");
+                var documentDefaultHeader = document.PageSetup.GetHeader(WordHeaderFooterType.Default) ?? throw new InvalidOperationException("The default document header must exist when inspecting watermarks.");
                 Console.WriteLine("Watermarks in default header: " + documentDefaultHeader.Watermarks.Count);
 
-                var documentFooters = document.Footer ?? throw new InvalidOperationException("Document footers must exist when inspecting watermarks.");
-                var documentDefaultFooter = documentFooters.Default ?? throw new InvalidOperationException("The default document footer must exist when inspecting watermarks.");
+                var documentDefaultFooter = document.PageSetup.GetFooter(WordHeaderFooterType.Default) ?? throw new InvalidOperationException("The default document footer must exist when inspecting watermarks.");
                 Console.WriteLine("Watermarks in default footer: " + documentDefaultFooter.Watermarks.Count);
 
                 Console.WriteLine("Watermarks in section 0: " + document.Sections[0].Watermarks.Count);

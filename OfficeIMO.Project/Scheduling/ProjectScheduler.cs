@@ -46,7 +46,7 @@ internal sealed partial class ProjectScheduler {
     }
     private ProjectScheduleResult CalculateCore() {
         _token.ThrowIfCancellationRequested();
-        _diagnostics.AddRange(_document.Validate(_token).Diagnostics.Where(d => d.Severity == ProjectDiagnosticSeverity.Error));
+        _diagnostics.AddRange(_document.Validate(_token).NativeDiagnostics.Where(d => d.Severity == ProjectDiagnosticSeverity.Error));
         if (Failed) return Result();
         try {
             Prepare();
@@ -143,7 +143,7 @@ internal sealed partial class ProjectScheduler {
                 if (!_nodes.TryGetValue(link.Successor, out var local)) { Error("PROJECT_DEPENDENCY_PROFILE", "External dependencies require an active local successor.", link.Successor); continue; }
                 var resolved = _externalContext.Resolve(_document, link);
                 _externalDependencies.Add(link, (resolved.Task, resolved.Schedule.Document));
-                if (!_externalSources.ContainsKey(resolved.Schedule.Document)) foreach (var diagnostic in resolved.Schedule.Report.Diagnostics.Where(d => d.Severity != ProjectDiagnosticSeverity.Error))
+                if (!_externalSources.ContainsKey(resolved.Schedule.Document)) foreach (var diagnostic in resolved.Schedule.Report.NativeDiagnostics.Where(d => d.Severity != ProjectDiagnosticSeverity.Error))
                     _diagnostics.Add(new ProjectDiagnostic(diagnostic.Code, diagnostic.Severity, "External project: " + diagnostic.Message,
                         "/ExternalProject[" + resolved.Reference + "]" + diagnostic.Location, diagnostic.LossKind));
                 _externalSources[resolved.Schedule.Document] = new ProjectExternalScheduleSource(resolved.Reference, resolved.Schedule.Document, resolved.Schedule.ModelRevision);

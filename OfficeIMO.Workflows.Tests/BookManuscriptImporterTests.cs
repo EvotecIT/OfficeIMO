@@ -19,7 +19,7 @@ public sealed class BookManuscriptImporterTests {
             await File.WriteAllBytesAsync(Path.Combine(root, "outside.png"), image);
             await File.WriteAllTextAsync(source, "<html lang='pl'><title>Source title</title><meta name='author' content='Writer'><h1>Chapter</h1><img alt='A dot' src='dot.png'></html>");
             var imported = await BookManuscriptImporter.ImportFileAsync(source);
-            imported.Report.RequireNoLoss();
+            imported.Report.ThrowIfLoss();
             Assert.Equal("Source title", imported.Publication.Title);
             Assert.Equal("pl", imported.Publication.Language);
             Assert.Equal("Writer", imported.Publication.Creator);
@@ -48,9 +48,9 @@ public sealed class BookManuscriptImporterTests {
 
     [Fact]
     public async Task MarkdownImportPreservesHeadingsListsTablesCodeAndFootnoteLinks() {
-        var markdown = MarkdownDoc.Parse("---\ntitle: A manuscript\nlanguage: pl\nauthor: Writer\n---\n# Opening\n\n[Next](#closing) and a note[^a].\n\n- List item\n\n| Name | Value |\n| --- | --- |\n| A | B |\n\n```cs\nvar answer = 42;\n```\n\n# Closing\n\nFinal text.\n\n[^a]: A preserved footnote.");
+        var markdown = MarkdownDocument.Parse("---\ntitle: A manuscript\nlanguage: pl\nauthor: Writer\n---\n# Opening\n\n[Next](#closing) and a note[^a].\n\n- List item\n\n| Name | Value |\n| --- | --- |\n| A | B |\n\n```cs\nvar answer = 42;\n```\n\n# Closing\n\nFinal text.\n\n[^a]: A preserved footnote.");
         EpubManuscriptResult result = await BookManuscriptImporter.ImportMarkdownAsync(markdown, new EpubManuscriptOptions());
-        Assert.True(result.Succeeded, string.Join("; ", result.Report.FidelityDiagnostics.Select(item => item.Message)));
+        Assert.True(result.Succeeded, string.Join("; ", result.Report.Diagnostics.Select(item => item.Message)));
         Assert.Equal("A manuscript", result.Publication.Title);
         Assert.Equal("pl", result.Publication.Language);
         Assert.Equal("Writer", result.Publication.Creator);
@@ -75,7 +75,7 @@ public sealed class BookManuscriptImporterTests {
         using var reopenedSource = WordDocument.Load(source);
         EpubManuscriptResult result = await BookManuscriptImporter.ImportWordAsync(reopenedSource,
             new EpubManuscriptOptions { Title = "DOCX manuscript", Creator = "Writer" });
-        Assert.True(result.Succeeded, string.Join("; ", result.Report.FidelityDiagnostics.Select(item => item.Message)));
+        Assert.True(result.Succeeded, string.Join("; ", result.Report.Diagnostics.Select(item => item.Message)));
         Assert.Equal(2, result.Publication.Spine.Count);
         var reopened = result.RequireValue().Read();
         Assert.Contains("first chapter", reopened.Chapters[0].Text);

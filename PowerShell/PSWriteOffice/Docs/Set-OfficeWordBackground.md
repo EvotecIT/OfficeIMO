@@ -36,7 +36,7 @@ Sets the document background to the provided hex color and continues normal docu
 
 ### EXAMPLE 2
 ```powershell
-PS> $doc = Get-OfficeWord -Path .\Draft.docx
+PS> $doc = Open-OfficeWord -Path .\Draft.docx
 $doc | Set-OfficeWordBackground -ImagePath .\Assets\Background.png -Width 600 -Height 800 -PassThru |
     Save-OfficeWord -Path .\Draft-Branded.docx
 ```

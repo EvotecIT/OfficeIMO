@@ -3,15 +3,20 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Options controlling markdown serialization from the typed document model.
 /// </summary>
-public sealed class MarkdownWriteOptions {
+public sealed class MarkdownSaveOptions {
+    /// <summary>Accepts native-save omissions explicitly selected by the writer options.</summary>
+    public bool AllowLoss { get; set; }
+    /// <summary>Output encoding, or null for UTF-8 without a byte-order mark.</summary>
+    public Encoding? Encoding { get; set; }
+
     private string? _outputLineEnding;
     private char _unorderedListMarker = '-';
 
     /// <summary>Creates default OfficeIMO-flavored markdown writer options.</summary>
-    public static MarkdownWriteOptions CreateOfficeIMOProfile() => new MarkdownWriteOptions();
+    public static MarkdownSaveOptions CreateOfficeIMOProfile() => new MarkdownSaveOptions();
 
     /// <summary>Creates writer options for the requested output profile.</summary>
-    public static MarkdownWriteOptions CreateProfile(MarkdownOutputProfile profile) =>
+    public static MarkdownSaveOptions CreateProfile(MarkdownOutputProfile profile) =>
         profile switch {
             MarkdownOutputProfile.OfficeIMO => CreateOfficeIMOProfile(),
             MarkdownOutputProfile.CommonMark => CreateCommonMarkProfile(),
@@ -24,7 +29,7 @@ public sealed class MarkdownWriteOptions {
     /// Creates a CommonMark-oriented writer profile. GitHub-only constructs such as pipe tables are
     /// emitted using portable raw HTML fallbacks when a plain CommonMark representation does not exist.
     /// </summary>
-    public static MarkdownWriteOptions CreateCommonMarkProfile() {
+    public static MarkdownSaveOptions CreateCommonMarkProfile() {
         var options = CreatePortableProfile();
         options.OutputLineEnding = "\n";
         options.FrontMatterRendering = MarkdownFrontMatterRenderingMode.Omit;
@@ -45,8 +50,8 @@ public sealed class MarkdownWriteOptions {
     /// <summary>
     /// Creates a GitHub Flavored Markdown-oriented writer profile for README and GitHub documentation output.
     /// </summary>
-    public static MarkdownWriteOptions CreateGitHubFlavoredMarkdownProfile() {
-        var options = new MarkdownWriteOptions {
+    public static MarkdownSaveOptions CreateGitHubFlavoredMarkdownProfile() {
+        var options = new MarkdownSaveOptions {
             ImageRenderingMode = MarkdownImageRenderingMode.PortableMarkdown,
             AbbreviationDefinitionRendering = MarkdownAbbreviationDefinitionRenderingMode.Omit,
             OutputLineEnding = "\n",
@@ -64,8 +69,8 @@ public sealed class MarkdownWriteOptions {
     /// <summary>
     /// Creates a more portable markdown writer profile that degrades OfficeIMO-only blocks into broadly compatible markdown.
     /// </summary>
-    public static MarkdownWriteOptions CreatePortableProfile() {
-        var options = new MarkdownWriteOptions();
+    public static MarkdownSaveOptions CreatePortableProfile() {
+        var options = new MarkdownSaveOptions();
         options.ImageRenderingMode = MarkdownImageRenderingMode.PortableMarkdown;
         MarkdownBlockRenderBuiltInExtensions.AddPortableCalloutMarkdownFallback(options);
         return options;
@@ -74,7 +79,7 @@ public sealed class MarkdownWriteOptions {
     /// <summary>
     /// Creates a markdown writer profile that emits raw HTML for image output.
     /// </summary>
-    public static MarkdownWriteOptions CreateHtmlImageProfile() => new MarkdownWriteOptions {
+    public static MarkdownSaveOptions CreateHtmlImageProfile() => new MarkdownSaveOptions {
         ImageRenderingMode = MarkdownImageRenderingMode.Html
     };
 
@@ -91,12 +96,12 @@ public sealed class MarkdownWriteOptions {
     public MarkdownTextEscapingMode TextEscapingMode { get; set; } = MarkdownTextEscapingMode.Default;
 
     /// <summary>
-    /// Controls how YAML front matter is emitted by <see cref="MarkdownDoc.ToMarkdown(MarkdownWriteOptions?)"/>.
+    /// Controls how YAML front matter is emitted by <see cref="MarkdownDocument.ToMarkdown(MarkdownSaveOptions?)"/>.
     /// </summary>
     public MarkdownFrontMatterRenderingMode FrontMatterRendering { get; set; } = MarkdownFrontMatterRenderingMode.Preserve;
 
     /// <summary>
-    /// Controls how parse-owned abbreviation definitions are emitted by <see cref="MarkdownDoc.ToMarkdown(MarkdownWriteOptions?)"/>.
+    /// Controls how parse-owned abbreviation definitions are emitted by <see cref="MarkdownDocument.ToMarkdown(MarkdownSaveOptions?)"/>.
     /// </summary>
     public MarkdownAbbreviationDefinitionRenderingMode AbbreviationDefinitionRendering { get; set; } = MarkdownAbbreviationDefinitionRenderingMode.Preserve;
 
@@ -153,8 +158,10 @@ public sealed class MarkdownWriteOptions {
     /// <summary>
     /// Creates a shallow clone of the writer options while copying mutable collections.
     /// </summary>
-    public MarkdownWriteOptions Clone() {
-        var clone = new MarkdownWriteOptions {
+    public MarkdownSaveOptions Clone() {
+        var clone = new MarkdownSaveOptions {
+            AllowLoss = AllowLoss,
+            Encoding = Encoding,
             ImageRenderingMode = ImageRenderingMode,
             TextEscapingMode = TextEscapingMode,
             FrontMatterRendering = FrontMatterRendering,

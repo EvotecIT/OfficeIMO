@@ -138,10 +138,10 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaInspection_ReportsExplicitLifecycleAndArrayStates() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, 2);
-            sheet.CellFormula(1, 2, "A1*2");
-            sheet.CellFormula(1, 3, "UNSUPPORTED(A1)");
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue(2);
+            sheet.Cell(1, 2).SetFormula("A1*2");
+            sheet.Cell(1, 3).SetFormula("UNSUPPORTED(A1)");
             sheet.SetArrayFormula("D1:D2", "A1:A2*2");
 
             ExcelFormulaCellInfo deferred = sheet.GetFormulaCells().Single(item => item.CellReference == "B1");
@@ -167,7 +167,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaInspection_ResolvesDynamicArrayMetadataPerCell() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.SetArrayFormula("A1:A2", "ROW(A1:A2)");
             sheet.SetArrayFormula("B1:B2", "ROW(B1:B2)");
             Cell[] formulaCells = sheet.WorksheetPart.Worksheet.Descendants<Cell>()
@@ -202,11 +202,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaSearch_MatchesFunctionsTextAndParsedReferences() {
             using var document = ExcelDocument.Create();
-            ExcelSheet data = document.AddWorksheet("Data");
-            ExcelSheet summary = document.AddWorksheet("Summary");
-            data.CellFormula(1, 1, "SUM(B1:B4)");
-            data.CellFormula(2, 1, "IF(B2>0,\"SUM(B3)\",0)");
-            summary.CellFormula(1, 1, "_xlfn.XLOOKUP(A1,'Data'!B1:B4,'Data'!C1:C4)");
+            ExcelSheet data = document.AddSheet("Data");
+            ExcelSheet summary = document.AddSheet("Summary");
+            data.Cell(1, 1).SetFormula("SUM(B1:B4)");
+            data.Cell(2, 1).SetFormula("IF(B2>0,\"SUM(B3)\",0)");
+            summary.Cell(1, 1).SetFormula("_xlfn.XLOOKUP(A1,'Data'!B1:B4,'Data'!C1:C4)");
 
             Assert.Single(data.SearchFormulas(new ExcelFormulaSearchOptions { Function = "SUM" }));
             Assert.Equal(2, data.SearchFormulas(new ExcelFormulaSearchOptions { Text = "B" }).Count);
@@ -220,9 +220,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaSearch_DistinguishesExternalWorkbookQualifiers() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellFormula(1, 1, "[BookA.xlsx]Data!B2");
-            sheet.CellFormula(2, 1, "[BookB.xlsx]Data!B2");
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetFormula("[BookA.xlsx]Data!B2");
+            sheet.Cell(2, 1).SetFormula("[BookB.xlsx]Data!B2");
 
             ExcelFormulaCellInfo match = Assert.Single(document.SearchFormulas(
                 new ExcelFormulaSearchOptions { Reference = "[BookA.xlsx]Data!B2" }));
@@ -233,12 +233,12 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaSearch_NormalizesLeadingEqualsAndSkipsQuotedSheetNames() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            document.AddWorksheet("SUM(A1)");
-            document.AddWorksheet("SUM('A1')");
-            sheet.CellFormula(1, 1, "SUM(B1:B2)");
-            sheet.CellFormula(2, 1, "'SUM(A1)'!B1");
-            sheet.CellFormula(3, 1, "'SUM(''A1'')'!B1");
+            ExcelSheet sheet = document.AddSheet("Data");
+            document.AddSheet("SUM(A1)");
+            document.AddSheet("SUM('A1')");
+            sheet.Cell(1, 1).SetFormula("SUM(B1:B2)");
+            sheet.Cell(2, 1).SetFormula("'SUM(A1)'!B1");
+            sheet.Cell(3, 1).SetFormula("'SUM(''A1'')'!B1");
 
             ExcelFormulaCellInfo textMatch = Assert.Single(sheet.SearchFormulas(
                 new ExcelFormulaSearchOptions { Text = "=SUM(B1:B2)" }));

@@ -20,8 +20,8 @@ public class HtmlPowerPointHeaderHyperlinkColorTests {
         string html = "<table><thead><tr><th>Label</th><th"
             + (authoredColor ? " style='background-color:#123456;color:#ffdd00'" : "")
             + "><a href='https://example.test/source'>Source</a></th></tr></thead><tbody>" + rows + "</tbody></table>";
-        using PowerPointPresentation presentation = HtmlConversionDocument.Parse(html)
-            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions {
+        using PowerPointDocument presentation = HtmlConversionDocument.Parse(html)
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions {
                 Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false
             }).RequireValue();
         var tables = presentation.Slides.SelectMany(slide => slide.Tables).ToArray();
@@ -31,13 +31,13 @@ public class HtmlPowerPointHeaderHyperlinkColorTests {
             Assert.Equal("Source", run.Text);
             Assert.Equal("https://example.test/source", run.Hyperlink!.AbsoluteUri);
             Assert.True(run.HyperlinkUsesTextColor);
-            if (authoredColor) Assert.Equal("FFDD00", run.Color);
+            if (authoredColor) Assert.Equal(OfficeColor.Parse("FFDD00"), run.Color);
         });
         Assert.Empty(new OpenXmlValidator().Validate(presentation.OpenXmlDocument));
         using var stream = new MemoryStream();
         presentation.Save(stream);
         stream.Position = 0;
-        using var reopened = PowerPointPresentation.Load(stream);
+        using var reopened = PowerPointDocument.Load(stream);
         Assert.All(reopened.Slides.SelectMany(slide => slide.Tables), table =>
             Assert.True(table.GetCell(0, 1).Runs.Single().HyperlinkUsesTextColor));
         Assert.Equal(Enumerable.Range(1, paginate ? 30 : 1).Select(index => "Row " + index),
@@ -48,16 +48,16 @@ public class HtmlPowerPointHeaderHyperlinkColorTests {
     [InlineData(false)]
     [InlineData(true)]
     public void SemanticRoundTripPreservesExplicitHyperlinkColorPolicy(bool textColor) {
-        using var source = PowerPointPresentation.Create();
+        using var source = PowerPointDocument.Create();
         var run = source.AddSlide().AddTextBox("Source link").Paragraphs.Single().Runs.Single();
-        run.Color = "FFDD00";
+        run.Color = OfficeColor.Parse("FFDD00");
         run.SetHyperlink("https://example.test/source");
         run.HyperlinkUsesTextColor = textColor;
-        using PowerPointPresentation imported = HtmlConversionDocument.Parse(source.ToHtml())
-            .ToPowerPointPresentationResult().RequireValue();
+        using PowerPointDocument imported = HtmlConversionDocument.Parse(source.ToHtml())
+            .ConvertToPowerPointWithEvidence().RequireValue();
         var actual = imported.Slides.Single().TextBoxes.Single().Paragraphs.Single().Runs.Single();
         Assert.Equal(textColor, actual.HyperlinkUsesTextColor);
-        Assert.Equal("FFDD00", actual.Color);
+        Assert.Equal(OfficeColor.Parse("FFDD00"), actual.Color);
         Assert.Equal("https://example.test/source", actual.Hyperlink!.AbsoluteUri);
         Assert.Equal("Source link", actual.Text);
         Assert.Empty(new OpenXmlValidator().Validate(imported.OpenXmlDocument));

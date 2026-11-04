@@ -9,7 +9,7 @@ schema: 2.0.0
 Adds a positioned text box to an OpenDocument presentation slide.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Add-OfficeOpenDocumentTextBox [-Text] <string> [-Slide <OdpSlide>] [-X <double>] [-Y <double>] [-Width <double>] [-Height <double>] [-Name <string>] [-PassThru] [<CommonParameters>]
 ```
@@ -32,7 +32,7 @@ Height in centimeters.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -48,7 +48,7 @@ Optional shape name.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -64,7 +64,7 @@ Emit the created text box.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -80,7 +80,7 @@ Slide target. Omit inside Add-OfficeOpenDocumentSlide -Content.
 
 ```yaml
 Type: OdpSlide
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -96,7 +96,7 @@ Text box content.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -112,7 +112,7 @@ Width in centimeters.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -128,7 +128,7 @@ Horizontal position in centimeters.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -144,7 +144,7 @@ Vertical position in centimeters.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

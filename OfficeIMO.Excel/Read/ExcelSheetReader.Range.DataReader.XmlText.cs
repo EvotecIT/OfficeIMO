@@ -31,8 +31,8 @@ namespace OfficeIMO.Excel {
                 _checkCancellation();
                 if (count > _remainingCharacters) {
                     WasExceeded = true;
-                    throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxXmlDataReaderBufferedCharacters), _maximumCharacters,
-                        $"XML data-reader buffering exceeds {nameof(ExcelReadOptions.MaxXmlDataReaderBufferedCharacters)} "
+                    throw ExcelReadLimitFailure.Create(nameof(ExcelReaderOptions.MaxXmlDataReaderBufferedCharacters), _maximumCharacters,
+                        $"XML data-reader buffering exceeds {nameof(ExcelReaderOptions.MaxXmlDataReaderBufferedCharacters)} "
                         + $"({_maximumCharacters} characters).");
                 }
 

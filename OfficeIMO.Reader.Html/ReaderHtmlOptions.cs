@@ -22,7 +22,7 @@ public sealed class ReaderHtmlOptions {
     /// </summary>
     /// <returns>A new <see cref="ReaderHtmlOptions"/> instance using the default HTML-to-Markdown profile.</returns>
     public static ReaderHtmlOptions CreateOfficeIMOProfile() => new ReaderHtmlOptions {
-        HtmlToMarkdownOptions = HtmlToMarkdownOptions.CreateOfficeIMOProfile()
+        HtmlToMarkdownOptions = HtmlMarkdownExportOptions.CreateOfficeIMOProfile()
     };
 
     /// <summary>
@@ -30,7 +30,7 @@ public sealed class ReaderHtmlOptions {
     /// </summary>
     /// <returns>A new <see cref="ReaderHtmlOptions"/> instance using the portable HTML-to-Markdown profile.</returns>
     public static ReaderHtmlOptions CreatePortableProfile() => new ReaderHtmlOptions {
-        HtmlToMarkdownOptions = HtmlToMarkdownOptions.CreatePortableProfile()
+        HtmlToMarkdownOptions = HtmlMarkdownExportOptions.CreatePortableProfile()
     };
 
     /// <summary>
@@ -43,9 +43,9 @@ public sealed class ReaderHtmlOptions {
             throw new ArgumentOutOfRangeException(nameof(maxInputCharacters), "Maximum input characters must be greater than zero.");
         }
 
-        var options = HtmlToMarkdownOptions.CreatePortableProfile();
+        var options = HtmlMarkdownExportOptions.CreatePortableProfile();
         options.MaxInputCharacters = maxInputCharacters;
-        HtmlConversionDocumentOptions conversionOptions = HtmlConversionDocumentOptions.CreateUntrustedProfile();
+        HtmlConversionDocumentOptions conversionOptions = HtmlConversionDocumentOptions.UntrustedDefaults;
         conversionOptions.Limits.MaxInputCharacters = maxInputCharacters;
 
         return new ReaderHtmlOptions {
@@ -62,7 +62,7 @@ public sealed class ReaderHtmlOptions {
     /// <summary>
     /// Options passed to HTML-to-Markdown conversion stage.
     /// </summary>
-    public HtmlToMarkdownOptions? HtmlToMarkdownOptions { get; set; }
+    public HtmlMarkdownExportOptions? HtmlToMarkdownOptions { get; set; }
 
     /// <summary>
     /// Creates a copy of the current options instance so reader registrations can reuse templates safely.

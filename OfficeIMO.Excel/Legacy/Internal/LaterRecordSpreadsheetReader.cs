@@ -61,7 +61,7 @@ internal sealed partial class LaterRecordSpreadsheetReader {
             } else if (_profile == LaterSpreadsheetProfile.QuattroWb1 && type == 0xcc) SetName(_sheet, Text(payload, length));
             else if (IsCell(type)) records.Add((type, payload, length));
             else if (p != 0) {
-                Loss("LATER_RECORDS_UNSUPPORTED", "Source formatting, chart, name, view and application records outside the qualified cell profile are not reconstructed.");
+                Loss("later-records-unsupported", "Source formatting, chart, name, view and application records outside the qualified cell profile are not reconstructed.");
                 if (type == 0x97) _model.InertContent |= OfficeLegacyInertContentKind.ExternalLinks;
                 if (type == 0x38e || type == 0x10d) _model.InertContent |= OfficeLegacyInertContentKind.EmbeddedObjects;
             }
@@ -73,7 +73,7 @@ internal sealed partial class LaterRecordSpreadsheetReader {
                 throw new InvalidDataException("Unexpected data following workbook EOF.");
             // Lotus stores document properties and application objects after the main record stream.
             if (_profile == LaterSpreadsheetProfile.Lotus) {
-                Loss("LOTUS_TRAILING_APPLICATION_DATA", "Application data following the Lotus main-stream EOF is retained inert and is not reconstructed.");
+                Loss("lotus-trailing-application-data", "Application data following the Lotus main-stream EOF is retained inert and is not reconstructed.");
                 _model.InertContent |= OfficeLegacyInertContentKind.EmbeddedObjects;
             }
         }
@@ -110,7 +110,7 @@ internal sealed partial class LaterRecordSpreadsheetReader {
                 byte first = _data[q];
                 if (first == '\'' || first == '^' || first == '"' || first == '\\') {
                     alignment = first == '^' ? ExcelHorizontalAlignment.Center : first == '"' ? ExcelHorizontalAlignment.Right : ExcelHorizontalAlignment.Left; q++;
-                } else if (!lotus) { if (first != 0) Loss("LATER_LABEL_ALIGNMENT", "A source label alignment is not supported."); q++; }
+                } else if (!lotus) { if (first != 0) Loss("later-label-alignment", "A source label alignment is not supported."); q++; }
             }
             value = Text(q, end - q);
             if (type == 0x26 && lotus) { comment = (string)value; value = null; }
@@ -124,7 +124,7 @@ internal sealed partial class LaterRecordSpreadsheetReader {
             bool isFormula = lotus ? type == 0x19 || type == 0x28 : type == 0x10;
             if (!double.IsNaN(number) && !double.IsInfinity(number)) value = number;
             else if (!isFormula) throw new InvalidDataException("Non-finite numeric cell value.");
-            else Loss("LATER_FORMULA_NON_NUMERIC_CACHE", "A formula has a source error or non-numeric cache; supported formulas or subsequent string-result records are retained.");
+            else Loss("later-formula-non-numeric-cache", "A formula has a source error or non-numeric cache; supported formulas or subsequent string-result records are retained.");
             q += size;
             if (isFormula) { formula = Formula(q, end, row, column, sheet, type == 0x19); }
             else if (q != end) throw new InvalidDataException("Numeric cell size does not match its record.");
@@ -156,13 +156,13 @@ internal sealed partial class LaterRecordSpreadsheetReader {
             int size = U16(_data, p), tokens = U16(_data, p + 2); p += 4;
             if (size != end - p || tokens > size) throw new InvalidDataException("Invalid Quattro formula reference-table envelope.");
             try { context.References = QuattroReferences(p + tokens, end, row, column, sheet); }
-            catch (InvalidDataException) { Loss("LATER_FORMULA_CACHED_FALLBACK", "Unsupported formula references retain their cached result without creating a live formula."); return null; }
+            catch (InvalidDataException) { Loss("later-formula-cached-fallback", "Unsupported formula references retain their cached result without creating a live formula."); return null; }
             end = p + tokens;
         }
         if (WkFormulaDecoder.TryDecode(_data, p, end - p, row, column, _limits, _limits.MaxTextCharacters - _text, _cancellation, out string? formula, out _, context)) {
             CountText(formula!.Length); return formula;
         }
-        Loss("LATER_FORMULA_CACHED_FALLBACK", "Unsupported or invalid formula tokens retain their cached result without creating a live formula."); return null;
+        Loss("later-formula-cached-fallback", "Unsupported or invalid formula tokens retain their cached result without creating a live formula."); return null;
     }
 
     private string EnsureSheet(int id) {
@@ -178,11 +178,11 @@ internal sealed partial class LaterRecordSpreadsheetReader {
     private void SetName(int id, string name) {
         EnsureSheet(id);
         string trimmed = name.Trim();
-        if (trimmed != name) Loss("LATER_SHEET_NAME", "A source sheet name was trimmed for XLSX; formula references use its final projected name.");
+        if (trimmed != name) Loss("later-sheet-name", "A source sheet name was trimmed for XLSX; formula references use its final projected name.");
         name = trimmed;
         if (name.Length == 0 || name.Length > 31 || name.IndexOfAny(new[] { '[', ']', ':', '*', '?', '/', '\\' }) >= 0 ||
             name[0] == '\'' || name[name.Length - 1] == '\'') {
-            Loss("LATER_SHEET_NAME", "A source sheet name cannot be used safely in XLSX; its stable generated name is used."); return;
+            Loss("later-sheet-name", "A source sheet name cannot be used safely in XLSX; its stable generated name is used."); return;
         }
         _sourceNames[id] = name;
     }
@@ -191,7 +191,7 @@ internal sealed partial class LaterRecordSpreadsheetReader {
         _names.Clear();
         foreach (var entry in _sourceNames.OrderBy(item => item.Key)) {
             if (_names.Values.Contains(entry.Value, StringComparer.OrdinalIgnoreCase)) {
-                Loss("LATER_SHEET_NAME", "Duplicate source sheet names use stable unique generated names in XLSX.");
+                Loss("later-sheet-name", "Duplicate source sheet names use stable unique generated names in XLSX.");
             } else _names[entry.Key] = entry.Value;
         }
         foreach (int id in ids) EnsureSheet(id);
@@ -203,7 +203,7 @@ internal sealed partial class LaterRecordSpreadsheetReader {
         for (int i = p; i < zero; i++) {
             if ((i & 255) == 0) _cancellation.ThrowIfCancellationRequested();
             byte value = _data[i];
-            if (value > 127 || value < 32 && value != 9 && value != 10 && value != 13) { text.Append('\uFFFD'); Loss("LATER_TEXT_ENCODING", "Source characters outside the qualified ASCII profile are replaced explicitly."); }
+            if (value > 127 || value < 32 && value != 9 && value != 10 && value != 13) { text.Append('\uFFFD'); Loss("later-text-encoding", "Source characters outside the qualified ASCII profile are replaced explicitly."); }
             else text.Append((char)value);
         }
         return text.ToString();

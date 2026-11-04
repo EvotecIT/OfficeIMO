@@ -14,14 +14,14 @@ namespace OfficeIMO.Excel {
         internal static byte[] ReadInput(Func<byte[]> read, long maximum) {
             try { return read(); }
             catch (InvalidDataException exception) when (OfficeStreamReader.IsSizeLimitException(exception)) {
-                throw new OfficeInspectionResourceLimitException("excel", nameof(ExcelReadOptions.MaxInputBytes), maximum, exception);
+                throw new OfficeInspectionResourceLimitException("excel", nameof(ExcelReaderOptions.MaxInputBytes), maximum, exception);
             }
         }
 
         internal static async Task<byte[]> ReadInputAsync(Func<Task<byte[]>> read, long maximum) {
             try { return await read().ConfigureAwait(false); }
             catch (InvalidDataException exception) when (OfficeStreamReader.IsSizeLimitException(exception)) {
-                throw new OfficeInspectionResourceLimitException("excel", nameof(ExcelReadOptions.MaxInputBytes), maximum, exception);
+                throw new OfficeInspectionResourceLimitException("excel", nameof(ExcelReaderOptions.MaxInputBytes), maximum, exception);
             }
         }
     }

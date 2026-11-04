@@ -9,7 +9,7 @@ namespace OfficeIMO.Excel {
             string functionName = call!.Name.ToUpperInvariant();
             if (!_excelDocument.Calculation.TryGetCustomFunction(functionName, out ExcelCustomFormulaFunction? function)
                 || function == null
-                || !TryResolveFormulaArguments(call.Arguments, out List<FormulaArgumentValue> arguments)
+                || !TryResolveFormulaArguments(call.Arguments, out List<FormulaArgumentValue> arguments, coerceScalarValues: false)
                 || arguments.Any(argument => argument.IsUnresolvedFormula)) {
                 return false;
             }

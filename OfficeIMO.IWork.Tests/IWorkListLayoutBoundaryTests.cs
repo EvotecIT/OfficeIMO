@@ -10,12 +10,10 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(1.2f, 8f)]
     public void Unqualified_mixed_decimal_sizes_keep_the_strict_conversion_boundary(float scale, float secondSize) {
         using var package = DecimalMixedSizeLayoutPackage(scale, secondSize);
-        using var strict = WordIWorkConverter.ConvertPagesToWordResult(package,
-            conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var strict = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(strict.IsVisualFallback);
         package.Position = 0;
-        using var partial = WordIWorkConverter.ConvertPagesToWordResult(package,
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly,
+        using var partial = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly,
                 AllowPartialEditableReconstruction = true });
         Assert.False(partial.IsVisualFallback);
         Assert.Contains(partial.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_PAGES_LIST_LAYOUT_APPROXIMATED");
@@ -46,8 +44,7 @@ public sealed partial class IWorkBoundaryTests {
         float scale, bool mixedFontSizes, float additionalIndent) {
         using var package = CharacterListLayoutPackage(IWorkDocumentKind.Keynote, scale,
             mixedFontSizes: mixedFontSizes, additionalIndent: additionalIndent);
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package,
-            conversionOptions: new IWorkConversionOptions {
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions {
                 AllowPartialEditableReconstruction = true, RequireCompleteVisualCoverage = false
             });
         Assert.True(result.IsVisualFallback);
@@ -69,12 +66,10 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void DOCX_character_marker_geometry_requires_partial_policy_and_reports_approximation() {
         using var package = CharacterListLayoutPackage(IWorkDocumentKind.Pages, 1.23f);
-        using var strict = WordIWorkConverter.ConvertPagesToWordResult(package,
-            conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var strict = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(strict.IsVisualFallback);
         package.Position = 0;
-        using var partial = WordIWorkConverter.ConvertPagesToWordResult(package,
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly,
+        using var partial = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly,
                 AllowPartialEditableReconstruction = true });
         Assert.False(partial.IsVisualFallback);
         Assert.Contains(partial.Report.Diagnostics, diagnostic =>

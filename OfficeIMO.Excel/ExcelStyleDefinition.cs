@@ -14,8 +14,8 @@ namespace OfficeIMO.Excel {
         public ExcelUnderlineStyle? Underline { get; set; }
         /// <summary>Optional font family; null keeps the Normal font.</summary>
         public string? FontName { get; set; }
-        /// <summary>Optional positive finite font size in points.</summary>
-        public double? FontSize { get; set; }
+        /// <summary>Optional positive physical font size; null keeps the Normal font size.</summary>
+        public OfficeLength? FontSize { get; set; }
         /// <summary>Optional font color.</summary>
         public OfficeColor? FontColor { get; set; }
         /// <summary>Optional solid background color.</summary>
@@ -36,8 +36,8 @@ namespace OfficeIMO.Excel {
             ValidateEnum(Underline, nameof(Underline));
             ValidateEnum(HorizontalAlignment, nameof(HorizontalAlignment));
             ValidateEnum(VerticalAlignment, nameof(VerticalAlignment));
-            if (FontSize.HasValue && (FontSize.Value <= 0 || double.IsNaN(FontSize.Value) || double.IsInfinity(FontSize.Value))) {
-                throw new ArgumentOutOfRangeException(nameof(FontSize), "Font size must be a positive finite value.");
+            if (FontSize.HasValue && FontSize.Value <= OfficeLength.Zero) {
+                throw new ArgumentOutOfRangeException(nameof(FontSize), "Font size must be positive.");
             }
             ValidateText(FontName, nameof(FontName));
             ValidateText(NumberFormat, nameof(NumberFormat));

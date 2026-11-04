@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
         public async Task Test_QueryBackedTable_RequiresExplicitHostPolicyAndRefreshesTransactionally() {
             string filePath = Path.Combine(_directoryWithFiles, "Excel.QueryBackedTable.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 ExcelQueryBackedTableInfo source = document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
                     ConnectionName = "SalesQuery",
                     CommandText = "trusted-command",
@@ -61,9 +61,9 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2, refreshed.RowCount);
                 Assert.Equal(3, refreshed.ColumnCount);
                 Assert.Equal("B3:D5", refreshed.Range);
-                Assert.Equal("Territory", sheet.CellAt(3, 2).GetValue<string>());
-                Assert.Equal("East", sheet.CellAt(4, 2).GetValue<string>());
-                Assert.Equal(20d, sheet.CellAt(5, 3).GetValue<double>());
+                Assert.Equal("Territory", sheet.Cell(3, 2).GetValue<string>());
+                Assert.Equal("East", sheet.Cell(4, 2).GetValue<string>());
+                Assert.Equal(20d, sheet.Cell(5, 3).GetValue<double>());
                 QueryTableFields refreshedFields = initialTablePart.QueryTableParts.Single().QueryTable!
                     .QueryTableRefresh!.QueryTableFields!;
                 Assert.Equal(new[] { "Territory", "Amount", "AsOf" }, refreshedFields.Elements<QueryTableField>()
@@ -82,7 +82,7 @@ namespace OfficeIMO.Tests {
                     oversized,
                     new ExcelQueryExecutionPolicy { AllowExecution = true, MaximumRows = 1 }));
                 Assert.Equal("B3:D5", sheet.GetTableRange(source.TableName));
-                Assert.Equal("East", sheet.CellAt(4, 2).GetValue<string>());
+                Assert.Equal("East", sheet.Cell(4, 2).GetValue<string>());
                 document.Save();
             }
 
@@ -103,13 +103,13 @@ namespace OfficeIMO.Tests {
                     host,
                     new ExcelQueryExecutionPolicy { AllowExecution = true, AllowImportedCommands = true });
                 Assert.Equal("B3:B4", refreshed.Range);
-                Assert.Equal("North", imported["Data"].CellAt(4, 2).GetValue<string>());
+                Assert.Equal("North", imported["Data"].Cell(4, 2).GetValue<string>());
                 var importedErrors = imported.ValidateOpenXml().ToArray();
                 Assert.True(importedErrors.Length == 0, string.Join(Environment.NewLine, importedErrors));
                 Assert.True(imported.RemoveQueryBackedTable(source.ConnectionName, preserveTable: false));
                 Assert.Empty(imported.GetQueryBackedTables());
                 Assert.Null(imported["Data"].GetTableRange(source.TableName));
-                Assert.Equal("North", imported["Data"].CellAt(4, 2).GetValue<string>());
+                Assert.Equal("North", imported["Data"].Cell(4, 2).GetValue<string>());
                 var removedErrors = imported.ValidateOpenXml().ToArray();
                 Assert.True(removedErrors.Length == 0, string.Join(Environment.NewLine, removedErrors));
             }
@@ -118,7 +118,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Test_QueryBackedTable_CancellationStopsLazyMaterializationBeforeMutation() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             ExcelQueryBackedTableInfo source = document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
                 ConnectionName = "LazyQuery",
                 WorksheetName = sheet.Name,
@@ -138,8 +138,8 @@ namespace OfficeIMO.Tests {
                 host,
                 new ExcelQueryExecutionPolicy { AllowExecution = true },
                 cancellation.Token));
-            Assert.Equal("A1:A1", sheet.GetTableRange(source.TableName));
-            Assert.Equal("Value", sheet.CellAt(1, 1).GetValue<string>());
+            Assert.Equal("A1:A2", sheet.GetTableRange(source.TableName));
+            Assert.Equal("Value", sheet.Cell(1, 1).GetValue<string>());
 
             var unsupported = new StubQueryHost(new ExcelQueryExecutionResult(
                 new[] { "Value" },
@@ -148,7 +148,7 @@ namespace OfficeIMO.Tests {
                 source.ConnectionName,
                 unsupported,
                 new ExcelQueryExecutionPolicy { AllowExecution = true }));
-            Assert.Equal("A1:A1", sheet.GetTableRange(source.TableName));
+            Assert.Equal("A1:A2", sheet.GetTableRange(source.TableName));
 
             var headerOnly = new StubQueryHost(new ExcelQueryExecutionResult(
                 new[] { "LongHeader" },
@@ -157,13 +157,13 @@ namespace OfficeIMO.Tests {
                 source.ConnectionName,
                 headerOnly,
                 new ExcelQueryExecutionPolicy { AllowExecution = true, MaximumCharacters = 5 }));
-            Assert.Equal("A1:A1", sheet.GetTableRange(source.TableName));
+            Assert.Equal("A1:A2", sheet.GetTableRange(source.TableName));
         }
 
         [Fact]
         public async Task Test_QueryBackedTable_SnapshotsPolicyAndParticipatesInStructuralEdits() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             ExcelQueryBackedTableInfo source = document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
                 ConnectionName = "SafeQuery",
                 WorksheetName = sheet.Name,
@@ -192,8 +192,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Test_QueryBackedTable_RejectsOccupiedExpansionAndRefreshesSharedConnectionsByTable() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet firstSheet = document.AddWorksheet("First");
-            ExcelSheet secondSheet = document.AddWorksheet("Second");
+            ExcelSheet firstSheet = document.AddSheet("First");
+            ExcelSheet secondSheet = document.AddSheet("Second");
             ExcelQueryBackedTableInfo first = document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
                 ConnectionName = "SharedQuery",
                 WorksheetName = firstSheet.Name,
@@ -207,7 +207,7 @@ namespace OfficeIMO.Tests {
                 ColumnNames = new[] { "Value" }
             });
 
-            firstSheet.CellValue(2, 2, "protected");
+            firstSheet.Cell(2, 2).SetValue("protected");
             var growing = new StubQueryHost(new ExcelQueryExecutionResult(
                 new[] { "Value", "Extra" },
                 new IReadOnlyList<object?>[] { new object?[] { "new", "collision" } }));
@@ -215,8 +215,8 @@ namespace OfficeIMO.Tests {
                 first.TableName,
                 growing,
                 new ExcelQueryExecutionPolicy { AllowExecution = true }));
-            Assert.Equal("protected", firstSheet.CellAt(2, 2).GetValue<string>());
-            Assert.Equal("A1:A1", firstSheet.GetTableRange(first.TableName));
+            Assert.Equal("protected", firstSheet.Cell(2, 2).GetValue<string>());
+            Assert.Equal("A1:A2", firstSheet.GetTableRange(first.TableName));
 
             QueryTablePart firstQueryPart = firstSheet.WorksheetPart.TableDefinitionParts.Single().QueryTableParts.Single();
             QueryTablePart secondQueryPart = secondSheet.WorksheetPart.TableDefinitionParts.Single().QueryTableParts.Single();
@@ -233,8 +233,8 @@ namespace OfficeIMO.Tests {
                 new ExcelQueryExecutionPolicy { AllowExecution = true });
             Assert.Equal(2, refreshed.Count);
             Assert.Equal(new[] { "FirstResults", "SecondResults" }, host.TableNames.OrderBy(name => name).ToArray());
-            Assert.Equal("FirstResults", firstSheet.CellAt(2, 1).GetValue<string>());
-            Assert.Equal("SecondResults", secondSheet.CellAt(2, 1).GetValue<string>());
+            Assert.Equal("FirstResults", firstSheet.Cell(2, 1).GetValue<string>());
+            Assert.Equal("SecondResults", secondSheet.Cell(2, 1).GetValue<string>());
             await Assert.ThrowsAsync<InvalidOperationException>(() => document.RefreshQueryAsync(
                 first.ConnectionName,
                 host,
@@ -243,9 +243,9 @@ namespace OfficeIMO.Tests {
             QueryTablePart worksheetConsumer = firstSheet.WorksheetPart.AddNewPart<QueryTablePart>();
             worksheetConsumer.QueryTable = (QueryTable)firstQueryPart.QueryTable!.CloneNode(true);
             worksheetConsumer.QueryTable.Save();
-            ExcelSheet mappedSheet = document.AddWorksheet("Mapped");
-            mappedSheet.CellValue(1, 1, "Value");
-            mappedSheet.CellValue(2, 1, "kept");
+            ExcelSheet mappedSheet = document.AddSheet("Mapped");
+            mappedSheet.Cell(1, 1).SetValue("Value");
+            mappedSheet.Cell(2, 1).SetValue("kept");
             mappedSheet.AddTable("A1:A2", true, "MappedResults", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
             TableDefinitionPart mappedTablePart = mappedSheet.WorksheetPart.TableDefinitionParts.Single();
             mappedTablePart.Table!.ConnectionId = first.ConnectionId;

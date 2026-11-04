@@ -22,7 +22,9 @@ internal sealed class OfficeHtmlThemePalette {
         string fontBody,
         string fontHeading,
         string fontMono,
-        string fontSize) {
+        string fontSize,
+        string? tableHeaderText = null,
+        string colorScheme = "light") {
         Accent = accent;
         AccentDark = accentDark;
         AccentSoft = accentSoft;
@@ -44,6 +46,8 @@ internal sealed class OfficeHtmlThemePalette {
         FontHeading = fontHeading;
         FontMono = fontMono;
         FontSize = fontSize;
+        TableHeaderText = tableHeaderText ?? heading;
+        ColorScheme = colorScheme;
     }
 
     internal string Accent { get; }
@@ -67,6 +71,28 @@ internal sealed class OfficeHtmlThemePalette {
     internal string FontHeading { get; }
     internal string FontMono { get; }
     internal string FontSize { get; }
+    internal string TableHeaderText { get; }
+    internal string ColorScheme { get; }
+
+    internal static OfficeHtmlThemePalette Create(OfficeTheme theme) {
+        var palette = theme.Palette;
+        var surfaces = theme.Surfaces;
+        string Color(OfficeColor color) => color.Resolve(theme).ToCssColor();
+        return new OfficeHtmlThemePalette(
+            Color(palette.Accent1), Color(palette.Accent1), Color(surfaces.Accent1Tint),
+            Color(palette.Background), Color(palette.Background), Color(surfaces.Surface),
+            Color(surfaces.Rule), Color(theme.TableStyle.BorderColor), Color(palette.Text),
+            Color(theme.TextStyle.HeadingColor), Color(palette.TextMuted), Color(theme.TableStyle.HeaderFill),
+            Color(theme.TableStyle.Banding ? theme.TableStyle.BandFill : palette.Background),
+            Color(surfaces.Surface), Color(surfaces.Surface), Color(palette.Warning), Color(surfaces.WarningFill),
+            FontStack(theme.Fonts.Body), FontStack(theme.Fonts.Heading),
+            "Consolas,\"SFMono-Regular\",\"Liberation Mono\",monospace",
+            theme.TypeScale.Body.ToPoints().ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + "pt",
+            Color(theme.TableStyle.HeaderText), theme.IsDark ? "dark" : "light");
+    }
+
+    private static string FontStack(OfficeThemeFont font) => string.Join(",", new[] { font.Family }
+        .Concat(font.Fallbacks).Select(HtmlCssStringEncoder.Quote)) + ",sans-serif";
 
     internal static OfficeHtmlThemePalette Create(OfficeVisualThemeKind theme) {
         switch (theme) {

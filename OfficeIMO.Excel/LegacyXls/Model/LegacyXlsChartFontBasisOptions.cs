@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes decoded Fbi or Fbi2 chart font-scaling metadata preserved from a BIFF chart stream.
     /// </summary>
-    public sealed class LegacyXlsChartFontBasisOptions {
+    internal sealed class LegacyXlsChartFontBasisOptions {
         internal LegacyXlsChartFontBasisOptions(ushort widthTwipsBasis, ushort heightTwipsBasis, ushort fontHeightTwips, ushort scaleBasis, ushort fontIndex) {
             WidthTwipsBasis = widthTwipsBasis;
             HeightTwipsBasis = heightTwipsBasis;

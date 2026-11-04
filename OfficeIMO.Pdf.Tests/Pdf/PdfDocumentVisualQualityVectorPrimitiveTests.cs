@@ -15,21 +15,19 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void VectorRectangle_RendersFillAndStrokeOperators() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 240,
-                PageHeight = 180,
-                MarginLeft = 20,
-                MarginRight = 20,
-                MarginTop = 20,
-                MarginBottom = 20
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(180)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+                }
             })
             .Rectangle(
                 width: 100,
                 height: 36,
-                strokeColor: PdfColor.FromRgb(26, 51, 77),
+                strokeColor: global::OfficeIMO.OfficeColor.FromRgb(26, 51, 77),
                 strokeWidth: 2.5,
-                fillColor: PdfColor.FromRgb(204, 179, 153),
-                align: PdfAlign.Center,
+                fillColor: global::OfficeIMO.OfficeColor.FromRgb(204, 179, 153),
+                align: OfficeAlignment.Center,
                 spacingBefore: 4,
                 spacingAfter: 6)
             .ToBytes();

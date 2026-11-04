@@ -8,7 +8,7 @@ internal static class EmailToolkitSmoke {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-email-toolkit-smoke-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         try {
-            using EmailReadResult read = new EmailDocumentReader().Read(Encoding.UTF8.GetBytes(
+            using EmailReadResult read = new EmailDocumentReader().ReadDocument(Encoding.UTF8.GetBytes(
                 "From: sender@example.test\r\nTo: me@example.test\r\n" +
                 "Message-ID: <source@example.test>\r\nSubject: Toolkit smoke\r\n" +
                 "Content-Type: text/html; charset=utf-8\r\n\r\n" +

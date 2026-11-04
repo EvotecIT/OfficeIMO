@@ -1,3 +1,4 @@
+using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word;
@@ -19,25 +20,23 @@ public sealed class WordPdfTableParagraphLineBoxTests {
         WordTable table = document.AddTable(2, 1);
         table._tableProperties!.TableStyle = null;
         table.LayoutMode = WordTableLayoutMode.Fixed;
-        table.WidthType = WordTableWidthUnit.Dxa;
-        table.Width = 2000;
-        table.GridColumnWidth = new List<int> { 2000 };
+        table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2000) * 635)));
+        table.GridColumnWidth = new List<int> { 2000 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
         for (int row = 0; row < 2; row++) {
             WordTableCell cell = table.Rows[row].Cells[0];
-            cell.WidthType = WordTableWidthUnit.Dxa; cell.Width = 2000;
-            cell.MarginTopWidth = 0; cell.MarginBottomWidth = 0;
+            cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2000) * 635)));
+            cell.MarginTop = global::OfficeIMO.OfficeLength.Zero; cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
             WordParagraph paragraph = cell.Paragraphs[0];
             paragraph.Text = row == 0 ? "A" : "B";
-            paragraph.FontSize = 8;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(8);
             paragraph.FontFamily = "Arial";
-            paragraph.LineSpacingBeforePoints = 0;
-            paragraph.LineSpacingAfterPoints = 0;
-            paragraph.LineSpacingPoints = 10;
-            paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
+            paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
+            paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(10));
         }
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters;
         Assert.Equal("AB", string.Concat(letters.Select(letter => letter.Value)));
         Assert.Equal(10D, letters[0].StartBaseLine.Y - letters[1].StartBaseLine.Y, 3);

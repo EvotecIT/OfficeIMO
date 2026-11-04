@@ -45,7 +45,7 @@ internal static class UsageFixtures {
             var item = Create(false)[0] with { UsageConstraints = [
                 new(BookOnixUsageType.TextAndDataMining, BookOnixUsageStatus.Prohibited), new(type, BookOnixUsageStatus.Unlimited)] };
             try {
-                var result = project.ExportOnix(options with { CollateralTexts = [item] }, schemas, new EpubWriteOptions { ModifiedAt = timestamp });
+                var result = project.ExportOnix(options with { CollateralTexts = [item] }, schemas, new EpubSaveOptions { ModifiedAt = timestamp });
                 File.WriteAllBytes(Path.Combine(outputDirectory, "usage-" + type + ".onix"), result.Bytes);
                 status = "passed"; detail = "The supplied schema accepts this usage code.";
             } catch (InvalidDataException error) when (error.Message.StartsWith("ONIX schema validation failed:", StringComparison.Ordinal) &&

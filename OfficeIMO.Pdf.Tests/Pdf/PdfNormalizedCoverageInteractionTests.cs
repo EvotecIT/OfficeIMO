@@ -25,7 +25,7 @@ public sealed class PdfNormalizedCoverageInteractionTests {
         // their whitespace. Every original NFD source cluster remains once.
         string extracted = PdfReadDocument.Open(bytes).ExtractText();
         Assert.Equal("A\u0301A\u0301", new string(extracted.Where(character => !char.IsWhiteSpace(character)).ToArray()));
-        report.RequireNoLoss();
+        report.ThrowIfLoss();
     }
 
     [Theory]
@@ -39,7 +39,7 @@ public sealed class PdfNormalizedCoverageInteractionTests {
         byte[] bytes = document.ToBytes();
         Assert.NotEmpty(bytes);
         Assert.Equal(source, PdfReadDocument.Open(bytes).ExtractText().Trim());
-        report.RequireNoLoss();
+        report.ThrowIfLoss();
     }
 
     [Theory]
@@ -55,7 +55,7 @@ public sealed class PdfNormalizedCoverageInteractionTests {
         // The primary must retain the original A+acute cluster while B uses
         // the real fallback; a whole-primary bypass cannot satisfy this case.
         Assert.Equal(source, PdfReadDocument.Open(bytes).ExtractText().Trim());
-        report.RequireNoLoss();
+        report.ThrowIfLoss();
     }
 
     [Theory]
@@ -82,9 +82,9 @@ public sealed class PdfNormalizedCoverageInteractionTests {
         // A and NFC A-acute exist, but the original combining acute does not.
         byte[] primary = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(true, 'A', 0x00C1);
         var report = new PdfConversionReport();
-        PdfOptions options = (named
-            ? new PdfOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family, primary))
-            : new PdfOptions().EmbedStandardFont(PdfStandardFont.Helvetica, primary, family))
+        PdfCreateOptions options = (named
+            ? new PdfCreateOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family, primary))
+            : new PdfCreateOptions().EmbedStandardFont(PdfStandardFont.Helvetica, primary, family))
             .SetTextShapingMode(PdfTextShapingMode.OpenTypeLigatures)
             .ReportDiagnosticsTo(report);
         if (unrelatedFallback) {
@@ -97,8 +97,8 @@ public sealed class PdfNormalizedCoverageInteractionTests {
             options.RegisterEmbeddedFontFallbacks(fallbacks);
         }
         PdfDocument document = PdfDocument.Create(options).Paragraph(paragraph => {
-            if (named) paragraph.FontFamily(family);
-            paragraph.Text(source);
+            if (named) { paragraph.RunDefaults.FontFamily = family; paragraph.RunDefaults.StandardFont = null; }
+            paragraph.AddText(source);
         });
         return (document, report);
     }

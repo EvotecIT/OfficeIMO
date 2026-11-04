@@ -49,19 +49,20 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlImageExport_FluentSingleAndBatchSurfacesUseSharedFormats() {
+    public void HtmlImageExport_SingleAndBatchOperationsUseSharedFormats() {
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
             "<style>@page{size:2in 1in;margin:8px}</style><p>Fluent HTML image export</p>");
 
-        OfficeImageExportResult jpeg = document.ToImage()
-            .Paged()
-            .AsJpeg()
-            .WithRasterEncoding(settings => settings.Jpeg.Quality = 71)
-            .Export();
-        IReadOnlyList<OfficeImageExportResult> tiffPages = document.ToImages()
-            .Paged()
-            .AsTiff()
-            .Export();
+        var imageOptions1 = new HtmlRenderOptions();
+        imageOptions1.Mode = HtmlRenderMode.Paged;
+        imageOptions1.PageIndex = 0;
+        imageOptions1.Format = OfficeImageExportFormat.Jpeg;
+        imageOptions1.RasterEncoding.Jpeg.Quality = 71;
+        OfficeImageExportResult jpeg = document.ExportImage(OfficeImageExportFormat.Jpeg, imageOptions1, pageIndex: imageOptions1.PageIndex);
+        var imageOptions2 = new HtmlRenderOptions();
+        imageOptions2.Mode = HtmlRenderMode.Paged;
+        imageOptions2.Format = OfficeImageExportFormat.Tiff;
+        IReadOnlyList<OfficeImageExportResult> tiffPages = document.ExportImages(OfficeImageExportFormat.Tiff, imageOptions2);
 
         Assert.Equal("image/jpeg", OfficeImageReader.Identify(jpeg.Bytes).MimeType);
         Assert.NotEmpty(tiffPages);
@@ -91,7 +92,7 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public async Task HtmlFluentSaveAsyncUsesTheResourceAwareRenderer() {
+    public async Task HtmlSaveAsImageAsyncUsesTheResourceAwareRenderer() {
         bool resolverCalled = false;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
             "<link rel='stylesheet' href='https://assets.example.test/site.css'><p class='marker'>Async builder</p>");
@@ -107,14 +108,16 @@ public sealed partial class HtmlRenderingTests {
         };
         using var output = new MemoryStream();
 
-        OfficeImageExportResult result = await document
-            .ToImage(options)
-            .AsPng()
-            .SaveAsync(output);
+        var imageOptions3 = options.Clone();
+        imageOptions3.Format = OfficeImageExportFormat.Png;
+        OfficeConversionReport result = await document
+            .SaveAsImageAsync(output, imageOptions3);
 
         Assert.True(resolverCalled);
-        Assert.Equal(OfficeImageExportFormat.Png, result.Format);
-        Assert.Equal(result.Bytes, output.ToArray());
+        Assert.Equal("Png", result.Target);
+        Assert.Equal(1, result.ItemsWritten);
+        Assert.True(output.CanWrite);
+        Assert.Equal("image/png", OfficeImageReader.Identify(output.ToArray()).MimeType);
     }
 
     [Fact]
@@ -147,7 +150,7 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlImageExport_FluentBatchPreservesCallerRenderOptionsWhenSaving() {
+    public void HtmlImageExport_BatchSavePreservesCallerRenderOptions() {
         HtmlConversionDocument document = HtmlConversionDocument.Parse("<p>Configured batch</p>");
         var options = new HtmlRenderOptions {
             ViewportWidth = 222D,
@@ -157,14 +160,12 @@ public sealed partial class HtmlRenderingTests {
         };
         string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-" + Guid.NewGuid().ToString("N"));
         try {
-            HtmlPageImageBatchExportBuilder builder = document.ToImages(options);
-            options.ViewportWidth = 444D;
-            IReadOnlyList<OfficeImageExportResult> results = builder
-                .Continuous()
-                .AsPng()
-                .Save(folder);
-
-            OfficeImageExportResult result = Assert.Single(results);
+            options.Mode = HtmlRenderMode.Continuous;
+            OfficeConversionReport report = document.SaveAsImages(folder, options);
+            Assert.Equal(1, report.ItemsWritten);
+            Assert.Equal(222D, options.ViewportWidth);
+            Assert.Equal(0.5D, options.Scale);
+            OfficeImageInfo result = OfficeImageReader.Identify(File.ReadAllBytes(Path.Combine(folder, "Page 1.png")));
             Assert.Equal(111, result.Width);
             Assert.Equal(56, result.Height);
             Assert.True(File.Exists(Path.Combine(folder, "Page 1.png")));

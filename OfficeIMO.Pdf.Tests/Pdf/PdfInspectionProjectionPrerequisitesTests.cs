@@ -12,7 +12,7 @@ public sealed class PdfInspectionProjectionPrerequisitesTests {
         PdfDocument bounded = PdfDocument.Load(bytes, new PdfLoadOptions { Limits = new PdfReadLimits { MaxContentOperands = 20 } });
         Assert.Throws<PdfReadLimitException>(() => bounded.ReadForInspection());
         var noImages = new UnexpectedImageStage();
-        PdfReadOptions options = new PdfReadOptions { IncludeImages = false, IncludeFormWidgets = false,
+        PdfLoadOptions options = new PdfLoadOptions { IncludeImages = false, IncludeFormWidgets = false,
             Pipeline = new PdfUnderstandingPipelineOptions { ImageRegionDetection = noImages } };
         PdfInspectionReadResult result = bounded.ReadForInspection(options);
         Assert.True(result.CompletedAllSelectedPages); Assert.False(result.Document.IncludesImages); Assert.False(result.Document.IncludesFormWidgets);
@@ -32,12 +32,12 @@ public sealed class PdfInspectionProjectionPrerequisitesTests {
     [Fact]
     public void TextProjectionDoesNotTurnTextLimitsOrCancellationIntoPartialSuccess() {
         byte[] bytes = PdfInspectionProjectionFixture.Build();
-        var options = new PdfReadOptions { IncludeImages = false, IncludeFormWidgets = false,
+        var options = new PdfLoadOptions { IncludeImages = false, IncludeFormWidgets = false,
             Pipeline = new PdfUnderstandingPipelineOptions { MaxTextCharactersPerPage = 1 } };
         Assert.Throws<PdfReadLimitException>(() => PdfDocument.Load(bytes).ReadForInspection(options));
         using var cancellation = new CancellationTokenSource(); cancellation.Cancel();
         Assert.ThrowsAny<OperationCanceledException>(() => PdfDocument.Load(bytes).ReadForInspection(
-            new PdfReadOptions { IncludeImages = false }, cancellation.Token));
+            new PdfLoadOptions { IncludeImages = false }, cancellation.Token));
     }
 
     private sealed class UnexpectedImageStage : IPdfImageRegionDetectionStage {

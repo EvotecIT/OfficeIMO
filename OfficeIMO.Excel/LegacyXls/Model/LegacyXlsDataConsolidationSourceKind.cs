@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Identifies the workbook source shape carried by a legacy XLS DConRef record.
     /// </summary>
-    public enum LegacyXlsDataConsolidationSourceKind {
+    internal enum LegacyXlsDataConsolidationSourceKind {
         /// <summary>The source string did not carry a recognized DConFile prefix.</summary>
         Unknown,
 

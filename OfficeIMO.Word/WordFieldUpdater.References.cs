@@ -64,7 +64,7 @@ namespace OfficeIMO.Word {
 
             value = formattedText;
             status = WordFieldUpdateStatus.Updated;
-            message = parsed.FormatSwitches.Any(fieldFormat => fieldFormat != WordFieldFormat.Mergeformat && fieldFormat != WordFieldFormat.CharFormat)
+            message = parsed.FormatSwitches.Any(fieldFormat => fieldFormat != WordFieldFormat.MergeFormat && fieldFormat != WordFieldFormat.CharFormat)
                 ? $"Updated from bookmark {bookmarkName} with deterministic text formatting."
                 : $"Updated from bookmark {bookmarkName}.";
             return true;
@@ -145,7 +145,7 @@ namespace OfficeIMO.Word {
             string source = fromLayout ? "OfficeIMO page layout" : "OfficeIMO page-break order";
             message = usedNumericPicture
                 ? $"Updated from {source} for bookmark {bookmarkName} with numeric picture formatting."
-                : parsed.FormatSwitches.Any(fieldFormat => fieldFormat != WordFieldFormat.Mergeformat && fieldFormat != WordFieldFormat.CharFormat)
+                : parsed.FormatSwitches.Any(fieldFormat => fieldFormat != WordFieldFormat.MergeFormat && fieldFormat != WordFieldFormat.CharFormat)
                 ? $"Updated from {source} for bookmark {bookmarkName} with deterministic number formatting."
                 : $"Updated from {source} for bookmark {bookmarkName}.";
             return true;
@@ -275,11 +275,11 @@ namespace OfficeIMO.Word {
                 case WordFieldFormat.Arabic:
                     value = page.ToString(CultureInfo.InvariantCulture);
                     return true;
-                case WordFieldFormat.Roman:
-                case WordFieldFormat.roman:
+                case WordFieldFormat.UpperRoman:
+                case WordFieldFormat.LowerRoman:
                 case WordFieldFormat.Ordinal:
-                case WordFieldFormat.Alphabetical:
-                case WordFieldFormat.ALPHABETICAL:
+                case WordFieldFormat.LowerLetter:
+                case WordFieldFormat.UpperLetter:
                 case WordFieldFormat.Hex:
                 case WordFieldFormat.CardText:
                 case WordFieldFormat.OrdText:
@@ -295,7 +295,7 @@ namespace OfficeIMO.Word {
 
         private static WordFieldFormat? GetLastMeaningfulFormat(IReadOnlyList<WordFieldFormat> formatSwitches) {
             return formatSwitches
-                .Where(fieldFormat => fieldFormat != WordFieldFormat.Mergeformat && fieldFormat != WordFieldFormat.CharFormat)
+                .Where(fieldFormat => fieldFormat != WordFieldFormat.MergeFormat && fieldFormat != WordFieldFormat.CharFormat)
                 .Cast<WordFieldFormat?>()
                 .LastOrDefault();
         }

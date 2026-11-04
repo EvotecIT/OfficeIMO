@@ -14,14 +14,14 @@ namespace OfficeIMO.Tests {
         [InlineData("IFERROR(LOG(8,1),99)", 99d)]
         public void Logarithms_and_exponential_results_survive_saved_numeric_caches(string formula, double expected) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Math");
-            sheet.CellFormula(1, 1, formula);
+            var sheet = document.AddSheet("Math");
+            sheet.Cell(1, 1).SetFormula(formula);
             Assert.Equal(1, document.Calculate());
-            Assert.Equal(expected, sheet.CellAt(1, 1).GetValue<double>(), 12);
+            Assert.Equal(expected, sheet.Cell(1, 1).GetValue<double>(), 12);
             using var saved = new MemoryStream(); document.Save(saved); saved.Position = 0;
             using var reopened = ExcelDocument.Load(saved);
             Assert.Equal(formula, reopened.Sheets[0].GetFormulaText(1, 1));
-            Assert.Equal(expected, reopened.Sheets[0].CellAt(1, 1).GetValue<double>(), 12);
+            Assert.Equal(expected, reopened.Sheets[0].Cell(1, 1).GetValue<double>(), 12);
             Assert.Empty(reopened.ValidateOpenXml());
         }
 
@@ -37,8 +37,8 @@ namespace OfficeIMO.Tests {
         [InlineData("LOG(8,#N/A)", "#N/A")]
         public void Logarithms_propagate_typed_errors_and_replace_stale_numeric_caches(string formula, string expected) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Math");
-            sheet.CellValue(1, 1, 42d); sheet.CellFormula(1, 1, formula);
+            var sheet = document.AddSheet("Math");
+            sheet.Cell(1, 1).SetValue(42d); sheet.Cell(1, 1).SetFormula(formula);
             Assert.Equal(1, document.Calculate());
             using var saved = new MemoryStream(); document.Save(saved); saved.Position = 0;
             using var reopened = ExcelDocument.Load(saved);
@@ -56,9 +56,9 @@ namespace OfficeIMO.Tests {
         [InlineData("IFERROR(LOG(#REF!,\"text\"),99)")]
         public void Unsupported_logarithm_operands_and_arities_preserve_existing_caches(string formula) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Math");
-            sheet.CellValue(1, 1, 1d); sheet.CellValue(2, 1, 2d);
-            sheet.CellValue(1, 2, 42d); sheet.CellFormula(1, 2, formula);
+            var sheet = document.AddSheet("Math");
+            sheet.Cell(1, 1).SetValue(1d); sheet.Cell(2, 1).SetValue(2d);
+            sheet.Cell(1, 2).SetValue(42d); sheet.Cell(1, 2).SetFormula(formula);
             Assert.Equal(0, document.Calculate());
             Assert.Equal("42", Assert.Single(sheet.InspectFormulas().Formulas).CachedValue);
         }

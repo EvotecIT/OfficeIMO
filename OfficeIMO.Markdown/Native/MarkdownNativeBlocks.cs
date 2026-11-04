@@ -72,7 +72,7 @@ public abstract class MarkdownNativeBlock {
     }
 
     /// <summary>Creates a UI-safe snapshot of this block without parser object references.</summary>
-    public MarkdownNativeBlockSnapshot ToSnapshot() => MarkdownNativeSnapshotFactory.FromBlock(this);
+    public MarkdownNativeBlockInfo ToSnapshot() => MarkdownNativeSnapshotFactory.FromBlock(this);
 }
 
 /// <summary>
@@ -367,7 +367,7 @@ public sealed class MarkdownNativeTableBlock : MarkdownNativeBlock {
             var source = table.AlignmentCellSources[columnIndex];
             var alignment = table.Alignments != null && columnIndex < table.Alignments.Count
                 ? table.Alignments[columnIndex]
-                : ColumnAlignment.None;
+                : MarkdownColumnAlignment.None;
             cells.Add(new MarkdownNativeTableAlignmentCell(columnIndex, alignment, source.Markdown, source.SourceSpan));
         }
 
@@ -456,7 +456,7 @@ public sealed class MarkdownNativeTableBlock : MarkdownNativeBlock {
     private static IReadOnlyList<MarkdownNativeTableCell> BuildCells(
         IReadOnlyList<string> rawCells,
         IReadOnlyList<TableCell> structuredCells,
-        IReadOnlyList<ColumnAlignment> columnAlignments,
+        IReadOnlyList<MarkdownColumnAlignment> columnAlignments,
         MarkdownSyntaxNode? rowNode,
         ICollection<MarkdownNativeDiagnostic> diagnostics,
         bool isHeader,
@@ -481,17 +481,17 @@ public sealed class MarkdownNativeTableBlock : MarkdownNativeBlock {
         return cells;
     }
 
-    private static ColumnAlignment ResolveAlignment(
+    private static MarkdownColumnAlignment ResolveAlignment(
         TableCell? sourceCell,
-        IReadOnlyList<ColumnAlignment> columnAlignments,
+        IReadOnlyList<MarkdownColumnAlignment> columnAlignments,
         int columnIndex) {
-        if (sourceCell != null && sourceCell.Alignment != ColumnAlignment.None) {
+        if (sourceCell != null && sourceCell.Alignment != MarkdownColumnAlignment.None) {
             return sourceCell.Alignment;
         }
 
         return columnAlignments != null && columnIndex >= 0 && columnIndex < columnAlignments.Count
             ? columnAlignments[columnIndex]
-            : ColumnAlignment.None;
+            : MarkdownColumnAlignment.None;
     }
 }
 
@@ -564,7 +564,7 @@ public sealed class MarkdownNativeTablePipe {
 public sealed class MarkdownNativeTableAlignmentCell {
     internal MarkdownNativeTableAlignmentCell(
         int columnIndex,
-        ColumnAlignment alignment,
+        MarkdownColumnAlignment alignment,
         string markdown,
         MarkdownSourceSpan sourceSpan) {
         ColumnIndex = columnIndex;
@@ -577,7 +577,7 @@ public sealed class MarkdownNativeTableAlignmentCell {
     public int ColumnIndex { get; }
 
     /// <summary>Semantic alignment represented by this alignment cell.</summary>
-    public ColumnAlignment Alignment { get; }
+    public MarkdownColumnAlignment Alignment { get; }
 
     /// <summary>Original alignment marker text such as <c>:---</c>, <c>---:</c>, or <c>:---:</c>.</summary>
     public string Markdown { get; }
@@ -597,7 +597,7 @@ public sealed class MarkdownNativeTableCell {
         bool isHeader,
         int rowIndex,
         int columnIndex,
-        ColumnAlignment alignment,
+        MarkdownColumnAlignment alignment,
         IReadOnlyList<MarkdownNativeBlock> children) {
         RawText = rawText ?? string.Empty;
         SourceCell = sourceCell;
@@ -648,7 +648,7 @@ public sealed class MarkdownNativeTableCell {
     public int ColumnIndex { get; }
 
     /// <summary>Cell-level alignment override when present.</summary>
-    public ColumnAlignment Alignment { get; }
+    public MarkdownColumnAlignment Alignment { get; }
 
     /// <summary>AST-backed native inline projection for the cell content when available.</summary>
     public IReadOnlyList<MarkdownNativeInline> InlineRuns { get; }

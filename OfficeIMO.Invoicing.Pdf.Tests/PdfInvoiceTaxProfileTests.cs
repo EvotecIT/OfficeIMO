@@ -81,28 +81,28 @@ public sealed class PdfInvoiceTaxProfileTests {
         return xml;
     }
 
-    private static PdfOptions FontOptions() {
+    private static PdfCreateOptions FontOptions() {
         string? path = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         Assert.NotNull(path);
         byte[] font = File.ReadAllBytes(path!);
-        return new PdfOptions { IncludeStandardFontToUnicodeMaps = true }
+        return new PdfCreateOptions { IncludeStandardFontToUnicodeMaps = true }
             .EmbedStandardFont(PdfStandardFont.Helvetica, font, "OfficeIMO Source Serif")
             .EmbedStandardFont(PdfStandardFont.HelveticaBold, font, "OfficeIMO Source Serif");
     }
 
     private static PdfDocument RawDocument(byte[] xml) {
-        PdfOptions options = FontOptions()
+        PdfCreateOptions options = FontOptions()
             .UseFacturX(xml, relationship: PdfAssociatedFileRelationship.Alternative,
                 textFallbacks: PdfTextFallbackFeatures.None)
             .UsePdfA(PdfComplianceProfile.PdfA3B)
             .SetEmbeddedFileModificationDate("factur-x.xml", DateTimeOffset.UtcNow);
         PdfDocument document = PdfDocument.Create(options);
-        document.Content.Paragraph(paragraph => paragraph.Text("Invoice tax profile regression"));
+        document.Content.AddParagraph(paragraph => paragraph.AddText("Invoice tax profile regression"));
         return document;
     }
 
     private static void AssertInvoicePair(InvoiceProfile profile, byte[] xml, byte[] pdf) {
-        PdfDocument saved = PdfDocument.Load(pdf);
+        PdfDocument saved = PdfDocument.Load(new System.IO.MemoryStream(pdf));
         PdfXmpMetadataInfo xmp = Assert.IsType<PdfXmpMetadataInfo>(saved.Inspect().XmpMetadata);
         Assert.Equal(3, xmp.PdfAPart);
         Assert.Equal("B", xmp.PdfAConformance);

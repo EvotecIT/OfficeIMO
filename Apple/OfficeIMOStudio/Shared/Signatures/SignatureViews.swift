@@ -6,7 +6,7 @@ struct SignatureMenu: View {
     @State private var store = SignatureStore.shared
 
     var body: some View {
-        Menu("Signature", systemImage: "signature") {
+        Group {
             ForEach(store.signatures) { signature in
                 Button { session.beginSigning(with: signature) } label: {
                     Label { Text("Signature") } icon: { SignatureImage(signature: signature) }

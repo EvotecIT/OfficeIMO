@@ -7,7 +7,7 @@ public enum MarkdownNativeBlockKind {
     /// <summary>Heading text with level and inline markdown nodes.</summary>
     Heading,
 
-    /// <summary>Paragraph text with inline markdown nodes.</summary>
+    /// <summary>MarkdownParagraph text with inline markdown nodes.</summary>
     Paragraph,
 
     /// <summary>Ordered or unordered list with native list items.</summary>

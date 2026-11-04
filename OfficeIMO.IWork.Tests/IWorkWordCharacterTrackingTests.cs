@@ -20,8 +20,7 @@ namespace OfficeIMO.IWork.Tests {
                 : CreatePackage(("Index/Document.iwa", FrameIwa(Message(
                     ArchiveRecord(1, 10000, ReferenceField(4, 2), new ulong[] { 2 }),
                     ArchiveRecord(2, 2001, Message(StringField(3, "Body"), attributes)), style))));
-            using var converted = WordIWorkConverter.ConvertPagesToWordResult(package,
-                conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly,
+            using var converted = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly,
                     AllowPartialEditableReconstruction = tableCell });
             if (!tableCell) converted.Report.RequireCompleteEditableReconstruction();
             using var bytes = new MemoryStream();
@@ -30,7 +29,7 @@ namespace OfficeIMO.IWork.Tests {
             using WordDocument reopened = WordDocument.Load(bytes);
             WordParagraph run = tableCell ? reopened.Tables[0].Rows[0].Cells[0].Paragraphs.First(paragraph => paragraph.Text == "Value")
                 : reopened.Paragraphs.First(paragraph => paragraph.Text == "Body");
-            Assert.Equal(twips, run.Spacing);
+            Assert.Equal(OfficeLength.Emus((long)twips * 635), run.Spacing);
         }
     }
 }

@@ -50,6 +50,47 @@ public sealed class BookOnixUsageTests {
     }
 
     [Fact]
+    public void CalendarDateInputsIgnoreTimeOfDayAcrossOnixMetadata() {
+        var late = new DateTime(2026, 10, 6, 23, 59, 59, DateTimeKind.Local);
+        var early = new DateTime(2026, 10, 6, 0, 0, 1, DateTimeKind.Utc);
+        var options = BookOnixTests.Options() with {
+            PublicationDate = late,
+            CollateralTexts = [new() {
+                Type = BookOnixTextType.Excerpt, Audiences = [BookOnixContentAudience.EndCustomers],
+                Texts = [new("Calendar dates")], SourceLinks = ["https://example.org/excerpt"],
+                PublishedOn = late, UsableFrom = late, UsableUntil = early, UpdatedOn = early,
+                UsageConstraints = [C(BookOnixUsageLimit.Date(BookOnixUsageUnit.ValidFrom, late),
+                    BookOnixUsageLimit.Date(BookOnixUsageUnit.ValidUntil, early))],
+                Licenses = [new() { Names = [new("Terms")], ValidFrom = late, ValidUntil = early }]
+            }],
+            SupportingResources = [new() {
+                Type = BookOnixResourceContentType.FrontCover, Mode = BookOnixResourceMode.Image,
+                Audiences = [BookOnixContentAudience.EndCustomers],
+                Versions = [new() { Form = BookOnixResourceForm.Downloadable, Links = [new("https://example.org/cover.jpg")],
+                    UsableFrom = late, UsableUntil = early, UpdatedOn = late }]
+            }],
+            Commercial = new() {
+                SalesRights = [new(BookOnixSalesRightsKind.Exclusive, new() { Worldwide = true }) {
+                    Restrictions = [new(BookOnixSalesRestrictionKind.LibrariesOnly) { ValidFrom = late, ValidUntil = early }]
+                }],
+                Supplies = [new() {
+                    Territory = new() { Worldwide = true }, SupplierName = "Publisher",
+                    SupplierRole = BookOnixSupplierRole.PublisherToCustomers, Availability = BookOnixAvailability.NotYetAvailable,
+                    ExpectedSupplyDate = late,
+                    Prices = [new() { Kind = BookOnixPriceKind.RecommendedExcludingTax, Amount = 10, CurrencyCode = "USD",
+                        ValidFrom = late, ValidUntil = early }]
+                }]
+            }
+        };
+        var result = BookOnixTests.Project().ExportOnix(options, BookOnixTests.TestSchema());
+        var xml = XDocument.Load(new MemoryStream(result.Bytes));
+        Assert.Equal(Enumerable.Repeat("20261006", 13), xml.Descendants(Ns + "Date").Select(e => e.Value));
+        Assert.Equal(new[] { "20261006", "20261006" }, xml.Descendants(Ns + "Quantity").Select(e => e.Value));
+        Assert.Equal("20261006", xml.Descendants(Ns + "StartDate").Single().Value);
+        Assert.Equal("20261006", xml.Descendants(Ns + "EndDate").Single().Value);
+    }
+
+    [Fact]
     public void ExplicitZeroAndDatedPermissionStatusesRemainDistinct() {
         var result = BookOnixTests.Project().ExportOnix(Options(
             new(BookOnixUsageType.MultiUserLicense, BookOnixUsageStatus.Limited) { Limits = [N(BookOnixUsageUnit.ConcurrentUsers, 0)] },

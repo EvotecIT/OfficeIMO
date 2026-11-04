@@ -12,8 +12,8 @@ namespace OfficeIMO.Tests {
         public void DocumentCanExportFirstPageToNativePng() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Diagram").Size(6, 4);
-            VisioShape start = page.AddRectangle(1, 2, 1.5, 0.75, "Start");
+            VisioPage page = document.AddPage("Diagram").Size(OfficeLength.Inches(6), OfficeLength.Inches(4));
+            VisioShape start = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.75, page.DefaultUnit)), "Start");
             start.FillColor = OfficeColor.FromRgb(238, 247, 255);
             start.LineColor = OfficeColor.FromRgb(37, 99, 235);
             start.TextStyle = new VisioTextStyle {
@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
                 Color = OfficeColor.FromRgb(17, 24, 39)
             };
 
-            VisioShape decision = page.AddDiamond(4, 2, 1.2, 1.2, "OK?");
+            VisioShape decision = page.AddDiamond(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.2, page.DefaultUnit)), "OK?");
             VisioConnector connector = page.AddConnector(start, decision, ConnectorKind.RightAngle, VisioSide.Right, VisioSide.Left);
             connector.EndArrow = EndArrow.Arrow;
             connector.Label = "yes";
@@ -36,7 +36,7 @@ namespace OfficeIMO.Tests {
             AssertPngHeader(png, 600, 400);
             using MemoryStream blankStream = new();
             VisioDocument blank = VisioDocument.Create(blankStream);
-            blank.AddPage("Blank").Size(6, 4);
+            blank.AddPage("Blank").Size(OfficeLength.Inches(6), OfficeLength.Inches(4));
             byte[] blankPng = blank.ToPng(new VisioPngSaveOptions { PixelsPerInch = 100, BackgroundColor = OfficeColor.White });
             AssertPngHeader(blankPng, 600, 400);
             Assert.NotEqual(blankPng, png);
@@ -46,8 +46,8 @@ namespace OfficeIMO.Tests {
         public void PageCanSaveNativePngToFileAndStream() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Export").Size(2, 1);
-            page.AddEllipse(1, 0.5, 1, 0.5, "Node");
+            VisioPage page = document.AddPage("Export").Size(OfficeLength.Inches(2), OfficeLength.Inches(1));
+            page.AddEllipse(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Node");
 
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".png");
             try {
@@ -69,8 +69,8 @@ namespace OfficeIMO.Tests {
         public void RetainedPngApiUsesTheSharedRasterSafetyPlanner() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Bounded").Size(100, 100);
-            page.AddRectangle(50, 50, 80, 80, "Bounded");
+            VisioPage page = document.AddPage("Bounded").Size(OfficeLength.Inches(100), OfficeLength.Inches(100));
+            page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(50, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(50, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(80, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(80, page.DefaultUnit)), "Bounded");
             using var output = new MemoryStream();
 
             OfficeImageExportResult result = page.SaveAsPng(
@@ -94,8 +94,8 @@ namespace OfficeIMO.Tests {
         public void PngRendererDrawsStyledShapeTextBackgrounds() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Text Background").Size(3, 2);
-            VisioShape shape = page.AddRectangle(1.5, 1, 1.6, 0.7, "Escalation");
+            VisioPage page = document.AddPage("Text Background").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.6, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.7, page.DefaultUnit)), "Escalation");
             shape.FillPattern = 0;
             shape.LinePattern = 0;
             shape.TextStyle = new VisioTextStyle {
@@ -128,8 +128,8 @@ namespace OfficeIMO.Tests {
         public void PngRendererHonorsTextLocPinOffsetsForShapeTextBackgrounds() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Text LocPin Background").Size(3, 2);
-            VisioShape shape = page.AddRectangle(1.5, 1, 2, 1, "Offset");
+            VisioPage page = document.AddPage("Text LocPin Background").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Offset");
             shape.FillPattern = 0;
             shape.LinePattern = 0;
             shape.TextStyle = new VisioTextStyle {
@@ -160,8 +160,8 @@ namespace OfficeIMO.Tests {
         public void PngRendererWrapsLongWordsInsideTextBounds() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Long Word Wrap").Size(3, 2);
-            VisioShape shape = page.AddRectangle(1.5, 1, 1.2, 1.7, "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM");
+            VisioPage page = document.AddPage("Long Word Wrap").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.7, page.DefaultUnit)), "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM");
             shape.FillPattern = 0;
             shape.LinePattern = 0;
             shape.TextStyle = new VisioTextStyle {
@@ -199,8 +199,8 @@ namespace OfficeIMO.Tests {
         public void PngRendererBlendsStyledTextOpacity() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Text Opacity").Size(3, 2);
-            VisioShape shape = page.AddRectangle(1.5, 1, 1.8, 0.8, "OfficeIMO");
+            VisioPage page = document.AddPage("Text Opacity").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), "OfficeIMO");
             shape.FillPattern = 0;
             shape.LinePattern = 0;
             shape.TextStyle = new VisioTextStyle {
@@ -234,8 +234,8 @@ namespace OfficeIMO.Tests {
         public void PngRendererDrawsStyledTextUnderline() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Text Underline").Size(3, 2);
-            VisioShape shape = page.AddRectangle(1.5, 1, 1.8, 0.8, "iiiiiiii");
+            VisioPage page = document.AddPage("Text Underline").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), "iiiiiiii");
             shape.FillPattern = 0;
             shape.LinePattern = 0;
             shape.TextStyle = new VisioTextStyle {
@@ -339,8 +339,8 @@ namespace OfficeIMO.Tests {
         public void PngRendererPreservesDashedShapeOutlines() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Dashed Shape").Size(3, 2);
-            VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, string.Empty);
+            VisioPage page = document.AddPage("Dashed Shape").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), string.Empty);
             shape.FillPattern = 0;
             shape.LineColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LinePattern = 2;
@@ -368,8 +368,8 @@ namespace OfficeIMO.Tests {
         public void PngRendererSuppressesZeroWeightShapeOutlines() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Zero Line").Size(3, 2);
-            VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, string.Empty);
+            VisioPage page = document.AddPage("Zero Line").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), string.Empty);
             shape.FillPattern = 0;
             shape.LineColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineWeight = 0D;
@@ -398,8 +398,8 @@ namespace OfficeIMO.Tests {
         public void PngRendererDrawsSemanticDatabaseShapesAsCylinders() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Database Shape").Size(3, 2);
-            VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, string.Empty);
+            VisioPage page = document.AddPage("Database Shape").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), string.Empty);
             shape.NameU = "Data";
             shape.FillColor = OfficeColor.FromRgb(37, 99, 235);
             shape.LineColor = OfficeColor.FromRgb(220, 38, 38);
@@ -428,8 +428,8 @@ namespace OfficeIMO.Tests {
         public void PngRendererDrawsChevronShapesAsChevronPolygons() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Chevron Shape").Size(3, 2);
-            VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, string.Empty);
+            VisioPage page = document.AddPage("Chevron Shape").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), string.Empty);
             shape.NameU = "Chevron";
             shape.FillColor = OfficeColor.FromRgb(37, 99, 235);
             shape.LinePattern = 0;
@@ -450,8 +450,8 @@ namespace OfficeIMO.Tests {
         public void PngRendererDrawsFlowchartStartEndStencilsAsTerminatorCapsules() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Terminator Shape").Size(4, 2);
-            VisioShape shape = page.AddStencilShape(VisioStencils.Flowchart, "flow.start-end", "start", 2, 1, 1.6, 0.8, string.Empty);
+            VisioPage page = document.AddPage("Terminator Shape").Size(OfficeLength.Inches(4), OfficeLength.Inches(2));
+            VisioShape shape = page.AddStencilShape(VisioStencils.Flowchart, "flow.start-end", "start", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.6, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(37, 99, 235);
             shape.LinePattern = 0;
 
@@ -471,8 +471,8 @@ namespace OfficeIMO.Tests {
         public void PngRendererDrawsDocumentStencilsAsWavyDocuments() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Document Shape").Size(3, 2);
-            VisioShape shape = page.AddStencilShape(VisioStencils.CollaborationBusiness, "collab.document", "doc", 1.5, 1, 1.4, 1, string.Empty);
+            VisioPage page = document.AddPage("Document Shape").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
+            VisioShape shape = page.AddStencilShape(VisioStencils.CollaborationBusiness, "collab.document", "doc", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(37, 99, 235);
             shape.LinePattern = 0;
 
@@ -492,8 +492,8 @@ namespace OfficeIMO.Tests {
         public void PngRendererDrawsDelayShapesAsDShapes() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Delay Shape").Size(3, 2);
-            VisioShape shape = page.AddRectangle(1.5, 1, 1.4, 1, string.Empty);
+            VisioPage page = document.AddPage("Delay Shape").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), string.Empty);
             shape.NameU = "Delay";
             shape.FillColor = OfficeColor.FromRgb(37, 99, 235);
             shape.LinePattern = 0;
@@ -514,8 +514,8 @@ namespace OfficeIMO.Tests {
         public void PngRendererDrawsManualInputShapesAsSlantedQuadrilaterals() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Manual Input Shape").Size(3, 2);
-            VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, string.Empty);
+            VisioPage page = document.AddPage("Manual Input Shape").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), string.Empty);
             shape.NameU = "Manual Input";
             shape.FillColor = OfficeColor.FromRgb(37, 99, 235);
             shape.LinePattern = 0;
@@ -568,10 +568,10 @@ namespace OfficeIMO.Tests {
         public void PngRendererCentersEllipseOnGeometryCenterWhenLocPinIsOffset() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Off Pin Ellipse").Size(3, 2);
-            VisioShape shape = page.AddEllipse(1, 1, 1, 0.5, string.Empty);
-            shape.LocPinX = 0;
-            shape.LocPinY = 0;
+            VisioPage page = document.AddPage("Off Pin Ellipse").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
+            VisioShape shape = page.AddEllipse(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), string.Empty);
+            shape.LocPinX = OfficeLength.Inches(0);
+            shape.LocPinY = OfficeLength.Inches(0);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LinePattern = 0;
 
@@ -590,8 +590,8 @@ namespace OfficeIMO.Tests {
         public void PngRendererPreservesRgbWhenDownsamplingTransparentEdges() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Transparent Edge").Size(2, 2);
-            VisioShape shape = page.AddEllipse(1, 1, 1.1, 1.1, string.Empty);
+            VisioPage page = document.AddPage("Transparent Edge").Size(OfficeLength.Inches(2), OfficeLength.Inches(2));
+            VisioShape shape = page.AddEllipse(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.1, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LinePattern = 0;
 
@@ -620,11 +620,11 @@ namespace OfficeIMO.Tests {
         public void PngRendererSuppressesArrowheadsWhenConnectorLineIsHidden() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Hidden Arrow").Size(4, 2);
-            VisioShape source = page.AddRectangle(0.8, 1, 0.4, 0.4, string.Empty);
+            VisioPage page = document.AddPage("Hidden Arrow").Size(OfficeLength.Inches(4), OfficeLength.Inches(2));
+            VisioShape source = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.4, page.DefaultUnit)), string.Empty);
             source.FillPattern = 0;
             source.LinePattern = 0;
-            VisioShape target = page.AddRectangle(3.2, 1, 0.4, 0.4, string.Empty);
+            VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.4, page.DefaultUnit)), string.Empty);
             target.FillPattern = 0;
             target.LinePattern = 0;
             VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
@@ -657,11 +657,11 @@ namespace OfficeIMO.Tests {
         public void PngRendererUsesFirstNonCollapsedSegmentForBeginArrowheads() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Collapsed Begin Arrow").Size(4, 2);
-            VisioShape source = page.AddRectangle(1, 1, 1, 0.4, string.Empty);
+            VisioPage page = document.AddPage("Collapsed Begin Arrow").Size(OfficeLength.Inches(4), OfficeLength.Inches(2));
+            VisioShape source = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.4, page.DefaultUnit)), string.Empty);
             source.FillPattern = 0;
             source.LinePattern = 0;
-            VisioShape target = page.AddRectangle(3, 1, 1, 0.4, string.Empty);
+            VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.4, page.DefaultUnit)), string.Empty);
             target.FillPattern = 0;
             target.LinePattern = 0;
             VisioConnector connector = page.AddConnector(source, target, ConnectorKind.RightAngle, VisioSide.Right, VisioSide.Left);
@@ -697,8 +697,8 @@ namespace OfficeIMO.Tests {
 
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Configured Font").Size(3, 2);
-            VisioShape shape = page.AddRectangle(1.5, 1, 2.2, 0.8, "OfficeIMO");
+            VisioPage page = document.AddPage("Configured Font").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), "OfficeIMO");
             shape.FillPattern = 0;
             shape.LinePattern = 0;
             shape.TextStyle = new VisioTextStyle {
@@ -730,10 +730,10 @@ namespace OfficeIMO.Tests {
         public void PngRendererNudgesConnectorLabelsAwayFromShapeCollisions() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Label Avoidance").Size(6, 3);
-            VisioShape source = page.AddRectangle(1, 1.5, 1, 0.6, "Source");
-            VisioShape target = page.AddRectangle(5, 1.5, 1, 0.6, "Target");
-            VisioShape obstacle = page.AddRectangle(3, 1.5, 1.1, 0.7, string.Empty);
+            VisioPage page = document.AddPage("Label Avoidance").Size(OfficeLength.Inches(6), OfficeLength.Inches(3));
+            VisioShape source = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.6, page.DefaultUnit)), "Source");
+            VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.6, page.DefaultUnit)), "Target");
+            VisioShape obstacle = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.7, page.DefaultUnit)), string.Empty);
             obstacle.FillColor = OfficeColor.FromRgb(40, 96, 180);
             obstacle.LinePattern = 0;
 
@@ -763,11 +763,11 @@ namespace OfficeIMO.Tests {
         public void PngRendererNudgesConnectorLabelsAwayFromEndpointShapeCollisions() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Endpoint Label Avoidance").Size(6, 3);
-            VisioShape source = page.AddRectangle(1, 1.5, 1, 0.6, string.Empty);
+            VisioPage page = document.AddPage("Endpoint Label Avoidance").Size(OfficeLength.Inches(6), OfficeLength.Inches(3));
+            VisioShape source = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.6, page.DefaultUnit)), string.Empty);
             source.FillColor = OfficeColor.FromRgb(40, 96, 180);
             source.LinePattern = 0;
-            VisioShape target = page.AddRectangle(5, 1.5, 1, 0.6, string.Empty);
+            VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.6, page.DefaultUnit)), string.Empty);
             target.LinePattern = 0;
 
             VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
@@ -799,9 +799,9 @@ namespace OfficeIMO.Tests {
         public void PngRendererHonorsConnectorLabelTextLocPin() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Connector Label LocPin").Size(4, 3);
-            VisioShape source = page.AddRectangle(1, 1.5, 0.4, 0.4, string.Empty);
-            VisioShape target = page.AddRectangle(3, 1.5, 0.4, 0.4, string.Empty);
+            VisioPage page = document.AddPage("Connector Label LocPin").Size(OfficeLength.Inches(4), OfficeLength.Inches(3));
+            VisioShape source = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.4, page.DefaultUnit)), string.Empty);
+            VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.4, page.DefaultUnit)), string.Empty);
             VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
             connector.LinePattern = 0;
             connector.Label = "locpin";
@@ -831,9 +831,9 @@ namespace OfficeIMO.Tests {
         public void PngRendererNudgesConnectorLabelsAwayFromOtherConnectorLines() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Connector Label Crossing Avoidance").Size(6, 3);
-            VisioShape source = page.AddRectangle(1, 1.5, 1, 0.4, string.Empty);
-            VisioShape target = page.AddRectangle(5, 1.5, 1, 0.4, string.Empty);
+            VisioPage page = document.AddPage("Connector Label Crossing Avoidance").Size(OfficeLength.Inches(6), OfficeLength.Inches(3));
+            VisioShape source = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.4, page.DefaultUnit)), string.Empty);
+            VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.4, page.DefaultUnit)), string.Empty);
             VisioConnector labeled = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
             labeled.Label = "handoff";
             labeled.PlaceLabel(0.5, width: 1.2, height: 0.3);
@@ -843,8 +843,8 @@ namespace OfficeIMO.Tests {
                 Color = OfficeColor.Black
             };
 
-            VisioShape top = page.AddRectangle(3, 2.7, 0.5, 0.4, string.Empty);
-            VisioShape bottom = page.AddRectangle(3, 0.3, 0.5, 0.4, string.Empty);
+            VisioShape top = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.7, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.4, page.DefaultUnit)), string.Empty);
+            VisioShape bottom = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.4, page.DefaultUnit)), string.Empty);
             page.AddConnector(top, bottom, ConnectorKind.Straight, VisioSide.Bottom, VisioSide.Top);
 
             VisioRenderConnectorLabelPlacement placement = VisioRenderLabelLayout.Create(page, new VisioRenderLayerVisibility(page, VisioLayerRenderMode.Visible)).Resolve(
@@ -866,15 +866,15 @@ namespace OfficeIMO.Tests {
         public void PngRendererKeepsDenseConnectorLabelsSeparated() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Dense Label Clearance").Size(6, 3);
-            VisioShape lowerSource = page.AddRectangle(1, 1.5, 0.6, 0.25, string.Empty);
-            VisioShape lowerTarget = page.AddRectangle(5, 1.5, 0.6, 0.25, string.Empty);
+            VisioPage page = document.AddPage("Dense Label Clearance").Size(OfficeLength.Inches(6), OfficeLength.Inches(3));
+            VisioShape lowerSource = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.6, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.25, page.DefaultUnit)), string.Empty);
+            VisioShape lowerTarget = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.6, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.25, page.DefaultUnit)), string.Empty);
             VisioConnector lower = page.AddConnector(lowerSource, lowerTarget, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
             lower.Label = "phase one";
             lower.PlaceLabel(0.5, width: 1.2, height: 0.3);
 
-            VisioShape upperSource = page.AddRectangle(1, 1.82, 0.6, 0.25, string.Empty);
-            VisioShape upperTarget = page.AddRectangle(5, 1.82, 0.6, 0.25, string.Empty);
+            VisioShape upperSource = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.82, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.6, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.25, page.DefaultUnit)), string.Empty);
+            VisioShape upperTarget = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.82, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.6, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.25, page.DefaultUnit)), string.Empty);
             VisioConnector upper = page.AddConnector(upperSource, upperTarget, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
             upper.Label = "phase two";
             upper.PlaceLabel(0.5, width: 1.2, height: 0.3);
@@ -904,8 +904,8 @@ namespace OfficeIMO.Tests {
         public void PngRendererProjectsBuiltInStencilMetadataAsVectorArtwork() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Stencil Artwork").Size(3, 2);
-            VisioShape shape = page.AddStencilShape(VisioStencils.SecurityIdentity, "sec.firewall", "firewall", 1.5, 1, 1.2, 0.8, string.Empty);
+            VisioPage page = document.AddPage("Stencil Artwork").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
+            VisioShape shape = page.AddStencilShape(VisioStencils.SecurityIdentity, "sec.firewall", "firewall", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), string.Empty);
             shape.FillPattern = 0;
             shape.LinePattern = 0;
 
@@ -974,8 +974,8 @@ namespace OfficeIMO.Tests {
         public void PngRendererDoesNotProjectSequenceFragmentRegionsAsCloudArtwork() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Sequence Fragment").Size(5, 3);
-            VisioShape fragment = page.AddRectangle(2.5, 1.5, 4, 2, string.Empty);
+            VisioPage page = document.AddPage("Sequence Fragment").Size(OfficeLength.Inches(5), OfficeLength.Inches(3));
+            VisioShape fragment = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), string.Empty);
             fragment.FillPattern = 0;
             fragment.LinePattern = 0;
             fragment.SetUserCell("OfficeIMO.Kind", "SequenceFragment", "STR");
@@ -1005,7 +1005,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererProjectsPackageBackedPngPreviewArtwork() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Package Preview").Size(3, 2);
+            VisioPage page = document.AddPage("Package Preview").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddPackagePreviewShape(page, TrueColorBluePng);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -1029,7 +1029,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererProjectsPackageBackedBmpPreviewArtwork() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Package BMP Preview").Size(3, 2);
+            VisioPage page = document.AddPage("Package BMP Preview").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddPackagePreviewShape(page, TrueColorBlueBmp, "image/bmp", ".bmp", "../media/image1.bmp");
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -1053,7 +1053,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererProjectsPackageBackedSvgPreviewArtwork() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Package SVG Preview").Size(3, 2);
+            VisioPage page = document.AddPage("Package SVG Preview").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><path fill=\"#0070c0\" fill-rule=\"evenodd\" d=\"M0 0 H20 V20 H0 Z M7 7 H13 V13 H7 Z\"/></svg>";
             AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/image1.svg");
 
@@ -1079,7 +1079,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererProjectsPackageBackedSvgCssStyledPreviewArtwork() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Package SVG CSS Preview").Size(3, 2);
+            VisioPage page = document.AddPage("Package SVG CSS Preview").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><style>path{fill:#dc2626}#badge{fill:#0070c0}.cutout,path.cutout{fill-rule:evenodd}</style><path id=\"badge\" class=\"cutout\" d=\"M0 0 H20 V20 H0 Z M7 7 H13 V13 H7 Z\"/></svg>";
             AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/css.svg");
 
@@ -1105,7 +1105,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererProjectsPackageBackedSvgCurrentColorPreviewArtwork() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Package SVG CurrentColor Preview").Size(3, 2);
+            VisioPage page = document.AddPage("Package SVG CurrentColor Preview").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><style>.accent{color:#0070c0}.mark{fill:currentColor}.stop{stop-color:currentColor}</style><defs><linearGradient id=\"fade\" x1=\"0%\" y1=\"0%\" x2=\"100%\" y2=\"0%\"><stop class=\"stop\" offset=\"0%\"/><stop offset=\"100%\" stop-color=\"#dc2626\"/></linearGradient></defs><g class=\"accent\"><rect class=\"mark\" x=\"0\" y=\"0\" width=\"10\" height=\"20\"/><rect x=\"10\" y=\"0\" width=\"10\" height=\"20\" fill=\"url(#fade)\"/></g></svg>";
             AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/current-color.svg");
 
@@ -1137,7 +1137,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererProjectsPackageBackedSvgTextPreviewArtwork() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Package SVG Text Preview").Size(3, 2);
+            VisioPage page = document.AddPage("Package SVG Text Preview").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><style>.label{fill:#0070c0;font-size:9px;font-weight:700;text-anchor:middle}</style><text class=\"label\" x=\"10\" y=\"13\"><tspan>IMO</tspan></text></svg>";
             AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/text-label.svg");
 
@@ -1164,7 +1164,7 @@ namespace OfficeIMO.Tests {
             static RgbaPng RenderSvgText(string svg) {
                 using MemoryStream packageStream = new();
                 VisioDocument document = VisioDocument.Create(packageStream);
-                VisioPage page = document.AddPage("Package SVG Text Space Preview").Size(3, 2);
+                VisioPage page = document.AddPage("Package SVG Text Space Preview").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
                 AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/text-space-label.svg");
 
                 byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -1210,7 +1210,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererSkipsPackageBackedSvgHiddenPreviewArtwork() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Package SVG Hidden Preview").Size(3, 2);
+            VisioPage page = document.AddPage("Package SVG Hidden Preview").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><style>.hidden{display:none}.ghost{visibility:hidden}</style><rect class=\"hidden\" x=\"0\" y=\"0\" width=\"20\" height=\"20\" fill=\"#dc2626\"/><g class=\"ghost\"><rect x=\"0\" y=\"0\" width=\"20\" height=\"20\" fill=\"#dc2626\"/></g><rect x=\"2\" y=\"2\" width=\"16\" height=\"16\" fill=\"#0070c0\"/></svg>";
             AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/hidden.svg");
 
@@ -1242,7 +1242,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererProjectsPackageBackedSvgUseSymbolPreviewArtwork() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Package SVG Use Preview").Size(3, 2);
+            VisioPage page = document.AddPage("Package SVG Use Preview").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 20 20\"><defs><symbol id=\"badge\" viewBox=\"0 0 10 10\"><path fill=\"#0070c0\" fill-rule=\"evenodd\" d=\"M0 0 H10 V10 H0 Z M4 4 H6 V6 H4 Z\"/></symbol></defs><use xlink:href=\"#badge\" width=\"20\" height=\"20\"/></svg>";
             AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/use-symbol.svg");
 
@@ -1268,7 +1268,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererProjectsPackageBackedSvgEmbeddedRasterPreviewArtwork() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Package SVG Embedded Raster Preview").Size(3, 2);
+            VisioPage page = document.AddPage("Package SVG Embedded Raster Preview").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             string svg = $"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><image href=\"data:image/png;base64,{TrueColorBluePng}\" x=\"4\" y=\"4\" width=\"12\" height=\"12\"/></svg>";
             AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/embedded-raster.svg");
 
@@ -1294,7 +1294,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererProjectsPackageBackedSvgRelatedRasterPreviewArtwork() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Package SVG Related Raster Preview").Size(3, 2);
+            VisioPage page = document.AddPage("Package SVG Related Raster Preview").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><image href=\"related.png\" x=\"4\" y=\"4\" width=\"12\" height=\"12\"/></svg>";
             VisioShape shape = AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/preview.svg");
             shape.Master!.RawMasterRelationships.Add(new VisioAssets.MasterRelationshipContent {
@@ -1328,7 +1328,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererProjectsPackageBackedSvgGradientPreviewArtwork() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Package SVG Gradient Preview").Size(3, 2);
+            VisioPage page = document.AddPage("Package SVG Gradient Preview").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><defs><linearGradient id=\"accent\" x1=\"0%\" y1=\"0%\" x2=\"100%\" y2=\"0%\"><stop offset=\"0%\" stop-color=\"#0070c0\"/><stop offset=\"100%\" stop-color=\"#dc2626\"/></linearGradient></defs><g fill=\"url(#accent)\"><rect x=\"0\" y=\"0\" width=\"20\" height=\"20\"/></g></svg>";
             AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/gradient.svg");
 
@@ -1359,7 +1359,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererProjectsPackageBackedSvgClippedPreviewArtwork() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Package SVG Clipped Preview").Size(3, 2);
+            VisioPage page = document.AddPage("Package SVG Clipped Preview").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><defs><clipPath id=\"rightHalf\"><rect x=\"10\" y=\"0\" width=\"10\" height=\"20\"/></clipPath></defs><rect x=\"0\" y=\"0\" width=\"20\" height=\"20\" fill=\"#0070c0\" clip-path=\"url(#rightHalf)\"/></svg>";
             AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/clip.svg");
 
@@ -1378,7 +1378,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererProjectsPackageBackedSvgDashedStrokePreviewArtwork() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Package SVG Dashed Stroke Preview").Size(3, 2);
+            VisioPage page = document.AddPage("Package SVG Dashed Stroke Preview").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><g stroke=\"#0070c0\" stroke-width=\"2\" stroke-dasharray=\"2 2\" fill=\"none\"><path d=\"M2 10 H18\"/></g></svg>";
             AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/dashed-stroke.svg");
 
@@ -1404,7 +1404,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererProjectsPackageBackedSvgDashedGradientStrokePreviewArtwork() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Package SVG Dashed Gradient Stroke Preview").Size(3, 2);
+            VisioPage page = document.AddPage("Package SVG Dashed Gradient Stroke Preview").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><defs><linearGradient id=\"accent\" x1=\"0%\" y1=\"0%\" x2=\"100%\" y2=\"0%\"><stop offset=\"0%\" stop-color=\"#0070c0\"/><stop offset=\"100%\" stop-color=\"#dc2626\"/></linearGradient></defs><g stroke=\"url(#accent)\" stroke-width=\"2\" stroke-dasharray=\"2 2\" fill=\"none\"><path d=\"M2 10 H18\"/></g></svg>";
             AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/dashed-gradient-stroke.svg");
 
@@ -1430,7 +1430,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererProjectsPackageBackedSvgRoundStrokeCapsPreviewArtwork() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Package SVG Round Stroke Cap Preview").Size(3, 2);
+            VisioPage page = document.AddPage("Package SVG Round Stroke Cap Preview").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><path d=\"M5 6 H15\" fill=\"none\" stroke=\"#dc2626\" stroke-width=\"4\" stroke-linecap=\"butt\"/><path d=\"M5 14 H15\" fill=\"none\" stroke=\"#0070c0\" stroke-width=\"4\" stroke-linecap=\"round\"/></svg>";
             AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/round-stroke-cap.svg");
 
@@ -1453,7 +1453,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererProjectsPackageBackedSvgRoundStrokeJoinsPreviewArtwork() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Package SVG Round Stroke Join Preview").Size(3, 2);
+            VisioPage page = document.AddPage("Package SVG Round Stroke Join Preview").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"256\" height=\"256\" viewBox=\"0 0 20 28\"><path d=\"M3 11 L10 3 L17 11\" fill=\"none\" stroke=\"#dc2626\" stroke-width=\"5\" stroke-linecap=\"butt\" stroke-linejoin=\"bevel\"/><path d=\"M3 25 L10 17 L17 25\" fill=\"none\" stroke=\"#0070c0\" stroke-width=\"5\" stroke-linecap=\"butt\" stroke-linejoin=\"round\"/></svg>";
             AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/round-stroke-join.svg");
 
@@ -1484,7 +1484,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererProjectsPackageBackedSvgNonScalingStrokePreviewArtwork() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Package SVG Non Scaling Stroke Preview").Size(3, 2);
+            VisioPage page = document.AddPage("Package SVG Non Scaling Stroke Preview").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"256\" height=\"256\" viewBox=\"0 0 20 20\"><path d=\"M4 6 H16\" fill=\"none\" stroke=\"#dc2626\" stroke-width=\"4\" stroke-linecap=\"butt\"/><path d=\"M4 14 H16\" fill=\"none\" stroke=\"#0070c0\" stroke-width=\"4\" stroke-linecap=\"butt\" vector-effect=\"non-scaling-stroke\"/></svg>";
             AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/non-scaling-stroke.svg");
 
@@ -1513,7 +1513,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererProjectsPackageBackedSvgArcPreviewArtwork() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Package SVG Arc Preview").Size(3, 2);
+            VisioPage page = document.AddPage("Package SVG Arc Preview").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><path fill=\"#0070c0\" d=\"M5 2 H15 A3 3 0 0 1 18 5 V15 A3 3 0 0 1 15 18 H5 A3 3 0 0 1 2 15 V5 A3 3 0 0 1 5 2 Z\"/></svg>";
             AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/arc.svg");
 
@@ -1532,7 +1532,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererProjectsPackageBackedSvgRoundedRectPreviewArtwork() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Package SVG Rounded Rect Preview").Size(3, 2);
+            VisioPage page = document.AddPage("Package SVG Rounded Rect Preview").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><rect x=\"2\" y=\"2\" width=\"16\" height=\"16\" rx=\"5\" ry=\"5\" fill=\"#0070c0\"/></svg>";
             AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/rounded-rect.svg");
 
@@ -1551,7 +1551,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererProjectsPackageBackedSvgTransformedPreviewArtwork() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Package SVG Transform Preview").Size(3, 2);
+            VisioPage page = document.AddPage("Package SVG Transform Preview").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><path fill=\"#0070c0\" transform=\"rotate(45 10 10)\" d=\"M8 0 H12 V20 H8 Z\"/></svg>";
             AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/transform.svg");
 
@@ -1570,7 +1570,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererSniffsPackageBackedPreviewArtworkWhenMetadataIsGeneric() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Package Preview Sniff").Size(3, 2);
+            VisioPage page = document.AddPage("Package Preview Sniff").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddPackagePreviewShape(page, TrueColorBluePng, "application/octet-stream", ".bin", "../media/blob1.bin");
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -1594,7 +1594,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererNormalizesPackagePreviewContentTypeParameters() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Package Preview Content Type").Size(3, 2);
+            VisioPage page = document.AddPage("Package Preview Content Type").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddPackagePreviewShape(page, TrueColorBluePng, "image/png; charset=binary", ".bin", "../media/blob1.bin");
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -1618,7 +1618,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererDoesNotUseUnmatchedPackagePreviewRelationships() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Package Preview Stale Metadata").Size(3, 2);
+            VisioPage page = document.AddPage("Package Preview Stale Metadata").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             VisioShape shape = AddPackagePreviewShape(page, TrueColorBluePng);
             shape.SetUserCell("OfficeIMO.StencilPreviewImageRelationshipId", "rIdStale", "STR");
             shape.SetUserCell("OfficeIMO.StencilPreviewImageTarget", "../media/stale.png", "STR");
@@ -1645,7 +1645,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererPreservesPackageBackedPngPreviewAspectRatio() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Package Preview Aspect").Size(3, 2);
+            VisioPage page = document.AddPage("Package Preview Aspect").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddPackagePreviewShape(page, WideTrueColorBluePng);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -1686,7 +1686,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererHonorsPackageBackedSvgImageOpacity() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Package SVG Image Opacity").Size(3, 2);
+            VisioPage page = document.AddPage("Package SVG Image Opacity").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"10\" height=\"10\" viewBox=\"0 0 10 10\">" +
                 "<image x=\"0\" y=\"0\" width=\"10\" height=\"10\" opacity=\"0.5\" href=\"data:image/png;base64," + TrueColorBluePng + "\"/>" +
                 "</svg>";
@@ -1712,7 +1712,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererUsesPreservedRelativeShapeGeometry() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Preserved Geometry").Size(3, 2);
+            VisioPage page = document.AddPage("Preserved Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddRelativeTriangleGeometryShape(page);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -1730,7 +1730,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererPreservesGeometrySubpathBreaks() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Preserved Subpaths").Size(3, 2);
+            VisioPage page = document.AddPage("Preserved Subpaths").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddSubpathBreakGeometryShape(page);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -1749,7 +1749,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererPreservesHolesInPreservedGeometry() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Preserved Geometry Hole").Size(3, 2);
+            VisioPage page = document.AddPage("Preserved Geometry Hole").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddDonutGeometryShape(page);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -1767,7 +1767,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererLeavesNoFillOpenGeometryUnclosed() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Preserved Open Geometry").Size(3, 2);
+            VisioPage page = document.AddPage("Preserved Open Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddOpenNoFillGeometryShape(page);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -1786,7 +1786,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererSkipsDeletedPreservedGeometryRows() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Preserved Deleted Rows").Size(3, 2);
+            VisioPage page = document.AddPage("Preserved Deleted Rows").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddDeletedGeometryRowShape(page);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -1804,7 +1804,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererUsesPreservedMasterShapeGeometry() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Master Geometry").Size(3, 2);
+            VisioPage page = document.AddPage("Master Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddMasterBackedTriangleGeometryShape(page);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -1822,7 +1822,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererEvaluatesPreservedGeometryWidthHeightFormulas() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Formula Geometry").Size(3, 2);
+            VisioPage page = document.AddPage("Formula Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddFormulaGeometryShape(page);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -1840,7 +1840,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererEvaluatesPreservedGeometryLocPinFormulas() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("LocPin Formula Geometry").Size(3, 2);
+            VisioPage page = document.AddPage("LocPin Formula Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddLocPinFormulaGeometryShape(page);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -1858,7 +1858,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererEvaluatesPreservedGeometryShapeTransformFormulas() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Shape Transform Formula Geometry").Size(3, 2);
+            VisioPage page = document.AddPage("Shape Transform Formula Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddShapeTransformFormulaGeometryShape(page);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -1876,7 +1876,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererEvaluatesPreservedGeometryMinMaxFormulas() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Min Max Formula Geometry").Size(3, 2);
+            VisioPage page = document.AddPage("Min Max Formula Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddMinMaxFormulaGeometryShape(page);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -1894,7 +1894,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererEvaluatesPreservedGeometryScalarMathFormulas() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Scalar Math Formula Geometry").Size(3, 2);
+            VisioPage page = document.AddPage("Scalar Math Formula Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddScalarMathFormulaGeometryShape(page);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -1912,7 +1912,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererEvaluatesPreservedGeometryTrigonometricFormulas() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Trig Formula Geometry").Size(3, 2);
+            VisioPage page = document.AddPage("Trig Formula Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddTrigonometricFormulaGeometryShape(page);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -1930,7 +1930,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererEvaluatesPreservedGeometryAdvancedMathFormulas() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Advanced Math Formula Geometry").Size(3, 2);
+            VisioPage page = document.AddPage("Advanced Math Formula Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddAdvancedMathFormulaGeometryShape(page);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -1948,7 +1948,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererEvaluatesPreservedGeometryPowerOperatorFormulas() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Power Operator Formula Geometry").Size(3, 2);
+            VisioPage page = document.AddPage("Power Operator Formula Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddPowerOperatorFormulaGeometryShape(page);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -1966,7 +1966,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererEvaluatesPreservedGeometryUnitFormulas() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Unit Formula Geometry").Size(3, 2);
+            VisioPage page = document.AddPage("Unit Formula Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddUnitFormulaGeometryShape(page);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -1984,7 +1984,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererEvaluatesPreservedGeometryGuardedFormulas() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Guarded Formula Geometry").Size(3, 2);
+            VisioPage page = document.AddPage("Guarded Formula Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddGuardedFormulaGeometryShape(page);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -2002,7 +2002,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererEvaluatesPreservedGeometryIfFormulas() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("If Formula Geometry").Size(3, 2);
+            VisioPage page = document.AddPage("If Formula Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddIfFormulaGeometryShape(page);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -2020,7 +2020,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererEvaluatesOnlySelectedPreservedGeometryIfBranches() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Lazy If Formula Geometry").Size(3, 2);
+            VisioPage page = document.AddPage("Lazy If Formula Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddLazyIfFormulaGeometryShape(page);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -2038,7 +2038,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererEvaluatesPreservedGeometryLogicalIfFormulas() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Logical If Formula Geometry").Size(3, 2);
+            VisioPage page = document.AddPage("Logical If Formula Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddLogicalIfFormulaGeometryShape(page);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -2056,7 +2056,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererRespectsPreservedGeometryVisibilityFlags() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Geometry Flags").Size(3, 2);
+            VisioPage page = document.AddPage("Geometry Flags").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddGeometryFlagShape(page);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -2075,7 +2075,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererFlattensPreservedEllipseGeometry() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Preserved Ellipse Geometry").Size(3, 2);
+            VisioPage page = document.AddPage("Preserved Ellipse Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddEllipseGeometryShape(page);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -2093,7 +2093,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererDrawsPreservedInfiniteLineGeometryAsOpenPath() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Preserved Infinite Line Geometry").Size(3, 2);
+            VisioPage page = document.AddPage("Preserved Infinite Line Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddInfiniteLineGeometryShape(page);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -2111,7 +2111,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererExpandsPreservedPolylineToGeometry() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Preserved Polyline Geometry").Size(3, 2);
+            VisioPage page = document.AddPage("Preserved Polyline Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddPolylineGeometryShape(page);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -2129,7 +2129,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererEvaluatesMinMaxInsidePreservedPolylineFormula() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Polyline Formula Geometry").Size(3, 2);
+            VisioPage page = document.AddPage("Polyline Formula Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddPolylineMinMaxFormulaGeometryShape(page);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -2147,7 +2147,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererEvaluatesPercentageLiteralsInsidePreservedPolylineFormula() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Polyline Percent Formula Geometry").Size(3, 2);
+            VisioPage page = document.AddPage("Polyline Percent Formula Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddPolylinePercentageFormulaGeometryShape(page);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -2165,7 +2165,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererFlattensPreservedArcToGeometry() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Preserved Arc Geometry").Size(3, 2);
+            VisioPage page = document.AddPage("Preserved Arc Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddArcGeometryShape(page);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -2183,7 +2183,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererFlattensPreservedEllipticalArcToGeometry() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Preserved Elliptical Arc Geometry").Size(3, 2);
+            VisioPage page = document.AddPage("Preserved Elliptical Arc Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddEllipticalArcGeometryShape(page);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -2201,7 +2201,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererFlattensPreservedRelativeEllipticalArcToGeometry() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Preserved Relative Elliptical Arc Geometry").Size(3, 2);
+            VisioPage page = document.AddPage("Preserved Relative Elliptical Arc Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddRelativeEllipticalArcGeometryShape(page);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -2219,7 +2219,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererFlattensPreservedRelativeCubicBezierGeometry() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Preserved Cubic Bezier Geometry").Size(3, 2);
+            VisioPage page = document.AddPage("Preserved Cubic Bezier Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddRelativeCubicBezierGeometryShape(page);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -2237,7 +2237,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererFlattensPreservedAbsoluteCubicBezierGeometry() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Preserved Absolute Cubic Bezier Geometry").Size(3, 2);
+            VisioPage page = document.AddPage("Preserved Absolute Cubic Bezier Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddAbsoluteCubicBezierGeometryShape(page);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -2255,7 +2255,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererFlattensPreservedRelativeQuadraticBezierGeometry() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Preserved Quadratic Bezier Geometry").Size(3, 2);
+            VisioPage page = document.AddPage("Preserved Quadratic Bezier Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddRelativeQuadraticBezierGeometryShape(page);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -2273,7 +2273,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererFlattensPreservedAbsoluteQuadraticBezierGeometry() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Preserved Absolute Quadratic Bezier Geometry").Size(3, 2);
+            VisioPage page = document.AddPage("Preserved Absolute Quadratic Bezier Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddAbsoluteQuadraticBezierGeometryShape(page);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -2291,7 +2291,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererFlattensPreservedSplineGeometry() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Preserved Spline Geometry").Size(3, 2);
+            VisioPage page = document.AddPage("Preserved Spline Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddSplineGeometryShape(page);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -2309,7 +2309,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererSkipsDeletedPreservedSplineKnotRows() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Deleted Spline Knot Geometry").Size(3, 2);
+            VisioPage page = document.AddPage("Deleted Spline Knot Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddDeletedSplineKnotGeometryShape(page);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -2327,7 +2327,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererFlattensPreservedNurbsGeometry() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Preserved NURBS Geometry").Size(3, 2);
+            VisioPage page = document.AddPage("Preserved NURBS Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddNurbsGeometryShape(page);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -2345,7 +2345,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererUsesVisioCompactNurbsKnotVector() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Preserved Non Uniform NURBS Geometry").Size(3, 2);
+            VisioPage page = document.AddPage("Preserved Non Uniform NURBS Geometry").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddNonUniformNurbsGeometryShape(page);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -2370,7 +2370,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererProjectsIndexedPackageBackedPngPreviewArtwork() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Indexed Package Preview").Size(3, 2);
+            VisioPage page = document.AddPage("Indexed Package Preview").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddPackagePreviewShape(page, IndexedBluePng);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -2394,7 +2394,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererPreservesIndexedPackagePreviewTransparency() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Indexed Transparent Package Preview").Size(3, 2);
+            VisioPage page = document.AddPage("Indexed Transparent Package Preview").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddPackagePreviewShape(page, IndexedTransparentBluePng);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -2412,7 +2412,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererPreservesTrueColorPackagePreviewTransparency() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("TrueColor Transparent Package Preview").Size(3, 2);
+            VisioPage page = document.AddPage("TrueColor Transparent Package Preview").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddPackagePreviewShape(page, TrueColorTransparentBluePng);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -2430,7 +2430,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererProjectsGrayscaleAlphaPackageBackedPngPreviewArtwork() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Grayscale Package Preview").Size(3, 2);
+            VisioPage page = document.AddPage("Grayscale Package Preview").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddPackagePreviewShape(page, GrayscaleAlphaBlackPng);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -2454,7 +2454,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererProjectsPackedGrayscalePackageBackedPngPreviewArtwork() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Packed Grayscale Package Preview").Size(3, 2);
+            VisioPage page = document.AddPage("Packed Grayscale Package Preview").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddPackagePreviewShape(page, PackedGrayscaleBlackPng);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -2478,7 +2478,7 @@ namespace OfficeIMO.Tests {
         public void PngRendererProjectsSixteenBitPackageBackedPngPreviewArtwork() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Sixteen Bit Package Preview").Size(3, 2);
+            VisioPage page = document.AddPage("Sixteen Bit Package Preview").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             AddPackagePreviewShape(page, SixteenBitTrueColorBluePng);
 
             byte[] png = page.ToPng(new VisioPngSaveOptions {
@@ -2530,8 +2530,8 @@ namespace OfficeIMO.Tests {
         private static byte[] RenderStyledItalicText(bool italic) {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Text Italic").Size(3, 2);
-            VisioShape shape = page.AddRectangle(1.5, 1, 1.8, 0.8, "OfficeIMO");
+            VisioPage page = document.AddPage("Text Italic").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), "OfficeIMO");
             shape.FillPattern = 0;
             shape.LinePattern = 0;
             shape.TextStyle = new VisioTextStyle {
@@ -2552,8 +2552,8 @@ namespace OfficeIMO.Tests {
         private static byte[] RenderStyledRotatedText(double textAngle) {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Text Rotation").Size(3, 2);
-            VisioShape shape = page.AddRectangle(1.5, 1, 1.8, 0.8, "OfficeIMO");
+            VisioPage page = document.AddPage("Text Rotation").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), "OfficeIMO");
             shape.FillPattern = 0;
             shape.LinePattern = 0;
             shape.TextStyle = new VisioTextStyle {
@@ -2574,8 +2574,8 @@ namespace OfficeIMO.Tests {
         private static byte[] RenderStyledRotatedTextBackground(double textAngle) {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Text Background Rotation").Size(3, 2);
-            VisioShape shape = page.AddRectangle(1.5, 1, 1.8, 0.8, "OfficeIMO");
+            VisioPage page = document.AddPage("Text Background Rotation").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), "OfficeIMO");
             shape.FillPattern = 0;
             shape.LinePattern = 0;
             shape.TextStyle = new VisioTextStyle {
@@ -2598,8 +2598,8 @@ namespace OfficeIMO.Tests {
         private static byte[] RenderEllipseShape(double angle) {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Ellipse Rotation").Size(3, 2);
-            VisioShape shape = page.AddEllipse(1.5, 1, 1.6, 0.55, string.Empty);
+            VisioPage page = document.AddPage("Ellipse Rotation").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
+            VisioShape shape = page.AddEllipse(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.6, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.55, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LinePattern = 0;
             shape.Angle = angle;
@@ -2614,7 +2614,7 @@ namespace OfficeIMO.Tests {
         private static byte[] RenderPackagePreviewArtwork(double angle) {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Package Preview Rotation").Size(3, 2);
+            VisioPage page = document.AddPage("Package Preview Rotation").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
             VisioShape shape = AddPackagePreviewShape(page, WideTrueColorBluePng);
             shape.Angle = angle;
 
@@ -2631,8 +2631,8 @@ namespace OfficeIMO.Tests {
         private static byte[] RenderStencilArtwork(double angle, string stencilId) {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Stencil Artwork Rotation").Size(3, 2);
-            VisioShape shape = page.AddRectangle(1.5, 1, 1.2, 0.8, string.Empty);
+            VisioPage page = document.AddPage("Stencil Artwork Rotation").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), string.Empty);
             shape.FillPattern = 0;
             shape.LinePattern = 0;
             shape.Angle = angle;
@@ -2788,7 +2788,7 @@ namespace OfficeIMO.Tests {
             string contentType = "image/png",
             string extension = ".png",
             string target = "../media/image1.png") {
-            VisioMaster master = new("package-master", "FancyCloud", new VisioShape("master-shape", 0, 0, 1, 1, string.Empty));
+            VisioMaster master = new("package-master", "FancyCloud", new VisioShape("master-shape", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(1), OfficeLength.Inches(1), string.Empty));
             master.RawMasterRelationships.Add(new VisioAssets.MasterRelationshipContent {
                 Id = "rIdImage",
                 Type = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
@@ -2797,7 +2797,7 @@ namespace OfficeIMO.Tests {
                 Extension = extension,
                 Data = Convert.FromBase64String(previewBase64)
             });
-            VisioShape shape = page.AddRectangle(1.5, 1, 1.2, 0.8, string.Empty);
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), string.Empty);
             shape.FillPattern = 0;
             shape.LinePattern = 0;
             shape.Master = master;
@@ -2811,7 +2811,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static VisioShape AddRelativeTriangleGeometryShape(VisioPage page) {
-            VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, string.Empty);
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineColor = OfficeColor.FromRgb(127, 29, 29);
             shape.PreservedGeometrySections.Add(CreateRelativeTriangleGeometrySection());
@@ -2819,7 +2819,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static VisioShape AddSubpathBreakGeometryShape(VisioPage page) {
-            VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, string.Empty);
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineColor = OfficeColor.FromRgb(127, 29, 29);
             shape.PreservedGeometrySections.Add(CreateSubpathBreakGeometrySection());
@@ -2827,7 +2827,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static VisioShape AddDonutGeometryShape(VisioPage page) {
-            VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, string.Empty);
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineColor = OfficeColor.FromRgb(127, 29, 29);
             shape.PreservedGeometrySections.Add(CreateDonutGeometrySection());
@@ -2835,7 +2835,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static VisioShape AddOpenNoFillGeometryShape(VisioPage page) {
-            VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, string.Empty);
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineWeight = 0.04D;
@@ -2844,7 +2844,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static VisioShape AddDeletedGeometryRowShape(VisioPage page) {
-            VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, string.Empty);
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineColor = OfficeColor.FromRgb(127, 29, 29);
             shape.PreservedGeometrySections.Add(CreateDeletedRowGeometrySection());
@@ -2852,7 +2852,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static VisioShape AddArcGeometryShape(VisioPage page) {
-            VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, string.Empty);
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineColor = OfficeColor.FromRgb(127, 29, 29);
             shape.PreservedGeometrySections.Add(CreateArcGeometrySection());
@@ -2860,7 +2860,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static VisioShape AddEllipticalArcGeometryShape(VisioPage page) {
-            VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, string.Empty);
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineColor = OfficeColor.FromRgb(127, 29, 29);
             shape.PreservedGeometrySections.Add(CreateEllipticalArcGeometrySection());
@@ -2868,7 +2868,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static VisioShape AddRelativeEllipticalArcGeometryShape(VisioPage page) {
-            VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, string.Empty);
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineColor = OfficeColor.FromRgb(127, 29, 29);
             shape.PreservedGeometrySections.Add(CreateRelativeEllipticalArcGeometrySection());
@@ -2876,7 +2876,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static VisioShape AddRelativeCubicBezierGeometryShape(VisioPage page) {
-            VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, string.Empty);
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineColor = OfficeColor.FromRgb(127, 29, 29);
             shape.PreservedGeometrySections.Add(CreateRelativeCubicBezierGeometrySection());
@@ -2884,7 +2884,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static VisioShape AddAbsoluteCubicBezierGeometryShape(VisioPage page) {
-            VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, string.Empty);
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineColor = OfficeColor.FromRgb(127, 29, 29);
             shape.PreservedGeometrySections.Add(CreateAbsoluteCubicBezierGeometrySection());
@@ -2892,7 +2892,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static VisioShape AddRelativeQuadraticBezierGeometryShape(VisioPage page) {
-            VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, string.Empty);
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineColor = OfficeColor.FromRgb(127, 29, 29);
             shape.PreservedGeometrySections.Add(CreateRelativeQuadraticBezierGeometrySection());
@@ -2900,7 +2900,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static VisioShape AddAbsoluteQuadraticBezierGeometryShape(VisioPage page) {
-            VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, string.Empty);
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineColor = OfficeColor.FromRgb(127, 29, 29);
             shape.PreservedGeometrySections.Add(CreateAbsoluteQuadraticBezierGeometrySection());
@@ -2908,7 +2908,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static VisioShape AddSplineGeometryShape(VisioPage page) {
-            VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, string.Empty);
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineColor = OfficeColor.FromRgb(127, 29, 29);
             shape.PreservedGeometrySections.Add(CreateSplineGeometrySection());
@@ -2916,7 +2916,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static VisioShape AddDeletedSplineKnotGeometryShape(VisioPage page) {
-            VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, string.Empty);
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineColor = OfficeColor.FromRgb(127, 29, 29);
             shape.PreservedGeometrySections.Add(CreateDeletedSplineKnotGeometrySection());
@@ -2924,7 +2924,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static VisioShape AddNurbsGeometryShape(VisioPage page) {
-            VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, string.Empty);
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineColor = OfficeColor.FromRgb(127, 29, 29);
             shape.PreservedGeometrySections.Add(CreateNurbsGeometrySection());
@@ -2932,7 +2932,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static VisioShape AddNonUniformNurbsGeometryShape(VisioPage page) {
-            VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, string.Empty);
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineColor = OfficeColor.FromRgb(127, 29, 29);
             shape.PreservedGeometrySections.Add(CreateNonUniformNurbsGeometrySection());
@@ -2940,17 +2940,17 @@ namespace OfficeIMO.Tests {
         }
 
         private static VisioShape AddMasterBackedTriangleGeometryShape(VisioPage page) {
-            VisioShape masterShape = new("master-shape", 1, 0.5, 2, 1, string.Empty);
+            VisioShape masterShape = new("master-shape", OfficeLength.Inches(1), OfficeLength.Inches(0.5), OfficeLength.Inches(2), OfficeLength.Inches(1), string.Empty);
             masterShape.PreservedGeometrySections.Add(CreateRelativeTriangleGeometrySection());
             VisioMaster master = new("master-triangle", "PackageTriangle", masterShape);
-            VisioShape shape = page.AddShape("master-backed-triangle", master, 1.5, 1, 1, 1, string.Empty);
+            VisioShape shape = page.AddShape("master-backed-triangle", master, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineColor = OfficeColor.FromRgb(127, 29, 29);
             return shape;
         }
 
         private static VisioShape AddFormulaGeometryShape(VisioPage page) {
-            VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, string.Empty);
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineColor = OfficeColor.FromRgb(127, 29, 29);
             shape.PreservedGeometrySections.Add(CreateFormulaTriangleGeometrySection());
@@ -2958,7 +2958,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static VisioShape AddLocPinFormulaGeometryShape(VisioPage page) {
-            VisioShape shape = page.AddRectangle(1.5, 1, 1.2, 0.8, string.Empty);
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineColor = OfficeColor.FromRgb(127, 29, 29);
             shape.PreservedGeometrySections.Add(CreateLocPinFormulaTriangleGeometrySection());
@@ -2966,7 +2966,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static VisioShape AddShapeTransformFormulaGeometryShape(VisioPage page) {
-            VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, string.Empty);
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineColor = OfficeColor.FromRgb(127, 29, 29);
             shape.PreservedGeometrySections.Add(CreateShapeTransformFormulaTriangleGeometrySection());
@@ -2974,7 +2974,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static VisioShape AddMinMaxFormulaGeometryShape(VisioPage page) {
-            VisioShape shape = page.AddRectangle(1.5, 1, 1.2, 0.8, string.Empty);
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineColor = OfficeColor.FromRgb(127, 29, 29);
             shape.PreservedGeometrySections.Add(CreateMinMaxFormulaTriangleGeometrySection());
@@ -2982,7 +2982,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static VisioShape AddScalarMathFormulaGeometryShape(VisioPage page) {
-            VisioShape shape = page.AddRectangle(1.5, 1, 1.2, 0.8, string.Empty);
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineColor = OfficeColor.FromRgb(127, 29, 29);
             shape.PreservedGeometrySections.Add(CreateScalarMathFormulaTriangleGeometrySection());
@@ -2990,7 +2990,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static VisioShape AddTrigonometricFormulaGeometryShape(VisioPage page) {
-            VisioShape shape = page.AddRectangle(1.5, 1, 1.2, 0.8, string.Empty);
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineColor = OfficeColor.FromRgb(127, 29, 29);
             shape.PreservedGeometrySections.Add(CreateTrigonometricFormulaTriangleGeometrySection());
@@ -2998,7 +2998,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static VisioShape AddAdvancedMathFormulaGeometryShape(VisioPage page) {
-            VisioShape shape = page.AddRectangle(1.5, 1, 1.2, 0.8, string.Empty);
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineColor = OfficeColor.FromRgb(127, 29, 29);
             shape.PreservedGeometrySections.Add(CreateAdvancedMathFormulaTriangleGeometrySection());
@@ -3006,7 +3006,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static VisioShape AddPowerOperatorFormulaGeometryShape(VisioPage page) {
-            VisioShape shape = page.AddRectangle(1.5, 1, 1.2, 0.8, string.Empty);
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineColor = OfficeColor.FromRgb(127, 29, 29);
             shape.PreservedGeometrySections.Add(CreatePowerOperatorFormulaTriangleGeometrySection());
@@ -3014,7 +3014,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static VisioShape AddUnitFormulaGeometryShape(VisioPage page) {
-            VisioShape shape = page.AddRectangle(1.5, 1, 1.2, 0.8, string.Empty);
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineColor = OfficeColor.FromRgb(127, 29, 29);
             shape.PreservedGeometrySections.Add(CreateUnitFormulaTriangleGeometrySection());
@@ -3022,7 +3022,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static VisioShape AddGuardedFormulaGeometryShape(VisioPage page) {
-            VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, string.Empty);
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineColor = OfficeColor.FromRgb(127, 29, 29);
             shape.PreservedGeometrySections.Add(CreateGuardedFormulaTriangleGeometrySection());
@@ -3030,7 +3030,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static VisioShape AddIfFormulaGeometryShape(VisioPage page) {
-            VisioShape shape = page.AddRectangle(1.5, 1, 1.2, 0.8, string.Empty);
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineColor = OfficeColor.FromRgb(127, 29, 29);
             shape.PreservedGeometrySections.Add(CreateIfFormulaTriangleGeometrySection());
@@ -3038,7 +3038,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static VisioShape AddLazyIfFormulaGeometryShape(VisioPage page) {
-            VisioShape shape = page.AddRectangle(1.5, 1, 1.2, 0.8, string.Empty);
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineColor = OfficeColor.FromRgb(127, 29, 29);
             shape.PreservedGeometrySections.Add(CreateLazyIfFormulaTriangleGeometrySection());
@@ -3046,7 +3046,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static VisioShape AddLogicalIfFormulaGeometryShape(VisioPage page) {
-            VisioShape shape = page.AddRectangle(1.5, 1, 1.2, 0.8, string.Empty);
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineColor = OfficeColor.FromRgb(127, 29, 29);
             shape.PreservedGeometrySections.Add(CreateLogicalIfFormulaTriangleGeometrySection());
@@ -3054,7 +3054,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static VisioShape AddGeometryFlagShape(VisioPage page) {
-            VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, string.Empty);
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineWeight = 0.04D;
@@ -3064,7 +3064,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static VisioShape AddEllipseGeometryShape(VisioPage page) {
-            VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, string.Empty);
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineColor = OfficeColor.FromRgb(127, 29, 29);
             shape.PreservedGeometrySections.Add(CreateEllipseGeometrySection());
@@ -3072,7 +3072,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static VisioShape AddInfiniteLineGeometryShape(VisioPage page) {
-            VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, string.Empty);
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(37, 99, 235);
             shape.LineColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineWeight = 0.05D;
@@ -3081,7 +3081,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static VisioShape AddPolylineGeometryShape(VisioPage page) {
-            VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, string.Empty);
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineColor = OfficeColor.FromRgb(127, 29, 29);
             shape.PreservedGeometrySections.Add(CreatePolylineGeometrySection());
@@ -3089,7 +3089,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static VisioShape AddPolylineMinMaxFormulaGeometryShape(VisioPage page) {
-            VisioShape shape = page.AddRectangle(1.5, 1, 1.2, 0.8, string.Empty);
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineColor = OfficeColor.FromRgb(127, 29, 29);
             shape.PreservedGeometrySections.Add(CreatePolylineMinMaxFormulaGeometrySection());
@@ -3097,7 +3097,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static VisioShape AddPolylinePercentageFormulaGeometryShape(VisioPage page) {
-            VisioShape shape = page.AddRectangle(1.5, 1, 1.2, 0.8, string.Empty);
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineColor = OfficeColor.FromRgb(127, 29, 29);
             shape.PreservedGeometrySections.Add(CreatePolylinePercentageFormulaGeometrySection());

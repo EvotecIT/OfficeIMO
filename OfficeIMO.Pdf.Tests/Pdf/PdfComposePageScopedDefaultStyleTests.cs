@@ -12,29 +12,29 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void ComposePage_DefaultParagraphStyleAppliesOnlyToThatPageAndSnapshotsInput() {
             var style = new PdfParagraphStyle {
-                FirstLineIndent = 24,
-                SpacingAfter = 0
+                FirstLineIndent = global::OfficeIMO.OfficeLength.Points(24),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             };
             var doc = PdfDocument.Create();
 
             doc.Compose(c => {
                 c.Page(page => {
-                    page.Margin(30);
-                    page.DefaultTextStyle(text => text.Font(PdfStandardFont.Helvetica).FontSize(10));
+                    page.Margin(global::OfficeIMO.OfficeLength.Points(30));
+                    page.DefaultTextStyle(text => text.Font(PdfStandardFont.Helvetica).FontSize(global::OfficeIMO.OfficeLength.Points(10)));
                     page.DefaultParagraphStyle(style);
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Paragraph(p => p.Text("PageOneFirst").LineBreak().Text("PageOneSecond"))));
+                            column.Item().AddParagraph(p => { p.AddText("PageOneFirst"); p.AddLineBreak(); p.AddText("PageOneSecond"); })));
                 });
 
-                style.FirstLineIndent = 0;
+                style.FirstLineIndent = global::OfficeIMO.OfficeLength.Points(0);
 
                 c.Page(page => {
-                    page.Margin(30);
-                    page.DefaultTextStyle(text => text.Font(PdfStandardFont.Helvetica).FontSize(10));
+                    page.Margin(global::OfficeIMO.OfficeLength.Points(30));
+                    page.DefaultTextStyle(text => text.Font(PdfStandardFont.Helvetica).FontSize(global::OfficeIMO.OfficeLength.Points(10)));
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Paragraph(p => p.Text("PageTwoFirst").LineBreak().Text("PageTwoSecond"))));
+                            column.Item().AddParagraph(p => { p.AddText("PageTwoFirst"); p.AddLineBreak(); p.AddText("PageTwoSecond"); })));
                 });
             });
 
@@ -55,29 +55,29 @@ namespace OfficeIMO.Tests.Pdf {
         public void ComposePage_DefaultTextStyleObjectAppliesOnlyToThatPageAndSnapshotsInput() {
             var style = new PdfTextStyle {
                 Font = PdfStandardFont.Helvetica,
-                FontSize = 16,
-                Color = PdfColor.FromRgb(10, 20, 30)
+                FontSize = global::OfficeIMO.OfficeLength.Points(16),
+                Color = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30)
             };
             var doc = PdfDocument.Create();
 
             doc.Compose(c => {
                 c.Page(page => {
-                    page.Margin(30);
+                    page.Margin(global::OfficeIMO.OfficeLength.Points(30));
                     page.DefaultTextStyle(style);
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Paragraph(p => p.Text("PageOneTextStyle"))));
+                            column.Item().AddParagraph(p => p.AddText("PageOneTextStyle"))));
                 });
 
-                style.FontSize = 8;
-                style.Color = PdfColor.Black;
+                style.FontSize = global::OfficeIMO.OfficeLength.Points(8);
+                style.Color = global::OfficeIMO.OfficeColor.Black;
 
                 c.Page(page => {
-                    page.Margin(30);
-                    page.DefaultTextStyle(text => text.Font(PdfStandardFont.Helvetica).FontSize(10));
+                    page.Margin(global::OfficeIMO.OfficeLength.Points(30));
+                    page.DefaultTextStyle(text => text.Font(PdfStandardFont.Helvetica).FontSize(global::OfficeIMO.OfficeLength.Points(10)));
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Paragraph(p => p.Text("PageTwoTextStyle"))));
+                            column.Item().AddParagraph(p => p.AddText("PageTwoTextStyle"))));
                 });
             });
 
@@ -95,28 +95,32 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void ComposePage_DefaultHeadingStyleAppliesOnlyToThatPageAndSnapshotsInput() {
             var style = new PdfHeadingStyle {
-                FontSize = 13,
-                Color = PdfColor.FromRgb(10, 20, 30)
+                FontSize = global::OfficeIMO.OfficeLength.Points(13),
+                Color = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30)
             };
-            var doc = PdfDocument.Create(new PdfOptions {
+            var doc = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
+                // The second page inherits this document style, not the page-one override.
+                DefaultHeadingStyles = new PdfHeadingStyles {
+                    Level2 = new PdfHeadingStyle { Font = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(18) }
+                }
             });
 
             doc.Compose(c => {
                 c.Page(page => {
-                    page.Margin(30);
+                    page.Margin(global::OfficeIMO.OfficeLength.Points(30));
                     page.DefaultHeadingStyle(2, style);
                     page.Content(content =>
                         content.Column(column =>
                             column.Item().H2("PageOneHeading")));
                 });
 
-                style.FontSize = 30;
-                style.Color = PdfColor.Black;
+                style.FontSize = global::OfficeIMO.OfficeLength.Points(30);
+                style.Color = global::OfficeIMO.OfficeColor.Black;
 
                 c.Page(page => {
-                    page.Margin(30);
+                    page.Margin(global::OfficeIMO.OfficeLength.Points(30));
                     page.Content(content =>
                         content.Column(column =>
                             column.Item().H2("PageTwoHeading")));
@@ -133,6 +137,7 @@ namespace OfficeIMO.Tests.Pdf {
             string rawPdf = PdfTestContentText.ReadDecoded(bytes);
 
             Assert.InRange(pageOneSize, 12.5, 13.5);
+            // Page two retains the explicitly configured document fallback.
             Assert.InRange(pageTwoSize, 17.5, 18.5);
             Assert.Contains("0.039 0.078 0.118 rg", rawPdf, StringComparison.Ordinal);
         }
@@ -140,33 +145,35 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void ComposePage_DefaultListStyleAppliesOnlyToThatPageAndSnapshotsInput() {
             var style = new PdfListStyle {
-                FontSize = 13,
-                LeftIndent = 14,
-                Color = PdfColor.FromRgb(10, 20, 30)
+                FontSize = global::OfficeIMO.OfficeLength.Points(13),
+                LeftIndent = global::OfficeIMO.OfficeLength.Points(14),
+                Color = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30)
             };
-            var doc = PdfDocument.Create(new PdfOptions {
+            var doc = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
+                // Keep a distinct document fallback to detect page-style leakage.
+                DefaultListStyle = new PdfListStyle { FontSize = global::OfficeIMO.OfficeLength.Points(10), LeftIndent = global::OfficeIMO.OfficeLength.Points(0), MarkerGap = global::OfficeIMO.OfficeLength.Points(2.78) }
             });
 
             doc.Compose(c => {
                 c.Page(page => {
-                    page.Margin(30);
+                    page.Margin(global::OfficeIMO.OfficeLength.Points(30));
                     page.DefaultListStyle(style);
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Bullets(new[] { "PageOneList" })));
+                            column.Item().AddList(new[] { "PageOneList" })));
                 });
 
-                style.FontSize = 30;
-                style.LeftIndent = 0;
-                style.Color = PdfColor.Black;
+                style.FontSize = global::OfficeIMO.OfficeLength.Points(30);
+                style.LeftIndent = global::OfficeIMO.OfficeLength.Points(0);
+                style.Color = global::OfficeIMO.OfficeColor.Black;
 
                 c.Page(page => {
-                    page.Margin(30);
+                    page.Margin(global::OfficeIMO.OfficeLength.Points(30));
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Bullets(new[] { "PageTwoList" })));
+                            column.Item().AddList(new[] { "PageTwoList" })));
                 });
             });
 
@@ -191,37 +198,38 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void ComposePage_DefaultPanelStyleAppliesOnlyToThatPageAndSnapshotsInput() {
             var style = new PdfPanelStyle {
-                PaddingX = 16,
-                MaxWidth = 180,
-                Align = PdfAlign.Center,
-                Background = PdfColor.FromRgb(240, 248, 255)
+                PaddingX = global::OfficeIMO.OfficeLength.Points(16),
+                MaxWidth = global::OfficeIMO.OfficeLength.Points(180),
+                Align = OfficeAlignment.Center,
+                Background = global::OfficeIMO.OfficeColor.FromRgb(240, 248, 255)
             };
-            var doc = PdfDocument.Create(new PdfOptions {
-                PageWidth = 360,
-                PageHeight = 240,
+            var doc = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = { Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240)) },
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
+                // Page two measures the document's six-point panel inset.
+                DefaultPanelStyle = new PdfPanelStyle { PaddingX = global::OfficeIMO.OfficeLength.Points(6), PaddingY = global::OfficeIMO.OfficeLength.Points(6) }
             });
 
             doc.Compose(c => {
                 c.Page(page => {
-                    page.Margin(30);
+                    page.Margin(global::OfficeIMO.OfficeLength.Points(30));
                     page.DefaultPanelStyle(style);
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().PanelParagraph(p => p.Text("PageOnePanel"))));
+                            column.Item().AddPanelParagraph(p => p.AddText("PageOnePanel"))));
                 });
 
-                style.PaddingX = 2;
-                style.MaxWidth = 300;
-                style.Align = PdfAlign.Right;
-                style.Background = PdfColor.Black;
+                style.PaddingX = global::OfficeIMO.OfficeLength.Points(2);
+                style.MaxWidth = global::OfficeIMO.OfficeLength.Points(300);
+                style.Align = OfficeAlignment.Right;
+                style.Background = global::OfficeIMO.OfficeColor.Black;
 
                 c.Page(page => {
-                    page.Margin(30);
+                    page.Margin(global::OfficeIMO.OfficeLength.Points(30));
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().PanelParagraph(p => p.Text("PageTwoPanel"))));
+                            column.Item().AddPanelParagraph(p => p.AddText("PageTwoPanel"))));
                 });
             });
 
@@ -233,47 +241,46 @@ namespace OfficeIMO.Tests.Pdf {
             string rawPdf = PdfTestContentText.ReadDecoded(bytes);
 
             Assert.InRange(pageOneX, 105, 107);
-            Assert.InRange(pageTwoX, 35, 37);
+            Assert.InRange(pageTwoX - 30, 5, 7);
             Assert.Contains("0.941 0.973 1 rg", rawPdf, StringComparison.Ordinal);
         }
 
         [Fact]
         public void ComposePage_DefaultHorizontalRuleStyleAppliesOnlyToThatPageAndSnapshotsInput() {
             var style = new PdfHorizontalRuleStyle {
-                Thickness = 2,
-                Color = PdfColor.FromRgb(10, 20, 30),
-                SpacingBefore = 3,
-                SpacingAfter = 16
+                Thickness = global::OfficeIMO.OfficeLength.Points(2),
+                Color = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30),
+                SpacingBefore = global::OfficeIMO.OfficeLength.Points(3),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(16)
             };
-            var doc = PdfDocument.Create(new PdfOptions {
-                PageWidth = 240,
-                PageHeight = 180,
+            var doc = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = { Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(180)) },
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             });
 
             doc.Compose(c => {
                 c.Page(page => {
-                    page.Margin(20);
+                    page.Margin(global::OfficeIMO.OfficeLength.Points(20));
                     page.DefaultHorizontalRuleStyle(style);
                     page.Content(content =>
                         content.Column(column =>
                             column.Item()
                                 .HR()
-                                .Paragraph(p => p.Text("PageOneRule"))));
+                                .AddParagraph(p => p.AddText("PageOneRule"))));
                 });
 
-                style.Thickness = 6;
-                style.Color = PdfColor.FromRgb(200, 10, 10);
-                style.SpacingAfter = 0;
+                style.Thickness = global::OfficeIMO.OfficeLength.Points(6);
+                style.Color = global::OfficeIMO.OfficeColor.FromRgb(200, 10, 10);
+                style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
 
                 c.Page(page => {
-                    page.Margin(20);
+                    page.Margin(global::OfficeIMO.OfficeLength.Points(20));
                     page.Content(content =>
                         content.Column(column =>
                             column.Item()
                                 .HR()
-                                .Paragraph(p => p.Text("PageTwoRule"))));
+                                .AddParagraph(p => p.AddText("PageTwoRule"))));
                 });
             });
 
@@ -293,38 +300,37 @@ namespace OfficeIMO.Tests.Pdf {
         public void ComposePage_DefaultImageStyleAppliesOnlyToThatPageAndSnapshotsInput() {
             byte[] png = CreateMinimalRgbPng();
             var style = new PdfImageStyle {
-                Align = PdfAlign.Center,
-                SpacingBefore = 4,
-                SpacingAfter = 12
+                Align = OfficeAlignment.Center,
+                SpacingBefore = global::OfficeIMO.OfficeLength.Points(4),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(12)
             };
-            var doc = PdfDocument.Create(new PdfOptions {
-                PageWidth = 240,
-                PageHeight = 180,
+            var doc = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = { Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(180)) },
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             });
 
             doc.Compose(c => {
                 c.Page(page => {
-                    page.Margin(20);
+                    page.Margin(global::OfficeIMO.OfficeLength.Points(20));
                     page.DefaultImageStyle(style);
                     page.Content(content =>
                         content.Column(column =>
                             column.Item()
-                                .Image(png, 24, 24)
-                                .Paragraph(p => p.Text("PageOneImage"))));
+                                .AddImage(png, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24))
+                                .AddParagraph(p => p.AddText("PageOneImage"))));
                 });
 
-                style.Align = PdfAlign.Right;
-                style.SpacingAfter = 0;
+                style.Align = OfficeAlignment.Right;
+                style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
 
                 c.Page(page => {
-                    page.Margin(20);
+                    page.Margin(global::OfficeIMO.OfficeLength.Points(20));
                     page.Content(content =>
                         content.Column(column =>
                             column.Item()
-                                .Image(png, 24, 24)
-                                .Paragraph(p => p.Text("PageTwoImage"))));
+                                .AddImage(png, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24))
+                                .AddParagraph(p => p.AddText("PageTwoImage"))));
                 });
             });
 
@@ -342,40 +348,39 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void ComposePage_DefaultDrawingStyleAppliesOnlyToThatPageAndSnapshotsInput() {
             var style = new PdfDrawingStyle {
-                Align = PdfAlign.Center,
-                SpacingBefore = 4,
-                SpacingAfter = 12
+                Align = OfficeAlignment.Center,
+                SpacingBefore = global::OfficeIMO.OfficeLength.Points(4),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(12)
             };
             var shape = OfficeShape.Rectangle(40, 20);
             shape.FillColor = OfficeColor.WhiteSmoke;
-            var doc = PdfDocument.Create(new PdfOptions {
-                PageWidth = 240,
-                PageHeight = 180,
+            var doc = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = { Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(180)) },
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             });
 
             doc.Compose(c => {
                 c.Page(page => {
-                    page.Margin(20);
+                    page.Margin(global::OfficeIMO.OfficeLength.Points(20));
                     page.DefaultDrawingStyle(style);
                     page.Content(content =>
                         content.Column(column =>
                             column.Item()
                                 .Shape(shape)
-                                .Paragraph(p => p.Text("PageOneDrawing"))));
+                                .AddParagraph(p => p.AddText("PageOneDrawing"))));
                 });
 
-                style.Align = PdfAlign.Right;
-                style.SpacingAfter = 0;
+                style.Align = OfficeAlignment.Right;
+                style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
 
                 c.Page(page => {
-                    page.Margin(20);
+                    page.Margin(global::OfficeIMO.OfficeLength.Points(20));
                     page.Content(content =>
                         content.Column(column =>
                             column.Item()
                                 .Shape(shape)
-                                .Paragraph(p => p.Text("PageTwoDrawing"))));
+                                .AddParagraph(p => p.AddText("PageTwoDrawing"))));
                 });
             });
 
@@ -394,47 +399,47 @@ namespace OfficeIMO.Tests.Pdf {
         public void ComposePage_ThemeAppliesOnlyToThatPageAndSnapshotsInput() {
             var textStyle = new PdfTextStyle {
                 Font = PdfStandardFont.Helvetica,
-                FontSize = 16,
-                Color = PdfColor.FromRgb(10, 20, 30)
+                FontSize = global::OfficeIMO.OfficeLength.Points(16),
+                Color = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30)
             };
-            var tableStyle = TableStyles.Minimal();
-            tableStyle.CellPaddingX = 22;
+            var tableStyle = PdfTableStyles.Minimal();
+            tableStyle.CellPaddingX = global::OfficeIMO.OfficeLength.Points(22);
             var theme = new PdfTheme {
                 TextStyle = textStyle,
                 TableStyle = tableStyle
             };
-            var doc = PdfDocument.Create(new PdfOptions {
+            var doc = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             });
 
             doc.Compose(c => {
                 c.Page(page => {
-                    page.Margin(30);
+                    page.Margin(global::OfficeIMO.OfficeLength.Points(30));
                     page.Theme(theme);
                     page.Content(content =>
                         content.Column(column => {
-                            column.Item().Paragraph(p => p.Text("ThemePageOne"));
-                            column.Item().Table(new[] {
+                            column.Item().AddParagraph(p => p.AddText("ThemePageOne"));
+                            column.Item().AddTable(new[] {
                                 new[] { "ThemeOneTable", "Value" },
                                 new[] { "Row", "1" }
                             });
                         }));
                 });
 
-                textStyle.FontSize = 8;
-                tableStyle.CellPaddingX = 0;
+                textStyle.FontSize = global::OfficeIMO.OfficeLength.Points(8);
+                tableStyle.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0);
                 theme.TextStyle = new PdfTextStyle {
                     Font = PdfStandardFont.Helvetica,
-                    FontSize = 8
+                    FontSize = global::OfficeIMO.OfficeLength.Points(8)
                 };
 
                 c.Page(page => {
-                    page.Margin(30);
+                    page.Margin(global::OfficeIMO.OfficeLength.Points(30));
                     page.Content(content =>
                         content.Column(column => {
-                            column.Item().Paragraph(p => p.Text("ThemePageTwo"));
-                            column.Item().Table(new[] {
+                            column.Item().AddParagraph(p => p.AddText("ThemePageTwo"));
+                            column.Item().AddTable(new[] {
                                 new[] { "ThemeTwoTable", "Value" },
                                 new[] { "Row", "2" }
                             });
@@ -454,37 +459,37 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.InRange(pageOneSize, 15.5, 16.5);
             Assert.InRange(pageTwoSize, 9.5, 10.5);
             Assert.True(pageOneTableX - 30 >= 20, $"Expected page theme table style padding to apply to page one. Marker x: {pageOneTableX:0.##}.");
-            Assert.InRange(pageTwoTableX - 30, 4, 8);
+            Assert.InRange(pageTwoTableX - 30, OfficeTheme.Default.TableStyle.CellPadding.ToPoints() * 1.4 - 1, OfficeTheme.Default.TableStyle.CellPadding.ToPoints() * 1.4 + 1);
         }
 
         [Fact]
         public void ComposePage_DefaultTableStyleAppliesOnlyToThatPageAndSnapshotsInput() {
-            var style = TableStyles.Minimal();
-            style.CellPaddingX = 22;
-            var doc = PdfDocument.Create(new PdfOptions {
+            var style = PdfTableStyles.Minimal();
+            style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(22);
+            var doc = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             });
 
             doc.Compose(c => {
                 c.Page(page => {
-                    page.Margin(30);
+                    page.Margin(global::OfficeIMO.OfficeLength.Points(30));
                     page.DefaultTableStyle(style);
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Table(new[] {
+                            column.Item().AddTable(new[] {
                                 new[] { "PageOnePad", "Value" },
                                 new[] { "Row", "1" }
                             })));
                 });
 
-                style.CellPaddingX = 0;
+                style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0);
 
                 c.Page(page => {
-                    page.Margin(30);
+                    page.Margin(global::OfficeIMO.OfficeLength.Points(30));
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Table(new[] {
+                            column.Item().AddTable(new[] {
                                 new[] { "PageTwoPad", "Value" },
                                 new[] { "Row", "2" }
                             })));
@@ -499,7 +504,7 @@ namespace OfficeIMO.Tests.Pdf {
             double pageTwoX = FindWordStartX(page2, "PageTwoPad");
 
             Assert.True(pageOneX - 30 >= 20, $"Expected page default table style padding to apply to page one. Marker x: {pageOneX:0.##}.");
-            Assert.InRange(pageTwoX - 30, 4, 8);
+            Assert.InRange(pageTwoX - 30, OfficeTheme.Default.TableStyle.CellPadding.ToPoints() * 1.4 - 1, OfficeTheme.Default.TableStyle.CellPadding.ToPoints() * 1.4 + 1);
         }
 
         [Fact]
@@ -519,7 +524,7 @@ namespace OfficeIMO.Tests.Pdf {
                 c.Page(page =>
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Paragraph(paragraph => paragraph.Text("Owned page content."))))));
+                            column.Item().AddParagraph(paragraph => paragraph.AddText("Owned page content."))))));
 
             var pageBlock = Assert.IsType<PageBlock>(Assert.Single(doc.Blocks));
 

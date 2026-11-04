@@ -14,14 +14,18 @@ Describe 'PowerPoint HTML output controls' {
     ) {
         $deckPath = Join-Path $TestDrive ($Profile + '.pptx')
         $htmlPath = Join-Path $TestDrive ($Profile + '.html')
-        $presentation = New-OfficePowerPoint -Path $deckPath -NoSave -ErrorAction Stop
+        $presentation = New-OfficePowerPoint -Path $deckPath -ErrorAction Stop
         try {
-            $presentation.SlideSize.SetSizePoints(160, 100)
-            $slide = Add-OfficePowerPointSlide -Presentation $presentation -PassThru -ErrorAction Stop
+            $presentation.SlideSize.SetSize([OfficeIMO.OfficeLength]::Points(160), [OfficeIMO.OfficeLength]::Points(100))
+            $slide = $presentation.AddSlide()
             Add-OfficePowerPointTextBox -Slide $slide -Text 'Visible slide content' -X 10 -Y 10 -Width 140 -Height 50 -ErrorAction Stop
-            $slide.AddRectanglePoints(500, 500, 20, 20, 'Outside slide bounds') | Out-Null
+            $slide.AddRectangle([OfficeIMO.OfficeLength]::Points(500), [OfficeIMO.OfficeLength]::Points(500), [OfficeIMO.OfficeLength]::Points(20), [OfficeIMO.OfficeLength]::Points(20), 'Outside slide bounds') | Out-Null
 
-            $defaults = ConvertTo-OfficePowerPointHtml -Presentation $presentation -Profile $Profile -ErrorAction Stop
+            Save-OfficePowerPoint -Document $presentation -ErrorAction Stop
+            Close-OfficePowerPoint -Document $presentation -ErrorAction Stop
+            $presentation = $null
+            $defaultOptions = New-OfficePowerPointHtmlOptions -Profile $Profile -ErrorAction Stop
+            $defaults = Convert-OfficeDocument -LiteralPath $deckPath -To Html -AsString -Options $defaultOptions -ErrorAction Stop
             $defaults | Should -Match '<h1>PowerPoint'
             $defaults | Should -Match '<h2>Slide 1</h2>'
             $defaults | Should -Match 'class="officeimo-feature officeimo-masters"'
@@ -40,14 +44,13 @@ Describe 'PowerPoint HTML output controls' {
                 NoExtractionProof = $true
                 ErrorAction = 'Stop'
             }
-            $fromPresentation = ConvertTo-OfficePowerPointHtml -Presentation $presentation @outputChoices
-            Close-OfficePowerPoint -Presentation $presentation -Save -ErrorAction Stop
-            $presentation = $null
+            $options = New-OfficePowerPointHtmlOptions @outputChoices
+            $fromSource = Convert-OfficeDocument -LiteralPath $deckPath -To Html -AsString -Options $options -ErrorAction Stop
 
-            $saved = ConvertTo-OfficePowerPointHtml -Path $deckPath -OutputPath $htmlPath -PassThru @outputChoices
-            $saved | Should -BeOfType System.IO.FileInfo
-            $saved.FullName | Should -Be $htmlPath
-            foreach ($html in @($fromPresentation, (Get-Content -LiteralPath $htmlPath -Raw))) {
+            $saved = Convert-OfficeDocument -LiteralPath $deckPath -To Html -OutputPath $htmlPath -Options $options -ErrorAction Stop
+            $saved | Should -BeOfType OfficeIMO.OfficeConversionReport
+            $saved.OutputPath | Should -Be $htmlPath
+            foreach ($html in @($fromSource, (Get-Content -LiteralPath $htmlPath -Raw))) {
                 $html | Should -Match 'Visible slide content'
                 $html | Should -Match '<section class="officeimo-slide"'
                 $html | Should -Match '<title>PowerPoint'
@@ -63,7 +66,7 @@ Describe 'PowerPoint HTML output controls' {
             }
         } finally {
             if ($presentation) {
-                Close-OfficePowerPoint -Presentation $presentation -ErrorAction SilentlyContinue
+                Close-OfficePowerPoint -Document $presentation -ErrorAction SilentlyContinue
             }
         }
     }

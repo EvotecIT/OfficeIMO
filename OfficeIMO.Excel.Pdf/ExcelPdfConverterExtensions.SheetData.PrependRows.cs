@@ -13,12 +13,12 @@ namespace OfficeIMO.Excel.Pdf {
             return result;
         }
 
-        private static ExcelCellStyleSnapshot?[,]? PrependRows(ExcelCellStyleSnapshot?[,]? topRows, ExcelCellStyleSnapshot?[,]? bodyRows, int topRowCount, int bodyRowCount, int columnCount) {
+        private static ExcelCellStyleInfo?[,]? PrependRows(ExcelCellStyleInfo?[,]? topRows, ExcelCellStyleInfo?[,]? bodyRows, int topRowCount, int bodyRowCount, int columnCount) {
             if (topRows == null && bodyRows == null) {
                 return null;
             }
 
-            var result = new ExcelCellStyleSnapshot?[topRowCount + bodyRowCount, columnCount];
+            var result = new ExcelCellStyleInfo?[topRowCount + bodyRowCount, columnCount];
             if (topRows != null) {
                 CopyRows(topRows, result, 0, columnCount);
             }
@@ -30,12 +30,12 @@ namespace OfficeIMO.Excel.Pdf {
             return result;
         }
 
-        private static ExcelHyperlinkSnapshot?[,]? PrependRows(ExcelHyperlinkSnapshot?[,]? topRows, ExcelHyperlinkSnapshot?[,]? bodyRows, int topRowCount, int bodyRowCount, int columnCount) {
+        private static ExcelHyperlinkInfo?[,]? PrependRows(ExcelHyperlinkInfo?[,]? topRows, ExcelHyperlinkInfo?[,]? bodyRows, int topRowCount, int bodyRowCount, int columnCount) {
             if (topRows == null && bodyRows == null) {
                 return null;
             }
 
-            var result = new ExcelHyperlinkSnapshot?[topRowCount + bodyRowCount, columnCount];
+            var result = new ExcelHyperlinkInfo?[topRowCount + bodyRowCount, columnCount];
             if (topRows != null) {
                 CopyRows(topRows, result, 0, columnCount);
             }
@@ -110,7 +110,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
         }
 
-        private static void CopyRows(ExcelCellStyleSnapshot?[,] source, ExcelCellStyleSnapshot?[,] target, int targetRowOffset, int columnCount) {
+        private static void CopyRows(ExcelCellStyleInfo?[,] source, ExcelCellStyleInfo?[,] target, int targetRowOffset, int columnCount) {
             int rowCount = source.GetLength(0);
             int sourceColumnCount = source.GetLength(1);
             for (int row = 0; row < rowCount; row++) {
@@ -120,7 +120,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
         }
 
-        private static void CopyRows(ExcelHyperlinkSnapshot?[,] source, ExcelHyperlinkSnapshot?[,] target, int targetRowOffset, int columnCount) {
+        private static void CopyRows(ExcelHyperlinkInfo?[,] source, ExcelHyperlinkInfo?[,] target, int targetRowOffset, int columnCount) {
             int rowCount = source.GetLength(0);
             int sourceColumnCount = source.GetLength(1);
             for (int row = 0; row < rowCount; row++) {
@@ -142,8 +142,8 @@ namespace OfficeIMO.Excel.Pdf {
 
         private static string NormalizeA1Range(string range) {
             string withoutSheet = StripSheetPrefix(range).Replace("$", string.Empty);
-            if (!A1.TryParseRange(withoutSheet, out int r1, out int c1, out int r2, out int c2)) {
-                (int Row, int Col) cell = A1.ParseCellRef(withoutSheet);
+            if (!ExcelA1.TryParseRange(withoutSheet, out int r1, out int c1, out int r2, out int c2)) {
+                (int Row, int Col) cell = ExcelA1.ParseCellRef(withoutSheet);
                 if (cell.Row <= 0 || cell.Col <= 0) {
                     throw new ArgumentException("Excel PDF export range must be a valid A1 range.", nameof(range));
                 }
@@ -161,8 +161,8 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private static string ToA1Range(int firstRow, int firstColumn, int lastRow, int lastColumn) {
-            string start = A1.ColumnIndexToLetters(firstColumn) + firstRow.ToString(CultureInfo.InvariantCulture);
-            string end = A1.ColumnIndexToLetters(lastColumn) + lastRow.ToString(CultureInfo.InvariantCulture);
+            string start = ExcelA1.ColumnIndexToLetters(firstColumn) + firstRow.ToString(CultureInfo.InvariantCulture);
+            string end = ExcelA1.ColumnIndexToLetters(lastColumn) + lastRow.ToString(CultureInfo.InvariantCulture);
             return start + ":" + end;
         }
 

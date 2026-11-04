@@ -85,10 +85,10 @@ public partial class Html {
         Assert.Equal("quarterly-report", manifest.Result.Scenario.Id);
         Assert.Equal(3, manifest.Result.Artifacts.Count);
         Assert.Contains(manifest.Result.Artifacts, artifact => artifact.Kind == "docx" && artifact.Length > 0 && artifact.Sha256.Length == 64);
-        Assert.Contains(manifest.Result.Diagnostics, diagnostic => diagnostic.Component == "OfficeIMO.Word.Html" && diagnostic.Code == "HtmlCommentSkipped");
+        Assert.Contains(manifest.Result.Diagnostics, diagnostic => diagnostic.Component == "OfficeIMO.Word.Html" && diagnostic.Code == "html-comment-skipped");
         Assert.Contains(manifest.Result.Diagnostics, diagnostic => diagnostic.Component == "OfficeIMO.Word.Html" && diagnostic.Code == "WordOpenXmlPackageValid");
         Assert.DoesNotContain(manifest.Result.Diagnostics, diagnostic => diagnostic.Code == "WordOpenXmlValidationError");
-        Assert.DoesNotContain(manifest.Result.Diagnostics, diagnostic => diagnostic.Code == "ImageResourceRejectedByPolicy");
+        Assert.DoesNotContain(manifest.Result.Diagnostics, diagnostic => diagnostic.Code == "image-resource-rejected-by-policy");
         Assert.Equal(1, manifest.ResourceManifest.AllowedCount);
         Assert.Equal(0, manifest.ResourceManifest.BlockedCount);
         Assert.Equal(new[] { OfficeHtmlConversionProfile.WordDocumentRoundTrip }, manifest.OfficeProfiles);
@@ -105,7 +105,7 @@ public partial class Html {
         Assert.Contains("Preserved: form controls => roundtrip HTML contains form control elements", manifestMarkdown);
         Assert.Contains("Preserved: images => roundtrip HTML contains image or SVG evidence", manifestMarkdown);
         Assert.Contains("Preserved: docx package => generated DOCX passes OpenXML validation", manifestMarkdown);
-        Assert.Contains("HtmlCommentSkipped", manifestMarkdown, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("html-comment-skipped", manifestMarkdown, StringComparison.OrdinalIgnoreCase);
 
         using JsonDocument manifestJsonDocument = JsonDocument.Parse(File.ReadAllText(manifestJsonPath));
         JsonElement manifestRoot = manifestJsonDocument.RootElement;
@@ -121,7 +121,7 @@ public partial class Html {
         Assert.Equal(3, manifestRoot.GetProperty("artifacts").GetArrayLength());
         Assert.Equal("roundtrip-html", manifestRoot.GetProperty("artifacts")[2].GetProperty("kind").GetString());
         Assert.True(manifestRoot.GetProperty("roundTripScore").GetProperty("score").GetDouble() >= 0D);
-        Assert.Contains("HtmlCommentSkipped", manifestJson, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("html-comment-skipped", manifestJson, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("WordOpenXmlPackageValid", manifestJson, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -144,7 +144,7 @@ public partial class Html {
             });
 
             Assert.Contains(manifest.Result.Diagnostics,
-                diagnostic => diagnostic.Code == "ImageSkippedByPolicy");
+                diagnostic => diagnostic.Code == "image-skipped-by-policy");
             Assert.Contains(manifest.ResourceManifest.Resources,
                 resource => resource.Source == new Uri(localImagePath).AbsoluteUri && !resource.IsAllowed);
         } finally {

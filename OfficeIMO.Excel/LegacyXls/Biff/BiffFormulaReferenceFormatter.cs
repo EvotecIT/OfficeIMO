@@ -170,7 +170,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             bool columnRelative = (columnBits & 0x4000) != 0;
             bool rowRelative = (columnBits & 0x8000) != 0;
             return (columnRelative ? string.Empty : "$")
-                + A1.ColumnIndexToLetters(zeroBasedColumn + 1)
+                + ExcelA1.ColumnIndexToLetters(zeroBasedColumn + 1)
                 + (rowRelative ? string.Empty : "$")
                 + (zeroBasedRow + 1).ToString(CultureInfo.InvariantCulture);
         }
@@ -194,7 +194,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         private static string FormatColumnReference(ushort columnBits) {
             bool columnRelative = (columnBits & 0x4000) != 0;
             return (columnRelative ? string.Empty : "$")
-                + A1.ColumnIndexToLetters(GetZeroBasedColumn(columnBits) + 1);
+                + ExcelA1.ColumnIndexToLetters(GetZeroBasedColumn(columnBits) + 1);
         }
 
         private static string FormatRowReference(ushort zeroBasedRow, ushort columnBits) {

@@ -34,7 +34,7 @@ public partial class PdfDocumentReadResultTests {
             explicitBlock.FontSize,
             explicitBlock,
             evidence: new[] {
-                new PdfInferenceEvidence("semantic.tagged-pdf-role", "The tagged PDF supplies the heading level.", 1D)
+                new PdfInferenceEvidence("semantic-tagged-pdf-role", "The tagged PDF supplies the heading level.", 1D)
             });
         var heuristicHeading = new PdfLogicalHeading(
             1,
@@ -78,11 +78,11 @@ public partial class PdfDocumentReadResultTests {
     public void Read_BuildsHeadingHierarchyAndDirectSectionOwnership() {
         byte[] pdf = PdfDocument.Create()
             .H1("Operations")
-            .Paragraph(paragraph => paragraph.Text("Operations overview."))
+            .Paragraph(paragraph => paragraph.AddText("Operations overview."))
             .H2("North region")
-            .Paragraph(paragraph => paragraph.Text("North region details."))
+            .Paragraph(paragraph => paragraph.AddText("North region details."))
             .H1("Finance")
-            .Paragraph(paragraph => paragraph.Text("Finance overview."))
+            .Paragraph(paragraph => paragraph.AddText("Finance overview."))
             .ToBytes();
 
         PdfDocumentReadResult result = PdfDocument.Load(pdf).Read();
@@ -107,9 +107,9 @@ public partial class PdfDocumentReadResultTests {
     public async System.Threading.Tasks.Task Sections_PublishCompleteOwnershipIndexesDuringConcurrentFirstAccess() {
         byte[] pdf = PdfDocument.Create()
             .H1("Operations")
-            .Paragraph(paragraph => paragraph.Text("Operations overview."))
+            .Paragraph(paragraph => paragraph.AddText("Operations overview."))
             .H2("North region")
-            .Paragraph(paragraph => paragraph.Text("North region details."))
+            .Paragraph(paragraph => paragraph.AddText("North region details."))
             .ToBytes();
         PdfDocumentReadResult result = PdfDocument.Load(pdf).Read();
         PdfLogicalParagraph paragraph = result.Paragraphs.Last();
@@ -137,7 +137,7 @@ public partial class PdfDocumentReadResultTests {
     public void Read_AssignsLinksAndFormWidgetsToHeadingOwnedSections() {
         byte[] source = PdfDocument.Create()
             .H1("Interactive section")
-            .Paragraph(paragraph => paragraph.Link("Section link", "https://example.com/section"))
+            .Paragraph(paragraph => paragraph.AddLink("Section link", "https://example.com/section"))
             .ToBytes();
         PdfDocument document = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "section-note",
@@ -164,7 +164,7 @@ public partial class PdfDocumentReadResultTests {
     public void Read_CreatesOccurrenceLocalWidgetsForRepeatedPageSelections() {
         byte[] source = PdfDocument.Create()
             .H1("Repeated interactive section")
-            .Paragraph(paragraph => paragraph.Text("Repeated page body"))
+            .Paragraph(paragraph => paragraph.AddText("Repeated page body"))
             .ToBytes();
         PdfDocument document = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "repeated-note",
@@ -176,7 +176,7 @@ public partial class PdfDocumentReadResultTests {
             Height = 24
         })).ToDocument();
 
-        PdfDocumentReadResult result = document.Read(new PdfReadOptions {
+        PdfDocumentReadResult result = document.Read(new PdfLoadOptions {
             PageSelection = PdfPageSelection.From(1, 1)
         });
         PdfLogicalFormWidget first = Assert.Single(result.Pages[0].FormWidgets);
@@ -197,10 +197,10 @@ public partial class PdfDocumentReadResultTests {
         byte[] image = PdfPngTestImages.CreateRgbPng(20, 80, 160);
         byte[] source = PdfDocument.Create()
             .H1("First image section")
-            .Paragraph(paragraph => paragraph.Text("First section body"))
+            .Paragraph(paragraph => paragraph.AddText("First section body"))
             .Image(image, 24, 24)
             .H1("Second image section")
-            .Paragraph(paragraph => paragraph.Text("Second section body"))
+            .Paragraph(paragraph => paragraph.AddText("Second section body"))
             .Image(image, 24, 24)
             .ToBytes();
 
@@ -229,7 +229,7 @@ public partial class PdfDocumentReadResultTests {
         byte[] source = PdfDocument.Create()
             .Image(image, 24, 24)
             .H1("Owned image section")
-            .Paragraph(paragraph => paragraph.Text("Owned section body"))
+            .Paragraph(paragraph => paragraph.AddText("Owned section body"))
             .Image(image, 24, 24)
             .ToBytes();
 
@@ -249,7 +249,7 @@ public partial class PdfDocumentReadResultTests {
         byte[] image = PdfPngTestImages.CreateRgbPng(80, 160, 20);
         byte[] source = PdfDocument.Create()
             .H1("Shared image section")
-            .Paragraph(paragraph => paragraph.Text("Shared section body"))
+            .Paragraph(paragraph => paragraph.AddText("Shared section body"))
             .Image(image, 24, 24)
             .Image(image, 24, 24)
             .ToBytes();
@@ -267,13 +267,10 @@ public partial class PdfDocumentReadResultTests {
     [Fact]
     public void LogicalTextBlocks_PreservePositionedRunStyleSpans() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph
-                .Color(PdfColor.FromRgb(255, 0, 0))
-                .Font(PdfStandardFont.Helvetica)
-                .Text("Red")
-                .Color(PdfColor.FromRgb(0, 0, 255))
-                .Font(PdfStandardFont.Courier)
-                .Text("Blue"))
+            .Paragraph(paragraph => {
+                paragraph.AddText("Red").SetColor(global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0)).SetStandardFont(PdfStandardFont.Helvetica);
+                paragraph.AddText("Blue").SetColor(global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255)).SetStandardFont(PdfStandardFont.Courier);
+            })
             .ToBytes();
 
         PdfLogicalTextBlock block = Assert.Single(PdfDocumentReadResult.Load(pdf).TextBlocks);
@@ -304,7 +301,7 @@ public partial class PdfDocumentReadResultTests {
             0,
             100,
             30,
-            OfficeIMO.Drawing.OfficeColor.Red,
+            OfficeIMO.OfficeColor.Red,
             baseFont: "Helvetica");
         var second = new PdfTextSpan(
             "Blue",
@@ -313,7 +310,7 @@ public partial class PdfDocumentReadResultTests {
             36,
             100,
             24,
-            OfficeIMO.Drawing.OfficeColor.Blue,
+            OfficeIMO.OfficeColor.Blue,
             baseFont: "Courier");
 
         var block = new PdfLogicalTextBlock(
@@ -332,39 +329,37 @@ public partial class PdfDocumentReadResultTests {
             run => {
                 Assert.Equal("Red ", run.Text);
                 Assert.Equal("Helvetica", run.BaseFont);
-                Assert.Equal(OfficeIMO.Drawing.OfficeColor.Red, run.Color);
+                Assert.Equal(OfficeIMO.OfficeColor.Red, run.Color);
             },
             run => {
                 Assert.Equal("Blue", run.Text);
                 Assert.Equal("Courier", run.BaseFont);
-                Assert.Equal(OfficeIMO.Drawing.OfficeColor.Blue, run.Color);
+                Assert.Equal(OfficeIMO.OfficeColor.Blue, run.Color);
             });
     }
 
     [Fact]
     public void Load_BuildsLogicalPagesWithTextTablesAndImages() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(360)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Meta(title: "Logical sample", author: "OfficeIMO")
             .H1("Logical Heading")
-            .Paragraph(p => p.Text("Logical readback marker."))
+            .Paragraph(p => p.AddText("Logical readback marker."))
             .Bullets(new[] { "Detected logical bullet" })
             .Table(new[] {
                 new[] { "Code", "Name", "Qty" },
                 new[] { "A-100", "Alpha", "2" },
                 new[] { "B-200", "Beta", "14" }
             }, style: new PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 70, 170, 60 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(170), global::OfficeIMO.OfficeLength.Points(60) },
                 HeaderRowCount = 1,
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .Image(CreateMinimalRgbPng(), 18, 18)
             .ToBytes();
@@ -510,10 +505,10 @@ public partial class PdfDocumentReadResultTests {
 
     [Fact]
     public void Load_ReadsOutputIntentProfileMetadata() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions().SetSrgbOutputIntent())
-            .Paragraph(p => p.Text("Logical output intent readback."))
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions().SetSrgbOutputIntent())
+            .Paragraph(p => p.AddText("Logical output intent readback."))
             .PageBreak()
-            .Paragraph(p => p.Text("Second page."))
+            .Paragraph(p => p.AddText("Second page."))
             .ToBytes();
 
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf);
@@ -543,14 +538,14 @@ public partial class PdfDocumentReadResultTests {
 
     [Fact]
     public void Load_ReadsGeneratedXmpMetadataFields() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions()
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions()
                 .SetPdfAIdentification(3, "B")
                 .SetPdfUaIdentification()
                 .SetElectronicInvoiceMetadata("EN 16931"))
             .Meta(title: "Logical XMP readback", author: "OfficeIMO", subject: "Logical metadata", keywords: "delta, epsilon")
-            .Paragraph(p => p.Text("Logical generated XMP readback."))
+            .Paragraph(p => p.AddText("Logical generated XMP readback."))
             .PageBreak()
-            .Paragraph(p => p.Text("Second page."))
+            .Paragraph(p => p.AddText("Second page."))
             .ToBytes();
 
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf);
@@ -582,9 +577,9 @@ public partial class PdfDocumentReadResultTests {
             .TaggedPdfCatalogMarkers()
             .Language("en-US")
             .H1("Logical tagged heading")
-            .Paragraph(p => p.Text("Logical tagged paragraph."))
+            .Paragraph(p => p.AddText("Logical tagged paragraph."))
             .PageBreak()
-            .Paragraph(p => p.Text("Second page."))
+            .Paragraph(p => p.AddText("Second page."))
             .ToBytes();
 
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf);
@@ -718,7 +713,7 @@ public partial class PdfDocumentReadResultTests {
         byte[] payload = Encoding.UTF8.GetBytes("<invoice />");
         byte[] pdf = PdfDocument.Create()
             .AttachFile("invoice.xml", payload, "application/xml", PdfAssociatedFileRelationship.Data, "Invoice XML")
-            .Paragraph(p => p.Text("Attachment metadata proof."))
+            .Paragraph(p => p.AddText("Attachment metadata proof."))
             .ToBytes();
 
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf);
@@ -792,15 +787,15 @@ public partial class PdfDocumentReadResultTests {
     [Fact]
     public void Load_DoesNotRemoveDecimalParagraphsAsListItems() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("1037.25 total"))
-            .Paragraph(paragraph => paragraph.Text("-42 total"))
-            .Paragraph(paragraph => paragraph.Text("-$42 total"))
-            .Paragraph(paragraph => paragraph.Text("-.5 variance"))
-            .Paragraph(paragraph => paragraph.Text("1. Actual numbered item"))
-            .Paragraph(paragraph => paragraph.Text("2)Compact numbered item"))
-            .Paragraph(paragraph => paragraph.Text("(a)Compact parenthesized item"))
-            .Paragraph(paragraph => paragraph.Text("-Compact ASCII bullet"))
-            .Paragraph(paragraph => paragraph.Text("*Compact starred bullet"))
+            .Paragraph(paragraph => paragraph.AddText("1037.25 total"))
+            .Paragraph(paragraph => paragraph.AddText("-42 total"))
+            .Paragraph(paragraph => paragraph.AddText("-$42 total"))
+            .Paragraph(paragraph => paragraph.AddText("-.5 variance"))
+            .Paragraph(paragraph => paragraph.AddText("1. Actual numbered item"))
+            .Paragraph(paragraph => paragraph.AddText("2)Compact numbered item"))
+            .Paragraph(paragraph => paragraph.AddText("(a)Compact parenthesized item"))
+            .Paragraph(paragraph => paragraph.AddText("-Compact ASCII bullet"))
+            .Paragraph(paragraph => paragraph.AddText("*Compact starred bullet"))
             .ToBytes();
 
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf);

@@ -13,7 +13,7 @@ New-OfficeWord -Path $docPath {
     Add-OfficeWordSection {
         Add-OfficeWordHeader -Type Default {
             Add-OfficeWordParagraph -Text 'Quarterly Revenue Snapshot' -Style Heading2
-            Add-OfficeWordPageNumber -IncludeTotalPages
+            Add-OfficeWordPageNumber -IncludeTotal
         }
 
         Add-OfficeWordParagraph -Text 'Executive Summary' -Style Heading1

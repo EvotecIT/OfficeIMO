@@ -14,7 +14,7 @@ public static class PowerPointHtmlCapabilityGalleryExtensions {
     /// <param name="directoryPath">Directory where artifacts will be written.</param>
     /// <param name="options">Optional gallery options.</param>
     /// <returns>Shared gallery manifest describing the generated artifacts and rich-content expectations.</returns>
-    public static HtmlCapabilityGalleryManifest SaveHtmlCapabilityGallery(this PptCore.PowerPointPresentation presentation, string directoryPath, PowerPointHtmlCapabilityGalleryOptions? options = null) {
+    public static HtmlCapabilityGalleryManifest SaveHtmlCapabilityGallery(this PptCore.PowerPointDocument presentation, string directoryPath, PowerPointHtmlCapabilityGalleryOptions? options = null) {
         if (presentation == null) throw new ArgumentNullException(nameof(presentation));
         if (string.IsNullOrWhiteSpace(directoryPath)) throw new ArgumentException("Artifact directory cannot be empty.", nameof(directoryPath));
 
@@ -22,7 +22,7 @@ public static class PowerPointHtmlCapabilityGalleryExtensions {
         Directory.CreateDirectory(directoryPath);
 
         string filePrefix = ToFilePrefix(options.ScenarioId);
-        string semanticHtml = presentation.ToHtml(new PowerPointHtmlSaveOptions {
+        string semanticHtml = presentation.ToHtml(new PowerPointHtmlExportOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides,
             Theme = options.Theme,
             Title = options.Title,
@@ -30,7 +30,7 @@ public static class PowerPointHtmlCapabilityGalleryExtensions {
             IncludeNotes = options.IncludeNotes,
             IncludeTables = options.IncludeTables
         });
-        string visualHtml = presentation.ToHtml(new PowerPointHtmlSaveOptions {
+        string visualHtml = presentation.ToHtml(new PowerPointHtmlExportOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointVisualReview,
             Theme = options.Theme,
             Title = options.Title + " Visual Review",
@@ -102,7 +102,7 @@ public static class PowerPointHtmlCapabilityGalleryExtensions {
         return manifest;
     }
 
-    private static IReadOnlyList<HtmlCapabilityGalleryExpectation> CreateExpectations(PptCore.PowerPointPresentation presentation, PowerPointHtmlCapabilityGalleryOptions options) {
+    private static IReadOnlyList<HtmlCapabilityGalleryExpectation> CreateExpectations(PptCore.PowerPointDocument presentation, PowerPointHtmlCapabilityGalleryOptions options) {
         var expectations = new List<HtmlCapabilityGalleryExpectation>();
         IEnumerable<PptCore.PowerPointSlide> slides = options.IncludeHiddenSlides
             ? presentation.Slides
@@ -117,7 +117,7 @@ public static class PowerPointHtmlCapabilityGalleryExtensions {
             expectations.Add(new HtmlCapabilityGalleryExpectation("tables", HtmlCapabilityGalleryExpectationOutcome.Preserved, "semantic and visual HTML contain table cells"));
         }
 
-        if (slideList.Any(slide => slide.Pictures.Any())) {
+        if (slideList.Any(slide => slide.Images.Any())) {
             expectations.Add(new HtmlCapabilityGalleryExpectation("pictures", HtmlCapabilityGalleryExpectationOutcome.VisualProof, "semantic inventory plus positioned image data URI"));
         }
 

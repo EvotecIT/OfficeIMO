@@ -1,30 +1,66 @@
+using OfficeIMO.Internal;
 using System.Security.Cryptography;
 using System.Xml;
 using OfficeIMO.Invoicing;
 using OfficeIMO.Invoicing.Pdf;
+#if NET8_0_OR_GREATER
 using OfficeIMO.Invoicing.Validation;
+#endif
 
 namespace OfficeIMO.Workflows;
 
 /// <summary>Memory-only invoice workflows. Hosts own input acquisition and safe publication; format owners own semantics and rendering.</summary>
 public static partial class OfficeInvoiceBufferWorkflow {
-    /// <summary>Runs captured input through shared owners. A requested standards stage fails closed when its validator is unavailable. Cancellation returns no artifact.</summary>
+    /// <summary>Runs a captured invoice request without a standards provider.</summary>
     public static Task<OfficeInvoiceWorkflowResult> RunAsync(OfficeInvoiceWorkflowRequest request,
-        InvoiceValidator? validator = null, CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(request);
+        CancellationToken cancellationToken = default) => RunCoreAsync(request,
+#if NET8_0_OR_GREATER
+            null,
+#endif
+            cancellationToken);
+
+#if NET8_0_OR_GREATER
+    /// <summary>Runs a captured invoice request with an explicit standards provider.</summary>
+    public static Task<OfficeInvoiceWorkflowResult> RunAsync(OfficeInvoiceWorkflowRequest request,
+        InvoiceValidator? validator, CancellationToken cancellationToken = default) =>
+        RunCoreAsync(request, validator, cancellationToken);
+#endif
+
+    /// <summary>Runs captured input through shared owners. A requested standards stage fails closed when its validator is unavailable. Cancellation returns no artifact.</summary>
+    private static Task<OfficeInvoiceWorkflowResult> RunCoreAsync(OfficeInvoiceWorkflowRequest request,
+
+#if NET8_0_OR_GREATER
+        InvoiceValidator? validator,
+#endif
+        CancellationToken cancellationToken = default) {
+        if (request == null) throw new ArgumentNullException(nameof(request));
         cancellationToken.ThrowIfCancellationRequested();
-        return Task.Run(() => ProcessAsync(request, validator, cancellationToken), cancellationToken);
+        return Task.Run(() => ProcessAsync(request,
+#if NET8_0_OR_GREATER
+            validator,
+#endif
+            cancellationToken), cancellationToken);
     }
 
     private static async Task<OfficeInvoiceWorkflowResult> ProcessAsync(OfficeInvoiceWorkflowRequest request,
-        InvoiceValidator? validator, CancellationToken token) {
+
+#if NET8_0_OR_GREATER
+        InvoiceValidator? validator,
+#endif
+        CancellationToken token) {
         if (request.Operation == OfficeInvoiceWorkflowOperation.EditSource)
-            return await ProcessSourceEditAsync(request, validator, token).ConfigureAwait(false);
-        string hash = Convert.ToHexString(SHA256.HashData(request.Xml));
+            return await ProcessSourceEditAsync(request,
+#if NET8_0_OR_GREATER
+            validator,
+#endif
+            token).ConfigureAwait(false);
+        string hash = OfficeRuntimeCompatibility.ToHexString(OfficeRuntimeCompatibility.HashSha256(request.Xml));
         var diagnostics = new OperationDiagnostics();
         InvoiceReadResult? source = null;
         InvoiceModelValidationResult? model = null;
+#if NET8_0_OR_GREATER
         InvoiceValidationReport? standards = null;
+#endif
         try {
             token.ThrowIfCancellationRequested();
             source = InvoiceParser.Read(request.Xml);
@@ -46,6 +82,7 @@ public static partial class OfficeInvoiceBufferWorkflow {
             }
             token.ThrowIfCancellationRequested();
             if (request.ValidationRelease.HasValue) {
+#if NET8_0_OR_GREATER
                 if (validator == null) {
                     diagnostics.Add(new InvoiceDiagnostic("INV-WORKFLOW-VALIDATOR", "Standards validation was requested, but no configured validator was supplied.", "Standards"));
                     return Result(false);
@@ -61,6 +98,11 @@ public static partial class OfficeInvoiceBufferWorkflow {
                     if (request.Operation == OfficeInvoiceWorkflowOperation.Inspect && completed) return Result(true);
                     return Result(false);
                 }
+
+#else
+                diagnostics.Add(new InvoiceDiagnostic("INV-WORKFLOW-VALIDATOR", "Standards validation requires .NET 8 or later. No output artifact is returned.", "Standards"));
+                return Result(false);
+#endif
             } else {
                 diagnostics.Add(new InvoiceDiagnostic("INV-WORKFLOW-STANDARDS-NOT-RUN", "Only model and mapping checks ran. Standards schema and business rules were not requested.", "Standards", InvoiceDiagnosticSeverity.Information));
             }
@@ -82,7 +124,11 @@ public static partial class OfficeInvoiceBufferWorkflow {
         }
 
         OfficeInvoiceWorkflowResult Result(bool succeeded, byte[]? output = null, byte[]? outputXml = null) =>
-            new(request, hash, succeeded, source, model, diagnostics.ToList(), standards, output, outputXml);
+            new(request, hash, succeeded, source, model, diagnostics.ToList(),
+#if NET8_0_OR_GREATER
+                standards,
+#endif
+                 output, outputXml);
     }
 
     private sealed class OperationDiagnostics {

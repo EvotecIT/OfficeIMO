@@ -5,7 +5,7 @@ using System.IO;
 using System.Text;
 using System.Xml;
 using OfficeIMO.Drawing;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 
 namespace OfficeIMO.Visio {

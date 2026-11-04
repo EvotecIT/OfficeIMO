@@ -16,7 +16,7 @@ internal static class SourceWrapOrder {
         byte[] bytes = File.ReadAllBytes(input);
         if (!OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compound, out string? error))
             throw new InvalidDataException(error);
-        var context = new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None);
+        var context = new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None);
         var source = new PublisherNativeSource(bytes, compound!);
         if (!source.CanRewrite(context.Options.Limits, context.Token)) throw new NotSupportedException("Protected or invalid native source.");
         PublisherContents contents = new PublisherContentsReader(new PublisherBinaryData(source.ContentsBytes, "Contents"), context).Read();

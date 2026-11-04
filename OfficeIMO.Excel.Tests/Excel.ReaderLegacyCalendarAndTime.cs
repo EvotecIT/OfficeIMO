@@ -16,7 +16,7 @@ public partial class Excel {
     [InlineData("xlsb", 1904)]
     public void Reader_ProducerCalendarAndTime_RetainsCalendarAndUnshiftedDuration(string extension, int system) {
         string path = Path.Combine(AppContext.BaseDirectory, "Documents", "SpreadsheetDateSerialCorpus", $"serials-{system}.{extension}");
-        using var reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions { SheetName = "Data" });
+        using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { SheetName = "Data" });
         for (int i = 0; i < 4; i++) Assert.True(reader.Read());
         DateTime expectedCalendar = system == 1900 ? new DateTime(1900, 1, 1, 12, 0, 0) : new DateTime(1904, 1, 2, 12, 0, 0);
         DateTime expectedDuration = new DateTime(1899, 12, 31, 12, 0, 0);
@@ -36,7 +36,7 @@ public partial class Excel {
     public void Reader_ProducerCalendarAndTime_PreservesEverySerialAndCachedFormula(string extension, int system) {
         string path = Path.Combine(AppContext.BaseDirectory, "Documents", "SpreadsheetDateSerialCorpus", $"serials-{system}.{extension}");
         double[] serials = { -0.5, 0, 1, 1.5, 59, 59.5, 60, 60.5, 61, 61.5, 1462, 45000, 1.5 };
-        using var reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions { SheetName = "Data" });
+        using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { SheetName = "Data" });
         foreach (double serial in serials) {
             Assert.True(reader.Read());
             for (int ordinal = 0; ordinal < reader.FieldCount; ordinal++) {

@@ -9,8 +9,8 @@ public sealed class PowerPointAllSeverityBatch12SecurityTests {
     [Fact]
     public async Task LoadApisEnforceInputBudgetForSeekableAndNonSeekableStreams() {
         byte[] package;
-        using (PowerPointPresentation source =
-               PowerPointPresentation.Create()) {
+        using (PowerPointDocument source =
+               PowerPointDocument.Create()) {
             source.AddSlide().AddTextBox("safe");
             package = source.ToBytes();
         }
@@ -20,18 +20,18 @@ public sealed class PowerPointAllSeverityBatch12SecurityTests {
 
         using var seekable = new MemoryStream(package, writable: false);
         Assert.Throws<InvalidDataException>(() =>
-            PowerPointPresentation.Load(seekable, restrictive));
+            PowerPointDocument.Load(seekable, restrictive));
 
         using var nonSeekable = new Batch12NonSeekableStream(package);
         Assert.Throws<InvalidDataException>(() =>
-            PowerPointPresentation.Load(nonSeekable, restrictive));
+            PowerPointDocument.Load(nonSeekable, restrictive));
 
         using var asyncStream = new Batch12NonSeekableStream(package);
         await Assert.ThrowsAsync<InvalidDataException>(() =>
-            PowerPointPresentation.LoadAsync(asyncStream, restrictive));
+            PowerPointDocument.LoadAsync(asyncStream, restrictive));
 
         using var validStream = new MemoryStream(package, writable: false);
-        using PowerPointPresentation valid = PowerPointPresentation.Load(
+        using PowerPointDocument valid = PowerPointDocument.Load(
             validStream,
             new PowerPointLoadOptions { MaxInputBytes = package.Length });
         Assert.Single(valid.Slides);
@@ -39,8 +39,8 @@ public sealed class PowerPointAllSeverityBatch12SecurityTests {
 
     [Fact]
     public void DuplicateSlideRejectsCyclicPartRelationships() {
-        using PowerPointPresentation presentation =
-            PowerPointPresentation.Create();
+        using PowerPointDocument presentation =
+            PowerPointDocument.Create();
         PowerPointSlide slide = presentation.AddSlide();
         ExtendedPart first = slide.SlidePart.AddExtendedPart(
             "urn:officeimo:test:first",
@@ -75,20 +75,20 @@ public sealed class PowerPointAllSeverityBatch12SecurityTests {
         string destinationPath = Path.Combine(root, "destination.pptx");
         Directory.CreateDirectory(root);
         try {
-            using (PowerPointPresentation presentation =
-                   PowerPointPresentation.Create(sourcePath)) {
+            using (PowerPointDocument presentation =
+                   PowerPointDocument.Create(sourcePath)) {
                 presentation.AddSlide().AddTextBox("safe");
                 presentation.Save();
             }
             long sourceLength = new FileInfo(sourcePath).Length;
-            var options = new PowerPointPresentationConversionOptions {
+            var options = new PowerPointDocumentConversionOptions {
                 LoadOptions = new PowerPointLoadOptions {
                     MaxInputBytes = sourceLength - 1L
                 }
             };
 
             Assert.Throws<InvalidDataException>(() =>
-                PowerPointPresentation.AnalyzeConversion(
+                PowerPointDocument.AnalyzeConversion(
                     sourcePath, destinationPath, options));
         } finally {
             if (Directory.Exists(root)) Directory.Delete(root, true);

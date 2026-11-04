@@ -43,7 +43,7 @@ expressions.
 
 ### EXAMPLE 1
 ```powershell
-PS> $doc = Get-OfficeWord -Path .\Report.docx
+PS> $doc = Open-OfficeWord -Path .\Report.docx
 $table = Find-OfficeWordTable -Document $doc -Text 'Risk register' | Select-Object -First 1
 $table | Add-OfficeWordTableRow -Values 'Contoso', 'Open', 'High'
 ```
@@ -52,7 +52,7 @@ Searches table cell paragraphs and returns the matching OfficeIMO table object.
 
 ### EXAMPLE 2
 ```powershell
-PS> $doc = Get-OfficeWord -Path .\Handover.docx
+PS> $doc = Open-OfficeWord -Path .\Handover.docx
 $table = Find-OfficeWordTable -Document $doc -Text 'Risk marker' | Select-Object -First 1
 $table | Add-OfficeWordTableRow -Values 'Mitigation plan', 'Service Desk', 'Ready'
 $table | Get-OfficeWordTableCell -Row 2 -Column 2 |

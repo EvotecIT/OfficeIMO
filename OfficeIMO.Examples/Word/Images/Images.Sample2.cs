@@ -19,11 +19,11 @@ namespace OfficeIMO.Examples.Word {
                 var images = document.Images;
                 Console.WriteLine("+ Document images: " + images.Count);
 
-                var defaultHeader = document.HeaderDefaultOrCreate;
+                var defaultHeader = document.PageSetup.Header;
                 var headerImages = defaultHeader.Images;
                 Console.WriteLine("+ Document images in header: " + headerImages.Count);
 
-                var defaultFooter = document.FooterDefaultOrCreate;
+                var defaultFooter = document.PageSetup.Footer;
                 var footerImages = defaultFooter.Images;
                 Console.WriteLine("+ Document images in footer: " + footerImages.Count);
                 //document.Images[0].Save(System.IO.Path.Combine(outputPath, "random.jpg"));
@@ -31,8 +31,8 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("----");
                 foreach (var image in images) {
                     Console.WriteLine("+ Image: " + image.FileName);
-                    Console.WriteLine("+ Image: " + image.Width);
-                    Console.WriteLine("+ Image: " + image.Height);
+                    Console.WriteLine("+ Image: " + (image.Width?.ToPixels()));
+                    Console.WriteLine("+ Image: " + (image.Height?.ToPixels()));
                     Console.WriteLine("+ Image: " + image.WrapText);
                 }
                 Console.WriteLine("----");

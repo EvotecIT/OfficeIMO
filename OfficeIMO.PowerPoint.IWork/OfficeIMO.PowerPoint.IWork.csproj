@@ -2,8 +2,6 @@
   <PropertyGroup>
     <Description>Opt-in Apple Keynote to OfficeIMO PowerPoint conversion adapter with bounded source and loss reports.</Description>
     <PackageId>OfficeIMO.PowerPoint.IWork</PackageId>
-    <AssemblyName>OfficeIMO.PowerPoint.IWork</AssemblyName>
-    <AssemblyTitle>OfficeIMO.PowerPoint.IWork</AssemblyTitle>
     <VersionPrefix>3.5.3</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>

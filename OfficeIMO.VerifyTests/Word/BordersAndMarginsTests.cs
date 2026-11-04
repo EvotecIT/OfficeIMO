@@ -4,7 +4,7 @@ using OfficeIMO.Word;
 using System.Threading.Tasks;
 using VerifyXunit;
 using Xunit;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.VerifyTests.Word;
 
@@ -25,20 +25,20 @@ public class BordersAndMarginsTests : VerifyTestBase {
 
         document.Sections[0].Borders.LeftStyle = WordBorderStyle.PalmsColor;
         document.Sections[0].Borders.LeftColor = Color.Aqua;
-        document.Sections[0].Borders.LeftSpace = 24;
-        document.Sections[0].Borders.LeftSize = 24;
+        document.Sections[0].Borders.LeftSpace = OfficeLength.Points(24);
+        document.Sections[0].Borders.LeftSize = OfficeLength.Points(3);
 
         document.Sections[0].Borders.RightStyle = WordBorderStyle.BabyPacifier;
         document.Sections[0].Borders.RightColor = Color.Red;
-        document.Sections[0].Borders.RightSize = 12;
+        document.Sections[0].Borders.RightSize = OfficeLength.Points(1.5);
 
         document.Sections[0].Borders.TopStyle = WordBorderStyle.SharksTeeth;
         document.Sections[0].Borders.TopColor = Color.GreenYellow;
-        document.Sections[0].Borders.TopSize = 10;
+        document.Sections[0].Borders.TopSize = OfficeLength.Points(1.25);
 
         document.Sections[0].Borders.BottomStyle = WordBorderStyle.Thick;
         document.Sections[0].Borders.BottomColor = Color.Blue;
-        document.Sections[0].Borders.BottomSize = 15;
+        document.Sections[0].Borders.BottomSize = OfficeLength.Points(1.875);
 
         _ = document.ToBytes();
 
@@ -66,22 +66,22 @@ public class BordersAndMarginsTests : VerifyTestBase {
     public async Task BasicWordMarginsSizes() {
         using var document = WordDocument.Create();
         document.AddParagraph("Section 0");
-        document.Sections[0].SetMargins(WordMargin.Normal);
+        document.Sections[0].PageSetup.Margins.Type = WordMargin.Normal;
 
         document.AddSection();
-        document.Sections[1].SetMargins(WordMargin.Narrow);
+        document.Sections[1].PageSetup.Margins.Type = WordMargin.Narrow;
         document.AddParagraph("Section 1");
 
         document.AddSection();
-        document.Sections[2].SetMargins(WordMargin.Mirrored);
+        document.Sections[2].PageSetup.Margins.Type = WordMargin.Mirrored;
         document.AddParagraph("Section 2");
 
         document.AddSection();
-        document.Sections[3].SetMargins(WordMargin.Moderate);
+        document.Sections[3].PageSetup.Margins.Type = WordMargin.Moderate;
         document.AddParagraph("Section 3");
 
         document.AddSection();
-        document.Sections[4].SetMargins(WordMargin.Wide);
+        document.Sections[4].PageSetup.Margins.Type = WordMargin.Wide;
         document.AddParagraph("Section 4");
 
         _ = document.ToBytes();

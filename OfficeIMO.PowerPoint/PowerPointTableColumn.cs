@@ -24,9 +24,9 @@ namespace OfficeIMO.PowerPoint {
         public Func<T, object?> ValueSelector { get; }
 
         /// <summary>
-        ///     Explicit column width in EMUs.
+        ///     Explicit column width as a physical length.
         /// </summary>
-        public long? WidthEmus { get; private set; }
+        public OfficeLength? Width { get; private set; }
 
         /// <summary>
         ///     Creates a column binding.
@@ -34,34 +34,10 @@ namespace OfficeIMO.PowerPoint {
         public static PowerPointTableColumn<T> Create(string header, Func<T, object?> valueSelector) {
             return new PowerPointTableColumn<T>(header, valueSelector);
         }
-
-        /// <summary>
-        ///     Sets the column width in EMUs.
-        /// </summary>
-        public PowerPointTableColumn<T> WithWidth(long widthEmus) {
-            WidthEmus = widthEmus;
+        /// <summary>Sets the physical column width.</summary>
+        public PowerPointTableColumn<T> WithWidth(OfficeLength width) {
+            Width = width;
             return this;
-        }
-
-        /// <summary>
-        ///     Sets the column width in centimeters.
-        /// </summary>
-        public PowerPointTableColumn<T> WithWidthCm(double widthCm) {
-            return WithWidth(PowerPointUnits.FromCentimeters(widthCm));
-        }
-
-        /// <summary>
-        ///     Sets the column width in inches.
-        /// </summary>
-        public PowerPointTableColumn<T> WithWidthInches(double widthInches) {
-            return WithWidth(PowerPointUnits.FromInches(widthInches));
-        }
-
-        /// <summary>
-        ///     Sets the column width in points.
-        /// </summary>
-        public PowerPointTableColumn<T> WithWidthPoints(double widthPoints) {
-            return WithWidth(PowerPointUnits.FromPoints(widthPoints));
         }
     }
 }

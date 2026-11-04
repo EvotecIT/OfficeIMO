@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes the fixed header of a legacy BIFF TxO text-object record.
     /// </summary>
-    public sealed class LegacyXlsDrawingTextObject {
+    internal sealed class LegacyXlsDrawingTextObject {
         /// <summary>
         /// Creates TxO text-object metadata.
         /// </summary>

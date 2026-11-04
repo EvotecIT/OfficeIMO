@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Visio {
     public partial class VisioDocument {
@@ -80,10 +80,10 @@ namespace OfficeIMO.Visio {
             IReadOnlyDictionary<string, int> layerIndexes) {
             switch (cellName) {
                 case "PinX":
-                    WriteCell(writer, ns, "PinX", shape.PinX);
+                    WriteCell(writer, ns, "PinX", shape.PinXInches);
                     return true;
                 case "PinY":
-                    WriteCell(writer, ns, "PinY", shape.PinY);
+                    WriteCell(writer, ns, "PinY", shape.PinYInches);
                     return true;
                 case "Width":
                     WriteCell(writer, ns, "Width", width);

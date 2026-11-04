@@ -8,7 +8,7 @@ public sealed partial class PdfProvenanceTests {
     public void DefaultParserBudgetBoundsAggregateDecodedStreamCaching() {
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
             new PdfDecodedStreamBudget(
-                PdfReadLimits.Default,
+                new PdfReadLimits(),
                 PdfReadLimits.DefaultMaxTotalDecodedStreamBytes + 1));
 
         Assert.Equal(PdfReadLimitKind.TotalDecodedStreamBytes, exception.Kind);

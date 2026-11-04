@@ -26,12 +26,12 @@ document.Save("subscriptions.opml");
 
 Standard subscription attributes are typed, while `GetAttribute` and `SetAttribute` accept `XName` for namespaced extensions. Unknown attributes, elements, comments, processing instructions, and namespace declarations remain in the backing `XDocument`. An unchanged file or stream is written byte-for-byte; after an edit, preserved XML is serialized around the changed values.
 
-`ToOfficeDocumentModel()` and `FromOfficeDocumentModel()` map nested outlines through `OfficeDocumentModel.Structure`; subscription and outline URLs are also published through `OfficeDocumentModel.Links`. Independent flat blocks or links are appended as top-level outlines when recursive structure does not already represent them, with a placement-loss diagnostic. Tables, assets, pages, forms, and structured visuals have no OPML outline equivalent, so reverse conversion omits each populated item with a loss diagnostic. Both conversion directions enforce `OpmlConversionOptions.MaxStructureDepth` and `MaxStructureNodes`; reverse conversion also rejects cyclic structures. Conversion results implement `IOfficeConversionReport`, so callers can inspect diagnostics or call `RequireNoLoss()`.
+`ToOfficeDocumentModel()` and `FromOfficeDocumentModel()` map nested outlines through `OfficeDocumentModel.Structure`; subscription and outline URLs are also published through `OfficeDocumentModel.Links`. Independent flat blocks or links are appended as top-level outlines when recursive structure does not already represent them, with a placement-loss diagnostic. Tables, assets, pages, forms, and structured visuals have no OPML outline equivalent, so reverse conversion omits each populated item with a loss diagnostic. Both conversion directions enforce `OpmlConversionOptions.MaxStructureDepth` and `MaxStructureNodes`; reverse conversion also rejects cyclic structures. Conversion results implement `OfficeConversionReport`, so callers can inspect diagnostics or call `ThrowIfLoss()`.
 
 ## Safety and profile limits
 
 - XML DTDs and external entity resolution are disabled.
-- Default limits are 16 MiB encoded input, 16 million XML characters, 128 levels, 250,000 total elements, 100,000 outlines, and 500,000 attributes. Override them with `OpmlReadOptions`.
+- Default limits are 16 MiB encoded input, 16 million XML characters, 128 levels, 250,000 total elements, 100,000 outlines, and 500,000 attributes. Override them with `OpmlLoadOptions`.
 - Validation covers the OPML root/head/body contract, declared version, required `text`, RSS `xmlUrl`, and link/include `url`.
 - Validation and conversion retain at most 100 detailed diagnostics per code by default, followed by one occurrence summary. Override the budget with `OpmlValidationOptions` or `OpmlConversionOptions`.
 - Reader integration is provided by `OfficeIMO.Reader.Opml`.
@@ -44,6 +44,8 @@ The implemented vocabulary follows the [OPML 2.0 specification](https://opml.org
 - **OfficeIMO:** `OfficeIMO.Core`.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+
+`Save(path)` associates the successfully written path; `Save()` uses that destination. `Save(stream)` leaves the stream open and keeps the associated path. `ToBytes()` returns native bytes without writing a destination. Loading from a path associates it; parsing text or loading a stream leaves the document detached.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

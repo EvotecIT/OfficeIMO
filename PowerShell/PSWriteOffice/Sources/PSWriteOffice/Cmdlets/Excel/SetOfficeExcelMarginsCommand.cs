@@ -1,3 +1,4 @@
+using OfficeIMO;
 using System.Management.Automation;
 using OfficeIMO.Excel;
 using PSWriteOffice.Services.Excel;
@@ -80,7 +81,7 @@ public sealed class SetOfficeExcelMarginsCommand : PSCmdlet
                 throw new PSArgumentException("Provide either Preset or custom margins, not both.");
             }
 
-            sheet.SetMarginsPreset(Preset.Value);
+            sheet.PageSetup.SetMargins(Preset.Value);
         }
         else
         {
@@ -89,13 +90,13 @@ public sealed class SetOfficeExcelMarginsCommand : PSCmdlet
                 throw new PSArgumentException("Provide Left, Right, Top, and Bottom margins or use a Preset.");
             }
 
-            sheet.SetMargins(
-                left: Left.Value,
-                right: Right.Value,
-                top: Top.Value,
-                bottom: Bottom.Value,
-                header: Header ?? 0.3,
-                footer: Footer ?? 0.3);
+            sheet.PageSetup.SetMargins(
+                left: OfficeLength.Inches(Left.Value),
+                right: OfficeLength.Inches(Right.Value),
+                top: OfficeLength.Inches(Top.Value),
+                bottom: OfficeLength.Inches(Bottom.Value),
+                header: OfficeLength.Inches(Header ?? 0.3),
+                footer: OfficeLength.Inches(Footer ?? 0.3));
         }
 
         if (PassThru.IsPresent)

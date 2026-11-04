@@ -26,11 +26,11 @@ public partial class Word {
                 Type = W.TableWidthUnitValues.Pct, Width = column == 0 ? "3750" : "1250"
             };
         }
-        using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Docx)));
-        var fonts = new OfficeIMO.Pdf.PdfOptions();
+        using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Docx })));
+        var fonts = new OfficeIMO.Pdf.PdfCreateOptions();
         fonts.RegisterNamedFontFamily(new OfficeIMO.Pdf.PdfEmbeddedFontFamily("Arial",
             OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, glyphAdvance, Enumerable.Range(32, 95).ToArray())));
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false, PdfOptions = fonts }));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false, PdfOptions = fonts }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(1, pdf.NumberOfPages);
         var letters = pdf.GetPage(1).Letters.ToArray();
         Assert.Equal(phrase ? "SASB SB" : "SASB", string.Concat(letters.Select(letter => letter.Value)));

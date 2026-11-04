@@ -5,7 +5,7 @@ using OfficeIMO.Visio;
 using OfficeIMO.Visio.Fluent;
 using OfficeIMO.Visio.Stencils;
 using Xunit;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Tests {
     public class VisioStencilMigrationTests {
@@ -15,11 +15,11 @@ namespace OfficeIMO.Tests {
             string updatedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Migration", 11, 8.5);
-            VisioShape intake = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "intake", 2, 6, "Intake");
-            VisioShape review = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "review", 5, 6, "Review");
-            VisioShape archive = page.AddStencilShape(VisioStencils.Flowchart.Get("data"), "archive", 8, 6, "Archive");
-            VisioShape custom = new("custom", 5, 3, 2.5, 1, "Custom") { NameU = "LegacyCustom" };
+            VisioPage page = document.AddPage("Migration", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
+            VisioShape intake = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "intake", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, page.DefaultUnit)), "Intake");
+            VisioShape review = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "review", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, page.DefaultUnit)), "Review");
+            VisioShape archive = page.AddStencilShape(VisioStencils.Flowchart.Get("data"), "archive", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, page.DefaultUnit)), "Archive");
+            VisioShape custom = new("custom", OfficeLength.Inches(5), OfficeLength.Inches(3), OfficeLength.Inches(2.5), OfficeLength.Inches(1), "Custom") { NameU = "LegacyCustom" };
             page.Shapes.Add(custom);
             review.FillColor = Color.LightYellow;
             review.SetShapeData("Owner", "Ops");
@@ -78,11 +78,11 @@ namespace OfficeIMO.Tests {
 
             VisioDocument.Create(filePath)
                 .AsFluent()
-                .Page("Fluent Migration", page => page
-                    .Stencil("worker", VisioStencils.Flowchart.Get("process"), 2, 5, "Worker")
-                    .Stencil("queue", VisioStencils.Flowchart.Get("data"), 5, 5, "Queue")
-                    .Rect("legacy", 8, 5, 2, 1, "Legacy")
-                    .Shape("legacy", shape => shape.UserCell("Family", "Legacy")))
+                .AddPage("Fluent Migration", page => page
+                    .AddStencilShape(id: "worker", stencil: VisioStencils.Flowchart.Get("process"), x: OfficeLength.Inches(2), y: OfficeLength.Inches(5), text: "Worker")
+                    .AddStencilShape(id: "queue", stencil: VisioStencils.Flowchart.Get("data"), x: OfficeLength.Inches(5), y: OfficeLength.Inches(5), text: "Queue")
+                    .AddRectangle("legacy", OfficeLength.Inches(8), OfficeLength.Inches(5), OfficeLength.Inches(2), OfficeLength.Inches(1), "Legacy")
+                    .GetShape("legacy", shape => shape.UserCell("Family", "Legacy")))
                 .End()
                 .Save();
 
@@ -94,7 +94,7 @@ namespace OfficeIMO.Tests {
 
             VisioDocument.Load(filePath)
                 .AsFluent()
-                .ExistingPage("Fluent Migration", page => page.ApplyStencilMigration(map))
+                .GetPage("Fluent Migration", page => page.ApplyStencilMigration(map))
                 .End()
                 .Save(updatedPath);
 
@@ -120,11 +120,11 @@ namespace OfficeIMO.Tests {
             string updatedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Catalog Queries", 11, 8.5);
-            page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "worker", 2, 5, "Worker");
-            VisioShape custom = new("legacy-system", 5, 5, 2.2, 1, "Legacy System") { NameU = "LegacySystem" };
+            VisioPage page = document.AddPage("Catalog Queries", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
+            page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "worker", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), "Worker");
+            VisioShape custom = new("legacy-system", OfficeLength.Inches(5), OfficeLength.Inches(5), OfficeLength.Inches(2.2), OfficeLength.Inches(1), "Legacy System") { NameU = "LegacySystem" };
             page.Shapes.Add(custom);
-            VisioShape database = new("legacy-db", 8, 5, 2.2, 1, "Legacy DB") { NameU = "LegacyDataStore" };
+            VisioShape database = new("legacy-db", OfficeLength.Inches(8), OfficeLength.Inches(5), OfficeLength.Inches(2.2), OfficeLength.Inches(1), "Legacy DB") { NameU = "LegacyDataStore" };
             database.SetUserCell("Family", "DataStore");
             page.Shapes.Add(database);
             document.Save();
@@ -158,13 +158,13 @@ namespace OfficeIMO.Tests {
 
             VisioDocument.Create(filePath)
                 .AsFluent()
-                .Page("Legacy Flow", page => page
-                    .Ellipse("start", 2, 6, 1.6, 0.7, "Start")
-                    .Rect("task", 4, 6, 2, 0.9, "Task")
-                    .Diamond("choice", 6.5, 6, 1.6, 1.1, "Choice?")
-                    .Parallelogram("input", 8.7, 6, 1.8, 0.8, "Input")
-                    .Hexagon("setup", 4, 4, 1.8, 0.8, "Setup")
-                    .Stencil("already", VisioStencils.Flowchart.Get("process"), 7, 4, "Already stenciled"))
+                .AddPage("Legacy Flow", page => page
+                    .AddEllipse("start", OfficeLength.Inches(2), OfficeLength.Inches(6), OfficeLength.Inches(1.6), OfficeLength.Inches(0.7), "Start")
+                    .AddRectangle("task", OfficeLength.Inches(4), OfficeLength.Inches(6), OfficeLength.Inches(2), OfficeLength.Inches(0.9), "Task")
+                    .AddDiamond("choice", OfficeLength.Inches(6.5), OfficeLength.Inches(6), OfficeLength.Inches(1.6), OfficeLength.Inches(1.1), "Choice?")
+                    .AddParallelogram("input", OfficeLength.Inches(8.7), OfficeLength.Inches(6), OfficeLength.Inches(1.8), OfficeLength.Inches(0.8), "Input")
+                    .AddHexagon("setup", OfficeLength.Inches(4), OfficeLength.Inches(4), OfficeLength.Inches(1.8), OfficeLength.Inches(0.8), "Setup")
+                    .AddStencilShape(id: "already", stencil: VisioStencils.Flowchart.Get("process"), x: OfficeLength.Inches(7), y: OfficeLength.Inches(4), text: "Already stenciled"))
                 .End()
                 .Save();
 
@@ -194,9 +194,9 @@ namespace OfficeIMO.Tests {
 
             VisioDocument.Create(filePath)
                 .AsFluent()
-                .Page("Plan", page => page
-                    .Stencil("worker", VisioStencils.Flowchart.Get("process"), 2, 5, "Worker")
-                    .Stencil("queue", VisioStencils.Flowchart.Get("data"), 5, 5, "Queue"))
+                .AddPage("Plan", page => page
+                    .AddStencilShape(id: "worker", stencil: VisioStencils.Flowchart.Get("process"), x: OfficeLength.Inches(2), y: OfficeLength.Inches(5), text: "Worker")
+                    .AddStencilShape(id: "queue", stencil: VisioStencils.Flowchart.Get("data"), x: OfficeLength.Inches(5), y: OfficeLength.Inches(5), text: "Queue"))
                 .End()
                 .Save();
 
@@ -246,11 +246,11 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage background = document.AddBackgroundPage("Watermark", 11, 8.5);
-            background.AddStencilShape(VisioStencils.Flowchart.Get("process"), "background-process", 3, 7, "Background process");
-            VisioPage page = document.AddPage("Foreground", 11, 8.5);
+            VisioPage background = document.AddBackgroundPage("Watermark", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
+            background.AddStencilShape(VisioStencils.Flowchart.Get("process"), "background-process", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, background.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(7, background.DefaultUnit)), "Background process");
+            VisioPage page = document.AddPage("Foreground", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
             page.SetBackgroundPage(background);
-            page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "foreground-process", 3, 5, "Foreground process");
+            page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "foreground-process", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), "Foreground process");
             document.Save();
 
             VisioStencilMigrationMap map = VisioStencilMigrationMap.Create(builder => builder
@@ -274,10 +274,10 @@ namespace OfficeIMO.Tests {
 
             VisioDocument.Create(filePath)
                 .AsFluent()
-                .Page("First", page => page
-                    .Stencil("worker", VisioStencils.Flowchart.Get("process"), 2, 5, "First worker"))
-                .Page("Second", page => page
-                    .Stencil("worker", VisioStencils.Flowchart.Get("process"), 2, 5, "Second worker"))
+                .AddPage("First", page => page
+                    .AddStencilShape(id: "worker", stencil: VisioStencils.Flowchart.Get("process"), x: OfficeLength.Inches(2), y: OfficeLength.Inches(5), text: "First worker"))
+                .AddPage("Second", page => page
+                    .AddStencilShape(id: "worker", stencil: VisioStencils.Flowchart.Get("process"), x: OfficeLength.Inches(2), y: OfficeLength.Inches(5), text: "Second worker"))
                 .End()
                 .Save();
 
@@ -310,8 +310,8 @@ namespace OfficeIMO.Tests {
 
             VisioDocument.Create(filePath)
                 .AsFluent()
-                .Page("Drift", page => page
-                    .Stencil("worker", VisioStencils.Flowchart.Get("process"), 2, 5, "Worker"))
+                .AddPage("Drift", page => page
+                    .AddStencilShape(id: "worker", stencil: VisioStencils.Flowchart.Get("process"), x: OfficeLength.Inches(2), y: OfficeLength.Inches(5), text: "Worker"))
                 .End()
                 .Save();
 
@@ -334,9 +334,9 @@ namespace OfficeIMO.Tests {
 
             VisioDocument.Create(filePath)
                 .AsFluent()
-                .Page("Atomic", page => page
-                    .Stencil("first", VisioStencils.Flowchart.Get("process"), 2, 5, "First")
-                    .Stencil("second", VisioStencils.Flowchart.Get("process"), 5, 5, "Second"))
+                .AddPage("Atomic", page => page
+                    .AddStencilShape(id: "first", stencil: VisioStencils.Flowchart.Get("process"), x: OfficeLength.Inches(2), y: OfficeLength.Inches(5), text: "First")
+                    .AddStencilShape(id: "second", stencil: VisioStencils.Flowchart.Get("process"), x: OfficeLength.Inches(5), y: OfficeLength.Inches(5), text: "Second"))
                 .End()
                 .Save();
 
@@ -361,13 +361,13 @@ namespace OfficeIMO.Tests {
 
             VisioDocument.Create(filePath)
                 .AsFluent()
-                .Page("Legacy Network", page => page
-                    .Rect("server", 2, 6, 1.8, 0.8, "Web Server")
-                    .Data("database", 4.5, 6, 1.8, 0.8, "SQL Database")
-                    .Diamond("firewall", 7, 6, 1.3, 1.0, "Firewall")
-                    .Rect("switch", 2, 4, 1.8, 0.7, "Core Switch")
-                    .Ellipse("internet", 4.5, 4, 1.0, 1.0, "Internet")
-                    .Stencil("already", VisioStencils.Network.Get("server"), 7, 4, "Already stenciled"))
+                .AddPage("Legacy Network", page => page
+                    .AddRectangle("server", OfficeLength.Inches(2), OfficeLength.Inches(6), OfficeLength.Inches(1.8), OfficeLength.Inches(0.8), "Web Server")
+                    .AddData("database", OfficeLength.Inches(4.5), OfficeLength.Inches(6), OfficeLength.Inches(1.8), OfficeLength.Inches(0.8), "SQL Database")
+                    .AddDiamond("firewall", OfficeLength.Inches(7), OfficeLength.Inches(6), OfficeLength.Inches(1.3), OfficeLength.Inches(1.0), "Firewall")
+                    .AddRectangle("switch", OfficeLength.Inches(2), OfficeLength.Inches(4), OfficeLength.Inches(1.8), OfficeLength.Inches(0.7), "Core Switch")
+                    .AddEllipse("internet", OfficeLength.Inches(4.5), OfficeLength.Inches(4), OfficeLength.Inches(1.0), OfficeLength.Inches(1.0), "Internet")
+                    .AddStencilShape(id: "already", stencil: VisioStencils.Network.Get("server"), x: OfficeLength.Inches(7), y: OfficeLength.Inches(4), text: "Already stenciled"))
                 .End()
                 .Save();
 
@@ -400,14 +400,14 @@ namespace OfficeIMO.Tests {
 
             VisioDocument.Create(filePath)
                 .AsFluent()
-                .Page("Legacy Architecture", page => page
-                    .Rect("api", 2, 6, 1.8, 0.8, "API Service")
-                    .Rect("worker", 4.2, 6, 1.8, 0.8, "Worker VM")
-                    .Data("database", 6.4, 6, 1.8, 0.8, "SQL Database")
-                    .Data("queue", 8.6, 6, 1.8, 0.8, "Message Queue")
-                    .Diamond("gateway", 2, 4, 1.4, 1.0, "API Gateway")
-                    .Rect("region", 5.5, 3.7, 3.2, 1.4, "Region Boundary")
-                    .Stencil("already", VisioStencils.Architecture.Get("service"), 9, 4, "Already stenciled"))
+                .AddPage("Legacy Architecture", page => page
+                    .AddRectangle("api", OfficeLength.Inches(2), OfficeLength.Inches(6), OfficeLength.Inches(1.8), OfficeLength.Inches(0.8), "API Service")
+                    .AddRectangle("worker", OfficeLength.Inches(4.2), OfficeLength.Inches(6), OfficeLength.Inches(1.8), OfficeLength.Inches(0.8), "Worker VM")
+                    .AddData("database", OfficeLength.Inches(6.4), OfficeLength.Inches(6), OfficeLength.Inches(1.8), OfficeLength.Inches(0.8), "SQL Database")
+                    .AddData("queue", OfficeLength.Inches(8.6), OfficeLength.Inches(6), OfficeLength.Inches(1.8), OfficeLength.Inches(0.8), "Message Queue")
+                    .AddDiamond("gateway", OfficeLength.Inches(2), OfficeLength.Inches(4), OfficeLength.Inches(1.4), OfficeLength.Inches(1.0), "API Gateway")
+                    .AddRectangle("region", OfficeLength.Inches(5.5), OfficeLength.Inches(3.7), OfficeLength.Inches(3.2), OfficeLength.Inches(1.4), "Region Boundary")
+                    .AddStencilShape(id: "already", stencil: VisioStencils.Architecture.Get("service"), x: OfficeLength.Inches(9), y: OfficeLength.Inches(4), text: "Already stenciled"))
                 .End()
                 .Save();
 
@@ -441,15 +441,15 @@ namespace OfficeIMO.Tests {
 
             VisioDocument.Create(filePath)
                 .AsFluent()
-                .Page("Legacy Org", page => page
-                    .Rect("ceo", 2, 6, 1.8, 0.8, "CEO Executive")
-                    .Rect("manager", 4.2, 6, 1.8, 0.8, "Engineering Manager")
-                    .Rect("employee", 6.4, 6, 1.8, 0.8, "Platform Engineer")
-                    .Rect("assistant", 2, 4.5, 1.6, 0.65, "Executive Assistant")
-                    .Rect("vacancy", 4.2, 4.5, 1.8, 0.8, "Open Position")
-                    .Rect("external", 6.4, 4.5, 1.8, 0.8, "External Advisor")
-                    .Rect("band", 4.2, 3.2, 3.2, 1.2, "Platform Team Band")
-                    .Stencil("already", VisioStencils.OrgChart.Get("position"), 8.6, 6, "Already stenciled"))
+                .AddPage("Legacy Org", page => page
+                    .AddRectangle("ceo", OfficeLength.Inches(2), OfficeLength.Inches(6), OfficeLength.Inches(1.8), OfficeLength.Inches(0.8), "CEO Executive")
+                    .AddRectangle("manager", OfficeLength.Inches(4.2), OfficeLength.Inches(6), OfficeLength.Inches(1.8), OfficeLength.Inches(0.8), "Engineering Manager")
+                    .AddRectangle("employee", OfficeLength.Inches(6.4), OfficeLength.Inches(6), OfficeLength.Inches(1.8), OfficeLength.Inches(0.8), "Platform Engineer")
+                    .AddRectangle("assistant", OfficeLength.Inches(2), OfficeLength.Inches(4.5), OfficeLength.Inches(1.6), OfficeLength.Inches(0.65), "Executive Assistant")
+                    .AddRectangle("vacancy", OfficeLength.Inches(4.2), OfficeLength.Inches(4.5), OfficeLength.Inches(1.8), OfficeLength.Inches(0.8), "Open Position")
+                    .AddRectangle("external", OfficeLength.Inches(6.4), OfficeLength.Inches(4.5), OfficeLength.Inches(1.8), OfficeLength.Inches(0.8), "External Advisor")
+                    .AddRectangle("band", OfficeLength.Inches(4.2), OfficeLength.Inches(3.2), OfficeLength.Inches(3.2), OfficeLength.Inches(1.2), "Platform Team Band")
+                    .AddStencilShape(id: "already", stencil: VisioStencils.OrgChart.Get("position"), x: OfficeLength.Inches(8.6), y: OfficeLength.Inches(6), text: "Already stenciled"))
                 .End()
                 .Save();
 
@@ -484,15 +484,15 @@ namespace OfficeIMO.Tests {
 
             VisioDocument.Create(filePath)
                 .AsFluent()
-                .Page("Legacy Timeline", page => page
-                    .Rect("axis", 5, 6, 7.0, 0.08, "Timeline Axis")
-                    .Diamond("milestone", 2, 5, 0.4, 0.4, "Milestone")
-                    .Ellipse("release", 3.5, 5, 0.4, 0.4, "Release Launch")
-                    .Ellipse("decision", 5, 5, 0.4, 0.4, "Approval Gate")
-                    .Ellipse("risk", 6.5, 5, 0.4, 0.4, "Risk Issue")
-                    .Rect("span", 4.2, 4, 2.6, 0.4, "Phase Duration")
-                    .Rect("label", 7.6, 4.2, 1.4, 0.5, "Callout Label")
-                    .Stencil("already", VisioStencils.Timeline.Get("milestone"), 8.5, 5, "Already stenciled"))
+                .AddPage("Legacy Timeline", page => page
+                    .AddRectangle("axis", OfficeLength.Inches(5), OfficeLength.Inches(6), OfficeLength.Inches(7.0), OfficeLength.Inches(0.08), "Timeline Axis")
+                    .AddDiamond("milestone", OfficeLength.Inches(2), OfficeLength.Inches(5), OfficeLength.Inches(0.4), OfficeLength.Inches(0.4), "Milestone")
+                    .AddEllipse("release", OfficeLength.Inches(3.5), OfficeLength.Inches(5), OfficeLength.Inches(0.4), OfficeLength.Inches(0.4), "Release Launch")
+                    .AddEllipse("decision", OfficeLength.Inches(5), OfficeLength.Inches(5), OfficeLength.Inches(0.4), OfficeLength.Inches(0.4), "Approval Gate")
+                    .AddEllipse("risk", OfficeLength.Inches(6.5), OfficeLength.Inches(5), OfficeLength.Inches(0.4), OfficeLength.Inches(0.4), "Risk Issue")
+                    .AddRectangle("span", OfficeLength.Inches(4.2), OfficeLength.Inches(4), OfficeLength.Inches(2.6), OfficeLength.Inches(0.4), "Phase Duration")
+                    .AddRectangle("label", OfficeLength.Inches(7.6), OfficeLength.Inches(4.2), OfficeLength.Inches(1.4), OfficeLength.Inches(0.5), "Callout Label")
+                    .AddStencilShape(id: "already", stencil: VisioStencils.Timeline.Get("milestone"), x: OfficeLength.Inches(8.5), y: OfficeLength.Inches(5), text: "Already stenciled"))
                 .End()
                 .Save();
 
@@ -527,17 +527,17 @@ namespace OfficeIMO.Tests {
 
             VisioDocument.Create(filePath)
                 .AsFluent()
-                .Page("Legacy Sequence", page => page
-                    .Ellipse("actor", 1.5, 6, 0.8, 0.8, "Client Actor")
-                    .Rect("participant", 3, 6, 1.4, 0.7, "Payment Service")
-                    .Rect("boundary", 4.8, 6, 1.4, 0.7, "API Boundary")
-                    .Rect("control", 6.6, 6, 1.4, 0.7, "Retry Controller")
-                    .Rect("entity", 8.4, 6, 1.4, 0.7, "Domain Object")
-                    .Data("database", 3, 4.6, 1.4, 0.7, "Order Store")
-                    .Rect("activation", 4.8, 4.6, 0.3, 1.1, "Activation")
-                    .Rect("fragment", 6.6, 4.4, 2.2, 1.2, "alt retry fragment")
-                    .Rect("note", 8.8, 4.4, 1.6, 0.7, "Sequence Note")
-                    .Stencil("already", VisioStencils.Sequence.Get("participant"), 1.5, 4.4, "Already stenciled"))
+                .AddPage("Legacy Sequence", page => page
+                    .AddEllipse("actor", OfficeLength.Inches(1.5), OfficeLength.Inches(6), OfficeLength.Inches(0.8), OfficeLength.Inches(0.8), "Client Actor")
+                    .AddRectangle("participant", OfficeLength.Inches(3), OfficeLength.Inches(6), OfficeLength.Inches(1.4), OfficeLength.Inches(0.7), "Payment Service")
+                    .AddRectangle("boundary", OfficeLength.Inches(4.8), OfficeLength.Inches(6), OfficeLength.Inches(1.4), OfficeLength.Inches(0.7), "API Boundary")
+                    .AddRectangle("control", OfficeLength.Inches(6.6), OfficeLength.Inches(6), OfficeLength.Inches(1.4), OfficeLength.Inches(0.7), "Retry Controller")
+                    .AddRectangle("entity", OfficeLength.Inches(8.4), OfficeLength.Inches(6), OfficeLength.Inches(1.4), OfficeLength.Inches(0.7), "Domain Object")
+                    .AddData("database", OfficeLength.Inches(3), OfficeLength.Inches(4.6), OfficeLength.Inches(1.4), OfficeLength.Inches(0.7), "Order Store")
+                    .AddRectangle("activation", OfficeLength.Inches(4.8), OfficeLength.Inches(4.6), OfficeLength.Inches(0.3), OfficeLength.Inches(1.1), "Activation")
+                    .AddRectangle("fragment", OfficeLength.Inches(6.6), OfficeLength.Inches(4.4), OfficeLength.Inches(2.2), OfficeLength.Inches(1.2), "alt retry fragment")
+                    .AddRectangle("note", OfficeLength.Inches(8.8), OfficeLength.Inches(4.4), OfficeLength.Inches(1.6), OfficeLength.Inches(0.7), "Sequence Note")
+                    .AddStencilShape(id: "already", stencil: VisioStencils.Sequence.Get("participant"), x: OfficeLength.Inches(1.5), y: OfficeLength.Inches(4.4), text: "Already stenciled"))
                 .End()
                 .Save();
 
@@ -574,14 +574,14 @@ namespace OfficeIMO.Tests {
 
             VisioDocument.Create(filePath)
                 .AsFluent()
-                .Page("Legacy Swimlane", page => page
-                    .Rect("lane", 4.5, 6, 6.0, 1.1, "Responsibility Lane")
-                    .Rect("phase", 2, 7.2, 2.0, 0.5, "Phase Stage")
-                    .Rect("activity", 2, 5.8, 1.6, 0.7, "Review Task")
-                    .Diamond("decision", 4, 5.8, 1.2, 0.9, "Decision Choice")
-                    .Data("data", 6, 5.8, 1.6, 0.7, "Input Document")
-                    .Ellipse("start", 8, 5.8, 1.4, 0.7, "Start")
-                    .Stencil("already", VisioStencils.Swimlane.Get("activity"), 8, 7.1, "Already stenciled"))
+                .AddPage("Legacy Swimlane", page => page
+                    .AddRectangle("lane", OfficeLength.Inches(4.5), OfficeLength.Inches(6), OfficeLength.Inches(6.0), OfficeLength.Inches(1.1), "Responsibility Lane")
+                    .AddRectangle("phase", OfficeLength.Inches(2), OfficeLength.Inches(7.2), OfficeLength.Inches(2.0), OfficeLength.Inches(0.5), "Phase Stage")
+                    .AddRectangle("activity", OfficeLength.Inches(2), OfficeLength.Inches(5.8), OfficeLength.Inches(1.6), OfficeLength.Inches(0.7), "Review Task")
+                    .AddDiamond("decision", OfficeLength.Inches(4), OfficeLength.Inches(5.8), OfficeLength.Inches(1.2), OfficeLength.Inches(0.9), "Decision Choice")
+                    .AddData("data", OfficeLength.Inches(6), OfficeLength.Inches(5.8), OfficeLength.Inches(1.6), OfficeLength.Inches(0.7), "Input Document")
+                    .AddEllipse("start", OfficeLength.Inches(8), OfficeLength.Inches(5.8), OfficeLength.Inches(1.4), OfficeLength.Inches(0.7), "Start")
+                    .AddStencilShape(id: "already", stencil: VisioStencils.Swimlane.Get("activity"), x: OfficeLength.Inches(8), y: OfficeLength.Inches(7.1), text: "Already stenciled"))
                 .End()
                 .Save();
 
@@ -615,16 +615,16 @@ namespace OfficeIMO.Tests {
 
             VisioDocument.Create(filePath)
                 .AsFluent()
-                .Page("Legacy Cloud", page => page
-                    .Rect("subscription", 4.5, 6.4, 6.0, 1.1, "Subscription Boundary")
-                    .Rect("region", 2, 5, 1.8, 0.8, "Region Zone")
-                    .Rect("service", 4, 5, 1.8, 0.8, "Cloud Service")
-                    .Hexagon("function", 6, 5, 1.4, 0.8, "Serverless Function")
-                    .Diamond("gateway", 8, 5, 1.2, 0.9, "API Gateway")
-                    .Data("queue", 2, 3.8, 1.6, 0.7, "Message Queue")
-                    .Data("secret", 4, 3.8, 1.6, 0.7, "Secret Store")
-                    .Ellipse("monitoring", 6, 3.8, 0.9, 0.9, "Monitoring Logs")
-                    .Stencil("already", VisioStencils.Cloud.Get("service"), 8, 3.8, "Already stenciled"))
+                .AddPage("Legacy Cloud", page => page
+                    .AddRectangle("subscription", OfficeLength.Inches(4.5), OfficeLength.Inches(6.4), OfficeLength.Inches(6.0), OfficeLength.Inches(1.1), "Subscription Boundary")
+                    .AddRectangle("region", OfficeLength.Inches(2), OfficeLength.Inches(5), OfficeLength.Inches(1.8), OfficeLength.Inches(0.8), "Region Zone")
+                    .AddRectangle("service", OfficeLength.Inches(4), OfficeLength.Inches(5), OfficeLength.Inches(1.8), OfficeLength.Inches(0.8), "Cloud Service")
+                    .AddHexagon("function", OfficeLength.Inches(6), OfficeLength.Inches(5), OfficeLength.Inches(1.4), OfficeLength.Inches(0.8), "Serverless Function")
+                    .AddDiamond("gateway", OfficeLength.Inches(8), OfficeLength.Inches(5), OfficeLength.Inches(1.2), OfficeLength.Inches(0.9), "API Gateway")
+                    .AddData("queue", OfficeLength.Inches(2), OfficeLength.Inches(3.8), OfficeLength.Inches(1.6), OfficeLength.Inches(0.7), "Message Queue")
+                    .AddData("secret", OfficeLength.Inches(4), OfficeLength.Inches(3.8), OfficeLength.Inches(1.6), OfficeLength.Inches(0.7), "Secret Store")
+                    .AddEllipse("monitoring", OfficeLength.Inches(6), OfficeLength.Inches(3.8), OfficeLength.Inches(0.9), OfficeLength.Inches(0.9), "Monitoring Logs")
+                    .AddStencilShape(id: "already", stencil: VisioStencils.Cloud.Get("service"), x: OfficeLength.Inches(8), y: OfficeLength.Inches(3.8), text: "Already stenciled"))
                 .End()
                 .Save();
 
@@ -660,17 +660,17 @@ namespace OfficeIMO.Tests {
 
             VisioDocument.Create(filePath)
                 .AsFluent()
-                .Page("Legacy Security", page => page
-                    .Rect("idp", 2, 6, 1.8, 0.8, "Identity Provider")
-                    .Ellipse("user", 4, 6, 0.8, 0.8, "User Principal")
-                    .Rect("group", 6, 6, 1.5, 0.8, "Security Group")
-                    .Diamond("policy", 8, 6, 1.3, 0.9, "Conditional Access Policy")
-                    .Diamond("key", 2, 4.5, 0.9, 0.75, "Certificate Secret")
-                    .Diamond("firewall", 4, 4.5, 1.3, 0.9, "Firewall Policy")
-                    .Data("audit", 6, 4.5, 1.6, 0.8, "Audit Log")
-                    .Rect("boundary", 8, 4.5, 2.0, 1.0, "Trust Boundary")
-                    .Triangle("alert", 2, 3.2, 0.9, 0.8, "Security Alert")
-                    .Stencil("already", VisioStencils.SecurityIdentity.Get("user"), 4, 3.2, "Already stenciled"))
+                .AddPage("Legacy Security", page => page
+                    .AddRectangle("idp", OfficeLength.Inches(2), OfficeLength.Inches(6), OfficeLength.Inches(1.8), OfficeLength.Inches(0.8), "Identity Provider")
+                    .AddEllipse("user", OfficeLength.Inches(4), OfficeLength.Inches(6), OfficeLength.Inches(0.8), OfficeLength.Inches(0.8), "User Principal")
+                    .AddRectangle("group", OfficeLength.Inches(6), OfficeLength.Inches(6), OfficeLength.Inches(1.5), OfficeLength.Inches(0.8), "Security Group")
+                    .AddDiamond("policy", OfficeLength.Inches(8), OfficeLength.Inches(6), OfficeLength.Inches(1.3), OfficeLength.Inches(0.9), "Conditional Access Policy")
+                    .AddDiamond("key", OfficeLength.Inches(2), OfficeLength.Inches(4.5), OfficeLength.Inches(0.9), OfficeLength.Inches(0.75), "Certificate Secret")
+                    .AddDiamond("firewall", OfficeLength.Inches(4), OfficeLength.Inches(4.5), OfficeLength.Inches(1.3), OfficeLength.Inches(0.9), "Firewall Policy")
+                    .AddData("audit", OfficeLength.Inches(6), OfficeLength.Inches(4.5), OfficeLength.Inches(1.6), OfficeLength.Inches(0.8), "Audit Log")
+                    .AddRectangle("boundary", OfficeLength.Inches(8), OfficeLength.Inches(4.5), OfficeLength.Inches(2.0), OfficeLength.Inches(1.0), "Trust Boundary")
+                    .AddTriangle("alert", OfficeLength.Inches(2), OfficeLength.Inches(3.2), OfficeLength.Inches(0.9), OfficeLength.Inches(0.8), "Security Alert")
+                    .AddStencilShape(id: "already", stencil: VisioStencils.SecurityIdentity.Get("user"), x: OfficeLength.Inches(4), y: OfficeLength.Inches(3.2), text: "Already stenciled"))
                 .End()
                 .Save();
 

@@ -15,10 +15,10 @@ namespace OfficeIMO.Visio {
         /// <summary>
         /// Creates a stable, data-oriented snapshot of the document structure.
         /// </summary>
-        public static VisioInspectionSnapshot CreateInspectionSnapshot(this VisioDocument document) =>
-            CreateInspectionSnapshot(document, int.MaxValue);
+        public static VisioInspectionSnapshot Inspect(this VisioDocument document) =>
+            Inspect(document, int.MaxValue);
 
-        internal static VisioInspectionSnapshot CreateInspectionSnapshot(
+        internal static VisioInspectionSnapshot Inspect(
             this VisioDocument document,
             int maxShapeDataRowsPerPage) {
             if (document == null) {
@@ -36,8 +36,8 @@ namespace OfficeIMO.Visio {
                     master.NameU,
                     master.Shape.NameU,
                     master.Shape.Text,
-                    master.Shape.Width,
-                    master.Shape.Height,
+                    master.Shape.WidthInches,
+                    master.Shape.HeightInches,
                     master.IsPackageBacked,
                     master.StencilId,
                     master.StencilName,
@@ -67,8 +67,8 @@ namespace OfficeIMO.Visio {
                 .AsReadOnly();
 
             return new VisioInspectionSnapshot(
-                document.Title,
-                document.Author,
+                document.Properties.Title,
+                document.Properties.Author,
                 document.PackageTheme != null
                     ? string.IsNullOrWhiteSpace(document.PackageTheme.Name) ? document.PackageTheme.GetType().Name : document.PackageTheme.Name
                     : null,
@@ -112,8 +112,8 @@ namespace OfficeIMO.Visio {
                 page.Id,
                 page.Name,
                 page.NameU,
-                page.Width,
-                page.Height,
+                page.WidthInches,
+                page.HeightInches,
                 totalShapeDataRows,
                 layers,
                 shapes,
@@ -134,10 +134,10 @@ namespace OfficeIMO.Visio {
                 shape.MasterShapeId,
                 shape.Parent?.Id,
                 shape.Text,
-                shape.PinX,
-                shape.PinY,
-                shape.Width,
-                shape.Height,
+                shape.PinXInches,
+                shape.PinYInches,
+                shape.WidthInches,
+                shape.HeightInches,
                 shape.Angle,
                 shape.LineColor.ToString(),
                 shape.FillColor.ToString(),

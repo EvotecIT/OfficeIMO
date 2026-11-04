@@ -1,3 +1,4 @@
+using OfficeIMO.Internal;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -7,18 +8,18 @@ public sealed partial class OfficeWorkflowRunner {
     private static async Task<string> PublishDirectoryAsync(
         string stagingDirectory,
         string requestedDirectory,
-        OfficeWorkflowConflictPolicy policy,
+        OfficePublicationPolicy policy,
         ICollection<OfficeWorkflowDiagnostic> diagnostics,
         CancellationToken cancellationToken,
-        IOfficeWorkflowPublicationGuard? guard = null) {
+        IOfficePublicationGuard? guard = null) {
         cancellationToken.ThrowIfCancellationRequested();
         switch (policy) {
-            case OfficeWorkflowConflictPolicy.Fail:
+            case OfficePublicationPolicy.Fail:
                 await EnsurePublicationAllowedAsync(guard, requestedDirectory, true, cancellationToken).ConfigureAwait(false);
                 cancellationToken.ThrowIfCancellationRequested();
                 Directory.Move(stagingDirectory, requestedDirectory);
                 return requestedDirectory;
-            case OfficeWorkflowConflictPolicy.Rename:
+            case OfficePublicationPolicy.Rename:
                 for (int suffix = 0; suffix < 10_000; suffix++) {
                     cancellationToken.ThrowIfCancellationRequested();
                     string candidate = suffix == 0 ? requestedDirectory : AddDirectorySuffix(requestedDirectory, suffix);
@@ -31,7 +32,7 @@ public sealed partial class OfficeWorkflowRunner {
                     }
                 }
                 throw new IOException("No available numbered output directory could be reserved.");
-            case OfficeWorkflowConflictPolicy.Replace:
+            case OfficePublicationPolicy.Replace:
                 return await ReplaceDirectoryAsync(stagingDirectory, requestedDirectory, diagnostics, cancellationToken, guard).ConfigureAwait(false);
             default:
                 throw new ArgumentOutOfRangeException(nameof(policy));
@@ -43,8 +44,8 @@ public sealed partial class OfficeWorkflowRunner {
         string requestedDirectory,
         ICollection<OfficeWorkflowDiagnostic> diagnostics,
         CancellationToken cancellationToken,
-        IOfficeWorkflowPublicationGuard? guard) {
-        await using FileStream publicationLock = await AcquireDirectoryPublicationLockAsync(requestedDirectory, cancellationToken)
+        IOfficePublicationGuard? guard) {
+        using FileStream publicationLock = await AcquireDirectoryPublicationLockAsync(requestedDirectory, cancellationToken)
             .ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
         await EnsurePublicationAllowedAsync(guard, requestedDirectory, true, cancellationToken).ConfigureAwait(false);
@@ -185,7 +186,7 @@ public sealed partial class OfficeWorkflowRunner {
         StringComparison comparison) {
         string name = Path.GetFileName(path);
         if (!name.StartsWith(prefix, comparison)) return false;
-        string suffix = name[prefix.Length..];
+        string suffix = name.Substring(prefix.Length);
         if (suffix.Length != 32 || !Guid.TryParseExact(suffix, "N", out _)) return false;
         try {
             return TryGetDirectoryPublicationState(requestedDirectory, path, comparison, out _);
@@ -218,7 +219,7 @@ public sealed partial class OfficeWorkflowRunner {
                 nextMarkerPath,
                 GetDirectoryPublicationOwnershipContents(requestedDirectory, transactionId, DirectoryPublicationState.Published),
                 new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
-            File.Move(nextMarkerPath, markerPath, overwrite: true);
+            OfficeIMO.Core.Internal.OfficeFileCommit.CommitTemporaryFileAtomically(nextMarkerPath, markerPath);
             return null;
         } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
             return exception;
@@ -296,7 +297,7 @@ public sealed partial class OfficeWorkflowRunner {
     }
 
     private static string GetPublicationTransactionId(string publicationDirectory) =>
-        Path.GetFileName(publicationDirectory)[^32..];
+        Path.GetFileName(publicationDirectory).Substring(Path.GetFileName(publicationDirectory).Length - 32);
 
     private static void TryDeleteFile(string path) {
         try {
@@ -328,7 +329,7 @@ public sealed partial class OfficeWorkflowRunner {
         string lockRoot = Path.Combine(Path.GetTempPath(), "OfficeIMO", "directory-publication-locks");
         Directory.CreateDirectory(lockRoot);
         string identity = OfficeWorkflowPathIdentity.NormalizeDirectoryEntry(requestedDirectory);
-        string lockName = System.Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(identity))) + ".lock";
+        string lockName = OfficeRuntimeCompatibility.ToHexString(OfficeRuntimeCompatibility.HashSha256(Encoding.UTF8.GetBytes(identity))) + ".lock";
         string lockPath = Path.Combine(lockRoot, lockName);
         DateTime deadline = DateTime.UtcNow.AddSeconds(30D);
 
@@ -348,7 +349,7 @@ public sealed partial class OfficeWorkflowRunner {
         };
         if (exception is DirectoryPublicationRecoveryException recoveryException) {
             details["destination"] = recoveryException.Destination;
-            details["recoveryPaths"] = string.Join(Path.PathSeparator, recoveryException.RecoveryPaths);
+            details["recoveryPaths"] = string.Join(Path.PathSeparator.ToString(), recoveryException.RecoveryPaths);
         }
         return details;
     }

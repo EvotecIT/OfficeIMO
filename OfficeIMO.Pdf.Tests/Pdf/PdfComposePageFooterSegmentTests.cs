@@ -15,37 +15,37 @@ namespace OfficeIMO.Tests.Pdf {
                 PdfDocument.Create().Compose(c => c.Page(page => page.Header(header => header.Text((string)null!)))));
 
             Assert.Throws<ArgumentNullException>(() =>
-                PdfDocument.Create().Compose(c => c.Page(page => page.Header(header => header.Text((Action<HeaderTextBuilder>)null!)))));
+                PdfDocument.Create().Compose(c => c.Page(page => page.Header(header => header.Text((Action<PdfHeaderTextBuilder>)null!)))));
 
             Assert.Throws<ArgumentNullException>(() =>
                 PdfDocument.Create().Compose(c => c.Page(page => page.Header(header => header.FirstPageText((string)null!)))));
 
             Assert.Throws<ArgumentNullException>(() =>
-                PdfDocument.Create().Compose(c => c.Page(page => page.Header(header => header.FirstPageText((Action<HeaderTextBuilder>)null!)))));
+                PdfDocument.Create().Compose(c => c.Page(page => page.Header(header => header.FirstPageText((Action<PdfHeaderTextBuilder>)null!)))));
 
             Assert.Throws<ArgumentNullException>(() =>
                 PdfDocument.Create().Compose(c => c.Page(page => page.Header(header => header.EvenPagesText((string)null!)))));
 
             Assert.Throws<ArgumentNullException>(() =>
-                PdfDocument.Create().Compose(c => c.Page(page => page.Header(header => header.EvenPagesText((Action<HeaderTextBuilder>)null!)))));
+                PdfDocument.Create().Compose(c => c.Page(page => page.Header(header => header.EvenPagesText((Action<PdfHeaderTextBuilder>)null!)))));
 
             Assert.Throws<ArgumentNullException>(() =>
                 PdfDocument.Create().Compose(c => c.Page(page => page.Footer(footer => footer.Text((string)null!)))));
 
             Assert.Throws<ArgumentNullException>(() =>
-                PdfDocument.Create().Compose(c => c.Page(page => page.Footer(footer => footer.Text((Action<FooterTextBuilder>)null!)))));
+                PdfDocument.Create().Compose(c => c.Page(page => page.Footer(footer => footer.Text((Action<PdfFooterTextBuilder>)null!)))));
 
             Assert.Throws<ArgumentNullException>(() =>
                 PdfDocument.Create().Compose(c => c.Page(page => page.Footer(footer => footer.FirstPageText((string)null!)))));
 
             Assert.Throws<ArgumentNullException>(() =>
-                PdfDocument.Create().Compose(c => c.Page(page => page.Footer(footer => footer.FirstPageText((Action<FooterTextBuilder>)null!)))));
+                PdfDocument.Create().Compose(c => c.Page(page => page.Footer(footer => footer.FirstPageText((Action<PdfFooterTextBuilder>)null!)))));
 
             Assert.Throws<ArgumentNullException>(() =>
                 PdfDocument.Create().Compose(c => c.Page(page => page.Footer(footer => footer.EvenPagesText((string)null!)))));
 
             Assert.Throws<ArgumentNullException>(() =>
-                PdfDocument.Create().Compose(c => c.Page(page => page.Footer(footer => footer.EvenPagesText((Action<FooterTextBuilder>)null!)))));
+                PdfDocument.Create().Compose(c => c.Page(page => page.Footer(footer => footer.EvenPagesText((Action<PdfFooterTextBuilder>)null!)))));
 
             Assert.Throws<ArgumentNullException>(() =>
                 PdfDocument.Create().Compose(c => c.Page(page => page.Footer(footer => footer.Text(text => text.Text(null!))))));
@@ -86,14 +86,13 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void FooterSegments_RejectInvalidExternalState() {
-            var nullEntryOptions = new PdfOptions {
-                ShowPageNumbers = true,
-                FooterSegments = new System.Collections.Generic.List<FooterSegment> { null! }
+            var nullEntryOptions = new PdfCreateOptions {
+                PageSetup = { Footer = { Show = true, Segments = new System.Collections.Generic.List<PdfFooterSegment> { null! } } }
             };
 
             var nullEntryException = Assert.Throws<ArgumentException>(() =>
                 PdfDocument.Create(nullEntryOptions)
-                    .Paragraph(p => p.Text("Invalid footer segment"))
+                    .Paragraph(p => p.AddText("Invalid footer segment"))
                     .ToBytes());
             Assert.Contains("footer segments", nullEntryException.Message, StringComparison.OrdinalIgnoreCase);
         }
@@ -101,18 +100,18 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void FooterSegment_RejectsInvalidIntrinsicStateAtConstruction() {
             var nullTextException = Assert.Throws<ArgumentNullException>(() =>
-                new FooterSegment(FooterSegmentKind.Text, null));
+                new PdfFooterSegment(PdfFooterSegmentKind.Text, null));
             Assert.Equal("text", nullTextException.ParamName);
             Assert.Contains("Footer text segments cannot be null.", nullTextException.Message, StringComparison.Ordinal);
 
             var invalidKindException = Assert.Throws<ArgumentOutOfRangeException>(() =>
-                new FooterSegment((FooterSegmentKind)99));
+                new PdfFooterSegment((PdfFooterSegmentKind)99));
             Assert.Equal("kind", invalidKindException.ParamName);
             Assert.Contains("Footer segments must use a supported segment kind.", invalidKindException.Message, StringComparison.Ordinal);
 
-            var textSegment = new FooterSegment(FooterSegmentKind.Text, string.Empty);
-            var pageSegment = new FooterSegment(FooterSegmentKind.PageNumber);
-            var totalSegment = new FooterSegment(FooterSegmentKind.TotalPages);
+            var textSegment = new PdfFooterSegment(PdfFooterSegmentKind.Text, string.Empty);
+            var pageSegment = new PdfFooterSegment(PdfFooterSegmentKind.PageNumber);
+            var totalSegment = new PdfFooterSegment(PdfFooterSegmentKind.TotalPages);
 
             Assert.Equal(string.Empty, textSegment.Text);
             Assert.Null(pageSegment.Text);
@@ -120,34 +119,28 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
-        public void FooterSegments_SnapshotAssignedAndReadbackLists() {
-            var assigned = new System.Collections.Generic.List<FooterSegment> {
-                new FooterSegment(FooterSegmentKind.Text, "Page "),
-                new FooterSegment(FooterSegmentKind.PageNumber)
+        public void FooterSegments_SnapshotAssignedList() {
+            var assigned = new System.Collections.Generic.List<PdfFooterSegment> {
+                new PdfFooterSegment(PdfFooterSegmentKind.Text, "Page "),
+                new PdfFooterSegment(PdfFooterSegmentKind.PageNumber)
             };
 
-            var options = new PdfOptions {
-                ShowPageNumbers = true,
-                FooterSegments = assigned
+            var options = new PdfCreateOptions {
+                PageSetup = { Footer = { Show = true, Segments = assigned } }
             };
 
-            assigned[0] = new FooterSegment(FooterSegmentKind.Text, "Mutated");
-            assigned.Add(new FooterSegment(FooterSegmentKind.TotalPages));
+            assigned[0] = new PdfFooterSegment(PdfFooterSegmentKind.Text, "Mutated");
+            assigned.Add(new PdfFooterSegment(PdfFooterSegmentKind.TotalPages));
 
-            var readback = options.FooterSegments!;
-            readback[0] = new FooterSegment(FooterSegmentKind.Text, "Readback mutated");
-            readback.Add(new FooterSegment(FooterSegmentKind.TotalPages));
-
-            Assert.Equal(2, options.FooterSegments!.Count);
-            Assert.Equal("Page ", options.FooterSegments![0].Text);
+            Assert.Equal(2, options.PageSetup.Footer.Segments!.Count);
+            Assert.Equal("Page ", options.PageSetup.Footer.Segments![0].Text);
 
             var doc = PdfDocument.Create(options)
-                .Paragraph(p => p.Text("Footer segment snapshot"));
+                .Paragraph(p => p.AddText("Footer segment snapshot"));
 
             string pdfText = Normalize(PdfPigDocument.Open(new MemoryStream(doc.ToBytes())).GetPage(1).Text);
             Assert.Contains("Page1", pdfText, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("Mutated", pdfText, StringComparison.OrdinalIgnoreCase);
-            Assert.DoesNotContain("Readbackmutated", pdfText, StringComparison.OrdinalIgnoreCase);
         }
 
     }

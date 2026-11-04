@@ -19,7 +19,7 @@ public sealed class StudioNativePreservationTests : IDisposable {
 
     private string CreatePdf() {
         string path = Path.Combine(_root, "source.pdf");
-        PdfDocument.Create(document => document.Page(page => page.Size(300, 400))).Save(path);
+        PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)))).Save(path);
         return path;
     }
 
@@ -37,16 +37,16 @@ public sealed class StudioNativePreservationTests : IDisposable {
     [Fact]
     public async Task A_text_only_annotation_edit_preserves_absent_color_and_author() {
         string path = CreatePdf();
-        byte[] annotated = PdfDocument.Load(File.ReadAllBytes(path)).Annotations.Add(new PdfAnnotationCreateOptions {
+        byte[] annotated = PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(path))).Annotations.Add(new PdfAnnotationCreateOptions {
             Contents = "Original", Rectangle = [40, 50, 64, 74], IconName = "Comment"
         }).Bytes;
         File.WriteAllBytes(path, annotated);
-        PdfAnnotation before = Assert.Single(PdfDocument.Load(annotated).Inspect().Annotations);
+        PdfAnnotation before = Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(annotated)).Inspect().Annotations);
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(path, null, default);
         await document.UpdateAnnotationAsync(new StudioNativeAnnotationUpdate(before.ObjectNumber!.Value, Contents: "Revised"), default);
         string saved = Path.Combine(_root, "annotated.pdf");
         await document.SaveCopyAsync(saved, default);
-        PdfAnnotation after = Assert.Single(PdfDocument.Load(File.ReadAllBytes(saved)).Inspect().Annotations);
+        PdfAnnotation after = Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(saved))).Inspect().Annotations);
         Assert.Equal("Revised", after.Contents);
         Assert.Equal(before.Title, after.Title);
         Assert.Equal(before.Color, after.Color);

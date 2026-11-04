@@ -549,6 +549,6 @@ public sealed partial class PdfReadPage {
             .ToArray();
     }
 
-    internal IReadOnlyList<PdfTextSpan> GetTextSpansIncludingHiddenOptionalContent(bool requireMappedText = false) =>
-        GetTextSpans(_includeArtifactText, default, includeHiddenOptionalContent: true, requireMappedText: requireMappedText);
+    internal IReadOnlyList<PdfTextSpan> GetTextSpansIncludingHiddenOptionalContent(bool requireMappedText = false, bool ignoreActualText = false) =>
+        GetTextSpans(_includeArtifactText, default, includeHiddenOptionalContent: true, requireMappedText: requireMappedText, ignoreActualText: ignoreActualText);
 }

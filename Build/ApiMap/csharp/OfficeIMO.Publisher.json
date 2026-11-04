@@ -1,0 +1,50 @@
+{
+  "package": "OfficeIMO.Publisher",
+  "changes": [
+    {
+      "old": "OfficeIMO.Publisher.PublisherPage.Drawing",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Publisher.PublisherPage.CreateDrawing()",
+      "category": "authoring",
+      "reason": "The drawing is detached. Use PublisherDocument edit methods to change the publication, or export the drawing directly for render-only annotations.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Publisher.PublisherPage.Name",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Publisher.PublisherPage.Name",
+      "category": "authoring",
+      "reason": "Names expose the native display name when stored and otherwise fall back to the short code. Use Id for page identity and master assignment.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Publisher.PublisherDocument.ReadReport",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Publisher.PublisherDocument.ReadReport / SourceReadReport",
+      "category": "authoring",
+      "reason": "ReadReport reflects the current projection after edits. SourceReadReport retains the original decoding evidence.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Publisher.PublisherReadOptions.MaximumPages / MaximumNestingDepth / MaximumImageBytes / MaximumTotalImageBytes / MaximumRasterPixels / MaximumImageProcessingPixels",
+      "kind": "property",
+      "action": "rename",
+      "new": "MaxPages / MaxNestingDepth / MaxImageBytes / MaxTotalImageBytes / MaxRasterPixels / MaxImageProcessingPixels",
+      "category": "limits",
+      "reason": "Load and parse budgets use one Max vocabulary and sit under a discoverable Limits object.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Publisher.PublisherReadOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Publisher.PublisherLoadOptions",
+      "reason": "Lifecycle options are named {Format}LoadOptions and {Format}SaveOptions; ReaderOptions is reserved for forward-only readers.",
+      "category": "options",
+      "applied": true
+    }
+  ]
+}

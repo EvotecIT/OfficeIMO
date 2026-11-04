@@ -5,13 +5,13 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Gets explicit worksheet row definitions such as custom heights and hidden rows.
         /// </summary>
-        public IReadOnlyList<ExcelRowSnapshot> GetRowDefinitions() {
+        public IReadOnlyList<ExcelRowInfo> GetRowDefinitions() {
             SheetData? sheetData = WorksheetRoot.GetFirstChild<SheetData>();
             if (sheetData == null) {
-                return Array.Empty<ExcelRowSnapshot>();
+                return Array.Empty<ExcelRowInfo>();
             }
 
-            var result = new List<ExcelRowSnapshot>();
+            var result = new List<ExcelRowInfo>();
             foreach (Row row in sheetData.Elements<Row>()) {
                 int index = checked((int)(row.RowIndex?.Value ?? 0U));
                 if (index <= 0) {
@@ -28,9 +28,9 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                result.Add(new ExcelRowSnapshot {
+                result.Add(new ExcelRowInfo {
                     Index = index,
-                    Height = row.Height?.Value,
+                    StoredHeight = row.Height?.Value,
                     Hidden = hidden,
                     CustomHeight = customHeight,
                     CustomFormat = customFormat,

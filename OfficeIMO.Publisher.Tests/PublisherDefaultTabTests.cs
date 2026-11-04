@@ -15,13 +15,13 @@ public sealed class PublisherDefaultTabTests {
         var story = Assert.Single(document.TextStories);
         var paragraph = Assert.Single(story.Paragraphs);
         Assert.Equal(expected, paragraph.TabStops!.DefaultInterval, 8);
-        Assert.Equal(source, document.ToPubBytes());
+        Assert.Equal(source, document.ToBytes());
         var margins = new OfficeTextPadding(paragraph.Margins.Left, paragraph.Margins.Top + 1,
             paragraph.Margins.Right, paragraph.Margins.Bottom);
         var replacement = new OfficeRichTextParagraph(paragraph.Runs, paragraph.Alignment, paragraph.LineHeight,
             margins, paragraph.Indent, paragraph.LineHeightFactor).WithTabStops(paragraph.TabStops);
         document.ReplaceStoryParagraphs(story.Id, new[] { replacement });
-        byte[] saved = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        byte[] saved = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         var reloaded = Assert.Single(Assert.Single(PublisherDocument.Load(saved).TextStories).Paragraphs);
         Assert.Equal(expected, reloaded.TabStops!.DefaultInterval, 8);
         Assert.Equal(margins.Top, reloaded.Margins.Top, 8);
@@ -40,8 +40,8 @@ public sealed class PublisherDefaultTabTests {
             new OfficeRichTextParagraph(paragraph.Runs, paragraph.Alignment, paragraph.LineHeight,
                 paragraph.Margins, paragraph.Indent, paragraph.LineHeightFactor).WithTabStops(changed)
         });
-        var error = Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(
-            new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
-        Assert.Contains(error.Report.FidelityDiagnostics, item => item.Code == "PUB_NATIVE_EDIT_UNSUPPORTED");
+        var error = Assert.Throws<OfficeConversionException>(() => document.ToBytes(
+            new PublisherSaveOptions { AllowLoss = true }));
+        Assert.Contains(error.Report.Diagnostics, item => item.Code == "PUB_NATIVE_EDIT_UNSUPPORTED");
     }
 }

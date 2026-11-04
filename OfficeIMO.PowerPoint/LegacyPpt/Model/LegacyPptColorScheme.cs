@@ -2,7 +2,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Represents the eight-color scheme stored by PowerPoint 97-2003.</summary>
-    public sealed class LegacyPptColorScheme {
+    internal sealed class LegacyPptColorScheme {
         internal LegacyPptColorScheme(IReadOnlyList<string> colors) {
             if (colors == null) throw new ArgumentNullException(nameof(colors));
             if (colors.Count != 8) throw new ArgumentException("A legacy PowerPoint color scheme contains eight colors.", nameof(colors));

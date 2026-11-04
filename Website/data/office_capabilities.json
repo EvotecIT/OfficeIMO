@@ -15,8 +15,8 @@
     "familyCount": 3,
     "formatCount": 28,
     "capabilityCount": 137,
-    "packageCount": 76,
-    "operationCount": 1406
+    "packageCount": 79,
+    "operationCount": 1438
   },
   "fidelityStates": [
     {
@@ -117,7 +117,7 @@
       "id": "word",
       "title": "Microsoft Word",
       "package": "OfficeIMO.Word",
-      "packageVersion": "3.5.2",
+      "packageVersion": "3.5.3",
       "productUrl": "/products/word/",
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word/",
@@ -595,7 +595,7 @@
       "id": "excel",
       "title": "Microsoft Excel",
       "package": "OfficeIMO.Excel",
-      "packageVersion": "3.5.2",
+      "packageVersion": "3.5.3",
       "productUrl": "/products/excel/",
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel/",
@@ -1211,7 +1211,7 @@
       "id": "powerpoint",
       "title": "Microsoft PowerPoint",
       "package": "OfficeIMO.PowerPoint",
-      "packageVersion": "3.5.2",
+      "packageVersion": "3.5.3",
       "productUrl": "/products/powerpoint/",
       "docsUrl": "/docs/powerpoint/",
       "apiUrl": "/api/powerpoint/",
@@ -1696,6 +1696,59 @@
     }
   ],
   "packages": [
+    {
+      "id": "OfficeIMO",
+      "slug": "officeimo",
+      "capabilityCount": 27,
+      "formats": [
+        "DOC",
+        "DOCM",
+        "DOCX",
+        "DOTM",
+        "DOTX",
+        "Email",
+        "EPUB",
+        "Excel",
+        "PDF",
+        "Plain text",
+        "POT",
+        "POTM",
+        "POTX",
+        "PowerPoint",
+        "PPAM",
+        "PPS",
+        "PPSM",
+        "PPSX",
+        "PPT",
+        "PPTM",
+        "PPTX",
+        "Visio",
+        "Word",
+        "XLAM",
+        "XLS",
+        "XLSB",
+        "XLSM",
+        "XLSX",
+        "XLTM",
+        "XLTX"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 27
+            }
+          ]
+        }
+      ]
+    },
     {
       "id": "OfficeIMO.Adf",
       "slug": "adf",
@@ -2747,7 +2800,7 @@
     {
       "id": "OfficeIMO.Excel",
       "slug": "excel",
-      "capabilityCount": 327,
+      "capabilityCount": 328,
       "formats": [
         "DBF/xBase",
         "DOCM/XLSM/XLSB/PPTM families",
@@ -2758,6 +2811,7 @@
         "Excel.OpenXml",
         "Excel.Xls",
         "Excel.Xlsb",
+        "HEIC",
         "JPEG",
         "PNG",
         "SVG",
@@ -2771,6 +2825,7 @@
         "OfficeIMO.Excel.LegacyXls",
         "OfficeIMO.Excel.Xlsb",
         "OfficeIMO.NativeLifecycle",
+        "OfficeIMO.Operations",
         "OfficeIMO.ProtectedContent",
         "OfficeIMO.Provenance"
       ],
@@ -2788,7 +2843,7 @@
               "id": "Partial",
               "label": "Partial",
               "description": "A bounded subset is implemented with explicit limits.",
-              "count": 40
+              "count": 41
             },
             {
               "id": "Rejected",
@@ -3104,9 +3159,11 @@
     {
       "id": "OfficeIMO.Excel.Pdf",
       "slug": "excel-pdf",
-      "capabilityCount": 2,
+      "capabilityCount": 3,
       "formats": [
         "PDF",
+        "XLS",
+        "XLSB",
         "XLSX"
       ],
       "sourceCatalogs": [
@@ -3126,7 +3183,7 @@
               "id": "Partial",
               "label": "Partial",
               "description": "A bounded subset is implemented with explicit limits.",
-              "count": 1
+              "count": 2
             }
           ]
         }
@@ -3135,12 +3192,11 @@
     {
       "id": "OfficeIMO.Html",
       "slug": "html",
-      "capabilityCount": 14,
+      "capabilityCount": 13,
       "formats": [
         "HTML",
         "Html.Native",
         "JPEG",
-        "PDF",
         "PNG",
         "SVG",
         "TIFF",
@@ -3152,17 +3208,6 @@
         "OfficeIMO.Provenance"
       ],
       "operations": [
-        {
-          "id": "Convert",
-          "states": [
-            {
-              "id": "Supported",
-              "label": "Supported",
-              "description": "Implemented and backed by named evidence.",
-              "count": 1
-            }
-          ]
-        },
         {
           "id": "Create",
           "states": [
@@ -3256,7 +3301,7 @@
     {
       "id": "OfficeIMO.Html.Pdf",
       "slug": "html-pdf",
-      "capabilityCount": 1,
+      "capabilityCount": 2,
       "formats": [
         "HTML",
         "PDF"
@@ -3268,6 +3313,12 @@
         {
           "id": "Convert",
           "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            },
             {
               "id": "Partial",
               "label": "Partial",
@@ -3504,16 +3555,29 @@
     {
       "id": "OfficeIMO.Markdown",
       "slug": "markdown",
-      "capabilityCount": 7,
+      "capabilityCount": 8,
       "formats": [
+        "HTML",
         "Markdown",
         "Markdown.Native"
       ],
       "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog",
         "OfficeIMO.NativeLifecycle",
         "OfficeIMO.Provenance"
       ],
       "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
         {
           "id": "Create",
           "states": [
@@ -3625,31 +3689,6 @@
       "formats": [
         "Markdown",
         "PDF"
-      ],
-      "sourceCatalogs": [
-        "OfficeConversionCapabilityCatalog"
-      ],
-      "operations": [
-        {
-          "id": "Convert",
-          "states": [
-            {
-              "id": "Supported",
-              "label": "Supported",
-              "description": "Implemented and backed by named evidence.",
-              "count": 1
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "OfficeIMO.MarkdownRenderer",
-      "slug": "markdownrenderer",
-      "capabilityCount": 1,
-      "formats": [
-        "HTML",
-        "Markdown"
       ],
       "sourceCatalogs": [
         "OfficeConversionCapabilityCatalog"
@@ -4352,10 +4391,10 @@
       "slug": "pdf",
       "capabilityCount": 21,
       "formats": [
+        "HEIC",
         "JPEG",
         "PDF",
         "Pdf.Native",
-        "Plain text",
         "PNG",
         "SVG",
         "TIFF",
@@ -4476,13 +4515,89 @@
       ]
     },
     {
+      "id": "OfficeIMO.Pdf.Excel",
+      "slug": "pdf-excel",
+      "capabilityCount": 1,
+      "formats": [
+        "PDF",
+        "XLSX"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Pdf.PowerPoint",
+      "slug": "pdf-powerpoint",
+      "capabilityCount": 1,
+      "formats": [
+        "PDF",
+        "PPTX"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Pdf.Word",
+      "slug": "pdf-word",
+      "capabilityCount": 1,
+      "formats": [
+        "DOCX",
+        "PDF"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "OfficeIMO.PowerPoint",
       "slug": "powerpoint",
-      "capabilityCount": 374,
+      "capabilityCount": 375,
       "formats": [
         "DOCM/XLSM/XLSB/PPTM families",
         "DOCX/DOCM/XLSX/XLSM/PPTX/PPTM",
         "DOCX/DOCM/XLSX/XLSM/PPTX/PPTM/Visio",
+        "HEIC",
         "JPEG",
         "PNG",
         "PowerPoint",
@@ -4498,6 +4613,7 @@
       "sourceCatalogs": [
         "OfficeConversionCapabilityCatalog",
         "OfficeIMO.NativeLifecycle",
+        "OfficeIMO.Operations",
         "OfficeIMO.PowerPoint.LegacyPpt",
         "OfficeIMO.ProtectedContent",
         "OfficeIMO.Provenance"
@@ -4516,7 +4632,7 @@
               "id": "Partial",
               "label": "Partial",
               "description": "A bounded subset is implemented with explicit limits.",
-              "count": 14
+              "count": 15
             },
             {
               "id": "Rejected",
@@ -4804,6 +4920,7 @@
       "capabilityCount": 2,
       "formats": [
         "PDF",
+        "PPT",
         "PPTX"
       ],
       "sourceCatalogs": [
@@ -4817,7 +4934,13 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 2
+              "count": 1
+            },
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
             }
           ]
         }
@@ -5270,26 +5393,22 @@
     {
       "id": "OfficeIMO.Word",
       "slug": "word",
-      "capabilityCount": 236,
+      "capabilityCount": 232,
       "formats": [
         "DOC",
         "DOCM/XLSM/XLSB/PPTM families",
         "DOCX",
         "DOCX/DOCM/XLSX/XLSM/PPTX/PPTM",
         "DOCX/DOCM/XLSX/XLSM/PPTX/PPTM/Visio",
-        "JPEG",
-        "PNG",
-        "SVG",
-        "TIFF",
-        "WebP",
+        "HEIC",
         "Word",
         "Word Open XML",
         "Word.Doc",
         "Word.OpenXml"
       ],
       "sourceCatalogs": [
-        "OfficeConversionCapabilityCatalog",
         "OfficeIMO.NativeLifecycle",
+        "OfficeIMO.Operations",
         "OfficeIMO.ProtectedContent",
         "OfficeIMO.Provenance",
         "OfficeIMO.Word.LegacyDoc"
@@ -5308,7 +5427,7 @@
               "id": "Partial",
               "label": "Partial",
               "description": "A bounded subset is implemented with explicit limits.",
-              "count": 26
+              "count": 27
             },
             {
               "id": "Rejected",
@@ -5385,17 +5504,6 @@
               "label": "Not applicable",
               "description": "The operation does not apply to this capability.",
               "count": 1
-            }
-          ]
-        },
-        {
-          "id": "Export",
-          "states": [
-            {
-              "id": "Supported",
-              "label": "Supported",
-              "description": "Implemented and backed by named evidence.",
-              "count": 5
             }
           ]
         },
@@ -5648,11 +5756,15 @@
     {
       "id": "OfficeIMO.Word.Pdf",
       "slug": "word-pdf",
-      "capabilityCount": 3,
+      "capabilityCount": 6,
       "formats": [
-        "DOC",
         "DOCX",
-        "PDF"
+        "JPEG",
+        "PDF",
+        "PNG",
+        "SVG",
+        "TIFF",
+        "WebP"
       ],
       "sourceCatalogs": [
         "OfficeConversionCapabilityCatalog"
@@ -5666,12 +5778,17 @@
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
               "count": 1
-            },
+            }
+          ]
+        },
+        {
+          "id": "Export",
+          "states": [
             {
-              "id": "Partial",
-              "label": "Partial",
-              "description": "A bounded subset is implemented with explicit limits.",
-              "count": 2
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 5
             }
           ]
         }

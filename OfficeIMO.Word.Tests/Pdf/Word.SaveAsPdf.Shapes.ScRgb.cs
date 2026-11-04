@@ -20,7 +20,7 @@ public partial class Word {
     public void SaveAsPdf_DrawingMlScRgbUsesSharedLinearColorDecoding(bool gradient, bool themeEntry, bool tinted, int expectedChannel) {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("Before scRGB shape");
-        document.AddParagraph().AddShapeDrawing(WordShapeType.Rectangle, 112D, 48D);
+        document.AddParagraph().AddShapeDrawing(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(112D), OfficeIMO.OfficeLength.Points(48D));
         document.AddParagraph("After scRGB shape");
         var main = document.MainDocumentPartRoot;
         if (themeEntry) {
@@ -52,7 +52,7 @@ public partial class Word {
         outline.RemoveAllChildren();
         outline.Append(new A.SolidFill(new A.RgbColorModelHex(new A.Alpha { Val = 65000 }) { Val = "336699" }));
 
-        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false });
+        byte[] bytes = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using (var pdf = PdfPigDocument.Open(bytes)) {
             string text = string.Concat(pdf.GetPages().Select(page => page.Text));
             Assert.Contains("Before scRGB shape", text);

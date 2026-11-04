@@ -5,7 +5,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Provides helper methods for Word document manipulation.
     /// </summary>
-    public static partial class WordHelpers {
+    internal static partial class WordHelpers {
         /// <summary>
         /// Converts a DOTX template to a DOCX document.
         ///

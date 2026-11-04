@@ -8,20 +8,20 @@ public class Markdown_Reader_Abbreviations_Tests {
     public void Abbreviations_Are_Opt_In() {
         const string markdown = "*[HTML]: Hyper Text Markup Language\nHTML";
 
-        var defaultHtml = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToHtmlFragment(CreatePlainHtmlOptions());
+        var defaultHtml = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToHtml(CreatePlainHtmlOptions());
         Assert.DoesNotContain("<abbr", defaultHtml, StringComparison.Ordinal);
 
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.Abbreviations = true;
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options).ToHtmlFragment(CreatePlainHtmlOptions());
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options).ToHtml(CreatePlainHtmlOptions());
         Assert.Contains("<abbr title=\"Hyper Text Markup Language\">HTML</abbr>", html, StringComparison.Ordinal);
     }
 
     [Fact]
     public void Abbreviation_Definitions_Are_Collected_And_Consumed() {
         const string markdown = "*[HTML]: Hyper Text Markup Language\nHTML";
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.Abbreviations = true;
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
@@ -42,7 +42,7 @@ public class Markdown_Reader_Abbreviations_Tests {
     [Fact]
     public void SemanticProjection_Preserves_Registered_Abbreviations_On_Plain_Text() {
         const string markdown = "*[HTML]: Hyper Text Markup Language\n\nHTML works";
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.Abbreviations = true;
 
         var document = OfficeIMO.Markdown.MarkdownReader.ParseSemanticProjection(markdown, options);
@@ -57,15 +57,15 @@ public class Markdown_Reader_Abbreviations_Tests {
     [Fact]
     public void Abbreviation_Definitions_Are_Written_For_Reparse_Stability() {
         const string markdown = "*[HTML]: Hyper Text Markup Language\n\nHTML and HTML.";
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.Abbreviations = true;
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
-        var written = result.Document.ToMarkdown(new MarkdownWriteOptions { OutputLineEnding = "\n" }).TrimEnd('\n');
+        var written = result.Document.ToMarkdown(new MarkdownSaveOptions { OutputLineEnding = "\n" }).TrimEnd('\n');
 
         Assert.Equal("*[HTML]: Hyper Text Markup Language\n\nHTML and HTML.", written);
 
-        var reparsedHtml = OfficeIMO.Markdown.MarkdownReader.Parse(written, options).ToHtmlFragment(CreatePlainHtmlOptions());
+        var reparsedHtml = OfficeIMO.Markdown.MarkdownDocument.Parse(written, options).ToHtml(CreatePlainHtmlOptions());
         Assert.Contains(
             "<abbr title=\"Hyper Text Markup Language\">HTML</abbr> and <abbr title=\"Hyper Text Markup Language\">HTML</abbr>",
             reparsedHtml,
@@ -75,18 +75,18 @@ public class Markdown_Reader_Abbreviations_Tests {
     [Fact]
     public void Abbreviation_Definitions_Can_Have_Empty_Title_With_Source_And_Writer_Proof() {
         const string markdown = "*[HTML]:   \n\nHTML";
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.Abbreviations = true;
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         var definition = Assert.Single(result.AbbreviationDefinitions);
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(result.Document.Blocks));
         var abbreviation = Assert.IsType<AbbreviationInline>(Assert.Single(paragraph.Inlines.Nodes));
-        var html = result.Document.ToHtmlFragment(CreatePlainHtmlOptions());
+        var html = result.Document.ToHtml(CreatePlainHtmlOptions());
         var native = MarkdownNativeDocument.Parse(markdown, options);
         var nativeAbbreviation = Assert.Single(native.EnumerateInlines(), inline => inline.Kind == MarkdownNativeInlineKind.Abbreviation);
         var nativeTitle = Assert.Single(nativeAbbreviation.Metadata, metadata => metadata.Name == "title");
-        var written = result.Document.ToMarkdown(new MarkdownWriteOptions { OutputLineEnding = "\n" }).TrimEnd('\n');
+        var written = result.Document.ToMarkdown(new MarkdownSaveOptions { OutputLineEnding = "\n" }).TrimEnd('\n');
 
         Assert.Equal("HTML", definition.Label);
         Assert.Equal(string.Empty, definition.Title);
@@ -106,12 +106,12 @@ public class Markdown_Reader_Abbreviations_Tests {
     [Fact]
     public void Abbreviation_PreScan_Uses_ListExtra_Markers_When_Enabled() {
         const string markdown = "a. *[HTML]: Hyper Text Markup Language\nb. HTML";
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.Abbreviations = true;
         options.ListExtras = true;
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
-        var html = result.Document.ToHtmlFragment(CreatePlainHtmlOptions());
+        var html = result.Document.ToHtml(CreatePlainHtmlOptions());
 
         Assert.Single(result.AbbreviationDefinitions);
         Assert.Contains("<abbr title=\"Hyper Text Markup Language\">HTML</abbr>", html, StringComparison.Ordinal);
@@ -120,12 +120,12 @@ public class Markdown_Reader_Abbreviations_Tests {
     [Fact]
     public void Abbreviation_PreScan_Respects_Disabled_Ordered_Lists() {
         const string markdown = "1. *[HTML]: Hyper Text Markup Language\n\nHTML";
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.Abbreviations = true;
         options.OrderedLists = false;
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
-        var html = result.Document.ToHtmlFragment(CreatePlainHtmlOptions());
+        var html = result.Document.ToHtml(CreatePlainHtmlOptions());
 
         Assert.Empty(result.AbbreviationDefinitions);
         Assert.DoesNotContain("<abbr", html, StringComparison.Ordinal);
@@ -135,12 +135,12 @@ public class Markdown_Reader_Abbreviations_Tests {
     [Fact]
     public void Abbreviation_PreScan_Ignores_Indented_Code_List_Markers_With_Strict_List_Indentation() {
         const string markdown = "    - *[HTML]: Hyper Text Markup Language\n\nHTML";
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.Abbreviations = true;
         options.StrictListIndentation = true;
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
-        var html = result.Document.ToHtmlFragment(CreatePlainHtmlOptions());
+        var html = result.Document.ToHtml(CreatePlainHtmlOptions());
 
         Assert.Empty(result.AbbreviationDefinitions);
         Assert.IsType<CodeBlock>(result.Document.Blocks[0]);
@@ -151,11 +151,11 @@ public class Markdown_Reader_Abbreviations_Tests {
     [Fact]
     public void Abbreviation_PreScan_Ignores_Definitions_Inside_Raw_Html_Blocks() {
         const string markdown = "<script>\n*[HTML]: Hyper Text Markup Language\n</script>\n\nHTML";
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.Abbreviations = true;
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
-        var html = result.Document.ToHtmlFragment(CreatePlainHtmlOptions());
+        var html = result.Document.ToHtml(CreatePlainHtmlOptions());
 
         Assert.Empty(result.AbbreviationDefinitions);
         Assert.Contains("<script>\n*[HTML]: Hyper Text Markup Language\n</script>", html, StringComparison.Ordinal);
@@ -166,12 +166,12 @@ public class Markdown_Reader_Abbreviations_Tests {
     [Fact]
     public void Structured_Table_Cell_Blocks_Use_Document_Abbreviations() {
         const string markdown = "*[HTML]: Hyper Text Markup Language\n\n| Term |\n| --- |\n| # HTML |";
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.Tables = true;
         options.ParseTableCellBlocks = true;
         options.Abbreviations = true;
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options).ToHtmlFragment(CreatePlainHtmlOptions());
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options).ToHtml(CreatePlainHtmlOptions());
 
         Assert.Contains("<td><h1 id=\"html\"><abbr title=\"Hyper Text Markup Language\">HTML</abbr></h1></td>", html, StringComparison.Ordinal);
     }
@@ -179,11 +179,11 @@ public class Markdown_Reader_Abbreviations_Tests {
     [Fact]
     public void Abbreviations_Expand_After_Opening_Punctuation_While_Embedded_Words_Stay_Literal() {
         const string markdown = "*[HTML]: Hyper Text Markup Language\n\nHTML- HTML-like (HTML) 'HTML' \"HTML\" /HTML .HTML";
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.Abbreviations = true;
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
-        var html = result.Document.ToHtmlFragment(CreatePlainHtmlOptions());
+        var html = result.Document.ToHtml(CreatePlainHtmlOptions());
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(result.Document.Blocks));
         var abbreviations = paragraph.Inlines.Nodes.OfType<AbbreviationInline>().ToArray();
 
@@ -206,11 +206,11 @@ public class Markdown_Reader_Abbreviations_Tests {
     [Fact]
     public void Abbreviations_Expand_Inside_Unresolved_Bracket_Text_Like_Markdig() {
         const string markdown = "*[HTML]: Hyper Text\n\n[HTML]";
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.Abbreviations = true;
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
-        var html = result.Document.ToHtmlFragment(CreatePlainHtmlOptions());
+        var html = result.Document.ToHtml(CreatePlainHtmlOptions());
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(result.Document.Blocks));
         var abbreviation = Assert.IsType<AbbreviationInline>(paragraph.Inlines.Nodes[1]);
 
@@ -228,11 +228,11 @@ public class Markdown_Reader_Abbreviations_Tests {
     [Fact]
     public void List_Item_Abbreviation_Definitions_Are_Consumed_And_Apply_Document_Wide() {
         const string markdown = "- *[HTML]: Hyper Text\n- HTML";
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.Abbreviations = true;
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
-        var html = result.Document.ToHtmlFragment(CreatePlainHtmlOptions());
+        var html = result.Document.ToHtml(CreatePlainHtmlOptions());
         var definition = Assert.Single(result.AbbreviationDefinitions);
         var list = Assert.IsType<UnorderedListBlock>(Assert.Single(result.Document.Blocks));
         var first = list.Items[0];
@@ -254,7 +254,7 @@ public class Markdown_Reader_Abbreviations_Tests {
         Assert.Contains("<li></li><li><abbr title=\"Hyper Text\">HTML</abbr></li>", html, StringComparison.Ordinal);
         Assert.Equal(new MarkdownSourceSpan(1, 12, 1, 21), nativeTitle.SourceSpan);
         Assert.Equal("- *[HTML]: Hypertext\n- HTML", native.CreateReplaceEdit(nativeTitle, "Hypertext").Apply(native.SourceMarkdown));
-        Assert.Equal(markdown, result.Document.ToMarkdown(new MarkdownWriteOptions { OutputLineEnding = "\n" }).TrimEnd('\n'));
+        Assert.Equal(markdown, result.Document.ToMarkdown(new MarkdownSaveOptions { OutputLineEnding = "\n" }).TrimEnd('\n'));
 
         var listSyntax = Assert.IsType<MarkdownSyntaxNode>(Assert.Single(result.FinalSyntaxTree.Children));
         Assert.Equal(MarkdownSyntaxKind.UnorderedList, listSyntax.Kind);
@@ -289,14 +289,17 @@ public class Markdown_Reader_Abbreviations_Tests {
     [Fact]
     public void Abbreviations_Can_Render_NonAscii_Text_Literally_For_Markdig_Style_Output() {
         const string markdown = "*[åbc]: Unicode\n\nåbc ÅBC";
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.Abbreviations = true;
 
-        var html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options).ToHtmlFragment(new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options).ToHtml(new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
-            EscapeNonAsciiText = false
+            EscapeNonAsciiText = false,
+
+            Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
         });
 
         Assert.Contains("<abbr title=\"Unicode\">åbc</abbr> ÅBC", html, StringComparison.Ordinal);
@@ -305,11 +308,11 @@ public class Markdown_Reader_Abbreviations_Tests {
     [Fact]
     public void Abbreviation_Definitions_Are_Written_After_FrontMatter() {
         const string markdown = "---\ntitle: Doc\n---\n\n  *[HTML]:   Hyper Text Markup Language\n\nHTML";
-        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        var options = MarkdownLoadOptions.CreateOfficeIMOProfile();
         options.Abbreviations = true;
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
-        var written = result.Document.ToMarkdown(new MarkdownWriteOptions { OutputLineEnding = "\n" }).TrimEnd('\n');
+        var written = result.Document.ToMarkdown(new MarkdownSaveOptions { OutputLineEnding = "\n" }).TrimEnd('\n');
 
         Assert.Equal("---\ntitle: Doc\n---\n\n  *[HTML]:   Hyper Text Markup Language\n\nHTML", written);
     }
@@ -317,12 +320,12 @@ public class Markdown_Reader_Abbreviations_Tests {
     [Fact]
     public void Abbreviation_PreScan_Ignores_Definitions_Inside_FrontMatter() {
         const string markdown = "---\ntitle: Doc\n*[HTML]: Hyper Text Markup Language\n---\n\nHTML";
-        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        var options = MarkdownLoadOptions.CreateOfficeIMOProfile();
         options.Abbreviations = true;
         options.FrontMatter = true;
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
-        var html = result.Document.ToHtmlFragment(CreatePlainHtmlOptions());
+        var html = result.Document.ToHtml(CreatePlainHtmlOptions());
 
         Assert.Empty(result.AbbreviationDefinitions);
         Assert.DoesNotContain("<abbr", html, StringComparison.Ordinal);
@@ -332,7 +335,7 @@ public class Markdown_Reader_Abbreviations_Tests {
     [Fact]
     public void ParseWithSyntaxTree_Captures_Abbreviation_Definition_And_Inline_Metadata() {
         const string markdown = "*[HTML]: Hyper Text Markup Language\nHTML";
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.Abbreviations = true;
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
@@ -379,7 +382,7 @@ public class Markdown_Reader_Abbreviations_Tests {
     [Fact]
     public void Native_Abbreviation_Metadata_Preserves_Text_And_Title_Source_For_Edits_And_Snapshots() {
         const string markdown = "*[HTML]: Hyper Text Markup Language\nHTML";
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.Abbreviations = true;
 
         var native = MarkdownNativeDocument.Parse(markdown, options);
@@ -407,7 +410,7 @@ public class Markdown_Reader_Abbreviations_Tests {
     [Fact]
     public void Native_Abbreviation_Definitions_Expose_Source_Fields_Slices_Edits_And_Snapshots() {
         const string markdown = "*[HTML]: Hyper Text\r\n\r\nHTML";
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.Abbreviations = true;
         options.PreserveTrivia = true;
 
@@ -479,7 +482,7 @@ public class Markdown_Reader_Abbreviations_Tests {
     [Fact]
     public void Abbreviations_Propagate_Into_Nested_Containers_And_Table_Cell_Ast() {
         const string markdown = "*[HTML]: Hyper Text Markup Language\n\n> HTML quoted\n\n| Term |\n| --- |\n| HTML |";
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.Abbreviations = true;
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
@@ -502,10 +505,11 @@ public class Markdown_Reader_Abbreviations_Tests {
         Assert.Equal("Hyper Text Markup Language", Assert.Single(nativeCellAbbreviation.Metadata, metadata => metadata.Name == "title").Value);
     }
 
-    private static HtmlOptions CreatePlainHtmlOptions() =>
-        new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+    private static MarkdownHtmlExportOptions CreatePlainHtmlOptions() =>
+        new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null
         };
 

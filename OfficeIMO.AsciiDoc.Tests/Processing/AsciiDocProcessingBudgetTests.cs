@@ -11,9 +11,9 @@ public sealed class AsciiDocProcessingBudgetTests {
     [InlineData("depth")]
     [InlineData("cycle")]
     public void VisibleIncludeFallbacksCannotExceedOutputBudget(string mode) {
-        var options = new AsciiDocProcessorOptions { MaximumOutputLength = 10, SourceName = "root.adoc" };
+        var options = new AsciiDocProcessorOptions { MaxOutputLength = 10, SourceName = "root.adoc" };
         if (mode != "disabled") options.IncludeResolver = new Resolver(mode);
-        if (mode == "depth") options.MaximumIncludeDepth = 0;
+        if (mode == "depth") options.MaxIncludeDepth = 0;
         Assert.Throws<InvalidDataException>(() => AsciiDocProcessor.Process("include::x[]\n", options));
     }
 
@@ -21,9 +21,9 @@ public sealed class AsciiDocProcessingBudgetTests {
     public void IncludeRequestsCarryRemainingBudgetAndCancellation() {
         using var cancellation = new CancellationTokenSource();
         var resolver = new Resolver("content");
-        var options = new AsciiDocProcessorOptions { IncludeResolver = resolver, MaximumIncludedCharacters = 10 };
+        var options = new AsciiDocProcessorOptions { IncludeResolver = resolver, MaxIncludedCharacters = 10 };
         AsciiDocProcessor.Process("include::one[]\ninclude::two[]\n", options, cancellation.Token);
-        Assert.Equal(new[] { 10, 6 }, resolver.Requests.Select(request => request.MaximumContentLength));
+        Assert.Equal(new[] { 10, 6 }, resolver.Requests.Select(request => request.MaxContentLength));
         Assert.All(resolver.Requests, request => Assert.Equal(cancellation.Token, request.CancellationToken));
     }
 
@@ -34,7 +34,7 @@ public sealed class AsciiDocProcessingBudgetTests {
         File.WriteAllText(Path.Combine(directory, "part.adoc"), new string('a', 10000));
         try {
             Assert.Throws<InvalidDataException>(() => AsciiDocProcessor.Process("include::part.adoc[]\n",
-                new AsciiDocProcessorOptions { IncludeResolver = new AsciiDocRootedFileIncludeResolver(directory), MaximumIncludedCharacters = 10 }));
+                new AsciiDocProcessorOptions { IncludeResolver = new AsciiDocRootedFileIncludeResolver(directory), MaxIncludedCharacters = 10 }));
         } finally {
             Directory.Delete(directory, true);
         }

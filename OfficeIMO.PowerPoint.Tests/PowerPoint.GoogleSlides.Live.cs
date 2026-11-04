@@ -19,10 +19,10 @@ namespace OfficeIMO.Tests {
             });
             string? id = null;
             try {
-                using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+                using (PowerPointDocument source = PowerPointDocument.Create()) {
                     PowerPointSlide slide = source.AddSlide();
-                    slide.AddTextBoxPoints("OfficeIMO Google Slides live round trip", 30, 40, 500, 80);
-                    slide.AddTablePoints(1, 1, 30, 150, 300, 100).RowItems[0].Cells[0].Text = "Native table";
+                    slide.AddTextBox("OfficeIMO Google Slides live round trip",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(500),global::OfficeIMO.OfficeLength.Points(80));
+                    slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(100)).RowItems[0].Cells[0].Text = "Native table";
                     slide.Notes.Text = "Live speaker notes";
                     GooglePresentationReference created = await source.ExportToGoogleSlidesAsync(session, new GoogleSlidesSaveOptions {
                         Title = "OfficeIMO disposable Slides test " + Guid.NewGuid().ToString("N"),
@@ -31,9 +31,9 @@ namespace OfficeIMO.Tests {
                     id = created.PresentationId;
                 }
                 GoogleSlidesImportResult native = await new GoogleSlidesImporter().ImportAsync(id!, session, new GoogleSlidesImportOptions { Mode = GoogleWorkspaceImportMode.Native });
-                using (native.Presentation) Assert.Contains(native.Presentation.Slides[0].TextBoxes, box => box.Text.Contains("OfficeIMO Google Slides", StringComparison.Ordinal));
+                using (native.Document) Assert.Contains(native.Document.Slides[0].TextBoxes, box => box.Text.Contains("OfficeIMO Google Slides", StringComparison.Ordinal));
                 GoogleSlidesImportResult broad = await new GoogleSlidesImporter().ImportAsync(id!, session, new GoogleSlidesImportOptions { Mode = GoogleWorkspaceImportMode.DriveExport });
-                using (broad.Presentation) Assert.NotEmpty(broad.Presentation.Slides);
+                using (broad.Document) Assert.NotEmpty(broad.Document.Slides);
             } finally {
                 if (!string.IsNullOrWhiteSpace(id)) { using var drive = new GoogleDriveClient(session); await drive.DeleteFileAsync(id!); }
             }

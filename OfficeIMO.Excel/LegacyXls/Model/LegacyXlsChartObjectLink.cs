@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes shallow metadata decoded from a chart ObjectLink record.
     /// </summary>
-    public sealed class LegacyXlsChartObjectLink {
+    internal sealed class LegacyXlsChartObjectLink {
         internal LegacyXlsChartObjectLink(ushort linkedObject, string linkedObjectName, ushort seriesIndex, ushort dataPointIndex) {
             LinkedObject = linkedObject;
             LinkedObjectName = linkedObjectName ?? throw new ArgumentNullException(nameof(linkedObjectName));

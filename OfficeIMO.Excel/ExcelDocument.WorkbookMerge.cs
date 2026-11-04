@@ -120,7 +120,7 @@ namespace OfficeIMO.Excel {
             foreach (string copiedSheetName in copiedSheetNames) {
                 ExcelSheet copiedSheet = GetSheet(copiedSheetName);
                 WorksheetPart worksheetPart = copiedSheet.WorksheetPart;
-                RewriteCopiedWorksheetReferences(worksheetPart, sheetNameMap, tableNameMap);
+                RewriteCopiedWorksheetReferences(worksheetPart, sheetNameMap, tableNameMap, copiedSheet.Name);
             }
         }
 

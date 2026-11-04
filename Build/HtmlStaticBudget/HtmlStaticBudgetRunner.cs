@@ -118,7 +118,7 @@ internal static class HtmlStaticBudgetRunner {
         using var cancellation = new CancellationTokenSource();
         PdfResourcePolicy resourcePolicy = PdfResourcePolicy.CreateDefault();
         resourcePolicy.AllowRemoteResourceResolution = true;
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             ResourcePolicy = resourcePolicy,
             ResourceResolver = async (_, cancellationToken) => {
                 started.TrySetResult(true);
@@ -129,7 +129,7 @@ internal static class HtmlStaticBudgetRunner {
         int bodyEnd = html.LastIndexOf("</body>", StringComparison.OrdinalIgnoreCase);
         const string probe = "<img src=\"https://officeimo.invalid/budget-cancellation.png\" alt=\"probe\">";
         string input = bodyEnd >= 0 ? html.Insert(bodyEnd, probe) : html + probe;
-        Task<byte[]> conversion = HtmlConversionDocument.Parse(input).ToPdfBytesAsync(options, cancellation.Token);
+        Task<byte[]> conversion = ConvertToPdfBytesAsync(input, options, cancellation.Token);
         try {
             await started.Task.WaitAsync(CancellationStartTimeout).ConfigureAwait(false);
             var stopwatch = Stopwatch.StartNew();
@@ -241,12 +241,17 @@ internal static class HtmlStaticBudgetRunner {
     private static string GetOsFamily() => OperatingSystem.IsWindows() ? "Windows" : OperatingSystem.IsLinux() ? "Linux" : OperatingSystem.IsMacOS() ? "macOS" : "Unknown";
     private static string FindRepositoryRoot() {
         for (string? current = Path.GetFullPath(Directory.GetCurrentDirectory()); !string.IsNullOrWhiteSpace(current); current = Directory.GetParent(current)?.FullName) {
-            if (File.Exists(Path.Combine(current, "OfficeIMO.sln"))) return current;
+            if (File.Exists(Path.Combine(current, "OfficeIMO.slnx"))) return current;
         }
         throw new DirectoryNotFoundException("Could not locate the OfficeIMO repository root.");
     }
     private static void WriteHelp() {
         Console.WriteLine("html-static-budget [--output <new-directory>] [--iterations 2-10] [--measure-only] [--require-clean-source]");
         Console.WriteLine("Measures the frozen H4/advanced-held-out corpus in fresh cold and warmed worker processes, including all declared static output contracts, allocations, process-tree peak memory, output bytes, determinism, and cancellation.");
+    }
+
+    private static async Task<byte[]> ConvertToPdfBytesAsync(string html, HtmlPdfExportOptions options, CancellationToken cancellationToken) {
+        OfficeConversionResult<PdfDocument> result = await HtmlConversionDocument.Parse(html).ToPdfAsync(options, cancellationToken).ConfigureAwait(false);
+        return result.Value.ToBytes(cancellationToken: cancellationToken);
     }
 }

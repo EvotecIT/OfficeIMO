@@ -32,7 +32,7 @@ namespace OfficeIMO.Excel {
                 SetItalic(font, definition.Italic);
                 SetUnderline(font, definition.Underline?.ToOpenXml());
                 if (definition.FontName != null) SetFontName(font, definition.FontName);
-                if (definition.FontSize.HasValue) SetFontSize(font, definition.FontSize.Value);
+                if (definition.FontSize.HasValue) SetFontSize(font, definition.FontSize.Value.ToPoints());
                 if (definition.FontColor.HasValue) SetFontColor(font, definition.FontColor.Value.ToArgbHex());
             });
             format.ApplyFont = true;

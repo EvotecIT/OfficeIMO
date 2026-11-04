@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.Markdown {
             return (mdPath, htmlPath);
         }
 
-        private static MarkdownDoc BaseDoc() => MarkdownDoc.Create()
+        private static MarkdownDocument BaseDoc() => MarkdownDocument.Create()
             .H1("OfficeIMO.Markdown — TOC Demos")
             .P("Demonstrates panel and sidebar TOCs with optional ScrollSpy and themes.")
             .H2("Install").P("Installation instructions...")
@@ -26,9 +26,9 @@ namespace OfficeIMO.Examples.Markdown {
             Console.WriteLine("[*] Markdown: TOC Panel (top)");
             var (mdPath, htmlPath) = Paths(folderPath, "Markdown_Toc_PanelTop");
             var md = BaseDoc();
-            md.Toc(o => { o.MinLevel = 1; o.MaxLevel = 3; o.Layout = TocLayout.Panel; o.IncludeTitle = true; o.Title = "On this page"; }, placeAtTop: true);
+            md.Toc(o => { o.MinLevel = 1; o.MaxLevel = 3; o.Layout = MarkdownTocLayout.Panel; o.IncludeTitle = true; o.Title = "On this page"; }, placeAtTop: true);
             File.WriteAllText(mdPath, md.ToMarkdown(), Encoding.UTF8);
-            var html = md.ToHtmlDocument(new HtmlOptions { Title = "TOC Panel", Style = HtmlStyle.Word, Kind = HtmlKind.Document, ThemeToggle = true, IncludeAnchorLinks = true, BackToTopLinks = true });
+            var html = md.ToHtml(new MarkdownHtmlExportOptions { Title = "TOC Panel", Style = MarkdownHtmlStyle.Word, Kind = MarkdownHtmlKind.Document, ThemeToggle = true, IncludeAnchorLinks = true, BackToTopLinks = true });
             File.WriteAllText(htmlPath, html, Encoding.UTF8);
             Console.WriteLine($"✓ HTML: {htmlPath}");
         }
@@ -37,19 +37,19 @@ namespace OfficeIMO.Examples.Markdown {
             Console.WriteLine("[*] Markdown: TOC Sidebar Left (ScrollSpy, matched to right)");
             var (mdPath, htmlPath) = Paths(folderPath, "Markdown_Toc_SidebarLeft");
             var md = BaseDoc();
-            md = MarkdownDoc.Create().Toc(o => {
+            md = MarkdownDocument.Create().Toc(o => {
                 o.MinLevel = 1; o.MaxLevel = 3;
-                o.Layout = TocLayout.SidebarLeft;
+                o.Layout = MarkdownTocLayout.SidebarLeft;
                 o.Sticky = true;
                 o.ScrollSpy = true;
-                o.Chrome = TocChrome.Outline;
+                o.Chrome = MarkdownTocChrome.Outline;
                 o.IncludeTitle = true; o.Title = "On this page";
                 o.WidthPx = 260;
                 o.HideOnNarrow = true;
             }, placeAtTop: true);
             foreach (var b in BaseDoc().Blocks) md.Add(b);
             File.WriteAllText(mdPath, md.ToMarkdown(), Encoding.UTF8);
-            var html = md.ToHtmlDocument(new HtmlOptions { Title = "TOC Left", Style = HtmlStyle.Word, Kind = HtmlKind.Document, ThemeToggle = true, IncludeAnchorLinks = true, BackToTopLinks = true });
+            var html = md.ToHtml(new MarkdownHtmlExportOptions { Title = "TOC Left", Style = MarkdownHtmlStyle.Word, Kind = MarkdownHtmlKind.Document, ThemeToggle = true, IncludeAnchorLinks = true, BackToTopLinks = true });
             File.WriteAllText(htmlPath, html, Encoding.UTF8);
             Console.WriteLine($"✓ HTML: {htmlPath}");
         }
@@ -58,11 +58,11 @@ namespace OfficeIMO.Examples.Markdown {
             Console.WriteLine("[*] Markdown: TOC Sidebar Right (ScrollSpy)");
             var (mdPath, htmlPath) = Paths(folderPath, "Markdown_Toc_SidebarRight_ScrollSpy");
             var baseDoc = BaseDoc();
-            var md = MarkdownDoc.Create();
-            md.Toc(o => { o.MinLevel = 2; o.MaxLevel = 3; o.Layout = TocLayout.SidebarRight; o.Sticky = true; o.ScrollSpy = true; o.IncludeTitle = true; o.Title = "On this page"; }, placeAtTop: true);
+            var md = MarkdownDocument.Create();
+            md.Toc(o => { o.MinLevel = 2; o.MaxLevel = 3; o.Layout = MarkdownTocLayout.SidebarRight; o.Sticky = true; o.ScrollSpy = true; o.IncludeTitle = true; o.Title = "On this page"; }, placeAtTop: true);
             foreach (var b in baseDoc.Blocks) md.Add(b);
             File.WriteAllText(mdPath, md.ToMarkdown(), Encoding.UTF8);
-            var html = md.ToHtmlDocument(new HtmlOptions { Title = "TOC Right + ScrollSpy", Style = HtmlStyle.Word, Kind = HtmlKind.Document, ThemeToggle = true, IncludeAnchorLinks = true, BackToTopLinks = true });
+            var html = md.ToHtml(new MarkdownHtmlExportOptions { Title = "TOC Right + ScrollSpy", Style = MarkdownHtmlStyle.Word, Kind = MarkdownHtmlKind.Document, ThemeToggle = true, IncludeAnchorLinks = true, BackToTopLinks = true });
             File.WriteAllText(htmlPath, html, Encoding.UTF8);
             Console.WriteLine($"✓ HTML: {htmlPath}");
         }
@@ -70,8 +70,8 @@ namespace OfficeIMO.Examples.Markdown {
         public static void Example_Toc_ScrollSpy_Long_IndigoTheme(string folderPath, bool open) {
             Console.WriteLine("[*] Markdown: ScrollSpy Long (Indigo theme)");
             var (mdPath, htmlPath) = Paths(folderPath, "Markdown_Toc_ScrollSpy_Indigo");
-            var md = MarkdownDoc.Create();
-            md.Toc(o => { o.MinLevel = 2; o.MaxLevel = 3; o.Layout = TocLayout.SidebarLeft; o.Sticky = true; o.ScrollSpy = true; o.IncludeTitle = true; o.Title = "On this page"; }, placeAtTop: true)
+            var md = MarkdownDocument.Create();
+            md.Toc(o => { o.MinLevel = 2; o.MaxLevel = 3; o.Layout = MarkdownTocLayout.SidebarLeft; o.Sticky = true; o.ScrollSpy = true; o.IncludeTitle = true; o.Title = "On this page"; }, placeAtTop: true)
               .H1("ScrollSpy Demo");
             for (int i = 1; i <= 8; i++) {
                 md.H2($"Section {i}");
@@ -82,7 +82,7 @@ namespace OfficeIMO.Examples.Markdown {
             }
             File.WriteAllText(mdPath, md.ToMarkdown(), Encoding.UTF8);
             var indigo = MarkdownVisualTheme.WordLike().WithColorScheme(MarkdownColorSchemeKind.Indigo);
-            var html = md.ToHtmlDocument(new HtmlOptions { Title = "ScrollSpy Indigo", Kind = HtmlKind.Document, ThemeToggle = true, IncludeAnchorLinks = true, BackToTopLinks = true, Theme = indigo });
+            var html = md.ToHtml(new MarkdownHtmlExportOptions { Title = "ScrollSpy Indigo", Kind = MarkdownHtmlKind.Document, ThemeToggle = true, IncludeAnchorLinks = true, BackToTopLinks = true, Theme = indigo });
             File.WriteAllText(htmlPath, html, Encoding.UTF8);
             Console.WriteLine($"✓ HTML: {htmlPath}");
         }

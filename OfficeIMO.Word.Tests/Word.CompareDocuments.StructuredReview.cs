@@ -182,8 +182,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_comment_target_suppressed_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("New target").AddComment("Bob Reviewer", "BR", "Inserted note.");
-                document.AddHeadersAndFooters();
-                document.Header.Default!.AddParagraph("Stable header target").AddComment("Alice Reviewer", "AR", "Keep this note.");
+                document.PageSetup.Header.AddParagraph("Stable header target").AddComment("Alice Reviewer", "AR", "Keep this note.");
                 document.Save();
             }
 
@@ -593,8 +592,7 @@ namespace OfficeIMO.Tests {
                 tableParagraph.AddComment(author, "RV", label + " table comment.");
                 tableParagraph.AddInsertedText(label + " table revision", author, revisionDate);
 
-                document.AddHeadersAndFooters();
-                WordParagraph headerParagraph = document.Header.Default!.AddParagraph("Header review target ");
+                WordParagraph headerParagraph = document.PageSetup.Header.AddParagraph("Header review target ");
                 headerParagraph.AddComment(author, "RV", label + " header comment.");
                 headerParagraph.AddInsertedText(label + " header revision", author, revisionDate);
                 document.Save();

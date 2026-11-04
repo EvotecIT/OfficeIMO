@@ -11,27 +11,27 @@ Closes one or more tracked Word documents, optionally saving them.
 ## SYNTAX
 ### Current (Default)
 ```powershell
-Close-OfficeWord [-Current] [-Save] [-Path <string>] [-Open] [-Password <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Close-OfficeWord [-Save] [-Path <string>] [-Show] [-AllowLoss] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Close-OfficeWord [-Document] <WordDocument> [-Save] [-Path <string>] [-Open] [-Password <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Close-OfficeWord [-Document] <WordDocument> [-Save] [-Path <string>] [-Show] [-AllowLoss] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### All
 ```powershell
-Close-OfficeWord -All [-Save] [-Open] [-Password <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Close-OfficeWord -All [-Save] [-Show] [-AllowLoss] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Provides a cmdlet wrapper for WordDocument.Dispose/Save so scripts need not call .NET methods directly.
+Provides a cmdlet wrapper for WordDocument.Dispose/Save so scripts need not call .NET methods directly. Documents must use explicit persistence to prevent writes during disposal.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $doc = Get-OfficeWord -Path .\Report.docx; Close-OfficeWord -Document $doc
+PS> $doc = Open-OfficeWord -Path .\Report.docx; Close-OfficeWord -Document $doc
 ```
 
 Disposes the loaded document instance without saving changes.
@@ -45,7 +45,7 @@ Closes the current tracked document when a document handle is not passed explici
 
 ### EXAMPLE 3
 ```powershell
-PS> Close-OfficeWord -Document $doc -Save -Path .\Report-final.docx -Open
+PS> Close-OfficeWord -Document $doc -Save -Path .\Report-final.docx -Show
 ```
 
 Saves updates to Report-final.docx, opens it, and disposes the document.
@@ -68,12 +68,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Current
-Close the most recently tracked document.
+### -AllowLoss
+Explicitly accept reported native-save reductions.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Current
+Parameter Sets: Current, Document, All
 Aliases: None
 Possible values:
 
@@ -100,27 +100,11 @@ Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
-### -Open
-Open the file after saving. Requires -Save or -Path.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Current, Document, All
-Aliases: Show
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -Password
 Password used to save the document as an encrypted package.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: Current, Document, All
 Aliases: None
 Possible values:
@@ -150,6 +134,22 @@ Accept wildcard characters: False
 
 ### -Save
 Persist changes before closing.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Current, Document, All
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Show
+Open the file after saving. Requires -Save or -Path.
 
 ```yaml
 Type: SwitchParameter

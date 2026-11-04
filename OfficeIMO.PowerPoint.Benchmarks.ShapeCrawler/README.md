@@ -1,12 +1,46 @@
-# Optional ShapeCrawler comparison
+# Optional PowerPoint library comparison
 
-This project provides an opt-in comparison for the two PowerPoint operations
+This opt-in project compares OfficeIMO.PowerPoint with
+[ShapeCrawler 0.82.0](https://www.nuget.org/packages/ShapeCrawler/0.82.0)
+(MIT) and the MIT-licensed Open XML SDK 3.5.1. NPOI 2.8.1 is not included: its
+.NET packages do not ship the XSLF PowerPoint user model.
+
+## Warm in-process comparison
+
+BenchmarkDotNet classes measure common deck workloads at 20 and 200 slides:
+
+| Workload | Measured operation | Correctness proof |
+| --- | --- | --- |
+| Create | Create a deck where every slide has a bold title, a three-paragraph body, a 4x3 table, and a PNG picture, then serialize it | Every title, body paragraph, cell, and picture byte payload, plus Open XML validation |
+| Read | Load the same deck and read every text box and table cell | Order-independent count, character count, and checksum of all text items |
+| Edit | Load the deck, change every title and one table cell per slide, and save | Edited values, untouched content, and Open XML validation |
+| Copy slides | Load the deck, append a copy of every slide, and save | Doubled slide count with copied content and picture payloads, plus Open XML validation |
+
+Read, edit, and copy start from the same deck authored by the Open XML SDK
+lane, so no high-level library reads its own output. The Open XML SDK create
+lane starts from a zero-slide OfficeIMO package that supplies the slide master,
+layouts, and theme, because writing that scaffolding by hand is not a
+representative SDK workload. Each library uses its default image handling; the
+SDK lane writes one image part per slide. Validation runs in global setup,
+outside the measured operations.
+
+```powershell
+dotnet run -c Release --project .\OfficeIMO.PowerPoint.Benchmarks.ShapeCrawler -- validate
+dotnet run -c Release --project .\OfficeIMO.PowerPoint.Benchmarks.ShapeCrawler -- bench --filter '*PowerPoint*ComparisonBenchmarks*'
+```
+
+Charts are compared only by the cold-probe lane below; a hand-written Open XML
+SDK chart with an embedded workbook is not an equivalent workload.
+
+## Cold-probe comparison
+
+The cold-probe runner covers the two PowerPoint operations
 that OfficeIMO and ShapeCrawler can perform with equivalent editable output:
 
 - create and save a presentation;
 - open, edit, and save an existing presentation.
 
-It is deliberately excluded from `OfficeIMO.sln`. Running it restores
+It is deliberately excluded from `OfficeIMO.slnx`. Running it restores
 ShapeCrawler and its transitive dependencies, but normal OfficeIMO restore,
 build, test, package, and benchmark paths remain unchanged.
 

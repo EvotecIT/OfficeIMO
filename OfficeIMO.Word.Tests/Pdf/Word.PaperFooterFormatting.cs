@@ -18,10 +18,10 @@ public sealed class WordPaperFooterFormattingTests {
     [InlineData(true, true)]
     public void PageFieldsUseSourceRunTypographyBeforeOrAfterInsertion(bool styleFirst, bool total) {
         using WordDocument document = WordDocument.Create();
-        document.AddHeadersAndFooters();
-        document.DifferentFirstPage = false;
-        document.DifferentOddAndEvenPages = false;
-        WordParagraph footer = document.FooterDefaultOrCreate.AddParagraph("Report footer ");
+        _ = document.PageSetup.Header;
+        document.PageSetup.DifferentFirstPage = false;
+        document.PageSetup.DifferentOddAndEvenPages = false;
+        WordParagraph footer = document.PageSetup.Footer.AddParagraph("Report footer ");
         if (styleFirst) Style(footer);
         footer.AddPageNumber(total, separator: " / ");
         if (!styleFirst) Style(footer);
@@ -33,14 +33,14 @@ public sealed class WordPaperFooterFormattingTests {
         document.Save(serialized);
         serialized.Position = 0;
         using WordDocument reopened = WordDocument.Load(serialized);
-        var runs = reopened.FooterDefaultOrCreate._footer!.Descendants<Run>().Where(run => run.Elements<Text>().Any()).ToArray();
+        var runs = reopened.PageSetup.Footer._footer!.Descendants<Run>().Where(run => run.Elements<Text>().Any()).ToArray();
         Assert.Equal(total ? 4 : 2, runs.Length);
         foreach (Run run in runs) {
             Assert.Equal("17", run.RunProperties?.FontSize?.Val?.Value);
             Assert.Equal("506070", run.RunProperties?.Color?.Val?.Value);
             Assert.Equal("Arial", run.RunProperties?.RunFonts?.Ascii?.Value);
         }
-        byte[] bytes = reopened.ToPdfDocument(new WordToPdfOptions { IncludePageNumbers = false }).ToBytes();
+        byte[] bytes = reopened.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes();
         string? proof = Environment.GetEnvironmentVariable("OFFICEIMO_PAPER_PROOF_DIR");
         if (!string.IsNullOrWhiteSpace(proof)) {
             Directory.CreateDirectory(proof);
@@ -66,16 +66,16 @@ public sealed class WordPaperFooterFormattingTests {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = document.AddParagraph("Source ");
         WordParagraph independent = paragraph.AddText("Independent ");
-        independent.FontSize = 16;
-        independent.ColorHex = "AA0000";
+        independent.FontSize = global::OfficeIMO.OfficeLength.Points(16);
+        independent.Color = OfficeColor.Parse("AA0000");
         paragraph.AddPageNumber(true);
         Style(paragraph);
-        Assert.Equal(16, independent.FontSize);
-        Assert.Equal("AA0000", independent.ColorHex);
+        Assert.Equal(16, independent.FontSize?.ToPoints());
+        Assert.Equal(OfficeColor.Parse("AA0000"), independent.Color);
         Assert.All(paragraph._paragraph.Elements<SimpleField>().SelectMany(field => field.Elements<Run>()),
             run => Assert.Equal("17", run.RunProperties?.FontSize?.Val?.Value));
-        paragraph.FontSizePoints = null;
-        paragraph.ColorHex = "";
+        paragraph.FontSize = null;
+        paragraph.Color = null;
         Assert.All(paragraph._paragraph.Elements<SimpleField>().SelectMany(field => field.Elements<Run>()), run => {
             Assert.Null(run.RunProperties?.FontSize);
             Assert.Null(run.RunProperties?.Color);
@@ -91,7 +91,7 @@ public sealed class WordPaperFooterFormattingTests {
         document.Save(serialized);
         serialized.Position = 0;
         using WordDocument reopened = WordDocument.Load(serialized);
-        foreach (WordFooter footer in new[] { reopened.FooterDefaultOrCreate, reopened.FooterEvenOrCreate }) {
+        foreach (WordFooter footer in new[] { reopened.PageSetup.Footer, reopened.PageSetup.EvenPageFooter }) {
             Assert.All(footer._footer!.Descendants<Run>(), run => {
                 Assert.Equal("16", run.RunProperties?.FontSize?.Val?.Value);
                 Assert.Equal("506070", run.RunProperties?.Color?.Val?.Value);
@@ -101,7 +101,7 @@ public sealed class WordPaperFooterFormattingTests {
 
     private static void Style(WordParagraph paragraph) {
         paragraph.FontFamily = "Arial";
-        paragraph.FontSizePoints = 8.5D;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(8.5D);
         paragraph.Color = OfficeColor.ParseHex("506070");
     }
 }

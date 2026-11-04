@@ -61,6 +61,7 @@ public sealed partial class OfficeDocumentReaderBuilder {
             _handlers.CaptureSnapshot(),
             _maxConcurrentReads,
             _processorPipelineBuilder.Build(),
-            _processingOptions.Clone());
+            _processingOptions.Clone(),
+            _defaultReadOptions);
     }
 }

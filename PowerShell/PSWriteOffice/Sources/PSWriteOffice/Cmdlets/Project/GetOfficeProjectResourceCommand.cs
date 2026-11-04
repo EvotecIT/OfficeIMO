@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Project;
 ///   <summary>Returns project resources.</summary>
 ///   <code>$project | Get-OfficeProjectResource</code>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeProjectResource")]
+[Cmdlet(VerbsCommon.Get, "OfficeProjectResource", DefaultParameterSetName = "Document")]
 [OutputType(typeof(ProjectResource))]
 public sealed class GetOfficeProjectResourceCommand : PSCmdlet {
     /// <summary>Project document.</summary>

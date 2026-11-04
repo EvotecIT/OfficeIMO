@@ -60,9 +60,9 @@ public class MarkPflug65KXlsxBenchmarks {
 
     [Benchmark]
     public ExcelReadObservation OfficeIMO() {
-        using DbDataReader reader = ExcelDocument.OpenDataReader(
+        using DbDataReader reader = ExcelDocument.OpenReader(
             MarkPflug65KFixture.XlsxPath,
-            new ExcelReadOptions {
+            new ExcelReaderOptions {
                 NumericAsDecimal = true,
                 SheetName = null
             });
@@ -71,9 +71,9 @@ public class MarkPflug65KXlsxBenchmarks {
 
     [Benchmark]
     public ExcelReadObservation OfficeIMO_Prefetch() {
-        using DbDataReader reader = ExcelDocument.OpenDataReader(
+        using DbDataReader reader = ExcelDocument.OpenReader(
             MarkPflug65KFixture.XlsxPath,
-            new ExcelReadOptions {
+            new ExcelReaderOptions {
                 NumericAsDecimal = true,
                 SheetName = null,
                 EnableWorksheetPrefetch = true
@@ -93,7 +93,7 @@ public class MarkPflug65KXlsxBenchmarks {
 
     [Benchmark]
     public ExcelReadObservation ExcelReaderNet_Prefetch() {
-        ExcelReaderOptions options = ExcelReaderOptions.Default with { PrefetchDecompression = true };
+        ExcelReader.Core.Reader.ExcelReaderOptions options = ExcelReader.Core.Reader.ExcelReaderOptions.Default with { PrefetchDecompression = true };
 #if NET10_0_OR_GREATER
         using XlsxReader reader = ExcelReaderApi.FromXlsxFile(MarkPflug65KFixture.XlsxPath, options);
 #else
@@ -184,7 +184,11 @@ public class MarkPflug65KXlsxBenchmarks {
         var observation = new ExcelObservationAccumulator();
         bool header = true;
         bool isDate1904 = reader.IsDate1904;
+#if NET10_0_OR_GREATER
+        foreach (Row row in reader.FirstSheet) {
+#else
         foreach (Row row in reader) {
+#endif
             if (header) {
                 header = false;
                 continue;
@@ -200,7 +204,11 @@ public class MarkPflug65KXlsxBenchmarks {
         var observation = new ExcelObservationAccumulator();
         bool header = true;
         bool isDate1904 = reader.IsDate1904;
+#if NET10_0_OR_GREATER
+        foreach (Row row in reader.FirstSheet) {
+#else
         foreach (Row row in reader) {
+#endif
             if (header) {
                 header = false;
                 continue;
@@ -216,7 +224,11 @@ public class MarkPflug65KXlsxBenchmarks {
         var observation = new ExcelObservationAccumulator();
         bool header = true;
         bool isDate1904 = reader.IsDate1904;
+#if NET10_0_OR_GREATER
+        foreach (Row row in reader.FirstSheet) {
+#else
         foreach (Row row in reader) {
+#endif
             if (header) {
                 header = false;
                 continue;
@@ -397,9 +409,9 @@ public class MarkPflug65KXlsbBenchmarks {
 
     [Benchmark]
     public ExcelReadObservation OfficeIMO() {
-        using DbDataReader reader = ExcelDocument.OpenDataReader(
+        using DbDataReader reader = ExcelDocument.OpenReader(
             MarkPflug65KFixture.XlsbPath,
-            new ExcelReadOptions { NumericAsDecimal = true });
+            new ExcelReaderOptions { NumericAsDecimal = true });
         return Validate(nameof(OfficeIMO), MarkPflug65KXlsxBenchmarks.Observe(reader));
     }
 
@@ -470,15 +482,15 @@ public class XlsbOfficeIMOPipelineBenchmarks {
 
     [Benchmark(Baseline = true)]
     public ExcelReadObservation PublicApi() {
-        using DbDataReader reader = ExcelDocument.OpenDataReader(
+        using DbDataReader reader = ExcelDocument.OpenReader(
             MarkPflug65KFixture.XlsbPath,
-            new ExcelReadOptions { NumericAsDecimal = true });
+            new ExcelReaderOptions { NumericAsDecimal = true });
         return MarkPflug65KXlsxBenchmarks.Observe(reader);
     }
 
     [Benchmark]
     public ExcelReadObservation DirectWorksheetReader() {
-        var options = new ExcelReadOptions { NumericAsDecimal = true };
+        var options = new ExcelReaderOptions { NumericAsDecimal = true };
         using XlsbTabularWorkbook workbook = XlsbTabularWorkbook.Open(
             MarkPflug65KFixture.XlsbPath,
             options);

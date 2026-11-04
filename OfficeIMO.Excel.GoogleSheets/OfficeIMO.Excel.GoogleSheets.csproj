@@ -2,11 +2,9 @@
 
     <PropertyGroup>
         <Description>Create, safely replace, import, diff, and translate Google Sheets documents with OfficeIMO.Excel.</Description>
-        <AssemblyName>OfficeIMO.Excel.GoogleSheets</AssemblyName>
-        <AssemblyTitle>OfficeIMO.Excel.GoogleSheets</AssemblyTitle>
         <VersionPrefix>3.5.3</VersionPrefix>
         <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
-        <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
             $(TargetFrameworks);net472</TargetFrameworks>
         <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
         <Company>Evotec</Company>
@@ -50,10 +48,6 @@
         <PackageReference Include="System.Text.Json" Version="[10.0.7,11.0.0)" />
     </ItemGroup>
 
-    <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-        <Reference Include="System.Net.Http" />
-    </ItemGroup>
-
     <ItemGroup>
         <InternalsVisibleTo Include="OfficeIMO.GoogleWorkspace.Tests" />
         <InternalsVisibleTo Include="OfficeIMO.Excel.Tests" />
@@ -68,4 +62,7 @@
         <Using Include="System.Threading.Tasks" />
     </ItemGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+        <Reference Include="System.Net.Http" />
+    </ItemGroup>
 </Project>

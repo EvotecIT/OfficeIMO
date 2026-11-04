@@ -3,7 +3,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Resolved geometry for a proportional data bar inside a rectangular region.
 /// </summary>
-public readonly struct OfficeDataBarGeometry {
+internal readonly struct OfficeDataBarGeometry {
     internal OfficeDataBarGeometry(double x, double y, double width, double height) {
         X = x;
         Y = y;

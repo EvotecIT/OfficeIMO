@@ -224,7 +224,6 @@ if (args is ["--validate-write"]) {
 
 if (args is ["--validate-write-options"]) {
     foreach (int rows in new WriterBenchmarks().RowCounts()) {
-        await new SharedStringWriterBenchmarks { RowCount = rows }.SetupAsync();
         await new CompactWriterBenchmarks { RowCount = rows }.SetupAsync();
         await new NativeXlsWriterDiagnosticBenchmarks { RowCount = rows }.SetupAsync();
         await new ConfiguredXlsbWriterBenchmarks { RowCount = rows }.SetupAsync();

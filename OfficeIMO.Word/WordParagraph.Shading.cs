@@ -1,12 +1,10 @@
 using DocumentFormat.OpenXml.Wordprocessing;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
-        /// <summary>
-        /// Get or set the paragraph shading fill color using hexadecimal value.
-        /// </summary>
-        public string ShadingFillColorHex {
+        /// <summary>Native paragraph shading fill (hexadecimal or <c>auto</c>); empty removes the shading.</summary>
+        internal string ShadingFillValue {
             get {
                 var fill = _paragraphProperties?.Shading?.Fill?.Value;
                 return fill != null ? fill.ToUpperInvariant() : string.Empty;
@@ -25,21 +23,14 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Get or set the paragraph shading fill color.
+        /// Get or set the paragraph shading fill color. Setting <see langword="null"/> removes the shading.
         /// </summary>
         public Color? ShadingFillColor {
             get {
-                if (ShadingFillColorHex != string.Empty) {
-                    return Helpers.ParseColor(ShadingFillColorHex);
-                }
-
-                return null;
+                string fill = ShadingFillValue;
+                return fill.Length > 0 && OfficeIMO.OfficeColor.TryParseHex(fill, out OfficeIMO.OfficeColor color) ? color : null;
             }
-            set {
-                if (value != null) {
-                    ShadingFillColorHex = value.Value.ToRgbHex();
-                }
-            }
+            set => ShadingFillValue = value?.ToRgbHex() ?? string.Empty;
         }
 
         /// <summary>

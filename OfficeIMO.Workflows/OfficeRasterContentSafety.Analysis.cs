@@ -1,3 +1,4 @@
+using OfficeIMO.Internal;
 using OfficeIMO.ContentSafety;
 using OfficeIMO.Drawing;
 using OfficeIMO.Ocr;
@@ -48,13 +49,13 @@ public static partial class OfficeRasterContentSafety {
             .Select((span, index) => new { Span = span, Index = index })
             .Where(item => item.Span != null && IsSupportedSpanLevel(item.Span.Level) &&
                 !string.IsNullOrEmpty(item.Span.Text) &&
-                (!string.IsNullOrWhiteSpace(item.Span.Text) || item.Span.Level == OcrTextSpanLevel.Character))
+                (!(item.Span.Text == null || string.IsNullOrWhiteSpace(item.Span.Text)) || item.Span.Level == OcrTextSpanLevel.Character))
             .OrderBy(item => item.Span.Sequence)
             .ThenBy(item => item.Span.Level)
             .ThenBy(item => item.Index)
             .Select(item => item.Span)
             .ToArray();
-        if (spans.Length == 0 && !string.IsNullOrWhiteSpace(result.Text)) {
+        if (spans.Length == 0 && !(result.Text == null || string.IsNullOrWhiteSpace(result.Text))) {
             throw new InvalidDataException(
                 "OCR returned text without bounded line, word, or character geometry; concealment cannot be assessed.");
         }
@@ -109,7 +110,7 @@ public static partial class OfficeRasterContentSafety {
         foreach (RasterConcealment concealed in concealedTargets) {
             cancellationToken.ThrowIfCancellationRequested();
             RasterTarget target = concealed.Target;
-            if (string.IsNullOrWhiteSpace(target.Text)) continue;
+            if ((target.Text == null || string.IsNullOrWhiteSpace(target.Text))) continue;
             string location = "Frame[1]/Ocr[" + EngineLocationIdentity(engineId) + "]/" + target.Level +
                 "[" + (concealed.Index + 1).ToString(CultureInfo.InvariantCulture) + "]@" +
                 target.Region.Left.ToString(CultureInfo.InvariantCulture) + "," +
@@ -172,7 +173,7 @@ public static partial class OfficeRasterContentSafety {
     private static IReadOnlyDictionary<RasterTarget, IReadOnlyList<string>> ResolveConcealedInstructionSignals(
         IReadOnlyList<RasterTarget> targets,
         IReadOnlyList<RasterConcealment> concealments,
-        IReadOnlySet<RasterTarget> aggregateParents,
+        ISet<RasterTarget> aggregateParents,
         CancellationToken cancellationToken) {
         var concealed = new HashSet<RasterTarget>(concealments.Select(item => item.Target));
         var signals = new Dictionary<RasterTarget, IReadOnlyList<string>>();
@@ -187,7 +188,7 @@ public static partial class OfficeRasterContentSafety {
             foreach (RasterTarget target in targets) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (aggregateParents.Contains(target)) continue;
-                if (string.IsNullOrWhiteSpace(target.Text)) {
+                if ((target.Text == null || string.IsNullOrWhiteSpace(target.Text))) {
                     if (run.Count > 0) run.Add(target);
                     continue;
                 }
@@ -209,7 +210,7 @@ public static partial class OfficeRasterContentSafety {
             foreach (RasterTarget target in targets) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (aggregateParents.Contains(target)) continue;
-                if (string.IsNullOrWhiteSpace(target.Text)) {
+                if ((target.Text == null || string.IsNullOrWhiteSpace(target.Text))) {
                     if (run.Count > 0) run.Add(target);
                     continue;
                 }
@@ -239,7 +240,7 @@ public static partial class OfficeRasterContentSafety {
         void Register(IReadOnlyList<RasterTarget> run, IReadOnlyList<string> detected) {
             if (detected.Count == 0) return;
             foreach (RasterTarget target in run) {
-                if (!concealed.Contains(target) || string.IsNullOrWhiteSpace(target.Text)) continue;
+                if (!concealed.Contains(target) || (target.Text == null || string.IsNullOrWhiteSpace(target.Text))) continue;
                 if (signals.TryGetValue(target, out IReadOnlyList<string>? existing)) {
                     signals[target] = existing.Concat(detected).Distinct(StringComparer.Ordinal).ToArray();
                 } else {
@@ -254,7 +255,7 @@ public static partial class OfficeRasterContentSafety {
         IReadOnlyList<RasterTarget> targets,
         RasterWorkBudget budget,
         CancellationToken cancellationToken) {
-        if (string.IsNullOrWhiteSpace(aggregateText)) return new HashSet<RasterTarget>();
+        if ((aggregateText == null || string.IsNullOrWhiteSpace(aggregateText))) return new HashSet<RasterTarget>();
         if (HasEquivalentTargetText(aggregateText, targets, OcrTextSpanLevel.Line, " ", cancellationToken) ||
             HasEquivalentTargetText(aggregateText, targets, OcrTextSpanLevel.Word, " ", cancellationToken) ||
             HasEquivalentTargetText(
@@ -299,7 +300,7 @@ public static partial class OfficeRasterContentSafety {
 
     private static string FlattenTargetText(
         IReadOnlyList<RasterTarget> targets,
-        IReadOnlySet<RasterTarget> aggregateParents,
+        ISet<RasterTarget> aggregateParents,
         CancellationToken cancellationToken) {
         var flattened = new StringBuilder();
         RasterTarget? previous = null;
@@ -531,7 +532,7 @@ public static partial class OfficeRasterContentSafety {
     }
 
     private static string SanitizeIdentifier(string? value) {
-        if (string.IsNullOrWhiteSpace(value)) return "unspecified";
+        if ((value == null || string.IsNullOrWhiteSpace(value))) return "unspecified";
         var characters = value.Trim().Take(128)
             .Select(character => char.IsLetterOrDigit(character) || character is '-' or '_' or '.' ? character : '_')
             .ToArray();
@@ -542,7 +543,7 @@ public static partial class OfficeRasterContentSafety {
         SanitizeIdentifier(engineId) + "-" + HashText(engineId).Substring(0, 12);
 
     private static string HashText(string value) =>
-        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant();
+        OfficeRuntimeCompatibility.ToHexString(OfficeRuntimeCompatibility.HashSha256(Encoding.UTF8.GetBytes(value))).ToLowerInvariant();
 
     private static byte ToByte(double value) => (byte)Math.Min(255D, Math.Max(0D, Math.Round(value)));
 

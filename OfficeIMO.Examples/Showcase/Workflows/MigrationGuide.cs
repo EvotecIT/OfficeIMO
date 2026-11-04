@@ -5,7 +5,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 /// <summary>Produces a portable migration guide with explicit old-to-new mappings and a verification sequence.</summary>
 internal static class MigrationGuide {
     internal static void Create(string folder) {
-        var document = MarkdownDoc.Create()
+        var document = MarkdownDocument.Create()
             .H1("Configuration migration guide")
             .P("Move an illustrative report job from separate output settings to a named delivery block.")
             .P("Before you start, back up the configuration and use a temporary output folder for the first run.")

@@ -3,6 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Image XObject entry in the logical page model.
 /// </summary>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfLogicalImage : IPdfLogicalElement {
     internal PdfLogicalImage(PdfExtractedImage image)
         : this(image, Array.Empty<PdfImagePlacement>(), Array.Empty<PdfUnderstandingImageRegion>()) {
@@ -57,16 +58,16 @@ public sealed class PdfLogicalImage : IPdfLogicalElement {
     /// <summary>Semantic region for the first placement, when analysis produced one.</summary>
     public PdfUnderstandingImageRegion? PrimaryRegion => Regions.Count > 0 ? Regions[0] : null;
 
-    /// <summary>Left edge of the first detected placement in PDF points, or null when placement geometry is unavailable.</summary>
+    /// <summary>Left edge of the first detected placement in page user-space units, or null when placement geometry is unavailable.</summary>
     public double? PlacedX => PrimaryPlacement?.X;
 
-    /// <summary>Bottom edge of the first detected placement in PDF points, or null when placement geometry is unavailable.</summary>
+    /// <summary>Bottom edge of the first detected placement in page user-space units, or null when placement geometry is unavailable.</summary>
     public double? PlacedY => PrimaryPlacement?.Y;
 
-    /// <summary>Width of the first detected placement in PDF points, or null when placement geometry is unavailable.</summary>
+    /// <summary>Width of the first detected placement in page user-space units, or null when placement geometry is unavailable.</summary>
     public double? PlacedWidth => PrimaryPlacement?.Width;
 
-    /// <summary>Height of the first detected placement in PDF points, or null when placement geometry is unavailable.</summary>
+    /// <summary>Height of the first detected placement in page user-space units, or null when placement geometry is unavailable.</summary>
     public double? PlacedHeight => PrimaryPlacement?.Height;
 
     /// <summary>PDF image resource name.</summary>
@@ -85,6 +86,7 @@ public sealed class PdfLogicalImage : IPdfLogicalElement {
 /// <summary>
 /// Link annotation entry in the logical page model.
 /// </summary>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfLogicalLinkAnnotation : IPdfLogicalElement {
     internal PdfLogicalLinkAnnotation(int pageNumber, PdfLinkAnnotation link) {
         PageNumber = pageNumber;
@@ -169,28 +171,29 @@ public sealed class PdfLogicalLinkAnnotation : IPdfLogicalElement {
     /// <summary>Optional annotation contents metadata.</summary>
     public string? Contents => SourceLink.Contents;
 
-    /// <summary>Left edge of the annotation rectangle in PDF points.</summary>
+    /// <summary>Left edge of the annotation rectangle in page user-space units.</summary>
     public double X1 => SourceLink.X1;
 
-    /// <summary>Bottom edge of the annotation rectangle in PDF points.</summary>
+    /// <summary>Bottom edge of the annotation rectangle in page user-space units.</summary>
     public double Y1 => SourceLink.Y1;
 
-    /// <summary>Right edge of the annotation rectangle in PDF points.</summary>
+    /// <summary>Right edge of the annotation rectangle in page user-space units.</summary>
     public double X2 => SourceLink.X2;
 
-    /// <summary>Top edge of the annotation rectangle in PDF points.</summary>
+    /// <summary>Top edge of the annotation rectangle in page user-space units.</summary>
     public double Y2 => SourceLink.Y2;
 
-    /// <summary>Rectangle width in PDF points.</summary>
+    /// <summary>Rectangle width in page user-space units.</summary>
     public double Width => SourceLink.Width;
 
-    /// <summary>Rectangle height in PDF points.</summary>
+    /// <summary>Rectangle height in page user-space units.</summary>
     public double Height => SourceLink.Height;
 }
 
 /// <summary>
 /// AcroForm widget annotation entry in the logical page model.
 /// </summary>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfLogicalFormWidget : IPdfLogicalElement {
     internal PdfLogicalFormWidget(int pageNumber, PdfFormField field, PdfFormWidget widget) {
         PageNumber = pageNumber;
@@ -222,22 +225,22 @@ public sealed class PdfLogicalFormWidget : IPdfLogicalElement {
     /// <summary>Indirect object number for the widget annotation, when known.</summary>
     public int? ObjectNumber => SourceWidget.ObjectNumber;
 
-    /// <summary>Left edge of the widget rectangle in PDF points.</summary>
+    /// <summary>Left edge of the widget rectangle in page user-space units.</summary>
     public double X1 => SourceWidget.X1;
 
-    /// <summary>Bottom edge of the widget rectangle in PDF points.</summary>
+    /// <summary>Bottom edge of the widget rectangle in page user-space units.</summary>
     public double Y1 => SourceWidget.Y1;
 
-    /// <summary>Right edge of the widget rectangle in PDF points.</summary>
+    /// <summary>Right edge of the widget rectangle in page user-space units.</summary>
     public double X2 => SourceWidget.X2;
 
-    /// <summary>Top edge of the widget rectangle in PDF points.</summary>
+    /// <summary>Top edge of the widget rectangle in page user-space units.</summary>
     public double Y2 => SourceWidget.Y2;
 
-    /// <summary>Rectangle width in PDF points.</summary>
+    /// <summary>Rectangle width in page user-space units.</summary>
     public double Width => SourceWidget.Width;
 
-    /// <summary>Rectangle height in PDF points.</summary>
+    /// <summary>Rectangle height in page user-space units.</summary>
     public double Height => SourceWidget.Height;
 
     /// <summary>Current widget appearance state name from /AS, when present.</summary>

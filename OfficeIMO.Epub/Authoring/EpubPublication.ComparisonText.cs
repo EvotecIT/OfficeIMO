@@ -24,15 +24,36 @@ public sealed partial class EpubPublication {
         var blocks = all.Where(element => !element.Descendants().Any(child => child.Name.Namespace == Html && names.Contains(child.Name.LocalName))).ToArray();
         var idCounts = body.DescendantsAndSelf().Select(element => (string?)element.Attribute("id") ?? (string?)element.Attribute(XNamespace.Xml + "id"))
             .Where(id => !string.IsNullOrEmpty(id)).GroupBy(id => id!, StringComparer.Ordinal).ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
+        Dictionary<XElement, int>? siblingPositions = null;
         foreach (XElement element in blocks) {
             token.ThrowIfCancellationRequested();
             string? id = (string?)element.Attribute("id") ?? (string?)element.Attribute(XNamespace.Xml + "id");
-            string locator = !string.IsNullOrEmpty(id) && idCounts[id!] == 1 ? "#" + id :
-                "/" + string.Join("/", element.AncestorsAndSelf().Reverse().Select(node => node.Name + "[" + (node.ElementsBeforeSelf(node.Name).Count() + 1) + "]"));
+            string locator;
+            if (!string.IsNullOrEmpty(id) && idCounts[id!] == 1) {
+                locator = "#" + id;
+            } else {
+                siblingPositions ??= EditionSiblingPositions(document.Root!, token);
+                locator = "/" + string.Join("/", element.AncestorsAndSelf().Reverse()
+                    .Select(node => node.Name + "[" + siblingPositions[node] + "]"));
+            }
             result.Add(locator, element.Value);
         }
         // Retain a whole-body signal as well, covering loose text outside selected blocks.
         result.Add("$body", body.Value);
         return result;
+    }
+
+    private static Dictionary<XElement, int> EditionSiblingPositions(XElement root, CancellationToken token) {
+        var positions = new Dictionary<XElement, int> { [root] = 1 };
+        foreach (XElement parent in root.DescendantsAndSelf()) {
+            token.ThrowIfCancellationRequested();
+            var counts = new Dictionary<XName, int>();
+            foreach (XElement child in parent.Elements()) {
+                counts.TryGetValue(child.Name, out int count);
+                positions.Add(child, count + 1);
+                counts[child.Name] = count + 1;
+            }
+        }
+        return positions;
     }
 }

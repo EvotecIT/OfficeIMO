@@ -19,7 +19,7 @@ namespace PSWriteOffice.Cmdlets.Project;
 /// $view | Export-OfficeProjectReport -Path ./delivery.pdf
 /// $view | Export-OfficeProjectReport -Path ./delivery.docx</code>
 /// </example>
-[Cmdlet(VerbsData.Export, "OfficeProjectReport", SupportsShouldProcess = true)]
+[Cmdlet(VerbsData.Export, "OfficeProjectReport", SupportsShouldProcess = true, DefaultParameterSetName = "View")]
 [OutputType(typeof(FileInfo))]
 public sealed class ExportOfficeProjectReportCommand : PSCmdlet {
     /// <summary>Captured report from Get-OfficeProjectView.</summary>

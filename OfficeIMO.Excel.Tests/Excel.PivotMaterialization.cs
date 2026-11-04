@@ -2,8 +2,10 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Theory]
         [InlineData(1)]
         [InlineData(2)]
@@ -12,7 +14,7 @@ namespace OfficeIMO.Tests {
         public void Test_PivotMaterialization_RejectsUncachedFormulasInEverySourceField(int column) {
             using var document = ExcelDocument.Load(PivotLookupOraclePath);
             var sheet = document.GetSheet("Sum");
-            document.GetSheet("Source").CellFormula(2, column, "IF(TRUE,1,2)");
+            document.GetSheet("Source").Cell(2, column).SetFormula("IF(TRUE,1,2)");
             document.GetSheet("Source").ClearCachedFormulaResults();
             string before = sheet.WorksheetPart.Worksheet.OuterXml;
             var cache = sheet.WorksheetPart.PivotTableParts.Single().PivotTableCacheDefinitionPart!;
@@ -23,15 +25,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_PivotMaterialization_CreatesWithoutTemplateOrOfficeRefresh() {
+        public void Test_PivotMaterialization_CreatesWithoutTemplateOrOfficeRefresh()
+        {
             string path = Path.Combine(_directoryWithFiles, "HeadlessPivot.TemplateFree.xlsx");
             using var oracle = ExcelDocumentReader.Open(PivotLookupOraclePath);
             var sourceValues = oracle.GetSheet("Source").ReadRange("A1:D9");
-            using (var document = ExcelDocument.Create(path)) {
-                var sheet = document.AddWorksheet("Sales");
-                for (int row = 1; row <= 9; row++) for (int column = 1; column <= 4; column++) sheet.CellValue(row, column, sourceValues[row - 1, column - 1]);
-                sheet.AddPivotTable("A1:D9", "F1", "SalesPivot", rowFields: new[] { "Region" }, columnFields: new[] { "Product" },
-                    dataFields: new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Metric") }, layout: ExcelPivotLayout.Tabular);
+            using (var document = ExcelDocument.Create(path))
+            {
+                var sheet = document.AddSheet("Sales");
+                for (int row = 1; row <= 9; row++)
+                    for (int column = 1; column <= 4; column++)
+                        sheet.Cell(row, column).SetValue(sourceValues[row - 1, column - 1]);
+                sheet.AddPivotTable("A1:D9", "F1", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, ColumnFields = new[] { "Product" }, DataFields = new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Metric") }, Layout = ExcelPivotLayout.Tabular });
                 var result = sheet.MaterializePivotTable("SalesPivot");
                 Assert.Equal("F1:I6", result.OutputRange);
                 Assert.True(result.Mutation.PackageIsValid, string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
@@ -40,6 +45,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(cache.GetIdOfPart(cache.PivotTableCacheRecordsPart!), cache.PivotCacheDefinition!.Id!.Value);
                 document.Save();
             }
+
             using var reopened = ExcelDocument.Load(path);
             Assert.Equal(48d, reopened.GetSheet("Sales").GetPivotData("SalesPivot", "Metric").Value);
             Assert.Equal(8U, reopened.GetSheet("Sales").WorksheetPart.PivotTableParts.Single().PivotTableCacheDefinitionPart!.PivotCacheDefinition!.RecordCount!.Value);
@@ -102,13 +108,13 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Load(PivotLookupOraclePath);
             var source = document.GetSheet("Source");
             var sheet = document.GetSheet("Sum");
-            source.CellValue(2, 3, 999d);
+            source.Cell(2, 3).SetValue(999d);
             sheet.MaterializePivotTable("PivotSum");
             Assert.Equal(1037d, sheet.GetPivotData("PivotSum", "Metric").Value);
-            source.CellValue(7, 1, "North");
+            source.Cell(7, 1).SetValue("North");
             var result = sheet.MaterializePivotTable("PivotSum");
             Assert.Equal("A1:D5", result.OutputRange);
-            for (int column = 1; column <= 4; column++) Assert.Null(sheet.CellAt(6, column).GetValue().Value);
+            for (int column = 1; column <= 4; column++) Assert.Null(sheet.Cell(6, column).GetValue().Value);
             Assert.Equal(1037d, sheet.GetPivotData("PivotSum", "Metric").Value);
         }
 
@@ -141,7 +147,7 @@ namespace OfficeIMO.Tests {
             lookup.ClearCachedFormulaResults();
             Assert.Equal(35, lookup.RecalculateSupportedFormulas());
             var expected = oracle.GetSheet("LookupEdges").ReadRange($"A{firstRow}:A{firstRow + count - 1}");
-            for (int index = 0; index < count; index++) AssertPivotLookupOracleValue(expected[index, 0], lookup.CellAt(firstRow + index, 1).GetValue().Value);
+            for (int index = 0; index < count; index++) AssertPivotLookupOracleValue(expected[index, 0], lookup.Cell(firstRow + index, 1).GetValue().Value);
             document.Save(Path.Combine(_directoryWithFiles, name + ".Materialized.xlsx"));
             if (name == "Keys") {
                 var shared = sheet.WorksheetPart.PivotTableParts.Single().PivotTableCacheDefinitionPart!.PivotCacheDefinition!.CacheFields!.Elements<CacheField>().First().SharedItems!;
@@ -164,12 +170,12 @@ namespace OfficeIMO.Tests {
             Assert.Equal(cacheBefore, sheet.WorksheetPart.PivotTableParts.Single().PivotTableCacheDefinitionPart!.PivotCacheDefinition!.OuterXml);
             Assert.Throws<InvalidOperationException>(() => sheet.MaterializePivotTable("PivotSum", new ExcelMutationPlanOptions { MaximumSnapshotCharacters = 1 }));
             Assert.Equal(before, sheet.WorksheetPart.Worksheet.OuterXml);
-            document.GetSheet("Source").CellValue(7, 2, "C");
-            sheet.CellValue(3, 5, "keep");
+            document.GetSheet("Source").Cell(7, 2).SetValue("C");
+            sheet.Cell(3, 5).SetValue("keep");
             string collisionBefore = sheet.WorksheetPart.Worksheet.OuterXml;
             Assert.Throws<InvalidOperationException>(() => sheet.MaterializePivotTable("PivotSum"));
             Assert.Equal(collisionBefore, sheet.WorksheetPart.Worksheet.OuterXml);
-            Assert.Equal("keep", sheet.CellAt(3, 5).GetValue().Value);
+            Assert.Equal("keep", sheet.Cell(3, 5).GetValue().Value);
         }
     }
 }

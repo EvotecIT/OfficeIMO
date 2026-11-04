@@ -84,35 +84,35 @@ $scope = 'Application log | last 24 hours | levels 1, 2, 3 | limit {0} | collect
 
 New-OfficeWord -Path $docx {
     WordHeader { WordParagraph -Text 'OPERATIONS / EVENT REVIEW' }
-    WordFooter { WordPageNumber -IncludeTotalPages }
+    WordFooter { WordPageNumber -IncludeTotal }
     WordParagraph {
-        WordParagraphStyle -SpacingAfterPoints 12 -KeepWithNext $true
-        WordText 'Windows event review' -Bold -FontSize 26 -Color '17365D'
+        Set-OfficeWordParagraph -SpacingAfter 12 -KeepWithNext:$true
+        WordText 'Windows event review' -Bold -Size 26 -Color '17365D'
     }
     WordParagraph -Text $scope
     WordParagraph {
-        WordParagraphStyle -SpacingBeforePoints 12 -SpacingAfterPoints 10
+        Set-OfficeWordParagraph -SpacingBefore 12 -SpacingAfter 10
         WordText "$($records.Count) retained / $critical critical / $errors errors / $warnings warnings" `
-            -Bold -FontSize 16 -Color '9A3412'
+            -Bold -Size 16 -Color '9A3412'
     }
     WordParagraph -Text 'This bounded snapshot supports investigation. Counts do not identify a root cause or describe the entire environment.'
     WordParagraph {
-        WordParagraphStyle -SpacingBeforePoints 16 -SpacingAfterPoints 8 -KeepWithNext $true
-        WordText 'Where to start looking' -Bold -FontSize 15 -Color '17365D'
+        Set-OfficeWordParagraph -SpacingBefore 16 -SpacingAfter 8 -KeepWithNext:$true
+        WordText 'Where to start looking' -Bold -Size 15 -Color '17365D'
     }
     if ($providers.Count) {
         $table = WordTable -InputObject $providers -Style GridTable4Accent1 `
             -Layout AutoFitToWindow -PassThru
         $table | Get-OfficeWordTableCell | ForEach-Object {
-            $_.MarginTopCentimeters = 0.14
-            $_.MarginBottomCentimeters = 0.14
+            $_.MarginTop = [OfficeIMO.OfficeLength]::Centimeters(0.14)
+            $_.MarginBottom = [OfficeIMO.OfficeLength]::Centimeters(0.14)
         }
     } else {
         WordParagraph -Text 'No matching records were returned for this collection.'
     }
     WordParagraph {
-        WordParagraphStyle -SpacingBeforePoints 16 -SpacingAfterPoints 8 -KeepWithNext $true
-        WordText 'Investigation handoff' -Bold -FontSize 15 -Color '17365D'
+        Set-OfficeWordParagraph -SpacingBefore 16 -SpacingAfter 8 -KeepWithNext:$true
+        WordText 'Investigation handoff' -Bold -Size 15 -Color '17365D'
     }
     WordList -Style Bulleted {
         WordListItem -Text 'Open EventRegister.xlsx and read the full messages for the busiest providers.'
@@ -120,7 +120,7 @@ New-OfficeWord -Path $docx {
         WordListItem -Text 'Record the investigation owner, next action and follow-up time in this document.'
     }
 }
-Export-OfficeDocumentPdf -InputPath $docx -Path $pdf
+Convert-OfficeDocument -LiteralPath $docx -To Pdf -OutputPath $pdf
 ```
 
 The heading stays with the table, the cells have breathing room, and the next section starts with a deliberate gap. These small details make a generated document much easier to read. The Word file remains editable, so the investigator can add what they found before passing it on.
@@ -132,12 +132,12 @@ The brief should stay short. The workbook is where the reader filters by compute
 ```powershell
 New-OfficeExcel -Path $xlsx {
     ExcelSheet 'Events' {
-        ExcelGridlines -Hide
+        ExcelSheetView -NoGridlines
         ExcelCell -Address A1 -Value 'Windows event register'
         ExcelRow -Row 1 -Height 30 -Bold $true
         ExcelCell -Address A2 -Value $scope
         if ($records.Count) {
-            ExcelTable -InputObject $records -StartRow 4 -TableName EventRegister `
+            ExcelTable -InputObject $records -StartRow 4 -Name EventRegister `
                 -TableStyle TableStyleMedium2
             for ($row = 5; $row -lt 5 + $records.Count; $row++) {
                 ExcelCell -Row $row -Column 1 -Value $records[$row - 5].TimeCreated `
@@ -154,7 +154,7 @@ New-OfficeExcel -Path $xlsx {
         ExcelColumn -Column 5 -Width 22
         ExcelColumn -Column 6 -Width 18
         ExcelColumn -Column 7 -Width 60
-        ExcelFreeze -TopRows 4
+        ExcelSheetView -FreezeRows 4
     }
 }
 ```

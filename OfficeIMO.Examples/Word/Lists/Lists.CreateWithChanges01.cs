@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class Lists {
@@ -17,12 +17,12 @@ namespace OfficeIMO.Examples.Word {
 
                 WordList wordList1 = document.AddList(WordListStyle.LowerLetterWithBracket);
                 wordList1.Bold = true;
-                wordList1.FontSize = 16;
+                wordList1.FontSize = global::OfficeIMO.OfficeLength.Points(16);
                 wordList1.Color = Color.DarkRed;
 
                 var listItem1 = wordList1.AddItem("Text 1");
                 listItem1.Bold = true;
-                listItem1.FontSize = 16;
+                listItem1.FontSize = global::OfficeIMO.OfficeLength.Points(16);
                 listItem1.Color = Color.DarkRed;
 
                 wordList1.AddItem("Text 2", 1);
@@ -31,7 +31,7 @@ namespace OfficeIMO.Examples.Word {
                 paragraph = document.AddParagraph("This is 2nd list - LowerLetterWithDot");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
                 paragraph.Bold = true;
-                paragraph.FontSize = 16;
+                paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(16);
                 paragraph.Color = Color.AliceBlue;
 
                 document.Save();

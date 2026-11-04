@@ -30,18 +30,20 @@ internal static partial class PdfWriter {
             ContainerBlock? container, PdfPanelStyle style, double parentLeft, double parentWidth, double? fontSize = null) {
             if (container?.FrameTable is not { } table)
                 return ResolveContainerFrame(style, parentLeft, parentWidth);
+            parentLeft += style.LeftInset.ToPoints();
+            parentWidth = ResolveContainerAvailableWidth(style, parentWidth);
             PdfTableStyle tableStyle = PreparePairedTableBorders(table, table.Style!);
-            double available = parentWidth - container.FrameTableIndent - 2D * style.PaddingX;
+            double available = parentWidth - container.FrameTableIndent - 2D * style.PaddingX.ToPoints();
             int columns = GetTableColumnCount(table);
             int headers = Math.Min(tableStyle.HeaderRowCount, table.Rows.Count);
             int footerStart = table.Rows.Count - Math.Min(tableStyle.FooterRowCount, table.Rows.Count - headers);
             double contentWidth = ResolveTableColumnLayout(table, currentOpts, tableStyle, columns, available,
-                GetTableBodyFontSize(tableStyle, fontSize ?? currentOpts.DefaultFontSize), headers, footerStart).Width;
-            double outerWidth = contentWidth + 2D * style.PaddingX;
+                GetTableBodyFontSize(tableStyle, fontSize ?? currentOpts.DefaultFontSize.ToPoints()), headers, footerStart).Width;
+            double outerWidth = contentWidth + 2D * style.PaddingX.ToPoints();
             ValidatePanelStyle(style, outerWidth);
             PdfTableStyle placement = tableStyle.Clone();
-            placement.LeftIndent = container.FrameTableIndent;
-            placement.HorizontalOffset = container.FrameTableHorizontalOffset;
+            placement.LeftIndent = global::OfficeIMO.OfficeLength.Points(container.FrameTableIndent);
+            placement.HorizontalOffset = global::OfficeIMO.OfficeLength.Points(container.FrameTableHorizontalOffset);
             return (ResolveTableX(table.Align, placement, parentLeft, parentWidth, outerWidth), outerWidth, contentWidth);
         }
 
@@ -72,8 +74,8 @@ internal static partial class PdfWriter {
             border.Top &= drawTop;
             border.Bottom &= drawBottom;
             double inset = container.FrameTableBorderInset;
-            double topInset = border.Top ? border.TopBorderSnapshot?.Width / 2D ?? 0D : 0D;
-            double bottomInset = border.Bottom ? border.BottomBorderSnapshot?.Width / 2D ?? 0D : 0D;
+            double topInset = border.Top ? border.TopBorderSnapshot?.Width.ToPoints() / 2D ?? 0D : 0D;
+            double bottomInset = border.Bottom ? border.BottomBorderSnapshot?.Width.ToPoints() / 2D ?? 0D : 0D;
             DrawCellBorder(output, border, outerX + inset, bottom + bottomInset,
                 outerWidth - 2D * inset, height - topInset - bottomInset, emitGeneratedStructure);
         }

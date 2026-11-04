@@ -49,7 +49,7 @@ internal sealed class ExcelNativeBinaryWriteBenchmarks {
         byte[] workbook = WriteWorkbook();
         Validate(workbook);
         if (Format == ExcelFileFormat.Xls) {
-            (int actualDbCellBlocks, int expectedDbCellBlocks) = InspectLegacyXlsDbCellBlocks(workbook);
+            (int actualDbCellBlocks, int expectedDbCellBlocks) = InspectLegacyXlsDbCellBlocks(workbook, RowCount);
             if (actualDbCellBlocks != expectedDbCellBlocks) {
                 throw new InvalidDataException(
                     $"OfficeIMO XLS emitted {actualDbCellBlocks} BIFF8 DBCell blocks instead of {expectedDbCellBlocks}.");
@@ -75,14 +75,8 @@ internal sealed class ExcelNativeBinaryWriteBenchmarks {
         if (reportStage is not null) {
             document.Execution.OnTiming = reportStage;
         }
-        ExcelSheet sheet = document.AddWorksheet("Data");
-        sheet.InsertObjects(
-            _rows,
-            ("Id", static row => row.Id),
-            ("Region", static row => row.Region),
-            ("Owner", static row => row.Owner),
-            ("Amount", static row => row.Amount),
-            ("Active", static row => row.Active));
+        ExcelSheet sheet = document.AddSheet("Data");
+        sheet.WriteData(_rows, ("Id", static row => row.Id), ("Region", static row => row.Region), ("Owner", static row => row.Owner), ("Amount", static row => row.Amount), ("Active", static row => row.Active));
         ReportProfileStage(reportStage, stageWatch, "AddSheetAndInsertObjects");
 
         byte[] workbook = document.ToBytes(Format);
@@ -178,7 +172,7 @@ internal sealed class ExcelNativeBinaryWriteBenchmarks {
     }
 
     private void Validate(byte[] workbook) {
-        using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(workbook);
+        using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(workbook);
         string[] headers = ["Id", "Region", "Owner", "Amount", "Active"];
         if (reader.FieldCount != headers.Length) {
             throw new InvalidDataException($"{Format} exposed {reader.FieldCount} fields instead of {headers.Length}.");
@@ -220,7 +214,7 @@ internal sealed class ExcelNativeBinaryWriteBenchmarks {
 
         if (Format == ExcelFileFormat.Xls) {
             try {
-                (int actualDbCellBlocks, int expectedDbCellBlocks) = InspectLegacyXlsDbCellBlocks(workbook);
+                (int actualDbCellBlocks, int expectedDbCellBlocks) = InspectLegacyXlsDbCellBlocks(workbook, RowCount);
                 structurallyConformant = actualDbCellBlocks == expectedDbCellBlocks;
                 structureDetail = structurallyConformant
                     ? $"BIFF8 Index/DBCell structure present ({actualDbCellBlocks} blocks)."
@@ -251,10 +245,11 @@ internal sealed class ExcelNativeBinaryWriteBenchmarks {
             semanticDetail + " " + structureDetail);
     }
 
-    private (int Actual, int Expected) InspectLegacyXlsDbCellBlocks(byte[] workbook) {
+    /// <summary>Checks the row-block index against one header and the requested number of data rows.</summary>
+    internal static (int Actual, int Expected) InspectLegacyXlsDbCellBlocks(byte[] workbook, int rowCount) {
         LegacyXlsWorkbook parsed = LegacyXlsWorkbook.Load(workbook);
         LegacyXlsWorksheet? sheet = parsed.Worksheets.FirstOrDefault();
-        return (sheet?.RowBlockIndex?.DbCellBlockCount ?? 0, (RowCount + 1 + 31) / 32);
+        return (sheet?.RowBlockIndex?.DbCellBlockCount ?? 0, (rowCount + 1 + 31) / 32);
     }
 
     private bool TryValidateExcelReaderWorkbook(byte[] workbook, out string? failure) {
@@ -278,7 +273,11 @@ internal sealed class ExcelNativeBinaryWriteBenchmarks {
 
     private void ValidateExcelReaderRows(XlsReader reader) {
         int rowIndex = -1;
+#if NET10_0_OR_GREATER
+        foreach (Row row in reader.FirstSheet) {
+#else
         foreach (Row row in reader) {
+#endif
             ValidateExcelReaderRow(row, ref rowIndex);
         }
         ValidateExcelReaderRowCount(rowIndex);
@@ -286,7 +285,11 @@ internal sealed class ExcelNativeBinaryWriteBenchmarks {
 
     private void ValidateExcelReaderRows(XlsbReader reader) {
         int rowIndex = -1;
+#if NET10_0_OR_GREATER
+        foreach (Row row in reader.FirstSheet) {
+#else
         foreach (Row row in reader) {
+#endif
             ValidateExcelReaderRow(row, ref rowIndex);
         }
         ValidateExcelReaderRowCount(rowIndex);

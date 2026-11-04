@@ -51,7 +51,7 @@ returned list objects can be piped directly to Add-OfficeWordListItem.
 
 ### EXAMPLE 1
 ```powershell
-PS> $doc = Get-OfficeWord -Path .\Report.docx
+PS> $doc = Open-OfficeWord -Path .\Report.docx
 Find-OfficeWordList -Document $doc -Text 'Initial review' |
     Add-OfficeWordListItem -Text 'Final approval'
 ```
@@ -60,7 +60,7 @@ Searches list-item paragraphs and returns matching OfficeIMO list objects for fu
 
 ### EXAMPLE 2
 ```powershell
-PS> $doc = Get-OfficeWord -Path .\Handover.docx
+PS> $doc = Open-OfficeWord -Path .\Handover.docx
 $list = Find-OfficeWordList -Document $doc -Text 'Initial review' | Select-Object -First 1
 $list | Add-OfficeWordListItem -Text 'Business sign-off'
 $list | Add-OfficeWordListItem -Text 'Go-live approval'

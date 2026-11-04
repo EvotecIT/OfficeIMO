@@ -44,10 +44,10 @@ public sealed partial class OdgPage {
         }
         int leaders = stops.Count(stop => !string.IsNullOrWhiteSpace(stop.LeaderText));
         if (leaders > 0) report.Add(feature + ":tab-leaders", OdfConversionMappingStatus.Approximated, leaders,
-            "Textual leaders use the measured gap, active formatting and referenced text-style overrides; producer glyph phase and typography can differ. The tested native Draw exporter ignores separate leader styles.");
+            "Textual leaders use the measured gap, active formatting and referenced text-style overrides; producer glyph phase and typography can differ. Absolute leader sizes round to shared EMUs, with positive sub-EMU values using one EMU. The tested native Draw exporter ignores separate leader styles.");
         int lineLeaders = stops.Count(stop => stop.LeaderText == null && stop.LineLeader?.Style != null && stop.LineLeader.Style != OfficeTextTabLineLeaderStyle.None);
         if (lineLeaders > 0) report.Add(feature + ":tab-line-leaders", OdfConversionMappingStatus.Approximated, lineLeaders,
-            "Line patterns use shared bounded outlines, declared colors and absolute widths. Named, integer and percentage widths use the documented font-relative approximation profile; producer rendering and native resave can differ.");
+            "Line patterns use shared bounded outlines, declared colors and absolute widths rounded to shared EMUs; positive sub-EMU widths use one EMU. Named, integer and percentage widths use the documented font-relative approximation profile; producer rendering and native resave can differ.");
         return new OfficeTextTabStops(stops, distance, origin).WithParagraphAlignment();
     }
 }

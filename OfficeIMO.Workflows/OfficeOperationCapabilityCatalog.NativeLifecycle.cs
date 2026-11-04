@@ -17,7 +17,7 @@ public static partial class OfficeOperationCapabilityCatalog {
             new[] { ".xlsx", ".xlsm", ".xltx", ".xltm", ".xlam" },
             new[] { OfficeOperationKind.Create, OfficeOperationKind.Read, OfficeOperationKind.Edit, OfficeOperationKind.Preserve, OfficeOperationKind.Inspect, OfficeOperationKind.Validate });
         AddNativeLifecycle(rows, "powerpoint-openxml", "OfficeIMO.PowerPoint", "PowerPoint.OpenXml",
-            "PowerPointPresentation.Create / Load / Save",
+            "PowerPointDocument.Create / Load / Save",
             "OfficeIMO.PowerPoint.Tests create, load, edit, save, and preservation contracts",
             new[] { ".pptx", ".pptm", ".potx", ".potm", ".ppsx", ".ppsm", ".ppam" },
             new[] { OfficeOperationKind.Create, OfficeOperationKind.Read, OfficeOperationKind.Edit, OfficeOperationKind.Preserve, OfficeOperationKind.Inspect, OfficeOperationKind.Validate });
@@ -42,7 +42,7 @@ public static partial class OfficeOperationCapabilityCatalog {
             new[] { ".rtf" },
             new[] { OfficeOperationKind.Create, OfficeOperationKind.Read, OfficeOperationKind.Edit, OfficeOperationKind.Preserve, OfficeOperationKind.Inspect });
         AddNativeLifecycle(rows, "markdown-native", "OfficeIMO.Markdown", "Markdown.Native",
-            "MarkdownDoc.Create / Load / Save / ToMarkdown",
+            "MarkdownDocument.Create / Load / Save / ToMarkdown",
             "OfficeIMO.Markdown.Tests typed-model parse, edit, and render contracts",
             new[] { ".md", ".markdown" },
             new[] { OfficeOperationKind.Create, OfficeOperationKind.Read, OfficeOperationKind.Edit },
@@ -63,6 +63,13 @@ public static partial class OfficeOperationCapabilityCatalog {
             limitedSupported: new[] { OfficeOperationKind.Read, OfficeOperationKind.Inspect },
             unsupported: new[] { OfficeOperationKind.Create, OfficeOperationKind.Edit, OfficeOperationKind.Preserve },
             limitation: "Read-only ITSF 2/3 archives with uncompressed or standard LZX storage. Raw entries remain exact; no CHM writer, Windows help viewer, ActiveX, script execution, merged-book loading or compiled full-text search is provided.");
+        AddNativeLifecycle(rows, "publisher-native", "OfficeIMO.Publisher", "Publisher.Native",
+            "PublisherDocument.Load / Save / ToBytes",
+            "OfficeIMO.Publisher.Tests independent native fixtures, editable model, exact source copies, and bounded native source-save contracts",
+            new[] { ".pub" }, Array.Empty<OfficeOperationKind>(),
+            partial: new[] { OfficeOperationKind.Read, OfficeOperationKind.Edit, OfficeOperationKind.Preserve },
+            unsupported: new[] { OfficeOperationKind.Create },
+            limitation: "Publisher 2002-and-later publications support managed recovery, documented source edits, and exact unchanged-source copies. Create builds an in-memory model for rendering. Template-free native output and earlier-generation lifecycle support remain unavailable.");
         AddNativeLifecycle(rows, "pdf-native", "OfficeIMO.Pdf", "Pdf.Native",
             "PdfDocument.Create / Load / Save / Inspect",
             "OfficeIMO.Pdf.Tests authoritative interoperability read, render, diagnostics, and mutation contracts",

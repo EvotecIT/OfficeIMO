@@ -42,7 +42,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
 
         private void WriteOfficeIMO(Stream stream) {
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddWorksheet("Data").InsertObjects(_records);
+            document.AddSheet("Data").WriteData(_records);
             document.Save(stream);
         }
 

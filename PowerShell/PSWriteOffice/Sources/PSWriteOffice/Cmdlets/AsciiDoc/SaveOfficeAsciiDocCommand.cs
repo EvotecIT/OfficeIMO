@@ -11,7 +11,7 @@ namespace PSWriteOffice.Cmdlets.AsciiDoc;
 ///   <code>$document = Get-OfficeAsciiDoc -Path .\Guide.adoc
 /// $document | Save-OfficeAsciiDoc -Path .\Guide-normalized.adoc -Mode Canonical</code>
 /// </example>
-[Cmdlet(VerbsData.Save, "OfficeAsciiDoc", SupportsShouldProcess = true)]
+[Cmdlet(VerbsData.Save, "OfficeAsciiDoc", SupportsShouldProcess = true, DefaultParameterSetName = "Document")]
 [OutputType(typeof(AsciiDocDocument))]
 public sealed class SaveOfficeAsciiDocCommand : PSCmdlet
 {

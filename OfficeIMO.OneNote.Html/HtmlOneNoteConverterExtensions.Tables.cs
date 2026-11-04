@@ -11,7 +11,7 @@ public static partial class HtmlOneNoteConverterExtensions {
     private static void ImportTable(
         HtmlSemanticBlock source,
         IList<OneNoteElement> target,
-        HtmlToOneNoteOptions options,
+        HtmlOneNoteExportOptions options,
         HtmlToOneNoteSectionResult result,
         HtmlImportBudget budget) {
         HtmlSemanticTable? sourceTable = source.Table;

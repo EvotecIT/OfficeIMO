@@ -1,4 +1,6 @@
 using OfficeIMO.Drawing;
+using OfficeIMO.Pdf;
+using OfficeIMO.Publisher.Pdf;
 using System.Xml.Linq;
 
 namespace OfficeIMO.Publisher.Tests;
@@ -11,7 +13,7 @@ public sealed class PublisherNativeTests {
         var expected = new[] { (306D, 72D, 234D, 72D), (72D, 396D, 360D, 72D), (72D, 216D, 234D, 72D), (72D, 288D, 360D, 108D) };
         Assert.Equal(4, page.TextFrames.Count);
         Assert.Equal(expected, page.TextFrames.Select(frame => (frame.X, frame.Y, frame.Width, frame.Height)));
-        Assert.DoesNotContain(document.ReadReport.FidelityDiagnostics, diagnostic => diagnostic.Code == "PUB_OBJECT_ANCHOR_UNRESOLVED"
+        Assert.DoesNotContain(document.ReadReport.Diagnostics, diagnostic => diagnostic.Code == "PUB_OBJECT_ANCHOR_UNRESOLVED"
             || diagnostic.Code == "PUB_STORY_NOT_PLACED");
     }
 
@@ -93,7 +95,7 @@ public sealed class PublisherNativeTests {
         Assert.Equal(stories, document.TextStories.Count);
         Assert.Equal(images, document.Images.Count);
         Assert.All(document.Images, image => Assert.True(image.ByteCount > 0));
-        Assert.DoesNotContain(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_GROUP_COORDINATES_UNRESOLVED");
+        Assert.DoesNotContain(document.ReadReport.Diagnostics, item => item.Code == "PUB_GROUP_COORDINATES_UNRESOLVED");
         Assert.True(document.ReadReport.HasLoss);
         Assert.All(document.Pages, page => Assert.NotEmpty(Elements(page.CreateDrawing()).OfType<OfficeDrawingImage>()));
     }
@@ -101,10 +103,10 @@ public sealed class PublisherNativeTests {
     [Fact]
     public void Publication_text_overflow_is_reported_while_complete_stories_remain_available() {
         PublisherDocument document = PublisherDocument.Load(Fixture("SampleNewsletter.pub"));
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_TEXT_FRAME_OVERFLOW" && item.LossKind == OfficeConversionLossKind.Omission);
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_LINKED_TEXT_LAYOUT_APPROXIMATED");
+        Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == "PUB_TEXT_FRAME_OVERFLOW" && item.LossKind == OfficeConversionLossKind.Omission);
+        Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == "PUB_LINKED_TEXT_LAYOUT_APPROXIMATED");
         Assert.Contains(document.TextStories, story => story.Text.Contains("Living and Learning in"));
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_TEXT_WRAP_APPROXIMATED");
+        Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == "PUB_TEXT_WRAP_APPROXIMATED");
     }
 
     [Fact]
@@ -127,8 +129,8 @@ public sealed class PublisherNativeTests {
         Assert.EndsWith("pt", svg.Attribute("width")!.Value);
         Assert.Contains("Table on page 2", result.Value);
         Assert.Contains("Bottom Right", result.Value);
-        Assert.Same(document.ReadReport, result.Report.ReadReport);
-        Assert.Throws<OfficeConversionException>(() => result.RequireNoLoss());
+        Assert.Same(document.ReadReport, ((PublisherConversionReport)result.Report).ReadReport);
+        Assert.Throws<OfficeConversionException>(() => result.ThrowIfLoss());
         Assert.Throws<ArgumentOutOfRangeException>(() => document.ToSvg(-1));
     }
 
@@ -137,6 +139,12 @@ public sealed class PublisherNativeTests {
     [InlineData("Sample98.pub")]
     public void Earlier_native_generations_are_rejected_instead_of_returning_text_salvage(string file) {
         Assert.Throws<NotSupportedException>(() => PublisherDocument.Load(Fixture(file)));
+    }
+
+    internal static PdfDocument ExportAndReloadPdf(PublisherDocument document, PdfCreateOptions? options = null) {
+        using PdfDocument pdf = document.ToPdf(options == null ? null : new PublisherPdfExportOptions { PdfOptions = options });
+        using var stream = new MemoryStream(pdf.ToBytes(), writable: false);
+        return PdfDocument.Load(stream);
     }
 
     internal static string Fixture(string file) => Path.Combine(AppContext.BaseDirectory, "Fixtures", file);

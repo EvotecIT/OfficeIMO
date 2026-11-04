@@ -1,3 +1,4 @@
+using OfficeIMO.Internal;
 using System.Globalization;
 
 namespace OfficeIMO.Workflows;
@@ -15,7 +16,7 @@ public sealed record BookOnixUsageLimit {
 
     /// <summary>Create a nonnegative numeric limit. Counts are integral; percentages cannot exceed 100; page positions start at one.</summary>
     public static BookOnixUsageLimit Number(BookOnixUsageUnit unit, decimal quantity) {
-        if (!Enum.IsDefined(unit) || unit is BookOnixUsageUnit.MediaDuration or BookOnixUsageUnit.StartTime or BookOnixUsageUnit.EndTime or BookOnixUsageUnit.ValidFrom or BookOnixUsageUnit.ValidUntil)
+        if (!OfficeRuntimeCompatibility.IsDefined(unit) || unit is BookOnixUsageUnit.MediaDuration or BookOnixUsageUnit.StartTime or BookOnixUsageUnit.EndTime or BookOnixUsageUnit.ValidFrom or BookOnixUsageUnit.ValidUntil)
             throw new ArgumentOutOfRangeException(nameof(unit), "Use the Time or Date factory for this unit.");
         if (quantity < 0 || (unit is BookOnixUsageUnit.Percentage or BookOnixUsageUnit.PercentagePerPeriod && quantity > 100))
             throw new ArgumentOutOfRangeException(nameof(quantity));
@@ -39,10 +40,11 @@ public sealed record BookOnixUsageLimit {
         return new(unit, text, (decimal)value.Ticks / TimeSpan.TicksPerSecond);
     }
 
-    /// <summary>Create a calendar boundary in YYYYMMDD format.</summary>
-    public static BookOnixUsageLimit Date(BookOnixUsageUnit unit, DateOnly value) {
+    /// <summary>Create a calendar boundary in YYYYMMDD format. Time of day is ignored.</summary>
+    public static BookOnixUsageLimit Date(BookOnixUsageUnit unit, DateTime value) {
         if (unit is not (BookOnixUsageUnit.ValidFrom or BookOnixUsageUnit.ValidUntil))
             throw new ArgumentOutOfRangeException(nameof(unit));
-        return new(unit, value.ToString("yyyyMMdd", CultureInfo.InvariantCulture), value.DayNumber);
+        DateTime date = value.Date;
+        return new(unit, date.ToString("yyyyMMdd", CultureInfo.InvariantCulture), date.Ticks / TimeSpan.TicksPerDay);
     }
 }

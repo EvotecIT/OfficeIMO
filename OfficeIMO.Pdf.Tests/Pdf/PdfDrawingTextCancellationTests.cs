@@ -13,14 +13,14 @@ public sealed class PdfDrawingTextCancellationTests {
         using var cancellation = new CancellationTokenSource();
         var provider = new CancellingProvider(cancellation);
         byte[] font = ManagedTextShapingTestAssets.CreateFont('A');
-        var options = new PdfOptions { TextShapingProvider = provider };
+        var options = new PdfCreateOptions { TextShapingProvider = provider };
         if (namedFont) options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Arial", font));
         else options.EmbedStandardFont(PdfStandardFont.Helvetica, font, "Cancellation font");
         var drawing = new OfficeDrawing(72, 72)
             .AddRichText(new[] { new OfficeRichTextRun("A", 12, OfficeColor.Black, fontFamily: "Arial") }, 0, 0, 72, 72);
         PdfDocument pdf = PdfDocument.Create(options).Drawing(drawing);
 
-        Assert.ThrowsAny<System.OperationCanceledException>(() => pdf.ToBytes(cancellation.Token));
+        Assert.ThrowsAny<System.OperationCanceledException>(() => pdf.ToBytes(cancellationToken: cancellation.Token));
         Assert.Equal(cancellation.Token, provider.ObservedToken);
     }
 

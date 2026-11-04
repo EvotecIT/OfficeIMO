@@ -8,7 +8,7 @@ internal static partial class PdfWriter {
         PdfImageStream image,
         PdfPrintColorTransform transform,
         bool flattenTransparency,
-        PdfColor transparencyBackground,
+        global::OfficeIMO.OfficeColor transparencyBackground,
         System.Threading.CancellationToken cancellationToken,
         out string? unsupportedReason) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -87,7 +87,7 @@ internal static partial class PdfWriter {
         int baseRowLength = checked((int)baseRowLengthValue);
         byte[] cmykRows = new byte[checked((int)cmykLengthValue)];
         byte[]? alphaRows = flattenTransparency ? null : new byte[checked((int)alphaLengthValue)];
-        PdfColor background = transparencyBackground;
+        global::OfficeIMO.OfficeColor background = transparencyBackground;
         var components = new double[4];
         var sourceComponents = sourceProfile == null ? null : new double[3];
         bool hasTransparency = false;
@@ -119,9 +119,9 @@ internal static partial class PdfWriter {
                 if (flattenTransparency && alpha != 255) {
                     double opacity = alpha / 255D;
                     color = OfficeColor.FromRgb(
-                        Composite(color.R, background.R, opacity),
-                        Composite(color.G, background.G, opacity),
-                        Composite(color.B, background.B, opacity));
+                        Composite(color.R, background.ToNormalizedRgb().R, opacity),
+                        Composite(color.G, background.ToNormalizedRgb().G, opacity),
+                        Composite(color.B, background.ToNormalizedRgb().B, opacity));
                 }
 
                 transform.Convert(color, components);

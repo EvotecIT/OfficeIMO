@@ -474,7 +474,7 @@ use 22/20/18-point line heights, with a 14-point bold empty middle paragraph.
 `PublisherNativeCreationProjection`. Graph, OfficeArt and Quill encoders belong to
 the same library implementation; typed field encodings use `PublisherOplWriter`.
 Its internal `Create(plan, options, maxOutputBytes, token)` entry point snapshots
-`PublisherReadOptions`, validates operation budgets and observes cancellation
+`PublisherLoadOptions`, validates operation budgets and observes cancellation
 through encoding. The shared compound-file writer enforces `maxOutputBytes` on the
 complete CFB output, including storage overhead. The public native save path
 continues to require a loaded source and reports `PUB_NATIVE_SOURCE_REQUIRED` for

@@ -1,6 +1,6 @@
 html {
     background: var(--officeimo-page-background);
-    color-scheme: light;
+    color-scheme: var(--officeimo-color-scheme);
 }
 
 body.officeimo-html {
@@ -181,7 +181,7 @@ body.officeimo-html tfoot tr:last-child > *,
 body.officeimo-html th,
 .officeimo-table th {
     background: var(--officeimo-table-header);
-    color: var(--officeimo-heading);
+    color: var(--officeimo-table-header-text);
     font-weight: 680;
 }
 

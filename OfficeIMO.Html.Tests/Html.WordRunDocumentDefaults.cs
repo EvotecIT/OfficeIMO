@@ -20,7 +20,7 @@ public sealed class HtmlWordRunDocumentDefaultsTests {
         if (reset) paragraph.Highlight = WordHighlightColor.None;
 
         using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes()));
-        string html = loaded.ToHtml(new WordToHtmlOptions { IncludeRunHighlightStyles = true });
+        string html = loaded.ToHtml(new WordHtmlExportOptions { IncludeRunHighlightStyles = true });
 
         Assert.Contains("BACKGROUND", html, StringComparison.Ordinal);
         Assert.Contains("background-color:" + highlightColor, html, StringComparison.OrdinalIgnoreCase);

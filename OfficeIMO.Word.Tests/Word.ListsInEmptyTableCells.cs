@@ -41,7 +41,7 @@ public partial class Word {
         Assert.Same(cell._tableCell, second._paragraph.Parent);
         Assert.DoesNotContain(document.Sections[0].Paragraphs, paragraph => paragraph.Text == "First" || paragraph.Text == "Second");
 
-        using MemoryStream stream = document.ToStream();
+        using MemoryStream stream = new System.IO.MemoryStream(document.ToBytes());
         stream.Position = 0;
         using WordprocessingDocument package = WordprocessingDocument.Open(stream, false);
         var errors = new OpenXmlValidator().Validate(package).ToList();
@@ -64,7 +64,7 @@ public partial class Word {
         Assert.Equal(WordNumberFormat.Bullet, WordDocumentTraversal.GetListInfo(first)!.Value.NumberFormat);
         Assert.Equal(1, WordDocumentTraversal.GetListInfo(nested)!.Value.Level);
 
-        using MemoryStream stream = document.ToStream();
+        using MemoryStream stream = new System.IO.MemoryStream(document.ToBytes());
         stream.Position = 0;
         using WordprocessingDocument package = WordprocessingDocument.Open(stream, false);
         var errors = new OpenXmlValidator().Validate(package).ToList();

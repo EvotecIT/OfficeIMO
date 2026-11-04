@@ -2,10 +2,9 @@
   <PropertyGroup>
     <Description>Opt-in Pages, Numbers, and Keynote conversion routes for OfficeIMO Workflows.</Description>
     <PackageId>OfficeIMO.Workflows.IWork</PackageId>
-    <AssemblyName>OfficeIMO.Workflows.IWork</AssemblyName>
-    <AssemblyTitle>OfficeIMO.Workflows.IWork</AssemblyTitle>
     <VersionPrefix>3.5.3</VersionPrefix>
-    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
@@ -37,4 +36,9 @@
     <ProjectReference Include="..\OfficeIMO.PowerPoint.Pdf\OfficeIMO.PowerPoint.Pdf.csproj" />
   </ItemGroup>
 
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'">
+    <IsAotCompatible>true</IsAotCompatible>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <EnableAotAnalyzer>true</EnableAotAnalyzer>
+  </PropertyGroup>
 </Project>

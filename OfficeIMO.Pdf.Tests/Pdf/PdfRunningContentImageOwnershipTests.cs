@@ -12,7 +12,7 @@ public sealed class PdfRunningContentImageOwnershipTests {
         byte[] bytes = PdfPngTestImages.CreateRgbPng(2, 2);
         byte[] original = (byte[])bytes.Clone();
         var style = new PdfImageStyle { RotationAngle = 90 };
-        var image = new PdfTableCellImage(bytes, 12, 12, style);
+        var image = new PdfTableCellImage(bytes, global::OfficeIMO.OfficeLength.Points(12), global::OfficeIMO.OfficeLength.Points(12), style);
         var first = new PdfTableCell("First", images: new[] { image });
         var second = new PdfTableCell("Second", images: new[] { image });
         bytes[0] = 0;
@@ -23,8 +23,8 @@ public sealed class PdfRunningContentImageOwnershipTests {
         Assert.Equal(original, first.Images[0].Data);
         Assert.Equal(original, second.Images[0].Data);
         Assert.Equal(90, first.Images[0].Style!.RotationAngle);
-        Assert.Same(first.Images[0].ToImageBlock(PdfAlign.Left).Data,
-            second.Images[0].ToImageBlock(PdfAlign.Left).Data);
+        Assert.Same(first.Images[0].ToImageBlock(OfficeAlignment.Left).Data,
+            second.Images[0].ToImageBlock(OfficeAlignment.Left).Data);
     }
 
     [Theory]
@@ -32,21 +32,23 @@ public sealed class PdfRunningContentImageOwnershipTests {
     [InlineData(true)]
     public void Dynamic_story_image_payloads_are_shared_across_pages_and_variants(bool footer) {
         byte[] bytes = PdfPngTestImages.CreateRgbPng(2, 2);
-        var document = PdfDocument.Create(new PdfOptions { PageWidth = 240, PageHeight = 320,
-            MarginTop = 40, MarginBottom = 40, MarginLeft = 24, MarginRight = 24,
+        var document = PdfDocument.Create(new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(320)),
+            Margins = { Top = global::OfficeIMO.OfficeLength.Points(40), Bottom = global::OfficeIMO.OfficeLength.Points(40), Left = global::OfficeIMO.OfficeLength.Points(24), Right = global::OfficeIMO.OfficeLength.Points(24) }
+        },
             PageContentMemoryLimitBytes = 0 });
         Action<PdfContentBuilder> Compose(PdfRunningContentContext context) => content => {
             // New input arrays deliberately miss the source-array prepared-image cache.
             var cell = new PdfTableCell($"{context.PageNumber}/{context.DocumentPages}",
-                images: new[] { new PdfTableCellImage((byte[])bytes.Clone(), 12, 12) });
-            var style = TableStyles.Minimal(); style.HeaderRowCount = 0;
-            content.Table(new[] { new[] { cell } }, style: style);
+                images: new[] { new PdfTableCellImage((byte[])bytes.Clone(), global::OfficeIMO.OfficeLength.Points(12), global::OfficeIMO.OfficeLength.Points(12)) });
+            var style = PdfTableStyles.Minimal(); style.HeaderRowCount = 0;
+            content.AddTable(new[] { new[] { cell } }, style: style);
         };
-        if (footer) document.Footer(builder => builder.Content(Compose, 18).FirstPageContent(Compose, 18).EvenPagesContent(Compose, 18));
-        else document.Header(builder => builder.Content(Compose, 18).FirstPageContent(Compose, 18).EvenPagesContent(Compose, 18));
+        if (footer) document.Footer(builder => builder.Content(Compose, global::OfficeIMO.OfficeLength.Points(18)).FirstPageContent(Compose, global::OfficeIMO.OfficeLength.Points(18)).EvenPagesContent(Compose, global::OfficeIMO.OfficeLength.Points(18)));
+        else document.Header(builder => builder.Content(Compose, global::OfficeIMO.OfficeLength.Points(18)).FirstPageContent(Compose, global::OfficeIMO.OfficeLength.Points(18)).EvenPagesContent(Compose, global::OfficeIMO.OfficeLength.Points(18)));
         for (int index = 0; index < 6; index++) {
             if (index > 0) document.PageBreak();
-            document.Paragraph(paragraph => paragraph.Text("BODY"));
+            document.Paragraph(paragraph => paragraph.AddText("BODY"));
         }
         const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public;
         var blocks = typeof(PdfDocument).GetField("_blocks", flags)!.GetValue(document);
