@@ -52,8 +52,8 @@ public sealed class EmailWriteResult {
     public bool UsedPreservedSource => SourceSelection == EmailArtifactSourceSelection.PreservedSource;
 
     /// <summary>Throws when the operation was blocked or accepted known semantic loss.</summary>
-    public EmailWriteResult RequireNoLoss() {
-        if (LossDisposition == EmailConversionLossDisposition.None && !HasErrors) return this;
+    public void ThrowIfLoss() {
+        if (LossDisposition == EmailConversionLossDisposition.None && !HasErrors) return;
         EmailDiagnostic? diagnostic = Diagnostics.FirstOrDefault(item =>
             item.Severity == EmailDiagnosticSeverity.Error || item.DataLossRisk != EmailDataLossRisk.None);
         throw new InvalidDataException(diagnostic == null

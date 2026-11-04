@@ -28,7 +28,7 @@ public sealed class EmailMimeReaderTests {
             "Content-Transfer-Encoding: base64\r\n\r\nAQIDBA==\r\n" +
             "--outer--\r\nepilogue\r\n";
 
-        EmailReadResult result = new EmailDocumentReader().Read(Encoding.UTF8.GetBytes(eml));
+        EmailReadResult result = new EmailDocumentReader().ReadDocument(Encoding.UTF8.GetBytes(eml));
 
         Assert.Equal(EmailFileFormat.Eml, result.Document.Format);
         Assert.Equal("Résumé", result.Document.Subject);
@@ -56,7 +56,7 @@ public sealed class EmailMimeReaderTests {
             "Content-Disposition: attachment; filename=details.txt\r\n\r\ndetails\r\n" +
             "--report--\r\n--outer--\r\n";
 
-        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(Encoding.ASCII.GetBytes(eml)).Document;
 
         Assert.Equal("message body", document.Body.Text!.Trim());
         EmailAttachment attachment = Assert.Single(document.Attachments);
@@ -68,7 +68,7 @@ public sealed class EmailMimeReaderTests {
 
         byte[] rewritten = new EmailDocumentWriter().ToBytes(document, EmailFileFormat.Eml,
             out EmailWriteResult writeResult);
-        EmailAttachment rewrittenAttachment = Assert.Single(new EmailDocumentReader().Read(rewritten).Document.Attachments);
+        EmailAttachment rewrittenAttachment = Assert.Single(new EmailDocumentReader().ReadDocument(rewritten).Document.Attachments);
         Assert.DoesNotContain(writeResult.Diagnostics,
             diagnostic => diagnostic.Code == "EMAIL_MULTIPART_ATTACHMENT_WRITTEN_OPAQUE");
         Assert.Equal("multipart/report", rewrittenAttachment.ContentType);
@@ -86,7 +86,7 @@ public sealed class EmailMimeReaderTests {
             "From: child@example.com\r\nSubject: Child\r\nContent-Type: text/plain\r\n\r\nChild body\r\n" +
             "--x--\r\n";
 
-        EmailReadResult result = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml));
+        EmailReadResult result = new EmailDocumentReader().ReadDocument(Encoding.ASCII.GetBytes(eml));
 
         EmailAttachment attachment = Assert.Single(result.Document.Attachments);
         Assert.Equal("child.eml", attachment.FileName);
@@ -103,7 +103,7 @@ public sealed class EmailMimeReaderTests {
             "--x\r\nContent-Type: application/octet-stream\r\nContent-Transfer-Encoding: base64\r\n\r\n%%%\r\n";
 
         EmailReadResult result = new EmailDocumentReader(new EmailReaderOptions(
-            includeAttachmentContent: includeAttachmentContent)).Read(Encoding.ASCII.GetBytes(eml));
+            includeAttachmentContent: includeAttachmentContent)).ReadDocument(Encoding.ASCII.GetBytes(eml));
 
         Assert.True(result.HasErrors);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_MIME_BASE64_INVALID" &&
@@ -119,7 +119,7 @@ public sealed class EmailMimeReaderTests {
             "Content-Disposition: attachment; filename=invalid.bin\r\n" +
             "Content-Transfer-Encoding: base64\r\n\r\nA";
 
-        using EmailReadResult result = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml));
+        using EmailReadResult result = new EmailDocumentReader().ReadDocument(Encoding.ASCII.GetBytes(eml));
 
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_MIME_BASE64_INVALID" &&
             diagnostic.Severity == EmailDiagnosticSeverity.Error);
@@ -131,7 +131,7 @@ public sealed class EmailMimeReaderTests {
         string encoded = Convert.ToBase64String(new byte[] { 0x5A, 0x61, 0xBF, 0xF3, 0xB3, 0xE6 });
         string eml = string.Concat("Subject: =?windows-1250?B?", encoded, "?=\r\n\r\nbody");
 
-        EmailReadResult result = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml));
+        EmailReadResult result = new EmailDocumentReader().ReadDocument(Encoding.ASCII.GetBytes(eml));
 
         Assert.Equal("Zażółć", result.Document.Subject);
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_MIME_CHARSET_UNSUPPORTED");
@@ -143,7 +143,7 @@ public sealed class EmailMimeReaderTests {
         string second = Convert.ToBase64String(Encoding.UTF8.GetBytes("ółć"));
         string eml = string.Concat("Subject: =?utf-8?B?", first, "?=  \t=?utf-8?B?", second, "?=\r\n\r\nbody");
 
-        EmailReadResult result = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml));
+        EmailReadResult result = new EmailDocumentReader().ReadDocument(Encoding.ASCII.GetBytes(eml));
 
         Assert.Equal("Zażółć", result.Document.Subject);
     }
@@ -155,7 +155,7 @@ public sealed class EmailMimeReaderTests {
             "Received: from final.example; Fri, 10 Jul 2026 12:30:00 +0000\r\n" +
             "Received: from origin.example; Fri, 10 Jul 2026 10:00:00 +0000\r\n\r\nbody";
 
-        EmailDocument document = new EmailDocumentReader().Read(Encoding.UTF8.GetBytes(eml)).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(Encoding.UTF8.GetBytes(eml)).Document;
 
         Assert.Equal("Café", document.Subject);
         Assert.Equal("José", document.From!.DisplayName);
@@ -171,7 +171,7 @@ public sealed class EmailMimeReaderTests {
             "Content-Disposition: attachment; filename*0*=utf-8''price-%E2%82; filename*1*=%AC.txt\r\n" +
             "Content-Transfer-Encoding: base64\r\n\r\nAQ==\r\n--x--\r\n";
 
-        EmailReadResult result = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml));
+        EmailReadResult result = new EmailDocumentReader().ReadDocument(Encoding.ASCII.GetBytes(eml));
 
         Assert.Equal("price-€.txt", Assert.Single(result.Document.Attachments).FileName);
         Assert.DoesNotContain(result.Diagnostics,
@@ -185,7 +185,7 @@ public sealed class EmailMimeReaderTests {
             "Content-Disposition: attachment; filename*0*=utf-8''safe; filename*1=%2Etxt\r\n\r\n" +
             "content";
 
-        EmailReadResult result = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml));
+        EmailReadResult result = new EmailDocumentReader().ReadDocument(Encoding.ASCII.GetBytes(eml));
 
         Assert.Equal("safe%2Etxt", Assert.Single(result.Document.Attachments).FileName);
         Assert.Contains(result.Diagnostics, diagnostic =>
@@ -199,7 +199,7 @@ public sealed class EmailMimeReaderTests {
             "Content-Disposition: attachment; filename*=utf-8''caf%C3%A9.txt; filename=cafe.txt\r\n\r\n" +
             "content";
 
-        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(Encoding.ASCII.GetBytes(eml)).Document;
 
         Assert.Equal("café.txt", Assert.Single(document.Attachments).FileName);
     }
@@ -210,7 +210,7 @@ public sealed class EmailMimeReaderTests {
             .Concat(Encoding.UTF8.GetBytes("Subject: BOM message\r\nFrom: sender@example.com\r\n\r\nbody"))
             .ToArray();
 
-        EmailReadResult result = new EmailDocumentReader().Read(message);
+        EmailReadResult result = new EmailDocumentReader().ReadDocument(message);
 
         Assert.Equal(EmailFileFormat.Eml, result.Document.Format);
         Assert.Equal("BOM message", result.Document.Subject);
@@ -223,7 +223,7 @@ public sealed class EmailMimeReaderTests {
     public void SplitsRawAddressListsBeforeDecodingDisplayNames() {
         const string eml = "To: =?utf-8?B?RG9lLCBKb2hu?= <john@example.com>, Jane <jane@example.com>\r\n\r\nbody";
 
-        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(Encoding.ASCII.GetBytes(eml)).Document;
 
         Assert.Equal(2, document.Recipients.Count);
         Assert.Equal("Doe, John", document.Recipients[0].Address.DisplayName);
@@ -235,7 +235,7 @@ public sealed class EmailMimeReaderTests {
     public void KeepsLiteralCommasInsideQEncodedDisplayNames() {
         const string eml = "To: =?utf-8?Q?Doe,_John?= <john@example.com>, Jane <jane@example.com>\r\n\r\nbody";
 
-        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(Encoding.ASCII.GetBytes(eml)).Document;
 
         Assert.Equal(2, document.Recipients.Count);
         Assert.Equal("Doe, John", document.Recipients[0].Address.DisplayName);
@@ -248,7 +248,7 @@ public sealed class EmailMimeReaderTests {
         const string eml = "To: =?utf-8?Q?Team_=3CEU=3E?= <team@example.com>\r\n\r\nbody";
 
         EmailRecipient recipient = Assert.Single(
-            new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document.Recipients);
+            new EmailDocumentReader().ReadDocument(Encoding.ASCII.GetBytes(eml)).Document.Recipients);
 
         Assert.Equal("team@example.com", recipient.Address.Address);
         Assert.Equal("Team <EU>", recipient.Address.DisplayName);
@@ -260,7 +260,7 @@ public sealed class EmailMimeReaderTests {
             "=?utf-8?Q?date=3E2017-08-20T10:08:28.617=3C/pr?=", 100));
         string eml = "To: Test <test@example.com>,\r\n\t" + hostile + "\r\n\r\nbody";
 
-        EmailReadResult result = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml));
+        EmailReadResult result = new EmailDocumentReader().ReadDocument(Encoding.ASCII.GetBytes(eml));
 
         Assert.Equal("test@example.com", Assert.Single(result.Document.Recipients).Address.Address);
         Assert.Contains(result.Diagnostics, diagnostic =>
@@ -275,7 +275,7 @@ public sealed class EmailMimeReaderTests {
             "--x\r\nContent-Type: text/plain; charset=utf-8\r\nContent-ID: <caption>\r\n\r\ninline caption\r\n" +
             "--x--\r\n";
 
-        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(Encoding.ASCII.GetBytes(eml)).Document;
 
         Assert.Equal("<p>body</p>", document.Body.Html!.Trim());
         Assert.Null(document.Body.Text);
@@ -292,7 +292,7 @@ public sealed class EmailMimeReaderTests {
             "--x\r\nContent-Type: text/html; charset=utf-8\r\nContent-ID: <html>\r\n\r\n<p>html body</p>\r\n" +
             "--x--\r\n";
 
-        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(Encoding.ASCII.GetBytes(eml)).Document;
 
         Assert.Equal("plain body", document.Body.Text!.Trim());
         Assert.Equal("<p>html body</p>", document.Body.Html!.Trim());
@@ -304,7 +304,7 @@ public sealed class EmailMimeReaderTests {
         const string eml = "Subject: inline body\r\nContent-Type: text/plain; charset=utf-8\r\n" +
             "Content-Disposition: inline\r\n\r\nbody text";
 
-        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(Encoding.ASCII.GetBytes(eml)).Document;
 
         Assert.Equal("body text", document.Body.Text);
         Assert.Empty(document.Attachments);
@@ -318,7 +318,7 @@ public sealed class EmailMimeReaderTests {
             "--x\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nadditional text\r\n" +
             "--x--\r\n";
 
-        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(Encoding.ASCII.GetBytes(eml)).Document;
 
         Assert.Equal("primary body", document.Body.Text!.Trim());
         EmailAttachment additional = Assert.Single(document.Attachments);
@@ -326,7 +326,7 @@ public sealed class EmailMimeReaderTests {
         Assert.Equal("text/plain", additional.ContentType);
         Assert.Equal("additional text", Encoding.UTF8.GetString(Assert.IsType<byte[]>(additional.Content)).Trim());
 
-        EmailDocument roundTrip = new EmailDocumentReader().Read(
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter().ToBytes(document)).Document;
         Assert.Equal("primary body", roundTrip.Body.Text!.Trim());
         Assert.Equal("additional text", Encoding.UTF8.GetString(
@@ -344,7 +344,7 @@ public sealed class EmailMimeReaderTests {
             "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Ada Lovelace\r\nEND:VCARD\r\n--x--\r\n";
 
         EmailDocument document = new EmailDocumentReader(new EmailReaderOptions(includeAttachmentContent: false))
-            .Read(Encoding.ASCII.GetBytes(eml)).Document;
+            .ReadDocument(Encoding.ASCII.GetBytes(eml)).Document;
 
         Assert.Equal(OutlookItemKind.Message, document.OutlookItemKind);
         Assert.Equal(2, document.Attachments.Count);
@@ -359,9 +359,9 @@ public sealed class EmailMimeReaderTests {
     public void PreservesEmptyAddressGroupsThroughStoreTransportHeaders() {
         byte[] eml = Encoding.ASCII.GetBytes(
             "To: undisclosed-recipients:;\r\nSubject: private list\r\n\r\nbody");
-        EmailDocument source = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument source = new EmailDocumentReader().ReadDocument(eml).Document;
 
-        EmailDocument stored = new EmailDocumentReader().Read(
+        EmailDocument stored = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).ToBytes(source, EmailFileFormat.OutlookMsg)).Document;
         string regenerated = Encoding.UTF8.GetString(
             new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).ToBytes(stored, EmailFileFormat.Eml));
@@ -377,7 +377,7 @@ public sealed class EmailMimeReaderTests {
         const string eml = "To: undisclosed-recipients:; (no recipients), Team: Alice <alice@example.com>, " +
             "Bob <bob@example.com>;\r\n\r\nbody";
 
-        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(Encoding.ASCII.GetBytes(eml)).Document;
 
         Assert.Equal(2, document.Recipients.Count);
         Assert.Equal("alice@example.com", document.Recipients[0].Address.Address);
@@ -390,7 +390,7 @@ public sealed class EmailMimeReaderTests {
             "--x\r\nContent-Type: application/octet-stream\r\nContent-Transfer-Encoding: base64\r\n\r\n" +
             "not valid base64!\r\n";
 
-        EmailReadResult result = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml));
+        EmailReadResult result = new EmailDocumentReader().ReadDocument(Encoding.ASCII.GetBytes(eml));
 
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_MIME_BASE64_INVALID" &&
             diagnostic.Severity == EmailDiagnosticSeverity.Error);
@@ -404,7 +404,7 @@ public sealed class EmailMimeReaderTests {
         const string eml = "Subject: missing boundary\r\nContent-Type: multipart/mixed; boundary=x\r\n\r\n" +
             "This body never contains the declared delimiter.\r\n";
 
-        EmailReadResult result = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml));
+        EmailReadResult result = new EmailDocumentReader().ReadDocument(Encoding.ASCII.GetBytes(eml));
 
         Assert.True(result.HasErrors);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_MIME_BOUNDARY_NOT_FOUND" &&
@@ -417,7 +417,7 @@ public sealed class EmailMimeReaderTests {
             "--d\r\n\r\nFrom: child@example.com\r\nSubject: Digest child\r\n\r\nchild body\r\n" +
             "--d--\r\n";
 
-        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(Encoding.ASCII.GetBytes(eml)).Document;
 
         EmailAttachment attachment = Assert.Single(document.Attachments);
         Assert.Equal("message/rfc822", attachment.ContentType);
@@ -433,10 +433,10 @@ public sealed class EmailMimeReaderTests {
             "Content-Disposition: attachment; filename=invite.ics\r\n\r\nBEGIN:VCALENDAR\r\nEND:VCALENDAR\r\n" +
             "--x--\r\n";
 
-        EmailDocument parsed = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+        EmailDocument parsed = new EmailDocumentReader().ReadDocument(Encoding.ASCII.GetBytes(eml)).Document;
         EmailAttachment attachment = Assert.Single(parsed.Attachments);
         byte[] rewritten = new EmailDocumentWriter().ToBytes(parsed);
-        EmailAttachment roundTrip = Assert.Single(new EmailDocumentReader().Read(rewritten).Document.Attachments);
+        EmailAttachment roundTrip = Assert.Single(new EmailDocumentReader().ReadDocument(rewritten).Document.Attachments);
 
         Assert.Equal("REQUEST", attachment.ContentTypeParameters["method"]);
         Assert.Equal("utf-8", attachment.ContentTypeParameters["charset"]);
@@ -453,7 +453,7 @@ public sealed class EmailMimeReaderTests {
             "--resource\r\nContent-Type: text/html\r\n\r\n<p>resource</p>\r\n" +
             "--resource--\r\n--outer--\r\n";
 
-        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(Encoding.ASCII.GetBytes(eml)).Document;
 
         Assert.Equal("<p>body</p>", document.Body.Html!.Trim());
         EmailAttachment attachment = Assert.Single(document.Attachments);
@@ -472,7 +472,7 @@ public sealed class EmailMimeReaderTests {
             "--outer\r\nContent-Type: text/html; charset=utf-8\r\nContent-ID: <root>\r\n\r\n<p>root body</p>\r\n" +
             "--outer--\r\n";
 
-        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(Encoding.ASCII.GetBytes(eml)).Document;
 
         Assert.Equal("<p>root body</p>", document.Body.Html!.Trim());
         EmailAttachment attachment = Assert.Single(document.Attachments);
@@ -486,7 +486,7 @@ public sealed class EmailMimeReaderTests {
             "--outer\r\nContent-Type: text/html; charset=utf-8\r\n\r\n<p>root</p>\r\n" +
             "--outer--\r\n";
 
-        EmailReadResult result = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml));
+        EmailReadResult result = new EmailDocumentReader().ReadDocument(Encoding.ASCII.GetBytes(eml));
 
         Assert.Contains(result.Diagnostics, diagnostic =>
             diagnostic.Code == "EMAIL_MIME_PARAMETER_EXTENDED_INVALID");
@@ -499,7 +499,7 @@ public sealed class EmailMimeReaderTests {
             "--outer\r\nContent-Type: text/html; charset=utf-8\r\n\r\n<p>root</p>\r\n" +
             "--outer--\r\n";
 
-        EmailReadResult result = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml));
+        EmailReadResult result = new EmailDocumentReader().ReadDocument(Encoding.ASCII.GetBytes(eml));
 
         Assert.Contains(result.Diagnostics, diagnostic =>
             diagnostic.Code == "EMAIL_MIME_RELATED_ROOT_TYPE_MISMATCH");
@@ -512,7 +512,7 @@ public sealed class EmailMimeReaderTests {
             "--outer\r\nContent-Type: image/png\r\nContent-ID: <logo>\r\n\r\npng\r\n" +
             "--outer--\r\n";
 
-        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(Encoding.ASCII.GetBytes(eml)).Document;
 
         Assert.Equal("<p>default root</p>", document.Body.Html!.Trim());
         Assert.Equal("logo", Assert.Single(document.Attachments).ContentId);
@@ -534,9 +534,9 @@ public sealed class EmailMimeReaderTests {
         byte[] data = Encoding.ASCII.GetBytes(eml);
 
         EmailLimitExceededException failure = Assert.Throws<EmailLimitExceededException>(() =>
-            new EmailDocumentReader(new EmailReaderOptions(maxPartCount: 20)).Read(data));
+            new EmailDocumentReader(new EmailReaderOptions(maxPartCount: 20)).ReadDocument(data));
         Assert.Equal(nameof(EmailReaderOptions.MaxPartCount), failure.LimitName);
-        new EmailDocumentReader(new EmailReaderOptions(maxPartCount: 100)).Read(data);
+        new EmailDocumentReader(new EmailReaderOptions(maxPartCount: 100)).ReadDocument(data);
     }
 
     [Fact]
@@ -546,7 +546,7 @@ public sealed class EmailMimeReaderTests {
             "--outer\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Location: caption.txt\r\n\r\n" +
             "inline caption\r\n--outer--\r\n";
 
-        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(Encoding.ASCII.GetBytes(eml)).Document;
 
         Assert.Equal("<a href=\"caption.txt\">root</a>", document.Body.Html!.Trim());
         Assert.Null(document.Body.Text);
@@ -555,7 +555,7 @@ public sealed class EmailMimeReaderTests {
         Assert.True(attachment.IsInline);
         Assert.Equal("inline caption", Encoding.UTF8.GetString(Assert.IsType<byte[]>(attachment.Content)).Trim());
 
-        EmailDocument roundTrip = new EmailDocumentReader().Read(
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter().ToBytes(document)).Document;
         EmailAttachment roundTripAttachment = Assert.Single(roundTrip.Attachments);
         Assert.Equal("caption.txt", roundTripAttachment.ContentLocation);
@@ -567,7 +567,7 @@ public sealed class EmailMimeReaderTests {
         const string eml = "Content-Type: text/plain; charset=utf-8; format=flowed; delsp=yes\r\n\r\n" +
             "This is flow \r\ned.\r\n From space-stuffed\r\n>quoted \r\n>continuation\r\n-- \r\nsignature";
 
-        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(Encoding.ASCII.GetBytes(eml)).Document;
 
         Assert.Equal("This is flowed.\r\nFrom space-stuffed\r\n>quotedcontinuation\r\n-- \r\nsignature",
             document.Body.Text);
@@ -578,7 +578,7 @@ public sealed class EmailMimeReaderTests {
         const string eml = "Content-Type: text/plain; charset=utf-8; format=flowed\r\n\r\n" +
             "This is flow \r\ned.";
 
-        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(Encoding.ASCII.GetBytes(eml)).Document;
 
         Assert.Equal("This is flow ed.", document.Body.Text);
     }
@@ -588,7 +588,7 @@ public sealed class EmailMimeReaderTests {
         const string eml = "Content-Type: text/plain; charset=utf-8; format=flowed; delsp=yes\r\n\r\n" +
             "https://example.com/ ";
 
-        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(Encoding.ASCII.GetBytes(eml)).Document;
 
         Assert.Equal("https://example.com/", document.Body.Text);
     }
@@ -600,7 +600,7 @@ public sealed class EmailMimeReaderTests {
         Buffer.BlockCopy(headers, 0, eml, 0, headers.Length);
         eml[eml.Length - 1] = 0xA3;
 
-        EmailReadResult result = new EmailDocumentReader().Read(eml);
+        EmailReadResult result = new EmailDocumentReader().ReadDocument(eml);
 
         Assert.Equal("Price: £", result.Document.Body.Text);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_MIME_CHARSET_GUESSED" &&
@@ -616,7 +616,7 @@ public sealed class EmailMimeReaderTests {
         Buffer.BlockCopy(headers, 0, eml, 0, headers.Length);
         Buffer.BlockCopy(bodyBytes, 0, eml, headers.Length, bodyBytes.Length);
 
-        EmailReadResult result = new EmailDocumentReader().Read(eml);
+        EmailReadResult result = new EmailDocumentReader().ReadDocument(eml);
 
         Assert.Equal(body, result.Document.Body.Text);
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_MIME_CHARSET_GUESSED");

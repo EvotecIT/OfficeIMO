@@ -79,7 +79,7 @@ public class RtfHtmlStylesheetTests {
         paragraph.SetStyle(heading.Id);
         paragraph.AddText("Clinical heading").SetStyle(character.Id);
 
-        string html = document.ToHtml(new RtfToHtmlOptions {
+        string html = document.ToHtml(new RtfHtmlExportOptions {
             IncludeRoundTripMetadata = true,
             EmbedImagesAsDataUri = true, FragmentOnly = false, NewLine = "\n" });
 
@@ -87,7 +87,7 @@ public class RtfHtmlStylesheetTests {
         Assert.Contains("data-officeimo-rtf-style-id=\"7\" data-officeimo-rtf-style-kind=\"paragraph\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-rtf-style-id=\"8\" data-officeimo-rtf-style-kind=\"character\"", html, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument roundTrip = HtmlConversionDocument.Parse(html).ToRtf();
         RtfStyle roundTripHeading = roundTrip.Styles.Single(style => style.Id == 7 && style.Kind == RtfStyleKind.Paragraph);
         Assert.Equal("Clinical Heading", roundTripHeading.Name);
         Assert.Equal(0, roundTripHeading.BasedOnStyleId);
@@ -160,7 +160,7 @@ public class RtfHtmlStylesheetTests {
         Assert.Equal(7, Assert.Single(roundTrip.Paragraphs).StyleId);
         Assert.Equal(8, Assert.Single(roundTrip.Paragraphs[0].Runs).StyleId);
 
-        string rtf = roundTrip.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = roundTrip.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         Assert.Contains(@"\s7", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\*\cs8", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\slink8", rtf, StringComparison.Ordinal);
@@ -218,13 +218,13 @@ public class RtfHtmlStylesheetTests {
         cell.TopLeftToBottomRightBorder.Width = 6;
         cell.TopLeftToBottomRightBorder.ColorIndex = red;
 
-        string html = document.ToHtml(new RtfToHtmlOptions {
+        string html = document.ToHtml(new RtfHtmlExportOptions {
             IncludeRoundTripMetadata = true,
             EmbedImagesAsDataUri = true, FragmentOnly = false, NewLine = "\n" });
 
         Assert.Contains("<meta name=\"officeimo-rtf-styles\" content=\"", html, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument roundTrip = HtmlConversionDocument.Parse(html).ToRtf();
         RtfStyle roundTripStyle = Assert.Single(roundTrip.Styles);
         Assert.Equal(style.Id, roundTripStyle.Id);
         Assert.Equal(RtfStyleKind.Table, roundTripStyle.Kind);
@@ -298,7 +298,7 @@ public class RtfHtmlStylesheetTests {
         Assert.Equal(6, roundTripCell.TopLeftToBottomRightBorder.Width);
         Assert.Equal(red, roundTripCell.TopLeftToBottomRightBorder.ColorIndex);
 
-        string rtf = roundTrip.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = roundTrip.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         Assert.Contains(@"\*\ts9\tsrowd", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\trhdr", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\trkeepfollow", rtf, StringComparison.Ordinal);

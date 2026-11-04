@@ -109,7 +109,7 @@ internal static partial class PdfWriter {
                     blocks.Add(new HeadingBlock(
                         section.Options.Level,
                         section.Title,
-                        PdfAlign.Left,
+                        OfficeAlignment.Left,
                         color: null,
                         style: section.Options.HeadingStyle));
                 }

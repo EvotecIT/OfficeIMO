@@ -70,12 +70,10 @@ Console.WriteLine("OfficeIMO");
         string markdown = string.Join("\n", Enumerable.Range(1, 24).Select(index => "> QuoteLine" + index.ToString()));
         var options = new MarkdownPdfExportOptions {
             PdfOptions = new PdfCore.PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(180),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(130),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(180), global::OfficeIMO.OfficeLength.Points(130)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+                },
                 DefaultFont = PdfCore.PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             }
@@ -166,12 +164,10 @@ Console.WriteLine("OfficeIMO");
 
         byte[] pdf = (OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToPdf(new MarkdownPdfExportOptions {
             PdfOptions = new PdfCore.PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(260),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(260)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             }
         })).ToBytes();
@@ -204,12 +200,10 @@ Console.WriteLine("OfficeIMO");
 
         var options = new MarkdownPdfExportOptions {
             PdfOptions = new PdfCore.PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(260),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(260)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             }
         };
@@ -475,12 +469,10 @@ _Figure 1. Embedded from a relative Markdown path._
                 ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost(),
                 PdfOptions = new PdfCore.PdfCreateOptions {
                     CompressContentStreams = false,
-                    PageWidth = global::OfficeIMO.OfficeLength.Points(220),
-                    PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-                    MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
-                    MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-                    MarginTop = global::OfficeIMO.OfficeLength.Points(20),
-                    MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
+                    PageSetup = {
+                        Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(180)),
+                        Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+                    }
                 }
             };
             string markdown = "![Wide local image](pixel.png){width=360 height=180}";

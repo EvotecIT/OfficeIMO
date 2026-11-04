@@ -13,27 +13,19 @@ namespace OfficeIMO.Examples.Word {
                 throw new ArgumentNullException(nameof(section));
             }
 
-            if (section.Header == null) {
-                section.AddHeadersAndFooters();
-            }
-
-            var headers = section.Header;
-            if (headers == null) {
-                throw new InvalidOperationException("Headers are not available after attempting to add them.");
-            }
-
+            var setup = section.PageSetup;
             string description;
             WordHeader? header;
 
             if (type == HeaderFooterValues.Default) {
                 description = "default";
-                header = headers.Default;
+                header = setup.GetHeader(WordHeaderFooterType.Default);
             } else if (type == HeaderFooterValues.Even) {
                 description = "even";
-                header = headers.Even;
+                header = setup.GetHeader(WordHeaderFooterType.Even);
             } else if (type == HeaderFooterValues.First) {
                 description = "first";
-                header = headers.First;
+                header = setup.GetHeader(WordHeaderFooterType.First);
             } else {
                 throw new ArgumentOutOfRangeException(nameof(type), type, "Unsupported header type.");
             }

@@ -114,7 +114,7 @@ public sealed class ProjectValidationBoundaryTests {
         using var document = ProjectNativeAuthoringTests.Create();
         document.Settings.MinutesPerDay = int.MaxValue; document.Settings.DaysPerMonth = int.MaxValue;
         Assert.Contains(document.Validate().Diagnostics, diagnostic => diagnostic.Code == "PROJECT_WORKING_TIME");
-        var options = new ProjectSaveOptions { Format = format, LossPolicy = OfficeConversionLossPolicy.Allow };
+        var options = new ProjectSaveOptions { Format = format, AllowLoss = true };
         Assert.Contains(document.AssessSave(options).Diagnostics, diagnostic => diagnostic.Code == "PROJECT_WORKING_TIME");
         using var output = new MemoryStream(); Assert.Throws<InvalidDataException>(() => document.Save(output, options)); Assert.Equal(0, output.Length);
     }
@@ -233,7 +233,7 @@ public sealed class ProjectValidationBoundaryTests {
         var exception = calendar.Exceptions.Add();
         if (from) exception.FromDate = Monday; if (to) exception.ToDate = Monday;
         exception.IsWorking = false;
-        Assert.Contains(document.Validate().Diagnostics, diagnostic => diagnostic.Code == "PROJECT_CALENDAR_PERIOD"
+        Assert.Contains(document.Validate().NativeDiagnostics, diagnostic => diagnostic.Code == "PROJECT_CALENDAR_PERIOD"
             && diagnostic.Severity == ProjectDiagnosticSeverity.Warning);
         Assert.Throws<NotSupportedException>(() => calendar.GetWorkingIntervals(Monday));
     }
@@ -263,7 +263,7 @@ public sealed class ProjectValidationBoundaryTests {
         var result = document.CalculateSchedule(); result.Report.ThrowIfErrors();
         Assert.Equal(2, result.Tasks.Count); Assert.True(result.Tasks.Single(t => t.TaskUid == 0).IsSummary);
         using var copy = document.Clone(); Assert.True(copy.Tasks.GetByUid(0).IsSummary);
-        using var mpx = new MemoryStream(); document.Save(mpx, new ProjectSaveOptions { Format = ProjectFileFormat.Mpx4, LossPolicy = OfficeConversionLossPolicy.Allow });
+        using var mpx = new MemoryStream(); document.Save(mpx, new ProjectSaveOptions { Format = ProjectFileFormat.Mpx4, AllowLoss = true });
         using var reopened = ProjectDocument.Load(new MemoryStream(mpx.ToArray()));
         Assert.Equal(0, reopened.Tasks.GetByUid(0).DisplayId); Assert.Equal(0, reopened.Tasks.GetByUid(0).SourceOutlineLevel);
         Assert.Null(reopened.Tasks.GetByUid(1).Parent);

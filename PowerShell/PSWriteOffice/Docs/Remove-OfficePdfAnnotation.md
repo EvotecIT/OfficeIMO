@@ -11,7 +11,7 @@ Removes PDF annotations matching friendly filters.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Remove-OfficePdfAnnotation [-Path] <string> [-OutputPath] <string> [-Password <string>] [-IgnorePermissionRestrictions] [-ObjectNumber <Int32>] [-PageNumber <Int32>] [-Subtype <string>] [-KeepPopups] [-PassThruReport] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Remove-OfficePdfAnnotation [-Path] <string> [-OutputPath] <string> [-Password <securestring>] [-IgnorePermissionRestrictions] [-ObjectNumber <Int32>] [-PageNumber <Int32>] [-Subtype <string>] [-KeepPopups] [-PassThruReport] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -143,7 +143,7 @@ Accept wildcard characters: False
 Password used to authenticate an encrypted PDF.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

@@ -96,46 +96,47 @@ public sealed class AdfConversionDiagnostic {
 }
 
 /// <summary>Operation-scoped conversion evidence.</summary>
-public sealed class AdfConversionReport : IOfficeConversionReport {
+public sealed class AdfConversionReport : OfficeConversionReport {
     /// <summary>Creates a report by copying the supplied diagnostic sequence.</summary>
-    /// <param name="diagnostics">Diagnostics to include in the report; an empty sequence is allowed.</param>
+    /// <param name="diagnostics">NativeDiagnostics to include in the report; an empty sequence is allowed.</param>
     public AdfConversionReport(IEnumerable<AdfConversionDiagnostic> diagnostics) {
-        Diagnostics = Array.AsReadOnly(diagnostics?.ToArray() ?? throw new ArgumentNullException(nameof(diagnostics)));
-        FidelityDiagnostics = Array.AsReadOnly(Diagnostics.Select(static diagnostic =>
-            new OfficeConversionFidelityDiagnostic(
+        NativeDiagnostics = Array.AsReadOnly(diagnostics?.ToArray() ?? throw new ArgumentNullException(nameof(diagnostics)));
+        FidelityDiagnostics = Array.AsReadOnly(NativeDiagnostics.Select(static diagnostic =>
+            new global::OfficeIMO.OfficeDiagnostic(
                 diagnostic.Code,
+                diagnostic.LossKind == global::OfficeIMO.OfficeConversionLossKind.None ? global::OfficeIMO.OfficeDiagnosticSeverity.Information : global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
                 diagnostic.Message,
-                diagnostic.LossKind,
+                diagnostic.Path,
                 "OfficeIMO.Adf",
-                diagnostic.Path)).ToArray());
+                diagnostic.LossKind)).ToArray());
     }
     /// <summary>Gets a report with no diagnostics, which is considered lossless.</summary>
     public static AdfConversionReport Empty { get; } = new AdfConversionReport(Array.Empty<AdfConversionDiagnostic>());
     /// <summary>Gets the diagnostics captured when this report was created.</summary>
     /// <remarks>The collection is an immutable snapshot of the constructor input.</remarks>
-    public IReadOnlyList<AdfConversionDiagnostic> Diagnostics { get; }
+    public IReadOnlyList<AdfConversionDiagnostic> NativeDiagnostics { get; }
 
     /// <summary>Gets category-preserving conversion diagnostics.</summary>
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics { get; }
 
     /// <summary>Gets whether every diagnostic is informational; an empty report is also lossless.</summary>
     public bool IsLossless => FidelityDiagnostics.All(item => item.LossKind == OfficeConversionLossKind.None);
 
     /// <summary>Gets whether at least one diagnostic has <see cref="AdfConversionSeverity.Error"/> severity.</summary>
-    public bool HasErrors => Diagnostics.Any(item => item.Severity == AdfConversionSeverity.Error);
+    public bool HasErrors => NativeDiagnostics.Any(item => item.Severity == AdfConversionSeverity.Error);
     /// <inheritdoc />
-    public bool HasLoss => !IsLossless;
+    public override bool HasLoss => !IsLossless;
 
     /// <inheritdoc />
-    public void RequireNoLoss() {
-        if (HasLoss) {
-            throw new InvalidOperationException("The ADF conversion reported possible content loss. Inspect Report.Diagnostics for details.");
-        }
-    }
+    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("The ADF conversion reported possible content loss. Inspect Report.Diagnostics for details.", this);
 }
 
 /// <summary>A converted value and its fidelity report.</summary>
-public sealed class AdfConversionResult<T> : OfficeConversionResult<T, AdfConversionReport> where T : class {
+public sealed class AdfConversionResult<T> : OfficeConversionResult<T> where T : class {
+    /// <summary>Gets the typed conversion report.</summary>
+    public new AdfConversionReport Report => (AdfConversionReport)base.Report;
+
     internal AdfConversionResult(T value, IReadOnlyList<AdfConversionDiagnostic> diagnostics)
         : base(value, new AdfConversionReport(diagnostics)) { }
 }

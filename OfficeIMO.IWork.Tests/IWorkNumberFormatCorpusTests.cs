@@ -40,7 +40,7 @@ public sealed class IWorkNumberFormatCorpusTests {
     [Fact]
     public void Independent_number_formats_survive_saved_xlsx_and_match_producer_display_text() {
         using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Fixture("json")));
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(Fixture("numbers"), conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(Fixture("numbers"), IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
         Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_TABLE_NUMBER_FORMAT_UNSUPPORTED");
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_AUTOMATIC_DECIMALS_APPROXIMATED");
@@ -53,18 +53,18 @@ public sealed class IWorkNumberFormatCorpusTests {
         ExcelRangeVisualInfo snapshot = sheet.Range($"B1:B{count}").CreateVisualSnapshot();
         foreach (JsonElement expected in manifest.RootElement.GetProperty("cases").EnumerateArray()) {
             int row = expected.GetProperty("row").GetInt32();
-            ExcelCellData cell = sheet.CellAt(row, 2).GetValue();
+            ExcelCellData cell = sheet.Cell(row, 2).GetValue();
             Assert.Equal(ExcelCellDataKind.Number, cell.Kind);
             Assert.Equal(expected.GetProperty("value").GetDouble(), Assert.IsType<double>(cell.Value), 12);
             Assert.Equal(expected.GetProperty("displayText").GetString(), Assert.Single(snapshot.Cells, c => c.Row == row).Text);
             int negativeStyle = expected.GetProperty("negativeStyle").GetInt32();
-            if (negativeStyle is 1 or 3) Assert.Contains("[Red]", sheet.CellAt(row, 2).GetStyle().NumberFormatCode!);
+            if (negativeStyle is 1 or 3) Assert.Contains("[Red]", sheet.Cell(row, 2).GetStyle().NumberFormatCode!);
         }
     }
 
     [Fact]
     public void Independent_red_number_styles_reach_the_image_snapshot() {
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(Fixture("numbers"), conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(Fixture("numbers"), IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         ExcelRangeVisualInfo snapshot = reopened.Sheets[0].Range("B1:B13").CreateVisualSnapshot();

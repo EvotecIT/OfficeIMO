@@ -24,7 +24,7 @@ public sealed class StudioModeContinuityTests {
             PdfDocument.Create(document => {
                 for (int page = 1; page <= 8; page++) {
                     int number = page;
-                    document.Page(content => content.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(560)).Content(body => body.Item(item => item.Paragraph(text => text.Text("Page " + number)))));
+                    document.Page(content => content.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(560)).Content(body => body.Item(item => item.AddParagraph(text => text.AddText("Page " + number)))));
                 }
             }).Save(source);
             var window = new MainWindow(services) { Width = 1280, Height = 820 };

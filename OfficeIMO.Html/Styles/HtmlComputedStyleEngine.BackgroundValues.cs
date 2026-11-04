@@ -27,7 +27,7 @@ public static partial class HtmlComputedStyleEngine {
                         || parts.Count is >= 1 and <= 2 && parts.All(part => IsKnownKeyword(part, "repeat", "no-repeat", "round", "space"));
                 case "background-attachment": return parts.Count == 1 && IsKnownKeyword(parts[0], "scroll", "fixed", "local");
                 case "background-origin":
-                case "background-clip": return parts.Count == 1 && IsKnownKeyword(parts[0], "border-box", "padding-box", "content-box");
+                case "background-clip": return parts.Count == 1 && IsKnownKeyword(parts[0], "border-box", "padding-box", "content-box", "text");
                 default: return false;
             }
         });

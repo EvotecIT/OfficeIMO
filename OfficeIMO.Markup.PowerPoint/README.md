@@ -30,7 +30,7 @@ title: Quarterly Review
 Open with the top-line result.
 """);
 
-result.Document.SaveAsPowerPoint("quarterly-review.pptx", new MarkupToPowerPointOptions {
+result.Document.SaveAsPowerPoint("quarterly-review.pptx", new MarkupPowerPointExportOptions {
 });
 ```
 
@@ -44,7 +44,7 @@ result.Document.SaveAsPowerPoint("quarterly-review.pptx", new MarkupToPowerPoint
 
 ## Mermaid rendering
 
-Set `MermaidRendererPath` in `MarkupToPowerPointOptions`, pass `--mermaid-renderer <path-to-mmdc>` through `officeimo markup export`, or set `OFFICEIMO_MARKUP_MERMAID_CLI`.
+Set `MermaidRendererPath` in `MarkupPowerPointExportOptions`, pass `--mermaid-renderer <path-to-mmdc>` through `officeimo markup export`, or set `OFFICEIMO_MARKUP_MERMAID_CLI`.
 
 ## Boundaries
 

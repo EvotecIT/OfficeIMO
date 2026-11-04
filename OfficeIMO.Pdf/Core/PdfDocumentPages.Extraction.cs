@@ -254,7 +254,8 @@ public sealed partial class PdfDocumentPages {
     }
 
     /// <summary>Splits this document using bounded page-count, target-size, and content-boundary production rules.</summary>
-    public IReadOnlyList<PdfProductionSplitPart> SplitForProduction(PdfProductionSplitOptions options) {
+    public IReadOnlyList<PdfProductionSplitPart> SplitForProduction(PdfProductionSplitOptions options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: false, cancellationToken)!;
         return SplitForProductionResult(options).RequireValue();
     }
 

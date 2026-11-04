@@ -17,7 +17,7 @@ public sealed class BookDeliveryTests {
         project.Publication.AddIdentifier("isbn", new EpubIdentifierMetadata { Value = "978-0-306-40615-7", Kind = EpubIdentifierKind.Isbn13 });
         project.Publication.AddContributor("translator", new EpubContributorMetadata { Name = "Translator", MarcRoles = ["trl"], Language = "pl" });
         byte[] before = project.ToProjectBytes();
-        var options = new EpubWriteOptions { ModifiedAt = new DateTimeOffset(2026, 10, 5, 12, 0, 0, TimeSpan.Zero) };
+        var options = new EpubSaveOptions { ModifiedAt = new DateTimeOffset(2026, 10, 5, 12, 0, 0, TimeSpan.Zero) };
         byte[] delivery = project.ToDeliveryBytes(options);
         Assert.Equal(delivery, project.ToDeliveryBytes(options));
         var entries = Entries(delivery);
@@ -73,7 +73,7 @@ public sealed class BookDeliveryTests {
         var project = BookProject.FromEpub(source.ToArray());
         project.Publication.Title = "Edited title";
         Assert.Throws<InvalidOperationException>(() => project.ToDeliveryBytes());
-        var delivery = Entries(project.ToDeliveryBytes(new EpubWriteOptions { RemoveInvalidatedSignatures = true }));
+        var delivery = Entries(project.ToDeliveryBytes(new EpubSaveOptions { RemoveInvalidatedSignatures = true }));
         Assert.DoesNotContain("META-INF/signatures.xml", Entries(delivery["publication.epub"]).Keys);
         using var json = JsonDocument.Parse(delivery["manifest.json"]);
         Assert.Contains(json.RootElement.GetProperty("WriterDiagnostics").EnumerateArray(),
@@ -86,12 +86,12 @@ public sealed class BookDeliveryTests {
     public void OutputLimitsAndCancellationDoNotMutateProjectOrCallerOptions() {
         var project = BookProject.Create("Book");
         byte[] before = project.ToProjectBytes();
-        var options = new EpubWriteOptions { MaxOutputBytes = 256L * 1024 * 1024 };
+        var options = new EpubSaveOptions { MaxOutputBytes = 256L * 1024 * 1024 };
         byte[] complete = project.ToDeliveryBytes(options);
         Assert.Equal(256L * 1024 * 1024, options.MaxOutputBytes);
         // This bound permits the EPUB itself but fails while packaging the delivery.
         Assert.Throws<InvalidDataException>(() => project.ToDeliveryBytes(options, complete.Length - 1));
-        Assert.Throws<InvalidDataException>(() => project.ToDeliveryBytes(new EpubWriteOptions { MaxOutputBytes = 16 }));
+        Assert.Throws<InvalidDataException>(() => project.ToDeliveryBytes(new EpubSaveOptions { MaxOutputBytes = 16 }));
         Assert.Throws<ArgumentOutOfRangeException>(() => project.ToDeliveryBytes(maximumOutputBytes: 0));
         Assert.Throws<ArgumentOutOfRangeException>(() => project.ToDeliveryBytes(maximumOutputBytes: BookProject.MaximumDeliveryBytes + 1));
         using var cancellation = new CancellationTokenSource(); cancellation.Cancel();

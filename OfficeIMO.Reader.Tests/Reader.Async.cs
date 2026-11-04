@@ -28,7 +28,7 @@ public sealed class ReaderAsyncTests {
                 .Build();
 
             OfficeDocumentReadResult result = await reader.ReadDocumentAsync(file);
-            IReadOnlyList<ReaderChunk> chunks = await reader.ReadAsync(file);
+            IReadOnlyList<ReaderChunk> chunks = (await reader.ReadDocumentAsync(file)).Chunks;
             ReaderHandlerCapability capability = Assert.Single(
                 reader.GetCapabilities(),
                 item => item.Id == "officeimo.tests.async.path");
@@ -67,7 +67,7 @@ public sealed class ReaderAsyncTests {
                 .Build();
 
             OfficeDocumentReadResult result = await reader.ReadDocumentAsync(file);
-            IReadOnlyList<ReaderChunk> chunks = await reader.ReadAsync(file);
+            IReadOnlyList<ReaderChunk> chunks = (await reader.ReadDocumentAsync(file)).Chunks;
             ReaderHandlerCapability capability = Assert.Single(
                 reader.GetCapabilities(),
                 item => item.Id == "officeimo.tests.sync.path");
@@ -213,7 +213,7 @@ public sealed class ReaderAsyncTests {
         File.WriteAllText(file, "built-in async fallback");
 
         try {
-            IReadOnlyList<ReaderChunk> chunks = await OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadAsync(file);
+            IReadOnlyList<ReaderChunk> chunks = (await OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocumentAsync(file)).Chunks;
 
             Assert.Contains(chunks, chunk => chunk.Text.Contains("built-in async fallback", StringComparison.Ordinal));
         } finally {
@@ -273,7 +273,7 @@ public sealed class ReaderAsyncTests {
             cancellation.Cancel);
 
         Assert.ThrowsAny<OperationCanceledException>(() =>
-            OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(stream, "large.txt",
+            OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(stream, "large.txt",
                 new ReaderOptions { ComputeHashes = true },
                 cancellation.Token).ToArray());
 

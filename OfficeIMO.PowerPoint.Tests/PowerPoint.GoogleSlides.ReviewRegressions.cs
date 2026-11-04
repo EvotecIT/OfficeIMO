@@ -82,7 +82,7 @@ namespace OfficeIMO.Tests {
             byte[] image = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
             using PowerPointDocument presentation = PowerPointDocument.Create();
             using var stream = new MemoryStream(image);
-            PowerPointPicture picture = presentation.AddSlide().AddImage(stream, OfficeIMO.Drawing.OfficeImageFormat.Png);
+            PowerPointImage picture = presentation.AddSlide().AddImage(stream, OfficeIMO.Drawing.OfficeImageFormat.Png);
             picture.Crop(10, 0, 0, 0);
 
             GoogleSlidesBatch rasterized = GoogleSlidesBatchCompiler.Build(

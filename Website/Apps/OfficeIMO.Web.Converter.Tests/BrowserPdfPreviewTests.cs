@@ -17,8 +17,8 @@ public sealed class BrowserPdfPreviewTests {
     [Fact]
     public void PageCountDoesNotDecodePageContentAndHonorsCancellation() {
         byte[] source = PdfDocument.Create(document => {
-            document.Page(page => page.Content(content => content.Text("First page content")));
-            document.Page(page => page.Content(content => content.Text("Second page content")));
+            document.Page(page => page.Content(content => content.AddParagraph("First page content")));
+            document.Page(page => page.Content(content => content.AddParagraph("Second page content")));
         }).ToBytes();
         var document = PdfDocument.Load(source, new PdfLoadOptions { Limits = new PdfReadLimits { MaxPageContentBytes = 1 } });
         PdfDocumentViewInfo geometry = document.InspectGeometryForViewing();

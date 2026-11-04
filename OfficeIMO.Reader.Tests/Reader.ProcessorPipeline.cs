@@ -205,9 +205,9 @@ public sealed class ReaderProcessorPipelineTests {
 
         Assert.Equal(1, first.ProcessorPipeline.Count);
         Assert.Equal(2, second.ProcessorPipeline.Count);
-        Assert.StartsWith("processed:", Assert.Single(first.Read(markdown, "note.md")).Text, StringComparison.Ordinal);
+        Assert.StartsWith("processed:", Assert.Single(first.Enumerate(markdown, "note.md")).Text, StringComparison.Ordinal);
         Assert.StartsWith("processed:", Assert.Single(first.ReadDocument(markdown, "note.md").Chunks).Text, StringComparison.Ordinal);
-        Assert.StartsWith("processed:", Assert.Single(await first.ReadAsync(markdown, "note.md")).Text, StringComparison.Ordinal);
+        Assert.StartsWith("processed:", Assert.Single((await first.ReadDocumentAsync(markdown, "note.md")).Chunks).Text, StringComparison.Ordinal);
         Assert.StartsWith("processed:", Assert.Single((await first.ReadDocumentAsync(markdown, "note.md")).Chunks).Text, StringComparison.Ordinal);
 
         using JsonDocument json = JsonDocument.Parse(first.ReadDocumentJson(markdown, "note.md"));
@@ -255,7 +255,7 @@ public sealed class ReaderProcessorPipelineTests {
             }))
             .Build();
 
-        Assert.Empty(reader.Read(markdown, "note.md"));
+        Assert.Empty(reader.Enumerate(markdown, "note.md"));
     }
 
     [Fact]
@@ -271,7 +271,7 @@ public sealed class ReaderProcessorPipelineTests {
             }))
             .Build();
 
-        ReaderChunk chunk = Assert.Single(reader.Read(
+        ReaderChunk chunk = Assert.Single(reader.Enumerate(
             Encoding.UTF8.GetBytes("Original body"),
             "note.md",
             new ReaderOptions { ComputeHashes = false }));

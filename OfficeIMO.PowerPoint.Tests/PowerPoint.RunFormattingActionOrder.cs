@@ -25,9 +25,9 @@ public class PowerPointRunFormattingActionOrderTests {
 
         if (actionsFirst) run.SetHyperlink("https://example.test/linked-label");
         run.SetMouseOverStopsSound(true);
-        run.FontName = "Aptos";
-        run.HighlightColor = "FFFF00";
-        run.Color = "FFFFFF";
+        run.FontFamily = "Aptos";
+        run.BackgroundColor = OfficeColor.Parse("FFFF00");
+        run.Color = OfficeColor.Parse("FFFFFF");
         // Replacing the link must preserve the formatting and mouse-over action as well.
         run.SetHyperlink("https://example.test/final-label");
 
@@ -41,9 +41,9 @@ public class PowerPointRunFormattingActionOrderTests {
             ? actualSlide.Tables.Single().GetCell(0, 0).Runs.Single()
             : actualSlide.TextBoxes.Single().Paragraphs.Single().Runs.Single();
         Assert.Equal("Linked label", actual.Text);
-        Assert.Equal("Aptos", actual.FontName);
-        Assert.Equal("FFFF00", actual.HighlightColor);
-        Assert.Equal("FFFFFF", actual.Color);
+        Assert.Equal("Aptos", actual.FontFamily);
+        Assert.Equal(OfficeColor.Parse("FFFF00"), actual.BackgroundColor);
+        Assert.Equal(OfficeColor.Parse("FFFFFF"), actual.Color);
         Assert.Equal("https://example.test/final-label", actual.Hyperlink?.AbsoluteUri);
         Assert.True(actual.HasMouseOverInteraction);
         Assert.True(actual.MouseOverStopsSound);
@@ -69,11 +69,11 @@ public class PowerPointRunFormattingActionOrderTests {
         run.SetHyperlink("https://example.test/linked-label");
         run.SetMouseOverStopsSound(true);
         if (cell != null) {
-            cell.FontName = "Aptos";
-            cell.Color = "FFFFFF";
+            cell.FontFamily = "Aptos";
+            cell.Color = OfficeColor.Parse("FFFFFF");
         } else {
-            textBox!.FontName = "Aptos";
-            textBox.Color = "FFFFFF";
+            textBox!.FontFamily = "Aptos";
+            textBox.Color = OfficeColor.Parse("FFFFFF");
         }
 
         using var stream = new MemoryStream();
@@ -86,8 +86,8 @@ public class PowerPointRunFormattingActionOrderTests {
             ? actualSlide.Tables.Single().GetCell(0, 0).Runs.Single()
             : actualSlide.TextBoxes.Single().Paragraphs.Single().Runs.Single();
         Assert.Equal("Linked label", actual.Text);
-        Assert.Equal("Aptos", actual.FontName);
-        Assert.Equal("FFFFFF", actual.Color);
+        Assert.Equal("Aptos", actual.FontFamily);
+        Assert.Equal(OfficeColor.Parse("FFFFFF"), actual.Color);
         Assert.Equal("https://example.test/linked-label", actual.Hyperlink?.AbsoluteUri);
         Assert.True(actual.MouseOverStopsSound);
     }
@@ -117,7 +117,7 @@ public class PowerPointRunFormattingActionOrderTests {
         presentation.Save(source);
         source.Position = 0;
         using var imported = PowerPointDocument.Load(source);
-        imported.Slides.Single().TextBoxes.Single().Paragraphs.Single().Runs.Single().Color = "FFFFFF";
+        imported.Slides.Single().TextBoxes.Single().Paragraphs.Single().Runs.Single().Color = OfficeColor.Parse("FFFFFF");
         using var output = new MemoryStream();
         imported.Save(output);
         output.Position = 0;

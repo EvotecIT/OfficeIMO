@@ -33,14 +33,17 @@ string htmlFragment = document.ToHtml(new MarkdownHtmlExportOptions { Kind = Mar
 string htmlDocument = document.ToHtml(new MarkdownHtmlExportOptions { Kind = MarkdownHtmlKind.Document });
 ```
 
-`Add` returns the same concrete block you append. `AddRange` returns a read-only snapshot of its inputs in source order; input enumeration and null validation finish before the document changes.
+The chaining methods are shortcuts for the model methods, which return the block they append: `H1`–`H6` call `AddHeading(text, level)`, `P` calls `AddParagraph`, `Ul`, `Ol` and `Dl` call `AddList`, `AddOrderedList` and `AddDefinitionList`, `Image` calls `AddImage`, and `Table` and `TableAuto` call `AddTable`. `Add` returns the same concrete block you append. `AddRange` returns a read-only snapshot of its inputs in source order; input enumeration and null validation finish before the document changes.
 
 ```csharp
 using OfficeIMO.Markdown;
 
 using var document = MarkdownDocument.Create();
-ParagraphBlock paragraph = document.Add(new ParagraphBlock(new InlineSequence().Text("Deployment")));
+HeadingBlock heading = document.AddHeading("Deployment", 2);
+ParagraphBlock paragraph = document.AddParagraph("Deployment ");
 paragraph.Inlines.Text("complete");
+OrderedListBlock steps = document.AddOrderedList(new[] { "Build", "Verify" });
+steps.Start = 3;
 var added = document.AddRange(new IMarkdownBlock[] {
     new HeadingBlock(2, "Next steps"),
     new ParagraphBlock(new InlineSequence().Text("Verify the service."))

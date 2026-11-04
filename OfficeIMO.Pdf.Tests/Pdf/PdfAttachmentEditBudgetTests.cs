@@ -83,5 +83,5 @@ public sealed class PdfAttachmentEditBudgetTests {
         new() { Limits = new PdfReadLimits { MaxTotalAttachmentBytes = maximumAttachmentBytes } };
 
     private static byte[] CreateSource() => PdfDocument.Create(pdf =>
-        pdf.Content(content => content.Paragraph(paragraph => paragraph.Text("Attachment budget proof")))).ToBytes();
+        pdf.Content(content => content.AddParagraph(paragraph => paragraph.AddText("Attachment budget proof")))).ToBytes();
 }

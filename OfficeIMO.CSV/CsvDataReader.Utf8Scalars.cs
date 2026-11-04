@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 
 namespace OfficeIMO.CSV;
 
-internal sealed partial class CsvDataReader
+public partial class CsvDataReader
 {
     // Date, boolean and GUID parsers consume characters. Bound their stack-backed
     // transcoding; unusually long scalar text keeps the existing string fallback.

@@ -26,9 +26,9 @@ namespace OfficeIMO.Examples.Visio {
 
             string gatePath = Path.Combine(galleryPath, "Quality Gate Example.vsdx");
             VisioDocument gateDocument = VisioDocument.Create(gatePath);
-            VisioPage gatePage = gateDocument.AddPage("Quality Gate", 6, 4);
-            VisioShape source = gatePage.AddRectangle(1, 2, 0.8, 0.5, "Source");
-            VisioShape target = gatePage.AddRectangle(5, 2, 0.8, 0.5, "Target");
+            VisioPage gatePage = gateDocument.AddPage("Quality Gate", OfficeLength.Inches(6), OfficeLength.Inches(4));
+            VisioShape source = gatePage.AddRectangle(OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(0.8), OfficeLength.Inches(0.5), "Source");
+            VisioShape target = gatePage.AddRectangle(OfficeLength.Inches(5), OfficeLength.Inches(2), OfficeLength.Inches(0.8), OfficeLength.Inches(0.5), "Target");
             gatePage.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left).Label = "Flow";
             gateDocument.EnsureVisualQuality();
             gateDocument.Save();

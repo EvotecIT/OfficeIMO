@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
             string html = "<h1>One</h1><h2>Two</h2><h3>Three</h3>";
 
 
-            var options = new WordHtmlImportOptions { SupportsHeadingNumbering = true };
+            var options = new HtmlWordExportOptions { SupportsHeadingNumbering = true };
 
 
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(options);

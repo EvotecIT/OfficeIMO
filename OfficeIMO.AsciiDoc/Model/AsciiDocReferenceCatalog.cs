@@ -69,7 +69,7 @@ public sealed class AsciiDocReferenceCatalog {
         return result;
     }
     private (AsciiDocDocumentAttributes Attributes, bool SectionIds) Visit(IEnumerable<AsciiDocBlock> blocks, IList<(string Target, AsciiDocSourceSpan Span)> references, AsciiDocDocumentAttributes attributes, bool sectionIds, int depth, int maximumDepth, System.Threading.CancellationToken token) {
-        if (depth >= maximumDepth) throw new InvalidDataException("AsciiDoc reference traversal exceeds MaximumNestingDepth.");
+        if (depth >= maximumDepth) throw new InvalidDataException("AsciiDoc reference traversal exceeds MaxNestingDepth.");
         foreach (AsciiDocBlock block in blocks) {
             token.ThrowIfCancellationRequested();
             if (block is AsciiDocAttributeEntry entry) {

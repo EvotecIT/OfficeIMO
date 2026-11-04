@@ -34,7 +34,7 @@ namespace OfficeIMO.Word.Html {
                 head.AppendChild(viewport);
             }
 
-            var props = document.BuiltinDocumentProperties;
+            var props = document.Properties;
             var title = CreateOutputElement(htmlDoc, "title");
             var titleText = !string.IsNullOrWhiteSpace(options.Title)
                 ? options.Title!
@@ -51,7 +51,7 @@ namespace OfficeIMO.Word.Html {
             }
 
             if (options.IncludeCustomProperties) {
-                foreach (var property in document.CustomDocumentProperties) {
+                foreach (var property in document.CustomProperties) {
                     cancellationToken.ThrowIfCancellationRequested();
                     AddCustomPropertyMeta(htmlDoc, head, property.Key, property.Value);
                 }
@@ -71,7 +71,7 @@ namespace OfficeIMO.Word.Html {
 
             foreach (var (rel, href) in options.AdditionalLinkTags) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (!string.IsNullOrEmpty(rel) && !string.IsNullOrEmpty(href)) {
+                if (!string.IsNullOrEmpty(rel) && IsExportableLink(href, options, "AdditionalLink")) {
                     var link = CreateOutputElement(htmlDoc, "link");
                     SetOutputAttribute(htmlDoc, link, "rel", rel, "AdditionalLink:rel");
                     SetOutputAttribute(htmlDoc, link, "href", href, "AdditionalLink:href");

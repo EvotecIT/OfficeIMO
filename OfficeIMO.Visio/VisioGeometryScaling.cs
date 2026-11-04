@@ -12,9 +12,9 @@ internal static partial class VisioGeometryScaling {
         if (Math.Abs(x - 1) < 1e-12 && Math.Abs(y - 1) < 1e-12) return;
         bool uniform = Math.Abs(x - y) < 1e-12;
         VisioShape original = originalShape ?? new VisioShape("geometry") {
-            Width = x == 0 ? 0 : shape.Width / x, Height = y == 0 ? 0 : shape.Height / y,
-            LocPinX = x == 0 ? 0 : shape.LocPinX / x, LocPinY = y == 0 ? 0 : shape.LocPinY / y,
-            PinX = x == 0 ? 0 : shape.PinX / x, PinY = y == 0 ? 0 : shape.PinY / y, Angle = shape.Angle
+            WidthInches = x == 0 ? 0 : shape.WidthInches / x, HeightInches = y == 0 ? 0 : shape.HeightInches / y,
+            LocPinXInches = x == 0 ? 0 : shape.LocPinXInches / x, LocPinYInches = y == 0 ? 0 : shape.LocPinYInches / y,
+            PinXInches = x == 0 ? 0 : shape.PinXInches / x, PinYInches = y == 0 ? 0 : shape.PinYInches / y, Angle = shape.Angle
         };
         foreach (XElement section in shape.PreservedGeometrySections) {
             XNamespace ns = section.Name.Namespace;

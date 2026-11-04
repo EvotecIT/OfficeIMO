@@ -13,8 +13,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithProperties.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
 
-                document.BuiltinDocumentProperties.Title = "This is a test for Title";
-                document.BuiltinDocumentProperties.Category = "This is a test for Category";
+                document.Properties.Title = "This is a test for Title";
+                document.Properties.Category = "This is a test for Category";
 
                 var paragraph = document.AddParagraph("Basic paragraph - Page 1");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
@@ -36,8 +36,8 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.PageBreaks.Count() == 2, "PageBreaks count doesn't match. Provided: " + document.PageBreaks.Count);
                 Assert.True(document.Sections[0].Paragraphs.Count == 5, "Paragraphs count doesn't match for section. Provided: " + document.Sections[0].Paragraphs.Count);
                 Assert.True(document.Sections[0].PageBreaks.Count == 2, "PageBreaks count doesn't match for section. Provided: " + document.Sections[0].Paragraphs.Count);
-                Assert.True(document.BuiltinDocumentProperties.Title == "This is a test for Title", "Wrong title");
-                Assert.True(document.BuiltinDocumentProperties.Category == "This is a test for Category", "Wrong category");
+                Assert.True(document.Properties.Title == "This is a test for Title", "Wrong title");
+                Assert.True(document.Properties.Category == "This is a test for Category", "Wrong category");
                 document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithProperties.docx"))) {
@@ -45,8 +45,8 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.PageBreaks.Count() == 2, "PageBreaks count doesn't match (load). Provided: " + document.PageBreaks.Count);
                 Assert.True(document.Sections[0].Paragraphs.Count == 5, "Paragraphs count doesn't match for section (load). Provided: " + document.Sections[0].Paragraphs.Count);
                 Assert.True(document.Sections[0].PageBreaks.Count == 2, "PageBreaks count doesn't match for section (load). Provided: " + document.Sections[0].Paragraphs.Count);
-                Assert.True(document.BuiltinDocumentProperties.Title == "This is a test for Title", "Wrong title (load)");
-                Assert.True(document.BuiltinDocumentProperties.Category == "This is a test for Category", "Wrong category (load)");
+                Assert.True(document.Properties.Title == "This is a test for Title", "Wrong title (load)");
+                Assert.True(document.Properties.Category == "This is a test for Category", "Wrong category (load)");
             }
         }
         [Fact]
@@ -54,8 +54,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithCustomProperties.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
 
-                document.BuiltinDocumentProperties.Title = "This is a test for Title";
-                document.BuiltinDocumentProperties.Category = "This is a test for Category";
+                document.Properties.Title = "This is a test for Title";
+                document.Properties.Category = "This is a test for Category";
 
                 var paragraph = document.AddParagraph("Basic paragraph - Page 1");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
@@ -76,25 +76,25 @@ namespace OfficeIMO.Tests {
                 string date = "7/7/2011 10:48";
                 DateTime dateTime = DateTime.ParseExact(date, "M/d/yyyy hh:mm", CultureInfo.CurrentCulture);
 
-                document.CustomDocumentProperties.Add("TestProperty", new WordCustomProperty { Value = dateTime });
-                document.CustomDocumentProperties.Add("MyName", new WordCustomProperty("Evotec"));
-                document.CustomDocumentProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
+                document.CustomProperties.Add("TestProperty", new WordCustomProperty { Value = dateTime });
+                document.CustomProperties.Add("MyName", new WordCustomProperty("Evotec"));
+                document.CustomProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
 
                 Assert.True(document.ApplicationProperties.Application == "", "Application not matching?");
 
                 document.ApplicationProperties.Application = "OfficeIMO C#";
                 document.ApplicationProperties.ApplicationVersion = "1.1.0";
 
-                //Assert.True(document.CustomDocumentProperties["TestProperty"].Value == dateTime, "Custom property should be as expected");
-                Assert.True((bool)document.CustomDocumentProperties["IsTodayGreatDay"].Value == true, "Custom property should be as expected");
-                Assert.True((string)document.CustomDocumentProperties["MyName"].Value == "Evotec", "Custom property should be as expected");
+                //Assert.True(document.CustomProperties["TestProperty"].Value == dateTime, "Custom property should be as expected");
+                Assert.True((bool)document.CustomProperties["IsTodayGreatDay"].Value == true, "Custom property should be as expected");
+                Assert.True((string)document.CustomProperties["MyName"].Value == "Evotec", "Custom property should be as expected");
 
                 Assert.True(document.Paragraphs.Count == 5, "Paragraphs count doesn't match. Provided: " + document.Paragraphs.Count);
                 Assert.True(document.PageBreaks.Count() == 2, "PageBreaks count doesn't match. Provided: " + document.PageBreaks.Count);
                 Assert.True(document.Sections[0].Paragraphs.Count == 5, "Paragraphs count doesn't match for section. Provided: " + document.Sections[0].Paragraphs.Count);
                 Assert.True(document.Sections[0].PageBreaks.Count == 2, "PageBreaks count doesn't match for section. Provided: " + document.Sections[0].Paragraphs.Count);
-                Assert.True(document.BuiltinDocumentProperties.Title == "This is a test for Title", "Wrong title");
-                Assert.True(document.BuiltinDocumentProperties.Category == "This is a test for Category", "Wrong category");
+                Assert.True(document.Properties.Title == "This is a test for Title", "Wrong title");
+                Assert.True(document.Properties.Category == "This is a test for Category", "Wrong category");
 
                 Assert.True(document.ApplicationProperties.Application == "OfficeIMO C#", "Application not matching?");
                 Assert.True(document.ApplicationProperties.ApplicationVersion == "1.1.0", "Application version not matching?");
@@ -104,20 +104,20 @@ namespace OfficeIMO.Tests {
                 string date = "7/7/2011 10:48";
                 DateTime dateTime = DateTime.ParseExact(date, "M/d/yyyy hh:mm", CultureInfo.CurrentCulture);
 
-                //Assert.True((DateTime) document.CustomDocumentProperties["TestProperty"].Value == dateTime, "Custom property should be as expected");
-                Assert.True((bool)document.CustomDocumentProperties["IsTodayGreatDay"].Value == true, "Custom property should be as expected");
-                Assert.True((string)document.CustomDocumentProperties["MyName"].Value == "Evotec", "Custom property should be as expected");
+                //Assert.True((DateTime) document.CustomProperties["TestProperty"].Value == dateTime, "Custom property should be as expected");
+                Assert.True((bool)document.CustomProperties["IsTodayGreatDay"].Value == true, "Custom property should be as expected");
+                Assert.True((string)document.CustomProperties["MyName"].Value == "Evotec", "Custom property should be as expected");
 
-                document.CustomDocumentProperties["MyName"].Value = "Przemysław Kłys";
+                document.CustomProperties["MyName"].Value = "Przemysław Kłys";
 
-                Assert.True((string)document.CustomDocumentProperties["MyName"].Value == "Przemysław Kłys", "Custom property should be as expected");
+                Assert.True((string)document.CustomProperties["MyName"].Value == "Przemysław Kłys", "Custom property should be as expected");
 
                 Assert.True(document.Paragraphs.Count == 5, "Paragraphs count doesn't match (load). Provided: " + document.Paragraphs.Count);
                 Assert.True(document.PageBreaks.Count() == 2, "PageBreaks count doesn't match (load). Provided: " + document.PageBreaks.Count);
                 Assert.True(document.Sections[0].Paragraphs.Count == 5, "Paragraphs count doesn't match for section (load). Provided: " + document.Sections[0].Paragraphs.Count);
                 Assert.True(document.Sections[0].PageBreaks.Count == 2, "PageBreaks count doesn't match for section (load). Provided: " + document.Sections[0].Paragraphs.Count);
-                Assert.True(document.BuiltinDocumentProperties.Title == "This is a test for Title", "Wrong title (load)");
-                Assert.True(document.BuiltinDocumentProperties.Category == "This is a test for Category", "Wrong category (load)");
+                Assert.True(document.Properties.Title == "This is a test for Title", "Wrong title (load)");
+                Assert.True(document.Properties.Category == "This is a test for Category", "Wrong category (load)");
 
                 Assert.True(document.ApplicationProperties.Application == "OfficeIMO C#", "Application not matching?");
                 Assert.True(document.ApplicationProperties.ApplicationVersion == "1.1.0", "Application version not matching?");
@@ -129,16 +129,16 @@ namespace OfficeIMO.Tests {
                 string date = "7/7/2011 10:48";
                 DateTime dateTime = DateTime.ParseExact(date, "M/d/yyyy hh:mm", CultureInfo.CurrentCulture);
 
-                //Assert.True((DateTime)document.CustomDocumentProperties["TestProperty"].Value == dateTime, "Custom property should be as expected");
-                Assert.True((bool)document.CustomDocumentProperties["IsTodayGreatDay"].Value == true, "Custom property should be as expected");
-                Assert.True((string)document.CustomDocumentProperties["MyName"].Value == "Przemysław Kłys", "Custom property should be as expected");
+                //Assert.True((DateTime)document.CustomProperties["TestProperty"].Value == dateTime, "Custom property should be as expected");
+                Assert.True((bool)document.CustomProperties["IsTodayGreatDay"].Value == true, "Custom property should be as expected");
+                Assert.True((string)document.CustomProperties["MyName"].Value == "Przemysław Kłys", "Custom property should be as expected");
 
                 Assert.True(document.Paragraphs.Count == 5, "Paragraphs count doesn't match (load). Provided: " + document.Paragraphs.Count);
                 Assert.True(document.PageBreaks.Count() == 2, "PageBreaks count doesn't match (load). Provided: " + document.PageBreaks.Count);
                 Assert.True(document.Sections[0].Paragraphs.Count == 5, "Paragraphs count doesn't match for section (load). Provided: " + document.Sections[0].Paragraphs.Count);
                 Assert.True(document.Sections[0].PageBreaks.Count == 2, "PageBreaks count doesn't match for section (load). Provided: " + document.Sections[0].Paragraphs.Count);
-                Assert.True(document.BuiltinDocumentProperties.Title == "This is a test for Title", "Wrong title (load)");
-                Assert.True(document.BuiltinDocumentProperties.Category == "This is a test for Category", "Wrong category (load)");
+                Assert.True(document.Properties.Title == "This is a test for Title", "Wrong title (load)");
+                Assert.True(document.Properties.Category == "This is a test for Category", "Wrong category (load)");
 
                 Assert.True(document.ApplicationProperties.Application == "OfficeIMO C#", "Application not matching?");
                 Assert.True(document.ApplicationProperties.ApplicationVersion == "1.1.0", "Application version not matching?");

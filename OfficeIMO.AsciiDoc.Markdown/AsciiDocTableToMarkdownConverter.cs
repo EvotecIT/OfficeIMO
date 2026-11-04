@@ -4,7 +4,7 @@ internal static class AsciiDocTableToMarkdownConverter {
     internal static TableBlock Convert(
         AsciiDocTableBlock source,
         AsciiDocDocumentAttributes attributes,
-        AsciiDocToMarkdownOptions options,
+        AsciiDocMarkdownExportOptions options,
         List<AsciiDocMarkdownConversionDiagnostic> diagnostics,
         int depth) {
         var target = new TableBlock();

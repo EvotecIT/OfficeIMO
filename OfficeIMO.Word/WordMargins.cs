@@ -270,28 +270,6 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Applies a predefined margin configuration to the given section.
-        /// </summary>
-        /// <param name="wordSection">Target section to update.</param>
-        /// <param name="pageMargins">Predefined margin set to apply.</param>
-        /// <returns>The updated section.</returns>
-        public static WordSection SetMargins(WordSection wordSection, WordMargin pageMargins) {
-            var pageMarginData = GetDefault(pageMargins);
-
-            var pageMargin = wordSection._sectionProperties.GetFirstChild<PageMargin>();
-            if (pageMargin == null) {
-                wordSection._sectionProperties.Append(pageMarginData);
-                // pageMargin = _sectionProperties.GetFirstChild<PageMargin>();
-            } else {
-                pageMargin.Remove();
-                wordSection._sectionProperties.Append(pageMarginData);
-            }
-
-            return wordSection;
-        }
-
-
         private static PageMargin GetDefault(WordMargin? pageMargins) {
             switch (pageMargins) {
                 case WordMargin.Mirrored: return Mirrored;

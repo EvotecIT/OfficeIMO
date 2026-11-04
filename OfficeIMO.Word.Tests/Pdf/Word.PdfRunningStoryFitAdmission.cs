@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
         [InlineData(true, true)]
         public void SaveAsPdf_OrdinaryRunningStoriesRequireTheCompleteWrappedHeightToFit(bool footer, bool largeRun) {
             using WordDocument document = CreateJoinedParagraphDocument();
-            WordHeaderFooter story = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
+            WordHeaderFooter story = footer ? document.PageSetup.Footer : document.PageSetup.Header;
             WordParagraph paragraph = story.AddParagraph("Small ");
             paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(8);
             if (largeRun) {
@@ -33,15 +33,15 @@ namespace OfficeIMO.Tests {
         [InlineData(true, true)]
         public void SaveAsPdf_OrdinaryRunningStoriesReserveTheOppositePhysicalFrame(bool footer, bool oppositeTable) {
             using WordDocument document = CreateJoinedParagraphDocument();
-            document.Sections[0].PageSettings.PageSize = WordPageSize.Letter;
-            document.Sections[0].Margins.Top = document.Sections[0].Margins.Bottom = global::OfficeIMO.OfficeLength.Points(72D);
-            document.Sections[0].Margins.HeaderDistance = document.Sections[0].Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(36D);
-            WordHeaderFooter story = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
+            document.Sections[0].PageSetup.Size.PageSize = WordPageSize.Letter;
+            document.Sections[0].PageSetup.Margins.Top = document.Sections[0].PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(72D);
+            document.Sections[0].PageSetup.Margins.HeaderDistance = document.Sections[0].PageSetup.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(36D);
+            WordHeaderFooter story = footer ? document.PageSetup.Footer : document.PageSetup.Header;
             WordParagraph paragraph = story.AddParagraph("STORY");
             paragraph._paragraph.ParagraphProperties = new W.ParagraphProperties(new W.SpacingBetweenLines {
                 Before = "0", After = "0", Line = "14600", LineRule = W.LineSpacingRuleValues.Exact });
             if (oppositeTable) {
-                WordHeaderFooter opposite = footer ? document.HeaderDefaultOrCreate : document.FooterDefaultOrCreate;
+                WordHeaderFooter opposite = footer ? document.PageSetup.Header : document.PageSetup.Footer;
                 opposite.AddTable(1, 1).Rows[0].Cells[0].AddParagraph("REQUIRED");
             }
             document.AddParagraph("BODY");
@@ -60,9 +60,9 @@ namespace OfficeIMO.Tests {
         [InlineData(true, 10)]
         public void SaveAsPdf_OrdinaryRunningStoryFitUsesTheActualPageNumber(bool footer, int start) {
             using WordDocument document = CreateJoinedParagraphDocument();
-            document.Sections[0].PageSettings.PageSize = WordPageSize.Letter;
+            document.Sections[0].PageSetup.Size.PageSize = WordPageSize.Letter;
             document.Sections[0]._sectionProperties.AddChild(new W.PageNumberType { Start = start }, true);
-            WordHeaderFooter story = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
+            WordHeaderFooter story = footer ? document.PageSetup.Footer : document.PageSetup.Header;
             WordParagraph paragraph = story.AddParagraph();
             paragraph.AddField(WordFieldType.Page);
             foreach (W.Run run in paragraph._paragraph.Descendants<W.Run>()) {
@@ -82,10 +82,10 @@ namespace OfficeIMO.Tests {
         [InlineData(true)]
         public void SaveAsPdf_OrdinaryRunningHeaderRetainsRoomForTheFirstBodyLine(bool afterPageBreak) {
             using WordDocument document = CreateJoinedParagraphDocument();
-            document.Sections[0].PageSettings.PageSize = WordPageSize.Letter;
-            document.Sections[0].Margins.Bottom = global::OfficeIMO.OfficeLength.Points(72D);
-            document.Sections[0].Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points(36D);
-            WordParagraph header = document.HeaderDefaultOrCreate.AddParagraph("HEADER");
+            document.Sections[0].PageSetup.Size.PageSize = WordPageSize.Letter;
+            document.Sections[0].PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(72D);
+            document.Sections[0].PageSetup.Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points(36D);
+            WordParagraph header = document.PageSetup.Header.AddParagraph("HEADER");
             header._paragraph.ParagraphProperties = new W.ParagraphProperties(new W.SpacingBetweenLines {
                 Before = "0", After = "0", Line = "13000", LineRule = W.LineSpacingRuleValues.Exact });
             if (afterPageBreak) document.AddParagraph("FIRST").AddBreak(WordBreakType.Page);

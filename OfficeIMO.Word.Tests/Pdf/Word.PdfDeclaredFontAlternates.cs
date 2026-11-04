@@ -362,8 +362,8 @@ public sealed class WordPdfDeclaredFontAlternateTests {
         WordParagraph paragraph;
         if (owner is "header" or "footer") {
             document.AddParagraph("Body");
-            document.AddHeadersAndFooters();
-            paragraph = (owner == "header" ? (WordHeaderFooter)document.Header.Default : document.Footer.Default)
+            _ = document.PageSetup.Header;
+            paragraph = (owner == "header" ? (WordHeaderFooter)document.PageSetup.GetHeader(WordHeaderFooterType.Default) : document.PageSetup.GetFooter(WordHeaderFooterType.Default))
                 .AddParagraph("AAAA");
         } else if (owner == "table") {
             paragraph = document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
@@ -389,7 +389,7 @@ public sealed class WordPdfDeclaredFontAlternateTests {
         IncludePageNumbers = false, PdfOptions = fonts, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
     };
     private static string CallerFontState(PdfCreateOptions options) =>
-        options.DefaultFont + "|" + options.HeaderFont + "|" + options.FooterFont + "|" +
+        options.DefaultFont + "|" + options.PageSetup.Header.StandardFont + "|" + options.PageSetup.Footer.StandardFont + "|" +
         string.Join(";", options.EmbeddedFonts.OrderBy(pair => pair.Key).Select(pair =>
             pair.Key + ":" + pair.Value.FontName + ":" + Convert.ToBase64String(pair.Value.Data))) + "|" +
         string.Join(";", options.NamedFontFamilies.OrderBy(pair => pair.Key, StringComparer.Ordinal).Select(pair =>

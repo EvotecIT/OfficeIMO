@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_RemovesEmptyDataValidationContainer() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(2, 1).SetValue(1);
+            sheet.Cell(2, 1).SetValue(1);
             sheet.WorksheetPart.Worksheet.Append(
                 new DataValidations(
                     new DataValidation {
@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_RemovesEmptyHyperlinkContainer() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(2, 1).SetValue("Link");
+            sheet.Cell(2, 1).SetValue("Link");
             sheet.SetHyperlink(2, 1, "https://example.com", style: false);
 
             sheet.DeleteRows(2);
@@ -60,10 +60,10 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_ClampsDeletedOneCellDrawingAnchor() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(1, 1).SetValue("Category");
-            sheet.CellAt(1, 2).SetValue("Value");
-            sheet.CellAt(2, 1).SetValue("One");
-            sheet.CellAt(2, 2).SetValue(1);
+            sheet.Cell(1, 1).SetValue("Category");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("One");
+            sheet.Cell(2, 2).SetValue(1);
             sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 5, Column = 4 });
             Xdr.OneCellAnchor anchor = Assert.Single(
                 sheet.WorksheetPart.DrawingsPart!.WorksheetDrawing!.Elements<Xdr.OneCellAnchor>());
@@ -81,12 +81,12 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_InvalidatesNamedChartSourceCaches() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(1, 1).SetValue("Category");
-            sheet.CellAt(1, 2).SetValue("Value");
-            sheet.CellAt(2, 1).SetValue("One");
-            sheet.CellAt(2, 2).SetValue(1);
-            sheet.CellAt(3, 1).SetValue("Two");
-            sheet.CellAt(3, 2).SetValue(2);
+            sheet.Cell(1, 1).SetValue("Category");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("One");
+            sheet.Cell(2, 2).SetValue(1);
+            sheet.Cell(3, 1).SetValue("Two");
+            sheet.Cell(3, 2).SetValue(2);
             document.SetNamedRange("MySeries", "'Data'!$B$2:$B$3", save: false);
             sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 5, Column = 4 });
 

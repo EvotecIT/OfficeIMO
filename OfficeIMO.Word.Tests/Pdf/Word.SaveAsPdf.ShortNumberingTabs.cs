@@ -54,7 +54,7 @@ public sealed class PdfShortNumberingTabTests {
         using WordDocument document = WordDocument.Create();
         document.CompatibilitySettings.CompatibilityMode = mode;
         document.CompatibilitySettings.DoNotUseIndentAsNumberingTabStop = true;
-        WordHeaderFooter story = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
+        WordHeaderFooter story = footer ? document.PageSetup.Footer : document.PageSetup.Header;
         WordList list = story.AddList(WordListStyle.Custom);
         ConfigureShortNumbering(list, authored);
         WordParagraph paragraph = list.AddItem("RUNNING");
@@ -84,7 +84,7 @@ public sealed class PdfShortNumberingTabTests {
     [InlineData(true)]
     public void NumberedRunningStoriesKeepBoundedExportWhenPageOverridesConsumeTheirTextFrame(bool footer) {
         using WordDocument document = WordDocument.Create();
-        WordHeaderFooter story = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
+        WordHeaderFooter story = footer ? document.PageSetup.Footer : document.PageSetup.Header;
         WordList list = story.AddList(WordListStyle.Custom);
         ConfigureShortNumbering(list, true);
         list.AddItem("RUNNING"); document.AddParagraph("BODY");
@@ -113,7 +113,7 @@ public sealed class PdfShortNumberingTabTests {
     public void AlignedNumberingAnchorsIncludeTheSpaceSuffixAndRetainItsText(
         string scope, WordListLevelAlignment alignment, WordListLevelSuffix suffix) {
         using WordDocument document = WordDocument.Create();
-        WordList list = scope == "header" ? document.HeaderDefaultOrCreate.AddList(WordListStyle.Custom) : document.AddCustomList();
+        WordList list = scope == "header" ? document.PageSetup.Header.AddList(WordListStyle.Custom) : document.AddCustomList();
         ConfigureShortNumbering(list, false);
         WordListLevel level = list.Numbering.Levels[0];
         level.SetStartNumberingValue(9); level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(90D); level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(36D);
@@ -160,7 +160,7 @@ public sealed class PdfShortNumberingTabTests {
     [InlineData(true, "unnumbered-first-line")]
     public void NumberedRunningFamiliesKeepBoundedExportForEveryParagraphTextFrame(bool footer, string route) {
         using WordDocument document = WordDocument.Create();
-        WordHeaderFooter normal = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
+        WordHeaderFooter normal = footer ? document.PageSetup.Footer : document.PageSetup.Header;
         WordList list = normal.AddList(WordListStyle.Custom);
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
         list.Numbering.Levels[0].IndentationLeft= global::OfficeIMO.OfficeLength.Points(36D);
@@ -168,11 +168,11 @@ public sealed class PdfShortNumberingTabTests {
         WordParagraph numbered = list.AddItem("RUNNING");
         WordHeaderFooter siblingStory = normal;
         if (route == "first-variant") {
-            document.Sections[0].DifferentFirstPage = true;
-            siblingStory = footer ? document.FooterFirstOrCreate : document.HeaderFirstOrCreate;
+            document.Sections[0].PageSetup.DifferentFirstPage = true;
+            siblingStory = footer ? document.PageSetup.FirstPageFooter : document.PageSetup.FirstPageHeader;
         } else if (route == "even-variant") {
-            document.Sections[0].DifferentOddAndEvenPages = true;
-            siblingStory = footer ? document.FooterEvenOrCreate : document.HeaderEvenOrCreate;
+            document.Sections[0].PageSetup.DifferentOddAndEvenPages = true;
+            siblingStory = footer ? document.PageSetup.EvenPageFooter : document.PageSetup.EvenPageHeader;
         }
         WordParagraph paragraph = route == "numbered-first-line" ? numbered : siblingStory.AddParagraph("SIBLING");
         paragraph._paragraph.ParagraphProperties ??= new ParagraphProperties();

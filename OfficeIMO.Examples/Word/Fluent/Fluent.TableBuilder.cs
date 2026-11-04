@@ -41,10 +41,10 @@ namespace OfficeIMO.Examples.Word
                     (table6.Rows[1 - 1].Cells[3 - 1]).AddParagraph("Last", true);
                     table6.InsertRow(3 - 1, "A", "B", "C");
                     table6.InsertColumn(4 - 1, "X", "Y", "Z");
-                    (table6.Rows[1 - 1]).Cells.ForEach(c => c.ShadingFillColorHex = "ffcccc");
+                    (table6.Rows[1 - 1]).Cells.ForEach(c => c.ShadingFillColor = OfficeColor.Parse("ffcccc"));
                     foreach (var row in table6.Rows)
                     {
-                        (row.Cells[2 - 1]).ShadingFillColorHex = "ccffcc";
+                        (row.Cells[2 - 1]).ShadingFillColor = OfficeColor.Parse("ccffcc");
                     }
 
                     document.Save();

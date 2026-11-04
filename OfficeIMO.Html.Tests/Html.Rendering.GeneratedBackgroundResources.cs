@@ -120,7 +120,7 @@ public sealed partial class HtmlRenderingTests {
             ? await HtmlRenderEngine.RenderAsync(html, options) : HtmlRenderEngine.Render(html, options);
 
         Assert.Equal("https://example.test/main.css", Assert.Single(requests));
-        Assert.Equal(generated, rendered.Diagnostics.Any(diagnostic => diagnostic.Code == "image-resource-rejected-by-policy"
+        Assert.Equal(generated, rendered.NativeDiagnostics.Any(diagnostic => diagnostic.Code == "image-resource-rejected-by-policy"
             && diagnostic.Source == "file:///private/blocked.png"));
     }
 
@@ -172,10 +172,10 @@ public sealed partial class HtmlRenderingTests {
             ? await HtmlRenderEngine.RenderAsync(html, options) : HtmlRenderEngine.Render(html, options);
 
         Assert.Equal(new[] { "https://example.test/main.css?signed=1", "https://example.test/missing.png?signed=1" }, requests);
-        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable
             && diagnostic.Source == "missing.png" && diagnostic.Severity == HtmlDiagnosticSeverity.Warning
             && diagnostic.LossKind == OfficeConversionLossKind.Omission);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
     }
 
     [Fact]

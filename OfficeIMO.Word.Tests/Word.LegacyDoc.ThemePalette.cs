@@ -20,7 +20,7 @@ public partial class Word {
         OfficeConversionException failure = Assert.Throws<OfficeConversionException>(() =>
             source.Save(destination, new WordSaveOptions { Format = WordFileFormat.Doc }));
         Assert.Equal(new byte[] { 123 }, destination.ToArray());
-        Assert.Contains(failure.Report.FidelityDiagnostics,
+        Assert.Contains(failure.Report.Diagnostics,
             diagnostic => diagnostic.Code == "word-doc-color-approximated" &&
                 diagnostic.LossKind == OfficeConversionLossKind.Approximation);
 
@@ -53,15 +53,15 @@ public partial class Word {
         WordTableCell cell = source.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0];
         cell.Paragraphs[0].Text = "Cell";
         switch (kind) {
-            case "paragraph shading": paragraph.ShadingFillColorHex = "336699"; break;
-            case "paragraph border": paragraph.Borders.TopStyle = WordBorderStyle.Single; paragraph.Borders.TopColorHex = "336699"; break;
-            case "table cell shading": cell.ShadingFillColorHex = "336699"; break;
-            case "table cell border": cell.Borders.TopStyle = WordBorderStyle.Single; cell.Borders.TopColorHex = "336699"; break;
-            case "page border": source.Sections[0].Borders.TopStyle = WordBorderStyle.Single; source.Sections[0].Borders.TopColorHex = "336699"; break;
+            case "paragraph shading": paragraph.ShadingFillColor = OfficeColor.Parse("336699"); break;
+            case "paragraph border": paragraph.Borders.TopStyle = WordBorderStyle.Single; paragraph.Borders.TopColor = OfficeColor.Parse("336699"); break;
+            case "table cell shading": cell.ShadingFillColor = OfficeColor.Parse("336699"); break;
+            case "table cell border": cell.Borders.TopStyle = WordBorderStyle.Single; cell.Borders.TopColor = OfficeColor.Parse("336699"); break;
+            case "page border": source.Sections[0].Borders.TopStyle = WordBorderStyle.Single; source.Sections[0].Borders.TopColor = OfficeColor.Parse("336699"); break;
         }
         OfficeConversionException failure = Assert.Throws<OfficeConversionException>(() =>
             source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
-        var finding = Assert.Single(failure.Report.FidelityDiagnostics);
+        var finding = Assert.Single(failure.Report.Diagnostics);
         Assert.Equal("word-doc-color-approximated", finding.Code);
         Assert.Equal(OfficeConversionLossKind.Approximation, finding.LossKind);
         Assert.Contains("#336699", finding.Message);
@@ -71,11 +71,11 @@ public partial class Word {
         WordParagraph nativeParagraph = restored.Paragraphs.First(item => item.Text == "Paint");
         WordTableCell nativeCell = Assert.Single(restored.Tables).Rows[0].Cells[0];
         string? actual = kind switch {
-            "paragraph shading" => nativeParagraph.ShadingFillColorHex,
-            "paragraph border" => nativeParagraph.Borders.TopColorHex,
-            "table cell shading" => nativeCell.ShadingFillColorHex,
-            "table cell border" => nativeCell.Borders.TopColorHex,
-            "page border" => restored.Sections[0].Borders.TopColorHex,
+            "paragraph shading" => nativeParagraph.ShadingFillColor?.ToRgbHex(),
+            "paragraph border" => nativeParagraph.Borders.TopColor?.ToRgbHex(),
+            "table cell shading" => nativeCell.ShadingFillColor?.ToRgbHex(),
+            "table cell border" => nativeCell.Borders.TopColor?.ToRgbHex(),
+            "page border" => restored.Sections[0].Borders.TopColor?.ToRgbHex(),
             _ => null
         };
         Assert.Equal("008080", actual);
@@ -98,7 +98,7 @@ public partial class Word {
             Assert.Equal(expectedOutput, result.Succeeded);
             Assert.Equal(expectedOutput, File.Exists(output));
             Assert.True(result.Report.HasLoss);
-            Assert.Contains(result.Report.Diagnostics, finding => finding.Code == "word-doc-color-approximated" &&
+            Assert.Contains(result.Report.NativeDiagnostics, finding => finding.Code == "word-doc-color-approximated" &&
                 finding.CompatibilityState == (expectedOutput ? OfficeCompatibilityState.Approximated : OfficeCompatibilityState.Blocked));
             Assert.DoesNotContain(result.Report.Diagnostics, finding => finding.Code == "word-legacy-writer-visual-fallback");
             if (expectedOutput) {

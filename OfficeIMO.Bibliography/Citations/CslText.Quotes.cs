@@ -10,7 +10,7 @@ internal readonly partial struct CslText {
         XElement root = CslStyle.ReadXml("<root>" + Html + "</root>", (int)Math.Min(int.MaxValue, (long)maximumCharacters + 13), 1024, token);
         ResolveQuoteElements(root, locale, 0, maximumCharacters, token);
         string html = string.Concat(root.Nodes().Select(node => node is XText text ? Escape(text.Value) : node.ToString(SaveOptions.DisableFormatting)));
-        if (html.Length > maximumCharacters) throw new InvalidDataException("CSL rendering exceeds MaximumIntermediateCharacters.");
+        if (html.Length > maximumCharacters) throw new InvalidDataException("CSL rendering exceeds MaxIntermediateCharacters.");
         return new CslText(HtmlPlain(html, token), html, Attempted, Rendered);
     }
 
@@ -109,7 +109,7 @@ internal readonly partial struct CslText {
                 if ((index & 1023) == 0) token.ThrowIfCancellationRequested();
                 bool replaced = replacements.TryGetValue(offset + index, out string? replacement);
                 total += replaced ? replacement!.Length : 1;
-                if (total > maximumCharacters) throw new InvalidDataException("CSL rendering exceeds MaximumIntermediateCharacters.");
+                if (total > maximumCharacters) throw new InvalidDataException("CSL rendering exceeds MaxIntermediateCharacters.");
                 if (closings.Contains(offset + index)) {
                     if (output.Length > 0) { segments.Add(new XText(output.ToString())); output.Clear(); }
                     segments.Add(ClosingQuote(replacement!));

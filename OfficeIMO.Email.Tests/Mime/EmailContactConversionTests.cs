@@ -36,7 +36,7 @@ public sealed class EmailContactConversionTests {
         source.Body.Text = "Contact notes";
 
         byte[] eml = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.Eml);
-        EmailDocument result = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument result = new EmailDocumentReader().ReadDocument(eml).Document;
         using var oracleStream = new MemoryStream(eml);
         MimeMessage oracle = MimeMessage.Load(oracleStream);
 
@@ -85,7 +85,7 @@ public sealed class EmailContactConversionTests {
             "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
             "FN:Ada Lovelace\r\nTEL;TYPE=HOME;TYPE=VOICE:+44 20 0000 0000\r\nEND:VCARD\r\n");
 
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         Assert.Equal("+44 20 0000 0000", document.Contact!.Phones.Home);
         Assert.Null(document.Contact.Phones.Primary);
@@ -99,7 +99,7 @@ public sealed class EmailContactConversionTests {
             "ADR;TYPE=HOME;LABEL=\"12: Main; Apt\":;;Main Street;Warsaw;Mazovia;00-001;Poland\r\n" +
             "END:VCARD\r\n");
 
-        OutlookPostalAddress address = new EmailDocumentReader().Read(eml).Document.Contact!.HomeAddress;
+        OutlookPostalAddress address = new EmailDocumentReader().ReadDocument(eml).Document.Contact!.HomeAddress;
 
         Assert.Equal("12: Main; Apt", address.Formatted);
         Assert.Equal("Main Street", address.Street);
@@ -115,9 +115,9 @@ public sealed class EmailContactConversionTests {
             "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
             "FN;CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE:Jos=C3=\r\n =A9\r\n" +
             "N;CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE:Example;Jos=C3=A9;;;\r\nEND:VCARD\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
-        EmailDocument roundTrip = new EmailDocumentReader().Read(
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
 
         Assert.Equal("José", document.Contact!.DisplayName);
@@ -132,9 +132,9 @@ public sealed class EmailContactConversionTests {
             "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
             "FN:Ada Lovelace\r\nADR;TYPE=HOME;LABEL=\"12 \\\"Main\\\" \\\\ St\":;;Main Street;;;;\r\n" +
             "END:VCARD\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
-        EmailDocument roundTrip = new EmailDocumentReader().Read(
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
 
         Assert.Equal("12 \"Main\" \\ St", document.Contact!.HomeAddress.Formatted);
@@ -149,7 +149,7 @@ public sealed class EmailContactConversionTests {
             "ADR;TYPE=HOME;LABEL=\"Line 1\\nLine 2\\, Suite\\; East\":;;Main Street;;;;\r\n" +
             "END:VCARD\r\n");
 
-        OutlookPostalAddress address = new EmailDocumentReader().Read(eml).Document.Contact!.HomeAddress;
+        OutlookPostalAddress address = new EmailDocumentReader().ReadDocument(eml).Document.Contact!.HomeAddress;
 
         Assert.Equal("Line 1\nLine 2, Suite; East", address.Formatted);
     }
@@ -161,7 +161,7 @@ public sealed class EmailContactConversionTests {
             "FN:Ada Lovelace\r\n" +
             "ADR;TYPE=HOME;LABEL=alpha^nbeta:;;Main Street;;;;\r\nEND:VCARD\r\n");
 
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         Assert.Equal("alpha^nbeta", document.Contact!.HomeAddress.Formatted);
     }
@@ -173,7 +173,7 @@ public sealed class EmailContactConversionTests {
             "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Ada Lovelace\r\n" +
             "EMAIL;TYPE=WORK:ada@example.com\r\nEND:VCARD\r\n");
 
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         Assert.Equal(OutlookItemKind.Contact, document.OutlookItemKind);
         Assert.Equal("Ada Lovelace", document.Contact!.DisplayName);
@@ -190,8 +190,8 @@ public sealed class EmailContactConversionTests {
             if (vcard[index] == (byte)'#') vcard[index] = 0xe9;
         }
 
-        EmailDocument document = new EmailDocumentReader().Read(prefix.Concat(vcard).ToArray()).Document;
-        EmailDocument roundTrip = new EmailDocumentReader().Read(
+        EmailDocument document = new EmailDocumentReader().ReadDocument(prefix.Concat(vcard).ToArray()).Document;
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter().ToBytes(document, EmailFileFormat.Eml)).Document;
 
         Assert.Equal("André", document.Contact!.DisplayName);
@@ -211,7 +211,7 @@ public sealed class EmailContactConversionTests {
             "X-OFFICEIMO-EMAIL2-ORIGINAL-DISPLAY-NAME:Ada Original\r\n" +
             "EMAIL;TYPE=OTHER:ada@other.example\r\nEND:VCARD\r\n");
 
-        OutlookContact contact = new EmailDocumentReader().Read(eml).Document.Contact!;
+        OutlookContact contact = new EmailDocumentReader().ReadDocument(eml).Document.Contact!;
 
         Assert.Null(contact.Email1.Address);
         Assert.Equal("ada@home.example", contact.Email2.Address);
@@ -226,7 +226,7 @@ public sealed class EmailContactConversionTests {
             "Content-Type: text/vcard; charset=utf-8\r\n\r\n" +
             "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:First\r\nEND:VCARD\r\n" +
             "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Second\r\nEND:VCARD\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -242,7 +242,7 @@ public sealed class EmailContactConversionTests {
             "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
             "FN:Ada Lovelace\r\nEMAIL:first@example.com\r\nEMAIL:second@example.com\r\n" +
             "EMAIL:third@example.com\r\nEMAIL:fourth@example.com\r\nEND:VCARD\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -258,7 +258,7 @@ public sealed class EmailContactConversionTests {
             "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
             "FN:Ada Lovelace\r\nADR;TYPE=HOME:;;First Street;Warsaw;;;\r\n" +
             "ADR;TYPE=HOME:;;Second Street;London;;;\r\nEND:VCARD\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -273,7 +273,7 @@ public sealed class EmailContactConversionTests {
         byte[] eml = Encoding.ASCII.GetBytes(
             "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
             "FN:Ada Lovelace\r\nADR;TYPE=HOME:;Apt 4;123 Main;Warsaw;;;\r\nEND:VCARD\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -289,7 +289,7 @@ public sealed class EmailContactConversionTests {
         byte[] eml = Encoding.ASCII.GetBytes(
             "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
             "FN:Ada Lovelace\r\nORG:Example Corp;Sales;West\r\nEND:VCARD\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -308,7 +308,7 @@ public sealed class EmailContactConversionTests {
         byte[] eml = Encoding.ASCII.GetBytes(
             "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
             "FN:Ada Lovelace\r\nEMAIL;TYPE=" + type + ",PREF:ada@example.com\r\nEND:VCARD\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -324,7 +324,7 @@ public sealed class EmailContactConversionTests {
             "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
             "FN:Ada Lovelace\r\nURL;TYPE=WORK:https://first.example\r\n" +
             "URL;TYPE=WORK:https://second.example\r\nEND:VCARD\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -340,7 +340,7 @@ public sealed class EmailContactConversionTests {
             "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
             "FN:Ada Lovelace\r\nTEL;TYPE=HOME:first\r\nTEL;TYPE=HOME:second\r\n" +
             "TEL;TYPE=HOME:third\r\nEND:VCARD\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -359,7 +359,7 @@ public sealed class EmailContactConversionTests {
         byte[] eml = Encoding.ASCII.GetBytes(
             "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
             "FN:Ada Lovelace\r\n" + property + ":19960415T231000Z\r\nEND:VCARD\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -374,7 +374,7 @@ public sealed class EmailContactConversionTests {
         byte[] eml = Encoding.ASCII.GetBytes(
             "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
             "UID:contact-123\r\nFN:Ada Lovelace\r\nEND:VCARD\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -392,7 +392,7 @@ public sealed class EmailContactConversionTests {
         byte[] eml = Encoding.ASCII.GetBytes(
             "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
             "FN:Ada Lovelace\r\n" + property + "\r\nEND:VCARD\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -412,7 +412,7 @@ public sealed class EmailContactConversionTests {
         byte[] eml = Encoding.ASCII.GetBytes(
             "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
             "FN:Ada Lovelace\r\n" + property + "\r\nEND:VCARD\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -429,7 +429,7 @@ public sealed class EmailContactConversionTests {
         byte[] eml = Encoding.ASCII.GetBytes(
             "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:" + version + "\r\n" +
             "FN:Ada Lovelace\r\nEND:VCARD\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -444,7 +444,7 @@ public sealed class EmailContactConversionTests {
         byte[] eml = Encoding.ASCII.GetBytes(
             "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
             "FN:Ada Lovelace\r\nTEL;TYPE=HOME,PREF:+48-123-456-789\r\nEND:VCARD\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -462,7 +462,7 @@ public sealed class EmailContactConversionTests {
             "FN:Ada Lovelace\r\nEMAIL;TYPE=WORK:first@example.com\r\n" +
             "EMAIL;TYPE=WORK:second@example.com\r\n" +
             "TEL;TYPE=HOME:+48-123-456-789\r\nEND:VCARD\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -486,7 +486,7 @@ public sealed class EmailContactConversionTests {
         byte[] eml = Encoding.ASCII.GetBytes(
             "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
             "FN:Ada Lovelace\r\n" + property + "\r\nEND:VCARD\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -503,7 +503,7 @@ public sealed class EmailContactConversionTests {
         byte[] eml = Encoding.ASCII.GetBytes(
             "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
             "FN:Robert Example\r\n" + properties + "\r\nEND:VCARD\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -521,7 +521,7 @@ public sealed class EmailContactConversionTests {
             "--x\r\nContent-Type: text/vcard; charset=utf-8\r\n\r\n" +
             "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Ada Lovelace\r\nNOTE:Contact notes\r\n" +
             "END:VCARD\r\n--x--\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -540,7 +540,7 @@ public sealed class EmailContactConversionTests {
             "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Ada Lovelace\r\nNOTE:Contact notes\r\nEND:VCARD\r\n" +
             "--x\r\nContent-Type: text/plain; charset=utf-8; name=notes.txt\r\n" +
             "Content-Disposition: attachment; filename=notes.txt\r\n\r\nOrdinary attachment\r\n--x--\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         byte[] rewritten = new EmailDocumentWriter().ToBytes(document, EmailFileFormat.Eml);
         using var stream = new MemoryStream(rewritten);
@@ -560,11 +560,11 @@ public sealed class EmailContactConversionTests {
         byte[] eml = Encoding.ASCII.GetBytes(
             "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
             "FN:Ada Lovelace\r\nNOTE:Literal \\\\n value\r\nEND:VCARD\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
-        EmailDocument stored = new EmailDocumentReader().Read(
+        EmailDocument stored = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
-        EmailDocument roundTrip = new EmailDocumentReader().Read(
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).ToBytes(stored, EmailFileFormat.Eml)).Document;
 
         Assert.Equal("Literal \\n value", document.Body.Text);
@@ -608,8 +608,8 @@ public sealed class EmailContactConversionTests {
             "Content-Disposition: attachment; filename=ada.vcf\r\n\r\n" +
             "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Ada Lovelace\r\nEND:VCARD\r\n--x--\r\n");
 
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
-        EmailDocument roundTrip = new EmailDocumentReader().Read(
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter().ToBytes(document, EmailFileFormat.Eml)).Document;
 
         Assert.Equal(OutlookItemKind.Message, document.OutlookItemKind);
@@ -626,11 +626,11 @@ public sealed class EmailContactConversionTests {
         byte[] eml = Encoding.ASCII.GetBytes(
             "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
             "FN:Ada Lovelace\r\nCATEGORIES:Blue,Project\\, X\r\nEND:VCARD\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         byte[] msg = new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).ToBytes(document, EmailFileFormat.OutlookMsg);
-        EmailDocument roundTrip = new EmailDocumentReader().Read(msg).Document;
-        EmailDocument regeneratedVcard = new EmailDocumentReader().Read(
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(msg).Document;
+        EmailDocument regeneratedVcard = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).ToBytes(roundTrip, EmailFileFormat.Eml)).Document;
 
         Assert.Equal(new[] { "Blue", "Project, X" }, document.MessageMetadata.Categories);
@@ -643,9 +643,9 @@ public sealed class EmailContactConversionTests {
         byte[] eml = Encoding.ASCII.GetBytes(
             "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
             "FN:Ada Lovelace\r\nCLASS:CONFIDENTIAL\r\nEND:VCARD\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
-        EmailDocument storeRoundTrip = new EmailDocumentReader().Read(
+        EmailDocument storeRoundTrip = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
         byte[] regenerated = new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).ToBytes(storeRoundTrip, EmailFileFormat.Eml);
         using var stream = new MemoryStream(regenerated);

@@ -86,6 +86,25 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlGrid_RowSubgridChildrenSizeTheParentRowsTheyOccupy() {
+        const string html = "<div style='display:grid;grid-template-columns:50px 50px;grid-template-rows:auto auto auto'>"
+            + "<div style='display:grid;grid-row:span 3;grid-template-rows:subgrid'>"
+            + "<div style='height:10px;background:#111'></div><div style='height:20px;background:#222'></div><div id='a' style='height:10px;background:#333'></div></div>"
+            + "<div style='display:grid;grid-row:span 3;grid-template-rows:subgrid'>"
+            + "<div style='height:30px;background:#444'></div><div style='height:10px;background:#555'></div><div id='b' style='height:10px;background:#666'></div></div>"
+            + "</div>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous, ViewportWidth = 120D, ViewportHeight = 100D, Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+
+        HtmlRenderShape[] shapes = rendered.Pages[0].Visuals.OfType<HtmlRenderShape>().ToArray();
+        Assert.Equal(50D, Assert.Single(shapes, shape => shape.Source == "div#a").Y, 3);
+        Assert.Equal(50D, Assert.Single(shapes, shape => shape.Source == "div#b").Y, 3);
+    }
+
+    [Fact]
     public void HtmlGrid_PreservedTemplateRetainsSubgridAndModernLengthMath() {
         const string html = "<style>#grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,148px),1fr))}"
             + "#subgrid{grid-template-columns:subgrid [start] [end]}</style>"

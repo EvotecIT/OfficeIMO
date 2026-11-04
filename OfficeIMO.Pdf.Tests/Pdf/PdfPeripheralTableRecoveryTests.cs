@@ -86,9 +86,10 @@ public class PdfPeripheralTableRecoveryTests {
     [InlineData(true, true, 3D)]
     public void SideAnnotationsKeepEveryRowOfATable(bool outsideLeft, bool embedded, double offset) {
         var options = new PdfCreateOptions {
-            PageWidth = OfficeLength.Points(460), PageHeight = OfficeLength.Points(360),
-            MarginLeft = OfficeLength.Points(36), MarginRight = OfficeLength.Points(36),
-            MarginTop = OfficeLength.Points(36), MarginBottom = OfficeLength.Points(36),
+            PageSetup = {
+                Size = new PdfPageSize(OfficeLength.Points(460), OfficeLength.Points(360)),
+                Margins = { Left = OfficeLength.Points(36), Right = OfficeLength.Points(36), Top = OfficeLength.Points(36), Bottom = OfficeLength.Points(36) }
+            },
             DefaultFontSize = OfficeLength.Points(10), EmbedDefaultFonts = embedded
         };
         string[][] rows = { new[] { "Area", "Owner", "Status" }, new[] { "HTML", "OfficeIMO.Html", "Ready" },
@@ -120,7 +121,7 @@ public class PdfPeripheralTableRecoveryTests {
         byte[] Render(double? annotationX = null, double annotationTop = 0D) {
             using var pdf = PdfDocument.Create(options);
             pdf.Compose(compose => compose.Content(content => {
-                content.H1("Positioned geometry").Table(rows, style: style);
+                content.H1("Positioned geometry").AddTable(rows, style: style);
                 if (annotationX.HasValue) content.Canvas(canvas => canvas.Text("Ready", OfficeLength.Points(annotationX.Value),
                     OfficeLength.Points(annotationTop), OfficeLength.Points(50), OfficeLength.Points(18), fontSize: OfficeLength.Points(10)));
             }));

@@ -21,7 +21,7 @@ public sealed class ProjectRoundTripAnalysisBoundaryTests {
         task.RemainingDuration = conflict >= 3 ? ProjectDuration.WorkingHours(8) : ProjectDuration.WorkingDays(1);
         if (conflict == 4) task.Duration = null;
         var options = new ProjectSaveOptions { Format = ProjectFileFormat.Xml };
-        Assert.Contains(document.AssessSave(options).Diagnostics, d => d.Code == "PROJECT_XML_DURATION_FORMAT" && d.Severity == ProjectDiagnosticSeverity.Error);
+        Assert.Contains(document.AssessSave(options).NativeDiagnostics, d => d.Code == "PROJECT_XML_DURATION_FORMAT" && d.Severity == ProjectDiagnosticSeverity.Error);
         Assert.Throws<InvalidDataException>(() => document.ToXml());
         using var destination = new MemoryStream(); destination.WriteByte(123);
         Assert.Throws<InvalidDataException>(() => document.Save(destination, options)); Assert.Equal(new byte[] { 123 }, destination.ToArray());

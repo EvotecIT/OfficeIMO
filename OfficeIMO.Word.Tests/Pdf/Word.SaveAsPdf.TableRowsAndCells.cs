@@ -833,7 +833,7 @@ public partial class Word {
             table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
             table.Rows[0].Cells[0].Paragraphs[0].Text = "InheritedFill";
             table.Rows[0].Cells[1].Paragraphs[0].Text = "DirectFill";
-            table.Rows[0].Cells[1].ShadingFillColorHex = "F4CCCC";
+            table.Rows[0].Cells[1].ShadingFillColor = OfficeColor.Parse("F4CCCC");
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {

@@ -40,14 +40,14 @@ public static partial class HtmlComputedStyleEngine {
     public static IReadOnlyDictionary<Dom.HtmlElement, HtmlComputedStyle> Compute(
         Dom.HtmlDocument document,
         HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen) =>
-        Compute(document, mediaContext, HtmlConversionLimits.CreateUntrustedProfile());
+        Compute(document, mediaContext, HtmlConversionLimits.UntrustedDefaults);
 
     /// <summary>Computes styles keyed by owned nodes with explicit inspection options.</summary>
     public static IReadOnlyDictionary<Dom.HtmlElement, HtmlComputedStyle> Compute(
         Dom.HtmlDocument document,
         HtmlComputedStyleOptions options) {
         if (options == null) throw new ArgumentNullException(nameof(options));
-        return Compute(document, options, HtmlConversionLimits.CreateUntrustedProfile());
+        return Compute(document, options, HtmlConversionLimits.UntrustedDefaults);
     }
 
     private static IReadOnlyDictionary<Dom.HtmlElement, HtmlComputedStyle> Compute(

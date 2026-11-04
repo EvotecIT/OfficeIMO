@@ -15,7 +15,7 @@ namespace OfficeIMO.CSV.Tests;
 public sealed class CsvParallelDataReaderTests
 {
     [Fact]
-    public void OpenTextDataReader_ParallelTypedProjectionPreservesOrderSchemaAndHasRows()
+    public void OpenReader_Text_ParallelTypedProjectionPreservesOrderSchemaAndHasRows()
     {
         const int rowCount = 5000;
         var csv = new StringBuilder("Id,Amount,Active,Created,Name\n");
@@ -29,9 +29,8 @@ public sealed class CsvParallelDataReaderTests
         }
 
         CsvSchema schema = CreateTypedSchema();
-        using DbDataReader reader = CsvDocument.OpenTextDataReader(
-            csv.ToString(),
-            readerOptions: new CsvDataReaderOptions
+        using DbDataReader reader = CsvDocument.OpenReader(new System.IO.StringReader(csv.ToString()),
+            options: new CsvReaderOptions
             {
                 Schema = schema,
                 ParallelProcessing = new CsvDataReaderParallelOptions
@@ -69,7 +68,7 @@ public sealed class CsvParallelDataReaderTests
     }
 
     [Fact]
-    public void OpenDataReader_ParallelStreamingFallbackPreservesMultilineValuesAndOrder()
+    public void OpenReader_ParallelStreamingFallbackPreservesMultilineValuesAndOrder()
     {
         CsvSchema schema = new CsvSchemaBuilder()
             .Column("Id").AsInt32()
@@ -78,9 +77,8 @@ public sealed class CsvParallelDataReaderTests
             .Build();
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(
             "Id,Value\n1,one\n2,\"line one\nline two\"\n3,three\n"));
-        using DbDataReader reader = CsvDocument.OpenDataReader(
-            stream,
-            readerOptions: new CsvDataReaderOptions
+        using DbDataReader reader = CsvDocument.OpenReader(stream,
+            options: new CsvReaderOptions
             {
                 Schema = schema,
                 ParallelProcessing = new CsvDataReaderParallelOptions
@@ -108,15 +106,14 @@ public sealed class CsvParallelDataReaderTests
     }
 
     [Fact]
-    public void OpenTextDataReader_ParallelConversionYieldsValidPrefixBeforeOrderedError()
+    public void OpenReader_Text_ParallelConversionYieldsValidPrefixBeforeOrderedError()
     {
         CsvSchema schema = new CsvSchemaBuilder()
             .Column("Id").AsInt32()
             .Done()
             .Build();
-        using DbDataReader reader = CsvDocument.OpenTextDataReader(
-            "Id\n1\n2\nnot-an-integer\n4\n",
-            readerOptions: new CsvDataReaderOptions
+        using DbDataReader reader = CsvDocument.OpenReader(new System.IO.StringReader("Id\n1\n2\nnot-an-integer\n4\n"),
+            options: new CsvReaderOptions
             {
                 Schema = schema,
                 ParallelProcessing = new CsvDataReaderParallelOptions
@@ -136,15 +133,14 @@ public sealed class CsvParallelDataReaderTests
     }
 
     [Fact]
-    public async Task OpenTextDataReader_ParallelReadAsyncObservesCallerCancellation()
+    public async Task OpenReader_Text_ParallelReadAsyncObservesCallerCancellation()
     {
         CsvSchema schema = new CsvSchemaBuilder()
             .Column("Id").AsInt32()
             .Done()
             .Build();
-        using DbDataReader reader = CsvDocument.OpenTextDataReader(
-            "Id\n1\n2\n",
-            readerOptions: new CsvDataReaderOptions
+        using DbDataReader reader = CsvDocument.OpenReader(new System.IO.StringReader("Id\n1\n2\n"),
+            options: new CsvReaderOptions
             {
                 Schema = schema,
                 ParallelProcessing = new CsvDataReaderParallelOptions
@@ -161,25 +157,20 @@ public sealed class CsvParallelDataReaderTests
     }
 
     [Fact]
-    public void OpenTextDataReader_ParallelReaderObservesLoadCancellationBetweenBufferedRows()
+    public void OpenReader_Text_ParallelReaderObservesLoadCancellationBetweenBufferedRows()
     {
         CsvSchema schema = new CsvSchemaBuilder()
             .Column("Id").AsInt32()
             .Done()
             .Build();
         using var cancellation = new CancellationTokenSource();
-        using DbDataReader reader = CsvDocument.OpenTextDataReader(
-            "Id\n1\n2\n3\n",
-            new CsvLoadOptions { CancellationToken = cancellation.Token },
-            new CsvDataReaderOptions
-            {
-                Schema = schema,
+        using DbDataReader reader = CsvDocument.OpenReader(new System.IO.StringReader("Id\n1\n2\n3\n"),
+            options: new CsvReaderOptions { CancellationToken = cancellation.Token, Schema = schema,
                 ParallelProcessing = new CsvDataReaderParallelOptions
                 {
                     MaxDegreeOfParallelism = 2,
                     BatchSize = 2
-                }
-            });
+                } });
 
         Assert.True(reader.Read());
         cancellation.Cancel();
@@ -187,7 +178,7 @@ public sealed class CsvParallelDataReaderTests
     }
 
     [Fact]
-    public void OpenDataReader_ParallelInferredFallbackRetainsLoadCancellation()
+    public void OpenReader_ParallelInferredFallbackRetainsLoadCancellation()
     {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.CSV.ParallelCancel.{Guid.NewGuid():N}.csv.gz");
         using var cancellation = new CancellationTokenSource();
@@ -195,23 +186,15 @@ public sealed class CsvParallelDataReaderTests
         try
         {
             WriteGZipCsv(path, "Id\n1\n2\n3\n4\n5\n6\n");
-            using DbDataReader reader = CsvDocument.OpenDataReader(
-                path,
-                new CsvLoadOptions
-                {
-                    CompressionType = CsvCompressionType.GZip,
-                    CancellationToken = cancellation.Token
-                },
-                new CsvDataReaderOptions
-                {
-                    InferSchema = true,
-                    SchemaSampleSize = 1,
+            using DbDataReader reader = CsvDocument.OpenReader(path,
+            options: new CsvReaderOptions { CompressionType = CsvCompressionType.GZip,
+                    CancellationToken = cancellation.Token, InferSchema = true,
+                    SchemaSampleRows = 1,
                     ParallelProcessing = new CsvDataReaderParallelOptions
                     {
                         MaxDegreeOfParallelism = 2,
                         BatchSize = 2
-                    }
-                });
+                    } });
 
             Assert.True(reader.Read());
             Assert.Equal(1, reader.GetInt32(0));
@@ -225,7 +208,7 @@ public sealed class CsvParallelDataReaderTests
     }
 
     [Fact]
-    public void OpenTextDataReader_ParallelReaderKeepsProducerPrefetchBounded()
+    public void OpenReader_Text_ParallelReaderKeepsProducerPrefetchBounded()
     {
         var csv = new StringBuilder("Id\n");
         for (int id = 1; id <= 1000; id++) csv.Append(id).Append('\n');
@@ -234,22 +217,14 @@ public sealed class CsvParallelDataReaderTests
             .Column("Id").AsInt32()
             .Done()
             .Build();
-        using DbDataReader reader = CsvDocument.OpenTextDataReader(
-            csv.ToString(),
-            new CsvLoadOptions
-            {
-                ProgressReportInterval = 1,
-                ProgressCallback = progress => recordsReported = checked((int)progress.RecordsRead)
-            },
-            new CsvDataReaderOptions
-            {
-                Schema = schema,
+        using DbDataReader reader = CsvDocument.OpenReader(new System.IO.StringReader(csv.ToString()),
+            options: new CsvReaderOptions { ProgressReportInterval = 1,
+                ProgressCallback = progress => recordsReported = checked((int)progress.RecordsRead), Schema = schema,
                 ParallelProcessing = new CsvDataReaderParallelOptions
                 {
                     MaxDegreeOfParallelism = 2,
                     BatchSize = 8
-                }
-            });
+                } });
 
         Assert.True(reader.Read());
         Assert.InRange(recordsReported, 1, 16);
@@ -257,16 +232,15 @@ public sealed class CsvParallelDataReaderTests
     }
 
     [Fact]
-    public void OpenTextDataReader_ParallelReaderLoadsTheSameTypedDataTable()
+    public void OpenReader_Text_ParallelReaderLoadsTheSameTypedDataTable()
     {
         CsvSchema schema = CreateTypedSchema();
         const string csv =
             "Id,Amount,Active,Created,Name\n" +
             "1,1.25,false,2026-08-02,Row 1\n" +
             "2,2.50,true,2026-08-03,Row 2\n";
-        using DbDataReader reader = CsvDocument.OpenTextDataReader(
-            csv,
-            readerOptions: new CsvDataReaderOptions
+        using DbDataReader reader = CsvDocument.OpenReader(new System.IO.StringReader(csv),
+            options: new CsvReaderOptions
             {
                 Schema = schema,
                 ParallelProcessing = new CsvDataReaderParallelOptions
@@ -287,7 +261,7 @@ public sealed class CsvParallelDataReaderTests
     }
 
     [Fact]
-    public void OpenDataReader_ParallelReaderDisposalReleasesTheSourceFile()
+    public void OpenReader_ParallelReaderDisposalReleasesTheSourceFile()
     {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.CSV.ParallelDispose.{Guid.NewGuid():N}.csv.gz");
         WriteGZipCsv(path, "Id\n1\n2\n3\n");
@@ -298,18 +272,13 @@ public sealed class CsvParallelDataReaderTests
 
         try
         {
-            using (DbDataReader reader = CsvDocument.OpenDataReader(
-                       path,
-                       new CsvLoadOptions { CompressionType = CsvCompressionType.GZip },
-                       readerOptions: new CsvDataReaderOptions
-                       {
-                           Schema = schema,
+            using (DbDataReader reader = CsvDocument.OpenReader(path,
+            options: new CsvReaderOptions { CompressionType = CsvCompressionType.GZip, Schema = schema,
                            ParallelProcessing = new CsvDataReaderParallelOptions
                            {
                                MaxDegreeOfParallelism = 2,
                                BatchSize = 1
-                           }
-                       }))
+                           } }))
             {
                 Assert.True(reader.Read());
             }
@@ -326,7 +295,7 @@ public sealed class CsvParallelDataReaderTests
     [Theory]
     [InlineData(0, 16)]
     [InlineData(2, 0)]
-    public void OpenTextDataReader_RejectsInvalidParallelSettings(int degree, int batchSize)
+    public void OpenReader_Text_RejectsInvalidParallelSettings(int degree, int batchSize)
     {
         CsvSchema schema = new CsvSchemaBuilder()
             .Column("Id").AsInt32()
@@ -334,9 +303,8 @@ public sealed class CsvParallelDataReaderTests
             .Build();
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            CsvDocument.OpenTextDataReader(
-                "Id\n1\n",
-                readerOptions: new CsvDataReaderOptions
+            CsvDocument.OpenReader(new System.IO.StringReader("Id\n1\n"),
+            options: new CsvReaderOptions
                 {
                     Schema = schema,
                     ParallelProcessing = new CsvDataReaderParallelOptions

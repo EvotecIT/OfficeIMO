@@ -9,9 +9,9 @@ public sealed class BibliographyReviewWave22RegressionTests {
         document.Items[0].Title = null;
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV119" && diagnostic.Field == "title");
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV119" && diagnostic.Field == "title");
     }
 
     [Fact]
@@ -20,9 +20,9 @@ public sealed class BibliographyReviewWave22RegressionTests {
         document.Items[0].Title = null;
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV120" && diagnostic.Field == "title");
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV120" && diagnostic.Field == "title");
     }
 
     [Theory]
@@ -33,9 +33,9 @@ public sealed class BibliographyReviewWave22RegressionTests {
         document.Items[0].Title = null;
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV122" && diagnostic.Field == "TI");
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV122" && diagnostic.Field == "TI");
     }
 
     [Fact]
@@ -46,10 +46,10 @@ public sealed class BibliographyReviewWave22RegressionTests {
         document.Items[0].Dates.Clear();
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV120" && diagnostic.Field == "author");
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV120" && diagnostic.Field == "issued");
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV120" && diagnostic.Field == "author");
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV120" && diagnostic.Field == "issued");
     }
 
     [Fact]
@@ -60,9 +60,9 @@ public sealed class BibliographyReviewWave22RegressionTests {
         issued.Year = null;
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV125" && diagnostic.Field == "issued.date-parts");
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV125" && diagnostic.Field == "issued.date-parts");
     }
 
     [Theory]
@@ -72,7 +72,7 @@ public sealed class BibliographyReviewWave22RegressionTests {
         BibliographyDocument document = BibliographyDocument.Parse("@Book{x,title={Before}}", format).Document;
         document.Items[0].Title = "After";
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, format).Document.Items);
 
         Assert.StartsWith("@Book{", written.Content, StringComparison.Ordinal);
@@ -87,7 +87,7 @@ public sealed class BibliographyReviewWave22RegressionTests {
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.Ris).Document;
         document.Items[0].Title = "After";
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
 
         Assert.Contains(expected, written.Content, StringComparison.Ordinal);
         Assert.DoesNotContain(unexpected, written.Content, StringComparison.Ordinal);

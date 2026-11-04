@@ -15,7 +15,7 @@ public sealed class EpubReadingIntegrityContractTests {
     public void Load_PreservesRepeatedAndEmptyReadingPositions(bool spineOrder) {
         byte[] package = Package(new[] { ("c", "chapter.xhtml", "application/xhtml+xml", "") },
             "<itemref idref='c'/><itemref idref='c'/>", new[] { ("chapter.xhtml", Xhtml("")) });
-        EpubDocument book = Read(package, new EpubReadOptions { PreferSpineOrder = spineOrder });
+        EpubDocument book = Read(package, new EpubLoadOptions { PreferSpineOrder = spineOrder });
         Assert.Equal(new int?[] { 1, 2 }, book.Chapters.Select(chapter => chapter.SpineIndex));
         Assert.All(book.Chapters, chapter => Assert.Equal("", chapter.Text));
         Assert.Equal(2, book.ReadSummary.RequestedChapterCount);
@@ -41,7 +41,7 @@ public sealed class EpubReadingIntegrityContractTests {
             ("n", "notes.xhtml", "application/xhtml+xml", "") },
             "<itemref idref='z'/><itemref idref='a'/><itemref idref='n' linear='no'/>",
             new[] { ("z.xhtml", Xhtml("<p>Z</p>")), ("a.xhtml", Xhtml("<p>A</p>")), ("notes.xhtml", Xhtml("<p>Notes</p>")) });
-        EpubDocument book = Read(package, new EpubReadOptions {
+        EpubDocument book = Read(package, new EpubLoadOptions {
             PreferSpineOrder = spineOrder, IncludeNonLinearSpineItems = false
         });
         Assert.Equal(spineOrder ? new[] { "EPUB/z.xhtml", "EPUB/a.xhtml" } : new[] { "EPUB/a.xhtml", "EPUB/z.xhtml" },
@@ -55,7 +55,7 @@ public sealed class EpubReadingIntegrityContractTests {
     public void Load_DoesNotRecoverExcludedNonLinearSpineItems() {
         byte[] package = Package(new[] { ("c", "chapter.xhtml", "application/xhtml+xml", "") },
             "<itemref idref='c' linear='no'/>", new[] { ("chapter.xhtml", Xhtml("<p>Notes</p>")) });
-        EpubDocument book = Read(package, new EpubReadOptions { IncludeNonLinearSpineItems = false });
+        EpubDocument book = Read(package, new EpubLoadOptions { IncludeNonLinearSpineItems = false });
         Assert.Empty(book.Chapters);
         Assert.Equal(0, book.ReadSummary.RequestedChapterCount);
         Assert.True(book.ReadSummary.IsComplete);
@@ -95,7 +95,7 @@ public sealed class EpubReadingIntegrityContractTests {
     public async Task LoadAndLoadAsync_ReportPartialChapterCounts(string limit) {
         byte[] package = Package(new[] { ("a", "a.xhtml", "application/xhtml+xml", ""), ("b", "b.xhtml", "application/xhtml+xml", "") },
             "<itemref idref='a'/><itemref idref='b'/>", new[] { ("a.xhtml", Xhtml("<p>One</p>")), ("b.xhtml", Xhtml("<p>Long second</p>")) });
-        var options = new EpubReadOptions {
+        var options = new EpubLoadOptions {
             MaxChapters = limit == "count" ? 1 : 500,
             MaxTotalTextCharacters = limit == "text" ? 3 : 1000,
             MaxChapterBytes = limit == "size" ? Encoding.UTF8.GetByteCount(Xhtml("<p>One</p>")) : 4096
@@ -226,7 +226,7 @@ public sealed class EpubReadingIntegrityContractTests {
                 input.CopyTo(destination);
             }
         }
-        EpubDocument book = Read(stream.ToArray(), new EpubReadOptions { IncludeRawHtml = true });
+        EpubDocument book = Read(stream.ToArray(), new EpubLoadOptions { IncludeRawHtml = true });
         Assert.Equal(new int?[] { 1, 2, 3, 4 }, book.Chapters.Select(chapter => chapter.SpineIndex));
         Assert.True(book.ReadSummary.IsComplete);
         Assert.All(book.Chapters, chapter => Assert.NotNull(chapter.Html));
@@ -238,7 +238,7 @@ public sealed class EpubReadingIntegrityContractTests {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg'><title>Page</title><rect width='100' height='50'/>" +
             "<text x='10' y='10'>Hel<tspan>lo</tspan>!</text><text x='10' y='30'>Second</text></svg>";
         EpubDocument book = Read(Package(new[] { ("s", "page.svg", "image/svg+xml", "") },
-            "<itemref idref='s'/>", new[] { ("page.svg", svg) }), new EpubReadOptions { IncludeRawHtml = true });
+            "<itemref idref='s'/>", new[] { ("page.svg", svg) }), new EpubLoadOptions { IncludeRawHtml = true });
         EpubChapter chapter = Assert.Single(book.Chapters);
         Assert.Equal("Hello! Second", chapter.Text);
         Assert.True(chapter.HasStructuredContent);
@@ -265,6 +265,6 @@ public sealed class EpubReadingIntegrityContractTests {
         Assert.True(stream.CanRead);
     }
 
-    private static EpubDocument Read(byte[] bytes, EpubReadOptions? options = null) =>
+    private static EpubDocument Read(byte[] bytes, EpubLoadOptions? options = null) =>
         EpubDocument.Load(new MemoryStream(bytes), options);
 }

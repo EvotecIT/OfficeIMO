@@ -17,7 +17,7 @@ public sealed class MarkdownHtmlBlockConversionContext {
 
     internal MarkdownHtmlBlockConversionContext(
         IElement element,
-        MarkdownHtmlImportOptions options,
+        HtmlMarkdownExportOptions options,
         Func<IEnumerable<INode>, IReadOnlyList<IMarkdownBlock>> convertNodesToBlocks,
         Func<IEnumerable<INode>, InlineSequence> convertNodesToInlineSequence,
         Func<string?, string> normalizeBlockText) {
@@ -32,7 +32,7 @@ public sealed class MarkdownHtmlBlockConversionContext {
     public HtmlElement Element => _element ??= NativeDomBridge.Wrap(_nativeElement);
 
     /// <summary>Effective HTML-to-markdown options.</summary>
-    public MarkdownHtmlImportOptions Options { get; }
+    public HtmlMarkdownExportOptions Options { get; }
 
     /// <summary>Converts the supplied nodes using the base block converter, skipping null entries.</summary>
     public IReadOnlyList<IMarkdownBlock> ConvertNodesToBlocks(IEnumerable<HtmlNode?> nodes) => _convertNodesToBlocks(ToNativeNodes(nodes));

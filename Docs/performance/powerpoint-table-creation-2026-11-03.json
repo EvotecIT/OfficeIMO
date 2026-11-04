@@ -1,0 +1,125 @@
+{
+  "date": "2026-11-03",
+  "framework": ".NET 10.0.14",
+  "platform": "macOS arm64, Apple M4",
+  "baselineHead": "72c2ae7b60740af91fdf2567cbf1f3e63744af52",
+  "change": "Build empty table-cell paragraphs directly; nonempty text keeps the shared inline text path.",
+  "method": "Four fresh processes in baseline/candidate/baseline/candidate order. Each process creates four presentations; each timed pass adds twenty 10x10 tables using explicit geometry. Presentation/slide creation and save/reload/Open XML validation are outside timing. Compare medians of the last three passes. Shared host, no quiet-machine admission. Probe uses frozen product binaries so rebuilding the probe cannot move the baseline.",
+  "sourceSha256": {
+    "baselineTableTextDefaults": "59501e230ef819c342485a37f6c047888be51c1eb51ef7a2aea30ab572739a43",
+    "candidateTableTextDefaults": "992766c4571632ff30af373ecd69275f495bd89ee0a91c7fecc31bb96e9eb59c"
+  },
+  "scope": "Ordinary table scaffolding only; does not measure save, image export or populated table text.",
+  "probeProgram": "using System.Diagnostics;\nusing System.Text.Json;\nusing OfficeIMO.PowerPoint;\n\nif (args.Contains(\"--tables\")) {\n    var samples = new List<object>();\n    for (int pass = 0; pass < 4; pass++) {\n        using var presentation = PowerPointDocument.Create();\n        var slide = presentation.AddSlide();\n        long before = GC.GetAllocatedBytesForCurrentThread();\n        var watch = Stopwatch.StartNew();\n        for (int index = 0; index < 20; index++) slide.AddTable(10, 10, OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(600), OfficeIMO.OfficeLength.Points(400));\n        watch.Stop();\n        samples.Add(new { pass, millisecondsPerTable = watch.Elapsed.TotalMilliseconds / 20, allocatedBytesPerTable = (GC.GetAllocatedBytesForCurrentThread() - before) / 20 });\n        using var output = new MemoryStream();\n        presentation.Save(output);\n        using var reopened = PowerPointDocument.Load(output);\n        var tables = reopened.Slides[0].Tables.ToArray();\n        if (tables.Length != 20 || tables.Any(t => t.Rows != 10 || t.Columns != 10 || t.GetCell(0, 0).Text != \"\") || reopened.ValidateDocument().Any()) throw new InvalidOperationException(\"Table package validation failed.\");\n    }\n    Console.WriteLine(JsonSerializer.Serialize(new { samples, validation = \"Passed\" }));\n    return;\n}\nvar measurements = new List<object>();\nvoid Run(string mode, int count) {\n    long before = GC.GetAllocatedBytesForCurrentThread();\n    var watch = Stopwatch.StartNew();\n    for (int index = 0; index < count; index++) {\n        using var presentation = PowerPointDocument.Create();\n        if (presentation.Slides.Count != 0) throw new InvalidOperationException(\"Unexpected initial slide.\");\n    }\n    watch.Stop();\n    measurements.Add(new { mode, count, milliseconds = watch.Elapsed.TotalMilliseconds / count, allocatedBytes = (GC.GetAllocatedBytesForCurrentThread() - before) / count });\n}\nRun(\"cold\", 1);\nfor (int i = 0; i < 12; i++) { using var presentation = PowerPointDocument.Create(); }\nfor (int i = 0; i < 3; i++) Run(\"warm\", 100);\nusing (var presentation = PowerPointDocument.Create()) {\n    presentation.AddSlide().AddTitle(\"Creation proof\");\n    using var output = new MemoryStream();\n    presentation.Save(output);\n    using var reopened = PowerPointDocument.Load(output);\n    if (reopened.Slides.Count != 1 || reopened.Slides[0].TextBoxes.First().Text != \"Creation proof\" || reopened.ValidateDocument().Any()) throw new InvalidOperationException(\"Saved presentation contract failed.\");\n}\nConsole.WriteLine(JsonSerializer.Serialize(new { framework = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription, measurements, validation = \"Passed\" }));\n",
+  "probeProject": "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><OutputType>Exe</OutputType><AssemblyName>TableProbe</AssemblyName><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><EnableDefaultCompileItems>false</EnableDefaultCompileItems></PropertyGroup><ItemGroup><Compile Include=\"Program.cs\"/><Reference Include=\"$(ProbeReferences)/*.dll\" Exclude=\"$(ProbeReferences)/CreateProbe.dll\"/></ItemGroup></Project>",
+  "runs": [
+    {
+      "label": "baseline",
+      "samples": [
+        {
+          "pass": 0,
+          "millisecondsPerTable": 2.190855,
+          "allocatedBytesPerTable": 381341
+        },
+        {
+          "pass": 1,
+          "millisecondsPerTable": 0.53345,
+          "allocatedBytesPerTable": 365044
+        },
+        {
+          "pass": 2,
+          "millisecondsPerTable": 0.92975,
+          "allocatedBytesPerTable": 365055
+        },
+        {
+          "pass": 3,
+          "millisecondsPerTable": 0.257,
+          "allocatedBytesPerTable": 353055
+        }
+      ],
+      "validation": "Passed",
+      "powerPointAssemblySha256": "47e4ff0c9e4e63b47b0d112b19acb55b0026ff8c74e9cf8dd2d02bebce449f0e"
+    },
+    {
+      "label": "candidate",
+      "samples": [
+        {
+          "pass": 0,
+          "millisecondsPerTable": 2.434725,
+          "allocatedBytesPerTable": 277276
+        },
+        {
+          "pass": 1,
+          "millisecondsPerTable": 0.385765,
+          "allocatedBytesPerTable": 261032
+        },
+        {
+          "pass": 2,
+          "millisecondsPerTable": 0.15603499999999998,
+          "allocatedBytesPerTable": 195612
+        },
+        {
+          "pass": 3,
+          "millisecondsPerTable": 0.13217,
+          "allocatedBytesPerTable": 195612
+        }
+      ],
+      "validation": "Passed",
+      "powerPointAssemblySha256": "6461e6667b7974288cf2202262cb62057740dc53bd2debeea41b1265f76c3004"
+    },
+    {
+      "label": "baseline",
+      "samples": [
+        {
+          "pass": 0,
+          "millisecondsPerTable": 2.07636,
+          "allocatedBytesPerTable": 381341
+        },
+        {
+          "pass": 1,
+          "millisecondsPerTable": 0.697325,
+          "allocatedBytesPerTable": 365055
+        },
+        {
+          "pass": 2,
+          "millisecondsPerTable": 0.746425,
+          "allocatedBytesPerTable": 365055
+        },
+        {
+          "pass": 3,
+          "millisecondsPerTable": 0.32449,
+          "allocatedBytesPerTable": 287634
+        }
+      ],
+      "validation": "Passed",
+      "powerPointAssemblySha256": "47e4ff0c9e4e63b47b0d112b19acb55b0026ff8c74e9cf8dd2d02bebce449f0e"
+    },
+    {
+      "label": "candidate",
+      "samples": [
+        {
+          "pass": 0,
+          "millisecondsPerTable": 1.8737850000000003,
+          "allocatedBytesPerTable": 277276
+        },
+        {
+          "pass": 1,
+          "millisecondsPerTable": 0.38025000000000003,
+          "allocatedBytesPerTable": 261032
+        },
+        {
+          "pass": 2,
+          "millisecondsPerTable": 0.2684,
+          "allocatedBytesPerTable": 195612
+        },
+        {
+          "pass": 3,
+          "millisecondsPerTable": 0.12535000000000002,
+          "allocatedBytesPerTable": 195612
+        }
+      ],
+      "validation": "Passed",
+      "powerPointAssemblySha256": "6461e6667b7974288cf2202262cb62057740dc53bd2debeea41b1265f76c3004"
+    }
+  ]
+}

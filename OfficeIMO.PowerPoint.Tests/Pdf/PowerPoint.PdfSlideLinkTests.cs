@@ -32,7 +32,7 @@ public sealed class PowerPointPdfSlideLinkTests {
         PdfCore.PdfLinkAnnotation link = Assert.Single(PdfCore.PdfInspector.Inspect(conversion.ToBytes()).LinkAnnotations);
         Assert.Equal("powerpoint-slide-2", link.DestinationName);
         Assert.True(link.X2 - link.X1 >= 1.99D && link.Y2 - link.Y1 >= 1.99D);
-        Assert.DoesNotContain(conversion.Report.FidelityDiagnostics, d => d.LossKind == OfficeConversionLossKind.Omission);
+        Assert.DoesNotContain(conversion.Report.Diagnostics, d => d.LossKind == OfficeConversionLossKind.Omission);
     }
 
     [Theory]
@@ -86,7 +86,7 @@ public sealed class PowerPointPdfSlideLinkTests {
         PdfCore.PdfDocumentConversionResult conversion = reopened.ConvertToPdfWithEvidence();
         PdfCore.PdfLinkAnnotation link = Assert.Single(PdfCore.PdfInspector.Inspect(conversion.ToBytes()).LinkAnnotations);
         Assert.Equal("powerpoint-slide-2", link.DestinationName);
-        Assert.Single(conversion.Report.FidelityDiagnostics, d => d.Code == "internal-slide-target-omitted"
+        Assert.Single(conversion.Report.Diagnostics, d => d.Code == "internal-slide-target-omitted"
             && d.LossKind == OfficeConversionLossKind.Omission);
     }
 
@@ -123,12 +123,12 @@ public sealed class PowerPointPdfSlideLinkTests {
         PdfCore.PdfDocumentInfo pdf = PdfCore.PdfInspector.Inspect(conversion.ToBytes());
         if (finalSlide) {
             Assert.Empty(pdf.LinkAnnotations);
-            Assert.Equal(2, conversion.Report.FidelityDiagnostics.Count(d => d.Code == "internal-slide-target-omitted"
+            Assert.Equal(2, conversion.Report.Diagnostics.Count(d => d.Code == "internal-slide-target-omitted"
                 && d.LossKind == OfficeConversionLossKind.Omission));
         } else {
             Assert.Equal(2, pdf.LinkAnnotations.Count);
             Assert.All(pdf.LinkAnnotations, link => Assert.Equal("powerpoint-slide-2", link.DestinationName));
-            Assert.DoesNotContain(conversion.Report.FidelityDiagnostics, d => d.LossKind == OfficeConversionLossKind.Omission);
+            Assert.DoesNotContain(conversion.Report.Diagnostics, d => d.LossKind == OfficeConversionLossKind.Omission);
         }
     }
 
@@ -155,10 +155,10 @@ public sealed class PowerPointPdfSlideLinkTests {
         Assert.Contains(pdf.LinkAnnotations, link => link.DestinationName == "powerpoint-slide-3");
         if (includeHidden) {
             Assert.Equal(2, pdf.LinkAnnotations.Count(link => link.DestinationName == "powerpoint-slide-2"));
-            Assert.DoesNotContain(conversion.Report.FidelityDiagnostics, d => d.Code == "internal-slide-target-omitted");
+            Assert.DoesNotContain(conversion.Report.Diagnostics, d => d.Code == "internal-slide-target-omitted");
         } else {
             Assert.DoesNotContain(pdf.LinkAnnotations, link => link.DestinationName == "powerpoint-slide-2");
-            Assert.Equal(2, conversion.Report.FidelityDiagnostics.Count(d => d.Code == "internal-slide-target-omitted"
+            Assert.Equal(2, conversion.Report.Diagnostics.Count(d => d.Code == "internal-slide-target-omitted"
                 && d.LossKind == OfficeConversionLossKind.Omission));
         }
         // Reusing caller options must not retain an earlier operation's destination set.
@@ -175,9 +175,9 @@ public sealed class PowerPointPdfSlideLinkTests {
         PowerPointSlide second = presentation.AddSlide();
         PowerPointSlide third = presentation.AddSlide();
         PowerPointTextBox box = first.AddTextBox("FIRST ",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(160));
-        box.FontName = "Arial"; box.FontSize = global::OfficeIMO.OfficeLength.Points(16);
+        box.FontFamily = "Arial"; box.FontSize = global::OfficeIMO.OfficeLength.Points(16);
         box.Paragraphs[0].Runs[0].SetHyperlink(second);
-        box.Paragraphs[0].AddRun("SECOND THIRD FOURTH FIFTH SIXTH").SetHyperlink(third);
+        box.Paragraphs[0].AddText("SECOND THIRD FOURTH FIFTH SIXTH").SetHyperlink(third);
         using var saved = new MemoryStream(); presentation.Save(saved); saved.Position = 0;
         using var reopened = PowerPointDocument.Load(saved);
         PdfCore.PdfDocumentConversionResult conversion = reopened.ConvertToPdfWithEvidence();
@@ -188,7 +188,7 @@ public sealed class PowerPointPdfSlideLinkTests {
         Assert.True(later.Length >= 2, "The linked text must wrap to multiple clickable lines.");
         Assert.All(later, link => Assert.InRange(link.X1, 30D, 210D));
         Assert.True(firstLink.X2 <= later[0].X1 + 0.01D);
-        Assert.DoesNotContain(conversion.Report.FidelityDiagnostics, d => d.LossKind == OfficeConversionLossKind.Omission);
+        Assert.DoesNotContain(conversion.Report.Diagnostics, d => d.LossKind == OfficeConversionLossKind.Omission);
         using var rendered = UglyToad.PdfPig.PdfDocument.Open(bytes);
         Assert.Contains("FIRST", rendered.GetPage(1).Text);
         Assert.Contains("SIXTH", rendered.GetPage(1).Text);
@@ -200,7 +200,7 @@ public sealed class PowerPointPdfSlideLinkTests {
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(240));
         PowerPointSlide first = presentation.AddSlide();
         PowerPointSlide second = presentation.AddSlide();
-        PowerPointPicture picture = first.AddImage(new MemoryStream(PdfPngTestImages.Create16BitRgbPng()),
+        PowerPointImage picture = first.AddImage(new MemoryStream(PdfPngTestImages.Create16BitRgbPng()),
             OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(40)).WithFrame(PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(60), PowerPointUnits.FromPoints(40));
         picture.Rotation = 30; picture.SetHyperlink(second);
         PowerPointTableCell cell = first.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(90)).GetCell(0, 0);
@@ -218,7 +218,7 @@ public sealed class PowerPointPdfSlideLinkTests {
         Assert.InRange(Math.Abs(corners.Min(p => p.X) - frame.X1), 0D, 0.002D);
         Assert.InRange(Math.Abs(corners.Max(p => p.X) - frame.X2), 0D, 0.002D);
         Assert.InRange(Math.Abs(240 - corners.Max(p => p.Y) - frame.Y1), 0D, 0.002D);
-        Assert.DoesNotContain(conversion.Report.FidelityDiagnostics, d => d.LossKind == OfficeConversionLossKind.Omission);
+        Assert.DoesNotContain(conversion.Report.Diagnostics, d => d.LossKind == OfficeConversionLossKind.Omission);
     }
 
     [Fact]
@@ -227,7 +227,7 @@ public sealed class PowerPointPdfSlideLinkTests {
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(220));
         PowerPointSlide first = presentation.AddSlide(); PowerPointSlide second = presentation.AddSlide();
         PowerPointTextBox box = first.AddTextBox("GROUP LINK",global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(60));
-        box.FontName = "Arial"; box.FontSize = global::OfficeIMO.OfficeLength.Points(14);
+        box.FontFamily = "Arial"; box.FontSize = global::OfficeIMO.OfficeLength.Points(14);
         box.Paragraphs[0].Runs[0].SetHyperlink(second);
         PowerPointGroupShape group = first.GroupShapes(new PowerPointShape[] { box, first.AddRectangle(OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(110), OfficeIMO.OfficeLength.Points(200), OfficeIMO.OfficeLength.Points(10)) });
         PdfCore.PdfLinkAnnotation original = Assert.Single(PdfCore.PdfInspector.Inspect(presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })).LinkAnnotations);

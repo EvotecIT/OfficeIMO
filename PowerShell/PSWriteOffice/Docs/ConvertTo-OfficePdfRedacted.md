@@ -11,17 +11,17 @@ Applies explicit or text-matched PDF redactions and writes a new PDF.
 ## SYNTAX
 ### Rectangle (Default)
 ```powershell
-ConvertTo-OfficePdfRedacted [-Path] <string> [-OutputPath] <string> -PageNumber <int> -X <double> -Y <double> -Width <double> -Height <double> [-Label <string>] [-FillColor <string>] [-OnlyPaintMatches] [-Password <string>] [-IgnorePermissionRestrictions] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertTo-OfficePdfRedacted [-Path] <string> [-OutputPath] <string> -PageNumber <int> -X <double> -Y <double> -Width <double> -Height <double> [-Label <string>] [-FillColor <string>] [-OnlyPaintMatches] [-Password <securestring>] [-IgnorePermissionRestrictions] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Area
 ```powershell
-ConvertTo-OfficePdfRedacted [-Path] <string> [-OutputPath] <string> -Area <PdfRedactionArea[]> [-FillColor <string>] [-OnlyPaintMatches] [-Password <string>] [-IgnorePermissionRestrictions] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertTo-OfficePdfRedacted [-Path] <string> [-OutputPath] <string> -Area <PdfRedactionArea[]> [-FillColor <string>] [-OnlyPaintMatches] [-Password <securestring>] [-IgnorePermissionRestrictions] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Text
 ```powershell
-ConvertTo-OfficePdfRedacted [-Path] <string> [-OutputPath] <string> -Text <string[]> [-MatchCase] [-FillColor <string>] [-OnlyPaintMatches] [-Password <string>] [-IgnorePermissionRestrictions] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertTo-OfficePdfRedacted [-Path] <string> [-OutputPath] <string> -Text <string[]> [-MatchCase] [-FillColor <string>] [-OnlyPaintMatches] [-Password <securestring>] [-IgnorePermissionRestrictions] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -193,7 +193,7 @@ Accept wildcard characters: False
 Password used to read a Standard password-encrypted PDF.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: Rectangle, Area, Text
 Aliases: None
 Possible values:

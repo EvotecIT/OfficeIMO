@@ -79,7 +79,7 @@ internal sealed partial class ProjectNativeWriter {
         if (report.HasErrors) return (report, null);
         byte[]? bytes = null;
         try {
-            if (serialize && !(report.HasLoss && options.LossPolicy == OfficeConversionLossPolicy.Block))
+            if (serialize && !(report.HasLoss && !options.AllowLoss))
                 bytes = OfficeCompoundFileWriter.Rewrite(writer._file, writer._replacements, maxOutputBytes: options.MaxOutputBytes, cancellationToken: token);
             else _ = OfficeCompoundFileWriter.GetRewriteLength(writer._file, writer._replacements, maxOutputBytes: options.MaxOutputBytes, cancellationToken: token);
         }
@@ -87,7 +87,7 @@ internal sealed partial class ProjectNativeWriter {
             writer.AddOutputLimitDiagnostic();
             return (new ProjectReport(document.Revision, writer._diagnostics), null);
         }
-        return !serialize || report.HasLoss && options.LossPolicy == OfficeConversionLossPolicy.Block ? (report, null) : (report, bytes);
+        return !serialize || report.HasLoss && !options.AllowLoss ? (report, null) : (report, bytes);
     }
 
     private static ProjectReport OutputLimitReport(ProjectDocument document) => new ProjectReport(document.Revision, new[] {

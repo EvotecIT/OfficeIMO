@@ -809,6 +809,20 @@ public partial class PdfFormFillerTests {
     }
 
     [Fact]
+    public void FillFields_RejectsTextLongerThanTheFieldMaxLen() {
+        byte[] source = PdfDocument.Create()
+            .TextField("Code", width: global::OfficeIMO.OfficeLength.Points(120), height: global::OfficeIMO.OfficeLength.Points(22),
+                style: new PdfFormFieldStyle { MaxLength = 4 })
+            .ToBytes();
+
+        Assert.Throws<ArgumentException>("value", () => PdfFormFiller.FillFields(
+            source, new Dictionary<string, string> { ["Code"] = "12345" }));
+
+        byte[] filled = PdfFormFiller.FillFields(source, new Dictionary<string, string> { ["Code"] = "1234" });
+        Assert.Equal("1234", Assert.Single(PdfInspector.Inspect(filled).FormFields).Value);
+    }
+
+    [Fact]
     public void FillFields_ReusesInheritedEmbeddedFontForCombUnicodeTextField() {
         byte[] source = BuildEmbeddedUnicodeTextFieldPdf(
             "Łódź",

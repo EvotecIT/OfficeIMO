@@ -193,7 +193,7 @@ internal static partial class PdfRewritePreservation {
         }
     }
 
-    private static void CompareMetadata(List<PdfRewritePreservationIssue> issues, PdfMetadata original, PdfMetadata rewritten, PdfRewritePreservationOptions options) {
+    private static void CompareMetadata(List<PdfRewritePreservationIssue> issues, PdfDocumentProperties original, PdfDocumentProperties rewritten, PdfRewritePreservationOptions options) {
         if (!options.PreserveMetadata) {
             return;
         }

@@ -36,7 +36,7 @@ public sealed partial class IWorkBoundaryTests {
         IWorkConversionReport report = ConvertUnitReport(package, kind);
         Assert.Single(report.SourceReferenceIssues);
         Assert.Empty(report.SourceDeclarationIssues);
-        Assert.Equal(OfficeConversionLossKind.Unassessed, Assert.Single(report.FidelityDiagnostics,
+        Assert.Equal(OfficeConversionLossKind.Unassessed, Assert.Single(report.Diagnostics,
             diagnostic => diagnostic.Code == "IWORK_SOURCE_REFERENCES_UNRESOLVED").LossKind);
     }
 
@@ -46,7 +46,7 @@ public sealed partial class IWorkBoundaryTests {
             AttributeTable(8, AttributeEntry(0, ReferenceField(2, 19))), aliases: true,
             additionalRecords: ArchiveRecord(19, 2023, Message()));
         var (table, issues) = ReadSelectedRichTable(IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaximumSourceReferenceIssues = 1 }), IWorkDocumentKind.Numbers);
+            new IWorkReadOptions { MaxSourceReferenceIssues = 1 }), IWorkDocumentKind.Numbers);
         Assert.Equal(2, table.Cells.Count);
         Assert.Single(issues);
         Assert.All(table.Cells, cell => Assert.False(cell.RichText!.IsFormattingComplete));
@@ -55,7 +55,7 @@ public sealed partial class IWorkBoundaryTests {
             AttributeTable(8, AttributeEntry(0, ReferenceField(2, 19)), AttributeEntry(5, ReferenceField(2, 19))),
             additionalRecords: ArchiveRecord(19, 2023, Message()));
         IWorkSourceDocument source = IWorkSourceDocument.Open(repeated,
-            new IWorkReadOptions { MaximumSourceReferenceIssues = 1 });
+            new IWorkReadOptions { MaxSourceReferenceIssues = 1 });
         Assert.Contains("source reference issues", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 

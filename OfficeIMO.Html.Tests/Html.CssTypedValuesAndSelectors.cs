@@ -353,7 +353,7 @@ public sealed class HtmlCssTypedValuesAndSelectorsTests {
 
     [Fact]
     public void OwnedSelectorTraversalConsumesTheConversionEvaluationBudget() {
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxSelectorEvaluations = 4;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
             "<style>.missing * *{color:red}</style><main><section><p>target</p></section></main>",
@@ -366,7 +366,7 @@ public sealed class HtmlCssTypedValuesAndSelectorsTests {
 
     [Fact]
     public void StructuralAndAttributeScansConsumeTheConversionEvaluationBudget() {
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxSelectorEvaluations = 5;
         string comments = string.Concat(Enumerable.Repeat("<!-- retained -->", 12));
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
@@ -381,7 +381,7 @@ public sealed class HtmlCssTypedValuesAndSelectorsTests {
     [Fact]
     public void SiblingPositionsAreCachedAcrossNthMatchesWithinTheConversionBudget() {
         const int siblingCount = 5_000;
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxSelectorEvaluations = 30_000;
         string siblings = string.Concat(Enumerable.Range(0, siblingCount).Select(index =>
             "<article data-index='" + index + "'></article>"));
@@ -397,7 +397,7 @@ public sealed class HtmlCssTypedValuesAndSelectorsTests {
 
     [Fact]
     public void SiblingDiscoveryAccountsForInterveningNonElementNodes() {
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxSelectorEvaluations = 4;
         string comments = string.Concat(Enumerable.Repeat("<!-- retained -->", 20));
         HtmlConversionDocument document = HtmlConversionDocument.Parse(

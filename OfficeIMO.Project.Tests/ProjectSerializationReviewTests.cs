@@ -11,11 +11,11 @@ public sealed class ProjectSerializationReviewTests {
         if (sourceFormat == ProjectFileFormat.Mpx4) {
             var task = document.Tasks.Add("Task"); task.DisplayId = 1;
         }
-        var allowSource = new ProjectSaveOptions { Format = sourceFormat, LossPolicy = OfficeConversionLossPolicy.Allow };
+        var allowSource = new ProjectSaveOptions { Format = sourceFormat, AllowLoss = true };
         using var source = new MemoryStream(); document.Save(source, allowSource);
         Assert.NotEmpty(source.ToArray());
 
-        var allowXml = new ProjectSaveOptions { Format = ProjectFileFormat.Xml, LossPolicy = OfficeConversionLossPolicy.Allow };
+        var allowXml = new ProjectSaveOptions { Format = ProjectFileFormat.Xml, AllowLoss = true };
         string xml = document.ToXml(allowXml);
         Assert.Equal("Project", System.Xml.Linq.XDocument.Parse(xml).Root!.Name.LocalName);
 
@@ -30,14 +30,14 @@ public sealed class ProjectSerializationReviewTests {
     public void RetainedMpxSourceKeepsRootConversionLosses() {
         const string xml = "<Project xmlns=\"http://schemas.microsoft.com/project\" xmlns:x=\"urn:fixture\"><x:Opaque>value</x:Opaque></Project>";
         using var document = ProjectDocument.Parse(xml);
-        var allow = new ProjectSaveOptions { Format = ProjectFileFormat.Mpx4, LossPolicy = OfficeConversionLossPolicy.Allow };
+        var allow = new ProjectSaveOptions { Format = ProjectFileFormat.Mpx4, AllowLoss = true };
         using var output = new MemoryStream(); document.Save(output, allow);
 
         var strict = new ProjectSaveOptions { Format = ProjectFileFormat.Mpx4 };
-        var diagnostic = Assert.Single(document.AssessSave(strict).Diagnostics,
+        var diagnostic = Assert.Single(document.AssessSave(strict).NativeDiagnostics,
             item => item.Code == "PROJECT_MPX_XML_CONTENT_LOSS" && item.Location == "/");
         Assert.True(diagnostic.RepresentsLoss);
-        Assert.Throws<InvalidOperationException>(() => document.Save(new MemoryStream(), strict));
+        Assert.ThrowsAny<InvalidOperationException>(() => document.Save(new MemoryStream(), strict));
     }
 
     [Fact]
@@ -45,14 +45,14 @@ public sealed class ProjectSerializationReviewTests {
         using var seed = ProjectNativeAuthoringTests.Create(); using var source = new MemoryStream();
         seed.Save(source, new ProjectSaveOptions { Format = ProjectFileFormat.Mpp14 });
         using var document = ProjectDocument.Load(new MemoryStream(source.ToArray()));
-        var allow = new ProjectSaveOptions { Format = ProjectFileFormat.Mpp8, LossPolicy = OfficeConversionLossPolicy.Allow };
+        var allow = new ProjectSaveOptions { Format = ProjectFileFormat.Mpp8, AllowLoss = true };
         using var converted = new MemoryStream(); document.Save(converted, allow);
 
         var strict = new ProjectSaveOptions { Format = ProjectFileFormat.Mpp8 };
-        var diagnostic = Assert.Single(document.AssessSave(strict).Diagnostics,
+        var diagnostic = Assert.Single(document.AssessSave(strict).NativeDiagnostics,
             item => item.Code == "PROJECT_NATIVE_GENERATION_LOSS" && item.Location == "/");
         Assert.True(diagnostic.RepresentsLoss);
-        Assert.Throws<InvalidOperationException>(() => document.Save(new MemoryStream(), strict));
+        Assert.ThrowsAny<InvalidOperationException>(() => document.Save(new MemoryStream(), strict));
     }
 
     [Fact]
@@ -64,10 +64,10 @@ public sealed class ProjectSerializationReviewTests {
 
         ProjectReport report = document.AssessSave(new ProjectSaveOptions { Format = ProjectFileFormat.Xml });
 
-        ProjectDiagnostic diagnostic = Assert.Single(report.Diagnostics,
+        ProjectDiagnostic diagnostic = Assert.Single(report.NativeDiagnostics,
             item => item.Code == "PROJECT_NATIVE_PRESENTATION_LOSS");
         Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
-        Assert.Equal(OfficeConversionLossKind.Omission, Assert.Single(report.FidelityDiagnostics,
+        Assert.Equal(OfficeConversionLossKind.Omission, Assert.Single(report.Diagnostics,
             item => item.Code == diagnostic.Code).LossKind);
     }
 
@@ -80,21 +80,21 @@ public sealed class ProjectSerializationReviewTests {
             + "30,Fixture,,,Standard\r\n61,90,1\r\n70,1,Task\r\n" + sourceRecord + "\r\n";
         using var document = ProjectDocument.Load(new MemoryStream(Encoding.ASCII.GetBytes(mpx)));
         document.Settings.StartDate = new DateTime(2026, 10, 5, 8, 0, 0);
-        var allow = new ProjectSaveOptions { Format = ProjectFileFormat.Mpp14, LossPolicy = OfficeConversionLossPolicy.Allow };
+        var allow = new ProjectSaveOptions { Format = ProjectFileFormat.Mpp14, AllowLoss = true };
         using var converted = new MemoryStream(); document.Save(converted, allow);
 
         var strict = new ProjectSaveOptions { Format = ProjectFileFormat.Mpp14 };
-        var diagnostic = Assert.Single(document.AssessSave(strict).Diagnostics,
+        var diagnostic = Assert.Single(document.AssessSave(strict).NativeDiagnostics,
             item => item.Code == expectedCode && item.Location == expectedLocation);
         Assert.True(diagnostic.RepresentsLoss);
         Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
-        Assert.Equal(OfficeConversionLossKind.Omission, Assert.Single(document.AssessSave(strict).FidelityDiagnostics,
+        Assert.Equal(OfficeConversionLossKind.Omission, Assert.Single(document.AssessSave(strict).Diagnostics,
             item => item.Code == expectedCode && item.Location == expectedLocation).LossKind);
-        Assert.Throws<InvalidOperationException>(() => document.Save(new MemoryStream(), strict));
+        Assert.ThrowsAny<InvalidOperationException>(() => document.Save(new MemoryStream(), strict));
 
         document.Name = "Edited";
         using var rewritten = new MemoryStream(); document.Save(rewritten, allow);
-        Assert.Contains(document.AssessSave(strict).Diagnostics,
+        Assert.Contains(document.AssessSave(strict).NativeDiagnostics,
             item => item.Code == expectedCode && item.Location == expectedLocation && item.RepresentsLoss);
     }
 
@@ -102,14 +102,14 @@ public sealed class ProjectSerializationReviewTests {
     public void FreshXmlExplicitTaskDisplayRowsRequireLossAcceptance() {
         using var document = ProjectDocument.Create(); var task = document.Tasks.Add("Task"); task.DisplayId = 99;
         var strict = new ProjectSaveOptions { Format = ProjectFileFormat.Xml };
-        var diagnostic = Assert.Single(document.AssessSave(strict).Diagnostics,
+        var diagnostic = Assert.Single(document.AssessSave(strict).NativeDiagnostics,
             item => item.Code == "PROJECT_XML_TASK_ROWS");
         Assert.Equal("/Task[UID=" + task.Uid + "]/DisplayId", diagnostic.Location);
         Assert.True(diagnostic.RepresentsLoss); Assert.Contains("becomes 1", diagnostic.Message);
         Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
-        Assert.Throws<InvalidOperationException>(() => document.Save(new MemoryStream(), strict));
+        Assert.ThrowsAny<InvalidOperationException>(() => document.Save(new MemoryStream(), strict));
 
-        var allow = new ProjectSaveOptions { Format = ProjectFileFormat.Xml, LossPolicy = OfficeConversionLossPolicy.Allow };
+        var allow = new ProjectSaveOptions { Format = ProjectFileFormat.Xml, AllowLoss = true };
         using var output = new MemoryStream(); document.Save(output, allow);
         using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
         Assert.Equal(1, reopened.Tasks.Single().DisplayId);
@@ -134,7 +134,7 @@ public sealed class ProjectSerializationReviewTests {
         var report = document.AssessSave(new ProjectSaveOptions { Format = ProjectFileFormat.Xml });
         Assert.Contains(report.Diagnostics, item => item.Code == "PROJECT_XML_TASK_ROWS" && item.Location == "/Task[UID=2]/DisplayId");
         Assert.Contains(report.Diagnostics, item => item.Code == "PROJECT_XML_TASK_ROWS" && item.Location == "/Task[UID=1]/DisplayId");
-        var allow = new ProjectSaveOptions { Format = ProjectFileFormat.Xml, LossPolicy = OfficeConversionLossPolicy.Allow };
+        var allow = new ProjectSaveOptions { Format = ProjectFileFormat.Xml, AllowLoss = true };
         using var output = new MemoryStream(); document.Save(output, allow);
         using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
         Assert.Equal(new[] { 2, 1 }, reopened.Tasks.Select(item => item.Uid));
@@ -147,14 +147,14 @@ public sealed class ProjectSerializationReviewTests {
         var task = document.Tasks.Add("Task"); task.Duration = ProjectDuration.WorkingHours(8);
         var strict = new ProjectSaveOptions { Format = ProjectFileFormat.Xml };
 
-        var diagnostic = Assert.Single(document.AssessSave(strict).Diagnostics,
+        var diagnostic = Assert.Single(document.AssessSave(strict).NativeDiagnostics,
             item => item.Code == "PROJECT_XML_REMAINING_DURATION_DEFAULT");
         Assert.True(diagnostic.RepresentsLoss);
         Assert.Equal("/Task[UID=" + task.Uid + "]/RemainingDuration", diagnostic.Location);
         using var rejected = new MemoryStream();
-        Assert.Throws<InvalidOperationException>(() => document.Save(rejected, strict)); Assert.Equal(0, rejected.Length);
+        Assert.ThrowsAny<InvalidOperationException>(() => document.Save(rejected, strict)); Assert.Equal(0, rejected.Length);
 
-        var allow = new ProjectSaveOptions { Format = ProjectFileFormat.Xml, LossPolicy = OfficeConversionLossPolicy.Allow };
+        var allow = new ProjectSaveOptions { Format = ProjectFileFormat.Xml, AllowLoss = true };
         using var output = new MemoryStream(); document.Save(output, allow);
         using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
         Assert.Equal(task.Duration, reopened.Tasks.GetByUid(task.Uid).RemainingDuration);
@@ -166,14 +166,14 @@ public sealed class ProjectSerializationReviewTests {
         using var mpxDocument = ProjectDocument.Load(new MemoryStream(Encoding.ASCII.GetBytes(mpx)));
         mpxDocument.Settings.CurrencyCode = "USD";
         var mpxTask = Assert.Single(mpxDocument.Tasks); Assert.Null(mpxTask.RemainingDuration);
-        Assert.Contains(mpxDocument.AssessSave(new ProjectSaveOptions { Format = ProjectFileFormat.Xml }).Diagnostics,
+        Assert.Contains(mpxDocument.AssessSave(new ProjectSaveOptions { Format = ProjectFileFormat.Xml }).NativeDiagnostics,
             item => item.Code == "PROJECT_XML_REMAINING_DURATION_DEFAULT" && item.Location == "/Task[UID=" + mpxTask.Uid + "]/RemainingDuration");
 
         using var seed = ProjectNativeAuthoringTests.Create(); using var nativeBytes = new MemoryStream();
         seed.Save(nativeBytes, new ProjectSaveOptions { Format = ProjectFileFormat.Mpp14 });
         using var nativeDocument = ProjectDocument.Load(new MemoryStream(nativeBytes.ToArray()));
         var nativeTask = Assert.Single(nativeDocument.AllTasks, item => item.Duration.HasValue && !item.RemainingDuration.HasValue);
-        Assert.Contains(nativeDocument.AssessSave(new ProjectSaveOptions { Format = ProjectFileFormat.Xml }).Diagnostics,
+        Assert.Contains(nativeDocument.AssessSave(new ProjectSaveOptions { Format = ProjectFileFormat.Xml }).NativeDiagnostics,
             item => item.Code == "PROJECT_XML_REMAINING_DURATION_DEFAULT" && item.Location == "/Task[UID=" + nativeTask.Uid + "]/RemainingDuration");
     }
 
@@ -232,7 +232,7 @@ public sealed class ProjectSerializationReviewTests {
         }
 
         var options = new ProjectSaveOptions { Format = ProjectFileFormat.Xml };
-        var diagnostic = Assert.Single(document.AssessSave(options).Diagnostics,
+        var diagnostic = Assert.Single(document.AssessSave(options).NativeDiagnostics,
             item => item.Code == "PROJECT_XML_TEXT" && item.Location == expectedLocation);
         Assert.Equal(ProjectDiagnosticSeverity.Error, diagnostic.Severity);
         using var output = new MemoryStream();

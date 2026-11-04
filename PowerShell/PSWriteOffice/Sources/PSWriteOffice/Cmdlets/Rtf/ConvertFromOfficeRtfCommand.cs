@@ -210,7 +210,7 @@ public sealed class ConvertFromOfficeRtfCommand : PSCmdlet
 
     private void ConvertToPdf()
     {
-        var options = new RtfToPdfOptions
+        var options = new RtfPdfExportOptions
         {
             IncludeHiddenText = IncludeHiddenText.IsPresent,
             IncludeImages = !ExcludeImages.IsPresent,
@@ -244,13 +244,13 @@ public sealed class ConvertFromOfficeRtfCommand : PSCmdlet
 
     private void ConvertToMarkdown()
     {
-        var options = new RtfToMarkdownOptions
+        var options = new RtfMarkdownExportOptions
         {
             IncludeHiddenText = IncludeHiddenText.IsPresent,
             EmitUnsupportedHtmlComments = !NoUnsupportedHtmlComments.IsPresent
         };
 
-        var markdown = LoadRtfDocument().ToMarkdown(options);
+        var markdown = LoadRtfDocument().ToMarkdown(options).ToMarkdown(options?.MarkdownWriteOptions);
         if (string.IsNullOrWhiteSpace(OutputPath))
         {
             WriteObject(markdown);
@@ -275,12 +275,12 @@ public sealed class ConvertFromOfficeRtfCommand : PSCmdlet
     {
         return ParameterSetName == ParameterSetPath
             ? RtfDocument.Load(PdfCommandUtilities.ResolvePath(this, Path), encoding: new UTF8Encoding(encoderShouldEmitUTF8Identifier: false))
-            : RtfDocument.Read(Text).Document;
+            : RtfDocument.ParseResult(Text).Document;
     }
 
     private WordDocument LoadWordDocument()
     {
-        return LoadRtfDocument().ToWordDocument();
+        return LoadRtfDocument().ToWord();
     }
 
     private WordHtmlExportOptions CreateWordToHtmlOptions()

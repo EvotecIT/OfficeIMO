@@ -31,7 +31,7 @@ public class PdfFontFamilyExplicitLigatureTests {
             .EmbedStandardFont(PdfStandardFont.Helvetica, fontBytes, "OfficeIMO Source Serif CFF");
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("Explicit ligatures:\uFB00|\uFB01|\uFB02|\uFB03|\uFB04"))
+            .Paragraph(paragraph => paragraph.AddText("Explicit ligatures:\uFB00|\uFB01|\uFB02|\uFB03|\uFB04"))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -69,7 +69,7 @@ public class PdfFontFamilyExplicitLigatureTests {
         Assert.Empty(PdfTextDiagnostics.AnalyzeGeneratedText(text, options, PdfStandardFont.Helvetica));
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text(text))
+            .Paragraph(paragraph => paragraph.AddText(text))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -123,7 +123,7 @@ public class PdfFontFamilyExplicitLigatureTests {
             .RegisterEmbeddedFontFallbacks(fallbackSet);
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("office" + fallbackText))
+            .Paragraph(paragraph => paragraph.AddText("office" + fallbackText))
             .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -149,7 +149,7 @@ public class PdfFontFamilyExplicitLigatureTests {
             .EmbedStandardFont(PdfStandardFont.Helvetica, fontBytes, "OfficeIMO Source Serif CFF");
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("Uppercase ligature probe: FINE"))
+            .Paragraph(paragraph => paragraph.AddText("Uppercase ligature probe: FINE"))
             .ToBytes();
 
         Assert.NotEmpty(bytes);

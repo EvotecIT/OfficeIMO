@@ -22,12 +22,12 @@ public sealed partial class HtmlRenderingTests {
         var options = TableGeometryOptions();
         options.Fonts.Add("Arial", OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('T', 'e', 'x', 't'));
         options.Fonts.Add("Arial", OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(Enumerable.Range(32, 95).ToArray()));
-        options.FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss;
+        options.FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss;
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
 
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported);
         Assert.False(rendered.HasLoss);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
         Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Text");
     }
 
@@ -43,9 +43,9 @@ public sealed partial class HtmlRenderingTests {
         string html = TableGeometrySource("<img style='display:inline;" + property + ":max-content' src='data:image/png;base64," + pixel + "'>");
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, TableGeometryOptions());
 
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported);
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported);
         Assert.Contains(property + "=max-content", diagnostic.Detail);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
     }
 
     [Theory]
@@ -59,7 +59,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, TableGeometryOptions());
 
         Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
     }
 
     [Theory]
@@ -86,12 +86,12 @@ public sealed partial class HtmlRenderingTests {
                 + (nested ? "</span>" : string.Empty) + "</div>");
             HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, TableGeometryOptions());
 
-            HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported);
+            HtmlDiagnostic diagnostic = Assert.Single(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported);
             Assert.Contains("min-width=max-content", diagnostic.Detail);
             Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Generated");
-            Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+            Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
             var strict = TableGeometryOptions();
-            strict.FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss;
+            strict.FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss;
             Assert.Throws<HtmlConversionException>(() => HtmlRenderTestDriver.Render(html, strict));
         }
     }
@@ -105,7 +105,7 @@ public sealed partial class HtmlRenderingTests {
             + parentDisplay + "'><span id='contents'></span></div>");
         var options = TableGeometryOptions();
         options.Fonts.Add("Arial", OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(Enumerable.Range(32, 95).ToArray()));
-        options.FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss;
+        options.FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss;
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
 
         Assert.DoesNotContain(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported);
@@ -121,9 +121,9 @@ public sealed partial class HtmlRenderingTests {
         string html = TableGeometrySource("<style>#sized{" + property + ":max-content}</style><div id='sized'>Text</div>");
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, TableGeometryOptions());
 
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported);
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported);
         Assert.Contains(property + "=max-content", diagnostic.Detail);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
     }
 
     [Theory]
@@ -147,10 +147,10 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(loss, rendered.HasLoss);
         if (loss) {
             Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported);
-            Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+            Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
         } else {
             Assert.DoesNotContain(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported);
-            rendered.RequireNoLoss();
+            rendered.ThrowIfLoss();
         }
     }
 
@@ -176,7 +176,7 @@ public sealed partial class HtmlRenderingTests {
             + "<tfoot style='" + width + "'><tr style='" + width + "'><td>Footer</td></tr></tfoot></table>");
         var options = TableGeometryOptions();
         options.Fonts.Add("Arial", OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(Enumerable.Range(32, 95).ToArray()));
-        options.FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss;
+        options.FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss;
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
 
         Assert.DoesNotContain(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported);

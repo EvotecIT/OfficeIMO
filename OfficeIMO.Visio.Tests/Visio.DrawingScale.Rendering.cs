@@ -18,9 +18,9 @@ public sealed class VisioDrawingScaleRenderingTests {
     [InlineData(1, false)]
     public void DrawingRatiosProjectPageGeometryAndKeepPhysicalLineWeight(double ratio, bool mixedUnits) {
         VisioDocument document = VisioDocument.Create();
-        VisioPage page = document.AddPage("Drawing").Size(12, 8);
+        VisioPage page = document.AddPage("Drawing").Size(OfficeLength.Inches(12), OfficeLength.Inches(8));
         SetScale(page, ratio, mixedUnits);
-        VisioShape shape = page.AddRectangle(6, 4, 4, 2, string.Empty);
+        VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), string.Empty);
         shape.FillColor = OfficeColor.Red;
         shape.LineColor = OfficeColor.Blue;
         shape.LineWeight = 0.1;
@@ -46,8 +46,8 @@ public sealed class VisioDrawingScaleRenderingTests {
                 int bluePixels = Enumerable.Range(0, png.Width).Count(column => png.GetPixel(column, png.Height / 2) == OfficeColor.Blue);
                 Assert.InRange(bluePixels, 8, 12); // Two edges, each approximately .1 physical inch thick.
                 Assert.Equal(before, candidate.ToLegacyXmlResult().Value);
-                Assert.Equal(12, current.Width);
-                Assert.Equal(4, current.Shapes[0].Width);
+                Assert.Equal(12, current.Width.ToInches());
+                Assert.Equal(4, current.Shapes[0].Width.ToInches());
             }
         }
     }
@@ -119,7 +119,7 @@ public sealed class VisioDrawingScaleRenderingTests {
     public void NativeConnectorLabelsAndOverlapSearchUseTheSamePhysicalWorkspace(bool overlap) {
         VisioDocument Create(double ratio) {
             VisioDocument document = VisioDocument.Create();
-            VisioPage page = document.AddPage("Labels").Size(8 / ratio, 6 / ratio);
+            VisioPage page = document.AddPage("Labels").Size(OfficeLength.Inches(8 / ratio), OfficeLength.Inches(6 / ratio));
             SetScale(page, ratio);
             VisioConnector connector = page.AddConnector("route", new OfficePoint(1 / ratio, 3 / ratio), new OfficePoint(7 / ratio, 3 / ratio));
             connector.Label = "Review";
@@ -127,7 +127,7 @@ public sealed class VisioDrawingScaleRenderingTests {
             connector.LineWeight = 0.08;
             connector.LineColor = OfficeColor.Blue;
             connector.TextStyle = new VisioTextStyle { Size = 12, BackgroundColor = OfficeColor.Red };
-            page.AddRectangle(4 / ratio, 3 / ratio, 0.5 / ratio, 0.5 / ratio, string.Empty);
+            page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4 / ratio, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3 / ratio, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5 / ratio, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5 / ratio, page.DefaultUnit)), string.Empty);
             VisioConnector fallback = page.AddConnector("fallback", new OfficePoint(1 / ratio, 1 / ratio), new OfficePoint(7 / ratio, 1 / ratio));
             fallback.Label = "Fallback";
             fallback.TextStyle = new VisioTextStyle { Size = 12 };
@@ -140,13 +140,13 @@ public sealed class VisioDrawingScaleRenderingTests {
         Assert.Equal(reference.Pages[0].ToPng(PngOptions(overlap)), drawing.Pages[0].ToPng(PngOptions(overlap)));
         VisioDocument reopened = VisioDocument.Load(new MemoryStream(drawing.ToBytes()));
         Assert.Equal(5.6, reopened.Pages[0].Connectors[0].LabelPlacement!.Width, 8);
-        Assert.Equal(16, reopened.Pages[0].Shapes[0].PinX, 8);
+        Assert.Equal(16, reopened.Pages[0].Shapes[0].PinX.ToInches(), 8);
     }
 
     [Fact]
     public void ImageExportMetadataTargetsAndPixelBudgetUsePhysicalPageDimensions() {
         VisioDocument document = VisioDocument.Create();
-        VisioPage page = document.AddPage("Plan").Size(96, 48);
+        VisioPage page = document.AddPage("Plan").Size(OfficeLength.Inches(96), OfficeLength.Inches(48));
         SetScale(page, 0.125);
         var options = new VisioImageExportOptions { Scale = 0.5, Supersampling = 1, MaximumRasterPixels = 200_000 };
         foreach (OfficeImageExportFormat format in new[] { OfficeImageExportFormat.Svg, OfficeImageExportFormat.Png }) {
@@ -163,9 +163,9 @@ public sealed class VisioDrawingScaleRenderingTests {
     [Fact]
     public void SupportedStencilArtworkKeepsItsPhysicalPlacementAndProportions() {
         VisioPage Create(double ratio) {
-            VisioPage page = VisioDocument.Create().AddPage("Artwork").Size(4 / ratio, 3 / ratio);
+            VisioPage page = VisioDocument.Create().AddPage("Artwork").Size(OfficeLength.Inches(4 / ratio), OfficeLength.Inches(3 / ratio));
             SetScale(page, ratio);
-            VisioShape shape = page.AddRectangle(2 / ratio, 1.5 / ratio, 2 / ratio, 1 / ratio, string.Empty);
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2 / ratio, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5 / ratio, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2 / ratio, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1 / ratio, page.DefaultUnit)), string.Empty);
             shape.SetUserCell("OfficeIMO.StencilId", "event.bus", "STR");
             shape.FillPattern = 0; shape.LinePattern = 0;
             return page;

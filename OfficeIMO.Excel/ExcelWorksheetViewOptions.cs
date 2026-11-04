@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Mutable worksheet view options such as zoom, gridlines, direction, and view mode.
     /// </summary>
-    public sealed class ExcelWorksheetViewOptions {
+    internal sealed class ExcelWorksheetViewOptions {
         /// <summary>Gets or sets whether gridlines are visible.</summary>
         public bool? ShowGridlines { get; set; }
 

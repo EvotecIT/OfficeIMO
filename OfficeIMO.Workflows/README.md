@@ -132,11 +132,11 @@ var html = await OfficeConverter.ConvertAsync(
     cancellationToken: cancellationToken);
 ```
 
-`Word`, `Excel`, `PowerPoint`, `Html`, `Markdown` and `PlainText` accept their owning adapter's typed options. `OfficeWorkflowRouteSettings` supplies RTF, Draw, Visio, XPS and other Tier 2 settings. A mixed batch selects the settings applicable to each route. Explicit renderer options take precedence over the cross-format `OutputProfile`. For ambiguous source extensions, use `RouteId = "html-pdf"` on single conversion options or `ConversionRouteId` on the batch; TXT otherwise remains literal text. Encrypted Office inputs use `ConversionOptions.SourcePassword`; PDF inputs use `PdfLoad.Password`. Passwords remain runtime inputs and are not stored in checkpoints.
+`Word`, `Excel`, `PowerPoint`, `Html`, `Markdown` and `PlainText` accept their owning adapter's typed options. `OfficeWorkflowRouteSettings` supplies RTF, Draw, Visio, XPS and other Tier 2 settings. A mixed batch selects the settings applicable to each route. Explicit renderer options take precedence over the cross-format `OutputProfile`. For ambiguous source extensions, use `RouteId = "html-pdf"` on single conversion options or `ConversionRouteId` on the batch; TXT otherwise remains literal text. Encrypted Office inputs use `ConversionOptions.SourcePassword`; PDF inputs use `PdfLoad.Password`. Passwords remain runtime inputs and are not stored in checkpoints. Receipts record only a slow derivation of the rendering settings, keyed by a random salt in the checkpoint manifest, so a checkpoint offers no cheap password check.
 
 Draw conversion uses original page sizes and print-visible layers, including blank pages. `OfficeWorkflowRouteSettings.Draw` accepts the [owning converter settings](../OfficeIMO.OpenDocument.Odg.Pdf/README.md). Its `ConversionEvidence` contains page-qualified source projection losses and PDF save-time diagnostics; successful publication does not mean lossless drawing fidelity. Set `OfficeConversionOptions.FailOnLoss` to reject source and PDF-stage losses before publication. Rejections retain both stages' diagnostics and preserve existing destinations.
 
-VSDX, VDX and VTX inputs select `visio-pdf` and produce one physical PDF page per source page, including blank pages. The route uses cached diagram geometry and printable layers by default. `OfficeWorkflowRouteSettings.Visio` accepts [VisioToPdfOptions](../OfficeIMO.Visio.Pdf/README.md) with `Mode = VisioPdfProjectionMode.DiagramPages`; the direct adapter also offers a semantic report, which is outside the workflow's diagram-page contract. Legacy XML import, drawing projection and PDF serialization losses remain in `ConversionEvidence`. `FailOnLoss` rejects losses across all three stages before replacing a destination. Cached formula results and successful publication do not establish native Visio appearance or formula recalculation.
+VSDX, VDX and VTX inputs select `visio-pdf` and produce one physical PDF page per source page, including blank pages. The route uses cached diagram geometry and printable layers by default. `OfficeWorkflowRouteSettings.Visio` accepts [VisioPdfExportOptions](../OfficeIMO.Visio.Pdf/README.md) with `Mode = VisioPdfProjectionMode.DiagramPages`; the direct adapter also offers a semantic report, which is outside the workflow's diagram-page contract. Legacy XML import, drawing projection and PDF serialization losses remain in `ConversionEvidence`. `FailOnLoss` rejects losses across all three stages before replacing a destination. Cached formula results and successful publication do not establish native Visio appearance or formula recalculation.
 
 ```csharp
 using OfficeIMO;
@@ -147,12 +147,12 @@ OfficeWorkflow.RegisterConversions();
 OfficeConversionReport diagram = await OfficeConverter.ConvertAsync("drawing.vdx", "drawing.pdf",
     new OfficeConversionOptions {
         RegisteredSettings = new OfficeWorkflowRouteSettings {
-            Visio = new VisioToPdfOptions { Mode = VisioPdfProjectionMode.DiagramPages }
+            Visio = new VisioPdfExportOptions { Mode = VisioPdfProjectionMode.DiagramPages }
         }
     });
 ```
 
-`OfficeWorkflowLimits.MaximumXmlCharactersInPart` bounds each XML part read by built-in DOCX, XLSX, PPTX, Draw and Visio conversions, including Office inputs normalized during PDF assembly. For VDX and VTX it bounds the complete XML source. Its default is 10 MiB. `OfficeBatchOptions` exposes the same setting per document; both APIs capture it before asynchronous source access.
+`OfficeOperationLimits.MaximumXmlCharactersInPart` bounds each XML part read by built-in DOCX, XLSX, PPTX, Draw and Visio conversions, including Office inputs normalized during PDF assembly. For VDX and VTX it bounds the complete XML source. Its default is 10 MiB. `OfficeBatchOptions` exposes the same setting per document; both APIs capture it before asynchronous source access.
 
 Both `.xps` and `.oxps` select `xps-pdf`, using the native fixed-page reader and
 PDF bridge. Single conversion, batches, PDF assembly and document preview share
@@ -172,7 +172,7 @@ OfficeWorkflow.RegisterConversions();
 OfficeConversionReport converted = await OfficeConverter.ConvertAsync("report.oxps", "report.pdf",
     new OfficeConversionOptions {
         RegisteredSettings = new OfficeWorkflowRouteSettings {
-            Xps = new XpsToPdfOptions { PreserveLogicalStructure = false }
+            Xps = new XpsPdfExportOptions { PreserveLogicalStructure = false }
         }
     }, cancellationToken);
 ```
@@ -201,7 +201,7 @@ using OfficeIMO.Workflows;
 var imported = await BookManuscriptImporter.ImportFileAsync("manuscript.md",
     new EpubManuscriptOptions { ChapterHeadingLevel = 1 });
 BookProject project = BookProject.FromImport(imported);
-imported.Report.RequireNoLoss();
+imported.Report.ThrowIfLoss();
 project.RenameChapter(0, "Opening chapter");
 project.SetStylesheet(EpubTypography.CreateStylesheet(EpubTypographyProfile.Prose));
 await File.WriteAllBytesAsync("book.oibook", project.ToProjectBytes());
@@ -295,7 +295,7 @@ exported; named revisions and review records stay in the source project. Each st
 EPUB is reopened and checked by its owner before publication. This native check does
 not replace EPUBCheck, accessibility review or independent-reader qualification.
 
-For an individual in-memory project, `Export(EpubWriteOptions, cancellationToken)`
+For an individual in-memory project, `Export(EpubSaveOptions, cancellationToken)`
 applies explicit writer limits while enforcing the same import-review gate.
 
 ## Book delivery bundles
@@ -304,7 +304,7 @@ applies explicit writer limits while enforcing the same import-review gate.
 
 ```csharp
 byte[] delivery = project.ToDeliveryBytes(
-    new EpubWriteOptions { ModifiedAt = new DateTimeOffset(2026, 10, 5, 12, 0, 0, TimeSpan.Zero) },
+    new EpubSaveOptions { ModifiedAt = new DateTimeOffset(2026, 10, 5, 12, 0, 0, TimeSpan.Zero) },
     cancellationToken: cancellationToken);
 // The host owns destination permissions, conflict handling and safe file publication.
 ```
@@ -386,9 +386,10 @@ No accounts are accessed, files written, images resampled or books uploaded.
 
 ## ONIX bibliographic export
 
-The ONIX examples use `DateOnly` on .NET 8 and .NET 10. On .NET Standard 2.0
-and .NET Framework 4.7.2, the same calendar-date properties use `DateTime`;
-construct the date with a zero time component, for example `new DateTime(2026, 10, 5)`.
+ONIX calendar-date properties and `BookOnixUsageLimit.Date` use `DateTime` on all
+supported targets. Only the year, month and day are used; time of day and
+`DateTime.Kind` are ignored without time-zone conversion. Date intervals include
+both calendar-day boundaries. For example, use `new DateTime(2026, 10, 5)`.
 
 `ExportOnix` creates one ONIX 3.1 reference-tag product record for a single EPUB
 digital download. It takes a selected title (the first by default) and an explicitly
@@ -402,7 +403,7 @@ var options = new BookOnixExportOptions {
     SentAt = new DateTimeOffset(2026, 10, 5, 12, 0, 0, TimeSpan.Zero),
     Notification = BookOnixNotification.Confirmed,
     IdentifierId = "digital-isbn", LanguageCode = "eng", PublisherName = "Example Press",
-    PublicationDate = new DateOnly(2026, 10, 5),
+    PublicationDate = new DateTime(2026, 10, 5),
     Contributors = [new("Alice Example", BookOnixContributorRole.Author),
                     new("Example Studio", BookOnixContributorRole.Illustrator, IsOrganization: true)]
 };
@@ -436,7 +437,7 @@ record = project.ExportOnix(options with {
         Status = BookOnixAccessibilityStatus.Limited,
         Features = [BookOnixAccessibilityFeature.LanguageTagging,
                     BookOnixAccessibilityFeature.ClearLinkPurposes],
-        AssessmentDate = new DateOnly(2026, 10, 5),
+        AssessmentDate = new DateTime(2026, 10, 5),
         PublisherInformationUrl = "https://example.org/accessibility/edition-42",
         PublisherContactEmail = "accessibility@example.org"
     }
@@ -771,8 +772,8 @@ var options = existingOptions with {
         SourceCorporate = "Example Journal",
         SourceTitles = [new("Review of the book", "eng")],
         SourceLinks = ["https://example.org/review"],
-        PublishedOn = new DateOnly(2026, 9, 1),
-        UsableFrom = new DateOnly(2026, 10, 1)
+        PublishedOn = new DateTime(2026, 9, 1),
+        UsableFrom = new DateTime(2026, 10, 1)
     }]
 };
 ```
@@ -861,7 +862,7 @@ var cover = new BookOnixSupportingResource {
         ImageHeight = 1800,
         FileName = "cover.jpg",
         Links = [new("https://example.org/cover.jpg")],
-        UpdatedOn = new DateOnly(2026, 10, 6)
+        UpdatedOn = new DateTime(2026, 10, 6)
     }]
 };
 var resourceOptions = options with { SupportingResources = [cover] };
@@ -1016,8 +1017,8 @@ var licensedExcerpt = new BookOnixCollateralText {
         Names = [new("Publisher excerpt terms", "eng")],
         Expressions = [new(BookOnixLicenseExpressionType.HumanReadable,
                            "https://example.org/excerpt-terms")],
-        ValidFrom = new DateOnly(2026, 1, 1),
-        ValidUntil = new DateOnly(2026, 12, 31)
+        ValidFrom = new DateTime(2026, 1, 1),
+        ValidUntil = new DateTime(2026, 12, 31)
     }]
 };
 ```
@@ -1536,8 +1537,8 @@ var restriction = new BookOnixSalesRestriction(BookOnixSalesRestrictionKind.Reta
         new(BookOnixSalesOutletScheme.Proprietary, "store-1") { SchemeName = "Publisher outlets" }
     ] }],
     Notes = [new("Exclusive launch partner", "eng")],
-    ValidFrom = new DateOnly(2026, 10, 1),
-    ValidUntil = new DateOnly(2026, 10, 31)
+    ValidFrom = new DateTime(2026, 10, 1),
+    ValidUntil = new DateTime(2026, 10, 31)
 };
 // Assign [restriction] to the relevant rights or supply record's Restrictions property.
 ```
@@ -2004,7 +2005,7 @@ using OfficeIMO.Pdf.Word;
 OfficeConversionReport result = await OfficeConverter.ConvertAsync("source.pdf", "visual-pages.docx",
     new OfficeConversionOptions {
         PdfLoad = new PdfLoadOptions { PageSelection = PdfPageSelection.Parse("1-3,5") },
-        PdfWord = new WordPdfImportOptions { Mode = WordPdfImportMode.VisualPages, Dpi = 144 }
+        PdfWord = new PdfWordExportOptions { Mode = WordPdfImportMode.VisualPages, Dpi = 144 }
     }, cancellationToken);
 ```
 

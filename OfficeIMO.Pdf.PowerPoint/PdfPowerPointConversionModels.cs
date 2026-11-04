@@ -187,7 +187,7 @@ public sealed class PdfPowerPointEditablePageEntry {
 }
 
 /// <summary>Reports a PDF-to-PowerPoint conversion in visual, hybrid, table, or editable-content mode.</summary>
-public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
+public sealed class PdfPowerPointConversionReport : OfficeConversionReport {
     private readonly bool _hasOmittedPageContent;
 
     internal PdfPowerPointConversionReport(
@@ -282,22 +282,27 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
     public IReadOnlyList<OfficeIMO.Pdf.PdfConversionWarning> Warnings { get; }
 
     /// <summary>Gets category-preserving projection diagnostics.</summary>
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics {
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics {
         get {
             var diagnostics = Warnings.Select(static warning => warning.ToFidelityDiagnostic()).ToList();
             if (TableEntries.Any(static entry => entry.Truncated)) {
-                diagnostics.Add(new OfficeConversionFidelityDiagnostic(
+                diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic(
                     "pdf-powerpoint-tables-truncated",
+                    global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
                     "One or more detected PDF tables were truncated by configured projection limits.",
-                    OfficeConversionLossKind.Omission,
-                    "OfficeIMO.Pdf.PowerPoint"));
+                    null,
+                    "OfficeIMO.Pdf.PowerPoint",
+                    OfficeConversionLossKind.Omission));
             }
             if (EditablePages.Any(static page => page.HasOmittedContent)) {
-                diagnostics.Add(new OfficeConversionFidelityDiagnostic(
+                diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic(
                     "pdf-powerpoint-editable-content-omitted",
+                    global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
                     "One or more supported PDF objects were omitted from editable slide projection.",
-                    OfficeConversionLossKind.Omission,
-                    "OfficeIMO.Pdf.PowerPoint"));
+                    null,
+                    "OfficeIMO.Pdf.PowerPoint",
+                    OfficeConversionLossKind.Omission));
             }
             return diagnostics.AsReadOnly();
         }
@@ -310,7 +315,7 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
     public bool HasNonEditablePageContent => SourceScope?.HasOmittedPageContent == true;
 
     /// <summary>Gets whether the selected projection omitted, truncated, simplified, or failed to render source content.</summary>
-    public bool HasLoss =>
+    public override bool HasLoss =>
         _hasOmittedPageContent ||
         TableEntries.Any(static entry => entry.Truncated) ||
         EditablePages.Any(static page => page.HasOmittedContent) ||
@@ -450,9 +455,7 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
     }
 
     /// <summary>Throws when the conversion reported possible content loss.</summary>
-    public void RequireNoLoss() {
-        if (HasLoss) throw new InvalidOperationException("PDF-to-PowerPoint conversion reported possible content loss.");
-    }
+    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("PDF-to-PowerPoint conversion reported possible content loss.", this);
 
     private static IReadOnlyList<OfficeIMO.Pdf.PdfConversionWarning> CreateProjectionWarnings(
         OfficeIMO.Pdf.PdfTableExtractionScopeReport scope,
@@ -648,7 +651,10 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
 }
 
 /// <summary>Contains a PowerPoint presentation and the corresponding PDF conversion report.</summary>
-public sealed class PdfPowerPointConversionResult : OfficeConversionResult<PptCore.PowerPointDocument, PdfPowerPointConversionReport> {
+public sealed class PdfPowerPointConversionResult : OfficeConversionResult<PptCore.PowerPointDocument> {
+    /// <summary>Gets the typed conversion report.</summary>
+    public new PdfPowerPointConversionReport Report => (PdfPowerPointConversionReport)base.Report;
+
     internal PdfPowerPointConversionResult(PptCore.PowerPointDocument value, PdfPowerPointConversionReport report)
         : base(value, report) { }
 

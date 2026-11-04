@@ -30,7 +30,7 @@ public sealed partial class EmailStorePstMutationTransaction {
                 overwriteExisting: false,
                 // The transaction owns the final fidelity gate so it can combine late source-read
                 // diagnostics with writer diagnostics before deciding whether replacement is safe.
-                failOnDataLoss: false,
+                failOnLoss: false,
                 maxFolderCount: _options.MaxFolderCount,
                 maxItemCount: _options.MaxItemCount,
                 maxNestedMessageDepth: _options.MaxNestedMessageDepth,
@@ -64,7 +64,7 @@ public sealed partial class EmailStorePstMutationTransaction {
                     }
                 }
                 writeReport = writer.Complete(cancellationToken);
-                _diagnostics.AddRange(writeReport.Diagnostics);
+                _diagnostics.AddRange(writeReport.NativeDiagnostics);
             }
 
             FailOnFidelityDiagnostics();
@@ -104,7 +104,7 @@ public sealed partial class EmailStorePstMutationTransaction {
             _committed = true;
             writeReport = new EmailStorePstWriteReport(_sourcePath, writeReport.FolderCount,
                 writeReport.ItemCount, new FileInfo(_sourcePath).Length,
-                writeReport.Diagnostics, writeReport.DiagnosticsTruncated);
+                writeReport.NativeDiagnostics, writeReport.DiagnosticsTruncated);
 
             return CreateCommittedReport(committedBackupPath, plan, writeReport, verification,
                 folderMap, itemMap);
@@ -534,12 +534,12 @@ public sealed partial class EmailStorePstMutationTransaction {
 
     private void FailOnFidelityDiagnostics() {
         CaptureSourceDiagnostics();
-        if (!_options.FailOnDataLoss) return;
+        if (!_options.FailOnLoss) return;
         EmailStoreDiagnostic[] fidelity = _diagnostics.Where(diagnostic =>
             diagnostic.Severity != EmailStoreDiagnosticSeverity.Information).ToArray();
         if (fidelity.Length > 0) {
             throw new InvalidOperationException(
-                string.Concat("The staged PST emitted a fidelity diagnostic and FailOnDataLoss is enabled; ",
+                string.Concat("The staged PST emitted a fidelity diagnostic and FailOnLoss is enabled; ",
                     "the original was not changed. Codes: ",
                     string.Join(", ", fidelity.Select(diagnostic => diagnostic.Code).Distinct(StringComparer.Ordinal))));
         }

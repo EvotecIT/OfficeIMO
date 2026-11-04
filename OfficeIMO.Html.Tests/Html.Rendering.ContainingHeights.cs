@@ -19,7 +19,7 @@ public sealed class HtmlContainingHeightTests {
 
         Assert.Equal(expectedHeight, Shape(rendered, "div#fill").Height, 6);
         Assert.Equal(expectedFollowing, Shape(rendered, "div#following").Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -33,7 +33,7 @@ public sealed class HtmlContainingHeightTests {
 
         Assert.Equal(120D, Shape(rendered, "div#fill").Height, 6);
         Assert.Equal(120D, Shape(rendered, "div#following").Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -49,7 +49,7 @@ public sealed class HtmlContainingHeightTests {
 
         Assert.Equal(expectedHeight, Shape(rendered, "div#fill").Height, 6);
         Assert.Equal(120D, Shape(rendered, "div#following").Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -67,7 +67,7 @@ public sealed class HtmlContainingHeightTests {
         Assert.Equal(expectedHeight, fill.Height, 6);
         Assert.Equal(12D, fill.Y, 6);
         Assert.Equal(expectedFollowing, Shape(rendered, "div#following").Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -78,7 +78,7 @@ public sealed class HtmlContainingHeightTests {
 
         Assert.Equal(20D, Assert.Single(Visuals(rendered).OfType<HtmlRenderImage>()).Height, 6);
         Assert.Equal(120D, Shape(rendered, "div#following").Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -155,7 +155,7 @@ public sealed class HtmlContainingHeightTests {
         Assert.Equal(expectedSize, image.Height, 6);
         Assert.Equal(expectedOuterWidth, Shape(rendered, "span#outer").Width, 6);
         Assert.Equal(expectedOuterWidth, Shape(rendered, "span#after").X, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     private static string ShrinkToFit(string constraints, string content) =>

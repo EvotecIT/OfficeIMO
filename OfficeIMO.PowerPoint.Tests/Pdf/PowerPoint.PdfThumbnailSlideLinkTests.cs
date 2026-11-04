@@ -32,8 +32,8 @@ public sealed class PowerPointPdfThumbnailSlideLinkTests {
             .Paragraphs[0].Runs[0].Hyperlink = new Uri("#slide-99", UriKind.Relative);
         PowerPointTextBox grouped = first.AddTextBox("GROUP TARGET",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(155),global::OfficeIMO.OfficeLength.Points(350),global::OfficeIMO.OfficeLength.Points(40));
         grouped.Paragraphs[0].Runs[0].SetHyperlink(fourth);
-        grouped.Paragraphs[0].AddRun(" HIDDEN").SetHyperlink(hidden);
-        grouped.Paragraphs[0].AddRun(" ABSENT").Hyperlink = new Uri("#slide-99", UriKind.Relative);
+        grouped.Paragraphs[0].AddText(" HIDDEN").SetHyperlink(hidden);
+        grouped.Paragraphs[0].AddText(" ABSENT").Hyperlink = new Uri("#slide-99", UriKind.Relative);
         first.GroupShapes(new PowerPointShape[] { grouped, first.AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(200), OfficeIMO.OfficeLength.Points(350), OfficeIMO.OfficeLength.Points(2)) });
         PowerPointTable table = first.AddTable(1,2,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(210),global::OfficeIMO.OfficeLength.Points(350),global::OfficeIMO.OfficeLength.Points(70));
         PowerPointTableCell cell = table.GetCell(0, 0);
@@ -71,7 +71,7 @@ public sealed class PowerPointPdfThumbnailSlideLinkTests {
             link => Assert.Single(pdf.NamedDestinations, d => d.Name == link.DestinationName));
         Assert.Contains(pdf.LinkAnnotations, link => link.Uri == "https://example.com/slide");
         Assert.Contains(pdf.LinkAnnotations, link => link.Uri == "https://example.com/table");
-        Assert.Contains(conversion.Report.FidelityDiagnostics, d => d.Code == "internal-slide-target-omitted"
+        Assert.Contains(conversion.Report.Diagnostics, d => d.Code == "internal-slide-target-omitted"
             && d.LossKind == OfficeConversionLossKind.Omission);
         if (Environment.GetEnvironmentVariable("OFFICEIMO_PDF_VISUAL_OUTPUT") is { Length: > 0 } output) {
             Directory.CreateDirectory(output);

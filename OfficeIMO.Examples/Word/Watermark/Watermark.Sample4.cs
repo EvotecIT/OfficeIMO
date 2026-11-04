@@ -18,12 +18,11 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Section 0");
-                document.AddHeadersAndFooters();
 
                 var section0 = document.Sections[0];
                 var section0Header = GetRequiredHeader(section0);
                 var watermark = section0Header.AddWatermark(WordWatermarkStyle.Text, "HexColor");
-                watermark.ColorHex = "00ff00";
+                watermark.Color = OfficeColor.Parse("00ff00");
                 document.Save();
                 if (openWord) document.OpenInApplication();
             }

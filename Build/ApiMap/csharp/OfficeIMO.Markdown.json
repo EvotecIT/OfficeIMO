@@ -2027,6 +2027,42 @@
         "status": "applied"
       },
       "note": "Additional collection contracts identified in the final object-model sweep. Generic Add retains the concrete block type; AddRange returns a read-only input snapshot and completes input enumeration/validation before document mutation. Syntax conveniences use the same private append owner."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDocument.Image(string path, string? alt, string? title)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.AddImage(string path, string? altText = null, string? title = null, OfficeLength? width = null, OfficeLength? height = null) : ImageBlock",
+      "replacement": "Call AddImage for the attached ImageBlock, or the Image shortcut with the same parameters to keep chaining.",
+      "reason": "Model authoring methods return the native block; the fluent shortcut forwards to them with the same parameters.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDocument.Image(string path, string? alt = null, string? title = null, OfficeLength? width = null, OfficeLength? height = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.Image(string path, string? altText = null, string? title = null, OfficeLength? width = null, OfficeLength? height = null)",
+      "replacement": "Rename the named argument alt: to altText:. Image forwards to AddImage, which returns the ImageBlock.",
+      "reason": "Alternative text uses the altText name shared by every format's AddImage.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDocument.H1(string text) ... H6(string text), P, Ul, Ol, Dl, Table, TableAuto",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.AddHeading(string text, int level = 1) : HeadingBlock; AddParagraph : ParagraphBlock; AddList : UnorderedListBlock; AddOrderedList : OrderedListBlock; AddDefinitionList : DefinitionListBlock; AddTable : TableBlock",
+      "replacement": "The abbreviated methods remain as chaining shortcuts. Call the Add methods when you need the created block; AddHeading rejects levels outside 1 to 6 instead of clamping them.",
+      "reason": "Markdown uses the AddParagraph/AddHeading/AddList/AddImage/AddTable vocabulary of the other document models.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDocument.AddTable<T>(IEnumerable<T> rows, OfficeTableOptions? options = null) / AddTable(object? data, OfficeTableOptions? options = null) : TableBlock",
+      "kind": "method",
+      "action": "change",
+      "new": "Same signatures",
+      "replacement": "A non-null Name or Caption throws NotSupportedException (Name was silently ignored). Add a heading or paragraph before the table instead.",
+      "reason": "Markdown tables have neither a native name nor a caption, so the intent is reported instead of ignored.",
+      "category": "tables"
     }
   ],
   "packageMoves": [

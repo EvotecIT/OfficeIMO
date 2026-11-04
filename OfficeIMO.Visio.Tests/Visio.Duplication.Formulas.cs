@@ -47,7 +47,7 @@ public sealed class VisioDuplicationFormulaTests {
         root.NameU = "CopiedRoot"; root.Children[0].NameU = "CopiedChild"; other.NameU = "CopiedOther";
         var edge = target.Connectors.Last(); edge.Label = "CopiedEdge";
         // A later insertion/reorder must not reuse a native ID already referenced by copied formulas.
-        target.Shapes.Insert(0, new VisioShape("inserted", 0, 0, 1, 1, "Inserted"));
+        target.Shapes.Insert(0, new VisioShape("inserted", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(1), OfficeLength.Inches(1), "Inserted"));
         target.Shapes.Remove(root); target.Shapes.Insert(0, root);
         var candidate = package ? VisioDocument.Load(new MemoryStream(document.ToBytes())) : document;
         var xml = XDocument.Load(new MemoryStream(candidate.ToLegacyXmlResult().Value));

@@ -431,7 +431,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
             int byteCount = checked((int)count * 2);
             EnsureAvailable(byteCount);
-            string value = Encoding.Unicode.GetString(_bytes, Position, byteCount);
+            string value = XlsbWideText.Decode(_bytes, Position, byteCount);
             Position += byteCount;
             return value;
         }

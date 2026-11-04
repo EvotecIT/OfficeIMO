@@ -7,7 +7,7 @@ namespace OfficeIMO.Markup.Word;
 /// <summary>Typed OfficeIMO Markup to Word conversion helpers.</summary>
 public static class OfficeMarkupWordConverterExtensions {
     /// <summary>Converts document-profile markup to an editable detached Word document.</summary>
-    public static WordDocument ToWordDocument(this OfficeMarkupDocument document, MarkupToWordOptions? options = null) {
+    public static WordDocument ToWordDocument(this OfficeMarkupDocument document, MarkupWordExportOptions? options = null) {
         OfficeMarkupConversionResult<WordDocument> result = document.ToWordDocumentResult(options);
         if (result.Succeeded) return result.Value;
         result.Value.Dispose();
@@ -17,9 +17,9 @@ public static class OfficeMarkupWordConverterExtensions {
     /// <summary>Converts document-profile markup and returns the Word document with structured diagnostics.</summary>
     public static OfficeMarkupConversionResult<WordDocument> ToWordDocumentResult(
         this OfficeMarkupDocument document,
-        MarkupToWordOptions? options = null) {
+        MarkupWordExportOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        MarkupToWordOptions resolved = options ?? new MarkupToWordOptions();
+        MarkupWordExportOptions resolved = options ?? new MarkupWordExportOptions();
         IReadOnlyList<OfficeMarkupDiagnostic> diagnostics = CollectDiagnostics(document, resolved);
         WordDocument value = new OfficeMarkupWordExporter().Convert(document, resolved);
         return new OfficeMarkupConversionResult<WordDocument>(value, diagnostics);
@@ -29,7 +29,7 @@ public static class OfficeMarkupWordConverterExtensions {
     public static OfficeMarkupConversionReport SaveAsWord(
         this OfficeMarkupDocument document,
         string path,
-        MarkupToWordOptions? options = null,
+        MarkupWordExportOptions? options = null,
         WordSaveOptions? saveOptions = null) {
         OfficeMarkupConversionResult<WordDocument> result = document.ToWordDocumentResult(options);
         using (result.Value) result.RequireValue().Save(path, saveOptions);
@@ -40,7 +40,7 @@ public static class OfficeMarkupWordConverterExtensions {
     public static OfficeMarkupConversionReport SaveAsWord(
         this OfficeMarkupDocument document,
         Stream stream,
-        MarkupToWordOptions? options = null,
+        MarkupWordExportOptions? options = null,
         WordSaveOptions? saveOptions = null) {
         OfficeMarkupConversionResult<WordDocument> result = document.ToWordDocumentResult(options);
         using (result.Value) result.RequireValue().Save(stream, saveOptions);
@@ -51,7 +51,7 @@ public static class OfficeMarkupWordConverterExtensions {
     public static async Task<OfficeMarkupConversionReport> SaveAsWordAsync(
         this OfficeMarkupDocument document,
         string path,
-        MarkupToWordOptions? options = null,
+        MarkupWordExportOptions? options = null,
         WordSaveOptions? saveOptions = null,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -64,7 +64,7 @@ public static class OfficeMarkupWordConverterExtensions {
     public static async Task<OfficeMarkupConversionReport> SaveAsWordAsync(
         this OfficeMarkupDocument document,
         Stream stream,
-        MarkupToWordOptions? options = null,
+        MarkupWordExportOptions? options = null,
         WordSaveOptions? saveOptions = null,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -75,7 +75,7 @@ public static class OfficeMarkupWordConverterExtensions {
 
     private static IReadOnlyList<OfficeMarkupDiagnostic> CollectDiagnostics(
         OfficeMarkupDocument document,
-        MarkupToWordOptions options) {
+        MarkupWordExportOptions options) {
         var diagnostics = new List<OfficeMarkupDiagnostic>(OfficeMarkupValidator.Validate(document));
         foreach (OfficeMarkupBlock block in document.DescendantsAndSelf()) {
             if (block is OfficeMarkupDiagramBlock) {

@@ -27,7 +27,7 @@ public sealed partial class IWorkBoundaryTests {
         AssertMissingReference(Assert.Single(report.SourceReferenceIssues), kind == IWorkDocumentKind.Pages ? 2ul : 11ul,
             field + "/1[1]/2", 999);
         Assert.DoesNotContain(report.SourceUnits, unit => unit.Identity.RecordIdentifier == 999);
-        Assert.Equal(OfficeConversionLossKind.Unassessed, Assert.Single(report.FidelityDiagnostics,
+        Assert.Equal(OfficeConversionLossKind.Unassessed, Assert.Single(report.Diagnostics,
             diagnostic => diagnostic.Code == "IWORK_SOURCE_REFERENCES_UNRESOLVED").LossKind);
     }
 
@@ -52,7 +52,7 @@ public sealed partial class IWorkBoundaryTests {
                 ArchiveRecord(12, 2022, Message(BytesField(11, Message(FloatField(3, 10))))),
                 ArchiveRecord(13, 2022, Message(BytesField(11, Message(FloatField(3, 20)))))), text: "A\nB");
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages,
-            new IWorkReadOptions { MaximumSourceReferenceIssues = 1 });
+            new IWorkReadOptions { MaxSourceReferenceIssues = 1 });
         IWorkPagesProjection pages = source.ReadPages();
         AssertMissingReference(Assert.Single(pages.SourceReferenceIssues), 10, "1/3", 999);
         Assert.Equal(2, pages.Body.Paragraphs.Count);
@@ -107,7 +107,7 @@ public sealed partial class IWorkBoundaryTests {
             Message(ArchiveRecord(3, 10011, Message(ReferenceField(25, 4))),
                 ArchiveRecord(4, 10143, Message(ReferenceField(1, 2)))));
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages,
-            new IWorkReadOptions { MaximumSourceReferenceIssues = 1 });
+            new IWorkReadOptions { MaxSourceReferenceIssues = 1 });
         IWorkPagesProjection pages = source.ReadPages();
         AssertMissingReference(Assert.Single(pages.SourceReferenceIssues), 2, "8/1[1]/2", 999);
         Assert.Equal("Text", Assert.Single(pages.HeaderContents).PlainText);
@@ -135,7 +135,7 @@ public sealed partial class IWorkBoundaryTests {
                 AttributeTable(11, AttributeEntry(0, ReferenceField(2, 999)))),
             ArchiveRecord(10, 2022, Message(BytesField(1, Message(ReferenceField(3, 998))))));
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind,
-            new IWorkReadOptions { MaximumSourceReferenceIssues = 1 });
+            new IWorkReadOptions { MaxSourceReferenceIssues = 1 });
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => {
             if (kind == IWorkDocumentKind.Pages) source.ReadPages(); else source.ReadKeynote();
         });

@@ -151,7 +151,7 @@ public sealed class ReaderZipModularTests {
 
         var options = new ArchiveTraversalOptions { MaxPhysicalEntries = 2 };
         using (var source = new MemoryStream(outer, writable: false)) {
-            ReaderChunk[] chunks = CreateMarkdownZipReader(options).Read(source, "outer.zip").ToArray();
+            ReaderChunk[] chunks = CreateMarkdownZipReader(options).Enumerate(source, "outer.zip").ToArray();
             Assert.Contains(chunks, chunk => chunk.Kind == ReaderInputKind.Zip &&
                 (chunk.Warnings?.Any(warning => warning.Contains("archive parse error", StringComparison.Ordinal)) ?? false));
             Assert.Contains(chunks, chunk => chunk.Kind == ReaderInputKind.Markdown && chunk.Text?.Contains("Safe", StringComparison.Ordinal) == true);
@@ -224,7 +224,7 @@ public sealed class ReaderZipModularTests {
             OfficeDocumentReader reader = CreateMarkdownZipReader(
                 new ArchiveTraversalOptions { DeterministicOrder = true },
                 new ReaderZipOptions { ReadNestedZipEntries = true, MaxNestedDepth = 2 });
-            var chunks = reader.Read(zipPath,
+            var chunks = reader.Enumerate(zipPath,
                 new ReaderOptions { MaxInputBytes = 512, MaxChars = 8_000 }).ToList();
 
             Assert.NotEmpty(chunks);
@@ -251,7 +251,7 @@ public sealed class ReaderZipModularTests {
 
         OfficeDocumentReader reader = CreateMarkdownZipReader(
             new ArchiveTraversalOptions { DeterministicOrder = true });
-        var chunks = reader.Read(stream, "nonseekable.zip",
+        var chunks = reader.Enumerate(stream, "nonseekable.zip",
             new ReaderOptions { MaxChars = 8_000 }).ToList();
 
         Assert.NotEmpty(chunks);
@@ -284,11 +284,11 @@ public sealed class ReaderZipModularTests {
         OfficeDocumentReader reader = CreateMarkdownZipReader(
             new ArchiveTraversalOptions { DeterministicOrder = true });
 
-        var firstChunk = reader.Read(first, "first.zip",
+        var firstChunk = reader.Enumerate(first, "first.zip",
             new ReaderOptions { MaxChars = 8_000, ComputeHashes = true })
             .Single(c => c.Kind == ReaderInputKind.Markdown);
 
-        var secondChunk = reader.Read(second, "second.zip",
+        var secondChunk = reader.Enumerate(second, "second.zip",
             new ReaderOptions { MaxChars = 8_000, ComputeHashes = true })
             .Single(c => c.Kind == ReaderInputKind.Markdown);
 
@@ -348,7 +348,7 @@ public sealed class ReaderZipModularTests {
         OfficeDocumentReader reader = CreateMarkdownZipReader(
             new ArchiveTraversalOptions { DeterministicOrder = true });
 
-        var chunks = reader.Read(stream, "case-sensitive.zip",
+        var chunks = reader.Enumerate(stream, "case-sensitive.zip",
             new ReaderOptions { MaxChars = 8_000, ComputeHashes = true })
             .Where(c => c.Kind == ReaderInputKind.Markdown)
             .ToList();
@@ -378,11 +378,11 @@ public sealed class ReaderZipModularTests {
                 OfficeDocumentReader reader = CreateMarkdownZipReader(
                     new ArchiveTraversalOptions { DeterministicOrder = true });
 
-                var relativeChunk = reader.Read(relativePath,
+                var relativeChunk = reader.Enumerate(relativePath,
                     new ReaderOptions { MaxChars = 8_000, ComputeHashes = true })
                     .Single(c => c.Kind == ReaderInputKind.Markdown);
 
-                var fullChunk = reader.Read(zipPath,
+                var fullChunk = reader.Enumerate(zipPath,
                     new ReaderOptions { MaxChars = 8_000, ComputeHashes = true })
                     .Single(c => c.Kind == ReaderInputKind.Markdown);
 

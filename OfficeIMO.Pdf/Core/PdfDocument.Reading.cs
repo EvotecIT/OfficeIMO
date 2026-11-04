@@ -3,8 +3,8 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfDocument {
-    /// <summary>Gets metadata through the document's bounded read pipeline.</summary>
-    public PdfMetadata Metadata => GetReadSnapshot().Document.Metadata;
+    /// <summary>Gets the standard document properties from the Info dictionary through the bounded read pipeline.</summary>
+    public PdfDocumentProperties Properties => GetReadSnapshot().Document.Metadata;
     /// <summary>Gets document outlines without exposing the parser.</summary>
     public IReadOnlyList<PdfOutlineItem> Outlines => GetReadSnapshot().Document.Outlines;
     /// <summary>Gets named destinations from the document.</summary>

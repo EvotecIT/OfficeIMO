@@ -5,11 +5,11 @@ namespace OfficeIMO.Word.LegacyDoc {
     /// <summary>
     /// Contains the projected OfficeIMO document and the legacy DOC import report produced from the same parse.
     /// </summary>
-    internal sealed class LegacyDocLoadResult : IDisposable, IOfficeConversionReport {
+    internal sealed class LegacyDocLoadResult : OfficeConversionReport, IDisposable {
         private readonly WordDocument? _document;
         private readonly Lazy<LegacyDocImportReport> _importReport;
         private readonly Lazy<LegacyDocImportSummary> _summary;
-        private readonly Lazy<IReadOnlyList<OfficeConversionFidelityDiagnostic>> _fidelityDiagnostics;
+        private readonly Lazy<IReadOnlyList<OfficeDiagnostic>> _fidelityDiagnostics;
 
         internal LegacyDocLoadResult(WordDocument? document, LegacyDocDocument legacyDocument, Exception? projectionException = null) {
             _document = document;
@@ -17,13 +17,13 @@ namespace OfficeIMO.Word.LegacyDoc {
             ProjectionException = projectionException;
             _importReport = new Lazy<LegacyDocImportReport>(() => LegacyDocument.CreateImportReport());
             _summary = new Lazy<LegacyDocImportSummary>(() => new LegacyDocImportSummary(this));
-            _fidelityDiagnostics = new Lazy<IReadOnlyList<OfficeConversionFidelityDiagnostic>>(CreateFidelityDiagnostics);
+            _fidelityDiagnostics = new Lazy<IReadOnlyList<OfficeDiagnostic>>(CreateFidelityDiagnostics);
         }
 
         /// <summary>
         /// Gets the normal OfficeIMO Word document projected from supported legacy DOC content.
         /// </summary>
-        public WordDocument Document => _document ?? throw new InvalidOperationException("No OfficeIMO Word document was projected from the legacy DOC file. Inspect LegacyDocument, Diagnostics, ImportReport, and ProjectionException for import details.", ProjectionException);
+        public WordDocument Document => _document ?? throw new InvalidOperationException("No OfficeIMO Word document was projected from the legacy DOC file. Inspect LegacyDocument, NativeDiagnostics, ImportReport, and ProjectionException for import details.", ProjectionException);
 
         /// <summary>
         /// Gets whether supported legacy DOC content was projected into a normal OfficeIMO Word document.
@@ -47,7 +47,7 @@ namespace OfficeIMO.Word.LegacyDoc {
         /// <summary>
         /// Gets diagnostics produced while reading the legacy document.
         /// </summary>
-        public IReadOnlyList<LegacyDocImportDiagnostic> Diagnostics => LegacyDocument.Diagnostics;
+        public IReadOnlyList<LegacyDocImportDiagnostic> NativeDiagnostics => LegacyDocument.Diagnostics;
 
         /// <summary>
         /// Gets unsupported or preserve-only features discovered while reading the legacy document.
@@ -80,7 +80,7 @@ namespace OfficeIMO.Word.LegacyDoc {
         /// Gets whether the legacy DOC import produced error diagnostics.
         /// </summary>
         public bool HasImportErrors => ProjectionException != null ||
-            Diagnostics.Any(diagnostic => diagnostic.Severity == LegacyDocDiagnosticSeverity.Error);
+            NativeDiagnostics.Any(diagnostic => diagnostic.Severity == LegacyDocDiagnosticSeverity.Error);
 
         /// <summary>
         /// Gets whether conversion to DOCX would omit unsupported, preserved-only, or compound legacy content.
@@ -88,17 +88,15 @@ namespace OfficeIMO.Word.LegacyDoc {
         public bool HasConversionLoss => HasLoss;
 
         /// <inheritdoc />
-        public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => _fidelityDiagnostics.Value;
+        protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+        private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics => _fidelityDiagnostics.Value;
 
         /// <inheritdoc />
-        public bool HasLoss => FidelityDiagnostics.Any(diagnostic =>
+        public override bool HasLoss => FidelityDiagnostics.Any(diagnostic =>
             diagnostic.LossKind != OfficeConversionLossKind.None);
 
         /// <inheritdoc />
-        public void RequireNoLoss() {
-            if (HasLoss) throw new InvalidDataException(
-                "The legacy DOC import reported content loss. Inspect FidelityDiagnostics and the source import collections for details.");
-        }
+        protected override OfficeConversionException CreateLossException() => new OfficeConversionException("The legacy DOC import reported content loss. Inspect Diagnostics and the source import collections for details.", this);
 
         /// <summary>
         /// Throws when the legacy DOC import produced error diagnostics.
@@ -110,7 +108,7 @@ namespace OfficeIMO.Word.LegacyDoc {
                     ProjectionException);
             }
             if (HasImportErrors) {
-                throw new InvalidOperationException("Legacy DOC import produced errors: " + string.Join("; ", Diagnostics.Where(diagnostic => diagnostic.Severity == LegacyDocDiagnosticSeverity.Error).Take(8).Select(diagnostic => diagnostic.ToString())));
+                throw new InvalidOperationException("Legacy DOC import produced errors: " + string.Join("; ", NativeDiagnostics.Where(diagnostic => diagnostic.Severity == LegacyDocDiagnosticSeverity.Error).Take(8).Select(diagnostic => diagnostic.ToString())));
             }
 
             return this;
@@ -132,30 +130,45 @@ namespace OfficeIMO.Word.LegacyDoc {
             _document?.Dispose();
         }
 
-        private IReadOnlyList<OfficeConversionFidelityDiagnostic> CreateFidelityDiagnostics() {
-            var diagnostics = new List<OfficeConversionFidelityDiagnostic>();
+        private IReadOnlyList<OfficeDiagnostic> CreateFidelityDiagnostics() {
+            var diagnostics = new List<OfficeDiagnostic>();
             if (ProjectionException != null) {
-                diagnostics.Add(new OfficeConversionFidelityDiagnostic(
+                diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic(
                     "doc-projection-failed",
+                    global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
                     ProjectionException.Message,
-                    OfficeConversionLossKind.Failure,
+                    ProjectionException.GetType().FullName,
                     "OfficeIMO.Word.LegacyDoc.Projection",
-                    ProjectionException.GetType().FullName));
+                    OfficeConversionLossKind.Failure));
             }
-            diagnostics.AddRange(Diagnostics.Select(diagnostic => new OfficeConversionFidelityDiagnostic(
+            diagnostics.AddRange(NativeDiagnostics.Select(diagnostic => new global::OfficeIMO.OfficeDiagnostic(
                 diagnostic.Code,
+                global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
                 diagnostic.Message,
-                ClassifyLoss(diagnostic),
-                "OfficeIMO.Word.LegacyDoc.Reader")));
-            diagnostics.AddRange(UnsupportedFeatures.Select(feature => new OfficeConversionFidelityDiagnostic(
-                feature.Code, feature.Description, OfficeConversionLossKind.Omission,
-                "OfficeIMO.Word.LegacyDoc.Reader", feature.EntryPath ?? feature.DetailCode)));
-            diagnostics.AddRange(PreservedFeatures.Select(feature => new OfficeConversionFidelityDiagnostic(
-                feature.Code, feature.Description, OfficeConversionLossKind.Omission,
-                "OfficeIMO.Word.LegacyDoc.Reader", feature.DetailCode)));
-            diagnostics.AddRange(CompoundFeatures.Select(feature => new OfficeConversionFidelityDiagnostic(
-                feature.Code, feature.Description, OfficeConversionLossKind.Omission,
-                "OfficeIMO.Word.LegacyDoc.Reader", feature.EntryPath ?? feature.DetailCode)));
+                null,
+                "OfficeIMO.Word.LegacyDoc.Reader",
+                ClassifyLoss(diagnostic))));
+            diagnostics.AddRange(UnsupportedFeatures.Select(feature => new global::OfficeIMO.OfficeDiagnostic(
+                feature.Code,
+                global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
+                feature.Description,
+                feature.EntryPath ?? feature.DetailCode,
+                "OfficeIMO.Word.LegacyDoc.Reader",
+                OfficeConversionLossKind.Omission)));
+            diagnostics.AddRange(PreservedFeatures.Select(feature => new global::OfficeIMO.OfficeDiagnostic(
+                feature.Code,
+                global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
+                feature.Description,
+                feature.DetailCode,
+                "OfficeIMO.Word.LegacyDoc.Reader",
+                OfficeConversionLossKind.Omission)));
+            diagnostics.AddRange(CompoundFeatures.Select(feature => new global::OfficeIMO.OfficeDiagnostic(
+                feature.Code,
+                global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
+                feature.Description,
+                feature.EntryPath ?? feature.DetailCode,
+                "OfficeIMO.Word.LegacyDoc.Reader",
+                OfficeConversionLossKind.Omission)));
             return Array.AsReadOnly(diagnostics.ToArray());
         }
 

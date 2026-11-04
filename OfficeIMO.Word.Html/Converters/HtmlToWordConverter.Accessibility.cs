@@ -18,7 +18,7 @@ namespace OfficeIMO.Word.Html {
 
         private int _lastAccessibilityHeadingLevel;
 
-        private static void AddAccessibilityDiagnostic(WordHtmlImportOptions options, string code, string message, string? source) {
+        private static void AddAccessibilityDiagnostic(HtmlWordExportOptions options, string code, string message, string? source) {
             AddDiagnostic(options, code, message, source, lossKind: OfficeConversionLossKind.None);
         }
 

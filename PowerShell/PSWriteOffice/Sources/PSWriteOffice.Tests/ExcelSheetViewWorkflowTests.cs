@@ -17,20 +17,20 @@ public sealed class ExcelSheetViewWorkflowTests {
         Assert.Empty(Invoke(runspace, "$book | Set-OfficeExcelSheetView -Sheet 2 -FreezeRows 3 -FreezeColumns 1 -NoGridlines -RightToLeft -Zoom 85 -ZoomNormal 100 -View PageLayout"));
         var output = Invoke(runspace, "Set-OfficeExcelSheetView -Sheet $selected -FreezeRows 4 -PassThru");
         Assert.Same(book["Data"], Assert.Single(output).BaseObject);
-        var view = data.GetViewInfo();
+        var view = data.View.Inspect();
         Assert.Equal(4, view.FrozenRowCount);
         Assert.Equal(1, view.FrozenColumnCount);
         Assert.False(view.ShowGridlines);
         Assert.True(view.RightToLeft);
         Assert.Equal(85U, view.ZoomScale);
         Assert.Equal("pageLayout", view.View);
-        Assert.False(book["Summary"].GetViewInfo().HasPane);
+        Assert.False(book["Summary"].View.Inspect().HasPane);
         Assert.Empty(Invoke(runspace, "Set-OfficeExcelSheetView -Document $book -Sheet Data -FreezeRows 0 -FreezeColumns 0 -NoGridlines:$false -RightToLeft:$false"));
         using var bytes = new MemoryStream();
         book.Save(bytes);
         bytes.Position = 0;
         using var reopened = ExcelDocument.Load(bytes);
-        var persisted = reopened["Data"].GetViewInfo();
+        var persisted = reopened["Data"].View.Inspect();
         Assert.False(persisted.HasPane);
         Assert.True(persisted.ShowGridlines);
         Assert.False(persisted.RightToLeft);
@@ -48,7 +48,7 @@ public sealed class ExcelSheetViewWorkflowTests {
         using var book = ExcelDocument.Create();
         book.AddSheet("Summary");
         var data = book.AddSheet("Data");
-        data.Freeze(1, 1);
+        data.View.Freeze(1, 1);
         using var foreign = ExcelDocument.Create();
         using var runspace = Open(book);
         runspace.SessionStateProxy.SetVariable("foreign", foreign.AddSheet("Data"));
@@ -57,13 +57,13 @@ public sealed class ExcelSheetViewWorkflowTests {
         shell.AddScript("Set-OfficeExcelSheetView -Document $book " + arguments);
         var error = Record.Exception(() => shell.Invoke());
         Assert.True(error != null || shell.HadErrors);
-        var view = data.GetViewInfo();
+        var view = data.View.Inspect();
         Assert.True(view.ShowGridlines);
         Assert.Equal(1, view.FrozenRowCount);
         Assert.Equal(1, view.FrozenColumnCount);
         Assert.Null(view.ZoomScale);
         Assert.Null(view.View);
-        Assert.False(book["Summary"].GetViewInfo().HasPane);
+        Assert.False(book["Summary"].View.Inspect().HasPane);
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public sealed class ExcelSheetViewWorkflowTests {
             using var book = ExcelDocument.Create();
             book.AddSheet("Summary");
             var data = book.AddSheet("Data");
-            data.Freeze(2, 1);
+            data.View.Freeze(2, 1);
             using var runspace = Open(book);
             var mixed = Invoke(runspace, "$book | Get-OfficeExcelSheetView -Sheet 'Summ*', 2, $selected");
             Assert.Equal(new[] { "Summary", "Data" }, mixed.Select(item => Assert.IsType<ExcelSheetViewInfo>(item.BaseObject).SheetName));

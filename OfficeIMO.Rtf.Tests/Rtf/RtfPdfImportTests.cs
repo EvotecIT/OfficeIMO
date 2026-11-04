@@ -11,13 +11,10 @@ public class RtfPdfImportTests {
     [Fact]
     public void PdfToRtf_PreservesLogicalRunColorSizeAndFontStyle() {
         byte[] pdf = PdfCore.PdfDocument.Create()
-            .Paragraph(paragraph => paragraph
-                .Color(global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0))
-                .FontSize(global::OfficeIMO.OfficeLength.Points(14))
-                .Bold("Bold red")
-                .Color(global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255))
-                .FontSize(global::OfficeIMO.OfficeLength.Points(9))
-                .Italic(" italic blue"))
+            .Paragraph(paragraph => {
+                paragraph.AddText("Bold red").SetBold().SetColor(global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0)).SetFontSize(global::OfficeIMO.OfficeLength.Points(14));
+                paragraph.AddText(" italic blue").SetItalic().SetColor(global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255)).SetFontSize(global::OfficeIMO.OfficeLength.Points(9));
+            })
             .ToBytes();
 
         RtfDocument document = LoadSemanticPdf(pdf).ToRtfDocument();
@@ -48,12 +45,11 @@ public class RtfPdfImportTests {
     [Fact]
     public void PdfToRtf_PreservesStyledListRunsWithoutRepeatingMarker() {
         byte[] pdf = PdfCore.PdfDocument.Create()
-            .Paragraph(paragraph => paragraph
-                .Text("\u2022 ")
-                .Color(global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0))
-                .Bold("Bold red")
-                .Color(global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255))
-                .Italic(" italic blue"))
+            .Paragraph(paragraph => {
+                paragraph.AddText("\u2022 ");
+                paragraph.AddText("Bold red").SetBold().SetColor(global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0));
+                paragraph.AddText(" italic blue").SetItalic().SetColor(global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255));
+            })
             .ToBytes();
         PdfCore.PdfDocumentReadResult logical = LoadSemanticPdf(pdf);
         PdfCore.PdfLogicalListItem logicalItem = Assert.Single(logical.ListItems);
@@ -77,10 +73,10 @@ public class RtfPdfImportTests {
 
         RtfDocument document = LoadSemanticPdf(pdf).ToRtfDocument(CreateImportOptions());
 
-        Assert.Equal("PDF Import Title", document.Info.Title);
-        Assert.Equal("OfficeIMO", document.Info.Author);
-        Assert.Equal("PDF to RTF", document.Info.Subject);
-        Assert.Equal("pdf,rtf", document.Info.Keywords);
+        Assert.Equal("PDF Import Title", document.Properties.Title);
+        Assert.Equal("OfficeIMO", document.Properties.Author);
+        Assert.Equal("PDF to RTF", document.Properties.Subject);
+        Assert.Equal("pdf,rtf", document.Properties.Keywords);
         Assert.Equal(7200, document.PageSetup.PaperWidthTwips);
         Assert.Equal(7200, document.PageSetup.PaperHeightTwips);
         Assert.Contains(document.Styles, style => style.Name == "Heading 1" && style.Bold == true);
@@ -109,7 +105,7 @@ public class RtfPdfImportTests {
         byte[] pdf = CreateSemanticPdf();
 
         string rtf = LoadSemanticPdf(pdf).ToRtfDocument(CreateImportOptions()).ToRtf();
-        RtfDocument roundTrip = RtfDocument.Read(rtf).Document;
+        RtfDocument roundTrip = RtfDocument.ParseResult(rtf).Document;
 
         Assert.Contains("Clinical Summary", rtf, StringComparison.Ordinal);
         Assert.Contains(roundTrip.Paragraphs, paragraph => paragraph.ToPlainText() == "Clinical Summary");
@@ -151,12 +147,12 @@ public class RtfPdfImportTests {
 
     [Fact]
     public void PdfToRtfOptions_Clone_IsIndependent() {
-        var options = new PdfToRtfOptions {
+        var options = new PdfRtfExportOptions {
             PreservePageBreaks = false,
             IncludeMetadata = false
         };
 
-        PdfToRtfOptions clone = options.Clone();
+        PdfRtfExportOptions clone = options.Clone();
         clone.PreservePageBreaks = true;
         clone.IncludeMetadata = true;
 
@@ -209,7 +205,7 @@ public class RtfPdfImportTests {
         Assert.Equal(logical.Tables.Count.ToString(), warning.Details["count"]);
     }
 
-    private static PdfToRtfOptions CreateImportOptions() => new PdfToRtfOptions();
+    private static PdfRtfExportOptions CreateImportOptions() => new PdfRtfExportOptions();
 
     private static PdfCore.PdfDocumentReadResult LoadSemanticPdf(byte[] pdf) =>
         PdfCore.PdfDocumentReadResult.Load(pdf, CreateLayoutOptions());
@@ -220,20 +216,18 @@ public class RtfPdfImportTests {
 
     private static byte[] CreateSemanticPdf() =>
         PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(360),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(360)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Meta(title: "PDF Import Title", author: "OfficeIMO", subject: "PDF to RTF", keywords: "pdf,rtf")
             .H1("Clinical Summary")
-            .Paragraph(p => p.Text("This semantic paragraph should become one imported RTF paragraph."))
+            .Paragraph(p => p.AddText("This semantic paragraph should become one imported RTF paragraph."))
             .Bullets(new[] { "First bullet", "Second bullet" })
             .Numbered(new[] { "First numbered", "Second numbered" }, startNumber: 3)
             .PageBreak()
-            .Paragraph(p => p.Text("Second page body."))
+            .Paragraph(p => p.AddText("Second page body."))
             .ToBytes();
 }

@@ -145,11 +145,11 @@ namespace OfficeIMO.Examples.PowerPoint {
                 HandoutSlidesPerPage = 3,
                 IncludeSpeakerNotes = true
             });
-            var htmlOptions = new PowerPointHtmlSaveOptions {
+            var htmlOptions = new PowerPointHtmlExportOptions {
                 Profile = OfficeHtmlConversionProfile.PowerPointVisualReview
             };
-            PowerPointToHtmlResult htmlResult = presentation.ToHtmlResult(htmlOptions);
-            File.WriteAllText(htmlPath, htmlResult.Value, Encoding.UTF8);
+            string htmlResult = presentation.ToHtml(htmlOptions, out OfficeConversionReport htmlResultReport);
+            File.WriteAllText(htmlPath, htmlResult, Encoding.UTF8);
 
             PowerPointVisualProofReport visualProof = presentation.InspectVisuals()
                 .RecordArtifact(Path.GetFileName(presentationPath),
@@ -158,7 +158,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 .RecordArtifact(Path.GetFileName(pdfPath), "application/pdf", File.ReadAllBytes(pdfPath),
                     pdfResult.Diagnostics.Count)
                 .RecordArtifact(Path.GetFileName(htmlPath), "text/html", File.ReadAllBytes(htmlPath),
-                    htmlResult.ImageDiagnostics.Count);
+                    htmlResultReport.Diagnostics.Count);
             visualProof.SaveJson(visualProofPath);
 
             List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();

@@ -25,8 +25,8 @@ public partial class ExcelDocument {
 
     private static ExcelWriterOptions CreateStreamingOptions(ExcelWriterOptions? options) {
         var snapshot = CreateRowWriteOptions(options ?? new ExcelWriterOptions { CreateTable = true, UseSharedStrings = false });
-        if (snapshot.AutoFit || snapshot.UseSharedStrings)
-            throw new ArgumentException("The streaming writer requires AutoFit=false and UseSharedStrings=false.", nameof(options));
+        if (snapshot.UseSharedStrings)
+            throw new ArgumentException("The streaming writer requires UseSharedStrings=false.", nameof(options));
         if (snapshot.CreateTable && !snapshot.IncludeHeaders)
             throw new ArgumentException("Streaming tables require column headers.", nameof(options));
         snapshot.RequireStreaming = true;
@@ -90,7 +90,7 @@ public partial class ExcelDocument {
                     _options.TableStyle, _options.IncludeHeaders, _options.IncludeAutoFilter, _options.CreateTable,
                     false, false, null, _options.UseCellValueNumberFormats, includeCellReferences: _options.IncludeCellReferences);
                 var model = DirectDataSetWorkbookModel.CreateStreaming(new[] { sheet }, _options.DateSystem, styles);
-                int rowCount = await DirectDataSetWorkbookWriter.WriteStreamingWorksheet(_archive, model, rows, writeRow, cancellationToken).ConfigureAwait(false);
+                int rowCount = await DirectDataSetWorkbookWriter.WriteStreamingWorksheet(_archive, model, rows, writeRow, _options.AutoFit, _theme, cancellationToken).ConfigureAwait(false);
                 _sheets.Add(sheet);
                 return new ExcelDataSetImportResult(sheetName, tableName,
                     ExcelSheet.BuildObjectExportRange(1, names.Length, rowCount, _options.IncludeHeaders), rowCount, names.Length);
@@ -106,9 +106,11 @@ public partial class ExcelDocument {
                 throw new InvalidOperationException("Complete the current table before disposing the writer.");
             _disposed = true;
             try {
+                // Throwing here leaves the archive unfinished, so neither destination receives an empty package.
+                if (!_failed && _sheets.Count == 0)
+                    throw new InvalidOperationException("Write at least one table before disposing the writer; a workbook needs a worksheet.");
                 try {
                     if (!_failed) {
-                        if (_sheets.Count == 0) { _failed = true; return; }
                         var styles = ExcelTabularStylePlan.Create(_options, _sheets[0].Table.ColumnCount, CancellationToken.None);
                         var model = DirectDataSetWorkbookModel.CreateStreaming(_sheets, _options.DateSystem, styles);
                         DirectDataSetWorkbookWriter.CompleteStreamingWorkbook(_archive, model, _theme);

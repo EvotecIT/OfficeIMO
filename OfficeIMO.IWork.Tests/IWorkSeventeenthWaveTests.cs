@@ -15,7 +15,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Masked_images_disable_editable_reconstruction() {
         using MemoryStream package = CreatePagesPackageWithImage(masked: true, left: 0, rotation: 0);
 
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,
@@ -28,7 +28,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Pages_images_preserve_page_relative_position(float left) {
         using MemoryStream package = CreatePagesPackageWithImage(masked: false, left: left, rotation: 0);
 
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult();
 
         Assert.False(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
@@ -52,7 +52,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Transparent_pages_text_uses_visual_fallback() {
         using MemoryStream package = CreatePagesPackageWithTransparentText();
 
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
@@ -62,7 +62,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Transparent_keynote_text_uses_visual_fallback() {
         using MemoryStream package = CreateKeynotePackageWithTransparentText();
 
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
@@ -85,7 +85,7 @@ public sealed partial class IWorkBoundaryTests {
             ("Index/Document.iwa", FrameIwa(records)),
             ("preview.png", ValidPreviewPng()));
 
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,
@@ -95,7 +95,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Every_pages_header_row_repeats_in_word() {
         using MemoryStream package = CreatePagesPackageWithHeaderRows(2);
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult();
         using var saved = new MemoryStream();
         result.Value.Save(saved);
         saved.Position = 0;
@@ -119,7 +119,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: null,
             includePreview: true, documentLayoutFields: layout);
 
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);

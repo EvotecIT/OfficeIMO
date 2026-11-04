@@ -86,7 +86,7 @@ internal static partial class MarkdownReader {
         return (nestedDoc.Blocks, remappedSyntaxChildren);
     }
 
-    private static MarkdownReaderState CreateNestedState(
+    private static void EnsureNestingDepthAvailable(
         MarkdownReaderState state,
         MarkdownLoadOptions options) {
         if (options.MaxNestingDepth < 1) {
@@ -99,6 +99,12 @@ internal static partial class MarkdownReader {
             throw new InvalidDataException(
                 $"Markdown block nesting exceeds MaxNestingDepth ({options.MaxNestingDepth}).");
         }
+    }
+
+    private static MarkdownReaderState CreateNestedState(
+        MarkdownReaderState state,
+        MarkdownLoadOptions options) {
+        EnsureNestingDepthAvailable(state, options);
 
         MarkdownReaderState nested = CloneState(state);
         nested.NestedBlockDepth = state.NestedBlockDepth + 1;

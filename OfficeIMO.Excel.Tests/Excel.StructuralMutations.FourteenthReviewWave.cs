@@ -12,9 +12,9 @@ namespace OfficeIMO.Tests {
         public void Test_TableResize_RemovesAndClampsSortConditionsOutsideShrunkenSchema() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "A");
-            sheet.CellValue(1, 2, "B");
-            sheet.CellValue(1, 3, "C");
+            sheet.Cell(1, 1).SetValue("A");
+            sheet.Cell(1, 2).SetValue("B");
+            sheet.Cell(1, 3).SetValue("C");
             sheet.AddTable("A1:C10", true, "Sales", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
             Table table = Assert.Single(sheet.WorksheetPart.TableDefinitionParts).Table!;
             var sortState = new SortState(
@@ -35,7 +35,7 @@ namespace OfficeIMO.Tests {
         public void Test_ColumnPlan_RejectsFormulaReferenceThatWouldOverflowXfd() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellFormula(1, 1, "XFD1");
+            sheet.Cell(1, 1).SetFormula("XFD1");
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
                 sheet.PlanInsertColumns(1));

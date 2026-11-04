@@ -46,7 +46,7 @@ public static partial class PdfImageExportExtensions {
         var timer = Stopwatch.StartNew();
         PdfImageExportOptions snapshot = options?.Clone() ?? new PdfImageExportOptions();
         OfficeImageExportBatchSaveResult saved = document.CreateImageExportOperation(snapshot).SaveFiles(folderPath, cancellationToken);
-        return OfficeImageExportEvidence.CreateReport("Pdf", snapshot.Format, saved.Report.Diagnostics,
+        return OfficeImageExportEvidence.CreateReport("Pdf", snapshot.Format, saved.Report.NativeDiagnostics,
             saved.Report.ResultCount, timer.Elapsed, Path.GetFullPath(folderPath));
     }
 
@@ -58,7 +58,7 @@ public static partial class PdfImageExportExtensions {
         PdfImageExportOptions snapshot = options?.Clone() ?? new PdfImageExportOptions();
         OfficeImageExportBatchSaveResult saved = await document.CreateImageExportOperation(snapshot)
             .SaveFilesAsync(folderPath, cancellationToken).ConfigureAwait(false);
-        return OfficeImageExportEvidence.CreateReport("Pdf", snapshot.Format, saved.Report.Diagnostics,
+        return OfficeImageExportEvidence.CreateReport("Pdf", snapshot.Format, saved.Report.NativeDiagnostics,
             saved.Report.ResultCount, timer.Elapsed, Path.GetFullPath(folderPath));
     }
 }

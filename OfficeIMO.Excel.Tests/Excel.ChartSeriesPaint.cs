@@ -43,12 +43,12 @@ public sealed class ExcelChartSeriesPaintTests
     {
         using var document = ExcelDocument.Create();
         var sheet = document.AddSheet("Paint");
-        sheet.CellValue(1, 1, "Category");
-        sheet.CellValue(1, 2, "Series");
-        sheet.CellValue(2, 1, "A");
-        sheet.CellValue(2, 2, 2);
-        sheet.CellValue(3, 1, "B");
-        sheet.CellValue(3, 2, 4);
+        sheet.Cell(1, 1).SetValue("Category");
+        sheet.Cell(1, 2).SetValue("Series");
+        sheet.Cell(2, 1).SetValue("A");
+        sheet.Cell(2, 2).SetValue(2);
+        sheet.Cell(3, 1).SetValue("B");
+        sheet.Cell(3, 2).SetValue(4);
         var chart = sheet.AddChart(OfficeChartType.Line3D, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(640), Height = OfficeLength.Pixels(360), Title = null, IncludeCachedData = true, HasHeaders = true });
         chart.SetSeriesFillColor(0, OfficeColor.Parse("0000FF")).SetSeriesLineColor(0, OfficeColor.Parse("FF0000"), OfficeLength.Points(3));
         if (!fill)

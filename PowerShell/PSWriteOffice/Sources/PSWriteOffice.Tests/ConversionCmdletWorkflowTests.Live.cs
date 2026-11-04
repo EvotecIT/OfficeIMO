@@ -164,7 +164,7 @@ public sealed partial class ConversionCmdletWorkflowTests {
         switch (kind) {
             case "Excel":
                 var excel = OfficeIMO.Excel.ExcelDocument.Create();
-                excel.AddSheet("Evidence").CellValue(1, 1, text);
+                excel.AddSheet("Evidence").Cell(1, 1).SetValue(text);
                 return excel;
             case "PowerPoint":
                 var slides = OfficeIMO.PowerPoint.PowerPointDocument.Create();
@@ -172,7 +172,7 @@ public sealed partial class ConversionCmdletWorkflowTests {
                 return slides;
             case "Pdf":
                 var pdf = PdfDocument.Create();
-                pdf.Compose(compose => compose.Content(content => content.Paragraph(p => p.Text(text))));
+                pdf.Compose(compose => compose.Content(content => content.AddParagraph(p => p.AddText(text))));
                 return pdf;
             case "Markdown": return OfficeIMO.Markdown.MarkdownDocument.Create().H1(text);
             case "Html": return OfficeIMO.Html.HtmlConversionDocument.Parse("<h1>" + text + "</h1>");
@@ -190,7 +190,7 @@ public sealed partial class ConversionCmdletWorkflowTests {
                 return epub;
             case "Visio":
                 var diagram = OfficeIMO.Visio.VisioDocument.Create();
-                diagram.AddPage("Evidence").AddRectangle(4, 4, 4, 1, text, OfficeIMO.Visio.VisioMeasurementUnit.Inches);
+                diagram.AddPage("Evidence").AddRectangle(OfficeIMO.OfficeLength.Inches(4), OfficeIMO.OfficeLength.Inches(4), OfficeIMO.OfficeLength.Inches(4), OfficeIMO.OfficeLength.Inches(1), text);
                 return diagram;
             default: throw new ArgumentException("Unknown fixture kind.", nameof(kind));
         }

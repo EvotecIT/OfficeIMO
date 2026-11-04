@@ -58,7 +58,7 @@ public sealed class PdfPadesProofTests {
         using var signer = new PdfCmsExternalSigner(OfficeSecurityProvider.Default, certificate,
             signingOptions: options, certificateChain: new[] { root });
         return PdfDocument.Create().Meta(title: "OfficeIMO PAdES proof")
-            .Paragraph(p => p.Text("Independent signature and timestamp proof"))
+            .Paragraph(p => p.AddText("Independent signature and timestamp proof"))
             .Security.SignExternal(signer, new PdfExternalSignatureOptions {
                 SubFilter = PdfExternalSignatureSubFilter.CadesDetached,
                 FieldName = "ProofSignature",

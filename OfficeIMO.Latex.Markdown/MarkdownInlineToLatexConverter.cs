@@ -149,13 +149,13 @@ internal sealed class ConversionState {
     private readonly Dictionary<string, FootnoteDefinitionBlock> _footnotes;
     private readonly HashSet<string> _resolvingFootnotes = new HashSet<string>(StringComparer.Ordinal);
 
-    internal ConversionState(MarkdownToLatexOptions options, IEnumerable<FootnoteDefinitionBlock> footnotes) {
+    internal ConversionState(MarkdownLatexExportOptions options, IEnumerable<FootnoteDefinitionBlock> footnotes) {
         Options = options;
         _footnotes = footnotes
             .GroupBy(static footnote => footnote.Label, StringComparer.Ordinal)
             .ToDictionary(static group => group.Key, static group => group.First(), StringComparer.Ordinal);
     }
-    internal MarkdownToLatexOptions Options { get; }
+    internal MarkdownLatexExportOptions Options { get; }
     internal string LineEnding => Options.LineEnding;
     internal HashSet<string> Packages { get; } = new HashSet<string>(StringComparer.Ordinal);
     internal HashSet<string> TheoremEnvironments { get; } = new HashSet<string>(StringComparer.Ordinal);

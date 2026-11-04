@@ -1,0 +1,23 @@
+{
+  "package": "OfficeIMO.Bibliography",
+  "changes": [
+    {
+      "old": "OfficeIMO.Bibliography read, write, reference and CSL options Maximum* properties",
+      "kind": "property",
+      "action": "rename",
+      "new": "Max* (for example MaxInputBytes, MaxItemCount, MaxNestingDepth)",
+      "category": "limits",
+      "reason": "Load and parse budgets use one Max vocabulary and sit under a discoverable Limits object.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Bibliography.BibliographyWriteOptions.RequireNoLoss",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Bibliography.BibliographyWriteOptions.FailOnLoss",
+      "category": "naming",
+      "reason": "One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception.",
+      "applied": true
+    }
+  ]
+}

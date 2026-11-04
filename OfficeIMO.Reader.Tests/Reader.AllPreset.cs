@@ -82,7 +82,7 @@ public sealed class ReaderAllPresetTests {
             markup.Add(new System.Xml.Linq.XElement(markup.Name.Namespace + "Glyphs",
                 new System.Xml.Linq.XAttribute("UnicodeString", "Native preset text")));
             page.ReplaceMarkup(markup);
-            var result = reader.ReadDocument(document.Save(), "input" + (format == OfficeIMO.Xps.XpsFormat.Xps ? ".xps" : ".oxps"));
+            var result = reader.ReadDocument(document.ToBytes(), "input" + (format == OfficeIMO.Xps.XpsFormat.Xps ? ".xps" : ".oxps"));
             Assert.Equal(ReaderInputKind.Xps, result.Kind);
             Assert.Equal("Native preset text", Assert.Single(result.Chunks).Text);
             Assert.Equal(OfficeDocumentPageProvenance.Native, result.GetPageProvenance());

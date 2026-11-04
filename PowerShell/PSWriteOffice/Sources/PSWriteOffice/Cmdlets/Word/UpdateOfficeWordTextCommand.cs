@@ -108,7 +108,7 @@ public sealed class UpdateOfficeWordTextCommand : PSWriteOffice.Cmdlets.OfficeMu
 
             var comparison = CaseSensitive.IsPresent ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
             var replacement = NewValue ?? string.Empty;
-            var replacements = document.FindAndReplace(OldValue, replacement, comparison);
+            var replacements = document.ReplaceAll(OldValue, replacement, new OfficeIMO.OfficeTextSearchOptions { MatchCase = CaseSensitive.IsPresent });
 
             if (IncludeHyperlinkText.IsPresent || IncludeHyperlinkUri.IsPresent || IncludeHyperlinkAnchor.IsPresent || IncludeHyperlinkTooltip.IsPresent) {
                 replacements += ReplaceHyperlinks(document, OldValue, replacement, comparison);

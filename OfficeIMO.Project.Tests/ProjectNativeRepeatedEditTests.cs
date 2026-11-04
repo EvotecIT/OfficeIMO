@@ -74,7 +74,7 @@ public class ProjectNativeRepeatedEditTests {
     }
     private static byte[] Save(ProjectDocument document, ProjectFileFormat format) {
         using var output = new MemoryStream();
-        document.Save(output, new ProjectSaveOptions { Format = format, LossPolicy = OfficeConversionLossPolicy.Allow });
+        document.Save(output, new ProjectSaveOptions { Format = format, AllowLoss = true });
         return output.ToArray();
     }
 }

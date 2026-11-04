@@ -8,7 +8,7 @@
     <LangVersion>Latest</LangVersion>
     <IsPackable>false</IsPackable>
     <ExcelReaderBenchmarkVersion Condition="'$(TargetFramework)' == 'net8.0'">3.1.0</ExcelReaderBenchmarkVersion>
-    <ExcelReaderBenchmarkVersion Condition="'$(TargetFramework)' != 'net8.0'">5.1.1</ExcelReaderBenchmarkVersion>
+    <ExcelReaderBenchmarkVersion Condition="'$(TargetFramework)' != 'net8.0'">7.3.4</ExcelReaderBenchmarkVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -34,6 +34,10 @@
     <Compile Include="..\Benchmarks\BenchmarkProcessorAffinity.cs" Link="Shared\BenchmarkProcessorAffinity.cs" />
     <Compile Include="..\Benchmarks\BenchmarkProcessPriority.cs" Link="Shared\BenchmarkProcessPriority.cs" />
     <Compile Include="..\Benchmarks\MarkPflug65KFixture.cs" Link="Shared\MarkPflug65KFixture.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="XlBenchShapes\sales_template.xlsx" LogicalName="XlBenchShapes.sales_template.xlsx" />
   </ItemGroup>
 
   <Target Name="RemoveIncompatibleExcelReaderGenerator" BeforeTargets="CoreCompile">

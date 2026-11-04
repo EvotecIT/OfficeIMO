@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "SaveOpen.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Test");
+                sheet.Cell(1, 1).SetValue("Test");
 
                 // Attempt to save the document, do not open, as it may fail on systems without associated application, and not really great for testing
                 try {

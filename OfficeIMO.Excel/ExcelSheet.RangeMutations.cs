@@ -50,15 +50,15 @@ namespace OfficeIMO.Excel {
             PlanRangeTransfer(sourceRange, destinationTopLeft, move: false, transpose: true, options);
 
         /// <summary>Copies cells, styles, formulas, and cell-anchored images.</summary>
-        public ExcelMutationResult CopyRange(string sourceRange, string destinationTopLeft, ExcelMutationPlanOptions? options = null, CancellationToken cancellationToken = default) =>
+        internal ExcelMutationResult CopyRange(string sourceRange, string destinationTopLeft, ExcelMutationPlanOptions? options = null, CancellationToken cancellationToken = default) =>
             PlanCopyRange(sourceRange, destinationTopLeft, options).Apply(cancellationToken);
 
         /// <summary>Moves cells, styles, formulas, and cell-anchored images.</summary>
-        public ExcelMutationResult MoveRange(string sourceRange, string destinationTopLeft, ExcelMutationPlanOptions? options = null, CancellationToken cancellationToken = default) =>
+        internal ExcelMutationResult MoveRange(string sourceRange, string destinationTopLeft, ExcelMutationPlanOptions? options = null, CancellationToken cancellationToken = default) =>
             PlanMoveRange(sourceRange, destinationTopLeft, options).Apply(cancellationToken);
 
         /// <summary>Copies a range with rows and columns transposed.</summary>
-        public ExcelMutationResult TransposeRange(string sourceRange, string destinationTopLeft, ExcelMutationPlanOptions? options = null, CancellationToken cancellationToken = default) =>
+        internal ExcelMutationResult TransposeRange(string sourceRange, string destinationTopLeft, ExcelMutationPlanOptions? options = null, CancellationToken cancellationToken = default) =>
             PlanTransposeRange(sourceRange, destinationTopLeft, options).Apply(cancellationToken);
 
         private ExcelStructuralMutationPlan PlanCellShift(
@@ -248,9 +248,9 @@ namespace OfficeIMO.Excel {
                     .Any(part => !ReferenceEquals(part.Table, excludedTable)
                         && ExcelReference.TryParse(part.Table?.Reference?.Value, out ExcelReference? table)
                         && table!.Intersects(range))
-                || InspectMutationPlanElements(WorksheetRoot.Descendants<MergeCell>(), budget)
+                || InspectMutationPlanElements(WorksheetRoot.MetadataDescendants<MergeCell>(), budget)
                     .Any(merge => ExcelReference.TryParse(merge.Reference?.Value, out ExcelReference? merged) && merged!.Intersects(range))
-                || InspectMutationPlanElements(WorksheetRoot.Descendants<CellFormula>(), budget).Any(formula =>
+                || InspectMutationPlanElements(ExcelWorksheetScan.CellFormulas(WorksheetRoot), budget).Any(formula =>
                     (formula.FormulaType?.Value == CellFormulaValues.Array || formula.FormulaType?.Value == CellFormulaValues.DataTable)
                     && ExcelReference.TryParse(formula.Reference?.Value, out ExcelReference? formulaRange) && formulaRange!.Intersects(range))
                 || InspectMutationPlanElements(_worksheetPart.PivotTableParts, budget)

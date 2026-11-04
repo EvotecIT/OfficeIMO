@@ -1,7 +1,9 @@
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
+using System.Security;
 using OfficeIMO.Pdf;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Pdf;
@@ -44,7 +46,8 @@ public sealed class JoinOfficePdfCommand : PSCmdlet
     /// </summary>
     [Parameter]
     [AllowNull]
-    public string?[]? Password { get; set; }
+    [OfficePasswordTransformation]
+    public SecureString?[]? Password { get; set; }
 
     /// <summary>
     /// After successful password authentication, explicitly ignore owner-imposed usage restrictions such as copying or assembly.
@@ -144,11 +147,11 @@ public sealed class JoinOfficePdfCommand : PSCmdlet
         }
     }
 
-    private string?[] ResolvePasswords(int sourceCount)
+    private SecureString?[] ResolvePasswords(int sourceCount)
     {
         if (Password is not { Length: > 0 })
         {
-            return new string?[sourceCount];
+            return new SecureString?[sourceCount];
         }
 
         if (Password.Length == 1)

@@ -31,8 +31,8 @@ public sealed class PdfAnchoredPictureWrappingTests {
                 new PdfAnchoredImagePosition(120, 18, false, 30, true),
                 new PdfImageTextExclusion(PdfImageTextWrapKind.Square, PdfImageTextWrapSide.BothSides, 0, 0, 0, 0))
         });
-        var document = PdfDocument.Create(Options()).Paragraph(p => p.Runs(new[] {
-            new PdfTextRun("\t", fontSize: global::OfficeIMO.OfficeLength.Points(36D), font: PdfStandardFont.Courier,
+        var document = PdfDocument.Create(Options()).Paragraph(p => p.AddRuns(new[] {
+            new PdfTextRun("\t", fontSize: global::OfficeIMO.OfficeLength.Points(36D), standardFont: PdfStandardFont.Courier,
                 tabLeader: PdfTabLeaderStyle.Dots),
             PdfTextRun.Normal("X", fontSize: global::OfficeIMO.OfficeLength.Points(12D))
         }), style: style);
@@ -55,7 +55,7 @@ public sealed class PdfAnchoredPictureWrappingTests {
     [InlineData(false)]
     [InlineData(true)]
     public void SquarePictureUsesBothIntervalsOnOneBaselineAndPaintsEveryTokenOnce(bool behind) {
-        var document = PdfDocument.Create(Options()).Paragraph(p => p.Text(string.Join(" ", Tokens)),
+        var document = PdfDocument.Create(Options()).Paragraph(p => p.AddText(string.Join(" ", Tokens)),
             style: PictureStyle(PdfImageTextWrapKind.Square, behind));
         using var pdf = ReadEvidence(behind ? "square-behind" : "square-front", document);
         var page = Assert.Single(pdf.GetPages());
@@ -88,9 +88,9 @@ public sealed class PdfAnchoredPictureWrappingTests {
             style.AddTabStop(global::OfficeIMO.OfficeLength.Points(240D));
             if (bar) style.AddTabStop(global::OfficeIMO.OfficeLength.Points(36D), PdfTabAlignment.Bar);
             return PdfDocument.Create(Options())
-                .Paragraph(p => p.Text("BEFORE"), style: TextStyle())
-                .Paragraph(p => p.Text(WideWord + "\nLEFT\tTAB"), style: style)
-                .Paragraph(p => p.Text("AFTER"), style: TextStyle());
+                .Paragraph(p => p.AddText("BEFORE"), style: TextStyle())
+                .Paragraph(p => p.AddText(WideWord + "\nLEFT\tTAB"), style: style)
+                .Paragraph(p => p.AddText("AFTER"), style: TextStyle());
         }
         using var control = ReadEvidence("fragment-bars-control", Document(false));
         using var actual = ReadEvidence("fragment-bars", Document(true));
@@ -134,7 +134,7 @@ public sealed class PdfAnchoredPictureWrappingTests {
         const string source = "ABCD\u200BEFGH\u200BIJKL\u200BMNOP\u200BQRST\u200BUVWX";
         const string expected = "ABCDEFGHIJKLMNOPQRSTUVWX";
         const string uri = "https://example.test/identifier";
-        byte[] bytes = PdfDocument.Create(Options()).Paragraph(p => p.Link(source, uri),
+        byte[] bytes = PdfDocument.Create(Options()).Paragraph(p => p.AddLink(source, uri),
             style: PictureStyle(PdfImageTextWrapKind.Square)).ToBytes();
         using var pdf = ReadEvidence("fragment-identifier", bytes);
         Assert.Single(pdf.GetPage(1).GetImages());
@@ -154,10 +154,10 @@ public sealed class PdfAnchoredPictureWrappingTests {
 
     [Fact]
     public void TopAndBottomClearanceUsesSourceDistanceOnceAndKeepsPictureAtParagraphOrigin() {
-        var wrapped = PdfDocument.Create(Options()).Paragraph(p => p.Text("START T01 T02 T03"),
+        var wrapped = PdfDocument.Create(Options()).Paragraph(p => p.AddText("START T01 T02 T03"),
             style: PictureStyle(PdfImageTextWrapKind.TopAndBottom));
         var control = PdfDocument.Create(Options()).Spacer(48D + 6D)
-            .Paragraph(p => p.Text("START T01 T02 T03"), style: TextStyle());
+            .Paragraph(p => p.AddText("START T01 T02 T03"), style: TextStyle());
         using var actual = ReadEvidence("top-bottom", wrapped);
         using var expected = ReadEvidence("top-bottom-control", control);
         var page = Assert.Single(actual.GetPages());
@@ -173,7 +173,7 @@ public sealed class PdfAnchoredPictureWrappingTests {
 
     [Fact]
     public void HardBreakAdvancesPhysicalRowInsteadOfFillingTheNextInterval() {
-        var document = PdfDocument.Create(Options()).Paragraph(p => p.Text("ALPHA").LineBreak().Text("BETA"),
+        var document = PdfDocument.Create(Options()).Paragraph(p => { p.AddText("ALPHA"); p.AddLineBreak(); p.AddText("BETA"); },
             style: PictureStyle(PdfImageTextWrapKind.Square));
         using var pdf = ReadEvidence("hard-break", document);
         var words = pdf.GetPage(1).GetWords().ToArray();
@@ -187,8 +187,8 @@ public sealed class PdfAnchoredPictureWrappingTests {
 
     [Fact]
     public void FollowingParagraphPictureReflowsThePrecedingOccupiedRow() {
-        var document = PdfDocument.Create(Options()).Paragraph(p => p.Text(WideWord), style: TextStyle())
-            .Paragraph(p => p.Text("FLOW T01 T02 T03"), style: PictureStyle(PdfImageTextWrapKind.Square));
+        var document = PdfDocument.Create(Options()).Paragraph(p => p.AddText(WideWord), style: TextStyle())
+            .Paragraph(p => p.AddText("FLOW T01 T02 T03"), style: PictureStyle(PdfImageTextWrapKind.Square));
         using var pdf = ReadEvidence("preceding-row", document);
         var page = Assert.Single(pdf.GetPages());
         var image = Assert.Single(page.GetImages());
@@ -205,8 +205,8 @@ public sealed class PdfAnchoredPictureWrappingTests {
             var document = PdfDocument.Create(Options());
             var style = PictureStyle(wrap ? PdfImageTextWrapKind.Square : null);
             document.Footer(footer => footer.Content(content =>
-                content.Paragraph(p => p.Text(string.Join(" ", Tokens)), style: style), global::OfficeIMO.OfficeLength.Points(24D)));
-            return document.Paragraph(p => p.Text("BODY"), style: TextStyle());
+                content.AddParagraph(p => p.AddText(string.Join(" ", Tokens)), style: style), global::OfficeIMO.OfficeLength.Points(24D)));
+            return document.Paragraph(p => p.AddText("BODY"), style: TextStyle());
         }
         using var wrapped = ReadEvidence("footer-square", Footer(true));
         using var none = ReadEvidence("footer-none", Footer(false));
@@ -225,7 +225,7 @@ public sealed class PdfAnchoredPictureWrappingTests {
     [Fact]
     public void PageContinuationReflowsWithoutOldPageFragmentGeometry() {
         string[] tokens = Enumerable.Range(1, 60).Select(index => "T" + index.ToString("00")).ToArray();
-        var document = PdfDocument.Create(Options(120D)).Paragraph(p => p.Text(string.Join(" ", tokens)),
+        var document = PdfDocument.Create(Options(120D)).Paragraph(p => p.AddText(string.Join(" ", tokens)),
             style: PictureStyle(PdfImageTextWrapKind.Square));
         using var pdf = ReadEvidence("page-continuation", document);
         Assert.True(pdf.NumberOfPages > 1);
@@ -248,8 +248,8 @@ public sealed class PdfAnchoredPictureWrappingTests {
         options.ReportDiagnosticsTo(report);
         var document = PdfDocument.Create(options);
         document.Header(header => header.Zones(new string('M', 100), null, null)
-            .Content(content => content.Paragraph(p => p.Text("HEADER"), style: TextStyle()), global::OfficeIMO.OfficeLength.Points(24D)));
-        document.Paragraph(p => p.Text("BODY"), style: TextStyle());
+            .Content(content => content.AddParagraph(p => p.AddText("HEADER"), style: TextStyle()), global::OfficeIMO.OfficeLength.Points(24D)));
+        document.Paragraph(p => p.AddText("BODY"), style: TextStyle());
         using var pdf = ReadEvidence("active-story-diagnostics", document);
         Assert.Single(pdf.GetPage(1).GetWords(), word => word.Text == "HEADER");
         Assert.DoesNotContain(pdf.GetPage(1).GetWords(), word => word.Text.Contains(new string('M', 20)));
@@ -271,7 +271,7 @@ public sealed class PdfAnchoredPictureWrappingTests {
                 PdfImageTextWrapKind.Square).AnchoredCanvas
         };
         var document = PdfDocument.Create(options);
-        document.Content.Heading(1, title, linkUri: uri, style: style);
+        document.Content.AddHeading(title, 1, linkUri: uri, style: style);
         byte[] bytes = document.ToBytes();
         using var pdf = ReadEvidence(topAndBottom ? "heading-top-bottom" : "heading-square", bytes);
         var page = Assert.Single(pdf.GetPages());
@@ -304,9 +304,9 @@ public sealed class PdfAnchoredPictureWrappingTests {
     [InlineData(true, true)]
     public void NonConvergingRunningContentReportsOnlyUnstablePicturePlacement(bool withPicture, bool movingPicture) {
         const double headerDistance = 18D;
-        double tallHeader = Options().PageHeight.ToPoints() - Options().MarginBottom.ToPoints() - headerDistance - 2D * 15D;
+        double tallHeader = Options().PageSetup.Size.Height.ToPoints() - Options().PageSetup.Margins.Bottom.ToPoints() - headerDistance - 2D * 15D;
         PdfDocument Document(Func<PdfRunningContentContext, double> headerHeight) => PdfDocument.Create(pdf => {
-            pdf.Section(page => page.Content(content => content.Paragraph(p => p.Text("ANCHOR"),
+            pdf.Section(page => page.Content(content => content.AddParagraph(p => p.AddText("ANCHOR"),
                 style: withPicture && !movingPicture
                     ? PictureStyle(PdfImageTextWrapKind.Square, paragraphY: false) : TextStyle())));
             pdf.Section(page => {
@@ -314,7 +314,7 @@ public sealed class PdfAnchoredPictureWrappingTests {
                     content => content.Spacer(global::OfficeIMO.OfficeLength.Points(headerHeight(context))), global::OfficeIMO.OfficeLength.Points(headerDistance)));
                 page.Content(content => {
                     for (int row = 1; row <= 7; row++)
-                        content.Paragraph(p => p.Text("ROW" + row), style: withPicture && movingPicture && row == 1
+                        content.AddParagraph(p => p.AddText("ROW" + row), style: withPicture && movingPicture && row == 1
                             ? PictureStyle(PdfImageTextWrapKind.Square) : TextStyle());
                 });
             });
@@ -348,9 +348,13 @@ public sealed class PdfAnchoredPictureWrappingTests {
     }
 
     private static PdfCreateOptions Options(double height = 400D) => new PdfCreateOptions {
-        PageWidth = global::OfficeIMO.OfficeLength.Points(360D), PageHeight = global::OfficeIMO.OfficeLength.Points(height), MarginLeft = global::OfficeIMO.OfficeLength.Points(30D), MarginRight = global::OfficeIMO.OfficeLength.Points(30D),
-        MarginTop = global::OfficeIMO.OfficeLength.Points(30D), MarginBottom = global::OfficeIMO.OfficeLength.Points(30D), DefaultFont = PdfStandardFont.Helvetica,
-        DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D), ShowHeader = false, ShowPageNumbers = false
+        PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360D), global::OfficeIMO.OfficeLength.Points(height)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(30D), Right = global::OfficeIMO.OfficeLength.Points(30D), Top = global::OfficeIMO.OfficeLength.Points(30D), Bottom = global::OfficeIMO.OfficeLength.Points(30D) },
+            Header = { Show = false },
+            Footer = { Show = false }
+        }, DefaultFont = PdfStandardFont.Helvetica,
+        DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D)
     };
 
     private static PdfParagraphStyle TextStyle() => new PdfParagraphStyle {

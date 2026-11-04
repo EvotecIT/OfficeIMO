@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests;
 public sealed class ReaderPdfGeneratedContentTests {
     [Fact]
     public void DetectedTableKeepsItsGeometryAndCellsWithoutInventingSourceText() {
-        byte[] pdf = PdfDocument.Create(builder => builder.Content(content => content.Table(new[] {
+        byte[] pdf = PdfDocument.Create(builder => builder.Content(content => content.AddTable(new[] {
             new[] { "Code", "Name", "Qty" }, new[] { "A-100", "Alpha", "2" }, new[] { "B-200", "Beta", "14" }
         }, style: new PdfTableStyle { HeaderRowCount = 1 }))).ToBytes();
         using var stream = new MemoryStream(pdf, writable: false);

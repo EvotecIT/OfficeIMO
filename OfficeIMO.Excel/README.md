@@ -7,18 +7,20 @@ Create, edit, read and save Excel workbooks (`.xlsx`, and the supported subset o
 
 ## Returned authoring objects
 
-Conditional-format Add methods return `ExcelConditionalFormattingInfo`, the same
-editable model used by `AddConditionalFormattingRule`. Edit the returned model
-and call `sheet.UpdateConditionalFormattingRule(rule)` to apply it, or pass it to
+`range.ConditionalFormat()` adds rules; each call returns the attached
+`ExcelConditionalFormattingInfo`, the same editable model used by
+`AddConditionalFormattingRule`. Edit the returned model and call
+`sheet.UpdateConditionalFormattingRule(rule)` to apply it, or pass it to
 `RemoveConditionalFormattingRule` to remove that exact rule. Pivot conditional
-formats follow the same contract.
+formats use the pivot's output range: `sheet.Range(sheet.GetPivotTableRange(name)).ConditionalFormat()`.
 
-`AddAutoFilter` returns an `ExcelAutoFilter` range handle. Its `Inspect()` method
-reads current criteria and table ownership. Creating the handle preserves deferred
+`range.AutoFilter()` returns the `ExcelAutoFilter` on that range. `Column(header)` or
+`Column(offset)` sets criteria, `Clear()` removes the filter and `Inspect()` reads
+current criteria and table ownership. Creating the handle preserves deferred
 workbook exports. `AddTableOfContents` returns the sheet it creates, and
 `AddPivotManualGrouping` returns the created `ExcelPivotGroupingInfo`.
 
-`CustomDocumentProperties.Add` returns the attached `ExcelCustomProperty`, so edits
+`CustomProperties.Add` returns the attached `ExcelCustomProperty`, so edits
 to the returned value are saved with the workbook. The collection also implements
 `IDictionary<string, ExcelCustomProperty>` and `ICollection<KeyValuePair<string, ExcelCustomProperty>>`.
 
@@ -121,26 +123,31 @@ using OfficeIMO.Excel;
 using var book = ExcelDocument.Create("Budget.xlsx");
 ExcelSheet sheet = book.AddSheet("Budget");
 
-sheet.CellValue(1, 1, "Item");
-sheet.CellValue(1, 2, "Cost");
-sheet.CellValue(2, 1, "Laptops");
-sheet.CellValue(2, 2, 18_500m);
-sheet.CellValue(3, 1, "Licenses");
-sheet.CellValue(3, 2, 7_250m);
-sheet.CellValue(4, 1, "Total");
-sheet.CellFormula(4, 2, "SUM(B2:B3)");
+sheet.Range("A1:B3").SetValues(new object?[,] {
+    { "Item", "Cost" },
+    { "Laptops", 18_500m },
+    { "Licenses", 7_250m },
+});
+sheet.Cell("A4").SetValue("Total").SetBold();
+sheet.Cell("B4").SetFormula("SUM(B2:B3)");
 
-sheet.FormatCell(2, 2, "#,##0.00");
-sheet.FormatCell(3, 2, "#,##0.00");
-sheet.FormatCell(4, 2, "#,##0.00");
-sheet.AddConditionalDataBar("B2:B3", OfficeColor.Accent1);
-sheet.Freeze(topRows: 1);
+sheet.Range("A1:B1").SetBold().SetFillColor("D9EAF7");
+sheet.Range("B2:B4").SetNumberFormat("#,##0.00");
+sheet.Range("B2:B3").ConditionalFormat().DataBar(OfficeColor.Accent1);
+sheet.View.Freeze(topRows: 1);
 sheet.AutoFitColumns();
 
 book.Save();
 ```
 
-Rows and columns are 1-based, as in Excel.
+Rows and columns are 1-based, as in Excel. `sheet.Cell(row, column)` and `sheet.Cell("B4")` return a lightweight
+`ExcelCell` handle (a struct, so a loop over cells allocates nothing); `sheet.Range("A1:V1")` returns an
+`ExcelRange`. Format a block through its range rather than cell by cell: one range call applies the style under
+one lock and saves the stylesheet once. `sheet.UsedRange` returns the range in use, and
+`book.GetNamedRange("Total")?.FirstCell` writes through a defined name without parsing its address.
+
+Cells created in a formatted row or column start with that row's or column's style, so values written into a
+template keep its number formats and fonts. A date written into a cell that already has a date format keeps it.
 
 ## Read rows back as objects
 
@@ -156,6 +163,29 @@ record Order(string Customer, string Region, decimal Total, double Margin);
 ```
 
 Columns map to properties or constructor parameters by header name. `RowsAs` also accepts a factory or an explicit column mapping. For files from outside your organization, load with `ExcelLoadOptions.UntrustedDefaults`.
+
+For a forward-only read, `OpenReader(pathOrStream, options)` returns an
+`ExcelWorkbookDataReader` derived from `DbDataReader`. The shared `OfficeIMO.Data`
+mappings also work on loaded documents:
+
+```csharp
+using OfficeIMO.Data;
+using OfficeIMO.Excel;
+
+using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader("Orders.xlsx",
+    new ExcelReaderOptions { SheetName = "Orders" });
+List<Order> streamed = reader.RowsAs<Order>().ToList();
+
+using var book = ExcelDocument.Load("Orders.xlsx");
+List<Order> loaded = book.RowsAs<Order>(
+    options: new ExcelReaderOptions { SheetName = "Orders" }).ToList();
+```
+
+Loaded-document `RowsAs` overloads support automatic, configured `RowMapper<T>`
+and factory mapping, with `ExcelReaderOptions` and cancellation. Their
+`RowsAsParallel` counterparts take `parallelOptions`, format `options`, then
+`cancellationToken` and preserve source order. `OpenReaderAsync` returns
+`Task<ExcelWorkbookDataReader>` on .NET 8 and later.
 
 XML Spreadsheet import also limits defined names (10,000 by default). Set `ExcelSpreadsheetXmlOptions.MaxNames` for a larger trusted workbook.
 
@@ -234,7 +264,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 | Inspect | 6 | 0 | 0 | 0 | 0 | 0 |
 | Validate | 4 | 0 | 0 | 0 | 0 | 2 |
 | Remove | 4 | 0 | 0 | 0 | 1 | 0 |
-| Convert | 49 | 40 | 0 | 8 | 0 | 0 |
+| Convert | 49 | 41 | 0 | 8 | 0 | 0 |
 | Export | 5 | 0 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Excel` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).

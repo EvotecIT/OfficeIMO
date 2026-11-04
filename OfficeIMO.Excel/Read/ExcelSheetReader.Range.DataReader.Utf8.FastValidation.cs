@@ -2,7 +2,6 @@ using System.Text;
 using System.Threading;
 #if NET8_0_OR_GREATER
 using System.Buffers;
-using System.Text.Unicode;
 #endif
 
 namespace OfficeIMO.Excel {
@@ -30,9 +29,7 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 #if NET8_0_OR_GREATER
-                ReadOnlySpan<byte> document = _buffer!.AsSpan(0, _length);
-                if (!Utf8.IsValid(document)
-                    || ContainsInvalidCanonicalXmlBytes(document)) {
+                if (!IsCanonicalTextValid(_length, ct)) {
                     return false;
                 }
                 ct.ThrowIfCancellationRequested();

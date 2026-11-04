@@ -15,9 +15,9 @@ namespace OfficeIMO.Tests {
         public void DuplicateSelectionCopiesMetadataAndInternalConnectors() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Duplicate", 11, 8.5);
+            VisioPage page = document.AddPage("Duplicate", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
 
-            VisioShape source = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "source", 2, 6, "Source");
+            VisioShape source = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "source", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, page.DefaultUnit)), "Source");
             source.FillColor = Color.LightBlue;
             source.LineColor = Color.DodgerBlue;
             source.LineWeight = 0.03;
@@ -29,9 +29,9 @@ namespace OfficeIMO.Tests {
             source.AllowHorizontalConnectorRoutingThrough = false;
             source.Protection.Size().Text();
 
-            VisioShape target = page.AddStencilShape(VisioStencils.Flowchart.Get("decision"), "target", 5, 6, "Target?");
+            VisioShape target = page.AddStencilShape(VisioStencils.Flowchart.Get("decision"), "target", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, page.DefaultUnit)), "Target?");
             target.Data["Owner"] = "Operations";
-            VisioShape external = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "external", 8, 6, "External");
+            VisioShape external = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "external", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, page.DefaultUnit)), "External");
 
             VisioConnector internalConnector = page.AddConnector(source, target, ConnectorKind.RightAngle, VisioSide.Right, VisioSide.Left);
             internalConnector.Label = "approved";
@@ -71,8 +71,8 @@ namespace OfficeIMO.Tests {
                 ReferenceEquals(connector.To, targetCopy));
 
             Assert.NotEqual(source.Id, sourceCopy.Id);
-            Assert.Equal(source.PinX + 1.5, sourceCopy.PinX, 6);
-            Assert.Equal(source.PinY - 0.75, sourceCopy.PinY, 6);
+            Assert.Equal(source.PinX.ToInches() + 1.5, sourceCopy.PinX.ToInches(), 6);
+            Assert.Equal(source.PinY.ToInches() - 0.75, sourceCopy.PinY.ToInches(), 6);
             Assert.Equal(source.MasterNameU, sourceCopy.MasterNameU);
             Assert.Equal(Color.LightBlue, sourceCopy.FillColor);
             Assert.Equal(Color.DodgerBlue, sourceCopy.LineColor);
@@ -129,8 +129,8 @@ namespace OfficeIMO.Tests {
         public void DuplicateShapesCanSkipInternalConnectors() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("No connectors");
-            VisioShape first = page.AddRectangle(2, 4, 1, 0.6, "First");
-            VisioShape second = page.AddRectangle(4, 4, 1, 0.6, "Second");
+            VisioShape first = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.6, page.DefaultUnit)), "First");
+            VisioShape second = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.6, page.DefaultUnit)), "Second");
             page.AddConnector(first, second, ConnectorKind.Dynamic);
 
             VisioShapeSelection duplicates = page.DuplicateShapes(new[] { first, second }, includeInternalConnectors: false);
@@ -144,10 +144,10 @@ namespace OfficeIMO.Tests {
         public void DuplicateShapesOptionsCreateFriendlyUniqueIds() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Friendly IDs", 11, 8.5);
-            VisioShape api = new("api", 2, 5, 1.4, 0.8, "API") { NameU = "Rectangle" };
-            VisioShape database = new("db", 5, 5, 1.4, 0.8, "Database") { NameU = "Rectangle" };
-            VisioShape existingCopy = new("api-copy", 2, 3, 1.4, 0.8, "Existing copy") { NameU = "Rectangle" };
+            VisioPage page = document.AddPage("Friendly IDs", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
+            VisioShape api = new("api", OfficeLength.Inches(2), OfficeLength.Inches(5), OfficeLength.Inches(1.4), OfficeLength.Inches(0.8), "API") { NameU = "Rectangle" };
+            VisioShape database = new("db", OfficeLength.Inches(5), OfficeLength.Inches(5), OfficeLength.Inches(1.4), OfficeLength.Inches(0.8), "Database") { NameU = "Rectangle" };
+            VisioShape existingCopy = new("api-copy", OfficeLength.Inches(2), OfficeLength.Inches(3), OfficeLength.Inches(1.4), OfficeLength.Inches(0.8), "Existing copy") { NameU = "Rectangle" };
             page.Shapes.Add(api);
             page.Shapes.Add(database);
             page.Shapes.Add(existingCopy);
@@ -166,8 +166,8 @@ namespace OfficeIMO.Tests {
             VisioShape databaseCopy = page.FindShapeById("db-copy")!;
             Assert.NotNull(apiCopy);
             Assert.NotNull(databaseCopy);
-            Assert.Equal(api.PinX + 1.25, apiCopy.PinX, 6);
-            Assert.Equal(api.PinY - 0.5, apiCopy.PinY, 6);
+            Assert.Equal(api.PinX.ToInches() + 1.25, apiCopy.PinX.ToInches(), 6);
+            Assert.Equal(api.PinY.ToInches() - 0.5, apiCopy.PinY.ToInches(), 6);
 
             VisioConnector connectorCopy = page.Connectors.Single(current => current.Id == "route-copy");
             Assert.Same(apiCopy, connectorCopy.From);
@@ -187,9 +187,9 @@ namespace OfficeIMO.Tests {
         public void DuplicateShapesCopiesTargetedCommentsToClonedTargets() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Annotated copies", 11, 8.5);
-            VisioShape api = new("api", 2, 5, 1.4, 0.8, "API");
-            VisioShape database = new("db", 5, 5, 1.4, 0.8, "Database");
+            VisioPage page = document.AddPage("Annotated copies", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
+            VisioShape api = new("api", OfficeLength.Inches(2), OfficeLength.Inches(5), OfficeLength.Inches(1.4), OfficeLength.Inches(0.8), "API");
+            VisioShape database = new("db", OfficeLength.Inches(5), OfficeLength.Inches(5), OfficeLength.Inches(1.4), OfficeLength.Inches(0.8), "Database");
             page.Shapes.Add(api);
             page.Shapes.Add(database);
             VisioConnector connector = page.AddConnector("route", api, database, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left);
@@ -223,14 +223,14 @@ namespace OfficeIMO.Tests {
             VisioDocument document = VisioDocument.Create(filePath);
 
             document.AsFluent()
-                .Page("Fluent copies", page => page
-                    .Rect("api", 2, 5, 1.4, 0.8, "API")
-                    .Rect("db", 5, 5, 1.4, 0.8, "Database")
-                    .Connect("api", "db", VisioSide.Right, VisioSide.Left, connector => connector.Label("SQL"))
+                .AddPage("Fluent copies", page => page
+                    .AddRectangle("api", OfficeLength.Inches(2), OfficeLength.Inches(5), OfficeLength.Inches(1.4), OfficeLength.Inches(0.8), "API")
+                    .AddRectangle("db", OfficeLength.Inches(5), OfficeLength.Inches(5), OfficeLength.Inches(1.4), OfficeLength.Inches(0.8), "Database")
+                    .AddConnector("api", "db", fromSide: VisioSide.Right, toSide: VisioSide.Left, configure: connector => connector.Label("SQL"))
                     .DuplicateShapes(new[] { "api", "db" }, duplicates => duplicates.ShapeData("Copied", "Yes"))
-                    .Shape("api-copy", shape => shape.Text("API Copy"))
-                    .Shape("db-copy", shape => shape.Text("Database Copy"))
-                    .Connect("api-copy", "db-copy", VisioSide.Right, VisioSide.Left, connector => connector.Label("copied route")))
+                    .GetShape("api-copy", shape => shape.Text("API Copy"))
+                    .GetShape("db-copy", shape => shape.Text("Database Copy"))
+                    .AddConnector("api-copy", "db-copy", fromSide: VisioSide.Right, toSide: VisioSide.Left, configure: connector => connector.Label("copied route")))
                 .End()
                 .Save();
 
@@ -252,10 +252,10 @@ namespace OfficeIMO.Tests {
         public void DuplicatePageCopiesSettingsLayersShapesAndConnectors() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage background = document.AddBackgroundPage("Watermark", 11, 8.5);
-            background.AddRectangle(5.5, 4.25, 9, 0.2, "Confidential");
+            VisioPage background = document.AddBackgroundPage("Watermark", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
+            background.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5.5, background.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4.25, background.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(9, background.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.2, background.DefaultUnit)), "Confidential");
 
-            VisioPage page = document.AddPage("Original", 11, 8.5);
+            VisioPage page = document.AddPage("Original", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
             page.SetBackgroundPage(background);
             page.DefaultUnit = VisioMeasurementUnit.Centimeters;
             page.ScaleMeasurementUnit = VisioMeasurementUnit.Centimeters;
@@ -280,15 +280,15 @@ namespace OfficeIMO.Tests {
             page.HorizontalLineJumpDirection = VisioHorizontalLineJumpDirection.Up;
             page.VerticalLineJumpDirection = VisioVerticalLineJumpDirection.Right;
             page.PrintOrientation = VisioPagePrintOrientation.Landscape;
-            page.SetMargins(0.4, 0.5, 0.6, 0.7);
+            page.SetMargins(OfficeLength.Inches(0.4), OfficeLength.Inches(0.5), OfficeLength.Inches(0.6), OfficeLength.Inches(0.7));
             page.SetConnectorSpacing(0.2, 0.25, 0.3, 0.35);
             page.SetLayoutGridSizing(1.1, 1.2, 0.4, 0.45);
             page.AddLayer("Ops").Color = 4;
 
-            VisioShape source = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "source", 2, 5, "Source");
+            VisioShape source = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "source", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), "Source");
             source.LayerNames.Add("Ops");
             source.SetShapeData("Owner", "Ops");
-            VisioShape target = page.AddStencilShape(VisioStencils.Flowchart.Get("decision"), "target", 6, 5, "Ready?");
+            VisioShape target = page.AddStencilShape(VisioStencils.Flowchart.Get("decision"), "target", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), "Ready?");
             target.LayerNames.Add("Ops");
             VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left)
                 .RouteThrough(VisioConnectorWaypoint.At(4, 5.5), VisioConnectorWaypoint.At(4, 4.5));
@@ -305,8 +305,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Original Copy", duplicate.Name);
             Assert.False(duplicate.IsBackground);
             Assert.Same(background, duplicate.BackgroundPage);
-            Assert.Equal(page.Width, duplicate.Width, 6);
-            Assert.Equal(page.Height, duplicate.Height, 6);
+            Assert.Equal(page.Width.ToInches(), duplicate.Width.ToInches(), 6);
+            Assert.Equal(page.Height.ToInches(), duplicate.Height.ToInches(), 6);
             Assert.Equal(VisioMeasurementUnit.Centimeters, duplicate.DefaultUnit);
             Assert.Equal(0.75, duplicate.ViewScale, 6);
             Assert.True(duplicate.PageLockDuplicate);
@@ -327,7 +327,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(VisioHorizontalLineJumpDirection.Up, duplicate.HorizontalLineJumpDirection);
             Assert.Equal(VisioVerticalLineJumpDirection.Right, duplicate.VerticalLineJumpDirection);
             Assert.Equal(VisioPagePrintOrientation.Landscape, duplicate.PrintOrientation);
-            Assert.Equal(0.4, duplicate.LeftMargin, 6);
+            Assert.Equal(0.4, duplicate.LeftMargin.ToInches(), 6);
             Assert.Equal(0.25, duplicate.LineToLineY!.Value, 6);
             Assert.Equal(1.2, duplicate.LayoutBlockSizeY!.Value, 6);
             Assert.Equal(0.45, duplicate.LayoutAvenueSizeY!.Value, 6);
@@ -338,7 +338,7 @@ namespace OfficeIMO.Tests {
             VisioShape sourceCopy = duplicate.Shapes.Single(shape => shape.Text == "Source");
             VisioShape targetCopy = duplicate.Shapes.Single(shape => shape.Text == "Ready?");
             Assert.NotEqual(source.Id, sourceCopy.Id);
-            Assert.Equal(source.PinX, sourceCopy.PinX, 6);
+            Assert.Equal(source.PinX.ToInches(), sourceCopy.PinX.ToInches(), 6);
             Assert.Equal("Ops", sourceCopy.GetShapeDataValue("Owner"));
             Assert.Contains("Ops", sourceCopy.LayerNames);
 
@@ -375,14 +375,14 @@ namespace OfficeIMO.Tests {
         public void DuplicatePageCanCopyBackgroundPageDependency() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage background = document.AddBackgroundPage("Brand", 11, 8.5);
-            VisioShape header = background.AddRectangle(5.5, 8, 9, 0.35, "Brand header");
+            VisioPage background = document.AddBackgroundPage("Brand", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
+            VisioShape header = background.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5.5, background.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(8, background.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(9, background.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.35, background.DefaultUnit)), "Brand header");
             header.FillColor = Color.LightGray;
 
-            VisioPage page = document.AddPage("Architecture", 11, 8.5);
+            VisioPage page = document.AddPage("Architecture", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
             page.SetBackgroundPage(background);
-            VisioShape api = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "api", 3, 5, "API");
-            VisioShape worker = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "worker", 7, 5, "Worker");
+            VisioShape api = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "api", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), "API");
+            VisioShape worker = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "worker", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(7, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), "Worker");
             page.AddConnector(api, worker, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left)
                 .RouteThrough(VisioConnectorWaypoint.At(5, 5.4), VisioConnectorWaypoint.At(5, 4.6));
 
@@ -422,12 +422,12 @@ namespace OfficeIMO.Tests {
         public void DuplicatePagePreservesBackgroundPageChainsWhenCopyingBackground() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage watermark = document.AddBackgroundPage("Watermark", 11, 8.5);
-            watermark.AddRectangle(5.5, 4.25, 4, 0.2, "Base watermark");
-            VisioPage brand = document.AddBackgroundPage("Brand", 11, 8.5);
+            VisioPage watermark = document.AddBackgroundPage("Watermark", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
+            watermark.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5.5, watermark.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4.25, watermark.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, watermark.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.2, watermark.DefaultUnit)), "Base watermark");
+            VisioPage brand = document.AddBackgroundPage("Brand", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
             brand.SetBackgroundPage(watermark);
-            brand.AddRectangle(5.5, 8, 9, 0.35, "Brand header");
-            VisioPage page = document.AddPage("Architecture", 11, 8.5);
+            brand.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5.5, brand.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(8, brand.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(9, brand.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.35, brand.DefaultUnit)), "Brand header");
+            VisioPage page = document.AddPage("Architecture", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
             page.SetBackgroundPage(brand);
 
             VisioPage duplicate = page.Duplicate(new VisioPageDuplicationOptions {
@@ -455,7 +455,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             string duplicatePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Sparse Settings", 11, 8.5);
+            VisioPage page = document.AddPage("Sparse Settings", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
             page.SetConnectorSpacing(0.2, 0.25, 0.3, 0.35);
             page.SetLayoutGridSizing(1.1, 1.2, 0.4, 0.45);
             document.Save();

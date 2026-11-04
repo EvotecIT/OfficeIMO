@@ -11,12 +11,12 @@ Adds a simple AcroForm field to a generated PDF document.
 ## SYNTAX
 ### Context (Default)
 ```powershell
-Add-OfficePdfFormField [-Name] <string> [-Type <OfficePdfFormFieldType>] [-Value <string>] [-Values <string[]>] [-Options <string[]>] [-Checked] [-Width <double>] [-Height <double>] [-Align <PdfAlign>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfFormField [-Name] <string> [-Type <OfficePdfFormFieldType>] [-Value <string>] [-Values <string[]>] [-Options <string[]>] [-Checked] [-Width <double>] [-Height <double>] [-Align <OfficeAlignment>] [-PassThru] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Add-OfficePdfFormField [-Name] <string> -Document <PdfDocument> [-Type <OfficePdfFormFieldType>] [-Value <string>] [-Values <string[]>] [-Options <string[]>] [-Checked] [-Width <double>] [-Height <double>] [-Align <PdfAlign>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfFormField [-Name] <string> -Document <PdfDocument> [-Type <OfficePdfFormFieldType>] [-Value <string>] [-Values <string[]>] [-Options <string[]>] [-Checked] [-Width <double>] [-Height <double>] [-Align <OfficeAlignment>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -44,10 +44,10 @@ Adds text, choice, and checkbox form fields to a generated PDF.
 Field alignment.
 
 ```yaml
-Type: PdfAlign
+Type: OfficeAlignment
 Parameter Sets: Context, Document
 Aliases: None
-Possible values: Left, Center, Right, Justify
+Possible values: Left, Center, Right, Justify, Start, End
 
 Required: False
 Position: named

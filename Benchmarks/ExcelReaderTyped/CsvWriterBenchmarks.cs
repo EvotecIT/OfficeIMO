@@ -28,11 +28,11 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
                 _lengths[engine] = stream.Length;
                 stream.Position = 0;
                 using (StreamReader text = new StreamReader(stream, Encoding.UTF8, true, 1024, leaveOpen: true))
-                using (CsvDataReader reader = global::Sylvan.Data.Csv.CsvDataReader.Create(text,
+                using (global::Sylvan.Data.Csv.CsvDataReader reader = global::Sylvan.Data.Csv.CsvDataReader.Create(text,
                     new global::Sylvan.Data.Csv.CsvDataReaderOptions { Culture = CultureInfo.InvariantCulture }))
                     CsvBenchmarkFixture.Validate(reader, RowCount, headers: true);
                 stream.Position = 0;
-                using (DbDataReader reader = CsvDocument.OpenDataReader(stream)) CsvBenchmarkFixture.Validate(reader, RowCount, headers: true);
+                using (DbDataReader reader = CsvDocument.OpenReader(stream)) CsvBenchmarkFixture.Validate(reader, RowCount, headers: true);
                 Console.WriteLine($"CSV writer engine={engine}, rows={RowCount}, bytes={stream.Length}, all fields validated.");
             }
             CsvBenchmarkFixture.Describe(CsvBenchmarkFixture.Create(RowCount, true), RowCount, "writer records");

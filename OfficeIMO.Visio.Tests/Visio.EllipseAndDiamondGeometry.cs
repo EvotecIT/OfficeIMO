@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         public void EllipseShapeEmitsClosedLineGeometry() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             var doc = VisioDocument.Create(filePath);
-            doc.AsFluent().Page("Page-1", p => p.Ellipse("E1", x: 2, y: 2, width: 2, height: 1));
+            doc.AsFluent().AddPage("Page-1", p => p.AddEllipse("E1", x:OfficeLength.Inches( 2), y:OfficeLength.Inches( 2), width:OfficeLength.Inches( 2), height:OfficeLength.Inches( 1)));
             doc.Save();
 
             using Package package = Package.Open(filePath, FileMode.Open, FileAccess.Read);
@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
         public void DiamondShapeEmitsLineGeometry() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             var doc = VisioDocument.Create(filePath);
-            doc.AsFluent().Page("Page-1", p => p.Diamond("D1", x: 4, y: 4, width: 2, height: 2));
+            doc.AsFluent().AddPage("Page-1", p => p.AddDiamond("D1", x:OfficeLength.Inches( 4), y:OfficeLength.Inches( 4), width:OfficeLength.Inches( 2), height:OfficeLength.Inches( 2)));
             doc.Save();
 
             using Package package = Package.Open(filePath, FileMode.Open, FileAccess.Read);

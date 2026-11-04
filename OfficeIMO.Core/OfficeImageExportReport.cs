@@ -8,7 +8,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Aggregate diagnostics and fidelity status for one or more image-export results.
 /// </summary>
-public sealed class OfficeImageExportReport : global::OfficeIMO.IOfficeConversionReport {
+public sealed class OfficeImageExportReport : OfficeConversionReport {
     private readonly ReadOnlyCollection<OfficeImageExportDiagnostic> _diagnostics;
 
     /// <summary>Creates an aggregate report from result diagnostics.</summary>
@@ -30,19 +30,21 @@ public sealed class OfficeImageExportReport : global::OfficeIMO.IOfficeConversio
     public int ResultCount { get; }
 
     /// <summary>All structured diagnostics in result order.</summary>
-    public IReadOnlyList<OfficeImageExportDiagnostic> Diagnostics => _diagnostics;
+    public IReadOnlyList<OfficeImageExportDiagnostic> NativeDiagnostics => _diagnostics;
 
-    /// <summary>Diagnostics projected onto the common typed conversion contract.</summary>
-    public IReadOnlyList<global::OfficeIMO.OfficeConversionFidelityDiagnostic> FidelityDiagnostics =>
-        Array.AsReadOnly(_diagnostics.Select(diagnostic => new global::OfficeIMO.OfficeConversionFidelityDiagnostic(
+    /// <summary>NativeDiagnostics projected onto the common typed conversion contract.</summary>
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics =>
+        Array.AsReadOnly(_diagnostics.Select(diagnostic => new global::OfficeIMO.OfficeDiagnostic(
             diagnostic.Code,
+            diagnostic.LossKind == global::OfficeIMO.OfficeConversionLossKind.None ? global::OfficeIMO.OfficeDiagnosticSeverity.Information : global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
             diagnostic.Message,
-            diagnostic.LossKind,
+            diagnostic.FidelityLocation ?? diagnostic.Source,
             diagnostic.FidelitySource ?? "OfficeIMO.Drawing",
-            diagnostic.FidelityLocation ?? diagnostic.Source)).ToArray());
+            diagnostic.LossKind)).ToArray());
 
     /// <summary>True when at least one diagnostic represents fidelity loss.</summary>
-    public bool HasLoss => _diagnostics.Any(diagnostic => diagnostic.LossKind != OfficeConversionLossKind.None);
+    public override bool HasLoss => _diagnostics.Any(diagnostic => diagnostic.LossKind != OfficeConversionLossKind.None);
 
     /// <summary>True when at least one source feature was omitted or replaced.</summary>
     public bool HasOmissions => _diagnostics.Any(diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
@@ -60,7 +62,5 @@ public sealed class OfficeImageExportReport : global::OfficeIMO.IOfficeConversio
     }
 
     /// <summary>Throws when any export diagnostic represents fidelity loss.</summary>
-    public void RequireNoLoss() {
-        if (HasLoss) throw new InvalidOperationException("Image export reported fidelity loss. Inspect FidelityDiagnostics.");
-    }
+    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("Image export reported fidelity loss. Inspect Diagnostics.", this);
 }

@@ -47,7 +47,7 @@ public sealed partial class PdfTaggedMergeTests {
     public void MergeRejectsUntaggedPagesWhenPrimaryDeclaresPdfUa() {
         byte[] primary = PdfDocument.Create(new PdfCreateOptions().SetPdfUaIdentification())
             .TaggedPdfCatalogMarkers().H1("Service review").ToBytes();
-        byte[] plain = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Attachment")).ToBytes();
+        byte[] plain = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Attachment")).ToBytes();
         var error = Assert.Throws<NotSupportedException>(() => PdfDocument.MergeToBytes(primary, plain));
         Assert.Contains("untagged", error.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -147,7 +147,7 @@ public sealed partial class PdfTaggedMergeTests {
             throw new InvalidOperationException("Cancelled enumeration must not continue.");
         }
         Assert.Throws<OperationCanceledException>(() => PdfPageInterleaver.Interleave(Sources(),
-            new PdfInterleaveOptions { CancellationToken = stop.Token }));
+            new PdfInterleaveOptions(), cancellationToken: stop.Token));
         Assert.Equal(cancelBeforeEnumeration ? 0 : 1, visited);
     }
 }

@@ -28,7 +28,7 @@ internal static partial class IWorkKeynoteReader {
         AssessTransition(message, slide, references, diagnostics, ref supportsEditableReconstruction);
         foreach (int field in new[] { 7, 42, 5, 6 }) {
             projectionBudget.AddDrawableReferences(IWorkProtobuf.CountFields(
-                slide.Payload, field, projectionBudget.MaximumProtobufFieldCount));
+                slide.Payload, field, projectionBudget.MaxProtobufFieldCount));
         }
         if (message.FieldCount(5) > 1) {
             supportsEditableReconstruction = false;

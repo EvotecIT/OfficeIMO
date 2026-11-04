@@ -85,7 +85,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddPdfHandler()
     .Build();
 
-foreach (var chunk in reader.Read("manual.pdf")) {
+foreach (var chunk in reader.Enumerate("manual.pdf")) {
     Console.WriteLine($"Page {chunk.Location.Page}: {chunk.Id}");
     Console.WriteLine(chunk.Markdown ?? chunk.Text);
 }
@@ -154,7 +154,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .Build();
 
 using var stream = File.OpenRead("large-report.pdf");
-var chunks = reader.Read(stream, "large-report.pdf", new ReaderOptions {
+var chunks = reader.Enumerate(stream, "large-report.pdf", new ReaderOptions {
     MaxChars = 12_000,
     MaxInputBytes = 100L * 1024L * 1024L
 }).ToList();
@@ -217,7 +217,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddZipHandler()
     .Build();
 
-var chunks = reader.ReadFolder("KnowledgeBase", new ReaderFolderOptions {
+var chunks = reader.EnumerateFolder("KnowledgeBase", new ReaderFolderOptions {
     Recurse = true,
     DeterministicOrder = true,
     MaxFiles = 500

@@ -8,10 +8,10 @@ namespace OfficeIMO.Workflows;
 
 /// <summary>An editable publication and its retained manuscript review state. Instances are mutable and not thread-safe.</summary>
 public sealed partial class BookProject {
-    private readonly IReadOnlyList<OfficeConversionFidelityDiagnostic> _diagnostics;
+    private readonly IReadOnlyList<OfficeDiagnostic> _diagnostics;
     private EpubPublication _publication;
     private byte[]? _undo, _redo;
-    private BookProject(EpubPublication publication, IEnumerable<OfficeConversionFidelityDiagnostic> diagnostics, bool acknowledged) {
+    private BookProject(EpubPublication publication, IEnumerable<OfficeDiagnostic> diagnostics, bool acknowledged) {
         _publication = publication;
         _diagnostics = Array.AsReadOnly(diagnostics.ToArray());
         ImportLossAcknowledged = acknowledged;
@@ -41,7 +41,7 @@ public sealed partial class BookProject {
         _publication = restored; _redo = null; _undo = current.LongLength <= 128L * 1024 * 1024 ? current : null;
     }
     /// <summary>Retained category-preserving manuscript import diagnostics.</summary>
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> ImportDiagnostics => _diagnostics;
+    public IReadOnlyList<OfficeDiagnostic> ImportDiagnostics => _diagnostics;
     /// <summary>Whether the author has reviewed and accepted non-fatal import losses.</summary>
     public bool ImportLossAcknowledged { get; private set; }
     /// <summary>Whether import review permits export. Native writer validation still runs for every export.</summary>
@@ -68,7 +68,7 @@ public sealed partial class BookProject {
     /// <summary>Starts a project from the shared manuscript import result.</summary>
     public static BookProject FromImport(EpubManuscriptResult result) {
         if (result == null) throw new ArgumentNullException(nameof(result));
-        return new BookProject(result.Publication, result.Report.FidelityDiagnostics, false);
+        return new BookProject(result.Publication, result.Report.Diagnostics, false);
     }
     /// <summary>Opens an existing EPUB for package-preserving editing without claiming that its content was converted.</summary>
     public static BookProject FromEpub(byte[] bytes, CancellationToken cancellationToken = default) {
@@ -83,9 +83,9 @@ public sealed partial class BookProject {
         ImportLossAcknowledged = true;
     }
     /// <summary>Exports a complete EPUB after import review and canonical writer validation.</summary>
-    public EpubWriteResult Export(CancellationToken cancellationToken = default) => Export(new EpubWriteOptions(), cancellationToken);
+    public EpubWriteResult Export(CancellationToken cancellationToken = default) => Export(new EpubSaveOptions(), cancellationToken);
     /// <summary>Exports a reviewed publication with explicit EPUB writer limits and signature policy.</summary>
-    public EpubWriteResult Export(EpubWriteOptions options, CancellationToken cancellationToken = default) {
+    public EpubWriteResult Export(EpubSaveOptions options, CancellationToken cancellationToken = default) {
         if (options == null) throw new ArgumentNullException(nameof(options));
         if (!CanExport) throw new InvalidOperationException("Review the import report before exporting this book.");
         return _publication.Write(options, cancellationToken);
@@ -206,7 +206,7 @@ public sealed partial class BookProject {
     public IReadOnlyList<OfficeImageExportResult> PreviewChapter(int index, double width = 816,
         CancellationToken cancellationToken = default) {
         if (index < 0 || index >= _publication.Spine.Count) throw new ArgumentOutOfRangeException(nameof(index));
-        EpubDocument source = _publication.Read(new EpubReadOptions { IncludeRawHtml = true, IncludeResourceData = true, MaxChapters = _publication.Spine.Count }, cancellationToken);
+        EpubDocument source = _publication.Read(new EpubLoadOptions { IncludeRawHtml = true, IncludeResourceData = true, MaxChapters = _publication.Spine.Count }, cancellationToken);
         int extractedIndex = Enumerable.Range(0, source.Chapters.Count).Where(position => source.Chapters[position].SpineIndex == index + 1).DefaultIfEmpty(-1).First();
         if (extractedIndex < 0) throw new InvalidDataException("The selected chapter could not be extracted under the preview reading policy.");
         return source.ExportImages(OfficeImageExportFormat.Png, new EpubImageExportOptions {

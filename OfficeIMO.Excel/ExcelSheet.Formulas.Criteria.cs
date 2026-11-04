@@ -52,12 +52,12 @@ namespace OfficeIMO.Excel {
 
             int criteriaStart = countOnly ? 0 : 1;
             int remainingCellBudget = MaxResolvedFormulaRangeCells;
-            List<FormulaArgumentValue>? aggregateValues = null;
+            IReadOnlyList<FormulaArgumentValue>? aggregateValues = null;
             if (!countOnly && !TryResolveFormulaRange(tokens[0], out aggregateValues, ref remainingCellBudget)) {
                 return false;
             }
 
-            var criteriaSets = new List<(List<FormulaArgumentValue> Values, FormulaCriteria Criteria)>();
+            var criteriaSets = new List<(IReadOnlyList<FormulaArgumentValue> Values, FormulaCriteria Criteria)>();
             int expectedCount = aggregateValues?.Count ?? -1;
             for (int index = criteriaStart; index < tokens.Count; index += 2) {
                 if (!TryResolveFormulaRange(tokens[index], out var criteriaValues, ref remainingCellBudget)

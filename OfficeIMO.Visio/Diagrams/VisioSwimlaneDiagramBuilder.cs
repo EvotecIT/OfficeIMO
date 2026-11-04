@@ -379,7 +379,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
             EnsurePageCanFitLayout();
 
-            VisioPage page = _document.AddPage(_pageName, _pageWidth, _pageHeight, _unit);
+            VisioPage page = _document.AddPageInches(_pageName, _pageWidth, _pageHeight, _unit);
             page.Grid(visible: false, snap: true);
             AddLanesAndPhases(page);
             AddActivities(page);
@@ -416,7 +416,7 @@ namespace OfficeIMO.Visio.Diagrams {
             }
 
             double y = _pageHeight - _topMargin - (_titleHeight / 2D);
-            VisioShape title = page.AddTextBox(_titleId, _pageWidth / 2D, y, Math.Max(1D, _pageWidth - _leftMargin - _rightMargin), _titleHeight, _titleText, _unit);
+            VisioShape title = page.AddTextBoxInches(_titleId, _pageWidth / 2D, y, Math.Max(1D, _pageWidth - _leftMargin - _rightMargin), _titleHeight, _titleText, _unit);
             title.TextStyle = CreateTitleTextStyle();
             VisioSemanticUserCells.MarkGeneratedAdornment(title);
         }
@@ -458,7 +458,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 laneHeader.SetUserCell(VisioSemanticUserCells.SwimlaneLaneId, lane.Id, "STR", prompt: "OfficeIMO swimlane lane id");
                 page.Shapes.Add(laneHeader);
 
-                VisioShape laneBody = page.AddStencilShape(VisioStencils.Swimlane, "swim.lane", "lane-" + lane.Id, processCenterX, y, processWidth, _laneHeight, string.Empty);
+                VisioShape laneBody = page.AddStencilShapeInches(VisioStencils.Swimlane, "swim.lane", "lane-" + lane.Id, processCenterX, y, processWidth, _laneHeight, string.Empty);
                 laneBody.NameU = "Rectangle";
                 ApplyLaneBodyStyle(laneBody, i);
                 laneBody.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.SwimlaneLaneKind, "STR", prompt: "OfficeIMO semantic kind");
@@ -467,7 +467,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
             for (int i = 0; i < _phases.Count; i++) {
                 PhaseItem phase = _phases[i];
-                VisioShape phaseHeader = page.AddStencilShape(VisioStencils.Swimlane, "swim.phase", "phase-" + phase.Id, PhaseCenterX(i), PhaseHeaderCenterY(), _phaseWidth, _phaseHeaderHeight, phase.Text);
+                VisioShape phaseHeader = page.AddStencilShapeInches(VisioStencils.Swimlane, "swim.phase", "phase-" + phase.Id, PhaseCenterX(i), PhaseHeaderCenterY(), _phaseWidth, _phaseHeaderHeight, phase.Text);
                 phaseHeader.NameU = "Rectangle";
                 _theme.Container.ApplyTo(phaseHeader);
                 phaseHeader.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.SwimlanePhaseKind, "STR", prompt: "OfficeIMO semantic kind");
@@ -480,7 +480,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 int laneIndex = IndexOfLane(activity.LaneId);
                 int phaseIndex = IndexOfPhase(activity.PhaseId);
                 GetActivityShape(activity.Kind, out string masterNameU, out double width, out double height);
-                VisioShape shape = page.AddStencilShape(VisioStencils.Swimlane, GetActivityStencilId(activity.Kind), activity.Id, PhaseCenterX(phaseIndex), ActivityCenterY(activity, laneIndex, height), width, height, activity.Text);
+                VisioShape shape = page.AddStencilShapeInches(VisioStencils.Swimlane, GetActivityStencilId(activity.Kind), activity.Id, PhaseCenterX(phaseIndex), ActivityCenterY(activity, laneIndex, height), width, height, activity.Text);
                 shape.NameU = masterNameU;
                 GetActivityStyle(activity.Kind).ApplyTo(shape);
                 shape.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.SwimlaneActivityKind, "STR", prompt: "OfficeIMO semantic kind");
@@ -562,9 +562,9 @@ namespace OfficeIMO.Visio.Diagrams {
                 }
 
                 if (callout.UsePlacement) {
-                    page.AddCallout(target.Shape, callout.Id, callout.Text, callout.Placement, callout.Gap, callout.Options);
+                    page.AddCalloutInches(target.Shape, callout.Id, callout.Text, callout.Placement, callout.Gap, callout.Options);
                 } else {
-                    page.AddCallout(target.Shape, callout.Id, callout.Text, callout.PinX, callout.PinY, callout.Options);
+                    page.AddCalloutInches(target.Shape, callout.Id, callout.Text, callout.PinX, callout.PinY, callout.Options);
                 }
             }
         }
@@ -581,10 +581,10 @@ namespace OfficeIMO.Visio.Diagrams {
 
             double horizontalMargin = Math.Min(_leftMargin, _rightMargin).ToInches(_unit);
             double verticalMargin = Math.Min(_topMargin, _bottomMargin).ToInches(_unit);
-            bool overflows = bounds.Left < horizontalMargin ||
-                             bounds.Bottom < verticalMargin ||
-                             bounds.Right > page.Width - horizontalMargin ||
-                             bounds.Top > page.Height - verticalMargin;
+            bool overflows = bounds.LeftInches < horizontalMargin ||
+                             bounds.BottomInches < verticalMargin ||
+                             bounds.RightInches > page.WidthInches - horizontalMargin ||
+                             bounds.TopInches > page.HeightInches - verticalMargin;
             if (overflows) {
                 page.FitToContent(horizontalMargin, verticalMargin);
             }
@@ -836,8 +836,8 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private static void ResolveSides(VisioShape from, VisioShape to, out VisioSide fromSide, out VisioSide toSide) {
-            double dx = to.PinX - from.PinX;
-            double dy = to.PinY - from.PinY;
+            double dx = to.PinXInches - from.PinXInches;
+            double dy = to.PinYInches - from.PinYInches;
             if (Math.Abs(dx) > Math.Abs(dy)) {
                 if (dx >= 0) {
                     fromSide = VisioSide.Right;

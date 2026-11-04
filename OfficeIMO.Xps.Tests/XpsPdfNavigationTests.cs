@@ -22,7 +22,7 @@ public sealed class XpsPdfNavigationTests {
         sourceMarkup.Elements().Single().SetAttributeValue("FixedPage.NavigateUri", "/" + target.PartName + "#first");
         source.ReplaceMarkup(sourceMarkup);
 
-        using var first = PdfDocument.Load(new MemoryStream(doc.ToPdf()));
+        using var first = PdfDocument.Load(new MemoryStream(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })));
         string firstDestination = Assert.Single(first.Pages[0].GetLinkAnnotations()).DestinationName!;
         Assert.Contains(first.NamedDestinations, destination => destination.Name == firstDestination && destination.PageNumber == 2);
 
@@ -33,7 +33,7 @@ public sealed class XpsPdfNavigationTests {
         sourceMarkup.Elements().Single().SetAttributeValue("FixedPage.NavigateUri", "/" + target.PartName + "#second");
         source.ReplaceMarkup(sourceMarkup);
 
-        using var second = PdfDocument.Load(new MemoryStream(doc.ToPdf()));
+        using var second = PdfDocument.Load(new MemoryStream(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })));
         string secondDestination = Assert.Single(second.Pages[0].GetLinkAnnotations()).DestinationName!;
         Assert.NotEqual(firstDestination, secondDestination);
         Assert.Contains(second.NamedDestinations, destination => destination.Name == secondDestination && destination.PageNumber == 2);
@@ -45,7 +45,7 @@ public sealed class XpsPdfNavigationTests {
     public void NativeWebLinkExportsThroughSharedDrawingWriter(string uri, string expected) {
         var doc = XpsDocument.Create(); var page = doc.AddPage(200, 100).AddPath("M20,30H60V50H20Z");
         var xml = page.GetMarkup(); xml.Elements().Single().SetAttributeValue("FixedPage.NavigateUri", uri); page.ReplaceMarkup(xml);
-        var read = PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf())); var link = Assert.Single(read.Pages[0].GetLinkAnnotations());
+        var read = PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))); var link = Assert.Single(read.Pages[0].GetLinkAnnotations());
         Assert.Equal(expected, link.Uri);
     }
 
@@ -87,9 +87,9 @@ public sealed class XpsPdfNavigationTests {
         outline.AddAfterSelf(new XElement(doc.StructureNamespace + "OutlineEntry", new XAttribute("OutlineLevel", "2"), new XAttribute("Description", "Web"), new XAttribute("OutlineTarget", "https://example.com/ż?q=é")));
         structure.Elements(doc.StructureNamespace + "Story").Remove();
         doc.Documents[0].ReplaceDocumentStructureMarkup(structure);
-        Check(doc.ToPdf(), 1, 2);
+        Check(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }), 1, 2);
         doc.Documents[0].MovePage(1, 0);
-        Check(doc.ToPdf(), 2, 1);
+        Check(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }), 2, 1);
         void Check(byte[] bytes, int sourcePage, int targetPage) {
             var read = PdfDocument.Load(new System.IO.MemoryStream(bytes)); var links = read.Pages[sourcePage - 1].GetLinkAnnotations(); Assert.Equal(2, links.Count);
             var destination = read.NamedDestinations.Single(d => d.Name == links[0].DestinationName);
@@ -113,7 +113,7 @@ public sealed class XpsPdfNavigationTests {
         structure.Elements(doc.StructureNamespace + "Story").Remove();
         doc.Documents[0].ReplaceDocumentStructureMarkup(structure);
         doc.Documents[0].MovePage(1, 0);
-        var read = PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf())); var link = Assert.Single(read.Pages[1].GetLinkAnnotations());
+        var read = PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))); var link = Assert.Single(read.Pages[1].GetLinkAnnotations());
         Assert.Equal(1, read.NamedDestinations.Single(d => d.Name == link.DestinationName).PageNumber);
         Assert.Equal(1, Assert.Single(read.Outlines).PageNumber);
         Assert.Contains(target.PartName, source.GetMarkup().ToString());
@@ -127,7 +127,7 @@ public sealed class XpsPdfNavigationTests {
         xml.Elements().First().SetAttributeValue("FixedPage.NavigateUri", "#root");
         xml.Elements().Last().SetAttributeValue("FixedPage.NavigateUri", "/" + page.PartName + "#root"); page.ReplaceMarkup(xml);
         doc.Documents[0].InsertPage(1, page);
-        var read = PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf())); var links = read.Pages[1].GetLinkAnnotations(); Assert.Equal(2, links.Count);
+        var read = PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))); var links = read.Pages[1].GetLinkAnnotations(); Assert.Equal(2, links.Count);
         Assert.Equal(2, read.NamedDestinations.Single(d => d.Name == links[0].DestinationName).PageNumber);
         Assert.Equal(1, read.NamedDestinations.Single(d => d.Name == links[1].DestinationName).PageNumber);
     }

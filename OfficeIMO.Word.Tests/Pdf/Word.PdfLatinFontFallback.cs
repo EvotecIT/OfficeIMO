@@ -224,7 +224,7 @@ public sealed class WordPdfLatinFontFallbackTests {
 
     private static WordParagraph AddStoryText(WordDocument document, string story) {
         if (story == "body") return document.AddParagraph("Fallback");
-        document.AddParagraph("Body"); document.AddHeadersAndFooters();
-        return (story == "footer" ? (WordHeaderFooter)document.Footer.Default : document.Header.Default).AddParagraph("Fallback");
+        document.AddParagraph("Body"); _ = document.PageSetup.Header;
+        return (story == "footer" ? (WordHeaderFooter)document.PageSetup.GetFooter(WordHeaderFooterType.Default) : document.PageSetup.GetHeader(WordHeaderFooterType.Default)).AddParagraph("Fallback");
     }
 }

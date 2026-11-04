@@ -1,6 +1,3 @@
-#if !NET8_0_OR_GREATER
-using DateOnly = System.DateTime;
-#endif
 namespace OfficeIMO.Workflows;
 
 /// <summary>An absolute HTTP(S) link to a resource, optionally tagged with an ONIX list 74 language. Never fetched.</summary>
@@ -58,10 +55,10 @@ public sealed record BookOnixResourceVersion {
     public IReadOnlyList<BookOnixUsageConstraint> UsageConstraints { get; init; } = [];
     /// <summary>Up to 16 explicit version-specific licenses; caller-supplied schema validation still applies.</summary>
     public IReadOnlyList<BookOnixLicense> Licenses { get; init; } = [];
-    /// <summary>Optional first permitted-use date; serialized but not enforced.</summary>
-    public DateOnly? UsableFrom { get; init; }
-    /// <summary>Optional last permitted-use date.</summary>
-    public DateOnly? UsableUntil { get; init; }
-    /// <summary>Optional resource-version update date.</summary>
-    public DateOnly? UpdatedOn { get; init; }
+    /// <summary>Optional first permitted-use date; serialized but not enforced. Time of day is ignored during export.</summary>
+    public DateTime? UsableFrom { get; init; }
+    /// <summary>Optional last permitted-use date. Time of day is ignored during export.</summary>
+    public DateTime? UsableUntil { get; init; }
+    /// <summary>Optional resource-version update date. Time of day is ignored during export.</summary>
+    public DateTime? UpdatedOn { get; init; }
 }

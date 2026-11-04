@@ -50,12 +50,12 @@ namespace OfficeIMO.Tests {
         [InlineData("XNPV(0.1,{-100,110},{40000.9,40365.1})", 0)]
         public void Financial_results_match_reference_equations_and_survive_save(string formula, double expected) {
             using var document = ExcelDocument.Create(); var sheet = document.AddSheet("Finance");
-            sheet.CellValue(1, 1, 99d); sheet.CellFormula(1, 1, formula);
+            sheet.Cell(1, 1).SetValue(99d); sheet.Cell(1, 1).SetFormula(formula);
             Assert.Equal(1, document.Calculate());
-            Assert.InRange(Math.Abs(sheet.CellAt(1, 1).GetValue<double>() - expected), 0, 1e-7);
+            Assert.InRange(Math.Abs(sheet.Cell(1, 1).GetValue<double>() - expected), 0, 1e-7);
             using var copy = ExcelDocument.Load(new MemoryStream(document.ToBytes()));
             Assert.Equal(formula, copy.Sheets[0].GetFormulaText(1, 1));
-            Assert.InRange(Math.Abs(copy.Sheets[0].CellAt(1, 1).GetValue<double>() - expected), 0, 1e-7);
+            Assert.InRange(Math.Abs(copy.Sheets[0].Cell(1, 1).GetValue<double>() - expected), 0, 1e-7);
         }
 
         [Theory]
@@ -83,7 +83,7 @@ namespace OfficeIMO.Tests {
         [InlineData("IFERROR(IRR({1,2,3}),42)", "42")]
         public void Financial_failures_replace_stale_caches_with_typed_errors(string formula, string expected) {
             using var document = ExcelDocument.Create(); var sheet = document.AddSheet("Finance");
-            sheet.CellValue(1, 1, 99d); sheet.CellFormula(1, 1, formula);
+            sheet.Cell(1, 1).SetValue(99d); sheet.Cell(1, 1).SetFormula(formula);
             Assert.Equal(1, document.Calculate());
             Assert.Equal(expected, Assert.Single(document.InspectFormulas().Formulas).CachedValue);
         }
@@ -91,15 +91,15 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Financial_vectors_share_reference_budgets_and_recalculate_cross_sheet_dependencies() {
             using var document = ExcelDocument.Create(); var inputs = document.AddSheet("Inputs");
-            inputs.CellValue(1, 1, -100d); inputs.CellValue(2, 1, "ignored"); inputs.CellValue(4, 1, 110d);
-            var sheet = document.AddSheet("Results"); sheet.CellFormula(1, 1, "IRR(Inputs!A1:A4)");
-            sheet.CellFormula(2, 1, "XNPV(0.1,Inputs!A1:A1,Inputs!A4:A4)");
+            inputs.Cell(1, 1).SetValue(-100d); inputs.Cell(2, 1).SetValue("ignored"); inputs.Cell(4, 1).SetValue(110d);
+            var sheet = document.AddSheet("Results"); sheet.Cell(1, 1).SetFormula("IRR(Inputs!A1:A4)");
+            sheet.Cell(2, 1).SetFormula("XNPV(0.1,Inputs!A1:A1,Inputs!A4:A4)");
             Assert.Equal(2, document.Calculate());
-            Assert.InRange(sheet.CellAt(1, 1).GetValue<double>(), 0.0999999999, 0.1000000001);
-            inputs.CellValue(4, 1, 120d); Assert.Equal(2, document.Calculate());
-            Assert.InRange(sheet.CellAt(1, 1).GetValue<double>(), 0.1999999999, 0.2000000001);
-            sheet.CellValue(3, 1, 42d); sheet.CellFormula(3, 1, "IRR(Inputs!A1:A100001)");
-            document.Calculate(); Assert.Equal(42d, sheet.CellAt(3, 1).GetValue<double>());
+            Assert.InRange(sheet.Cell(1, 1).GetValue<double>(), 0.0999999999, 0.1000000001);
+            inputs.Cell(4, 1).SetValue(120d); Assert.Equal(2, document.Calculate());
+            Assert.InRange(sheet.Cell(1, 1).GetValue<double>(), 0.1999999999, 0.2000000001);
+            sheet.Cell(3, 1).SetValue(42d); sheet.Cell(3, 1).SetFormula("IRR(Inputs!A1:A100001)");
+            document.Calculate(); Assert.Equal(42d, sheet.Cell(3, 1).GetValue<double>());
             foreach (string function in new[] { "RATE", "IRR", "XIRR", "XNPV" })
                 Assert.Contains(function, document.InspectFormulas().Capabilities.SupportedFunctions);
         }

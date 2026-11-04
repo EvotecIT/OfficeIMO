@@ -140,7 +140,6 @@ internal static partial class PdfStamper {
         if (item is PdfCanvasImageItem image) return image.Block.LinkUri != null;
         if (item is not PdfCanvasTableItem table) return false;
 
-        if (table.Block.Links.Count > 0) return true;
         for (int rowIndex = 0; rowIndex < table.Block.Cells.Count; rowIndex++) {
             IReadOnlyList<PdfTableCell> row = table.Block.Cells[rowIndex];
             for (int cellIndex = 0; cellIndex < row.Count; cellIndex++) {

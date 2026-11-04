@@ -81,7 +81,7 @@ public sealed partial class HtmlRenderingTests {
         OfficeRasterImage last = OfficeDrawingRasterRenderer.Render(rendered.Pages[3].CreateDrawing());
         Assert.Equal(OfficeColor.FromRgb(0, 0, 255), last.GetPixel(100, offset < 0 ? 10 : 150));
 
-        byte[] pdf = (input.ToPdf(new HtmlToPdfOptions {
+        byte[] pdf = (input.ToPdf(new HtmlPdfExportOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         })).ToBytes();
         var links = PdfCore.PdfInspector.Inspect(pdf).LinkAnnotations.Where(link => link.Uri == "https://example.test/relative-image").ToArray();
@@ -114,7 +114,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(2, Assert.Single(RelativeTextPlacements(rendered, "TailMarker")).Page.PageNumber);
         OfficeRasterImage first = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         Assert.Equal(OfficeColor.FromRgb(255, 255, 0), first.GetPixel(1, 321));
-        var links = PdfCore.PdfInspector.Inspect((input.ToPdf(new HtmlToPdfOptions {
+        var links = PdfCore.PdfInspector.Inspect((input.ToPdf(new HtmlPdfExportOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         })).ToBytes()).LinkAnnotations.Where(link => link.Uri == uri).ToArray();
         Assert.Single(links);
@@ -179,7 +179,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void RelativePagePaint_ProjectsNamedFontAscentAndItsShadowAboveTheFrame() {
         byte[] font = OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithVerticalMetrics('A', 1069, -200, 1040);
-        var options = new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0D) };
+        var options = new HtmlPdfExportOptions { Margins = HtmlRenderMargins.All(0D) };
         options.ResourcePolicy.AllowDocumentFontEmbedding = true;
         options.PdfOptions.RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily("Arial", font));
         string html = "<style>@page{size:400px 400px;margin:0}body{margin:0}</style><div style='height:400px'></div>"
@@ -198,7 +198,7 @@ public sealed partial class HtmlRenderingTests {
     [InlineData(true)]
     public void RelativePagePaint_ProjectsNamedFontAndShadowBelowThePage(bool precedingNormalText) {
         byte[] font = OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithVerticalMetrics('A', 800, -100, 700);
-        var options = new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0D) };
+        var options = new HtmlPdfExportOptions { Margins = HtmlRenderMargins.All(0D) };
         options.ResourcePolicy.AllowDocumentFontEmbedding = true;
         options.PdfOptions.RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily("Arial", font));
         string html = "<style>@page{size:400px 400px;margin:0}body{margin:0}</style>"

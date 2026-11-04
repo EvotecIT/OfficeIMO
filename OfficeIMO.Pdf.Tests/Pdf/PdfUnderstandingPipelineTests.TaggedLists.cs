@@ -80,8 +80,10 @@ public partial class PdfUnderstandingPipelineTests {
     public void StructuredRead_RetainsEveryPageFragmentOfOneTaggedListItem() {
         const string phrase = "Continuation text keeps one logical list item";
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-            CompressContentStreams = false, PageWidth = global::OfficeIMO.OfficeLength.Points(170), PageHeight = global::OfficeIMO.OfficeLength.Points(150),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24), MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
+            CompressContentStreams = false, PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(170), global::OfficeIMO.OfficeLength.Points(150)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(24), Right = global::OfficeIMO.OfficeLength.Points(24), Top = global::OfficeIMO.OfficeLength.Points(24), Bottom = global::OfficeIMO.OfficeLength.Points(24) }
+            }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         }).TaggedPdfCatalogMarkers().Bullets(new[] { string.Join(" ", Enumerable.Repeat(phrase, 18)) }).ToBytes();
         PdfDocumentReadResult result = PdfDocument.Load(new System.IO.MemoryStream(bytes)).Read();
         Assert.True(result.Pages.Count > 1);
@@ -163,7 +165,7 @@ public partial class PdfUnderstandingPipelineTests {
     [Fact]
     public void WordImportWithoutLists_RetainsTaggedParagraphBodies() {
         PdfDocumentReadResult result = PdfDocument.Load(new System.IO.MemoryStream(CreateParagraphTaggedListPdf())).Read();
-        using OfficeIMO.Word.WordDocument word = (result.ConvertToWordWithEvidence(new WordPdfImportOptions { ImportLists = false })).Value;
+        using OfficeIMO.Word.WordDocument word = (result.ConvertToWordWithEvidence(new PdfWordExportOptions { ImportLists = false })).Value;
         string text = ReadWordBody(word);
         Assert.Equal(1, CountText(text, "Linked incident title"));
         Assert.Equal(1, CountText(text, "Incident detail"));
@@ -225,8 +227,8 @@ public partial class PdfUnderstandingPipelineTests {
 
     private static void AssertConsumerTextOccursOnce(PdfDocumentReadResult result, bool sharedOrder, params string[] values) {
         string reader = string.Join(" ", PdfReaderAdapter.ReadDocument(result).Blocks.Select(static block => block.Text));
-        string html = result.ToHtml(new PdfToHtmlOptions { UseSharedPageReadingOrder = sharedOrder });
-        using OfficeIMO.Word.WordDocument word = (result.ConvertToWordWithEvidence(new WordPdfImportOptions { UseSharedPageReadingOrder = sharedOrder })).Value;
+        string html = result.ToHtml(new PdfHtmlExportOptions { UseSharedPageReadingOrder = sharedOrder });
+        using OfficeIMO.Word.WordDocument word = (result.ConvertToWordWithEvidence(new PdfWordExportOptions { UseSharedPageReadingOrder = sharedOrder })).Value;
         string wordText = ReadWordBody(word);
         foreach (string value in values) {
             // Table content is represented in Reader tables, not duplicated in document blocks.

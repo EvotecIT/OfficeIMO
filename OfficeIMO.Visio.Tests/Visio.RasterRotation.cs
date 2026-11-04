@@ -16,14 +16,14 @@ public sealed class VisioRasterRotationTests {
     [InlineData(30, true, true)]
     [InlineData(-30, true, true)]
     public void NativePlainAndRichTextBoxesRotateInThePageDirection(double degrees, bool connector, bool rich) {
-        var document = VisioDocument.Create(); var page = document.AddPage("Rotation", 8, 8);
+        var document = VisioDocument.Create(); var page = document.AddPage("Rotation", OfficeLength.Inches(8), OfficeLength.Inches(8));
         var style = new VisioTextStyle { Size = 18, BackgroundColor = OfficeColor.Red, TextAngle = degrees * Math.PI / 180 };
         if (connector) {
             var line = page.AddConnector("c", new OfficePoint(1, 2), new OfficePoint(7, 2));
             line.LinePattern = 0; line.Label = "MMMMMMMM"; line.TextStyle = style;
             line.PlaceLabelAt(4, 4, 3, .6);
         } else {
-            var shape = page.AddRectangle(4, 4, 3, .6, "MMMMMMMM", VisioMeasurementUnit.Inches);
+            var shape = page.AddRectangle(OfficeLength.Inches(4), OfficeLength.Inches(4), OfficeLength.Inches(3), OfficeLength.Inches(.6), "MMMMMMMM");
             shape.FillPattern = 0; shape.LinePattern = 0; shape.TextStyle = style;
         }
         if (rich) {
@@ -43,8 +43,8 @@ public sealed class VisioRasterRotationTests {
     [InlineData(30)]
     [InlineData(-30)]
     public void EllipseAxesRotateInThePageDirection(double degrees) {
-        var page = VisioDocument.Create().AddPage("Ellipse", 8, 8);
-        var shape = page.AddEllipse(4, 4, 3, .6, string.Empty, VisioMeasurementUnit.Inches);
+        var page = VisioDocument.Create().AddPage("Ellipse", OfficeLength.Inches(8), OfficeLength.Inches(8));
+        var shape = page.AddEllipse(OfficeLength.Inches(4), OfficeLength.Inches(4), OfficeLength.Inches(3), OfficeLength.Inches(.6), string.Empty);
         shape.FillColor = OfficeColor.Red; shape.LinePattern = 0; shape.Angle = degrees * Math.PI / 180;
         AssertRedOrientation(page, degrees);
     }
@@ -53,8 +53,8 @@ public sealed class VisioRasterRotationTests {
     [InlineData(30)]
     [InlineData(-30)]
     public void StencilLineArtworkRotatesInThePageDirection(double degrees) {
-        var page = VisioDocument.Create().AddPage("Artwork", 8, 8);
-        var shape = page.AddRectangle(4, 4, 3, 3, string.Empty, VisioMeasurementUnit.Inches);
+        var page = VisioDocument.Create().AddPage("Artwork", OfficeLength.Inches(8), OfficeLength.Inches(8));
+        var shape = page.AddRectangle(OfficeLength.Inches(4), OfficeLength.Inches(4), OfficeLength.Inches(3), OfficeLength.Inches(3), string.Empty);
         shape.FillPattern = 0; shape.LinePattern = 0; shape.LineColor = OfficeColor.Red;
         shape.Angle = degrees * Math.PI / 180; shape.SetUserCell("OfficeIMO.StencilName", "Event", "STR");
         AssertRedOrientation(page, degrees);
@@ -64,13 +64,13 @@ public sealed class VisioRasterRotationTests {
     [InlineData(30)]
     [InlineData(-30)]
     public void PackagePreviewImageRotatesInThePageDirection(double degrees) {
-        var page = VisioDocument.Create().AddPage("Preview", 8, 8);
-        var master = new VisioMaster("preview", "Preview", new VisioShape("master", 0, 0, 3, .6, string.Empty));
+        var page = VisioDocument.Create().AddPage("Preview", OfficeLength.Inches(8), OfficeLength.Inches(8));
+        var master = new VisioMaster("preview", "Preview", new VisioShape("master", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(3), OfficeLength.Inches(.6), string.Empty));
         master.RawMasterRelationships.Add(new VisioAssets.MasterRelationshipContent {
             Id = "rIdImage", Type = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
             Target = "../media/preview.custom", ContentType = "application/octet-stream", Extension = ".custom", Data = new byte[] { 1, 2, 3, 4 }
         });
-        var shape = page.AddRectangle(4, 4, 3, .6, string.Empty, VisioMeasurementUnit.Inches);
+        var shape = page.AddRectangle(OfficeLength.Inches(4), OfficeLength.Inches(4), OfficeLength.Inches(3), OfficeLength.Inches(.6), string.Empty);
         shape.Master = master; shape.NameU = master.NameU; shape.FillPattern = 0; shape.LinePattern = 0;
         shape.Angle = degrees * Math.PI / 180;
         shape.SetUserCell("OfficeIMO.StencilPreviewImageRelationshipId", "rIdImage", "STR");

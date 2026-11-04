@@ -28,13 +28,13 @@ namespace OfficeIMO.Tests {
         public void Multiple_rounding_survives_saved_numeric_caches(string formula, double expected) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Math");
-            sheet.CellFormula(1, 1, formula);
+            sheet.Cell(1, 1).SetFormula(formula);
             Assert.Equal(1, document.Calculate());
-            Assert.Equal(expected, sheet.CellAt(1, 1).GetValue<double>());
+            Assert.Equal(expected, sheet.Cell(1, 1).GetValue<double>());
             using var saved = new MemoryStream(); document.Save(saved); saved.Position = 0;
             using var reopened = ExcelDocument.Load(saved);
             Assert.Equal(formula, reopened.Sheets[0].GetFormulaText(1, 1));
-            Assert.Equal(expected, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+            Assert.Equal(expected, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
             Assert.Empty(reopened.ValidateOpenXml());
         }
 
@@ -46,12 +46,12 @@ namespace OfficeIMO.Tests {
         public void Very_small_multiple_rounding_keeps_the_correct_multiple(string formula, double expected) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Math");
-            sheet.CellFormula(1, 1, formula);
+            sheet.Cell(1, 1).SetFormula(formula);
             Assert.Equal(1, document.Calculate());
-            Assert.InRange(Math.Abs(sheet.CellAt(1, 1).GetValue<double>() - expected), 0, Math.Abs(expected) * 1E-15);
+            Assert.InRange(Math.Abs(sheet.Cell(1, 1).GetValue<double>() - expected), 0, Math.Abs(expected) * 1E-15);
             using var saved = new MemoryStream(); document.Save(saved); saved.Position = 0;
             using var reopened = ExcelDocument.Load(saved);
-            Assert.InRange(Math.Abs(reopened.Sheets[0].CellAt(1, 1).GetValue<double>() - expected), 0, Math.Abs(expected) * 1E-15);
+            Assert.InRange(Math.Abs(reopened.Sheets[0].Cell(1, 1).GetValue<double>() - expected), 0, Math.Abs(expected) * 1E-15);
             Assert.Empty(reopened.ValidateOpenXml());
         }
 
@@ -66,7 +66,7 @@ namespace OfficeIMO.Tests {
         public void Multiple_rounding_propagates_typed_errors_in_saved_caches(string formula, string expected) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Math");
-            sheet.CellValue(1, 1, 42d); sheet.CellFormula(1, 1, formula);
+            sheet.Cell(1, 1).SetValue(42d); sheet.Cell(1, 1).SetFormula(formula);
             Assert.Equal(1, document.Calculate());
             using var saved = new MemoryStream(); document.Save(saved); saved.Position = 0;
             using var reopened = ExcelDocument.Load(saved);
@@ -84,8 +84,8 @@ namespace OfficeIMO.Tests {
         public void Unsupported_multiple_rounding_preserves_existing_caches(string formula) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Math");
-            sheet.CellValue(1, 1, 1d); sheet.CellValue(2, 1, 2d);
-            sheet.CellValue(1, 2, 42d); sheet.CellFormula(1, 2, formula);
+            sheet.Cell(1, 1).SetValue(1d); sheet.Cell(2, 1).SetValue(2d);
+            sheet.Cell(1, 2).SetValue(42d); sheet.Cell(1, 2).SetFormula(formula);
             Assert.Equal(0, document.Calculate());
             Assert.Equal("42", Assert.Single(sheet.InspectFormulas().Formulas).CachedValue);
         }

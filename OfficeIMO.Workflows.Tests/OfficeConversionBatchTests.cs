@@ -18,7 +18,7 @@ public sealed class OfficeConversionBatchTests {
         File.WriteAllText(Path.Combine(scope.Input, "rich.rtf"), "{\\rtf1\\ansi RTF source}");
         File.WriteAllText(Path.Combine(scope.Input, "other.bin"), "Unsupported input");
         using (var word = WordDocument.Create(Path.Combine(scope.Input, "word.docx"))) { word.AddParagraph("Word source"); word.Save(); }
-        using (var excel = ExcelDocument.Create(Path.Combine(scope.Input, "sheet.xlsx"))) { excel.AddSheet("Data").Cell(1, 1, "Excel source"); excel.Save(); }
+        using (var excel = ExcelDocument.Create(Path.Combine(scope.Input, "sheet.xlsx"))) { excel.AddSheet("Data").Cell(1, 1).SetValue("Excel source"); excel.Save(); }
         using (var slides = PowerPointDocument.Create(Path.Combine(scope.Input, "slides.pptx"))) { slides.AddSlide().AddTextBox("Slide source",global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(500),global::OfficeIMO.OfficeLength.Points(60)); slides.Save(); }
         var items = new Items();
         var builder = (((new OfficeBatchOptions { InputDirectory = scope.Input } with { OutputDirectory = scope.Output }) with { ResumeFrom = Path.Combine(scope.State, "plan.json"), RetryFailed = false }) with {
@@ -26,9 +26,9 @@ public sealed class OfficeConversionBatchTests {
                 Word = new OfficeIMO.Word.Pdf.WordPdfExportOptions { Title = "Batch Word" },
                 Excel = new OfficeIMO.Excel.Pdf.ExcelPdfExportOptions { PdfOptions = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12) } },
                 PowerPoint = new OfficeIMO.PowerPoint.Pdf.PowerPointPdfExportOptions { PdfOptions = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12) } },
-                Html = new OfficeIMO.Html.Pdf.HtmlToPdfOptions(),
+                Html = new OfficeIMO.Html.Pdf.HtmlPdfExportOptions(),
                 Markdown = new OfficeIMO.Markdown.Pdf.MarkdownPdfExportOptions { Title = "Batch Markdown" },
-                RegisteredSettings = new OfficeWorkflowRouteSettings { Rtf = new OfficeIMO.Rtf.Pdf.RtfToPdfOptions() }
+                RegisteredSettings = new OfficeWorkflowRouteSettings { Rtf = new OfficeIMO.Rtf.Pdf.RtfPdfExportOptions() }
             }.Clone()
         });
         var first = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), builder, progress: items);
@@ -50,7 +50,7 @@ public sealed class OfficeConversionBatchTests {
         string wordPath = Path.Combine(scope.Input, "locked-word.docx");
         string excelPath = Path.Combine(scope.Input, "locked-excel.xlsx");
         using (var word = WordDocument.Create(wordPath)) { word.AddParagraph("Encrypted Word source"); word.Save(wordPath, new WordSaveOptions { Password = password }); }
-        using (var excel = ExcelDocument.Create(excelPath)) { excel.AddSheet("Data").Cell(1, 1, "Encrypted Excel source"); excel.Save(excelPath, new ExcelSaveOptions { Password = password }); }
+        using (var excel = ExcelDocument.Create(excelPath)) { excel.AddSheet("Data").Cell(1, 1).SetValue("Encrypted Excel source"); excel.Save(excelPath, new ExcelSaveOptions { Password = password }); }
         var result = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), (((new OfficeBatchOptions { InputDirectory = scope.Input } with { OutputDirectory = scope.Output }) with { ResumeFrom = Path.Combine(scope.State, "plan.json"), RetryFailed = false }) with {
             ConversionOptions = new OfficeConversionOptions {
                 SourcePassword = password
@@ -78,12 +78,10 @@ public sealed class OfficeConversionBatchTests {
         File.WriteAllText(source, "literal geometry");
         var text = new PdfTextImportOptions {
             PdfOptions = new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(12),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(12),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(12),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(12),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(180)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(12), Right = global::OfficeIMO.OfficeLength.Points(12), Top = global::OfficeIMO.OfficeLength.Points(12), Bottom = global::OfficeIMO.OfficeLength.Points(12) }
+                },
                 DefaultFont = PdfStandardFont.Courier,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(14)
             }
@@ -205,7 +203,7 @@ public sealed class OfficeConversionBatchTests {
         File.WriteAllText(Path.Combine(scope.Input, "markup.md"), "# Encrypted Markdown");
         File.WriteAllText(Path.Combine(scope.Input, "rich.rtf"), "{\\rtf1\\ansi Encrypted RTF}");
         using (var word = WordDocument.Create(Path.Combine(scope.Input, "word.docx"))) { word.AddParagraph("Encrypted Word"); word.Save(); }
-        using (var excel = ExcelDocument.Create(Path.Combine(scope.Input, "sheet.xlsx"))) { excel.AddSheet("Data").Cell(1, 1, "Encrypted Excel"); excel.Save(); }
+        using (var excel = ExcelDocument.Create(Path.Combine(scope.Input, "sheet.xlsx"))) { excel.AddSheet("Data").Cell(1, 1).SetValue("Encrypted Excel"); excel.Save(); }
         using (var slides = PowerPointDocument.Create(Path.Combine(scope.Input, "slides.pptx"))) { slides.AddSlide().AddTextBox("Encrypted slides",global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(500),global::OfficeIMO.OfficeLength.Points(60)); slides.Save(); }
         const string userPassword = "Synthetic output reader", ownerPassword = "Synthetic output owner";
         PdfCreateOptions Encryption() => new PdfCreateOptions().SetEncryption(userPassword, ownerPassword);

@@ -1,3 +1,4 @@
+using OfficeIMO.Html.Pdf;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using OfficeIMO.Html;
@@ -18,7 +19,7 @@ public sealed class ImageExportConformanceContracts {
         using (var excelStream = new MemoryStream())
         using (ExcelDocument workbook = ExcelDocument.Create(excelStream)) {
             ExcelSheet sheet = workbook.AddSheet("Budget");
-            sheet.CellValue(1, 1, "Excel");
+            sheet.Cell(1, 1).SetValue("Excel");
             results.Add(sheet.Range("A1:D8").ExportImage(
                 OfficeImageExportFormat.Webp,
                 new ExcelImageExportOptions {
@@ -38,7 +39,7 @@ public sealed class ImageExportConformanceContracts {
             }));
 
         PdfDocument pdf = PdfDocument.Load(new System.IO.MemoryStream(PdfDocument.Create(document => document
-            .Content(content => content.Paragraph(paragraph => paragraph.Text("PDF"))))
+            .Content(content => content.AddParagraph(paragraph => paragraph.AddText("PDF"))))
             .ToBytes()));
         results.Add(pdf.Pages[0].ExportImage(
             OfficeImageExportFormat.Webp,
@@ -62,8 +63,8 @@ public sealed class ImageExportConformanceContracts {
 
         using (var visioStream = new MemoryStream()) {
             VisioDocument document = VisioDocument.Create(visioStream);
-            VisioPage page = document.AddPage("Budget").Size(2D, 1D);
-            page.AddRectangle(1D, 0.5D, 1D, 0.5D, "Visio");
+            VisioPage page = document.AddPage("Budget").Size(OfficeLength.Inches(2D), OfficeLength.Inches(1D));
+            page.AddRectangle(OfficeLength.Inches(1D), OfficeLength.Inches(0.5D), OfficeLength.Inches(1D), OfficeLength.Inches(0.5D), "Visio");
             results.Add(page.ExportImage(
                 OfficeImageExportFormat.Webp,
                 new VisioImageExportOptions {

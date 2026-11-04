@@ -22,5 +22,5 @@ public sealed class AddOfficeVisioEllipseCommand : OfficeVisioShapeCmdlet {
 
     /// <inheritdoc />
     protected override VisioShape CreateShape(VisioPage page) =>
-        page.AddEllipse(X.ToInches(), Y.ToInches(), Width.ToInches(), Height.ToInches(), Text, VisioMeasurementUnit.Inches);
+        page.AddEllipse(X, Y, Width, Height, Text);
 }

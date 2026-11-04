@@ -43,7 +43,7 @@ public partial class HtmlWordGapClosure {
         Assert.Equal(60, checked((int?)(paragraph.LineSpacingBefore?.ToTwips())));
         Assert.Equal(90, checked((int?)(paragraph.LineSpacingAfter?.ToTwips())));
         Assert.DoesNotContain(
-            conversion.Report.Diagnostics,
+            conversion.Report.NativeDiagnostics,
             diagnostic => diagnostic.Code == "unsupported-css-declaration" &&
                           diagnostic.Source?.Contains("inline", StringComparison.OrdinalIgnoreCase) == true);
     }
@@ -107,7 +107,7 @@ public partial class HtmlWordGapClosure {
     [Fact]
     public void HtmlToWord_InlineLogicalSpacing_IsReportedAsUnsupported() {
         const string html = """<p>Before <span style="margin-inline-start:10px">inline</span> after</p>""";
-        var options = new WordHtmlImportOptions {
+        var options = new HtmlWordExportOptions {
             UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Error,
         };
 
@@ -217,15 +217,15 @@ public partial class HtmlWordGapClosure {
         WordParagraph first = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "First");
         WordParagraph second = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Second");
 
-        Assert.Equal("ABCDEF", first.ShadingFillColorHex);
-        Assert.Equal("ABCDEF", second.ShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("ABCDEF"), first.ShadingFillColor);
+        Assert.Equal(OfficeColor.Parse("ABCDEF"), second.ShadingFillColor);
         Assert.Equal(WordBorderStyle.Single, first.Borders.TopStyle);
         Assert.Null(first.Borders.BottomStyle);
         Assert.Null(second.Borders.TopStyle);
         Assert.Equal(WordBorderStyle.Single, second.Borders.BottomStyle);
         Assert.Equal(WordBorderStyle.Single, first.Borders.LeftStyle);
         Assert.Equal(WordBorderStyle.Single, second.Borders.RightStyle);
-        Assert.Equal("123456", first.Borders.LeftColorHex);
+        Assert.Equal(OfficeColor.Parse("123456"), first.Borders.LeftColor);
         Assert.Equal(120, checked((int?)(first.IndentationBefore?.ToTwips())));
         Assert.Equal(120, checked((int?)(second.IndentationAfter?.ToTwips())));
     }
@@ -243,8 +243,8 @@ public partial class HtmlWordGapClosure {
         WordParagraph specific = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Specific");
         WordParagraph inherited = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Inherited frame");
 
-        Assert.Equal("FF0000", specific.ShadingFillColorHex);
-        Assert.Equal("0000FF", inherited.ShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("FF0000"), specific.ShadingFillColor);
+        Assert.Equal(OfficeColor.Parse("0000FF"), inherited.ShadingFillColor);
     }
 
     [Fact]
@@ -260,9 +260,9 @@ public partial class HtmlWordGapClosure {
             document.Paragraphs,
             candidate => candidate.Text.Contains("Important frame", StringComparison.Ordinal));
 
-        Assert.Equal("ABCDEF", paragraph.ShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("ABCDEF"), paragraph.ShadingFillColor);
         Assert.Equal(WordBorderStyle.Single, paragraph.Borders.LeftStyle);
-        Assert.Equal("123456", paragraph.Borders.LeftColorHex);
+        Assert.Equal(OfficeColor.Parse("123456"), paragraph.Borders.LeftColor);
     }
 
     [Fact]
@@ -294,7 +294,7 @@ public partial class HtmlWordGapClosure {
         Assert.NotSame(before, inside);
         Assert.Equal(WordBorderStyle.Single, inside.Borders.TopStyle);
         Assert.Equal(WordBorderStyle.Single, inside.Borders.BottomStyle);
-        Assert.Equal("123456", inside.Borders.LeftColorHex);
+        Assert.Equal(OfficeColor.Parse("123456"), inside.Borders.LeftColor);
     }
 
     [Fact]
@@ -308,7 +308,7 @@ public partial class HtmlWordGapClosure {
         WordParagraph inside = Assert.Single(cell.Paragraphs, paragraph => paragraph.Text == "Inside cell");
         Assert.Equal(WordBorderStyle.Single, inside.Borders.TopStyle);
         Assert.Equal(WordBorderStyle.Single, inside.Borders.BottomStyle);
-        Assert.Equal("123456", inside.Borders.LeftColorHex);
+        Assert.Equal(OfficeColor.Parse("123456"), inside.Borders.LeftColor);
     }
 
     [Fact]
@@ -383,19 +383,19 @@ public partial class HtmlWordGapClosure {
             """;
 
         HtmlToWordResult conversion = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(
-            new WordHtmlImportOptions { UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Warn });
+            new HtmlWordExportOptions { UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Warn });
         using WordDocument document = conversion.Value;
         WordParagraph background = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Background");
         WordParagraph border = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Border");
         WordParagraph transparent = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Transparent");
         WordParagraph functionalColor = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Functional color");
 
-        Assert.Equal("FF0000", background.ShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("FF0000"), background.ShadingFillColor);
         Assert.Equal(WordBorderStyle.Single, border.Borders.TopStyle);
-        Assert.Equal("FF0000", border.Borders.TopColorHex);
-        Assert.True(string.IsNullOrEmpty(transparent.ShadingFillColorHex));
-        Assert.Equal("010203", functionalColor.Borders.TopColorHex);
-        Assert.Contains(conversion.Report.Diagnostics, diagnostic =>
+        Assert.Equal(OfficeColor.Parse("FF0000"), border.Borders.TopColor);
+        Assert.Null(transparent.ShadingFillColor);
+        Assert.Equal(OfficeColor.Parse("010203"), functionalColor.Borders.TopColor);
+        Assert.Contains(conversion.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == "unsupported-css-value" &&
             diagnostic.Source == "div:border");
     }
@@ -408,7 +408,7 @@ public partial class HtmlWordGapClosure {
             document.Paragraphs[0].GetRuns(),
             run => run.Text.Contains("exact", StringComparison.Ordinal));
 
-        Assert.Equal("ABCDEF", exactRun.RunShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("ABCDEF"), exactRun.BackgroundColor);
         Assert.Null(exactRun.Highlight);
 
         using var stream = new MemoryStream();
@@ -424,7 +424,7 @@ public partial class HtmlWordGapClosure {
             reloaded.Paragraphs[0].GetRuns(),
             run => run.Text.Contains("exact", StringComparison.Ordinal));
 
-        Assert.Equal("ABCDEF", reloadedRun.RunShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("ABCDEF"), reloadedRun.BackgroundColor);
         Assert.Contains(
             "background-color:#abcdef",
             reloaded.ToHtml(new WordHtmlExportOptions { IncludeRunHighlightStyles = true }),
@@ -449,7 +449,7 @@ public partial class HtmlWordGapClosure {
 
         Assert.Equal(WordHighlightColor.Yellow, markedRun.Highlight);
         Assert.Null(exactRun.Highlight);
-        Assert.Equal("ABCDEF", exactRun.RunShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("ABCDEF"), exactRun.BackgroundColor);
 
         AssertRenderedWordBackgrounds(document, OfficeIMO.OfficeColor.Parse("#ABCDEF"), OfficeIMO.OfficeColor.Yellow);
         string roundTrip = document.ToHtml(new WordHtmlExportOptions { IncludeRunHighlightStyles = true });
@@ -459,7 +459,7 @@ public partial class HtmlWordGapClosure {
 
     [Fact]
     public void HtmlToWord_NearestHighlightMode_ReportsColorApproximation() {
-        var options = new WordHtmlImportOptions {
+        var options = new HtmlWordExportOptions {
             TextBackgroundMode = WordHtmlTextBackgroundMode.NearestHighlight
         };
 
@@ -470,7 +470,7 @@ public partial class HtmlWordGapClosure {
         WordParagraph run = Assert.Single(document.Paragraphs[0].GetRuns());
 
         Assert.NotNull(run.Highlight);
-        Assert.Equal(string.Empty, run.RunShadingFillColorHex);
+        Assert.Null(run.BackgroundColor);
         Assert.Contains(
             conversion.Report.Diagnostics,
             diagnostic => diagnostic.Code == "text-background-color-approximated");
@@ -495,7 +495,7 @@ public partial class HtmlWordGapClosure {
                 Interlocked.Decrement(ref active);
             }
         }));
-        var options = new WordHtmlImportOptions {
+        var options = new HtmlWordExportOptions {
             HttpClient = httpClient,
             ImageProcessing = WordHtmlImageProcessingMode.Embed,
             MaxConcurrentResourceLoads = 2
@@ -514,12 +514,12 @@ public partial class HtmlWordGapClosure {
 
     [Fact]
     public void HtmlToWordOptions_Clone_PreservesNewConversionContracts() {
-        var options = new WordHtmlImportOptions {
+        var options = new HtmlWordExportOptions {
             MaxConcurrentResourceLoads = 3,
             TextBackgroundMode = WordHtmlTextBackgroundMode.NearestHighlight
         };
 
-        WordHtmlImportOptions clone = options.Clone();
+        HtmlWordExportOptions clone = options.Clone();
 
         Assert.Equal(3, clone.MaxConcurrentResourceLoads);
         Assert.Equal(WordHtmlTextBackgroundMode.NearestHighlight, clone.TextBackgroundMode);
@@ -527,7 +527,7 @@ public partial class HtmlWordGapClosure {
 
     [Fact]
     public async Task HtmlToWord_InvalidResourceConcurrency_IsRejectedBeforeNetworkAccess() {
-        var options = new WordHtmlImportOptions {
+        var options = new HtmlWordExportOptions {
             ImageProcessing = WordHtmlImageProcessingMode.Embed,
             MaxConcurrentResourceLoads = 0
         };
@@ -671,7 +671,7 @@ public partial class HtmlWordGapClosure {
         using WordDocument document = WordDocument.Create();
         WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
         cell.Paragraphs[0].Text = "Existing";
-        var options = new WordHtmlImportOptions { SupportsHeadingNumbering = true };
+        var options = new HtmlWordExportOptions { SupportsHeadingNumbering = true };
 
         cell.AddHtml(HtmlConversionDocument.Parse("<h1>One</h1><p>Middle</p><h2>Two</h2>"), options);
 
@@ -705,7 +705,7 @@ public partial class HtmlWordGapClosure {
     public void WordTableCell_AddHtml_NumberedHeadingsReplaceTheFreshPlaceholder() {
         using WordDocument document = WordDocument.Create();
         WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
-        var options = new WordHtmlImportOptions { SupportsHeadingNumbering = true };
+        var options = new HtmlWordExportOptions { SupportsHeadingNumbering = true };
 
         cell.AddHtml(HtmlConversionDocument.Parse("<h1>One</h1><h2>Two</h2>"), options);
 
@@ -749,8 +749,7 @@ public partial class HtmlWordGapClosure {
     [Fact]
     public async Task WordTableCell_AddHtmlAsync_UsesHeaderPartForTopLevelImage() {
         using WordDocument document = WordDocument.Create();
-        document.AddHeadersAndFooters();
-        WordHeader header = document.Sections[0].Header.Default!;
+        WordHeader header = document.Sections[0].PageSetup.Header;
         WordTableCell cell = header.AddTable(1, 1).Rows[0].Cells[0];
         string html = $"""<img src="data:image/png;base64,{ValidPng}" alt="Header PNG">""";
 
@@ -763,7 +762,7 @@ public partial class HtmlWordGapClosure {
         document.Save(stream);
         using WordDocument reloaded = WordDocument.Load(new MemoryStream(stream.ToArray()));
 
-        WordTableCell reloadedCell = reloaded.Sections[0].Header.Default!.Tables[0].Rows[0].Cells[0];
+        WordTableCell reloadedCell = reloaded.Sections[0].PageSetup.Header.Tables[0].Rows[0].Cells[0];
         Assert.Contains(reloadedCell.Paragraphs, paragraph => paragraph.IsImage);
         Assert.Empty(reloaded.Images);
     }

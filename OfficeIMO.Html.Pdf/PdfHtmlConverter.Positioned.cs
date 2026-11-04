@@ -8,7 +8,7 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Html.Pdf;
 
 public static partial class PdfHtmlConverterExtensions {
-    private static void AppendPositionedPage(StringBuilder builder, IReadOnlyList<PdfCore.PdfLogicalPage> pages, int renderIndex, PdfToHtmlOptions options) {
+    private static void AppendPositionedPage(StringBuilder builder, IReadOnlyList<PdfCore.PdfLogicalPage> pages, int renderIndex, PdfHtmlExportOptions options) {
         PdfCore.PdfLogicalPage page = pages[renderIndex];
         PositionedPageGeometry geometry = PositionedPageGeometry.From(page);
         builder.Append("<section class=\"pdf-page\" id=\"");
@@ -173,7 +173,7 @@ public static partial class PdfHtmlConverterExtensions {
         StringBuilder builder,
         PdfCore.PdfLogicalPage page,
         IReadOnlyList<PdfCore.PdfLogicalImage> images,
-        PdfToHtmlOptions options) {
+        PdfHtmlExportOptions options) {
         if (images.Count == 0) {
             return;
         }
@@ -194,7 +194,7 @@ public static partial class PdfHtmlConverterExtensions {
         }
     }
 
-    private static void AppendPositionedImagePlaceholder(StringBuilder builder, PdfCore.PdfLogicalPage page, PdfCore.PdfLogicalImage image, PdfCore.PdfImagePlacement placement, int placementIndex, PdfToHtmlOptions options) {
+    private static void AppendPositionedImagePlaceholder(StringBuilder builder, PdfCore.PdfLogicalPage page, PdfCore.PdfLogicalImage image, PdfCore.PdfImagePlacement placement, int placementIndex, PdfHtmlExportOptions options) {
         PdfCore.PdfImagePlacementImportAssessment assessment =
             PdfCore.PdfImagePlacementImportPolicy.Analyze(page, image, placement);
         ReportHtmlImagePlacementAssessment(image, assessment, options);

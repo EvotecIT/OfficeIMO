@@ -62,12 +62,12 @@ public static partial class LegacyWordImporter {
             LegacyWordSection source = sections[index];
             WordSection target = index == 0 ? document.Sections[0] :
                 document.AddSection(source.StartsNewPage ? WordSectionBreakType.NextPage : WordSectionBreakType.Continuous);
-            if (source.WidthPoints.HasValue) target.PageSettings.Width = global::OfficeIMO.OfficeLength.Points((checked((uint)Twips(source.WidthPoints.Value))) / 20D);
-            if (source.HeightPoints.HasValue) target.PageSettings.Height = global::OfficeIMO.OfficeLength.Points((checked((uint)Twips(source.HeightPoints.Value))) / 20D);
-            if (source.LeftPoints.HasValue) target.Margins.Left = global::OfficeIMO.OfficeLength.Points((checked((uint)Twips(source.LeftPoints.Value))) / 20D);
-            if (source.RightPoints.HasValue) target.Margins.Right = global::OfficeIMO.OfficeLength.Points((checked((uint)Twips(source.RightPoints.Value))) / 20D);
-            if (source.TopPoints.HasValue) target.Margins.Top = global::OfficeIMO.OfficeLength.Points((Twips(source.TopPoints.Value)) / 20D);
-            if (source.BottomPoints.HasValue) target.Margins.Bottom = global::OfficeIMO.OfficeLength.Points((Twips(source.BottomPoints.Value)) / 20D);
+            if (source.WidthPoints.HasValue) target.PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points((checked((uint)Twips(source.WidthPoints.Value))) / 20D);
+            if (source.HeightPoints.HasValue) target.PageSetup.Size.Height = global::OfficeIMO.OfficeLength.Points((checked((uint)Twips(source.HeightPoints.Value))) / 20D);
+            if (source.LeftPoints.HasValue) target.PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points((checked((uint)Twips(source.LeftPoints.Value))) / 20D);
+            if (source.RightPoints.HasValue) target.PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points((checked((uint)Twips(source.RightPoints.Value))) / 20D);
+            if (source.TopPoints.HasValue) target.PageSetup.Margins.Top = global::OfficeIMO.OfficeLength.Points((Twips(source.TopPoints.Value)) / 20D);
+            if (source.BottomPoints.HasValue) target.PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points((Twips(source.BottomPoints.Value)) / 20D);
             WordList? list = null;
             foreach (LegacyWordBlock block in source.Blocks) {
                 cancellation.ThrowIfCancellationRequested();
@@ -119,11 +119,11 @@ public static partial class LegacyWordImporter {
         // DOCX inheritance from keeping a cancelled header or sharing a changed header with an earlier section.
         target._sectionProperties.RemoveAllChildren<HeaderReference>();
         target._sectionProperties.RemoveAllChildren<FooterReference>();
-        if (oddEven) target.DifferentOddAndEvenPages = true;
+        if (oddEven) target.PageSetup.DifferentOddAndEvenPages = true;
         foreach (bool footer in new[] { false, true }) {
             foreach (WordHeaderFooterType type in oddEven ? new[] { WordHeaderFooterType.Default, WordHeaderFooterType.Even } : new[] { WordHeaderFooterType.Default }) {
                 cancellation.ThrowIfCancellationRequested();
-                WordHeaderFooter part = footer ? target.GetOrCreateFooter(type) : target.GetOrCreateHeader(type);
+                WordHeaderFooter part = footer ? target.PageSetup.GetOrCreateFooter(type) : target.PageSetup.GetOrCreateHeader(type);
                 foreach (WordParagraph old in part.Paragraphs.ToList()) old.Remove();
                 foreach (LegacyWordHeaderFooter story in source.HeadersAndFooters.Where(story => story.IsFooter == footer &&
                     (story.Occurrence == LegacyWordHeaderFooterOccurrence.All ||

@@ -11,7 +11,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Width", 1, 1, 1d, defaultColumnWidth: 73d)
         });
 
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
 
         Assert.False(result.IsVisualFallback);
         var sheet = result.Value.Sheets[0];

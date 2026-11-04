@@ -10,7 +10,10 @@ public sealed class PdfDocumentOptimization {
     public PdfOptimizationReport Analyze(PdfLoadOptions? options = null) => _document.AnalyzeOptimization(options);
 
     /// <summary>Applies dependency-free lossless optimization.</summary>
-    public PdfOptimizationActionResult Apply(PdfOptimizationOptions? options = null) => _document.Optimize(options);
+    public PdfOptimizationActionResult Apply(PdfOptimizationOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return _document.Optimize(options);
+    }
 
     /// <summary>Applies a named deterministic lossless optimization profile.</summary>
     public PdfOptimizationActionResult Apply(PdfOptimizationProfile profile) => _document.Optimize(profile);

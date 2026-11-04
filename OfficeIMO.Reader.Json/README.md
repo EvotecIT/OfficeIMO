@@ -38,7 +38,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     })
     .Build();
 
-foreach (var chunk in reader.Read("appsettings.json", new ReaderOptions {
+foreach (var chunk in reader.Enumerate("appsettings.json", new ReaderOptions {
     MaxInputBytes = 5L * 1024L * 1024L
 })) {
     Console.WriteLine(chunk.Markdown ?? chunk.Text);
@@ -56,7 +56,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .Build();
 
 await using var stream = File.OpenRead("payload.json");
-var chunks = reader.Read(stream, "payload.json", new ReaderOptions {
+var chunks = reader.Enumerate(stream, "payload.json", new ReaderOptions {
     MaxChars = 3_000
 }).ToList();
 ```

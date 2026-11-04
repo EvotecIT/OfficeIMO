@@ -15,11 +15,11 @@ public partial class PdfDocumentVisualQualityTests {
         style.RowMinHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60), null };
         PdfDocument document = PdfDocument.Create(Options(140)).TaggedPdfCatalogMarkers();
         document.Compose(builder => builder.Page(page => page.Content(content => {
-            content.Paragraph(p => p.Text("Intro1\nIntro2\nIntro3"), style: new PdfParagraphStyle {
+            content.AddParagraph(p => p.AddText("Intro1\nIntro2\nIntro3"), style: new PdfParagraphStyle {
                 FontSize = global::OfficeIMO.OfficeLength.Points(12), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(14)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0),
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), WidowControl = false
             });
-            content.Table(new[] {
+            content.AddTable(new[] {
                 new[] { PdfTableCell.Merge("Alpha", rowSpan: 2), PdfTableCell.TextCell("Ready") },
                 new[] { PdfTableCell.TextCell("Done") }
             }, style: style);
@@ -154,7 +154,7 @@ public partial class PdfDocumentVisualQualityTests {
                 .Element(element => element.Style(new PdfPanelStyle {
                     PaddingX = global::OfficeIMO.OfficeLength.Points(0), PaddingY = global::OfficeIMO.OfficeLength.Points(20), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
                     RepeatFragmentDecoration = false
-                }).Content(inner => inner.Row(row => row.PercentColumn(100, column => column.Table(rows, style: style))))))));
+                }).Content(inner => inner.Row(row => row.PercentColumn(100, column => column.AddTable(rows, style: style))))))));
         } else AddTable(document, rows, style, false);
         using CancellationTokenSource cancellation = new(TimeSpan.FromSeconds(5));
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToBytes(cancellationToken: cancellation.Token));
@@ -186,7 +186,7 @@ public partial class PdfDocumentVisualQualityTests {
                 PaddingX = global::OfficeIMO.OfficeLength.Points(0), PaddingY = global::OfficeIMO.OfficeLength.Points(20), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
                 RepeatFragmentDecoration = repeatDecoration
             }).Content(inner => {
-                inner.Paragraph(p => p.Text("Prelude"), style: new PdfParagraphStyle {
+                inner.AddParagraph(p => p.AddText("Prelude"), style: new PdfParagraphStyle {
                     FontSize = global::OfficeIMO.OfficeLength.Points(12), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(15)),
                     SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), WidowControl = false
                 });
@@ -195,8 +195,8 @@ public partial class PdfDocumentVisualQualityTests {
                     new[] { PdfTableCell.TextCell("Next") },
                     new[] { PdfTableCell.TextCell("Done") }
                 };
-                if (inRow) inner.Row(row => row.PercentColumn(100, column => column.Table(rows, style: Style())));
-                else inner.Table(rows, style: Style());
+                if (inRow) inner.Row(row => row.PercentColumn(100, column => column.AddTable(rows, style: Style())));
+                else inner.AddTable(rows, style: Style());
             })) )));
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToBytes());
         string[] words = pdf.GetPages().SelectMany(page => page.GetWords()).Select(word => word.Text).ToArray();
@@ -214,14 +214,16 @@ public partial class PdfDocumentVisualQualityTests {
         PdfTableStyle style = Style();
         style.MinimumBodyRowsOnFirstPage = 0;
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(460), PageHeight = global::OfficeIMO.OfficeLength.Points(140), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(460), global::OfficeIMO.OfficeLength.Points(140)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+            }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
         }).Columns(content => {
-            content.Paragraph(p => p.Text("Intro1\nIntro2\nIntro3"), style: new PdfParagraphStyle {
+            content.AddParagraph(p => p.AddText("Intro1\nIntro2\nIntro3"), style: new PdfParagraphStyle {
                 FontSize = global::OfficeIMO.OfficeLength.Points(12), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(14)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0),
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), WidowControl = false
             });
-            content.Table(new[] {
+            content.AddTable(new[] {
                 new[] { anchor, PdfTableCell.TextCell(string.Join("\n", neighbors)) },
                 new[] { PdfTableCell.TextCell("Next") },
                 new[] { PdfTableCell.TextCell("Done") }

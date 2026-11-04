@@ -572,10 +572,10 @@ namespace OfficeIMO.Tests {
                     PowerPointTableCell header = table.GetCell(0, 0);
                     header.Text = "Header";
                     header.FillColor = "1F4E79";
-                    header.Color = "FFFFFF";
+                    header.Color = OfficeColor.Parse("FFFFFF");
                     header.Bold = true;
                     header.FontSize = global::OfficeIMO.OfficeLength.Points(12);
-                    header.FontName = "Aptos";
+                    header.FontFamily = "Aptos";
                     header.SetTextAutoFit(PowerPointTextAutoFit.Normal,
                         new PowerPointTextAutoFitOptions(fontScalePercent: 90, lineSpaceReductionPercent: 5));
 

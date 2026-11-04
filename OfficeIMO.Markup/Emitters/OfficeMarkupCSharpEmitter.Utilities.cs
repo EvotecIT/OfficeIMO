@@ -278,4 +278,21 @@ public sealed partial class OfficeMarkupCSharpEmitter {
     }
 
     private static string BoolLiteral(bool value) => value ? "true" : "false";
+
+    /// <summary>Formats one cell through its handle and a block through one range call.</summary>
+    internal static string FormattingSubject(string sheetExpression, IReadOnlyList<(int Row, int Column)> cells, Func<string, string> quote) {
+        var first = cells[0];
+        var last = cells[cells.Count - 1];
+        return cells.Count == 1
+            ? $"{sheetExpression}.Cell({first.Row}, {first.Column})"
+            : $"{sheetExpression}.Range({quote(ColumnLetters(first.Column) + first.Row + ":" + ColumnLetters(last.Column) + last.Row)})";
+    }
+
+    private static string ColumnLetters(int column) {
+        var letters = new StringBuilder();
+        for (int value = column; value > 0; value = (value - 1) / 26) {
+            letters.Insert(0, (char)('A' + (value - 1) % 26));
+        }
+        return letters.ToString();
+    }
 }

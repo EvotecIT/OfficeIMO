@@ -137,7 +137,8 @@ namespace OfficeIMO.Tests {
 
             WordDocumentConversionResult toDoc = WordDocument.Convert(docxPath, docPath);
 
-            Assert.Equal(docPath, toDoc.RequireNoLoss());
+            toDoc.ThrowIfLoss();
+            Assert.Equal(docPath, toDoc.Value);
             Assert.Equal(WordFileFormat.Docx, toDoc.Report.SourceFormat);
             Assert.Equal(WordFileFormat.Doc, toDoc.Report.DestinationFormat);
             Assert.False(toDoc.HasLoss);
@@ -172,7 +173,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(OfficeConversionFailureReason.DataLossBlocked, exception.Reason);
             Assert.True(exception.Result.HasLoss);
-            Assert.Contains(exception.Result.Report.Diagnostics, diagnostic => diagnostic.Category == OfficeConversionDiagnosticCategory.DataLoss);
+            Assert.Contains(exception.Result.Report.NativeDiagnostics, diagnostic => diagnostic.Category == OfficeConversionDiagnosticCategory.DataLoss);
             Assert.False(File.Exists(blockedPath));
 
             WordDocumentConversionResult result = WordDocument.Convert(docPath, allowedPath, new WordDocumentConversionOptions {
@@ -181,7 +182,7 @@ namespace OfficeIMO.Tests {
 
             Assert.True(result.HasLoss);
             Assert.Equal(allowedPath, result.RequireValue());
-            Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
 
             using WordDocument converted = WordDocument.Load(allowedPath);
             Assert.False(converted.SourceFormat == WordFileFormat.Doc);
@@ -221,7 +222,8 @@ namespace OfficeIMO.Tests {
                     LegacyDocImportOptions = new LegacyDocImportOptions { MaxInputBytes = 1 }
                 });
 
-            Assert.Equal(destinationPath, result.RequireNoLoss());
+            result.ThrowIfLoss();
+            Assert.Equal(destinationPath, result.Value);
             using WordDocument converted = WordDocument.Load(destinationPath);
             Assert.Equal(WordFileFormat.Doc, converted.SourceFormat);
             Assert.Contains(converted.Paragraphs, paragraph => paragraph.Text == "Open XML source");
@@ -320,7 +322,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Word.Docx", result.Report.SourceFormatDescriptor.Id);
             Assert.Equal("Word.Dotx", result.Report.DestinationFormatDescriptor.Id);
             Assert.Equal(OfficeDocumentKind.Template, result.Report.DestinationFormatDescriptor.DocumentKind);
-            Assert.Equal(destinationPath, result.RequireNoLoss());
+            result.ThrowIfLoss();
+            Assert.Equal(destinationPath, result.Value);
             using WordprocessingDocument package = WordprocessingDocument.Open(destinationPath, false);
             Assert.Equal(WordprocessingDocumentType.Template, package.DocumentType);
         }
@@ -381,7 +384,7 @@ namespace OfficeIMO.Tests {
                 WordDocument.Convert(sourcePath, blockedPath));
 
             Assert.Equal(OfficeConversionFailureReason.DataLossBlocked, blocked.Reason);
-            OfficeConversionDiagnostic finding = Assert.Single(blocked.Result.Report.Diagnostics,
+            OfficeConversionDiagnostic finding = Assert.Single(blocked.Result.Report.NativeDiagnostics,
                 diagnostic => diagnostic.Code == "word-vba-project-removed");
             Assert.Equal(OfficeCompatibilityState.Blocked, finding.CompatibilityState);
             Assert.True(finding.CompatibilityImpact.HasFlag(OfficeCompatibilityImpact.Security));
@@ -483,9 +486,9 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(OfficeConversionFailureReason.DestinationFeatureUnsupported, blocked.Reason);
             Assert.True(blocked.Result.Report.HasLoss);
-            Assert.Contains(blocked.Result.Report.FidelityDiagnostics,
-                diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Failure);
             Assert.Contains(blocked.Result.Report.Diagnostics,
+                diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Failure);
+            Assert.Contains(blocked.Result.Report.NativeDiagnostics,
                 finding => finding.Code == "word-legacy-writer-unsupported"
                     && finding.CompatibilityState == OfficeCompatibilityState.Blocked);
             Assert.False(File.Exists(blockedPath));
@@ -497,11 +500,11 @@ namespace OfficeIMO.Tests {
             WordDocumentConversionReport preflight = WordDocument.AnalyzeConversion(sourcePath, visualPath, options);
 
             Assert.False(File.Exists(visualPath));
-            Assert.Contains(preflight.Diagnostics,
+            Assert.Contains(preflight.NativeDiagnostics,
                 finding => finding.Code == "word-legacy-writer-visual-fallback"
                     && finding.CompatibilityState == OfficeCompatibilityState.Rasterized
                     && finding.FallbackArtifact != null);
-            Assert.Contains(preflight.Diagnostics,
+            Assert.Contains(preflight.NativeDiagnostics,
                 finding => finding.Code == "word-source-carrier-not-embedded"
                     && finding.CompatibilityState == OfficeCompatibilityState.Dropped);
 
@@ -540,7 +543,7 @@ namespace OfficeIMO.Tests {
                     VisualFallbackRenderer = document => document.ExportImages(OfficeImageExportFormat.Png)
                 });
 
-            OfficeConversionDiagnostic carrier = Assert.Single(converted.Report.Diagnostics,
+            OfficeConversionDiagnostic carrier = Assert.Single(converted.Report.NativeDiagnostics,
                 finding => finding.Code == "word-source-carrier-embedded");
             Assert.Equal(OfficeCompatibilityState.EmbeddedSource, carrier.CompatibilityState);
             Assert.False(carrier.RepresentsDataLoss);
@@ -571,7 +574,7 @@ namespace OfficeIMO.Tests {
                     CompatibilityMode = OfficeCompatibilityMode.PreservationOnly
                 });
 
-            Assert.Contains(converted.Report.Diagnostics,
+            Assert.Contains(converted.Report.NativeDiagnostics,
                 finding => finding.Code == "word-source-carrier-embedded"
                     && finding.CompatibilityState == OfficeCompatibilityState.EmbeddedSource);
             using WordDocument legacy = WordDocument.Load(destinationPath);
@@ -589,7 +592,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Legacy source carrier");
                 document.Save();
             }
-            WordDocument.Convert(sourcePath, legacyPath).RequireNoLoss();
+            WordDocument.Convert(sourcePath, legacyPath).Report.ThrowIfLoss();
             byte[] legacyBytes = File.ReadAllBytes(legacyPath);
 
             WordDocumentConversionResult converted = WordDocument.Convert(
@@ -599,7 +602,7 @@ namespace OfficeIMO.Tests {
                     CompatibilityMode = OfficeCompatibilityMode.PreservationOnly
                 });
 
-            Assert.Contains(converted.Report.Diagnostics,
+            Assert.Contains(converted.Report.NativeDiagnostics,
                 finding => finding.Code == "word-source-carrier-embedded"
                     && finding.CompatibilityState == OfficeCompatibilityState.EmbeddedSource);
             using WordDocument modern = WordDocument.Load(destinationPath);

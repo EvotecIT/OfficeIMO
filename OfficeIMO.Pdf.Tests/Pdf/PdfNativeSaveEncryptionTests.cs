@@ -20,7 +20,7 @@ public sealed class PdfNativeSaveEncryptionTests {
         string directory = Path.Combine(Path.GetTempPath(), "officeimo-pdf-save-security-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         try {
-            using PdfDocument generated = PdfDocument.Create(builder => builder.Content(content => content.Paragraph(paragraph => paragraph.Text("Native encrypted output"))));
+            using PdfDocument generated = PdfDocument.Create(builder => builder.Content(content => content.AddParagraph(paragraph => paragraph.AddText("Native encrypted output"))));
             using PdfDocument? loadedDocument = loaded ? PdfDocument.Load(generated.ToBytes(new PdfSaveOptions { AllowLoss = true })) : null;
             PdfDocument document = loadedDocument ?? generated;
             var options = new PdfSaveOptions { AllowLoss = true,
@@ -53,7 +53,7 @@ public sealed class PdfNativeSaveEncryptionTests {
         else if (kind == "pdfx") createOptions.SetPdfXIdentification(PdfXIdentification.PdfX4());
         else createOptions.SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX());
         using PdfDocument document = PdfDocument.Create(builder => builder.Content(content =>
-            content.Paragraph(paragraph => paragraph.Text("Conformance identification"))), createOptions);
+            content.AddParagraph(paragraph => paragraph.AddText("Conformance identification"))), createOptions);
         var save = new PdfSaveOptions { AllowLoss = true,
             Encryption = PdfStandardEncryptionOptions.ForPermissions("fixture-owner", PdfStandardPermissions.All) };
         byte[] source = document.ToBytes(new PdfSaveOptions { AllowLoss = true });

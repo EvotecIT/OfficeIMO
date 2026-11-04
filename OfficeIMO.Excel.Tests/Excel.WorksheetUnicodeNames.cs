@@ -14,10 +14,10 @@ public sealed class ExcelWorksheetUnicodeNamesTests {
         string requested = new string('A', prefixLength) + "😀common";
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet first = document.AddSheet(requested);
-        first.CellValue(1, 1, "First");
-        document.AddSheet(requested).CellValue(1, 1, "Second");
+        first.Cell(1, 1).SetValue("First");
+        document.AddSheet(requested).Cell(1, 1).SetValue("Second");
         Assert.Equal("First", document.GetOrCreateSheet(requested, ExcelSheetNameValidationMode.Sanitize)
-            .CellAt(1, 1).GetValue<string>());
+            .Cell(1, 1).GetValue<string>());
         using var saved = new MemoryStream();
         document.Save(saved);
         saved.Position = 0;
@@ -26,7 +26,7 @@ public sealed class ExcelWorksheetUnicodeNamesTests {
         Assert.Equal(2, reopened.Sheets.Count);
         Assert.NotEqual(reopened.Sheets[0].Name, reopened.Sheets[1].Name);
         Assert.All(reopened.Sheets, sheet => System.Xml.XmlConvert.VerifyXmlChars(sheet.Name));
-        Assert.Equal("Second", reopened.Sheets[1].CellAt(1, 1).GetValue<string>());
+        Assert.Equal("Second", reopened.Sheets[1].Cell(1, 1).GetValue<string>());
     }
 
     [Theory]
@@ -51,7 +51,7 @@ public sealed class ExcelWorksheetUnicodeNamesTests {
         Assert.Equal(2, reopened.Sheets.Count);
         Assert.NotEqual(reopened.Sheets[0].Name, reopened.Sheets[1].Name);
         Assert.All(reopened.Sheets, sheet => System.Xml.XmlConvert.VerifyXmlChars(sheet.Name));
-        Assert.Equal(1, reopened.Sheets[0].CellAt(2, 1).GetValue<int>());
-        Assert.Equal(2, reopened.Sheets[1].CellAt(2, 1).GetValue<int>());
+        Assert.Equal(1, reopened.Sheets[0].Cell(2, 1).GetValue<int>());
+        Assert.Equal(2, reopened.Sheets[1].Cell(2, 1).GetValue<int>());
     }
 }

@@ -88,8 +88,8 @@ namespace OfficeIMO.Tests {
         public void Test_TableResize_MapsSortReferencesToDataBoundaryAboveTotalsRow() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "A");
-            sheet.CellValue(1, 2, "B");
+            sheet.Cell(1, 1).SetValue("A");
+            sheet.Cell(1, 2).SetValue("B");
             sheet.AddTable("A1:B4", true, "Sales", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
             Table table = Assert.Single(sheet.WorksheetPart.TableDefinitionParts).Table!;
             table.TotalsRowShown = true;

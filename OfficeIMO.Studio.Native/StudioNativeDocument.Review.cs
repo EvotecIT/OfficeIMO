@@ -118,20 +118,19 @@ internal sealed partial class StudioNativeDocument {
                         "web" => PdfOptimizationProfile.Web, "archival" => PdfOptimizationProfile.Archival,
                         _ => throw new ArgumentException($"“{copy.Profile}” isn't an optimization profile.", nameof(copy))
                     });
-                    optimization.CancellationToken = cancellationToken;
-                    PdfOptimizationActionResult result = PdfDocument.Load(new MemoryStream(input), options).Optimization.Apply(optimization);
+                    PdfOptimizationActionResult result = PdfDocument.Load(new MemoryStream(input), options).Optimization.Apply(optimization, cancellationToken: cancellationToken);
                     if (!result.PreservationReport.IsPreserved) throw new InvalidOperationException("The optimized copy wouldn't keep everything the document contains, so it wasn't written.");
                     return (result.Bytes, result.ReturnedOriginal ? "The document is already as small as lossless optimization makes it."
                         : string.Create(CultureInfo.InvariantCulture, $"Saved {result.SavedBytes} bytes."));
                 }
                 case "repair": {
                     PdfRepairArtifactResult result = PdfRepairArtifact.Create(input,
-                        new PdfRepairArtifactOptions { CancellationToken = cancellationToken }, options);
+                        new PdfRepairArtifactOptions(), options, cancellationToken: cancellationToken);
                     if (!result.IsVerified) throw new InvalidOperationException("The repaired copy couldn't be verified, so it wasn't written.");
                     return (result.ToBytes(), string.Create(CultureInfo.InvariantCulture, $"Repaired {result.SourceRepairReport.RepairCount} structural problem(s)."));
                 }
                 default: {
-                    PdfSanitizationResult result = PdfDocument.Load(new MemoryStream(input), options).Sanitize(new PdfSanitizationOptions { CancellationToken = cancellationToken });
+                    PdfSanitizationResult result = PdfDocument.Load(new MemoryStream(input), options).Sanitize(new PdfSanitizationOptions(), cancellationToken: cancellationToken);
                     if (!result.IsSanitized || !result.PreservationReport.IsPreserved) throw new InvalidOperationException("The sanitized copy couldn't be verified, so it wasn't written.");
                     return (result.ToBytes(), string.Create(CultureInfo.InvariantCulture,
                         $"Removed {result.RemovedFindings.Count} item(s) such as scripts, actions and attachments; {result.RemainingFindings.Count} remain."));

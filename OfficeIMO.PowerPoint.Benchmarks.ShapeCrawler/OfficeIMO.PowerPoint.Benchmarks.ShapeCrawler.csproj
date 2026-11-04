@@ -1,7 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>Latest</LangVersion>
+    <IsPackable>false</IsPackable>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
@@ -12,8 +14,11 @@
     add ShapeCrawler or its rendering dependencies to normal OfficeIMO restores.
   -->
   <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
     <PackageReference Include="DocumentFormat.OpenXml" Version="3.5.1" />
-    <PackageReference Include="ShapeCrawler" Version="0.79.4" />
+    <PackageReference Include="ShapeCrawler" Version="0.82.0" />
+    <ProjectReference Include="..\OfficeIMO.PowerPoint\OfficeIMO.PowerPoint.csproj" />
+    <None Include="..\OfficeIMO.TestAssets\Images\EvotecLogo.png" Link="benchmark-logo.png" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="..\OfficeIMO.PowerPoint.Benchmarks\PowerPointBenchmarkSemanticValidator.cs"
              Link="PowerPointBenchmarkSemanticValidator.cs" />
   </ItemGroup>

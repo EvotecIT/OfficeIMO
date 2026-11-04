@@ -8,7 +8,7 @@ using OfficeIMO.Reader.Chm;
 
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddChmHandler(new ReaderChmOptions {
-        ReadOptions = new OfficeIMO.Chm.ChmReadOptions {
+        ReadOptions = new OfficeIMO.Chm.ChmLoadOptions {
             MaxInputBytes = 64L * 1024 * 1024
         }
     })

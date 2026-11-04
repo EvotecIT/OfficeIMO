@@ -46,9 +46,9 @@ public sealed class TabularCommandTests {
         try {
             using (ExcelDocument document = ExcelDocument.Create()) {
                 ExcelSheet sheet = document.AddSheet("Inventory");
-                sheet.CellAt(1, 1).SetValue("Alpha");
-                sheet.CellAt(2, 1).SetValue("Beta");
-                sheet.CellAt(3, 1).SetValue("Gamma");
+                sheet.Cell(1, 1).SetValue("Alpha");
+                sheet.Cell(2, 1).SetValue("Beta");
+                sheet.Cell(3, 1).SetValue("Gamma");
                 document.Save(workbookPath);
             }
 
@@ -150,7 +150,7 @@ public sealed class TabularCommandTests {
             using (ExcelDocument document = ExcelDocument.Create()) {
                 ExcelSheet sheet = document.AddSheet("Inventory");
                 for (int row = 1; row <= 500; row++) {
-                    sheet.CellAt(row, 1).SetValue("Value " + row);
+                    sheet.Cell(row, 1).SetValue("Value " + row);
                 }
                 document.Save(workbookPath);
             }

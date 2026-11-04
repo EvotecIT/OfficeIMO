@@ -272,7 +272,7 @@ public static partial class EmailSmime {
         string location) {
         if (content == null || content.Length == 0) return null;
         try {
-            using EmailReadResult read = new EmailDocumentReader(readerOptions ?? EmailReaderOptions.Default).Read(content);
+            using EmailReadResult read = new EmailDocumentReader(readerOptions ?? EmailReaderOptions.Default).ReadDocument(content);
             foreach (EmailDiagnostic diagnostic in read.Diagnostics) diagnostics.Add(diagnostic);
             return read.Document;
         } catch (Exception exception) when (exception is InvalidDataException or EmailLimitExceededException or NotSupportedException) {

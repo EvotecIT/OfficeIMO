@@ -142,7 +142,10 @@ public sealed partial class PdfDocument {
     internal static PreparedImage PrepareImageBytes(byte[] data, CancellationToken cancellationToken) {
         Guard.NotNullOrEmpty(data, nameof(data));
         cancellationToken.ThrowIfCancellationRequested();
-        if (cancellationToken.CanBeCanceled) {
+        // A system/caller codec can change during the process lifetime. Do not reuse HEIC
+        // pixels from a different codec registration or bypass a later availability failure.
+        if (cancellationToken.CanBeCanceled ||
+            OfficeImageReader.HasHeicSignature(data, cancellationToken) && !OfficeImageReader.HasAvifSignature(data, cancellationToken)) {
             return PrepareImageBytesCore(data, cancellationToken);
         }
 
@@ -166,6 +169,9 @@ public sealed partial class PdfDocument {
 
             if (!PreparedImagesByContent.TryGet(sourceHash, out PreparedImage prepared)) {
                 prepared = PrepareImageBytesCore(data, cancellationToken);
+                // SVG can contain raster resources decoded by the current external codec.
+                // Re-evaluate those resources rather than retaining codec-dependent pixels.
+                if (prepared.SourceFormat == OfficeImageFormat.Svg) return prepared;
                 PreparedImagesByContent.Add(sourceHash, prepared);
             }
             entry.SourceHash = sourceHash;
@@ -224,6 +230,16 @@ public sealed partial class PdfDocument {
             }
 
             throw new NotSupportedException(SupportedImageMessage + " The source image header is not recognized.");
+        }
+
+        if (sourceInfo.Format == OfficeImageFormat.Heic) {
+            // HEIF composition owns orientation and source color together. Normalize once before
+            // the PDF metadata path, which otherwise handles orientation on retained JPEG/PNG samples.
+            byte[] png = OfficeImageReader.NormalizeForEmbedding(data,
+                new OfficeRasterDecodeOptions { CancellationToken = cancellationToken }, out _);
+            PreparedImage prepared = PrepareImageBytesCore(png, cancellationToken);
+            return new PreparedImage(prepared.Data, prepared.Info, OfficeImageFormat.Heic,
+                wasTranscoded: true, prepared.PreparedStream);
         }
 
         OfficeImageMetadataSnapshot sourceMetadata = OfficeImageMetadataInspector.Inspect(

@@ -15,7 +15,7 @@ public sealed class XpsProjectionDiagnosticLimitsTests {
     [InlineData("chunks")]
     public void RepeatedPageLinkDiagnosticsShareTheProjectionTextLimit(string entryPoint) {
         var document = WithRepeatedLink("data:application/octet-stream," + new string('A', 1_000_000), 17);
-        byte[] bytes = document.Save();
+        byte[] bytes = document.ToBytes();
         var loaded = XpsDocument.Load(bytes);
         Assert.Equal(17, loaded.Pages.Count);
         Assert.Same(loaded.Pages[0], loaded.Pages[16]);
@@ -24,7 +24,7 @@ public sealed class XpsProjectionDiagnosticLimitsTests {
         var error = Assert.Throws<InvalidDataException>(() => {
             if (entryPoint == "model") loaded.ToOfficeDocumentModel();
             else if (entryPoint == "document") reader.ReadDocument(bytes, "links.xps");
-            else reader.Read(bytes, "links.xps").ToArray();
+            else reader.Enumerate(bytes, "links.xps").ToArray();
         });
         Assert.Contains("content-structure text limit", error.Message);
     }

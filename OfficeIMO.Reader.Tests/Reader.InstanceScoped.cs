@@ -15,8 +15,8 @@ public sealed class ReaderInstanceScopedTests {
             OfficeDocumentReader first = BuildReader("officeimo.tests.instance.first", extension, "first-output");
             OfficeDocumentReader second = BuildReader("officeimo.tests.instance.second", extension, "second-output");
 
-            Task<ReaderChunk> firstRead = Task.Run(() => Assert.Single(first.Read(file)));
-            Task<ReaderChunk> secondRead = Task.Run(() => Assert.Single(second.Read(file)));
+            Task<ReaderChunk> firstRead = Task.Run(() => Assert.Single(first.Enumerate(file)));
+            Task<ReaderChunk> secondRead = Task.Run(() => Assert.Single(second.Enumerate(file)));
             ReaderChunk[] chunks = await Task.WhenAll(firstRead, secondRead);
 
             Assert.Equal("first-output", chunks[0].Text);
@@ -44,8 +44,8 @@ public sealed class ReaderInstanceScopedTests {
                 replaceExisting: true);
             OfficeDocumentReader second = builder.Build();
 
-            Assert.Equal("before-build", Assert.Single(first.Read(file)).Text);
-            Assert.Equal("after-build", Assert.Single(second.Read(file)).Text);
+            Assert.Equal("before-build", Assert.Single(first.Enumerate(file)).Text);
+            Assert.Equal("after-build", Assert.Single(second.Enumerate(file)).Text);
             Assert.Contains(first.GetCapabilities(), capability => capability.Id == "officeimo.tests.snapshot.first");
             Assert.Contains(second.GetCapabilities(), capability => capability.Id == "officeimo.tests.snapshot.second");
         } finally {
@@ -102,8 +102,8 @@ public sealed class ReaderInstanceScopedTests {
             OfficeDocumentReader first = BuildDetectingReader("officeimo.tests.interleaved.first", extension, ReaderInputKind.Csv);
             OfficeDocumentReader second = BuildDetectingReader("officeimo.tests.interleaved.second", extension, ReaderInputKind.Json);
 
-            using IEnumerator<ReaderChunk> firstChunks = first.Read(file).GetEnumerator();
-            using IEnumerator<ReaderChunk> secondChunks = second.Read(file).GetEnumerator();
+            using IEnumerator<ReaderChunk> firstChunks = first.Enumerate(file).GetEnumerator();
+            using IEnumerator<ReaderChunk> secondChunks = second.Enumerate(file).GetEnumerator();
 
             Assert.True(firstChunks.MoveNext());
             Assert.Equal(nameof(ReaderInputKind.Csv), firstChunks.Current.Text);

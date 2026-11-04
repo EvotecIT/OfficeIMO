@@ -1,3 +1,4 @@
+using OfficeIMO.Html.Pdf;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -36,7 +37,8 @@ internal static class OfficeDocumentImageRenderer {
                 results.AddRange(pdf.ExportImages(options.Pdf, token));
                 break;
             case HtmlConversionDocument html:
-                if (pages != null) options.Html.PageSelection = pages.Selection;
+                if (pages != null) options.Html.PageSelection = pages.Selection.Ranges
+                    .SelectMany(range => Enumerable.Range(range.FirstPage, range.LastPage - range.FirstPage + 1)).ToArray();
                 html.ExportImages(format, results.Add, options.Html, token);
                 break;
             case ExcelDocument excel:

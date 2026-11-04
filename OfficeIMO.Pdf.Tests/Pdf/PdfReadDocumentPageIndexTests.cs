@@ -12,7 +12,7 @@ public sealed class PdfReadDocumentPageIndexTests {
             for (int page = 1; page <= pageCount; page++) {
                 if (page > 1) content.PageBreak();
                 content.Bookmark("Page " + page.ToString("D3", System.Globalization.CultureInfo.InvariantCulture));
-                content.Paragraph(paragraph => paragraph.Text("Content " + page));
+                content.AddParagraph(paragraph => paragraph.AddText("Content " + page));
             }
         })).ToBytes();
 

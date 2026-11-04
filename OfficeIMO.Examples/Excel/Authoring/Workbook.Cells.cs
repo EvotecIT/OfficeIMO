@@ -16,18 +16,18 @@ namespace OfficeIMO.Examples.Excel
                     var sheet1 = document.AddSheet("Data");
                     int nextRow2 = 1;
                     {
-                        var cell1 = sheet1.CellAt("B2");
-                        sheet1.Cell(cell1.Row, cell1.Column, "Direct");
+                        var cell1 = sheet1.Cell("B2");
+                        sheet1.Cell(cell1.Row, cell1.Column).SetValue("Direct");
                     }
 
                     {
-                        var cell2 = sheet1.CellAt("C" + nextRow2);
-                        sheet1.Cell(cell2.Row, cell2.Column, "Row");
+                        var cell2 = sheet1.Cell("C" + nextRow2);
+                        sheet1.Cell(cell2.Row, cell2.Column).SetValue("Row");
                     }
 
                     nextRow2++;
                     var range3 = sheet1.Range("A1:C3");
-                    sheet1.Cell(range3.CellAt(3, 3).Row, range3.CellAt(3, 3).Column, "Range cell");
+                    sheet1.Cell(range3.Cell(3, 3).Row, range3.Cell(3, 3).Column).SetValue("Range cell");
                     document.Save();
                 }
 

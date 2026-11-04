@@ -18,7 +18,7 @@ public sealed partial class OfficeWorkflowRunner {
         options.PdfLoad = (options.PdfLoad ?? request.PdfLoadOptions).Clone(request.Limits.MaximumInputBytes,
             options.PdfLoad?.Password ?? request.PdfLoadOptions.Password);
         if (!emitHtmlTaggedStructure) {
-            options.Html ??= new HtmlToPdfOptions();
+            options.Html ??= new HtmlPdfExportOptions();
             options.Html.PdfOptions.SetTaggedStructureMode(PdfTaggedStructureMode.None);
         }
         options.ResourceDirectory = Path.GetDirectoryName(Path.GetFullPath(request.InputPath));

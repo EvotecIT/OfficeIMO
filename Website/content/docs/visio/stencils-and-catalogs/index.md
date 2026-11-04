@@ -10,25 +10,16 @@ OfficeIMO.Visio can place shapes from generated catalogs, installed Visio stenci
 ## Use a built-in catalog
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Stencils;
 
 var document = VisioDocument.Create("network.vsdx");
 var page = document.AddPage("Network");
 
-var server = page.AddStencilShape(
-    VisioStencils.Network.Get("server"),
-    "server",
-    2,
-    4,
-    "Application server");
+var server = page.AddStencilShape(VisioStencils.Network.Get("server"), "server", OfficeLength.Inches(2), OfficeLength.Inches(4), "Application server");
 
-var database = page.AddStencilShape(
-    VisioStencils.Network.Get("database"),
-    "database",
-    6,
-    4,
-    "Orders database");
+var database = page.AddStencilShape(VisioStencils.Network.Get("database"), "database", OfficeLength.Inches(6), OfficeLength.Inches(4), "Orders database");
 
 page.AddConnector(
     server,

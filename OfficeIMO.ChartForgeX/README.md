@@ -33,7 +33,7 @@ document.Save();
 
 ## Produce a portable PDF chart drawing
 
-Use `OfficeVisualSvgPolicy.RequireVector` when producing a chart for the JavaScript PDF drawing block. Add the same licensed static TrueType faces to `OfficeVisualConversionOptions.Fonts` before conversion so SVG text measurement uses the faces registered during chart preparation. Call `conversion.Report.RequireNoLoss()`, then pass `conversion.Drawing` to `OfficeDrawingPortableExporter.TryExportJson` in `OfficeIMO.Core` with the selected font family. The JavaScript consumer loads those same faces separately.
+Use `OfficeVisualSvgPolicy.RequireVector` when producing a chart for the JavaScript PDF drawing block. Add the same licensed static TrueType faces to `OfficeVisualConversionOptions.Fonts` before conversion so SVG text measurement uses the faces registered during chart preparation. Call `conversion.Report.ThrowIfLoss()`, then pass `conversion.Drawing` to `OfficeDrawingPortableExporter.TryExportJson` in `OfficeIMO.Core` with the selected font family. The JavaScript consumer loads those same faces separately.
 
 This route uses the existing .NET SVG importer and canonical drawing model. The portable export rejects unsupported paint, fonts and text layout instead of dropping labels or substituting a raster image. See the [portable drawing profile](../OfficeIMO.Core/README.md#portable-report-drawings) for its limits.
 
@@ -75,11 +75,11 @@ content.AddVisualArtifact(visual);
 
 // Change placement size without rendering or importing the source again.
 slide.AddVisualArtifact(visual.WithSize(300), leftPoints: 36, topPoints: 72);
-foreach (var diagnostic in visual.Report.FidelityDiagnostics)
+foreach (var diagnostic in visual.Report.Diagnostics)
     Console.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
 ```
 
-Insertion overloads with `out OfficeVisualConversionResult` expose the conversion when inserting an artifact directly. Use that result to inspect diagnostics. `Report.RequireNoLoss()` rejects reported approximations and omissions.
+Insertion overloads with `out OfficeVisualConversionResult` expose the conversion when inserting an artifact directly. Use that result to inspect diagnostics. `Report.ThrowIfLoss()` rejects reported approximations and omissions.
 
 The default `RasterizeWhenNeeded` policy preserves appearance with vector output when supported and PNG fallback when SVG import is incomplete. Fallback remains a reported approximation, with loss of vector editability. Choose `PreserveVector` to keep the imported vector scene and report unsupported features, or `RequireVector` to reject incomplete vector conversion. Word, Excel, and PowerPoint use the selected placement payload; PDF uses the converted `OfficeDrawing` scene.
 

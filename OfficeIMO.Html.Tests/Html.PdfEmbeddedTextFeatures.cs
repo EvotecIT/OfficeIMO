@@ -27,7 +27,7 @@ public sealed class HtmlPdfEmbeddedTextFeatureTests {
         string html = "<style>@font-face{font-family:FeatureFont;src:url('data:font/"
             + (cff ? "otf" : "ttf") + ";base64," + Convert.ToBase64String(font)
             + "')}p{margin:0;font:32px FeatureFont;" + features + "}</style><p>fi</p>";
-        var options = new HtmlToPdfOptions { MaxOutlinedTextPathCommands = 1 };
+        var options = new HtmlPdfExportOptions { MaxOutlinedTextPathCommands = 1 };
 
         PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(options);
         byte[] pdf = result.ToBytes();
@@ -46,7 +46,7 @@ public sealed class HtmlPdfEmbeddedTextFeatureTests {
         string html = "<style>@font-face{font-family:FeatureFont;src:url('data:font/ttf;base64,"
             + Convert.ToBase64String(font) + "')}p{margin:0;font:32px FeatureFont;"
             + "font-feature-settings:'liga' 1;" + style + "}</style><p>fi</p>";
-        var options = new HtmlToPdfOptions { MaxOutlinedTextPathCommands = 1 };
+        var options = new HtmlPdfExportOptions { MaxOutlinedTextPathCommands = 1 };
 
         PdfCore.PdfDocumentConversionResult limited = HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(options);
         Assert.Equal("fi", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(limited.ToBytes())).ExtractText().Trim());
@@ -65,7 +65,7 @@ public sealed class HtmlPdfEmbeddedTextFeatureTests {
         byte[] font = ManagedTextShapingTestAssets.CreateColorLigatureFont('f', 'i', feature);
         string html = "<p style=\"margin:0;font:32px ColorLigature;font-feature-settings:'"
             + feature + "' 1;font-palette:" + palette + "\">fi</p>";
-        var options = new HtmlToPdfOptions();
+        var options = new HtmlPdfExportOptions();
         options.Fonts.Add("ColorLigature", font);
 
         PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(options);

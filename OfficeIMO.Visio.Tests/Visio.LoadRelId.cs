@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
 
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
-            page.Shapes.Add(new VisioShape("1", 1, 2, 3, 4, "Rectangle"));
+            page.Shapes.Add(new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(3), OfficeLength.Inches(4), "Rectangle"));
             document.Save();
 
             using (Package package = Package.Open(filePath, FileMode.Open, FileAccess.ReadWrite)) {

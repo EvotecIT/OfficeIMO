@@ -16,7 +16,7 @@ public sealed class HtmlPdfSvgFontTests {
     [InlineData("", "<g opacity='0.75'>", "</g>")]
     public void SvgTextRegistersExplicitUnicodeFontsInsideDrawingGroups(string rootAttributes, string beforeText, string afterText) {
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(PolishText.Select(character => (int)character).Distinct().ToArray());
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         };
@@ -33,8 +33,9 @@ public sealed class HtmlPdfSvgFontTests {
 
     [Fact]
     public void SvgUnicodeTextStillRequiresCoverageWhenHostFontsAreDisabled() {
-        var options = new HtmlToPdfOptions {
-            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
+        var options = new HtmlPdfExportOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         };
         const string html = "<svg xmlns='http://www.w3.org/2000/svg' width='200' height='60'><svg width='200' height='60'><text x='5' y='30'>ęłź</text></svg></svg>";
 

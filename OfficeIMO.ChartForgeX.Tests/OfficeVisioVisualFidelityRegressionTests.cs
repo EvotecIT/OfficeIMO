@@ -22,7 +22,7 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         envelope.Edges[0].Topology!.Waypoints.Clear();
         var options = new OfficeVisioVisualOptions { PixelsPerInch = 100 };
         var result = envelope.ToOfficeVisio(options);
-        Assert.Contains(result.Report.Diagnostics, item => item.Code == code);
+        Assert.Contains(result.Report.NativeDiagnostics, item => item.Code == code);
         Assert.DoesNotContain(result.Page.Shapes, shape => shape.Text == "Services");
         options.RejectedDiagnostics.Add(code);
         Assert.Throws<OfficeVisioVisualFidelityException>(() => envelope.ToOfficeVisio(options));
@@ -41,9 +41,9 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         var result = envelope.ToOfficeVisio(new OfficeVisioVisualOptions { PixelsPerInch = 100 });
         void Check(VisioPage page) {
             var caption = page.Shapes.Single(shape => shape.Text == "Top boundary");
-            Assert.InRange(caption.PinY + caption.Height / 2, 0, page.Height);
-            Assert.InRange(caption.PinX - caption.Width / 2, 0, 4);
-            Assert.InRange(caption.PinX + caption.Width / 2, 0, 4);
+            Assert.InRange(caption.PinY.ToInches() + caption.Height.ToInches() / 2, 0, page.Height.ToInches());
+            Assert.InRange(caption.PinX.ToInches() - caption.Width.ToInches() / 2, 0, 4);
+            Assert.InRange(caption.PinX.ToInches() + caption.Width.ToInches() / 2, 0, 4);
         }
         Check(result.Page);
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
@@ -63,7 +63,7 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         edge.TargetPortId = edge.SourcePortId;
         edge.Topology!.Waypoints.Clear();
         var result = envelope.ToOfficeVisio(new OfficeVisioVisualOptions { PixelsPerInch = 96 });
-        Assert.Contains(result.Report.Diagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.TitleNotProjected);
+        Assert.Contains(result.Report.NativeDiagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.TitleNotProjected);
         Assert.DoesNotContain(result.Page.Shapes, shape => shape.Text == "Services");
     }
 
@@ -73,7 +73,7 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         chart.ConfigureTheme(theme => theme.Light.Foreground = ChartColor.FromRgba(1, 2, 3, 128));
         var envelope = chart.ToVisualArtifact().ToInterchangeEnvelope();
         var result = envelope.ToOfficeVisio();
-        var losses = result.Report.Diagnostics.Where(item => item.Code == OfficeVisioVisualDiagnosticCode.ColorNotProjected).ToArray();
+        var losses = result.Report.NativeDiagnostics.Where(item => item.Code == OfficeVisioVisualDiagnosticCode.ColorNotProjected).ToArray();
         Assert.NotEmpty(losses);
         Assert.All(losses, item => {
             Assert.Equal(OfficeVisioVisualEntityKind.Artifact, item.EntityKind);
@@ -87,7 +87,7 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         var artifact = chart.ToVisualArtifact().WithWatermarks(VisualWatermark.FromText("CONFIDENTIAL"));
         var error = Assert.Throws<OfficeVisioVisualFidelityException>(() => artifact.ToOfficeVisio(
             new OfficeVisioVisualOptions { RequireLossless = true }));
-        Assert.Contains(error.Report.Diagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.WatermarkNotProjected);
-        Assert.Contains(error.Report.Diagnostics, item => item.Code != OfficeVisioVisualDiagnosticCode.WatermarkNotProjected);
+        Assert.Contains(error.Report.NativeDiagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.WatermarkNotProjected);
+        Assert.Contains(error.Report.NativeDiagnostics, item => item.Code != OfficeVisioVisualDiagnosticCode.WatermarkNotProjected);
     }
 }

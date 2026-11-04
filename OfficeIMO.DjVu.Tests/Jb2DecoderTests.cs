@@ -10,7 +10,7 @@ public sealed class Jb2DecoderTests {
         string folder = Path.Combine(AppContext.BaseDirectory, "Fixtures", "Authored");
         var document = DjVuDocument.Load(Path.Combine(folder, "symbols.djvu"));
         var page = Assert.Single(document.Pages);
-        var decoded = page.DecodeMask(new DjVuReadBudget(new DjVuReadOptions(), default));
+        var decoded = page.DecodeMask(new DjVuReadBudget(new DjVuLoadOptions(), default));
         Assert.Equal((128, 96), (decoded.Width, decoded.Height));
         Assert.NotEmpty(decoded.Placements);
         byte[] expected = ReadPbm(Path.Combine(folder, "symbols-reference.pbm"), out int width, out int height);
@@ -31,7 +31,7 @@ public sealed class Jb2DecoderTests {
     public void ArchivalSymbolsAndRefinementsRecoverExactIndependentMask() {
         string folder = Path.Combine(AppContext.BaseDirectory, "Fixtures", "Archive");
         var page = Assert.Single(DjVuDocument.Load(Path.Combine(folder, "time-machine-16.djvu")).Pages);
-        var decoded = page.DecodeMask(new DjVuReadBudget(new DjVuReadOptions(), default));
+        var decoded = page.DecodeMask(new DjVuReadBudget(new DjVuLoadOptions(), default));
         var pixels = new byte[decoded.Width * decoded.Height];
         foreach (var placement in decoded.Placements) {
             for (int y = 0; y < placement.Bitmap.Height; y++) for (int x = 0; x < placement.Bitmap.Width; x++) {

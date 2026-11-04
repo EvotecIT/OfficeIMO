@@ -20,14 +20,14 @@ internal static class RecordReadSmoke {
             throw new InvalidOperationException("Typed table reads included the totals row.");
         }
         ExcelSheet getter = document.AddSheet("Getter");
-        getter.CellValue(1, 1, "Name");
-        getter.CellValue(2, 1, " north ");
+        getter.Cell(1, 1).SetValue("Name");
+        getter.Cell(2, 1).SetValue(" north ");
         if (getter.RowsAs<GetterRow>().Single().Name != "NORTH") {
             throw new InvalidOperationException("Getter-only records skipped constructor normalization.");
         }
         ExcelSheet values = document.AddSheet("Values");
-        values.CellValue(1, 1, "Value");
-        values.CellValue(2, 1, 7);
+        values.Cell(1, 1).SetValue("Value");
+        values.Cell(2, 1).SetValue(7);
         if (values.RowsAs<ValueRow>().Single().Value != 70) {
             throw new InvalidOperationException("Record structs skipped their primary constructor.");
         }

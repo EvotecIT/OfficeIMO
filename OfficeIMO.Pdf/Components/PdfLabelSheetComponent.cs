@@ -48,7 +48,7 @@ public sealed class PdfLabelSheetComponent : IPdfComponent {
             }
             rows.Add(row);
         }
-        content.Table(rows, style: new PdfTableStyle {
+        content.AddTable(rows, style: new PdfTableStyle {
             HeaderRowCount = 0,
             RowStripeFill = null,
             CellPaddingX = global::OfficeIMO.OfficeLength.Points(10),

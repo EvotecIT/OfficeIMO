@@ -156,7 +156,7 @@ public partial class PdfReadStreamTests {
         byte[] source = PdfDocument.Create(pdf => pdf.Content(content => {
             for (int page = 1; page <= pageCount; page++) {
                 if (page > 1) content.PageBreak();
-                content.Paragraph(paragraph => paragraph.Text("Labeled split page " + page.ToString("D4", CultureInfo.InvariantCulture)));
+                content.AddParagraph(paragraph => paragraph.AddText("Labeled split page " + page.ToString("D4", CultureInfo.InvariantCulture)));
             }
         }), options).ToBytes();
 
@@ -217,7 +217,7 @@ public partial class PdfReadStreamTests {
             if (page > 1) content.PageBreak();
             string suffix = page.ToString("D4", CultureInfo.InvariantCulture);
             content.Bookmark("Bookmark " + suffix);
-            content.Paragraph(paragraph => paragraph.Text("Bookmarked split page " + suffix));
+            content.AddParagraph(paragraph => paragraph.AddText("Bookmarked split page " + suffix));
         }
     })).ToBytes();
 

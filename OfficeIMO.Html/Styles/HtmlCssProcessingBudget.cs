@@ -14,7 +14,7 @@ internal sealed class HtmlCssProcessingBudget {
         System.Func<OfficeIMO.Html.Css.IHtmlCssSelectorElement, string, bool>? providerMatcher = null,
         System.Func<string, bool>? selectorPresence = null) {
         _hasConfiguredLimits = limits != null;
-        _limits = (limits ?? HtmlConversionLimits.CreateTrustedProfile()).Clone();
+        _limits = (limits ?? new HtmlConversionLimits()).Clone();
         _selectorPresence = selectorPresence;
         SelectorMatchContext = new OfficeIMO.Html.Css.HtmlCssSelectorMatchContext(
             RecordSelectorEvaluation, default, providerMatcher);

@@ -18,11 +18,11 @@ namespace OfficeIMO.Tests {
                 WordParagraph paragraph = document.AddParagraph();
                 WordShapeGroup group = paragraph.AddShapeGroup(new[] {
                     new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(0), OfficeLength.Points(0), OfficeLength.Points(72), OfficeLength.Points(36)) {
-                        FillColorHex = "#336699",
-                        StrokeColorHex = "112233"
+                        FillColor = OfficeColor.Parse("#336699"),
+                        StrokeColor = OfficeColor.Parse("112233")
                     },
                     new WordShapeGroupItem(WordShapeType.Ellipse, OfficeLength.Points(90), OfficeLength.Points(18), OfficeLength.Points(54), OfficeLength.Points(54)) {
-                        FillColorHex = "F0A000"
+                        FillColor = OfficeColor.Parse("F0A000")
                     }
                 });
 
@@ -104,7 +104,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph().AddImage(System.IO.Path.Combine(_directoryWithImages, "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(20));
                 document.AddParagraph().AddImage(System.IO.Path.Combine(_directoryWithImages, "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(20));
                 document.AddTextBox("Allocated text box");
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
                 RequireSectionHeader(document, 0, DocumentFormat.OpenXml.Wordprocessing.HeaderFooterValues.Default)
                     .AddPageNumber(WordPageNumberStyle.VerticalOutline2);
 

@@ -24,7 +24,7 @@ public class PdfTableStreamExportContracts {
         PdfDocumentReadResult logical = source.Read();
         using var destination = new NonSeekableWriteStream();
 
-        source.SaveAsWord(destination, WordPdfImportOptions.CreateTablesOnly());
+        source.SaveAsWord(destination, PdfWordExportOptions.CreateTablesOnly());
 
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(destination.ToArray()), false);
         Assert.NotNull(package.MainDocumentPart);
@@ -47,15 +47,15 @@ public class PdfTableStreamExportContracts {
         using PdfDocument source = CreateSourceDocument();
         PdfDocumentReadResult logical = source.Read();
 
-        PdfWordConversionResult wordResult = logical.ConvertToWordWithEvidence(WordPdfImportOptions.CreateTablesOnly());
+        PdfWordConversionResult wordResult = logical.ConvertToWordWithEvidence(PdfWordExportOptions.CreateTablesOnly());
         PdfExcelTableImportResult excelResult = logical.ConvertToExcelWithEvidence();
         PdfPowerPointConversionResult powerPointResult = logical.ConvertToPowerPointWithEvidence();
 
         using var wordDocument = wordResult.Value;
         using var excelDocument = excelResult.Value;
-        Assert.Throws<InvalidOperationException>(() => wordResult.RequireNoLoss());
-        Assert.Throws<InvalidOperationException>(() => excelResult.RequireNoLoss());
-        Assert.Throws<InvalidOperationException>(() => powerPointResult.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => wordResult.ThrowIfLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => excelResult.ThrowIfLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => powerPointResult.ThrowIfLoss());
         using var powerPointPresentation = powerPointResult.Value;
         Assert.NotEmpty(wordDocument.ToBytes());
         Assert.NotEmpty(excelDocument.ToBytes());
@@ -77,7 +77,7 @@ public class PdfTableStreamExportContracts {
         using var wordStream = new MemoryStream();
         using var excelStream = new MemoryStream();
         using var powerPointStream = new MemoryStream();
-        await source.SaveAsWordAsync(wordStream, WordPdfImportOptions.CreateTablesOnly());
+        await source.SaveAsWordAsync(wordStream, PdfWordExportOptions.CreateTablesOnly());
         await source.SaveAsExcelAsync(excelStream);
         await source.SaveAsPowerPointAsync(powerPointStream);
 
@@ -96,12 +96,12 @@ public class PdfTableStreamExportContracts {
                 .Size(global::OfficeIMO.OfficeLength.Points(420D), global::OfficeIMO.OfficeLength.Points(595D))
                 .Margin(global::OfficeIMO.OfficeLength.Points(36D))
                 .Content(content => content.Column(column =>
-                    column.Item().Paragraph(paragraph => paragraph.Text("Small invoice page")))));
+                    column.Item().AddParagraph(paragraph => paragraph.AddText("Small invoice page")))));
             composer.Page(page => page
                 .Size(global::OfficeIMO.OfficeLength.Points(612D), global::OfficeIMO.OfficeLength.Points(792D))
                 .Margin(global::OfficeIMO.OfficeLength.Points(36D))
                 .Content(content => content.Column(column =>
-                    column.Item().Paragraph(paragraph => paragraph.Text("Letter invoice page")))));
+                    column.Item().AddParagraph(paragraph => paragraph.AddText("Letter invoice page")))));
         }).ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 
@@ -156,7 +156,7 @@ public class PdfTableStreamExportContracts {
         Assert.All(logical.TextBlocks.SelectMany(static block => block.Spans), static span =>
             Assert.True(span.CanProjectCompleteText(200D)));
         PdfPowerPointConversionResult result = logical.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateEditableContent());
+            PdfPowerPointExportOptions.CreateEditableContent());
         using (result.Value) {
             PdfPowerPointEditablePageEntry page = Assert.Single(result.Report.EditablePages);
             Assert.True(page.TextBoxCount > 0);
@@ -222,7 +222,7 @@ public class PdfTableStreamExportContracts {
         Assert.All(logical.TextBlocks.SelectMany(static block => block.Spans), static span =>
             Assert.True(span.CanProjectCompleteText(200D)));
 
-        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(WordPdfImportOptions.CreateTablesOnly());
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(PdfWordExportOptions.CreateTablesOnly());
         using (word.Value) {
             using WordprocessingDocument wordPackage = WordprocessingDocument.Open(new MemoryStream(word.Value.ToBytes()), false);
             DocumentFormat.OpenXml.Wordprocessing.Table importedTable = Assert.Single(
@@ -237,11 +237,11 @@ public class PdfTableStreamExportContracts {
             });
         }
 
-        PdfHtmlConversionResult html = logical.ToHtmlResult(PdfToHtmlOptions.CreateSemanticProfile());
+        PdfHtmlConversionResult html = logical.ToHtmlResult(PdfHtmlExportOptions.CreateSemanticProfile());
         Assert.Contains("<table", html.Value, StringComparison.Ordinal);
         Assert.Contains("50.00 PLN", html.Value, StringComparison.Ordinal);
 
-        PdfExcelTableImportResult excel = logical.ConvertToExcelWithEvidence(new ExcelPdfImportOptions {
+        PdfExcelTableImportResult excel = logical.ConvertToExcelWithEvidence(new PdfExcelExportOptions {
             NumericCulture = System.Globalization.CultureInfo.InvariantCulture
         });
         using (excel.Value) {
@@ -299,7 +299,7 @@ public class PdfTableStreamExportContracts {
         }
 
         PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateEditableContent());
+            PdfPowerPointExportOptions.CreateEditableContent());
         using (powerPoint.Value) {
             PdfPowerPointEditablePageEntry page = Assert.Single(powerPoint.Report.EditablePages);
             Assert.Equal(1, page.TableCount);
@@ -324,12 +324,10 @@ public class PdfTableStreamExportContracts {
     [Fact]
     public void ExcelCurrencyFormatsPreserveAffixPlacementAndSpacing() {
         byte[] source = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420D),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(420D),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(20D),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(20D),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(20D),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(20D),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420D), global::OfficeIMO.OfficeLength.Points(420D)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20D), Right = global::OfficeIMO.OfficeLength.Points(20D), Top = global::OfficeIMO.OfficeLength.Points(20D), Bottom = global::OfficeIMO.OfficeLength.Points(20D) }
+                },
                 // Supply a ruled source table; this test measures spreadsheet value/format semantics.
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11),
@@ -351,7 +349,7 @@ public class PdfTableStreamExportContracts {
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 
-        PdfExcelTableImportResult result = logical.ConvertToExcelWithEvidence(new ExcelPdfImportOptions {
+        PdfExcelTableImportResult result = logical.ConvertToExcelWithEvidence(new PdfExcelExportOptions {
             NumericCulture = System.Globalization.CultureInfo.InvariantCulture
         });
         using (result.Value) {
@@ -458,12 +456,10 @@ public class PdfTableStreamExportContracts {
     [Fact]
     public void ExcelKeepsCurrencyAffixedPercentValuesAsText() {
         byte[] source = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(300D),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(240D),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(20D),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(20D),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(20D),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(20D),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300D), global::OfficeIMO.OfficeLength.Points(240D)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20D), Right = global::OfficeIMO.OfficeLength.Points(20D), Top = global::OfficeIMO.OfficeLength.Points(20D), Bottom = global::OfficeIMO.OfficeLength.Points(20D) }
+                },
                 // Supply a ruled source table; this test measures spreadsheet value/format semantics.
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11),
@@ -477,7 +473,7 @@ public class PdfTableStreamExportContracts {
             .ToBytes(new PdfSaveOptions { AllowLoss = true });
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 
-        PdfExcelTableImportResult result = logical.ConvertToExcelWithEvidence(new ExcelPdfImportOptions {
+        PdfExcelTableImportResult result = logical.ConvertToExcelWithEvidence(new PdfExcelExportOptions {
             NumericCulture = System.Globalization.CultureInfo.InvariantCulture
         });
         using (result.Value) {
@@ -555,7 +551,7 @@ public class PdfTableStreamExportContracts {
         PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         PdfHtmlConversionResult html = logical.ToHtmlResult();
         PdfPowerPointConversionResult editable = logical.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateEditableContent());
+            PdfPowerPointExportOptions.CreateEditableContent());
         using (word.Value)
         using (editable.Value) {
             Assert.Contains(word.Report.Warnings, warning => warning.Code == code &&
@@ -568,11 +564,11 @@ public class PdfTableStreamExportContracts {
 
         PdfDocument opened = PdfDocument.Load(new System.IO.MemoryStream(bytes),
             encrypted ? new PdfLoadOptions { Password = "owner" } : null);
-        PdfWordConversionResult visualWord = opened.ConvertToWordWithEvidence(WordPdfImportOptions.CreateVisualPages());
+        PdfWordConversionResult visualWord = opened.ConvertToWordWithEvidence(PdfWordExportOptions.CreateVisualPages());
         PdfPowerPointConversionResult visualPowerPoint = opened.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateVisualPages());
+            PdfPowerPointExportOptions.CreateVisualPages());
         PdfPowerPointConversionResult hybridPowerPoint = opened.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateHybrid());
+            PdfPowerPointExportOptions.CreateHybrid());
         using (visualWord.Value)
         using (visualPowerPoint.Value)
         using (hybridPowerPoint.Value) {
@@ -594,7 +590,7 @@ public class PdfTableStreamExportContracts {
         cancellation.Cancel();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            source.SaveAsWordAsync(destination, WordPdfImportOptions.CreateTablesOnly(), cancellation.Token));
+            source.SaveAsWordAsync(destination, PdfWordExportOptions.CreateTablesOnly(), cancellation.Token));
         Assert.Equal(0, destination.Length);
     }
 
@@ -603,14 +599,14 @@ public class PdfTableStreamExportContracts {
         using PdfDocument source = CreateSourceDocument();
         PdfDocumentReadResult logical = source.Read();
         PdfDocument opened = PdfDocument.Load(new System.IO.MemoryStream(PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Opened cancellation proof"))
+            .Paragraph(paragraph => paragraph.AddText("Opened cancellation proof"))
             .ToBytes()));
         using var methodCancellation = new CancellationTokenSource();
         methodCancellation.Cancel();
 
-        var wordOptions = WordPdfImportOptions.CreateTablesOnly();
-        var excelOptions = new ExcelPdfImportOptions();
-        var powerPointOptions = PowerPointPdfImportOptions.CreateEditableTables();
+        var wordOptions = PdfWordExportOptions.CreateTablesOnly();
+        var excelOptions = new PdfExcelExportOptions();
+        var powerPointOptions = PdfPowerPointExportOptions.CreateEditableTables();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             source.SaveAsWordAsync(new MemoryStream(), wordOptions, methodCancellation.Token));
@@ -629,12 +625,10 @@ public class PdfTableStreamExportContracts {
     [Fact]
     public void TableScopeAnalysisReportsIncompleteClassificationWhenBudgetIsExhausted() {
         byte[] source = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(360)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .KeyValueTable(new[] {
@@ -715,18 +709,18 @@ public class PdfTableStreamExportContracts {
             warning.Code == (useXfa ? OfficeDiagnosticCodes.AcroFormXfaDetected : OfficeDiagnosticCodes.PdfFormDefinitionsOmitted));
 
         PdfPowerPointConversionResult hybridPowerPointResult = PdfDocument.Load(new System.IO.MemoryStream(source)).ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateHybrid());
+            PdfPowerPointExportOptions.CreateHybrid());
 
         PdfExcelTableImportResult excelResult = logical.ConvertToExcelWithEvidence();
         PdfPowerPointConversionResult powerPointResult = logical.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateEditableTables());
+            PdfPowerPointExportOptions.CreateEditableTables());
         PdfPowerPointConversionResult editablePowerPointResult = logical.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateEditableContent());
-        PdfWordConversionResult wordResult = logical.ConvertToWordWithEvidence(WordPdfImportOptions.CreateTablesOnly());
+            PdfPowerPointExportOptions.CreateEditableContent());
+        PdfWordConversionResult wordResult = logical.ConvertToWordWithEvidence(PdfWordExportOptions.CreateTablesOnly());
         PdfWordConversionResult visualWord = PdfDocument.Load(new System.IO.MemoryStream(source)).ConvertToWordWithEvidence(
-            WordPdfImportOptions.CreateVisualPages());
+            PdfWordExportOptions.CreateVisualPages());
         PdfPowerPointConversionResult visualPowerPoint = PdfDocument.Load(new System.IO.MemoryStream(source)).ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateVisualPages());
+            PdfPowerPointExportOptions.CreateVisualPages());
         using (visualWord.Value)
         using (visualPowerPoint.Value) {
             Assert.True(visualPowerPoint.Report.HasOmittedPageContent);
@@ -752,9 +746,9 @@ public class PdfTableStreamExportContracts {
             Assert.True(excelResult.Report.HasLoss);
             Assert.True(powerPointResult.Report.HasLoss);
             Assert.True(editablePowerPointResult.Report.HasLoss);
-            Assert.Throws<InvalidOperationException>(() => wordResult.RequireNoLoss());
-            Assert.Throws<InvalidOperationException>(() => excelResult.RequireNoLoss());
-            Assert.Throws<InvalidOperationException>(() => powerPointResult.RequireNoLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => wordResult.ThrowIfLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => excelResult.ThrowIfLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => powerPointResult.ThrowIfLoss());
             Assert.Contains(wordResult.Report.Warnings, static warning =>
                 warning.Code == "pdf-form-definitions-not-reconstructed");
             Assert.Contains(powerPointResult.Report.Warnings, static warning =>
@@ -778,7 +772,7 @@ public class PdfTableStreamExportContracts {
         Assert.Equal(1, scope.FormFieldCount);
         Assert.Equal(1, scope.UnplacedFormFieldCount);
 
-        PdfWordConversionResult word = opened.ConvertToWordWithEvidence(new WordPdfImportOptions {
+        PdfWordConversionResult word = opened.ConvertToWordWithEvidence(new PdfWordExportOptions {
             ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(1) }
         });
         using (word.Value) {
@@ -788,7 +782,7 @@ public class PdfTableStreamExportContracts {
                 warning.Details["UnplacedFieldCount"] == "1");
         }
 
-        PdfHtmlConversionResult html = opened.ToHtmlResult(new PdfToHtmlOptions {
+        PdfHtmlConversionResult html = opened.ToHtmlResult(new PdfHtmlExportOptions {
             PageRanges = new[] { PdfPageRange.From(1, 1) }
         });
         Assert.Contains(html.Report.Warnings, static warning =>
@@ -799,9 +793,9 @@ public class PdfTableStreamExportContracts {
     [Fact]
     public void SelectedPageTableScopeDoesNotCountFormsOnlyOnOtherPages() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("First page"))
+            .Paragraph(paragraph => paragraph.AddText("First page"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Second page"))
+            .Paragraph(paragraph => paragraph.AddText("Second page"))
             .ToBytes();
         byte[] withForm = PdfAcroFormEditor.Edit(source, edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "SecondPageOnly",
@@ -822,7 +816,7 @@ public class PdfTableStreamExportContracts {
         Assert.Equal(0, scope.UnplacedFormFieldCount);
 
         PdfDocumentReadResult full = PdfDocumentReadResult.Load(withForm);
-        var firstPageOptions = PowerPointPdfImportOptions.CreateEditableTables();
+        var firstPageOptions = PdfPowerPointExportOptions.CreateEditableTables();
         firstPageOptions.ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(1) };
         PdfPowerPointConversionResult firstPagePowerPoint = full.ConvertToPowerPointWithEvidence(firstPageOptions);
         using (firstPagePowerPoint.Value) {
@@ -831,7 +825,7 @@ public class PdfTableStreamExportContracts {
                 warning.Code == "pdf-forms-and-controls-not-editable");
         }
 
-        var secondPageOptions = PowerPointPdfImportOptions.CreateEditableTables();
+        var secondPageOptions = PdfPowerPointExportOptions.CreateEditableTables();
         secondPageOptions.ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(2) };
         PdfPowerPointConversionResult secondPagePowerPoint = full.ConvertToPowerPointWithEvidence(secondPageOptions);
         using (secondPagePowerPoint.Value) {
@@ -843,9 +837,9 @@ public class PdfTableStreamExportContracts {
     [Fact]
     public void SelectedPageConversionsDoNotReportOpenActionTargetingExcludedPage() {
         byte[] source = PdfDocument.Create(new PdfCreateOptions().SetOpenAction(pageNumber: 2))
-            .Paragraph(paragraph => paragraph.Text("First page"))
+            .Paragraph(paragraph => paragraph.AddText("First page"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Second page"))
+            .Paragraph(paragraph => paragraph.AddText("Second page"))
             .ToBytes();
         PdfDocument opened = PdfDocument.Load(new System.IO.MemoryStream(source));
         PdfDocumentReadResult full = opened.Read();
@@ -857,19 +851,19 @@ public class PdfTableStreamExportContracts {
         Assert.Null(selected.OpenAction);
         Assert.Equal(0, PdfLogicalTableAnalysis.AnalyzeExtractionScope(selected).DocumentActionCount);
 
-        PdfWordConversionResult word = opened.ConvertToWordWithEvidence(new WordPdfImportOptions {
+        PdfWordConversionResult word = opened.ConvertToWordWithEvidence(new PdfWordExportOptions {
             ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(1) }
         });
         PdfDocumentReadResult projected = full.ProjectPages(PdfPageSelection.From(1), "selection");
         Assert.Equal(0, PdfLogicalTableAnalysis.AnalyzeExtractionScope(projected).DocumentActionCount);
-        PdfWordConversionResult projectedWord = projected.ConvertToWordWithEvidence(new WordPdfImportOptions());
-        PdfHtmlConversionResult html = opened.ToHtmlResult(new PdfToHtmlOptions {
+        PdfWordConversionResult projectedWord = projected.ConvertToWordWithEvidence(new PdfWordExportOptions());
+        PdfHtmlConversionResult html = opened.ToHtmlResult(new PdfHtmlExportOptions {
             PageRanges = new[] { PdfPageRange.From(1, 1) }
         });
-        var visualWordOptions = WordPdfImportOptions.CreateVisualPages();
+        var visualWordOptions = PdfWordExportOptions.CreateVisualPages();
         visualWordOptions.ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(1) };
         PdfWordConversionResult visualWord = opened.ConvertToWordWithEvidence(visualWordOptions);
-        var visualPowerPointOptions = PowerPointPdfImportOptions.CreateVisualPages();
+        var visualPowerPointOptions = PdfPowerPointExportOptions.CreateVisualPages();
         visualPowerPointOptions.ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(1) };
         PdfPowerPointConversionResult visualPowerPoint = opened.ConvertToPowerPointWithEvidence(visualPowerPointOptions);
         using (word.Value)
@@ -911,11 +905,11 @@ public class PdfTableStreamExportContracts {
 
         PdfExcelTableImportResult excel = logical.ConvertToExcelWithEvidence();
         PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateEditableTables());
+            PdfPowerPointExportOptions.CreateEditableTables());
         PdfPowerPointConversionResult editablePowerPoint = logical.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateEditableContent());
+            PdfPowerPointExportOptions.CreateEditableContent());
         PdfPowerPointConversionResult hybridPowerPoint = PdfDocument.Load(new System.IO.MemoryStream(source)).ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateHybrid());
+            PdfPowerPointExportOptions.CreateHybrid());
         using (excel.Value)
         using (powerPoint.Value)
         using (editablePowerPoint.Value)
@@ -967,9 +961,9 @@ public class PdfTableStreamExportContracts {
 
         PdfExcelTableImportResult excelResult = logical.ConvertToExcelWithEvidence();
         PdfPowerPointConversionResult powerPointResult = logical.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateEditableTables());
+            PdfPowerPointExportOptions.CreateEditableTables());
         PdfPowerPointConversionResult hybridResult = PdfDocument.Load(new System.IO.MemoryStream(source)).ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateHybrid());
+            PdfPowerPointExportOptions.CreateHybrid());
         using (excelResult.Value)
         using (powerPointResult.Value)
         using (hybridResult.Value) {
@@ -988,7 +982,7 @@ public class PdfTableStreamExportContracts {
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(PdfDocument.Create().ToBytes());
         logical.Metadata.Title = "Invoice";
         logical.Metadata.Author = "Accounts payable";
-        PdfWordConversionResult result = logical.ConvertToWordWithEvidence(WordPdfImportOptions.CreateTablesOnly());
+        PdfWordConversionResult result = logical.ConvertToWordWithEvidence(PdfWordExportOptions.CreateTablesOnly());
         using (result.Value) {
             Assert.True(result.Report.HasLoss);
             Assert.Contains(result.Report.Warnings, static warning =>
@@ -999,10 +993,10 @@ public class PdfTableStreamExportContracts {
 
 
         PdfDocument opened = PdfDocument.Load(new System.IO.MemoryStream(PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Invoice"))
+            .Paragraph(paragraph => paragraph.AddText("Invoice"))
             .ToBytes()))
-            .UpdateMetadata(title: "Invoice");
-        WordPdfImportOptions visualOptions = WordPdfImportOptions.CreateVisualPages();
+            .UpdateProperties(title: "Invoice");
+        PdfWordExportOptions visualOptions = PdfWordExportOptions.CreateVisualPages();
         visualOptions.IncludeMetadata = false;
         PdfWordConversionResult visualResult = opened.ConvertToWordWithEvidence(visualOptions);
         using (visualResult.Value) {
@@ -1015,11 +1009,11 @@ public class PdfTableStreamExportContracts {
     [Fact]
     public void WordAndHtmlReportUnsupportedInfoAndXmpMetadata() {
         PdfDocumentReadResult infoMetadata = PdfDocumentReadResult.Load(PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Metadata source"))
+            .Paragraph(paragraph => paragraph.AddText("Metadata source"))
             .ToBytes());
         infoMetadata.Metadata.CreationDate = new DateTimeOffset(2026, 9, 16, 0, 0, 0, TimeSpan.Zero);
-        PdfWordConversionResult word = infoMetadata.ConvertToWordWithEvidence(new WordPdfImportOptions());
-        PdfHtmlConversionResult html = infoMetadata.ToHtmlResult(new PdfToHtmlOptions());
+        PdfWordConversionResult word = infoMetadata.ConvertToWordWithEvidence(new PdfWordExportOptions());
+        PdfHtmlConversionResult html = infoMetadata.ToHtmlResult(new PdfHtmlExportOptions());
         using (word.Value) {
             Assert.Contains(word.Report.Warnings, static warning =>
                 warning.Code == "pdf-metadata-not-imported" &&
@@ -1031,12 +1025,12 @@ public class PdfTableStreamExportContracts {
             warning.LossKind == OfficeConversionLossKind.Omission);
 
         byte[] xmpSource = PdfDocument.Create(new PdfCreateOptions().SetPdfAIdentification(3, "B"))
-            .Paragraph(paragraph => paragraph.Text("XMP source"))
+            .Paragraph(paragraph => paragraph.AddText("XMP source"))
             .ToBytes();
         PdfDocumentReadResult xmp = PdfDocumentReadResult.Load(xmpSource);
         Assert.NotNull(xmp.XmpMetadata);
-        PdfWordConversionResult xmpWord = xmp.ConvertToWordWithEvidence(new WordPdfImportOptions());
-        PdfHtmlConversionResult xmpHtml = xmp.ToHtmlResult(new PdfToHtmlOptions());
+        PdfWordConversionResult xmpWord = xmp.ConvertToWordWithEvidence(new PdfWordExportOptions());
+        PdfHtmlConversionResult xmpHtml = xmp.ToHtmlResult(new PdfHtmlExportOptions());
         using (xmpWord.Value) {
             Assert.Contains(xmpWord.Report.Warnings, static warning =>
                 warning.Code == "pdf-metadata-not-imported" &&
@@ -1050,9 +1044,9 @@ public class PdfTableStreamExportContracts {
     [Fact]
     public void TableAndPowerPointConversionsReportOmittedDocumentMetadata() {
         PdfDocument opened = PdfDocument.Load(new System.IO.MemoryStream(PdfDocument.Create()
-                .Paragraph(paragraph => paragraph.Text("Invoice metadata source"))
+                .Paragraph(paragraph => paragraph.AddText("Invoice metadata source"))
                 .ToBytes()))
-            .UpdateMetadata(title: "Invoice", author: "Accounts payable");
+            .UpdateProperties(title: "Invoice", author: "Accounts payable");
         PdfDocumentReadResult logical = opened.Read();
         PdfTableExtractionScopeReport scope = PdfLogicalTableAnalysis.AnalyzeExtractionScope(logical);
         Assert.True(scope.HasDocumentMetadata);
@@ -1060,27 +1054,27 @@ public class PdfTableStreamExportContracts {
 
         PdfExcelTableImportResult excel = logical.ConvertToExcelWithEvidence();
         PdfPowerPointConversionResult tables = logical.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateEditableTables());
+            PdfPowerPointExportOptions.CreateEditableTables());
         PdfPowerPointConversionResult editable = logical.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateEditableContent());
+            PdfPowerPointExportOptions.CreateEditableContent());
         PdfPowerPointConversionResult hybrid = opened.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateHybrid());
+            PdfPowerPointExportOptions.CreateHybrid());
         PdfPowerPointConversionResult visual = opened.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateVisualPages());
+            PdfPowerPointExportOptions.CreateVisualPages());
         using (excel.Value)
         using (tables.Value)
         using (editable.Value)
         using (hybrid.Value)
         using (visual.Value) {
             Assert.True(excel.HasLoss);
-            Assert.Throws<InvalidOperationException>(() => excel.RequireNoLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => excel.ThrowIfLoss());
             Assert.All(new[] { tables, editable, hybrid, visual }, static result => {
                 Assert.True(result.HasLoss);
                 Assert.True(result.HasOmittedPageContent);
                 Assert.Contains(result.Warnings, static warning =>
                     warning.Code == "pdf-metadata-not-reconstructed" &&
                     warning.LossKind == OfficeConversionLossKind.Omission);
-                Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+                Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
             });
         }
     }
@@ -1098,7 +1092,7 @@ public class PdfTableStreamExportContracts {
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 
         PdfPowerPointConversionResult result = logical.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateEditableContent());
+            PdfPowerPointExportOptions.CreateEditableContent());
 
         using (result.Value) {
             Assert.Single(logical.Pages);
@@ -1485,7 +1479,7 @@ public class PdfTableStreamExportContracts {
 
     private static PdfDocument CreateSourceDocument() {
         return PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Non-seekable table export proof"));
+            .Paragraph(paragraph => paragraph.AddText("Non-seekable table export proof"));
     }
 
     private static byte[] BuildPatternWithClippedForm(bool hiddenByClip) {

@@ -209,7 +209,7 @@ Describe 'Expanded OfficeIMO support' {
         }
 
         $signed = Get-OfficeOpenDocument -Path $signedPath
-        $signed.Metadata.Title = 'Invalidates the preserved signature'
+        $signed.Properties.Title = 'Invalidates the preserved signature'
         $odfSaveOptionsType = Get-TestPSWriteOfficeType -AssemblyName 'OfficeIMO.OpenDocument' -TypeName 'OfficeIMO.OpenDocument.OdfSaveOptions' -CommandName 'Save-OfficeOpenDocument'
         $saveOptions = [Activator]::CreateInstance($odfSaveOptionsType)
         $saveOptions.SignatureHandling = 'RemoveInvalidated'

@@ -15,7 +15,7 @@ Update-OfficePowerPointText [-OldValue] <string> [-NewValue] <string> [-Document
 ```
 
 ## DESCRIPTION
-Uses the current slide inside PowerPointSlide and the current document inside an open document block. Notes are included only with IncludeNotes.
+Uses the current slide inside PowerPointSlide and the current document inside an open document block. Matching is case-sensitive. Notes are included only with IncludeNotes.
 
 ## EXAMPLES
 

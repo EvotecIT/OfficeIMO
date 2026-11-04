@@ -129,13 +129,13 @@ public sealed class AdfTaskProjectionTests {
         Assert.Equal("- [x] Ready", markdown.Value.Replace("\r\n", "\n"));
         Assert.False(markdown.Report.IsLossless);
         AdfConversionDiagnostic diagnostic = Assert.Single(
-            markdown.Report.Diagnostics,
+            markdown.Report.NativeDiagnostics,
             item => item.Code == "ADF_TASK_LOCAL_IDS_REGENERATED");
         Assert.Equal("$.content[0]", diagnostic.Path);
-        OfficeConversionFidelityDiagnostic fidelity = Assert.Single(markdown.Report.FidelityDiagnostics,
+        OfficeDiagnostic fidelity = Assert.Single(markdown.Report.Diagnostics,
             item => item.Code == diagnostic.Code);
         Assert.Equal(OfficeConversionLossKind.Omission, fidelity.LossKind);
-        Assert.Throws<InvalidOperationException>(markdown.Report.RequireNoLoss);
+        Assert.ThrowsAny<OfficeConversionException>(markdown.Report.ThrowIfLoss);
         AdfNode projectedList = Assert.Single(roundTrip.Value.Content);
         AdfNode projectedItem = Assert.Single(projectedList.Content);
         Assert.NotEqual("list-1", projectedList.GetStringAttribute("localId"));

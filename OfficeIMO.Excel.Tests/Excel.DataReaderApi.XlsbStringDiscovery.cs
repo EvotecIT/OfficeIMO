@@ -70,14 +70,14 @@ namespace OfficeIMO.Excel.Tests {
         private static byte[] CreateStringDiscoveryWorkbook(int recordType, ushort[] units, string? failure = null) {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Text");
-            sheet.CellValue(1, 2, "Value");
-            sheet.CellValue(2, 1, "Ready");
-            sheet.CellValue(2, 2, 42);
-            sheet.CellValue(3, 1, "Replace");
-            sheet.CellValue(3, 2, 43);
-            sheet.CellValue(4, 1, "After");
-            sheet.CellValue(4, 2, 44);
+            sheet.Cell(1, 1).SetValue("Text");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("Ready");
+            sheet.Cell(2, 2).SetValue(42);
+            sheet.Cell(3, 1).SetValue("Replace");
+            sheet.Cell(3, 2).SetValue(43);
+            sheet.Cell(4, 1).SetValue("After");
+            sheet.Cell(4, 2).SetValue(44);
             byte[] original = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb,  XlsbUseSharedStrings = false });
             using MemoryStream package = new MemoryStream();
             package.Write(original, 0, original.Length);

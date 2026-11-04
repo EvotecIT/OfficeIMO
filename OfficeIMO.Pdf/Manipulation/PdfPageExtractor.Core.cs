@@ -6,7 +6,7 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfPageExtractor {
     internal static byte[] ExtractPages(
         Dictionary<int, PdfIndirectObject> sourceObjects,
-        PdfMetadata metadata,
+        PdfDocumentProperties metadata,
         int[] pageObjectNumbers,
         Dictionary<int, Dictionary<string, PdfObject>>? pageOverrides = null,
         IEnumerable<AdditionalObject>? additionalObjects = null,
@@ -203,14 +203,7 @@ internal static partial class PdfPageExtractor {
             ? AssembleBounded(objects, catalogId, infoId, fileVersion, maximumOutputBytes.Value, cancellationToken)
             : Assemble(objects, catalogId, infoId, fileVersion, cancellationToken);
         if (catalogState.SourceEncryption is { } encryption) {
-            PdfStructuralMarkerCounts generated = PdfSyntax.InspectStructuralMarkers(result, encryption.ReadOptions.Limits);
-            var growth = new PdfGeneratedOutputGrowth(
-                minimumRawStreamBytes: generated.MaximumRawStreamBytes,
-                minimumObjectCharacters: generated.MaximumObjectCharacters,
-                minimumTokensPerObject: generated.MaximumObjectCharacters);
-            result = encryption.Protect(result, maximumOutputBytes,
-                generatedReadOptions: PdfLoadOptions.WithGeneratedOutputGrowth(encryption.ReadOptions, objects.Count, growth),
-                cancellationToken: cancellationToken);
+            result = encryption.ProtectGenerated(result, maximumOutputBytes, cancellationToken);
         }
         cancellationToken.ThrowIfCancellationRequested();
         captureObjectNumbers?.Invoke(numberMap);

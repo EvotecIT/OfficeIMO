@@ -41,7 +41,7 @@ public class PdfInvoiceProfileConsistencyTests {
         byte[] xml = Cii((InvoiceProfile)profile);
         var options = new PdfCreateOptions().UseFacturX(xml, textFallbacks: PdfTextFallbackFeatures.None);
         Assert.Equal(expected, options.ElectronicInvoiceMetadata!.ConformanceLevel);
-        byte[] pdf = PdfDocument.Create(options).Paragraph(p => p.Text("Invoice profile test")).ToBytes();
+        byte[] pdf = PdfDocument.Create(options).Paragraph(p => p.AddText("Invoice profile test")).ToBytes();
         Assert.Equal(xml, PdfAttachmentExtractor.ExtractAttachments(pdf).Single().Bytes);
         var report = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.FacturX, pdf);
         Assert.Equal(PdfComplianceRequirementStatus.Satisfied,
@@ -72,7 +72,7 @@ public class PdfInvoiceProfileConsistencyTests {
     [Fact]
     public void SavedArtifactReadbackDetectsMetadataTampering() {
         byte[] generated = PdfDocument.Create(new PdfCreateOptions().UseFacturX(Cii(InvoiceProfile.En16931), textFallbacks: PdfTextFallbackFeatures.None))
-            .Paragraph(p => p.Text("Invoice profile test")).ToBytes();
+            .Paragraph(p => p.AddText("Invoice profile test")).ToBytes();
         string original = PdfEncoding.Latin1GetString(generated);
         // Keep stream and xref offsets unchanged; only change the invoice profile value.
         string tampered = original.Replace("<fx:ConformanceLevel>EN 16931</fx:ConformanceLevel>", "<fx:ConformanceLevel>BASIC   </fx:ConformanceLevel>");
@@ -96,7 +96,7 @@ public class PdfInvoiceProfileConsistencyTests {
     public void UnrelatedAttachmentPayloadAndMimeDoNotChangeInvoiceProfileAgreement(bool emptyPayload) {
         var options = new PdfCreateOptions().UseFacturX(Cii(InvoiceProfile.En16931), textFallbacks: PdfTextFallbackFeatures.None)
             .AddEmbeddedFile("support.txt", new byte[] { 88 }, "text/plain", PdfAssociatedFileRelationship.Supplement);
-        byte[] generated = PdfDocument.Create(options).Paragraph(p => p.Text("Invoice")).ToBytes();
+        byte[] generated = PdfDocument.Create(options).Paragraph(p => p.AddText("Invoice")).ToBytes();
         string original = PdfEncoding.Latin1GetString(generated);
         byte[] pdf;
         if (emptyPayload) {
@@ -131,7 +131,7 @@ public class PdfInvoiceProfileConsistencyTests {
         const string padding = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
         const string canonical = "<fx:ConformanceLevel>EN 16931</fx:ConformanceLevel>";
         byte[] generated = PdfDocument.Create(new PdfCreateOptions().UseFacturX(Cii(InvoiceProfile.En16931), textFallbacks: PdfTextFallbackFeatures.None))
-            .Meta(title: padding).Paragraph(p => p.Text("Invoice")).ToBytes();
+            .Meta(title: padding).Paragraph(p => p.AddText("Invoice")).ToBytes();
         string original = PdfEncoding.Latin1GetString(generated);
         string tampered = original.Replace(canonical, property)
             .Replace(">" + padding + "</rdf:li>", ">" + padding.Substring(property.Length - canonical.Length) + "</rdf:li>");
@@ -145,7 +145,7 @@ public class PdfInvoiceProfileConsistencyTests {
     [Fact]
     public void MetadataChangedAfterDocumentCreationIsCheckedBeforeSerialization() {
         var document = PdfDocument.Create(new PdfCreateOptions().UseFacturX(Cii(InvoiceProfile.En16931), textFallbacks: PdfTextFallbackFeatures.None))
-            .ElectronicInvoiceMetadata("BASIC").Paragraph(p => p.Text("Invoice"));
+            .ElectronicInvoiceMetadata("BASIC").Paragraph(p => p.AddText("Invoice"));
         Assert.Throws<ArgumentException>(() => document.ToBytes());
     }
 

@@ -14,13 +14,13 @@ public static partial class PdfHtmlConverterExtensions {
     /// <summary>
     /// Renders an already loaded logical PDF model as HTML.
     /// </summary>
-    internal static string ToHtml(this PdfCore.PdfDocumentReadResult document, PdfToHtmlOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+    internal static string ToHtml(this PdfCore.PdfDocumentReadResult document, PdfHtmlExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         return document.ToHtmlResult(options, cancellationToken).Value;
     }
 
     /// <summary>Renders a logical PDF document, saves the HTML as UTF-8 without a byte-order mark, and returns conversion diagnostics.</summary>
-    internal static OfficeOutputResult<PdfCore.PdfConversionReport> SaveAsHtml(this PdfCore.PdfDocumentReadResult document, string path, PdfToHtmlOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+    internal static OfficeOutputResult<PdfCore.PdfConversionReport> SaveAsHtml(this PdfCore.PdfDocumentReadResult document, string path, PdfHtmlExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfHtmlConversionResult result = document.ToHtmlResult(options, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
@@ -29,7 +29,7 @@ public static partial class PdfHtmlConverterExtensions {
     }
 
     /// <summary>Renders a logical PDF document, writes HTML to a caller-owned stream, and returns conversion diagnostics.</summary>
-    internal static OfficeOutputResult<PdfCore.PdfConversionReport> SaveAsHtml(this PdfCore.PdfDocumentReadResult document, Stream stream, PdfToHtmlOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+    internal static OfficeOutputResult<PdfCore.PdfConversionReport> SaveAsHtml(this PdfCore.PdfDocumentReadResult document, Stream stream, PdfHtmlExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfHtmlConversionResult result = document.ToHtmlResult(options, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
@@ -41,7 +41,7 @@ public static partial class PdfHtmlConverterExtensions {
     internal static async Task<OfficeOutputResult<PdfCore.PdfConversionReport>> SaveAsHtmlAsync(
         this PdfCore.PdfDocumentReadResult document,
         string path,
-        PdfToHtmlOptions? options = null,
+        PdfHtmlExportOptions? options = null,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         cancellationToken.ThrowIfCancellationRequested();
@@ -55,7 +55,7 @@ public static partial class PdfHtmlConverterExtensions {
     internal static async Task<OfficeOutputResult<PdfCore.PdfConversionReport>> SaveAsHtmlAsync(
         this PdfCore.PdfDocumentReadResult document,
         Stream stream,
-        PdfToHtmlOptions? options = null,
+        PdfHtmlExportOptions? options = null,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         cancellationToken.ThrowIfCancellationRequested();
@@ -67,7 +67,7 @@ public static partial class PdfHtmlConverterExtensions {
 
 
 
-    private static PdfCore.PdfPageRange[] CopyPageRanges(PdfToHtmlOptions options) {
+    private static PdfCore.PdfPageRange[] CopyPageRanges(PdfHtmlExportOptions options) {
         IReadOnlyList<PdfCore.PdfPageRange>? ranges = options.PageRanges;
         if (ranges == null || ranges.Count == 0) {
             return Array.Empty<PdfCore.PdfPageRange>();
@@ -83,7 +83,7 @@ public static partial class PdfHtmlConverterExtensions {
 
     private static PdfCore.PdfDocumentReadResult ReadForHtml(
         PdfCore.PdfDocument document,
-        PdfToHtmlOptions? options,
+        PdfHtmlExportOptions? options,
         CancellationToken cancellationToken = default) {
         PdfCore.PdfPageRange[] ranges = options is null
             ? Array.Empty<PdfCore.PdfPageRange>()
@@ -95,14 +95,14 @@ public static partial class PdfHtmlConverterExtensions {
         return document.Read(PdfCore.PdfLoadOptions.WithPageSelection(configured, selection), cancellationToken);
     }
 
-    private static PdfToHtmlOptions CreateRenderOptionsAfterPreselection(PdfToHtmlOptions? options, PdfCore.PdfDocument document) {
-        PdfToHtmlOptions renderOptions = (options ?? new PdfToHtmlOptions()).CloneForConversion();
+    private static PdfHtmlExportOptions CreateRenderOptionsAfterPreselection(PdfHtmlExportOptions? options, PdfCore.PdfDocument document) {
+        PdfHtmlExportOptions renderOptions = (options ?? new PdfHtmlExportOptions()).CloneForConversion();
         renderOptions.VisualSource = document;
         renderOptions.PageRanges = null;
         return renderOptions;
     }
 
-    private static string RenderSemanticDocument(PdfCore.PdfDocumentReadResult document, IReadOnlyList<PdfCore.PdfLogicalPage> pages, PdfToHtmlOptions options) {
+    private static string RenderSemanticDocument(PdfCore.PdfDocumentReadResult document, IReadOnlyList<PdfCore.PdfLogicalPage> pages, PdfHtmlExportOptions options) {
         StringBuilder builder = CreateOutputBuilder(options);
         AppendDocumentStart(builder, document, options, positioned: false);
         if (options.EmitDocumentShell) {
@@ -142,7 +142,7 @@ public static partial class PdfHtmlConverterExtensions {
         return NormalizeOutputNewLinesWithinBudget(builder, options);
     }
 
-    private static string RenderPositionedReviewDocument(PdfCore.PdfDocumentReadResult document, IReadOnlyList<PdfCore.PdfLogicalPage> pages, PdfToHtmlOptions options) {
+    private static string RenderPositionedReviewDocument(PdfCore.PdfDocumentReadResult document, IReadOnlyList<PdfCore.PdfLogicalPage> pages, PdfHtmlExportOptions options) {
         StringBuilder builder = CreateOutputBuilder(options);
         AppendDocumentStart(builder, document, options, positioned: true);
         if (options.EmitDocumentShell) {
@@ -167,7 +167,7 @@ public static partial class PdfHtmlConverterExtensions {
         return NormalizeOutputNewLinesWithinBudget(builder, options);
     }
 
-    private static IReadOnlyList<PdfCore.PdfLogicalPage> GetRenderPages(PdfCore.PdfDocumentReadResult document, PdfToHtmlOptions options) {
+    private static IReadOnlyList<PdfCore.PdfLogicalPage> GetRenderPages(PdfCore.PdfDocumentReadResult document, PdfHtmlExportOptions options) {
         PdfCore.PdfPageRange[] ranges = CopyPageRanges(options);
         if (ranges.Length == 0) {
             return document.Pages;
@@ -196,18 +196,18 @@ public static partial class PdfHtmlConverterExtensions {
 
     private static int[] ExpandPageRanges(PdfCore.PdfPageRange[] pageRanges, int pageCount) {
         if (pageRanges.Length == 0) {
-            throw new ArgumentException("At least one page range must be specified.", nameof(PdfToHtmlOptions.PageRanges));
+            throw new ArgumentException("At least one page range must be specified.", nameof(PdfHtmlExportOptions.PageRanges));
         }
 
         var pages = new List<int>();
         for (int i = 0; i < pageRanges.Length; i++) {
             PdfCore.PdfPageRange range = pageRanges[i];
             if (range.FirstPage < 1 || range.LastPage < range.FirstPage) {
-                throw new ArgumentOutOfRangeException(nameof(PdfToHtmlOptions.PageRanges), "Page ranges must be inclusive one-based ranges.");
+                throw new ArgumentOutOfRangeException(nameof(PdfHtmlExportOptions.PageRanges), "Page ranges must be inclusive one-based ranges.");
             }
 
             if (range.LastPage > pageCount) {
-                throw new ArgumentOutOfRangeException(nameof(PdfToHtmlOptions.PageRanges), "Page range cannot exceed the document page count.");
+                throw new ArgumentOutOfRangeException(nameof(PdfHtmlExportOptions.PageRanges), "Page range cannot exceed the document page count.");
             }
 
             for (int pageNumber = range.FirstPage; pageNumber <= range.LastPage; pageNumber++) {
@@ -218,7 +218,7 @@ public static partial class PdfHtmlConverterExtensions {
         return pages.ToArray();
     }
 
-    private static void AppendDocumentStart(StringBuilder builder, PdfCore.PdfDocumentReadResult document, PdfToHtmlOptions options, bool positioned) {
+    private static void AppendDocumentStart(StringBuilder builder, PdfCore.PdfDocumentReadResult document, PdfHtmlExportOptions options, bool positioned) {
         if (!options.EmitDocumentShell) {
             return;
         }
@@ -272,7 +272,7 @@ public static partial class PdfHtmlConverterExtensions {
         builder.AppendLine("</style>");
     }
 
-    private static void AppendBodyStart(StringBuilder builder, PdfToHtmlOptions options, bool positioned) {
+    private static void AppendBodyStart(StringBuilder builder, PdfHtmlExportOptions options, bool positioned) {
         PdfHtmlProfileContract contract = PdfHtmlProfileContracts.Get(options.Profile);
         builder.Append("<body class=\"");
         builder.Append(HtmlAttribute(OfficeHtmlDocumentShell.MergeBodyClasses(
@@ -286,7 +286,7 @@ public static partial class PdfHtmlConverterExtensions {
         builder.AppendLine("\">");
     }
 
-    private static void AppendOutlineNavigation(StringBuilder builder, PdfCore.PdfDocumentReadResult document, IReadOnlyList<PdfCore.PdfLogicalPage> pages, PdfToHtmlOptions options) {
+    private static void AppendOutlineNavigation(StringBuilder builder, PdfCore.PdfDocumentReadResult document, IReadOnlyList<PdfCore.PdfLogicalPage> pages, PdfHtmlExportOptions options) {
         if (!options.IncludeOutlines || document.Outlines.Count == 0) {
             return;
         }
@@ -485,7 +485,7 @@ public static partial class PdfHtmlConverterExtensions {
         return GetPageAnchorId(pageNumber);
     }
 
-    private static void AppendAcroFormXfaNotice(StringBuilder builder, PdfCore.PdfDocumentReadResult document, PdfToHtmlOptions options) {
+    private static void AppendAcroFormXfaNotice(StringBuilder builder, PdfCore.PdfDocumentReadResult document, PdfHtmlExportOptions options) {
         if (!document.HasAcroFormXfa || document.AcroFormXfa is null) {
             return;
         }
@@ -563,7 +563,7 @@ public static partial class PdfHtmlConverterExtensions {
         builder.AppendLine("</p>");
     }
 
-    private static string? FormatStringList(IReadOnlyList<string> values, PdfToHtmlOptions options) {
+    private static string? FormatStringList(IReadOnlyList<string> values, PdfHtmlExportOptions options) {
         if (values.Count == 0) {
             return null;
         }
@@ -584,7 +584,7 @@ public static partial class PdfHtmlConverterExtensions {
         return builder.Length == 0 ? null : builder.ToString();
     }
 
-    private static void AppendSemanticPage(StringBuilder builder, PdfCore.PdfLogicalPage page, PdfToHtmlOptions options) {
+    private static void AppendSemanticPage(StringBuilder builder, PdfCore.PdfLogicalPage page, PdfHtmlExportOptions options) {
         List<HtmlItem> items = BuildSemanticPageItems(page, options);
         items.Sort(CompareHtmlItems);
         for (int i = 0; i < items.Count; i++) {
@@ -592,7 +592,7 @@ public static partial class PdfHtmlConverterExtensions {
         }
     }
 
-    private static List<HtmlItem> BuildSemanticPageItems(PdfCore.PdfLogicalPage page, PdfToHtmlOptions options) {
+    private static List<HtmlItem> BuildSemanticPageItems(PdfCore.PdfLogicalPage page, PdfHtmlExportOptions options) {
         var items = new List<HtmlItem>();
         IReadOnlyList<PdfCore.PdfLogicalReadingOrderItem> projection = PdfCore.PdfLogicalReadingOrderAnalysis.Analyze(
             page, PdfCore.PdfLogicalReadingOrderScope.PageContent);
@@ -727,7 +727,7 @@ public static partial class PdfHtmlConverterExtensions {
 
     private static string RenderSemanticTable(
         PdfCore.PdfLogicalTable table,
-        PdfToHtmlOptions options,
+        PdfHtmlExportOptions options,
         long retainedHtmlCharacters) {
         if (table.Rows.Count == 0) {
             return string.Empty;
@@ -778,7 +778,7 @@ public static partial class PdfHtmlConverterExtensions {
     private static string RenderImageFigure(
         PdfCore.PdfLogicalPage page,
         PdfCore.PdfLogicalImage image,
-        PdfToHtmlOptions options,
+        PdfHtmlExportOptions options,
         long retainedHtmlCharacters) {
         bool hasSafePlacement = TrySelectSafeImagePlacement(
             page,
@@ -832,7 +832,7 @@ public static partial class PdfHtmlConverterExtensions {
     private static bool TrySelectSafeImagePlacement(
         PdfCore.PdfLogicalPage page,
         PdfCore.PdfLogicalImage image,
-        PdfToHtmlOptions options,
+        PdfHtmlExportOptions options,
         out PdfCore.PdfImagePlacementImportAssessment selected,
         out bool hasVisiblePlacement,
         out PdfCore.PdfImagePlacement? selectedPlacement) {
@@ -889,7 +889,7 @@ public static partial class PdfHtmlConverterExtensions {
         builder.Append(");");
     }
 
-    private static void ReportHtmlImagePageRotationOmission(PdfCore.PdfLogicalImage image, PdfToHtmlOptions options) {
+    private static void ReportHtmlImagePageRotationOmission(PdfCore.PdfLogicalImage image, PdfHtmlExportOptions options) {
         AddWarning(options, OfficeDiagnosticCodes.ImagePageRotationNotSafelyEditable,
             "Page " + image.PageNumber.ToString(CultureInfo.InvariantCulture) + "/Image",
             "The raw PDF image was not embedded because the rotated page would display its pixels in a different orientation in HTML.",
@@ -911,7 +911,7 @@ public static partial class PdfHtmlConverterExtensions {
     private static void ReportHtmlImagePlacementAssessment(
         PdfCore.PdfLogicalImage image,
         PdfCore.PdfImagePlacementImportAssessment assessment,
-        PdfToHtmlOptions options,
+        PdfHtmlExportOptions options,
         bool imageEmbedded = false) {
         string source = "Page " + image.PageNumber.ToString(CultureInfo.InvariantCulture) + "/Image";
         var details = new Dictionary<string, string> {
@@ -987,7 +987,7 @@ public static partial class PdfHtmlConverterExtensions {
 
     private static bool TryBuildEmbeddedImageDataUri(
         PdfCore.PdfLogicalImage image,
-        PdfToHtmlOptions options,
+        PdfHtmlExportOptions options,
         int remainingItemCharacters,
         out string? source) {
         source = null;
@@ -1040,7 +1040,7 @@ public static partial class PdfHtmlConverterExtensions {
         List<HtmlItem> items,
         IReadOnlyDictionary<(PdfCore.PdfLogicalReadingOrderKind Kind, int SourceIndex, int PlacementIndex), int> readingOrder,
         HashSet<PdfCore.PdfLogicalTextBlock> listOwnedLines,
-        PdfToHtmlOptions options,
+        PdfHtmlExportOptions options,
         ref int sequence,
         ref long retainedHtmlCharacters) {
         for (int i = 0; i < page.TextBlocks.Count; i++) {
@@ -1055,7 +1055,7 @@ public static partial class PdfHtmlConverterExtensions {
 
     private static string RenderSemanticTextBlock(
         PdfCore.PdfLogicalTextBlock block,
-        PdfToHtmlOptions options,
+        PdfHtmlExportOptions options,
         long retainedHtmlCharacters) => RenderPageItemWithinBudget(options, retainedHtmlCharacters, builder => {
             (string Prefix, string Suffix) = block.Kind switch {
                 PdfCore.PdfLogicalElementKind.Header => ("<header class=\"pdf-header\">", "</header>"),
@@ -1415,7 +1415,7 @@ public static partial class PdfHtmlConverterExtensions {
     }
 
     private static void AddWarning(
-        PdfToHtmlOptions options,
+        PdfHtmlExportOptions options,
         string code,
         string message,
         PdfCore.PdfConversionWarningSeverity severity,
@@ -1423,7 +1423,7 @@ public static partial class PdfHtmlConverterExtensions {
         AddWarning(options, code, "PDF to HTML", message, severity, lossKind, details: null);
 
     private static void AddWarning(
-        PdfToHtmlOptions options,
+        PdfHtmlExportOptions options,
         string code,
         string source,
         string message,

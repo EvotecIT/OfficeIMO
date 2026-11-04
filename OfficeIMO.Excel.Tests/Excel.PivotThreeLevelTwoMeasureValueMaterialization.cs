@@ -66,9 +66,9 @@ namespace OfficeIMO.Tests
             {
                 var source = document.AddSheet("Source");
                 PopulateThreeLevelPivotSource(source, ThreeLevelTopTwoRows);
-                source.CellValue(1, 5, "Units");
+                source.Cell(1, 5).SetValue("Units");
                 for (int index = 0; index < ThreeLevelTopTwoRows.Length; index++)
-                    source.CellValue(index + 2, 5, index is >= 3 and <= 8 ? 10d : 1d);
+                    source.Cell(index + 2, 5).SetValue(index is >= 3 and <= 8 ? 10d : 1d);
                 var pivot = new ExcelPivotTableOptions();
                 pivot.RowFields.Add("Region");
                 pivot.RowFields.Add("Product");
@@ -132,9 +132,9 @@ namespace OfficeIMO.Tests
             using var document = ExcelDocument.Create();
             var source = document.AddSheet("Source");
             PopulateThreeLevelPivotSource(source, ThreeLevelTopTwoRows);
-            source.CellValue(1, 5, "Units");
+            source.Cell(1, 5).SetValue("Units");
             for (int index = 0; index < ThreeLevelTopTwoRows.Length; index++)
-                source.CellValue(index + 2, 5, index is >= 3 and <= 8 ? 10d : 1d);
+                source.Cell(index + 2, 5).SetValue(index is >= 3 and <= 8 ? 10d : 1d);
             var pivot = new ExcelPivotTableOptions();
             pivot.RowFields.Add("Region");
             pivot.RowFields.Add("Product");

@@ -12,11 +12,11 @@ public partial class HtmlOfficeAdapters {
     public void ExcelHtml_GenericImportRetainsWrappedNestedListText() {
         HtmlToExcelResult result = HtmlConversionDocument
             .Parse("<ul><li>Parent<div><ol><li>Child</li></ol></div></li></ul>")
-            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToExcelWithEvidence(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.Value;
 
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
-        Assert.True(sheet.TryGetCellValueSnapshot(2, 1, out ExcelNativeCellValueInfo? value));
+        Assert.True(sheet.TryGetCellValueSnapshot(1, 1, out ExcelNativeCellValueInfo? value));
         Assert.Equal("• Parent\n  1. Child", value!.Text);
     }
 
@@ -24,30 +24,30 @@ public partial class HtmlOfficeAdapters {
     public void ExcelHtml_GenericImportRetainsTableAdjacentHeadingOnlySection() {
         HtmlToExcelResult result = HtmlConversionDocument
             .Parse("<table><tr><td>Cell</td></tr></table><h1>Summary</h1>")
-            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToExcelWithEvidence(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.Value;
 
         ExcelSheet narrative = Assert.Single(workbook.Sheets, sheet => sheet.Name == "Imported");
-        Assert.Equal("Summary", narrative.CellAt(1, 1).GetValue<string>());
+        Assert.Equal("Summary", narrative.Cell(1, 1).GetValue<string>());
     }
 
     [Fact]
     public void ExcelHtml_GenericImportIgnoresUnnamedEmptySectionBesideTable() {
         HtmlToExcelResult result = HtmlConversionDocument
             .Parse("<table><tr><td>Cell</td></tr></table><section></section>")
-            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToExcelWithEvidence(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.Value;
 
         ExcelSheet table = Assert.Single(workbook.Sheets);
         Assert.Equal("Table 1", table.Name);
-        Assert.Equal("Cell", table.CellAt(1, 1).GetValue<string>());
+        Assert.Equal("Cell", table.Cell(1, 1).GetValue<string>());
     }
 
     [Fact]
     public void PowerPointHtml_RendersHeadingOnlySemanticSections() {
         HtmlToPowerPointResult result = HtmlConversionDocument
             .Parse("<p>First slide</p><h1>Heading-only slide</h1>")
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.Value;
 
         Assert.Equal(2, result.Slides);
@@ -60,7 +60,7 @@ public partial class HtmlOfficeAdapters {
     public void PowerPointHtml_DoesNotRenderAnEmptyHeadingAsAnExtraSection() {
         HtmlToPowerPointResult result = HtmlConversionDocument
             .Parse("<p>Only slide</p><h1>  </h1>")
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.Value;
 
         Assert.Equal(1, result.Slides);

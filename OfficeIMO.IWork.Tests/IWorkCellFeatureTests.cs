@@ -22,7 +22,7 @@ public sealed partial class IWorkBoundaryTests {
         AssertTileDeclaration(Assert.Single(report.SourceDeclarationIssues, issue => issue.Owner.RecordIdentifier == 12), "5[1]/6", 1,
             IWorkSourceDeclarationIssueKind.UnsupportedField);
         Assert.Empty(report.SourceCellIssues);
-        Assert.Contains(report.FidelityDiagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_CELL_FEATURES_UNASSESSED"
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_CELL_FEATURES_UNASSESSED"
             && diagnostic.LossKind == OfficeConversionLossKind.Unassessed);
     }
 
@@ -40,7 +40,7 @@ public sealed partial class IWorkBoundaryTests {
                 BytesField(7, new byte[] { 0, 0, (byte)cell.Length, 0 }))));
         Assert.Contains("source-wide limit", Assert.Throws<InvalidDataException>(() =>
             ReadSelectedRichTable(IWorkSourceDocument.Open(overBudget, kind,
-                new IWorkReadOptions { MaximumMaterializedCells = 1 }), kind)).Message);
+                new IWorkReadOptions { MaxMaterializedCells = 1 }), kind)).Message);
     }
 
     [Theory]
@@ -83,7 +83,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] cell = FeatureCell(empty: false);
         using MemoryStream shared = TableDependencyPackage(IWorkDocumentKind.Numbers, Message(), cellPayload: cell, repeatModel: true);
         IWorkNumbersProjection projection = IWorkSourceDocument.Open(shared,
-            new IWorkReadOptions { MaximumSourceDeclarationIssues = 2 }).ReadNumbers();
+            new IWorkReadOptions { MaxSourceDeclarationIssues = 2 }).ReadNumbers();
         Assert.Equal(2, Assert.Single(projection.Sheets).Tables.Count);
         AssertTileDeclaration(Assert.Single(projection.SourceDeclarationIssues, issue => issue.Owner.RecordIdentifier == 12), "5[1]/6", 1,
             IWorkSourceDeclarationIssueKind.UnsupportedField);
@@ -91,20 +91,20 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream distinct = TableDependencyPackage(IWorkDocumentKind.Numbers, Message(), rows: 2,
             tilePayload: Message(BytesField(5, row(0)), BytesField(5, row(1))));
         Assert.Contains("declaration issues", Assert.Throws<InvalidDataException>(() =>
-            IWorkSourceDocument.Open(distinct, new IWorkReadOptions { MaximumSourceDeclarationIssues = 1 }).ReadNumbers()).Message);
+            IWorkSourceDocument.Open(distinct, new IWorkReadOptions { MaxSourceDeclarationIssues = 1 }).ReadNumbers()).Message);
     }
 
     [Fact]
     public void Partial_feature_conversion_saves_values_and_reader_retains_the_unassessed_warning() {
         using MemoryStream package = TableDependencyPackage(IWorkDocumentKind.Numbers, Message(), cellPayload: FeatureCell(empty: false));
         IWorkSourceDocument source = IWorkSourceDocument.Open(package);
-        using var automatic = source.ToExcelDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var automatic = source.ToExcelResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(automatic.IsVisualFallback);
-        using var partial = source.ToExcelDocumentResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var partial = source.ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.True(partial.Report.IsPartialEditableReconstruction);
         using var saved = new MemoryStream(); partial.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
-        Assert.Equal(42d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(42d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
         package.Position = 0;
         var reader = new OfficeIMO.Reader.OfficeDocumentReaderBuilder().AddIWorkHandler().Build();
         var result = reader.ReadDocument(package, "features.numbers");
@@ -116,7 +116,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Feature_presence_survives_cross_table_formula_binding_and_saved_formula_output() {
         using MemoryStream package = CrossBindingPackage(sourceCellPayload:
             FeatureCell(empty: false, (1u << 9) | (1u << 19)));
-        using var result = IWorkSourceDocument.Open(package).ToExcelDocumentResult(new IWorkConversionOptions {
+        using var result = IWorkSourceDocument.Open(package).ToExcelResult(new IWorkConversionOptions {
             AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true
         });
         IWorkTableCell cell = result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!;
@@ -126,7 +126,7 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
         Assert.StartsWith("SUM(", reopened.Sheets[0].GetFormulaText(1, 1));
-        Assert.Equal(42d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(42d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
     }
 
     private static byte[] FeatureCell(bool empty, uint featureFlags = (1u << 7) | (1u << 8) | (1u << 19)) {

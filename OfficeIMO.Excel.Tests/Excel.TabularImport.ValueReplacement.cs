@@ -87,8 +87,8 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(cell.StyleIndex);
             }
             using ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(package, writable: false));
-            Assert.Equal("0.0000", loaded.Sheets[0].GetCellStyle(2, 2).NumberFormatCode);
-            Assert.Equal("0.0000", loaded.Sheets[0].GetCellStyle(3, 2).NumberFormatCode);
+            Assert.Equal("0.0000", loaded.Sheets[0].Cell(2, 2).GetStyle().NumberFormatCode);
+            Assert.Equal("0.0000", loaded.Sheets[0].Cell(3, 2).GetStyle().NumberFormatCode);
             using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(package);
             Assert.Equal(3, reader.FieldCount);
             Assert.True(reader.Read());
@@ -120,9 +120,9 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddSheet("Data");
             var values = Enumerable.Range(1, 140).Select(row => (Row: row, Column: 1, Value: row == 2 ? DBNull.Value : row == 3 ? null! : (object)"Value"));
             if (batchWrite) {
-                sheet.CellValues(values);
+                sheet.SetValues(values);
             } else {
-                foreach (var value in values) sheet.CellValue(value.Row, value.Column, value.Value);
+                foreach (var value in values) sheet.Cell(value.Row, value.Column).SetValue(value.Value);
             }
 
             byte[] package = document.ToBytes(format, new ExcelSaveOptions {
@@ -155,10 +155,10 @@ namespace OfficeIMO.Tests {
             document.Execution.Mode = mode;
             ExcelSheet sheet = document.AddSheet("Data");
             document.AddSheet("Other");
-            sheet.CellFormula(2, 1, "123");
-            sheet.CellValue(2, 2, "Previous");
-            sheet.FormatCell(2, 1, "0.0000");
-            sheet.FormatCell(2, 2, "@");
+            sheet.Cell(2, 1).SetFormula("123");
+            sheet.Cell(2, 2).SetValue("Previous");
+            sheet.Cell(2, 1).SetNumberFormat("0.0000");
+            sheet.Cell(2, 2).SetNumberFormat("@");
             Cell inline = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "B2");
             inline.CellValue = null;
             inline.DataType = CellValues.InlineString;
@@ -182,7 +182,7 @@ namespace OfficeIMO.Tests {
                     (Row: row, Column: 1, Value: (object)(row == 2 ? string.Empty : "Next")),
                     (Row: row, Column: 2, Value: (object)(row == 2 ? string.Empty : "Next"))
                 });
-                sheet.CellValues(cells, mode: mode);
+                sheet.SetValues(cells, mode: mode);
             }
 
             byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsx });
@@ -197,8 +197,8 @@ namespace OfficeIMO.Tests {
                 Assert.Null(written[reference].InlineString);
             }
             using ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(package, writable: false));
-            Assert.Equal("0.0000", loaded.Sheets[0].GetCellStyle(2, 1).NumberFormatCode);
-            Assert.Equal("@", loaded.Sheets[0].GetCellStyle(2, 2).NumberFormatCode);
+            Assert.Equal("0.0000", loaded.Sheets[0].Cell(2, 1).GetStyle().NumberFormatCode);
+            Assert.Equal("@", loaded.Sheets[0].Cell(2, 2).GetStyle().NumberFormatCode);
             using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(package, new ExcelReaderOptions { SheetName = "Data", HasHeaderRow = source != "CellValues", A1Range = source == "CellValues" ? "A2:B21" : null });
             Assert.True(reader.Read());
             Assert.False(reader.IsDBNull(0));
@@ -218,8 +218,8 @@ namespace OfficeIMO.Tests {
             document.Execution.Mode = ExcelExecutionMode.Sequential;
             ExcelSheet sheet = document.AddSheet("Data");
             document.AddSheet("Other");
-            sheet.CellFormula(2, 1, "123");
-            sheet.FormatCell(2, 1, "0.0000");
+            sheet.Cell(2, 1).SetFormula("123");
+            sheet.Cell(2, 1).SetNumberFormat("0.0000");
             Cell existing = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A2");
             string original = existing.OuterXml;
             string rejected = new string('a', 32768);
@@ -283,7 +283,7 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(cells["B" + row].StyleIndex);
             }
             using ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(package, writable: false));
-            Assert.Contains("yy", loaded.Sheets[0].GetCellStyle(1, 2).NumberFormatCode, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("yy", loaded.Sheets[0].Cell(1, 2).GetStyle().NumberFormatCode, StringComparison.OrdinalIgnoreCase);
             using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(package, new ExcelReaderOptions { HasHeaderRow = false });
             Assert.Equal(3, reader.FieldCount);
             for (int row = 0; row < 2; row++) {

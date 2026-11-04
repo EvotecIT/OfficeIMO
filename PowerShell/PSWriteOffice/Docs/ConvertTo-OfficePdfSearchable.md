@@ -11,7 +11,7 @@ Creates a searchable PDF by adding invisible text from a discovered local OCR ru
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-ConvertTo-OfficePdfSearchable [-Path] <string> [-OutputPath] <string> [-Force] [-PassThru] [-RenderDpi <Double>] [-MinimumConfidence <Double>] [-PdfOptions <PdfOcrMergeOptions>] [-ReadOptions <PdfLoadOptions>] [-Password <string>] [-IgnorePermissionRestrictions] [-Options <TesseractOcrSessionOptions>] [-Language <TesseractOcrLanguage[]>] [-TesseractLanguageExpression <string>] [-TesseractPath <string>] [-TessdataDirectory <string>] [-NoLanguageDownload] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertTo-OfficePdfSearchable [-Path] <string> [-OutputPath] <string> [-Force] [-PassThru] [-RenderDpi <Double>] [-MinimumConfidence <Double>] [-PdfOptions <PdfOcrMergeOptions>] [-ReadOptions <PdfLoadOptions>] [-Password <securestring>] [-IgnorePermissionRestrictions] [-Options <TesseractOcrSessionOptions>] [-Language <TesseractOcrLanguage[]>] [-TesseractLanguageExpression <string>] [-TesseractPath <string>] [-TessdataDirectory <string>] [-NoLanguageDownload] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -167,7 +167,7 @@ Accept wildcard characters: False
 Password used to authenticate an encrypted PDF.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

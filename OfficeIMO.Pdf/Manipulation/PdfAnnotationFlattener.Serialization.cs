@@ -3,7 +3,7 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfAnnotationFlattener {
-    private static byte[] RewriteAllObjects(Dictionary<int, PdfIndirectObject> objects, int catalogObjectNumber, PdfMetadata metadata,
+    private static byte[] RewriteAllObjects(Dictionary<int, PdfIndirectObject> objects, int catalogObjectNumber, PdfDocumentProperties metadata,
         out IReadOnlyDictionary<int, int> objectNumberMap, PdfSourceEncryptionContext? sourceEncryption,
         PdfFileVersion fileVersion, byte[] sourcePdf, PdfLoadOptions? sourceReadOptions,
         PdfGeneratedOutputGrowth generatedGrowth, CancellationToken cancellationToken) {

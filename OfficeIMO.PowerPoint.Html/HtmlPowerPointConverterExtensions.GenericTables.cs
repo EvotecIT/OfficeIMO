@@ -44,7 +44,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         IReadOnlyList<double> rowHeights,
         double tableWidth,
         PptCore.PowerPointDocument presentation,
-        HtmlToPowerPointOptions options,
+        HtmlPowerPointExportOptions options,
         HtmlToPowerPointResult result,
         HtmlImportBudget budget,
         ref PptCore.PowerPointSlide slide,
@@ -123,7 +123,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         HtmlSemanticTable source,
         int sourceRow,
         int targetRow,
-        HtmlToPowerPointOptions options,
+        HtmlPowerPointExportOptions options,
         HtmlToPowerPointResult result) {
         HtmlSemanticTableRow? semanticRow = source.Rows.FirstOrDefault(row => row.SourceRowIndex == sourceRow);
         int sourceCell = 0;

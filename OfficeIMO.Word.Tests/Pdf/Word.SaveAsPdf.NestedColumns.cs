@@ -109,7 +109,7 @@ public partial class Word {
                 WordParagraph second = document.AddParagraph("SecondShaded");
                 ConfigurePartialColumnParagraph(first); ConfigurePartialColumnParagraph(second);
                 first.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(8D); second.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(12D); second.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(6D);
-                if (shaded) first.ShadingFillColorHex = second.ShadingFillColorHex = "00FFFF";
+                if (shaded) first.ShadingFillColor = second.ShadingFillColor = OfficeColor.Parse("00FFFF");
                 ConfigurePartialColumnParagraph(document.AddParagraph("AfterShading"));
                 source = document.ToBytes(format);
             }
@@ -145,7 +145,7 @@ public partial class Word {
                 ConfigurePartialColumnParagraph(paragraph);
                 paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(12D); paragraph.IndentationFirstLine = global::OfficeIMO.OfficeLength.Points(6D);
                 paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(12D); paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(8D);
-                if (shaded) paragraph.ShadingFillColorHex = "00FFFF";
+                if (shaded) paragraph.ShadingFillColor = OfficeColor.Parse("00FFFF");
                 ConfigurePartialColumnParagraph(document.AddParagraph("After"));
                 source = document.ToBytes(format);
             }
@@ -176,7 +176,7 @@ public partial class Word {
             document.Sections[0].ColumnCount = 2; document.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(20);
             ConfigurePartialColumnParagraph(document.AddParagraph(string.Join("\n", Enumerable.Range(1, 15).Select(index => $"Prelude{index:D3}"))));
             WordParagraph heading = document.AddParagraph("ShadedHeading");
-            ConfigurePartialColumnParagraph(heading); heading.ShadingFillColorHex = "00FFFF"; heading.KeepWithNextOverride = true;
+            ConfigurePartialColumnParagraph(heading); heading.ShadingFillColor = OfficeColor.Parse("00FFFF"); heading.KeepWithNextOverride = true;
             ConfigurePartialColumnParagraph(document.AddParagraph("BodyFirst\nBodySecond\nBodyThird"));
             source = document.ToBytes(format);
         }
@@ -210,7 +210,7 @@ public partial class Word {
                 borders.LeftStyle = borders.RightStyle = borders.TopStyle = borders.BottomStyle = WordBorderStyle.Single;
                 borders.LeftSize = borders.RightSize = borders.TopSize = borders.BottomSize = OfficeLength.Points(0.5);
                 borders.LeftSpace = borders.RightSpace = borders.TopSpace = borders.BottomSpace = OfficeLength.Points(0);
-            } else paragraph.ShadingFillColorHex = "00FFFF";
+            } else paragraph.ShadingFillColor = OfficeColor.Parse("00FFFF");
             document.AddSection(WordSectionBreakType.Continuous).ColumnCount = 1;
             ConfigurePartialColumnParagraph(document.AddParagraph("AfterContinuous"));
             source = document.ToBytes(format);

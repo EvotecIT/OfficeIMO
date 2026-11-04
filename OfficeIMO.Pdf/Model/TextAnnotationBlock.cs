@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 internal sealed class TextAnnotationBlock : IPdfBlock {
-    public TextAnnotationBlock(string contents, double width, double height, PdfAlign align, double spacingBefore, double spacingAfter, PdfTextAnnotationIcon icon, global::OfficeIMO.OfficeColor? color, bool open) {
+    public TextAnnotationBlock(string contents, double width, double height, OfficeAlignment align, double spacingBefore, double spacingAfter, PdfTextAnnotationIcon icon, global::OfficeIMO.OfficeColor? color, bool open) {
         Contents = contents;
         Width = width;
         Height = height;
@@ -16,7 +16,7 @@ internal sealed class TextAnnotationBlock : IPdfBlock {
     public string Contents { get; }
     public double Width { get; }
     public double Height { get; }
-    public PdfAlign Align { get; }
+    public OfficeAlignment Align { get; }
     public double SpacingBefore { get; }
     public double SpacingAfter { get; }
     public PdfTextAnnotationIcon Icon { get; }
@@ -25,7 +25,7 @@ internal sealed class TextAnnotationBlock : IPdfBlock {
 }
 
 internal sealed class FreeTextAnnotationBlock : IPdfBlock {
-    public FreeTextAnnotationBlock(string contents, double width, double height, PdfAlign align, double spacingBefore, double spacingAfter, double fontSize, global::OfficeIMO.OfficeColor textColor, global::OfficeIMO.OfficeColor? borderColor, double borderWidth, global::OfficeIMO.OfficeColor? fillColor, PdfAlign textAlign, double padding, double? lineHeight) {
+    public FreeTextAnnotationBlock(string contents, double width, double height, OfficeAlignment align, double spacingBefore, double spacingAfter, double fontSize, global::OfficeIMO.OfficeColor textColor, global::OfficeIMO.OfficeColor? borderColor, double borderWidth, global::OfficeIMO.OfficeColor? fillColor, OfficeAlignment textAlign, double padding, double? lineHeight) {
         Contents = contents;
         Width = width;
         Height = height;
@@ -45,7 +45,7 @@ internal sealed class FreeTextAnnotationBlock : IPdfBlock {
     public string Contents { get; }
     public double Width { get; }
     public double Height { get; }
-    public PdfAlign Align { get; }
+    public OfficeAlignment Align { get; }
     public double SpacingBefore { get; }
     public double SpacingAfter { get; }
     public double FontSize { get; }
@@ -53,13 +53,13 @@ internal sealed class FreeTextAnnotationBlock : IPdfBlock {
     public global::OfficeIMO.OfficeColor? BorderColor { get; }
     public double BorderWidth { get; }
     public global::OfficeIMO.OfficeColor? FillColor { get; }
-    public PdfAlign TextAlign { get; }
+    public OfficeAlignment TextAlign { get; }
     public double Padding { get; }
     public double? LineHeight { get; }
 }
 
 internal sealed class HighlightAnnotationBlock : IPdfBlock {
-    public HighlightAnnotationBlock(string contents, double width, double height, PdfAlign align, double spacingBefore, double spacingAfter, global::OfficeIMO.OfficeColor color) {
+    public HighlightAnnotationBlock(string contents, double width, double height, OfficeAlignment align, double spacingBefore, double spacingAfter, global::OfficeIMO.OfficeColor color) {
         Contents = contents;
         Width = width;
         Height = height;
@@ -72,7 +72,7 @@ internal sealed class HighlightAnnotationBlock : IPdfBlock {
     public string Contents { get; }
     public double Width { get; }
     public double Height { get; }
-    public PdfAlign Align { get; }
+    public OfficeAlignment Align { get; }
     public double SpacingBefore { get; }
     public double SpacingAfter { get; }
     public global::OfficeIMO.OfficeColor Color { get; }

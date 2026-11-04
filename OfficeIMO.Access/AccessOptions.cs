@@ -91,15 +91,14 @@ namespace OfficeIMO.Access {
         public AccessFileFormat? Format { get; set; }
         /// <summary>Optional explicit target generation. It must agree with the destination family.</summary>
         public AccessFormatProfile? Profile { get; set; }
-        /// <summary>Conversion loss policy. Unsupported codecs remain blocked under every policy.</summary>
-        public OfficeConversionLossPolicy LossPolicy { get; set; } = OfficeConversionLossPolicy.Block;
+        /// <summary>Allows a save that reports conversion loss. Unsupported codecs remain blocked either way. Default: false.</summary>
+        public bool AllowLoss { get; set; }
         /// <summary>Existing-file policy for a qualified writer.</summary>
         public OfficeConversionFileConflictPolicy FileConflictPolicy { get; set; } = OfficeConversionFileConflictPolicy.FailIfExists;
         internal void Validate() {
             if (MaxOutputBytes < 4096 || MaxOutputBytes > int.MaxValue) throw new ArgumentOutOfRangeException(nameof(MaxOutputBytes));
             if (Format.HasValue && !Enum.IsDefined(typeof(AccessFileFormat), Format.Value)) throw new ArgumentOutOfRangeException(nameof(Format));
             if (Profile.HasValue && (!Enum.IsDefined(typeof(AccessFormatProfile), Profile.Value) || Profile.Value == AccessFormatProfile.Unknown)) throw new ArgumentOutOfRangeException(nameof(Profile));
-            if (!Enum.IsDefined(typeof(OfficeConversionLossPolicy), LossPolicy)) throw new ArgumentOutOfRangeException(nameof(LossPolicy));
             if (!Enum.IsDefined(typeof(OfficeConversionFileConflictPolicy), FileConflictPolicy)) throw new ArgumentOutOfRangeException(nameof(FileConflictPolicy));
         }
     }

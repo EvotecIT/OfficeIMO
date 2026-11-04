@@ -1,5 +1,10 @@
+using System.Data.Common;
+
 namespace OfficeIMO.Excel {
-    public sealed partial class ExcelWorkbookDataReader : IDataReaderFastMappingValues, IDataReaderTypedMappingCompatibility {
+    public sealed partial class ExcelWorkbookDataReader : IDataReaderFastMappingValues, IDataReaderTypedMappingCompatibility, IDataReaderMappingRowSource {
+        // Typed mapping reads the open worksheet reader directly after each successful Read.
+        DbDataReader? IDataReaderMappingRowSource.CurrentRowReader => _closed ? null : _activeReader;
+
         // Worksheet shapes can contain missing cells or mixed source types. Keep qualification per row.
         bool IDataReaderFastMappingValues.HasOnlyNonNullFastValues => false;
 

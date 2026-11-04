@@ -44,7 +44,7 @@ public sealed class ExcelTypedTableChartPreservationTests {
                     if (route == "NativeRename") chart.Name = "Order totals";
                     if (route == "NativeTitle") chart.SetTitle("Order totals");
                     if (route == "CustomProperty") book.SetCustomDocumentProperty("Review", "Complete");
-                    if (route == "CustomPropertyCollection") book.CustomDocumentProperties.Add("Review",
+                    if (route == "CustomPropertyCollection") book.CustomProperties.Add("Review",
                         new ExcelCustomProperty { Value = "Complete", PropertyType = ExcelCustomPropertyType.Text });
                     if (route == "Rename") {
                         chart.Name = "Order totals";

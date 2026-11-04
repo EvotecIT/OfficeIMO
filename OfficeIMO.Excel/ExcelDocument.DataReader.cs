@@ -108,9 +108,9 @@ namespace OfficeIMO.Excel {
             if (_spreadSheetDocument is null) {
                 throw new ObjectDisposedException(nameof(ExcelDocument));
             }
-            MaterializeDeferredDataSetImport(effectiveOptions.CancellationToken);
+            ExcelSheet? selected = effectiveOptions.SheetName is string name ? TryGetExistingSheet(name) : null;
             return ExcelWorkbookDataReader.WrapOpenXml(
-                ExcelDocumentReader.Wrap(_spreadSheetDocument, effectiveOptions),
+                CreateTabularReader(selected, effectiveOptions),
                 effectiveOptions);
         }
 

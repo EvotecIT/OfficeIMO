@@ -7,6 +7,10 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfDocument {
     private void WriteNativeWithLossCheck(Stream destination, PdfSaveOptions? options, CancellationToken token) {
         token.ThrowIfCancellationRequested();
+        if (TryPublishCompletedOutput(options, out byte[] completed)) {
+            destination.Write(completed, 0, completed.Length);
+            return;
+        }
         ThrowIfTextEncodingPreflightFails(token);
         if (options?.Encryption != null) {
             byte[] bytes = ToBytes(options, token);

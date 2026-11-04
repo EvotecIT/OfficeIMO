@@ -71,13 +71,13 @@ public sealed partial class IWorkRuntimeWorkload {
             ? new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true }
             : new IWorkConversionOptions();
         if (_kind == IWorkDocumentKind.Pages) {
-            using var result = source.ToWordDocumentResult(policy);
+            using var result = source.ToWordResult(policy);
             ValidateConversionPolicy(result.Report); result.Value.Save(saved);
         } else if (_kind == IWorkDocumentKind.Numbers) {
-            using var result = source.ToExcelDocumentResult(policy);
+            using var result = source.ToExcelResult(policy);
             ValidateConversionPolicy(result.Report); result.Value.Save(saved);
         } else {
-            using var result = source.ToPowerPointDocumentResult(policy);
+            using var result = source.ToPowerPointResult(policy);
             ValidateConversionPolicy(result.Report); result.Value.Save(saved);
         }
         _output = saved.ToArray();

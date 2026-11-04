@@ -45,7 +45,7 @@ namespace OfficeIMO.Tests {
             Assert.True(reader.IsDBNull(3));
             Assert.False(reader.Read());
             using ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(package, writable: false));
-            Assert.Contains("yy", loaded.Sheets[0].GetCellStyle(2, 4).NumberFormatCode, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("yy", loaded.Sheets[0].Cell(2, 4).GetStyle().NumberFormatCode, StringComparison.OrdinalIgnoreCase);
         }
 
         [Theory]
@@ -61,9 +61,9 @@ namespace OfficeIMO.Tests {
             // A second worksheet requires ordinary DOM insertion rather than a deferred source.
             document.AddSheet("Other");
             if (overwrite) {
-                sheet.CellValue(2, 1, "Previous");
-                sheet.CellFormula(2, 2, "123");
-                sheet.FormatCell(2, 2, "0.0000");
+                sheet.Cell(2, 1).SetValue("Previous");
+                sheet.Cell(2, 2).SetFormula("123");
+                sheet.Cell(2, 2).SetNumberFormat("0.0000");
                 Cell inlineCell = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A2");
                 inlineCell.CellValue = null;
                 inlineCell.DataType = CellValues.InlineString;
@@ -92,8 +92,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Beta", reader.GetString(2));
             Assert.False(reader.Read());
             using ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(package, writable: false));
-            Assert.Null(loaded.Sheets[0].CellAt(2, 2).GetValue().Formula);
-            if (overwrite) Assert.Equal("0.0000", loaded.Sheets[0].GetCellStyle(2, 2).NumberFormatCode);
+            Assert.Null(loaded.Sheets[0].Cell(2, 2).GetValue().Formula);
+            if (overwrite) Assert.Equal("0.0000", loaded.Sheets[0].Cell(2, 2).GetStyle().NumberFormatCode);
         }
 
         [Theory]
@@ -125,7 +125,7 @@ namespace OfficeIMO.Tests {
         public void TabularImport_MissingOverwriteRegistersDefaultStyleForStandardXlsx(ExcelExecutionMode mode) {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Previous");
+            sheet.Cell(1, 1).SetValue("Previous");
             DataTable table = new DataTable();
             table.Columns.Add("Missing", typeof(string));
             table.Columns.Add("AlsoMissing", typeof(string));
@@ -169,7 +169,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
             document.AddSheet("Other");
-            if (overwrite) sheet.CellFormula(2, 2, "123");
+            if (overwrite) sheet.Cell(2, 2).SetFormula("123");
             sheet.WriteData(Enumerable.Range(1, 20), ("Id", (Func<int, object?>)(id => id)), ("Text", id => id == 1 ? null : id == 2 ? DBNull.Value : string.Empty));
 
             byte[] package = document.ToBytes(format);
@@ -243,7 +243,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
             for (int row = 1; row <= 140; row++) {
-                sheet.CellValue(row, 1, row == 2 ? DBNull.Value : row == 3 ? null : (object)"Value");
+                sheet.Cell(row, 1).SetValue(row == 2 ? DBNull.Value : row == 3 ? null : (object)"Value");
             }
 
             byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsx,  DisableFastPackageWriter = true });
@@ -267,8 +267,8 @@ namespace OfficeIMO.Tests {
                 using ExcelDocument document = ExcelDocument.Create();
                 ExcelSheet sheet = document.AddSheet("Data");
                 sheet.WriteData(table);
-                sheet.CellFormula(1, 2, "ISBLANK(A2)");
-                sheet.CellFormula(1, 3, "ISTEXT(A3)");
+                sheet.Cell(1, 2).SetFormula("ISBLANK(A2)");
+                sheet.Cell(1, 3).SetFormula("ISTEXT(A3)");
                 document.Save(path, new ExcelSaveOptions { XlsbUseSharedStrings = true, DisableFastPackageWriter = true });
 
                 AssertWorkbookOpensViaExcelComWhenAvailable(path,

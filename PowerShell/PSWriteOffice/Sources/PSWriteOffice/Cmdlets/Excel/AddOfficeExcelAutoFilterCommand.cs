@@ -52,7 +52,12 @@ public sealed class AddOfficeExcelAutoFilterCommand : PSWriteOffice.Cmdlets.Offi
     protected override void ProcessRecord() {
         var sheet = ResolveSheet();
         var criteria = ConvertCriteria(Criteria);
-        sheet.AddAutoFilter(Range, criteria);
+        ExcelAutoFilter filter = sheet.Range(Range).AutoFilter();
+        if (criteria != null) {
+            foreach (var column in criteria) {
+                filter.Column(column.Key).Equals(column.Value);
+            }
+        }
         WritePassThru(sheet);
     }
 

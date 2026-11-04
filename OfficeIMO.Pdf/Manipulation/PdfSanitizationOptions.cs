@@ -1,12 +1,16 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Explicit policy for removing active content and embedded payloads from a PDF.</summary>
-public sealed class PdfSanitizationOptions {
+public sealed class PdfSanitizationOptions : IPdfOperationCancellation {
     private PdfSanitizationActionKind? _actionKindsToRemove;
     private PdfSanitizationContentKind? _contentKindsToRemove;
 
-    /// <summary>Cancellation observed between inventory, object-graph rewrite, and verification stages.</summary>
-    public System.Threading.CancellationToken CancellationToken { get; set; }
+    // Operation cancellation; public methods take it as a parameter and bind it to a per-call copy.
+    System.Threading.CancellationToken IPdfOperationCancellation.CancellationToken { get => CancellationToken; set => CancellationToken = value; }
+
+    internal System.Threading.CancellationToken CancellationToken { get; set; }
+
+    object IPdfOperationCancellation.CloneForOperation() => MemberwiseClone();
 
     /// <summary>Optional maximum byte count for the sanitized full-rewrite artifact.</summary>
     public long? MaximumOutputBytes { get; set; }

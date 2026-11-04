@@ -21,8 +21,8 @@ public sealed class StudioAccessibilityContractTests {
             PdfDocument.Create(compose => {
                 for (int page = 0; page < 2; page++) {
                     compose.Page(body => body.Content(content => {
-                        content.Item(item => item.Paragraph(text => text.Text("Private account one")));
-                        content.Item(item => item.Paragraph(text => text.Text("Private account two")));
+                        content.Item(item => item.AddParagraph(text => text.AddText("Private account one")));
+                        content.Item(item => item.AddParagraph(text => text.AddText("Private account two")));
                     }));
                 }
             }).Save(source);

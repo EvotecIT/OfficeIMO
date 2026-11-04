@@ -120,13 +120,13 @@ public sealed partial class ExcelChartBubbleSnapshotTests {
         using var document = ExcelDocument.Create();
         ExcelChart chart = CreateLiteralChart(document, false);
         var sheet = document.Sheets[0];
-        sheet.CellValue(2, 2, "Source");
-        sheet.CellValue(3, 3, 1);
+        sheet.Cell(2, 2).SetValue("Source");
+        sheet.Cell(3, 3).SetValue(1);
         var marker = document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single().DrawingsPart!.WorksheetDrawing
             .Descendants<DocumentFormat.OpenXml.Drawing.Spreadsheet.FromMarker>().Single();
         marker.RowId!.Text = "0";
         marker.ColumnId!.Text = "0";
-        if (printArea) document.SetPrintArea(sheet, "B2:C3");
+        if (printArea) sheet.PageSetup.PrintArea = "B2:C3";
         Assert.True(chart.TryGetSnapshot(out var snapshot));
         OfficeColor color = OfficeColor.Parse(snapshot.Data.Series[0].SeriesColorArgb!);
         Assert.Equal(printArea ? 0 : 2, PdfBubbleDiameters(document.ToPdf(WideBubblePage()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }), color).Length);
@@ -136,8 +136,8 @@ public sealed partial class ExcelChartBubbleSnapshotTests {
     public void BubbleConversions_LeadingAnchorDoesNotMaterializeBlankFlowTableRows() {
         using var document = ExcelDocument.Create();
         CreateLiteralChart(document, false);
-        document.Sheets[0].CellValue(1000, 1, "Far source");
-        document.Sheets[0].CellValue(1001, 3, "Tail");
+        document.Sheets[0].Cell(1000, 1).SetValue("Far source");
+        document.Sheets[0].Cell(1001, 3).SetValue("Tail");
         byte[] bytes = document.ToPdf(new ExcelPdfExportOptions { WorksheetLayout = ExcelPdfWorksheetLayoutMode.FlowTable }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var read = UglyToad.PdfPig.PdfDocument.Open(bytes);
         Assert.Single(read.GetPages());
@@ -171,7 +171,7 @@ public sealed partial class ExcelChartBubbleSnapshotTests {
 
     private static ExcelChart CreateConversionBubble(ExcelDocument document) {
         var chart = CreateLiteralChart(document, false);
-        document.Sheets[0].CellValue(1, 1, "Bubble conversion");
+        document.Sheets[0].Cell(1, 1).SetValue("Bubble conversion");
         var native = GetNativeBubble(document);
         native.RemoveAllChildren<C.BubbleScale>();
         native.RemoveAllChildren<C.SizeRepresents>();

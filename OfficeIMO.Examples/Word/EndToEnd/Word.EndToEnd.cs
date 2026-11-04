@@ -19,8 +19,8 @@ namespace OfficeIMO.Examples.Word.EndToEnd
             using (var doc = WordDocument.Create())
             {
                 // Headers/Footers + page numbering
-                doc.HeaderDefaultOrCreate.AddParagraph("End-to-End Demo");
-                doc.FooterDefaultOrCreate.AddParagraph().AddPageNumber(includeTotalPages: true);
+                doc.PageSetup.Header.AddParagraph("End-to-End Demo");
+                doc.PageSetup.Footer.AddParagraph().AddPageNumber(includeTotalPages: true);
                 // TOC at top (updates on open)
                 {
                     doc.AddTableOfContent(title: "Contents", minLevel: 1, maxLevel: 3, insertAtTop: true);
@@ -85,7 +85,7 @@ namespace OfficeIMO.Examples.Word.EndToEnd
             // 5) Load the generated Markdown back into Word
             string mdIn = Path.Combine(outDir, "EndToEnd.md");
             string fromMdDocx = Path.Combine(outDir, "EndToEnd.FromMarkdown.docx");
-            using (var fromMarkdown = OfficeIMO.Markdown.MarkdownDocument.Load(mdIn).ToWord(new WordMarkdownImportOptions { FontFamily = "Calibri" }))
+            using (var fromMarkdown = OfficeIMO.Markdown.MarkdownDocument.Load(mdIn).ToWord(new MarkdownWordExportOptions { FontFamily = "Calibri" }))
             {
                 fromMarkdown.Save(fromMdDocx);
                 Console.WriteLine($"✓ Markdown → Word: {fromMdDocx}");

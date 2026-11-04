@@ -17,6 +17,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\Build\Verification\PowerPoint\PowerPointDesktopReferenceRenderer.cs" Link="Verification\PowerPointDesktopReferenceRenderer.cs" />
+    <Using Include="OfficeIMO.Verification.PowerPoint" />
     <Compile Include="..\OfficeIMO.TestAssets\RepositoryTestPaths.cs" Link="Shared\RepositoryTestPaths.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\Pdf\PdfOperatorSearchText.cs" Link="Pdf\PdfOperatorSearchText.cs" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />

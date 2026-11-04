@@ -32,11 +32,11 @@ public sealed class EpubPublishingResourceContracts {
         });
         Assert.Equal(new[] { "/" + parent, "/dot.png" }, requested);
         if (excess) {
-            Assert.Contains(result.Report.FidelityDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.ResourceCountLimitExceeded && item.LossKind == OfficeConversionLossKind.Failure);
-            Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+            Assert.Contains(result.Report.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.ResourceCountLimitExceeded && item.LossKind == OfficeConversionLossKind.Failure);
+            Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
         } else {
-            result.Report.RequireNoLoss();
-            result.Publication.Write().Report.RequireNoLoss();
+            result.Report.ThrowIfLoss();
+            result.Publication.Write().Report.ThrowIfLoss();
         }
     }
 
@@ -55,10 +55,10 @@ public sealed class EpubPublishingResourceContracts {
                 return Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII="), "image/png"));
             }
         });
-        result.Report.RequireNoLoss();
+        result.Report.ThrowIfLoss();
         Assert.Equal(count, requested.Count);
         Assert.Equal(count, result.Publication.GetContentXml("chapter-1").Descendants(System.Xml.Linq.XName.Get("img", "http://www.w3.org/1999/xhtml")).Count());
-        result.Publication.Write().Report.RequireNoLoss();
+        result.Publication.Write().Report.ThrowIfLoss();
     }
     [Theory]
     [InlineData("<map id='sites' name='sites'><area href='#two' alt='Next' shape='rect' coords='0,0,1,1'/></map>")]
@@ -66,10 +66,10 @@ public sealed class EpubPublishingResourceContracts {
     [InlineData("<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' viewBox='0 0 10 10'><a xlink:href='#two'><text x='0' y='1'>Next</text></a></svg>")]
     public void RetainedAreaAndSvgLinksFollowTheirTargetsAcrossSplitChapters(string link) {
         var result = EpubManuscript.ImportHtml(HtmlConversionDocument.Parse("<title>Links</title><h1 id='one'>One</h1>" + link + "<h1 id='two'>Two</h1><p>Target</p>"));
-        result.Report.RequireNoLoss();
+        result.Report.ThrowIfLoss();
         var target = result.Publication.GetContentXml("chapter-1").Descendants().Single(element => element.Name.LocalName is "area" or "a");
         Assert.Equal("chapter-0002.xhtml#two", target.Attributes().Single(attribute => attribute.Name.LocalName == "href").Value);
-        result.Publication.Write().Report.RequireNoLoss();
+        result.Publication.Write().Report.ThrowIfLoss();
     }
     [Fact]
     public async Task ResponsivePictureRetainsBothSelectedSourceAndFallbackImage() {
@@ -82,13 +82,13 @@ public sealed class EpubPublishingResourceContracts {
                 return Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII="), "image/png"));
             }
         });
-        result.Report.RequireNoLoss();
+        result.Report.ThrowIfLoss();
         Assert.Contains("/wide.png", requested);
         Assert.Contains("/fallback.png", requested);
         Assert.Contains("/fallback-large.png", requested);
         var picture = result.Publication.GetContentXml("chapter-1").Descendants(System.Xml.Linq.XName.Get("picture", "http://www.w3.org/1999/xhtml")).Single();
         Assert.Contains("resource-", picture.Element(System.Xml.Linq.XName.Get("img", "http://www.w3.org/1999/xhtml"))!.Attribute("src")!.Value);
-        result.Publication.Write().Report.RequireNoLoss();
+        result.Publication.Write().Report.ThrowIfLoss();
     }
     [Theory]
     [InlineData(false)]
@@ -104,7 +104,7 @@ public sealed class EpubPublishingResourceContracts {
             ResourceResolver = (request, _) => Task.FromResult<HtmlResolvedResource?>(request.Uri.AbsolutePath.Contains("/parent.") ? shared :
                 new HtmlResolvedResource(System.Text.Encoding.UTF8.GetBytes("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'><rect width='1' height='1' fill='" + (request.Uri.AbsolutePath.StartsWith("/one/") ? "red" : "blue") + "'/></svg>"), "image/svg+xml"))
         });
-        result.Report.RequireNoLoss();
+        result.Report.ThrowIfLoss();
         var parents = result.Publication.Manifest.Where(item => item.Id.StartsWith("manuscript-resource-") &&
             (svg ? item.MediaType == "image/svg+xml" && System.Text.Encoding.UTF8.GetString(result.Publication.GetResourceBytes(item.Id)).Contains("<image") : item.MediaType == "text/css")).ToArray();
         Assert.Equal(2, parents.Length);
@@ -114,18 +114,20 @@ public sealed class EpubPublishingResourceContracts {
             string color = parent == parents[0] ? "red" : "blue";
             Assert.Contains("fill=\"" + color + "\"", System.Text.Encoding.UTF8.GetString(result.Publication.GetResourceBytes(image.Id)));
         }
-        result.Publication.Write().Report.RequireNoLoss();
+        result.Publication.Write().Report.ThrowIfLoss();
     }
     [Fact]
     public void ExcessiveImportFindingsStayBoundedAndCannotHideBehindSuccessfulTruncation() {
         var result = EpubManuscript.ImportHtml(HtmlConversionDocument.Parse("<title>Book</title><h1>One</h1>" + string.Concat(Enumerable.Repeat("<p onclick='execute()'>Text</p>", 10_001))));
-        Assert.Equal(10_000, result.Report.FidelityDiagnostics.Count);
+        Assert.Equal(10_000, result.Report.Diagnostics.Count);
         Assert.False(result.Succeeded);
-        Assert.Equal("EPUB_IMPORT_DIAGNOSTIC_LIMIT", result.Report.FidelityDiagnostics.Last().Code);
+        Assert.Equal("EPUB_IMPORT_DIAGNOSTIC_LIMIT", result.Report.Diagnostics.Last().Code);
     }
     [Fact]
     public void AuthoredPackageAndNavigationCarryLanguageAndMatchingAccessibilityRoles() {
-        var publication = EpubManuscript.ImportHtml(HtmlConversionDocument.Parse("<html lang='pl'><title>Book</title><h1 id='one'>One</h1></html>")).RequireNoLoss();
+        var publicationResult = EpubManuscript.ImportHtml(HtmlConversionDocument.Parse("<html lang='pl'><title>Book</title><h1 id='one'>One</h1></html>"));
+        publicationResult.ThrowIfLoss();
+        var publication = publicationResult.Value;
         using var stream = new MemoryStream(publication.Write().Bytes);
         using var zip = new System.IO.Compression.ZipArchive(stream);
         using var package = zip.GetEntry("EPUB/package.opf")!.Open();
@@ -140,13 +142,13 @@ public sealed class EpubPublishingResourceContracts {
     public void ImageNamesAndDecorativeIntentAreProjectedWithoutInventingAlternativeText() {
         const string image = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
         var imported = EpubManuscript.ImportHtml(HtmlConversionDocument.Parse("<title>Images</title><h1>Images</h1><img aria-label='A diagram' src='" + image + "'><img role='presentation' src='" + image + "'>"));
-        imported.Report.RequireNoLoss();
+        imported.Report.ThrowIfLoss();
         var images = imported.Publication.GetContentXml("chapter-1").Descendants(System.Xml.Linq.XName.Get("img", "http://www.w3.org/1999/xhtml")).ToArray();
         Assert.Equal("A diagram", (string?)images[0].Attribute("alt"));
         Assert.Equal(string.Empty, (string?)images[1].Attribute("alt"));
         var unnamed = EpubManuscript.ImportHtml(HtmlConversionDocument.Parse("<title>Images</title><h1>Images</h1><img src='" + image + "'>"));
         Assert.False(unnamed.Succeeded);
-        Assert.Contains(unnamed.Report.FidelityDiagnostics, item => item.Code == "EPUB_IMPORT_IMAGE_ALT_MISSING" && item.LossKind == OfficeConversionLossKind.Failure);
+        Assert.Contains(unnamed.Report.Diagnostics, item => item.Code == "EPUB_IMPORT_IMAGE_ALT_MISSING" && item.LossKind == OfficeConversionLossKind.Failure);
     }
     [Fact]
     public async Task ImportedSvgDependenciesUseTheirOwnBaseAndRemainDeclared() {
@@ -158,18 +160,18 @@ public sealed class EpubPublishingResourceContracts {
                 ? new HtmlResolvedResource(System.Text.Encoding.UTF8.GetBytes("<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' viewBox='0 0 10 10'><image width='10' height='10' xlink:href='../images/dot.png'/></svg>"), "image/svg+xml")
                 : request.Uri.AbsolutePath == "/book/images/dot.png" ? new HtmlResolvedResource(Convert.FromBase64String(png), "image/png") : null)
         });
-        result.Report.RequireNoLoss();
+        result.Report.ThrowIfLoss();
         Assert.Single(result.Publication.Manifest, item => item.MediaType == "image/png");
         var svg = Assert.Single(result.Publication.Manifest, item => item.MediaType == "image/svg+xml");
         Assert.DoesNotContain("../images/dot.png", System.Text.Encoding.UTF8.GetString(result.Publication.GetResourceBytes(svg.Id)));
-        result.Publication.Write().Report.RequireNoLoss();
+        result.Publication.Write().Report.ThrowIfLoss();
     }
     [Fact]
     public void AbsoluteAndRelativeSourceDocumentAnchorsBecomeBookLinks() {
         var source = HtmlConversionDocument.Parse("<title>Links</title><h1 id='one'>One</h1><a href='manuscript.html#two'>Relative</a><a href='https://example.test/manuscript.html#two'>Absolute</a><h1 id='two'>Two</h1>",
             new HtmlConversionDocumentOptions { BaseUri = new Uri("https://example.test/manuscript.html") });
         var result = EpubManuscript.ImportHtml(source);
-        result.Report.RequireNoLoss();
+        result.Report.ThrowIfLoss();
         var links = result.Publication.GetContentXml("chapter-1").Descendants(System.Xml.Linq.XName.Get("a", "http://www.w3.org/1999/xhtml"));
         Assert.All(links, link => Assert.Equal("chapter-0002.xhtml#two", (string?)link.Attribute("href")));
     }
@@ -212,10 +214,10 @@ public sealed class EpubPublishingResourceContracts {
     [Fact]
     public void TaskListStatesAndHtmlMetadataAreRetainedAsStaticBookContent() {
         var result = EpubManuscript.ImportHtml(HtmlConversionDocument.Parse("<title>Tasks</title><meta name='author' content='Writer'><meta name='description' content='Task notes'><h1>Tasks</h1><ul><li><input type='checkbox' disabled checked>Done</li><li><input type='checkbox' disabled>Open</li></ul>"));
-        result.Report.RequireNoLoss();
+        result.Report.ThrowIfLoss();
         Assert.Equal("Writer", result.Publication.Creator);
         string content = result.Publication.GetContentXml("chapter-1").ToString();
         Assert.Contains("[x] ", content); Assert.Contains("[ ] ", content); Assert.DoesNotContain("<input", content);
-        result.Publication.Write().Report.RequireNoLoss();
+        result.Publication.Write().Report.ThrowIfLoss();
     }
 }

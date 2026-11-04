@@ -44,7 +44,7 @@ using OfficeIMO.IWork;
 using OfficeIMO.Excel.IWork;
 
 IWorkSourceDocument source = IWorkSourceDocument.Open("budget.numbers");
-using NumbersToExcelResult result = source.ToExcelDocumentResult(
+using NumbersToExcelResult result = source.ToExcelResult(
     new IWorkConversionOptions { Mode = IWorkConversionMode.Auto });
 
 Console.WriteLine(result.Report.ProjectionKind);
@@ -52,7 +52,7 @@ Console.WriteLine(result.HasLoss);
 result.Value.Save("budget.xlsx");
 ```
 
-Use `ToWordDocument[Result]` for Pages, `ToExcelDocument[Result]` for Numbers, and `ToPowerPointDocument[Result]` for Keynote. The short extension returns the destination document. The result extension also exposes the typed projection, diagnostics, preserved source records, producer build history, and the exact editable or visual-fallback result. The static `ConvertPagesToWord*`, `ConvertNumbersToExcel*`, and `ConvertKeynoteToPowerPoint*` methods are path and stream conveniences over the same source-first conversion pipeline.
+Open the source with `IWorkSourceDocument.Open`, then use `ToWord`, `ToExcel` or `ToPowerPoint` (with an optional `out OfficeConversionReport`) and `SaveAsWord`, `SaveAsExcel` or `SaveAsPowerPoint`. `ToWordResult`, `ToExcelResult` and `ToPowerPointResult` also expose the typed projection, diagnostics, preserved source records, producer build history, and the exact editable or visual-fallback result.
 
 ## Preservation boundary
 

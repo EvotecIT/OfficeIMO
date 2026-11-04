@@ -97,7 +97,7 @@ public class PdfOfficeDefaultFontPolicyTests {
         using var stream = new MemoryStream();
         using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         PowerPointTextBox text = presentation.AddSlide().AddTextBox("Arial proof",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(60));
-        text.FontName = "Arial";
+        text.FontFamily = "Arial";
         text.FontSize = global::OfficeIMO.OfficeLength.Points(16);
         PdfDocumentConversionResult slidesResult = presentation.ConvertToPdfWithEvidence(new PowerPointPdfExportOptions { ResourcePolicy = policy });
         AssertFontSelection(slidesResult.ToBytes(), slidesResult.Report, portable);
@@ -116,8 +116,8 @@ public class PdfOfficeDefaultFontPolicyTests {
         if (named) options.RegisterNamedFontFamily(family);
         else options.RegisterFontFamily(PdfStandardFont.Helvetica, family);
         byte[] bytes = PdfDocument.Create(options).Paragraph(paragraph => {
-            if (named) paragraph.FontFamily("Cost Proof");
-            paragraph.Text("Subset proof");
+            if (named) { paragraph.RunDefaults.FontFamily = "Cost Proof"; paragraph.RunDefaults.StandardFont = null; }
+            paragraph.AddText("Subset proof");
         }).ToBytes();
 
         PdfConversionWarning cost = Assert.Single(report.Warnings, warning => warning.Code == "font-embedding-cost");
@@ -141,7 +141,7 @@ public class PdfOfficeDefaultFontPolicyTests {
         var options = new PdfCreateOptions { CompressEmbeddedFonts = compress }.ReportDiagnosticsTo(report);
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("CFF Cost Proof", font));
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.FontFamily("CFF Cost Proof").Text("CFF proof")).ToBytes();
+            .Paragraph(paragraph => paragraph.AddText("CFF proof").SetFontFamily("CFF Cost Proof")).ToBytes();
         PdfConversionWarning cost = Assert.Single(report.Warnings, warning => warning.Code == "font-embedding-cost");
         Assert.Equal("OpenType/CFF", cost.Details["format"]);
         Assert.Equal(font.Length, int.Parse(cost.Details["originalFontBytes"], CultureInfo.InvariantCulture));

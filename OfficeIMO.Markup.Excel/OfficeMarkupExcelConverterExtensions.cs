@@ -7,7 +7,7 @@ namespace OfficeIMO.Markup.Excel;
 /// <summary>Typed OfficeIMO Markup to Excel conversion helpers.</summary>
 public static class OfficeMarkupExcelConverterExtensions {
     /// <summary>Converts workbook-profile markup to an editable detached Excel document.</summary>
-    public static ExcelDocument ToExcelDocument(this OfficeMarkupDocument document, MarkupToExcelOptions? options = null) {
+    public static ExcelDocument ToExcelDocument(this OfficeMarkupDocument document, MarkupExcelExportOptions? options = null) {
         OfficeMarkupConversionResult<ExcelDocument> result = document.ToExcelDocumentResult(options);
         if (result.Succeeded) return result.Value;
         result.Value.Dispose();
@@ -17,9 +17,9 @@ public static class OfficeMarkupExcelConverterExtensions {
     /// <summary>Converts workbook-profile markup and returns the Excel document with structured diagnostics.</summary>
     public static OfficeMarkupConversionResult<ExcelDocument> ToExcelDocumentResult(
         this OfficeMarkupDocument document,
-        MarkupToExcelOptions? options = null) {
+        MarkupExcelExportOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        MarkupToExcelOptions resolved = options ?? new MarkupToExcelOptions();
+        MarkupExcelExportOptions resolved = options ?? new MarkupExcelExportOptions();
         IReadOnlyList<OfficeMarkupDiagnostic> diagnostics = CollectDiagnostics(document, resolved);
         ExcelDocument value = new OfficeMarkupExcelExporter().Convert(document, resolved);
         return new OfficeMarkupConversionResult<ExcelDocument>(value, diagnostics);
@@ -29,7 +29,7 @@ public static class OfficeMarkupExcelConverterExtensions {
     public static OfficeMarkupConversionReport SaveAsExcel(
         this OfficeMarkupDocument document,
         string path,
-        MarkupToExcelOptions? options = null,
+        MarkupExcelExportOptions? options = null,
         ExcelSaveOptions? saveOptions = null) {
         OfficeMarkupConversionResult<ExcelDocument> result = document.ToExcelDocumentResult(options);
         using (result.Value) result.RequireValue().Save(path, saveOptions ?? CreateDefaultSaveOptions());
@@ -40,7 +40,7 @@ public static class OfficeMarkupExcelConverterExtensions {
     public static OfficeMarkupConversionReport SaveAsExcel(
         this OfficeMarkupDocument document,
         Stream stream,
-        MarkupToExcelOptions? options = null,
+        MarkupExcelExportOptions? options = null,
         ExcelSaveOptions? saveOptions = null) {
         OfficeMarkupConversionResult<ExcelDocument> result = document.ToExcelDocumentResult(options);
         using (result.Value) result.RequireValue().Save(stream, saveOptions ?? CreateDefaultSaveOptions());
@@ -51,7 +51,7 @@ public static class OfficeMarkupExcelConverterExtensions {
     public static async Task<OfficeMarkupConversionReport> SaveAsExcelAsync(
         this OfficeMarkupDocument document,
         string path,
-        MarkupToExcelOptions? options = null,
+        MarkupExcelExportOptions? options = null,
         ExcelSaveOptions? saveOptions = null,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -64,7 +64,7 @@ public static class OfficeMarkupExcelConverterExtensions {
     public static async Task<OfficeMarkupConversionReport> SaveAsExcelAsync(
         this OfficeMarkupDocument document,
         Stream stream,
-        MarkupToExcelOptions? options = null,
+        MarkupExcelExportOptions? options = null,
         ExcelSaveOptions? saveOptions = null,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -81,7 +81,7 @@ public static class OfficeMarkupExcelConverterExtensions {
 
     private static IReadOnlyList<OfficeMarkupDiagnostic> CollectDiagnostics(
         OfficeMarkupDocument document,
-        MarkupToExcelOptions options) {
+        MarkupExcelExportOptions options) {
         var diagnostics = new List<OfficeMarkupDiagnostic>(OfficeMarkupValidator.Validate(document));
         foreach (OfficeMarkupBlock block in document.DescendantsAndSelf()) {
             bool commonText = block is OfficeMarkupHeadingBlock

@@ -15,9 +15,9 @@ public partial class HtmlOfficeAdapters {
             + "<link rel='alternate stylesheet' title='other' href='https://example.test/other.css'>"
             + "<link rel='stylesheet' disabled href='https://example.test/disabled.css'>";
         HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(
-            "<html><head>" + links + "</head><body><p>Text</p></body></html>").ToOneNoteSectionResult();
+            "<html><head>" + links + "</head><body><p>Text</p></body></html>").ConvertToOneNoteSectionWithEvidence();
 
-        HtmlDiagnostic[] skipped = result.Report.Diagnostics
+        HtmlDiagnostic[] skipped = result.Report.NativeDiagnostics
             .Where(item => item.Code == "html-stylesheet-link-skipped").ToArray();
         Assert.Equal(128, skipped.Length);
         Assert.Equal("https://example.test/plain-0.css", skipped[0].Source);
@@ -36,8 +36,8 @@ public partial class HtmlOfficeAdapters {
             + "</head><body><p>Styled text</p></body></html>";
         HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
 
-        HtmlToOneNoteSectionResult section = source.ToOneNoteSectionResult();
-        HtmlDiagnostic diagnostic = Assert.Single(section.Report.Diagnostics,
+        HtmlToOneNoteSectionResult section = source.ConvertToOneNoteSectionWithEvidence();
+        HtmlDiagnostic diagnostic = Assert.Single(section.Report.NativeDiagnostics,
             item => item.Code == "html-stylesheet-link-skipped");
         Assert.Equal("https://example.test/active.css", diagnostic.Source);
         Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
@@ -47,8 +47,8 @@ public partial class HtmlOfficeAdapters {
             .Children.OfType<OneNoteParagraph>());
         Assert.Equal(0xFF336699U, Assert.Single(paragraph.Runs).Style.ColorArgb);
 
-        HtmlToOneNoteNotebookResult notebook = source.ToOneNoteNotebookResult();
-        Assert.Equal(diagnostic.Source, Assert.Single(notebook.Report.Diagnostics,
+        HtmlToOneNoteNotebookResult notebook = source.ConvertToOneNoteNotebookWithEvidence();
+        Assert.Equal(diagnostic.Source, Assert.Single(notebook.Report.NativeDiagnostics,
             item => item.Code == "html-stylesheet-link-skipped").Source);
     }
 
@@ -56,7 +56,7 @@ public partial class HtmlOfficeAdapters {
     public void OneNote_AppliedInlineStylesheetDoesNotReportExternalResourceLoss() {
         const string html = "<style>p { color: #336699; }</style><p>Styled text</p>";
 
-        HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(html).ToOneNoteSectionResult();
+        HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(html).ConvertToOneNoteSectionWithEvidence();
 
         Assert.False(result.Report.HasLoss);
         OneNoteParagraph paragraph = Assert.Single(Assert.Single(Assert.Single(result.Value.Pages).Outlines)

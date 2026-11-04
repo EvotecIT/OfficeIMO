@@ -46,7 +46,7 @@ For staged parsing, use the import options to configure the Markdown reader befo
 
 ```csharp
 string source = "# Report\n\nPrepared from Markdown.";
-var options = new WordMarkdownImportOptions();
+var options = new MarkdownWordExportOptions();
 using var markdown = MarkdownDocument.Parse(source, options.CreateReaderOptions());
 using WordDocument document = markdown.ToWord(options);
 ```
@@ -97,7 +97,7 @@ For HTML input, add `OfficeIMO.Markdown.Html`, parse with `HtmlConversionDocumen
 ```csharp
 using OfficeIMO.Markdown;
 using OfficeIMO.Word.Markdown;
-var options = new WordMarkdownImportOptions {
+var options = new MarkdownWordExportOptions {
     AllowLocalImages = true,
     FitImagesToPageContentWidth = true,           // page width minus margins
     MaxImageWidth = OfficeIMO.OfficeLength.Inches(5), // optional physical cap
@@ -107,7 +107,7 @@ var options = new WordMarkdownImportOptions {
 using var doc = MarkdownDocument.Parse("# Report\n\nBody").ToWord(options);
 ```
 
-- Typed contract is available via `WordMarkdownImportOptions.ImageLayout`.
+- Typed contract is available via `MarkdownWordExportOptions.ImageLayout`.
 - `PreferNarrativeSingleLineDefinitions = true` keeps isolated `Label: value` lines as narrative paragraphs while still allowing grouped definition-list blocks.
 - `OnImageLayoutDiagnostic` reports requested, natural, effective-limit, and final dimensions as nullable `OfficeLength` values. Natural image pixels are interpreted at 96 DPI; use `ToPixels()` for that projection or `ToPoints()` for points.
 
@@ -137,14 +137,14 @@ using OfficeIMO;
 using OfficeIMO.Markdown;
 using OfficeIMO.Word.Markdown;
 
-var options = WordMarkdownImportOptions.CreateIntelligenceXTranscript(
+var options = MarkdownWordExportOptions.CreateIntelligenceXTranscript(
     allowedImageDirectories: new[] { @"C:\Exports\Images" },
     visualMaxWidth: OfficeLength.Pixels(760));
 
 using var doc = MarkdownDocument.Parse("# Report\n\nBody").ToWord(options);
 ```
 
-- `WordMarkdownImportOptions.CreateIntelligenceXTranscript(...)` is the explicit DOCX preset for IX transcript export.
+- `MarkdownWordExportOptions.CreateIntelligenceXTranscript(...)` is the explicit DOCX preset for IX transcript export.
 - That preset now reuses the shared `MarkdownTranscriptPreparation.CreateIntelligenceXTranscriptReaderOptions(...)` contract, including legacy IX visual JSON upgrades through document transforms.
 - `MarkdownToWordCapabilities.PreservesNarrativeSingleLineDefinitionsAsSeparateParagraphs()` exposes the grouped `Label: value` capability probe as a reusable OfficeIMO contract instead of host-local reflection logic.
 

@@ -17,7 +17,7 @@ internal static class ScheduleCorpus {
             var referenceTasks = reference.Root.Element(ns + "Tasks")!.Elements(ns + "Task").ToDictionary(t => (int)t.Element(ns + "UID")!);
             long revision = document.Revision;
             var result = document.CalculateSchedule();
-            foreach (var diagnostic in result.Report.Diagnostics.Where(d => d.Severity == ProjectDiagnosticSeverity.Error))
+            foreach (var diagnostic in result.Report.NativeDiagnostics.Where(d => d.Severity == ProjectDiagnosticSeverity.Error))
                 differences.Add(new { fixture = name, code = diagnostic.Code, location = diagnostic.Location, message = diagnostic.Message });
             foreach (var actual in result.Tasks) {
                 var expected = expectedDocument.AllTasks.Single(t => t.Uid == actual.TaskUid);

@@ -13,8 +13,8 @@ namespace OfficeIMO.Examples.Word {
             var imagePaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Images");
 
             using var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "This is sparta";
-            document.BuiltinDocumentProperties.Creator = "Przemek";
+            document.Properties.Title = "This is sparta";
+            document.Properties.Creator = "Przemek";
 
             var paragraph1 = document.AddParagraph("This paragraph starts with some text");
             paragraph1.Text = "0th This paragraph started with some other text and was overwritten and made bold.";

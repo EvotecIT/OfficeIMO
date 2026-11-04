@@ -27,11 +27,11 @@ public sealed class ExcelChartContractTests {
         sheet.AddTable(rows, new OfficeTableOptions { Name = "Sales" }, row: 4, column: 3);
         sheet.Range("C5:C6").SetNumberFormat("\"$\"#,##0.00");
         sheet.Range("F5:F6").SetNumberFormat("0.0%");
-        sheet.CellFormula(5, 7, "C5*2");
-        sheet.CellFormula(6, 7, "C6*2");
+        sheet.Cell(5, 7).SetFormula("C5*2");
+        sheet.Cell(6, 7).SetFormula("C6*2");
         sheet.Range("G5:G6").SetNumberFormat("0.0\" forecast\"");
         book.Calculate();
-        sheet.CellValue(20, 3, 999999d);
+        sheet.Cell(20, 3).SetValue(999999d);
         using var runspace = Open(book);
         var result = Invoke(runspace, """
             Add-OfficeExcelChart -Document $book -Sheet Sales -Table Sales -Category region -Value Cost,Forecast,Revenue -Address F2 -Width 18cm -Height 9cm -Title 'Margin' -Type BarClustered -Preset CompactComparison -PassThru
@@ -46,9 +46,9 @@ public sealed class ExcelChartContractTests {
             AssertData(chart, new[] { "North", "South" }, new[] { "Cost", "Forecast", "Revenue" },
                 new[] { 0.125d, 0.205d }, new[] { 200.25d, 301.75d }, new[] { 100.125d, 150.875d });
             Assert.Equal("C4:G6", reopened.GetTableRange("Sales"));
-            Assert.Equal("\"$\"#,##0.00", reopened.CellAt(5, 3).GetStyle().NumberFormatCode);
-            Assert.Equal("0.0%", reopened.CellAt(5, 6).GetStyle().NumberFormatCode);
-            Assert.Equal("0.0\" forecast\"", reopened.CellAt(5, 7).GetStyle().NumberFormatCode);
+            Assert.Equal("\"$\"#,##0.00", reopened.Cell(5, 3).GetStyle().NumberFormatCode);
+            Assert.Equal("0.0%", reopened.Cell(5, 6).GetStyle().NumberFormatCode);
+            Assert.Equal("0.0\" forecast\"", reopened.Cell(5, 7).GetStyle().NumberFormatCode);
             Assert.Equal("C5*2", reopened.GetFormulaText(5, 7));
             Assert.True(reopened.TryGetCellText(20, 3, out string unrelated));
             Assert.Equal("999999", unrelated);
@@ -77,7 +77,7 @@ public sealed class ExcelChartContractTests {
         rows.Rows.Add("South", 150d, "Second", 60d, DBNull.Value, "unknown");
         sheet.AddTable(rows, new OfficeTableOptions { Name = "Sales" }, row: 3, column: 2);
         sheet.SetTableTotalsByName("Sales", new Dictionary<string, ExcelTableTotalsFunction> { ["Revenue"] = ExcelTableTotalsFunction.Sum });
-        sheet.CellValue(30, 3, 999999d);
+        sheet.Cell(30, 3).SetValue(999999d);
         using var runspace = Open(book);
         Assert.Empty(Invoke(runspace, "Add-OfficeExcelChart -Document $book -Table Sales -Address H3"));
         using var artifact = Save(book);
@@ -89,7 +89,7 @@ public sealed class ExcelChartContractTests {
     public void PipelineRowsWriteOneTableWithoutOverwritingExistingCellsAndReturnOneNativeChart() {
         using var book = ExcelDocument.Create();
         var sheet = book.AddSheet("Sales");
-        sheet.CellValue(8, 1, "Keep this row");
+        sheet.Cell(8, 1).SetValue("Keep this row");
         using var runspace = Open(book);
         var result = Invoke(runspace, """
             @(
@@ -137,10 +137,10 @@ public sealed class ExcelChartContractTests {
     public void HeaderlessRangeUsesTheWorkbookPipelineAndReturnsQuietly() {
         using var book = ExcelDocument.Create();
         var sheet = book.AddSheet("Sales");
-        sheet.CellValue(3, 2, "North");
-        sheet.CellValue(3, 3, 100d);
-        sheet.CellValue(4, 2, "South");
-        sheet.CellValue(4, 3, 150d);
+        sheet.Cell(3, 2).SetValue("North");
+        sheet.Cell(3, 3).SetValue(100d);
+        sheet.Cell(4, 2).SetValue("South");
+        sheet.Cell(4, 3).SetValue(150d);
         using var runspace = Open(book);
         Assert.Empty(Invoke(runspace, "$book | Add-OfficeExcelChart -Range B3:C4 -NoHeader -Address E3 -Width 480px -Height 240px"));
         using var artifact = Save(book);
@@ -184,15 +184,15 @@ public sealed class ExcelChartContractTests {
         using var book = ExcelDocument.Create();
         var sheet = book.AddSheet("Sales");
         SeedSales(sheet);
-        string originalRange = sheet.UsedRangeA1;
+        string originalRange = sheet.UsedRange.Address;
         int sheetCount = book.Sheets.Count;
         using var runspace = Open(book);
         Reject(runspace, "Add-OfficeExcelChart -Document $book -Address F2 " + selection);
         Assert.Empty(sheet.Charts);
         Assert.Equal(sheetCount, book.Sheets.Count);
-        Assert.Equal(originalRange, sheet.UsedRangeA1);
+        Assert.Equal(originalRange, sheet.UsedRange.Address);
         Assert.Equal("A1:D3", Assert.Single(sheet.GetTables()).Range);
-        Assert.Equal(100d, sheet.CellAt(2, 2).GetValue<double>());
+        Assert.Equal(100d, sheet.Cell(2, 2).GetValue<double>());
     }
 
     [Fact]

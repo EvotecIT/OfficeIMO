@@ -44,7 +44,7 @@ public partial class PdfTextEditorTests {
     [Fact]
     public void InspectAndFindExposeBoundedTextGeometryAndStyle() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Alpha beta alphabet"))
+            .Paragraph(paragraph => paragraph.AddText("Alpha beta alphabet"))
             .ToBytes();
         IReadOnlyList<PdfTextSpan> spans = PdfReadDocument.Open(pdf).Pages[0].GetTextSpans();
         PdfPageRegion region = RegionAround(spans);
@@ -127,9 +127,9 @@ public partial class PdfTextEditorTests {
     [Fact]
     public void ReplaceRemovesOnlyTextAndPreservesIntersectingAnnotation() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Keep line above"))
-            .Paragraph(paragraph => paragraph.Text("Replace this sentence"))
-            .Paragraph(paragraph => paragraph.Text("Keep line below"))
+            .Paragraph(paragraph => paragraph.AddText("Keep line above"))
+            .Paragraph(paragraph => paragraph.AddText("Replace this sentence"))
+            .Paragraph(paragraph => paragraph.AddText("Keep line below"))
             .ToBytes();
         PdfTextMatch sourceMatch = Assert.Single(PdfDocument.Load(source).Text.Find("Replace this sentence", new PdfTextSearchOptions { MatchCase = true }));
         PdfPageRegion region = new PdfPageRegion(1, sourceMatch.X, sourceMatch.Y, sourceMatch.Width, sourceMatch.Height);
@@ -188,9 +188,9 @@ public partial class PdfTextEditorTests {
     [Fact]
     public void MoveAndAddProduceInspectableTextAtRequestedLocations() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Stationary line above"))
-            .Paragraph(paragraph => paragraph.Text("Move me"))
-            .Paragraph(paragraph => paragraph.Text("Stationary line below"))
+            .Paragraph(paragraph => paragraph.AddText("Stationary line above"))
+            .Paragraph(paragraph => paragraph.AddText("Move me"))
+            .Paragraph(paragraph => paragraph.AddText("Stationary line below"))
             .ToBytes();
         PdfTextMatch originalMatch = Assert.Single(PdfDocument.Load(source).Text.Find("Move me", new PdfTextSearchOptions { MatchCase = true }));
         PdfPageRegion sourceRegion = new PdfPageRegion(1, originalMatch.X, originalMatch.Y, originalMatch.Width, originalMatch.Height);
@@ -217,9 +217,9 @@ public partial class PdfTextEditorTests {
     [Fact]
     public void ReplaceAllPreservesUnmatchedTextInTheSameSourceSpan() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Keep heading"))
-            .Paragraph(paragraph => paragraph.Text("cat cat dog"))
-            .Paragraph(paragraph => paragraph.Text("Keep footer"))
+            .Paragraph(paragraph => paragraph.AddText("Keep heading"))
+            .Paragraph(paragraph => paragraph.AddText("cat cat dog"))
+            .Paragraph(paragraph => paragraph.AddText("Keep footer"))
             .ToBytes();
 
         PdfTextEditResult result = PdfDocument.Load(source).Text.ReplaceAll(
@@ -1251,7 +1251,7 @@ public partial class PdfTextEditorTests {
     [InlineData("\r\n")]
     [InlineData("\r\n\n")]
     public void AddRejectsLineBreakOnlyText(string text) {
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Page")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Page")).ToBytes();
 
         Assert.Throws<ArgumentException>(() => PdfDocument.Load(source).Text.Add(new PdfPageRegion(1, 20, 20, 100, 30), text));
     }
@@ -1297,7 +1297,7 @@ public partial class PdfTextEditorTests {
 
     [Fact]
     public void TextMutationsPreserveAnExistingAcroFormCatalogGraph() {
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Form and text edit")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Form and text edit")).ToBytes();
         byte[] form = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "customer.notes",
             Kind = PdfFormFieldCreationKind.Text,
@@ -1392,7 +1392,7 @@ public partial class PdfTextEditorTests {
     [Fact]
     public void PublicRedactionStillPaintsAndRemovesIntersectingAnnotations() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Secret marker"))
+            .Paragraph(paragraph => paragraph.AddText("Secret marker"))
             .ToBytes();
         IReadOnlyList<PdfTextSpan> spans = PdfReadDocument.Open(source).Pages[0].GetTextSpans();
         PdfPageRegion region = RegionAround(spans);

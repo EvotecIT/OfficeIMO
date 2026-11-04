@@ -17,7 +17,7 @@ namespace OfficeIMO.Visio {
         /// the page <see cref="DefaultUnit"/>.
         /// </param>
         /// <returns>The created shape.</returns>
-        public VisioShape AddShape(string id, VisioMaster master, double x, double y, double w, double h, string? text = null, VisioMeasurementUnit? unit = null) {
+        internal VisioShape AddShapeInches(string id, VisioMaster master, double x, double y, double w, double h, string? text = null, VisioMeasurementUnit? unit = null) {
             VisioMeasurementUnit effectiveUnit = unit ?? DefaultUnit;
             x = x.ToInches(effectiveUnit);
             y = y.ToInches(effectiveUnit);
@@ -48,7 +48,7 @@ namespace OfficeIMO.Visio {
         /// <param name="text">Optional text override. Imported, grouped and styled masters retain their text when omitted.</param>
         /// <param name="unit">Measurement unit for the provided values.</param>
         /// <returns>The created shape.</returns>
-        public VisioShape AddShape(string id, string masterNameU, double x, double y, double w, double h, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+        internal VisioShape AddShapeInches(string id, string masterNameU, double x, double y, double w, double h, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
             if (OwnerDocument == null) {
                 throw new InvalidOperationException("This page is not attached to a VisioDocument, so master lookup by name is unavailable.");
             }
@@ -72,13 +72,13 @@ namespace OfficeIMO.Visio {
         }
 
         /// <summary>Adds a shape from a registered master using the page's default measurement unit.</summary>
-        public VisioShape AddShape(string id, string masterNameU, double x, double y, double w, double h) =>
-            AddShape(id, masterNameU, x, y, w, h, text: null, unit: DefaultUnit);
+        internal VisioShape AddShapeInches(string id, string masterNameU, double x, double y, double w, double h) =>
+            AddShapeInches(id, masterNameU, x, y, w, h, text: null, unit: DefaultUnit);
 
         /// <summary>
         /// Adds a shape using the page <see cref="DefaultUnit"/> and a document-registered master.
         /// </summary>
-        public VisioShape AddShape(string id, string masterNameU, double x, double y, double w, double h, string? text = null) =>
-            AddShape(id, masterNameU, x, y, w, h, text, DefaultUnit);
+        internal VisioShape AddShapeInches(string id, string masterNameU, double x, double y, double w, double h, string? text = null) =>
+            AddShapeInches(id, masterNameU, x, y, w, h, text, DefaultUnit);
     }
 }

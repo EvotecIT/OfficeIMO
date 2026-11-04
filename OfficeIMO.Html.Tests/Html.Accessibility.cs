@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_AccessibilityDiagnostics_AreOptIn() {
-            var options = new WordHtmlImportOptions();
+            var options = new HtmlWordExportOptions();
 
             HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse("<h1>Title</h1><h3>Skipped</h3><p><img src=\"missing.png\"></p>").ConvertToWordWithEvidence(options);
             using var document = conversion.Value;
@@ -69,7 +69,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_AccessibilityDiagnostics_ReportMissingImageAltAndWeakLinks() {
-            var options = new WordHtmlImportOptions {
+            var options = new HtmlWordExportOptions {
                 EnableAccessibilityDiagnostics = true,
                 ImageProcessing = WordHtmlImageProcessingMode.EmbedDataUriOnly
             };
@@ -86,7 +86,7 @@ namespace OfficeIMO.Tests {
 
             using var document = conversion.Value;
 
-            var accessibilityDiagnostics = conversion.Report.Diagnostics.Where(diagnostic => diagnostic.Code.StartsWith("accessibility-", StringComparison.OrdinalIgnoreCase)).ToList();
+            var accessibilityDiagnostics = conversion.Report.NativeDiagnostics.Where(diagnostic => diagnostic.Code.StartsWith("accessibility-", StringComparison.OrdinalIgnoreCase)).ToList();
             Assert.Contains(accessibilityDiagnostics, diagnostic => diagnostic.Code == "accessibility-image-missing-alt" && diagnostic.Source == "missing.png");
             Assert.Contains(accessibilityDiagnostics, diagnostic => diagnostic.Code == "accessibility-link-text-weak" && diagnostic.Source == "https://example.com/report");
             Assert.Contains(accessibilityDiagnostics, diagnostic => diagnostic.Code == "accessibility-link-text-missing" && diagnostic.Source == "https://example.com/empty");
@@ -96,7 +96,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_AccessibilityDiagnostics_ReportHeadingJumpsAndTablesWithoutHeaders() {
-            var options = new WordHtmlImportOptions {
+            var options = new HtmlWordExportOptions {
                 EnableAccessibilityDiagnostics = true
             };
 
@@ -115,7 +115,7 @@ namespace OfficeIMO.Tests {
 
             using var document = conversion.Value;
 
-            var accessibilityDiagnostics = conversion.Report.Diagnostics.Where(diagnostic => diagnostic.Code.StartsWith("accessibility-", StringComparison.OrdinalIgnoreCase)).ToList();
+            var accessibilityDiagnostics = conversion.Report.NativeDiagnostics.Where(diagnostic => diagnostic.Code.StartsWith("accessibility-", StringComparison.OrdinalIgnoreCase)).ToList();
             Assert.Contains(accessibilityDiagnostics, diagnostic => diagnostic.Code == "accessibility-heading-level-skipped" && diagnostic.Source == "h3");
             Assert.Contains(accessibilityDiagnostics, diagnostic => diagnostic.Code == "accessibility-table-missing-header" && diagnostic.Source == "table#data");
             Assert.DoesNotContain(accessibilityDiagnostics, diagnostic => diagnostic.Source == "table#headed");
@@ -124,7 +124,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlToWord_AccessibilityFixture_SavesAsValidOpenXmlDocument() {
             const string pixelPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=";
-            var options = new WordHtmlImportOptions {
+            var options = new HtmlWordExportOptions {
                 EnableAccessibilityDiagnostics = true
             };
 

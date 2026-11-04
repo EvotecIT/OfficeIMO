@@ -6,6 +6,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
+using OfficeIMO.Excel.Reports;
 using Xunit;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 
@@ -18,7 +19,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(source)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Ready");
+                sheet.Cell(1, 1).SetValue("Ready");
 
                 document.SetNamedRange("Anchor", "A1", sheet);
                 document.Save(destination);
@@ -26,7 +27,7 @@ namespace OfficeIMO.Tests {
 
             destination.Position = 0;
             using var loaded = ExcelDocument.Load(destination, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
-            Assert.Equal("$A$1", loaded.GetNamedRange("Anchor", loaded["Data"]));
+            Assert.Equal("$A$1", loaded.GetNamedRangeText("Anchor", loaded["Data"]));
         }
 
         [Fact]
@@ -34,14 +35,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCustomDocumentProperties.DirectCollection.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                document.AddSheet("Data").CellValue(1, 1, "Ready");
-                document.CustomDocumentProperties["Direct"] = new ExcelCustomProperty("Tracked");
+                document.AddSheet("Data").Cell(1, 1).SetValue("Ready");
+                document.CustomProperties["Direct"] = new ExcelCustomProperty("Tracked");
                 document.Save();
             }
 
             using (var document = ExcelDocument.Load(filePath)) {
-                Assert.Equal("Tracked", document.CustomDocumentProperties["Direct"].Text);
-                document.CustomDocumentProperties.Clear();
+                Assert.Equal("Tracked", document.CustomProperties["Direct"].Text);
+                document.CustomProperties.Clear();
                 document.Save();
             }
 
@@ -55,7 +56,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "PageBreaks.ConvertAutomatic.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                document.AddSheet("Data").CellValue(1, 1, "Ready");
+                document.AddSheet("Data").Cell(1, 1).SetValue("Ready");
                 document.Save();
             }
 
@@ -87,8 +88,8 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, new DateTime(2026, 6, 22));
-                sheet.AddConditionalTimePeriodRule("A1:A3", ExcelConditionalTimePeriod.Today);
+                sheet.Cell(1, 1).SetValue(new DateTime(2026, 6, 22));
+                sheet.Range("A1:A3").ConditionalFormat().TimePeriod(ExcelConditionalTimePeriod.Today);
                 document.Save();
             }
 
@@ -167,10 +168,10 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Report");
-                sheet.CellValue(1, 1, "Region");
-                document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: 1, lastCol: 1, save: false);
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.PageSetup.SetPrintTitles(firstRow: 1, lastRow: 1, firstColumn: 1, lastColumn: 1);
 
-                sheet.ApplyPrintLayout(new ExcelPrintLayoutOptions {
+                sheet.PageSetup.ApplyLayout(new ExcelPrintLayoutOptions {
                     Preset = ExcelPrintLayoutPreset.Worksheet
                 });
                 document.Save();
@@ -226,7 +227,7 @@ namespace OfficeIMO.Tests {
         public void Test_EnsureWorkbookTheme_SavesEnsuredPartsForStreamWorkbook() {
             using var source = new MemoryStream();
             using (var document = ExcelDocument.Create(source)) {
-                document.AddSheet("Data").CellValue(1, 1, "Ready");
+                document.AddSheet("Data").Cell(1, 1).SetValue("Ready");
                 document.Save(source);
             }
 
@@ -260,9 +261,9 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "One");
-                sheet.CellValue(2, 1, "Two");
-                sheet.CellValue(3, 1, "Three");
+                sheet.Cell(1, 1).SetValue("One");
+                sheet.Cell(2, 1).SetValue("Two");
+                sheet.Cell(3, 1).SetValue("Three");
                 document.Save();
             }
 
@@ -438,10 +439,10 @@ namespace OfficeIMO.Tests {
         public void Test_DashboardChart_RejectsOutOfBoundsAnchorsAndDimensions() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Dashboard");
-            sheet.CellValue(1, 1, "Region");
-            sheet.CellValue(1, 2, "Sales");
-            sheet.CellValue(2, 1, "EU");
-            sheet.CellValue(2, 2, 10);
+            sheet.Cell(1, 1).SetValue("Region");
+            sheet.Cell(1, 2).SetValue("Sales");
+            sheet.Cell(2, 1).SetValue("EU");
+            sheet.Cell(2, 2).SetValue(10);
 
             Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddDashboardChart(new ExcelDashboardChartOptions { Range = "A1:B2", Row = ExcelA1.MaxRows + 1, Column = 1 }));
             Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddDashboardChart(new ExcelDashboardChartOptions { Range = "A1:B2", Row = 1, Column = ExcelA1.MaxColumns + 1 }));
@@ -457,7 +458,7 @@ namespace OfficeIMO.Tests {
             using var source = new MemoryStream();
             using (var document = ExcelDocument.Create(source)) {
                 ExcelSheet sheet = document.AddSheet("Report");
-                sheet.CellValue(1, 1, "Region");
+                sheet.Cell(1, 1).SetValue("Region");
                 document.Save(source);
             }
 
@@ -465,16 +466,16 @@ namespace OfficeIMO.Tests {
             using var destination = new MemoryStream();
             using (var document = ExcelDocument.Load(source)) {
                 ExcelSheet sheet = document["Report"];
-                document.SetPrintArea(sheet, "A1:B2", save: false);
-                document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: 1, lastCol: 1, save: false);
+                sheet.PageSetup.PrintArea = "A1:B2";
+                sheet.PageSetup.SetPrintTitles(firstRow: 1, lastRow: 1, firstColumn: 1, lastColumn: 1);
                 document.Save(destination);
             }
 
             destination.Position = 0;
             using var loaded = ExcelDocument.Load(destination, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
             ExcelSheet loadedSheet = loaded["Report"];
-            Assert.Equal("$A$1:$B$2", loadedSheet.GetPrintArea());
-            ExcelPrintTitles titles = loadedSheet.GetPrintTitles();
+            Assert.Equal("$A$1:$B$2", loadedSheet.PageSetup.PrintArea);
+            ExcelPrintTitles titles = loadedSheet.PageSetup.PrintTitles;
             Assert.Equal(1, titles.FirstRow);
             Assert.Equal(1, titles.LastRow);
             Assert.Equal(1, titles.FirstColumn);
@@ -509,11 +510,11 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Report");
 
-            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.ApplyPrintLayout(new ExcelPrintLayoutOptions {
+            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.PageSetup.ApplyLayout(new ExcelPrintLayoutOptions {
                 Preset = ExcelPrintLayoutPreset.Worksheet,
                 Scale = 1U
             }));
-            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.ApplyPrintLayout(new ExcelPrintLayoutOptions {
+            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.PageSetup.ApplyLayout(new ExcelPrintLayoutOptions {
                 Preset = ExcelPrintLayoutPreset.Worksheet,
                 Scale = 401U
             }));

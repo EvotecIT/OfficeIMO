@@ -21,7 +21,7 @@ public sealed class MsgMalformedInputTests {
         byte[] corrupt = OfficeCompoundFileWriter.Write(compound.Streams.Select(stream =>
             new OfficeCompoundStream(stream.Key, stream.Value)).ToArray());
 
-        EmailReadResult result = new EmailDocumentReader().Read(corrupt);
+        EmailReadResult result = new EmailDocumentReader().ReadDocument(corrupt);
 
         Assert.Equal("survives", result.Document.Subject);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_MSG_NAMEID_GUID_INVALID" &&
@@ -44,7 +44,7 @@ public sealed class MsgMalformedInputTests {
         byte[] corrupt = OfficeCompoundFileWriter.Write(compound.Streams.Select(stream =>
             new OfficeCompoundStream(stream.Key, stream.Value)).ToArray());
 
-        EmailReadResult result = new EmailDocumentReader().Read(corrupt);
+        EmailReadResult result = new EmailDocumentReader().ReadDocument(corrupt);
 
         Assert.Equal("standard data survives", result.Document.Subject);
         Assert.Contains(result.Diagnostics, diagnostic =>
@@ -57,7 +57,7 @@ public sealed class MsgMalformedInputTests {
         var source = new EmailDocument { Format = EmailFileFormat.OutlookMsg, Subject = "truncated" };
         byte[] valid = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
 
-        EmailReadResult result = new EmailDocumentReader().Read(valid.Take(100).ToArray());
+        EmailReadResult result = new EmailDocumentReader().ReadDocument(valid.Take(100).ToArray());
 
         Assert.Equal(EmailFileFormat.Unknown, result.Document.Format);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_MSG_COMPOUND_INVALID");
@@ -80,7 +80,7 @@ public sealed class MsgMalformedInputTests {
         byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
 
         EmailDocument result = new EmailDocumentReader(new EmailReaderOptions(includeAttachmentContent: false))
-            .Read(bytes).Document;
+            .ReadDocument(bytes).Document;
 
         Assert.Equal(EmailProtectionKind.SmimeOpaque, result.Protection.Kind);
         Assert.Equal("smime.p7m", result.Protection.PayloadAttachment!.FileName);

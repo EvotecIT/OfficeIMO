@@ -15,7 +15,7 @@ public sealed class SpreadsheetDefaultFontConversionTests {
     [InlineData("14pt", 14D)]
     public void RelativeDefaultFontSizesUseTheOpenDocumentCascade(string lexical, double expectedPoints) {
         using var original = ExcelDocument.Create();
-        original.AddSheet("Default font").CellValue(1, 1, "Visible cell");
+        original.AddSheet("Default font").Cell(1, 1).SetValue("Visible cell");
         OdsDocument source = original.ToOpenDocument();
         source.Styles.GetOrCreateDefault(OdfStyleFamily.TableCell).FontSize = OdfLength.Parse(lexical);
         using var serialized = new MemoryStream();
@@ -23,7 +23,7 @@ public sealed class SpreadsheetDefaultFontConversionTests {
         serialized.Position = 0;
         OdsDocument loaded = OdsDocument.Load(serialized);
 
-        using ExcelDocument imported = loaded.ToExcelDocument();
+        using ExcelDocument imported = loaded.ToExcel();
 
         Font font = imported.OpenXmlDocument.WorkbookPart!.WorkbookStylesPart!.Stylesheet!.Fonts!.Elements<Font>().First();
         Assert.Equal(expectedPoints, font.FontSize!.Val!.Value, 6);
@@ -34,8 +34,8 @@ public sealed class SpreadsheetDefaultFontConversionTests {
     public void WorkbookColumnFontSurvivesSavedOdsRoundTripIndependentlyOfCellFonts() {
         using var workbook = ExcelDocument.Create();
         var sheet = workbook.AddSheet("Metrics");
-        sheet.CellValue(1, 1, "Visible cell");
-        sheet.CellFontName(1, 1, "Cell Face");
+        sheet.Cell(1, 1).SetValue("Visible cell");
+        sheet.Cell(1, 1).SetFontName("Cell Face");
         sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(24));
         Font font = workbook.OpenXmlDocument.WorkbookPart!.WorkbookStylesPart!.Stylesheet!.Fonts!.Elements<Font>().First();
         font.FontName = new FontName { Val = "Column Face" };
@@ -54,7 +54,7 @@ public sealed class SpreadsheetDefaultFontConversionTests {
         Assert.Equal(14D, defaults.FontSize!.Value.ToPoints(), 6);
         Assert.False(reopened.Sheets[0].Cell(0, 0).Bold);
         Assert.False(reopened.Sheets[0].Cell(0, 0).Italic);
-        using var roundTrip = reopened.ToExcelDocument();
+        using var roundTrip = reopened.ToExcel();
         Font restored = roundTrip.OpenXmlDocument.WorkbookPart!.WorkbookStylesPart!.Stylesheet!.Fonts!.Elements<Font>().First();
         Assert.Equal("Column Face", restored.FontName!.Val!.Value);
         Assert.Equal(14D, restored.FontSize!.Val!.Value);

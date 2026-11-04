@@ -1,8 +1,8 @@
 namespace OfficeIMO.Email.Store;
 
 /// <summary>Outcome of a committed existing-PST mutation transaction.</summary>
-public sealed class EmailStorePstMutationReport : IOfficeConversionReport {
-    private readonly IReadOnlyList<OfficeConversionFidelityDiagnostic> _fidelityDiagnostics;
+public sealed class EmailStorePstMutationReport : OfficeConversionReport {
+    private readonly IReadOnlyList<OfficeDiagnostic> _fidelityDiagnostics;
 
     internal EmailStorePstMutationReport(string sourcePath, string? backupPath,
         EmailStorePstMutationPlan plan,
@@ -31,11 +31,11 @@ public sealed class EmailStorePstMutationReport : IOfficeConversionReport {
         FolderIdMap = folderIdMap;
         ItemIdMap = itemIdMap;
         OperationResults = operationResults;
-        Diagnostics = diagnostics;
-        IReadOnlyList<OfficeConversionFidelityDiagnostic> projected =
+        NativeDiagnostics = diagnostics;
+        IReadOnlyList<OfficeDiagnostic> projected =
             EmailStoreFidelityProjection.AppendMissing(
                 EmailStoreFidelityProjection.Project(diagnostics),
-                writeReport.FidelityDiagnostics);
+                writeReport.Diagnostics);
         _fidelityDiagnostics = verification?.IsSuccessful == false
             ? EmailStoreFidelityProjection.Append(
                 projected,
@@ -102,15 +102,14 @@ public sealed class EmailStorePstMutationReport : IOfficeConversionReport {
     public IReadOnlyList<EmailStorePstMutationOperationResult> OperationResults { get; }
 
     /// <summary>Combined transaction, writer, and verification diagnostics.</summary>
-    public IReadOnlyList<EmailStoreDiagnostic> Diagnostics { get; }
+    public IReadOnlyList<EmailStoreDiagnostic> NativeDiagnostics { get; }
 
     /// <summary>True when a warning, error, or semantic mismatch was reported.</summary>
     public bool HasDataLoss => HasLoss;
     /// <summary>Category-preserving Store mutation diagnostics.</summary>
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => _fidelityDiagnostics;
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics => _fidelityDiagnostics;
     /// <summary>True when mutation approximated, omitted, or failed to preserve source content.</summary>
-    public bool HasLoss => _fidelityDiagnostics.Any(static diagnostic =>
+    public override bool HasLoss => _fidelityDiagnostics.Any(static diagnostic =>
         diagnostic.LossKind != OfficeConversionLossKind.None);
-    /// <summary>Throws when mutation reported possible content loss.</summary>
-    public void RequireNoLoss() => EmailStoreFidelityProjection.RequireNoLoss(_fidelityDiagnostics);
 }

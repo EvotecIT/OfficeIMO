@@ -54,7 +54,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(OfficeRasterImageDecoder.TryDecode(visual.Bytes, out var raster));
         AssertAvifPixels(reference, raster!,name.StartsWith("avif-main10-",StringComparison.Ordinal)?1:3);
         var result = document.RenderToPdfResult(HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged,
-            HtmlRenderEncoder.Pdf, new HtmlToPdfOptions(options)));
+            HtmlRenderEncoder.Pdf, new HtmlPdfExportOptions(options)));
         Assert.Empty(result.Output.Warnings);
         var embedded = Assert.Single(OfficeIMO.Pdf.PdfImageExtractor.ExtractImages(result.ToBytes()));
         Assert.True(OfficeRasterImageDecoder.TryDecode(embedded.Bytes, out var extracted));

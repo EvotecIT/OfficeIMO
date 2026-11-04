@@ -59,7 +59,7 @@ public partial class Word {
             table.ConditionalFormattingFirstRow = true;
             table.Rows[0].Cells[0].Paragraphs[0].Text = "ConditionalFill";
             table.Rows[0].Cells[1].Paragraphs[0].Text = "DirectFill";
-            table.Rows[0].Cells[1].ShadingFillColorHex = "F4CCCC";
+            table.Rows[0].Cells[1].ShadingFillColor = OfficeColor.Parse("F4CCCC");
             table.Rows[1].Cells[0].Paragraphs[0].Text = "BaseFill";
             table.Rows[1].Cells[1].Paragraphs[0].Text = "BasePeer";
 

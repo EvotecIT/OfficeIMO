@@ -171,14 +171,10 @@ public sealed class PdfRegionText {
     public double BaselineY { get; }
 }
 
-/// <summary>Controls document text searching.</summary>
-public sealed class PdfTextSearchOptions {
+/// <summary>Controls document text searching. <see cref="global::OfficeIMO.OfficeTextSearchOptions.MatchCase"/> and <see cref="global::OfficeIMO.OfficeTextSearchOptions.WholeWords"/> follow the shared defaults: case-insensitive, partial-word matching.</summary>
+public sealed class PdfTextSearchOptions : global::OfficeIMO.OfficeTextSearchOptions {
     private int[]? _pageNumbers;
 
-    /// <summary>Uses ordinal case-sensitive matching when true.</summary>
-    public bool MatchCase { get; set; }
-    /// <summary>Requires complete word boundaries around matches when true.</summary>
-    public bool WholeWords { get; set; }
     /// <summary>Includes non-Type3 invisible OCR-style text painted with PDF rendering mode 3.</summary>
     public bool IncludeTextRenderingMode3 { get; set; }
     /// <summary>Optional one-based pages to search. Null or empty searches every page.</summary>

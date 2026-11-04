@@ -52,7 +52,7 @@ public sealed class NewOfficeEpubCommand : OfficeNewLifecycleCmdlet<EpubPublicat
         },
         (document, path, allowLoss) => {
             EpubWriteReport report = document.Save(path);
-            if (!allowLoss) report.RequireNoLoss();
+            if (!allowLoss) report.ThrowIfLoss();
             return null;
         });
 }

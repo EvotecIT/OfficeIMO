@@ -13,8 +13,8 @@ namespace OfficeIMO.Tests {
         public void FormulaEvaluator_BlankReferenceFunctionsRetainContextUntilCellEvaluation(string caseId, string reference) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("References");
-            sheet.CellValue(1, 1, 1d);
-            sheet.CellValue(3, 1, 3d);
+            sheet.Cell(1, 1).SetValue(1d);
+            sheet.Cell(3, 1).SetValue(3d);
             document.SetNamedRange("EmptyCell", "'References'!$A$2");
             document.SetNamedFormula("EmptyLookup", "XLOOKUP(2,{1;2;3},'References'!A1:A3)", save: false);
             (string Formula, string Expected)[] cases = {
@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests {
                 ("IF(TRUE,,7)", "0"),
                 ("IF(FALSE,7)", "0")
             };
-            for (int index = 0; index < cases.Length; index++) sheet.CellFormula(index + 1, 4, cases[index].Formula);
+            for (int index = 0; index < cases.Length; index++) sheet.Cell(index + 1, 4).SetFormula(cases[index].Formula);
             Assert.True(document.Calculate() == cases.Length, caseId);
             for (int index = 0; index < cases.Length; index++) AssertFormulaCache(sheet, index + 1, 4, cases[index].Expected);
         }
@@ -55,11 +55,11 @@ namespace OfficeIMO.Tests {
         public void FormulaEvaluator_BlankReferencesCoerceAtNumericAndCriteriaConsumers(string reference) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Consumers");
-            sheet.CellValue(1, 1, 1d);
-            sheet.CellValue(3, 1, 3d);
+            sheet.Cell(1, 1).SetValue(1d);
+            sheet.Cell(3, 1).SetValue(3d);
             for (int row = 1; row <= 3; row++) {
-                sheet.CellValue(row, 2, row - 1d);
-                sheet.CellValue(row, 3, row * 10d);
+                sheet.Cell(row, 2).SetValue(row - 1d);
+                sheet.Cell(row, 3).SetValue(row * 10d);
             }
             (string Formula, string Expected)[] cases = {
                 ($"SQRT({reference})", "0"),
@@ -76,7 +76,7 @@ namespace OfficeIMO.Tests {
                 ($"IPMT({reference},1,2,100)", "0"),
                 ($"PPMT({reference},1,2,100)", "-50")
             };
-            for (int index = 0; index < cases.Length; index++) sheet.CellFormula(index + 1, 5, cases[index].Formula);
+            for (int index = 0; index < cases.Length; index++) sheet.Cell(index + 1, 5).SetFormula(cases[index].Formula);
             Assert.Equal(cases.Length, document.Calculate());
             for (int index = 0; index < cases.Length; index++) AssertFormulaCache(sheet, index + 1, 5, cases[index].Expected);
         }
@@ -88,11 +88,11 @@ namespace OfficeIMO.Tests {
         public void FormulaEvaluator_BlankCriteriaReferencesUseZeroRatherThanFormulaText(string reference) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Criteria");
-            sheet.CellValue(1, 1, 1d);
-            sheet.CellValue(3, 1, 3d);
+            sheet.Cell(1, 1).SetValue(1d);
+            sheet.Cell(3, 1).SetValue(3d);
             for (int row = 1; row <= 3; row++) {
-                sheet.CellValue(row, 2, row - 1d);
-                sheet.CellValue(row, 3, row * 10d);
+                sheet.Cell(row, 2).SetValue(row - 1d);
+                sheet.Cell(row, 3).SetValue(row * 10d);
             }
             (string Formula, string Expected)[] cases = {
                 ($"COUNTIF(B1:B3,{reference})", "1"),
@@ -101,7 +101,7 @@ namespace OfficeIMO.Tests {
                 ($"COUNTIFS(B1:B3,{reference})", "1"),
                 ($"SUMIFS(C1:C3,B1:B3,{reference})", "10")
             };
-            for (int index = 0; index < cases.Length; index++) sheet.CellFormula(index + 1, 5, cases[index].Formula);
+            for (int index = 0; index < cases.Length; index++) sheet.Cell(index + 1, 5).SetFormula(cases[index].Formula);
             Assert.Equal(cases.Length, document.Calculate());
             for (int index = 0; index < cases.Length; index++) AssertFormulaCache(sheet, index + 1, 5, cases[index].Expected);
         }
@@ -115,21 +115,21 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Keys");
             document.SetNamedRange("EmptyKey", "Keys!$H$1", save: false);
-            sheet.CellValue(2, 1, 5d);
-            sheet.CellValue(3, 1, 0d);
-            sheet.CellValue(4, 1, "0");
-            sheet.CellValue(5, 1, false);
-            sheet.CellValue(1, 2, 100d);
-            sheet.CellValue(2, 2, 500d);
-            sheet.CellValue(3, 2, 200d);
-            sheet.CellValue(1, 5, 5d);
-            sheet.CellValue(1, 6, 0d);
-            sheet.CellValue(2, 4, 100d);
-            sheet.CellValue(2, 5, 500d);
-            sheet.CellValue(2, 6, 200d);
+            sheet.Cell(2, 1).SetValue(5d);
+            sheet.Cell(3, 1).SetValue(0d);
+            sheet.Cell(4, 1).SetValue("0");
+            sheet.Cell(5, 1).SetValue(false);
+            sheet.Cell(1, 2).SetValue(100d);
+            sheet.Cell(2, 2).SetValue(500d);
+            sheet.Cell(3, 2).SetValue(200d);
+            sheet.Cell(1, 5).SetValue(5d);
+            sheet.Cell(1, 6).SetValue(0d);
+            sheet.Cell(2, 4).SetValue(100d);
+            sheet.Cell(2, 5).SetValue(500d);
+            sheet.Cell(2, 6).SetValue(200d);
             for (int row = 1; row <= 3; row++) {
-                sheet.CellValue(row, 10, (row - 2) * 5d);
-                sheet.CellValue(row, 12, (2 - row) * 5d);
+                sheet.Cell(row, 10).SetValue((row - 2) * 5d);
+                sheet.Cell(row, 12).SetValue((2 - row) * 5d);
             }
             (string Formula, string Expected)[] cases = {
                 ($"MATCH({key},A1:A3,0)", "3"),
@@ -150,7 +150,7 @@ namespace OfficeIMO.Tests {
                 ("MATCH(\"0\",A1:A5,0)", "4"),
                 ("MATCH(FALSE,A1:A5,0)", "5")
             };
-            for (int index = 0; index < cases.Length; index++) sheet.CellFormula(index + 1, 14, cases[index].Formula);
+            for (int index = 0; index < cases.Length; index++) sheet.Cell(index + 1, 14).SetFormula(cases[index].Formula);
             Assert.Equal(cases.Length, document.Calculate());
             for (int index = 0; index < cases.Length; index++) AssertFormulaCache(sheet, index + 1, 14, cases[index].Expected);
         }
@@ -161,22 +161,22 @@ namespace OfficeIMO.Tests {
         public void FormulaEvaluator_ArrayBlankOutputsReplaceCachesWithNumericZero(bool dynamic) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Arrays");
-            sheet.CellValue(1, 1, 1d);
-            sheet.CellValue(2, 1, 9d);
+            sheet.Cell(1, 1).SetValue(1d);
+            sheet.Cell(2, 1).SetValue(9d);
             if (dynamic) sheet.SetDynamicArrayFormula("G1", "A1:A2");
             else sheet.SetArrayFormula("G1:G2", "A1:A2");
-            sheet.CellFormula(1, 10, "ISBLANK(G2)");
+            sheet.Cell(1, 10).SetFormula("ISBLANK(G2)");
             Assert.Equal(2, document.Calculate());
-            Assert.Equal(9d, sheet.CellAt(2, 7).GetValue().Value);
-            sheet.CellAt(2, 1).Clear();
+            Assert.Equal(9d, sheet.Cell(2, 7).GetValue().Value);
+            sheet.Cell(2, 1).Clear();
             Assert.Equal(2, document.Calculate());
-            Assert.Equal(0d, sheet.CellAt(2, 7).GetValue().Value);
+            Assert.Equal(0d, sheet.Cell(2, 7).GetValue().Value);
             AssertFormulaCache(sheet, 1, 10, "0");
             using var saved = new MemoryStream();
             document.Save(saved);
             saved.Position = 0;
             using var reopened = ExcelDocument.Load(saved);
-            Assert.Equal(0d, reopened.Sheets[0].CellAt(2, 7).GetValue().Value);
+            Assert.Equal(0d, reopened.Sheets[0].Cell(2, 7).GetValue().Value);
             AssertFormulaCache(reopened.Sheets[0], 1, 10, "0");
         }
     }

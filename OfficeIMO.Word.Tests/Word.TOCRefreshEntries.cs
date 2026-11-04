@@ -1341,7 +1341,7 @@ namespace OfficeIMO.Tests {
                 AppendBodyParagraph(document, new Paragraph(
                     new Run(new Break { Type = BreakValues.Page }),
                     new Run(new Break { Type = BreakValues.Page })));
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
 
                 Header header = document._wordprocessingDocument.MainDocumentPart!.HeaderParts.Single().Header!;
                 Footer footer = document._wordprocessingDocument.MainDocumentPart!.FooterParts.Single().Footer!;
@@ -2161,7 +2161,7 @@ namespace OfficeIMO.Tests {
                 WordTableOfContent index = document.AddTableOfContent();
 
                 AddIndexEntryParagraph(document, "Body topic", " XE \"BodyTopic\" ");
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
                 Header header = document._wordprocessingDocument.MainDocumentPart!.HeaderParts.Single().Header!;
                 Footer footer = document._wordprocessingDocument.MainDocumentPart!.FooterParts.Single().Footer!;
                 AppendIndexEntryParagraph(header, "Header topic", " XE \"HeaderTopic\" ");

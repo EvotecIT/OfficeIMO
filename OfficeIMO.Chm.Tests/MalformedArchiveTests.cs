@@ -36,7 +36,7 @@ public sealed class MalformedArchiveTests {
     [InlineData(1041U, "shift_jis", "日本語")]
     [InlineData(1045U, "windows-1250", "Łódź")]
     public void LocaleSelectsLegacyEncodingForUndeclaredTopics(uint locale, string label, string text) {
-        var options = new ChmReadOptions();
+        var options = new ChmLoadOptions();
         Encoding encoding = options.EncodingProvider.ResolveLabel(label)!;
         ChmDocument book = ChmDocument.Load(ChmFixture.Archive(new Dictionary<string, byte[]> {
             ["/#SYSTEM"] = ChmFixture.SystemMetadata(locale), ["/topic.html"] = encoding.GetBytes("<p>" + text + "</p>")
@@ -56,7 +56,7 @@ public sealed class MalformedArchiveTests {
         var entries = new[] { "/#TOPICS", "/#STRINGS", "/#URLTBL", "/#URLSTR" }
             .ToDictionary(path => path, path => source.FindEntry(path)!.GetBytes());
         Assert.Equal("CHM_NAVIGATION_LIMIT", Assert.Throws<ChmReadException>(() => ChmDocument.Load(ChmFixture.Archive(entries),
-            new ChmReadOptions { MaxNavigationItems = 10 })).Code);
+            new ChmLoadOptions { MaxNavigationItems = 10 })).Code);
         entries["/#STRINGS"] = Encoding.ASCII.GetBytes(new string('X', 5000) + '\0');
         SetUInt32(entries["/#TOPICS"], 4, 0);
         Assert.Throws<ChmReadException>(() => ChmDocument.Load(ChmFixture.Archive(entries)));

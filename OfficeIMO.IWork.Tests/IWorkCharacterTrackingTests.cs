@@ -11,7 +11,7 @@ public sealed partial class IWorkBoundaryTests {
         using var package = SelectedRichTextPackage(IWorkDocumentKind.Keynote,
             AttributeTable(8, AttributeEntry(0, ReferenceField(2, 19))),
             additionalRecords: ArchiveRecord(19, 2021, BytesField(11, Message(FloatField(3, 40), FloatField(27, 0.1234f)))));
-        Assert.Contains(ConvertUnitReport(package, IWorkDocumentKind.Keynote, visual: false).FidelityDiagnostics,
+        Assert.Contains(ConvertUnitReport(package, IWorkDocumentKind.Keynote, visual: false).Diagnostics,
             diagnostic => diagnostic.Code == "IWORK_KEYNOTE_CHARACTER_SPACING_PRECISION"
                 && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
     }
@@ -54,7 +54,7 @@ public sealed class IWorkCharacterTrackingCorpusTests {
         IWorkTextStyle style = Assert.Single(source.ReadKeynote().Slides).TitleBox!.Content.Paragraphs[0].Runs[0].Style;
         Assert.Equal(-0.02, style.CharacterTrackingEm!.Value, 6);
         Assert.Equal(-2.32, style.CharacterSpacingPoints!.Value, 6);
-        using var converted = source.ToPowerPointDocumentResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = source.ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         converted.Report.RequireCompleteEditableReconstruction();
         using var bytes = new MemoryStream();
         converted.Value.Save(bytes);

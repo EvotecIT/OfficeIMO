@@ -25,7 +25,7 @@ internal static class NativePagesHeaderFooterWriterSmoke {
             "The native-edited page-text reference changed.");
         Verify(native, "OfficeIMO — Native header", "Zażółć café — native footer");
         using var output = new MemoryStream(new byte[] { 9, 8, 7 });
-        try { document.Save(output, new() { MaximumParagraphs = 74 }); throw new InvalidOperationException("Header/footer paragraphs escaped their budget."); }
+        try { document.Save(output, new() { MaxParagraphs = 74 }); throw new InvalidOperationException("Header/footer paragraphs escaped their budget."); }
         catch (InvalidDataException) { Require(output.ToArray().SequenceEqual(new byte[] { 9, 8, 7 }), "Budget rejection mutated output."); }
         using var cancelled = new CancellationTokenSource(); cancelled.Cancel();
         try { document.Save(output, cancellationToken: cancelled.Token); throw new InvalidOperationException("Cancelled page-text save succeeded."); }
@@ -50,7 +50,7 @@ internal static class NativePagesHeaderFooterWriterSmoke {
             && projection.Sections[0].DefaultPageFooterContents.Single().PlainText == footer
             && projection.PageLayout!.HeaderMarginPoints == 30 && projection.PageLayout.FooterMarginPoints == 36,
             "Page text or distances differ.");
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(new MemoryStream(bytes), conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Open(new MemoryStream(bytes), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
         using var saved = WordprocessingDocument.Open(output, false);

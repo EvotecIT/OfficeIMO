@@ -14,7 +14,7 @@ public sealed class CslDisplayProjectionTests {
         CslRenderResult result = Render(body, "second-field-align=\"" + alignment + "\"", format);
         string expected = format == CslOutputFormat.Html ? "<div class=\"csl-entry\"><div class=\"csl-left-margin\">([1]</div><div class=\"csl-right-inline\"><i>Alpha</i>).</div></div>" : "([1]Alpha).";
         Assert.Equal(expected, result.Bibliography.Single().Content);
-        Assert.Equal(4, result.BibliographyLayout!.MaximumLeftMarginCharacters);
+        Assert.Equal(4, result.BibliographyLayout!.MaxLeftMarginCharacters);
     }
 
     [Fact]
@@ -22,7 +22,7 @@ public sealed class CslDisplayProjectionTests {
         const string body = "<layout prefix=\"pre.(\" suffix=\").\" strip-periods=\"true\" text-case=\"uppercase\" font-style=\"italic\" quotes=\"true\"><text value=\"ID.\"/><text variable=\"title\"/></layout>";
         CslRenderResult result = Render(body, "second-field-align=\"flush\"");
         Assert.Equal("<div class=\"csl-entry\"><div class=\"csl-left-margin\">“<i>PRE(ID</i></div><div class=\"csl-right-inline\"><i>ALPHA)</i>”</div></div>", result.Bibliography.Single().Content);
-        Assert.Equal(7, result.BibliographyLayout!.MaximumLeftMarginCharacters);
+        Assert.Equal(7, result.BibliographyLayout!.MaxLeftMarginCharacters);
         Assert.Equal("“PRE(IDALPHA)”", Render(body, "second-field-align=\"flush\"", CslOutputFormat.PlainText).Bibliography.Single().Content);
     }
 
@@ -41,7 +41,7 @@ public sealed class CslDisplayProjectionTests {
         CslRenderResult result = Render(body, format: format);
         string expected = format == CslOutputFormat.Html ? "<div class=\"csl-entry\"><div class=\"csl-left-margin\">([1]</div><div class=\"csl-right-inline\"><i>Alpha</i>).</div></div>" : "([1]Alpha).";
         Assert.Equal(expected, result.Bibliography.Single().Content);
-        Assert.Equal(4, result.BibliographyLayout!.MaximumLeftMarginCharacters);
+        Assert.Equal(4, result.BibliographyLayout!.MaxLeftMarginCharacters);
     }
 
     [Fact]
@@ -49,7 +49,7 @@ public sealed class CslDisplayProjectionTests {
         const string body = "<layout strip-periods=\"true\"><text value=\"ID...\" display=\"left-margin\"/><text variable=\"title\" display=\"right-inline\"/></layout>";
         CslRenderResult result = Render(body);
         Assert.Equal("<div class=\"csl-entry\"><div class=\"csl-left-margin\">ID</div><div class=\"csl-right-inline\">Alpha</div></div>", result.Bibliography.Single().Content);
-        Assert.Equal(2, result.BibliographyLayout!.MaximumLeftMarginCharacters);
+        Assert.Equal(2, result.BibliographyLayout!.MaxLeftMarginCharacters);
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public sealed class CslDisplayProjectionTests {
         CslRenderResult result = Render(body);
         Assert.Equal("<div class=\"csl-entry\"><div class=\"csl-block\">“<i>(Heading</i></div><div class=\"csl-block\"><i>Alpha</i></div><div class=\"csl-indent\"><i>End).</i>”</div></div>", result.Bibliography.Single().Content);
         Assert.Equal("“(HeadingAlphaEnd).”", Render(body, format: CslOutputFormat.PlainText).Bibliography.Single().Content);
-        Assert.Equal(0, result.BibliographyLayout!.MaximumLeftMarginCharacters);
+        Assert.Equal(0, result.BibliographyLayout!.MaxLeftMarginCharacters);
     }
 
     [Theory]
@@ -77,7 +77,7 @@ public sealed class CslDisplayProjectionTests {
         const string body = "<layout prefix=\"(\" suffix=\").\"><text variable=\"citation-number\" prefix=\"[\" suffix=\"]\"/><text variable=\"author\"/></layout>";
         CslRenderResult result = Render(body, "second-field-align=\"flush\"");
         Assert.Equal("<div class=\"csl-entry\">([1]).</div>", result.Bibliography.Single().Content);
-        Assert.Equal(0, result.BibliographyLayout!.MaximumLeftMarginCharacters);
+        Assert.Equal(0, result.BibliographyLayout!.MaxLeftMarginCharacters);
     }
 
     [Fact]
@@ -85,10 +85,10 @@ public sealed class CslDisplayProjectionTests {
         var data = BibliographyDocument.Parse("[{\"id\":\"one\",\"type\":\"book\",\"title\":\"ID...\"},{\"id\":\"two\",\"type\":\"book\",\"title\":\"LONG...\"}]", BibliographyFormat.CslJson).Document;
         const string body = "<layout prefix=\"(\" strip-periods=\"true\"><text variable=\"title\" display=\"left-margin\"/><text value=\"Ref\" display=\"right-inline\"/></layout>";
         CslRenderResult result = Render(body, data: data);
-        Assert.Equal(5, result.BibliographyLayout!.MaximumLeftMarginCharacters);
+        Assert.Equal(5, result.BibliographyLayout!.MaxLeftMarginCharacters);
         Assert.Contains("<div class=\"csl-left-margin\">(ID</div>", result.Bibliography[0].Content);
         Assert.Contains("<div class=\"csl-left-margin\">(LONG</div>", result.Bibliography[1].Content);
-        Assert.Equal(5, Render(body, format: CslOutputFormat.PlainText, data: data).BibliographyLayout!.MaximumLeftMarginCharacters);
+        Assert.Equal(5, Render(body, format: CslOutputFormat.PlainText, data: data).BibliographyLayout!.MaxLeftMarginCharacters);
     }
 
     [Fact]
@@ -103,9 +103,9 @@ public sealed class CslDisplayProjectionTests {
     public void ProjectedAncestorFormattingCountsTowardTheIntermediateBudget() {
         const string body = "<layout font-style=\"italic\"><text variable=\"citation-number\"/><text variable=\"title\"/></layout>";
         CslStyle style = CslStyle.Parse(Header + "<bibliography second-field-align=\"flush\">" + body + "</bibliography></style>");
-        var processor = new CslProcessor(Data, style, new CslRenderOptions { OutputFormat = CslOutputFormat.Html, MaximumIntermediateCharacters = 90 });
+        var processor = new CslProcessor(Data, style, new CslRenderOptions { OutputFormat = CslOutputFormat.Html, MaxIntermediateCharacters = 90 });
         InvalidDataException error = Assert.Throws<InvalidDataException>(() => processor.RenderBibliography());
-        Assert.Contains("MaximumIntermediateCharacters", error.Message);
+        Assert.Contains("MaxIntermediateCharacters", error.Message);
     }
 
     [Theory]
@@ -118,7 +118,7 @@ public sealed class CslDisplayProjectionTests {
         string expected = "<div class=\"csl-left-margin\">(<i>ID</i></div><div class=\"csl-right-inline\"><i>Alpha</i>)</div>";
         if (surroundingInlineFields) expected = "Before" + expected + "After";
         Assert.Equal("<div class=\"csl-entry\">" + expected + "</div>", result.Bibliography.Single().Content);
-        Assert.Equal(3, result.BibliographyLayout!.MaximumLeftMarginCharacters);
+        Assert.Equal(3, result.BibliographyLayout!.MaxLeftMarginCharacters);
     }
 
     [Fact]
@@ -127,7 +127,7 @@ public sealed class CslDisplayProjectionTests {
         var style = CslStyle.Parse(Header + macro + "<bibliography><layout><text macro=\"fields\" prefix=\"(\" suffix=\")\" quotes=\"true\" font-style=\"italic\"/></layout></bibliography></style>");
         CslRenderResult result = new CslProcessor(Data, style, new CslRenderOptions { OutputFormat = CslOutputFormat.Html }).Render(Array.Empty<CslCitation>(), true);
         Assert.Equal("<div class=\"csl-entry\"><div class=\"csl-left-margin\">(“<i>ID</i></div><div class=\"csl-right-inline\"><i>Alpha</i>”)</div></div>", result.Bibliography.Single().Content);
-        Assert.Equal(4, result.BibliographyLayout!.MaximumLeftMarginCharacters);
+        Assert.Equal(4, result.BibliographyLayout!.MaxLeftMarginCharacters);
         Assert.Equal("(“IDAlpha”)", new CslProcessor(Data, style).RenderBibliography().Single().Content);
     }
 
@@ -136,7 +136,7 @@ public sealed class CslDisplayProjectionTests {
         const string group = "<group prefix=\"(\" suffix=\")\"><text value=\"ID\" display=\"left-margin\"/><text variable=\"title\" display=\"right-inline\"/></group>";
         CslRenderResult result = Render("<layout>" + group + group.Replace("ID", "Key") + "</layout>");
         Assert.Equal("<div class=\"csl-entry\"><div class=\"csl-left-margin\">(ID</div><div class=\"csl-right-inline\">Alpha)</div><div class=\"csl-left-margin\">(Key</div><div class=\"csl-right-inline\">Alpha)</div></div>", result.Bibliography.Single().Content);
-        Assert.Equal(4, result.BibliographyLayout!.MaximumLeftMarginCharacters);
+        Assert.Equal(4, result.BibliographyLayout!.MaxLeftMarginCharacters);
     }
 
     private static CslRenderResult Render(string layout, string settings = "", CslOutputFormat format = CslOutputFormat.Html, BibliographyDocument? data = null) {

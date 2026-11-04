@@ -1,6 +1,8 @@
 using PSWriteOffice.Services;
 using System.Management.Automation;
+using System.Security;
 using OfficeIMO.OpenDocument;
+using PSWriteOffice.Foundation;
 
 namespace PSWriteOffice.Cmdlets.OpenDocument;
 
@@ -20,7 +22,8 @@ public sealed class GetOfficeOpenDocumentCommand : PSCmdlet
 
     /// <summary>Password used to decrypt an encrypted OpenDocument package.</summary>
     [Parameter]
-    public string? Password { get; set; }
+    [OfficePasswordTransformation]
+    public SecureString? Password { get; set; }
 
     /// <summary>Maximum source package size in bytes.</summary>
     [Parameter]
@@ -86,7 +89,7 @@ public sealed class GetOfficeOpenDocumentCommand : PSCmdlet
                 MaxXmlCharacters = Options.MaxXmlCharacters,
                 MaxXmlDepth = Options.MaxXmlDepth
             };
-        if (Password != null) options.Password = Password;
+        if (Password != null) options.Password = Password.ToPlainText();
         if (MaxPackageBytes.HasValue) options.MaxPackageBytes = MaxPackageBytes.Value;
         if (MaxEntries.HasValue) options.MaxEntries = MaxEntries.Value;
         if (MaxEntryUncompressedBytes.HasValue) options.MaxEntryUncompressedBytes = MaxEntryUncompressedBytes.Value;

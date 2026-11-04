@@ -97,8 +97,8 @@ namespace OfficeIMO.Visio {
                 if (string.Equals(type, "RelEllipticalArcTo", StringComparison.OrdinalIgnoreCase)) {
                     if (points.Count == 0 ||
                         !TryReadPoint(row, ns, shape, relative: true, out (double X, double Y) arcEnd) ||
-                        !TryReadRelativeCell(row, ns, "A", shape.Width, out double controlX) ||
-                        !TryReadRelativeCell(row, ns, "B", shape.Height, out double controlY)) {
+                        !TryReadRelativeCell(row, ns, "A", shape.WidthInches, out double controlX) ||
+                        !TryReadRelativeCell(row, ns, "B", shape.HeightInches, out double controlY)) {
                         return false;
                     }
 
@@ -176,10 +176,10 @@ namespace OfficeIMO.Visio {
                 if (string.Equals(type, "RelCubBezTo", StringComparison.OrdinalIgnoreCase)) {
                     if (points.Count == 0 ||
                         !TryReadPoint(row, ns, shape, relative: true, out (double X, double Y) end) ||
-                        !TryReadRelativeCell(row, ns, "A", shape.Width, out double control1X) ||
-                        !TryReadRelativeCell(row, ns, "B", shape.Height, out double control1Y) ||
-                        !TryReadRelativeCell(row, ns, "C", shape.Width, out double control2X) ||
-                        !TryReadRelativeCell(row, ns, "D", shape.Height, out double control2Y)) {
+                        !TryReadRelativeCell(row, ns, "A", shape.WidthInches, out double control1X) ||
+                        !TryReadRelativeCell(row, ns, "B", shape.HeightInches, out double control1Y) ||
+                        !TryReadRelativeCell(row, ns, "C", shape.WidthInches, out double control2X) ||
+                        !TryReadRelativeCell(row, ns, "D", shape.HeightInches, out double control2Y)) {
                         return false;
                     }
 
@@ -202,8 +202,8 @@ namespace OfficeIMO.Visio {
                 if (string.Equals(type, "RelQuadBezTo", StringComparison.OrdinalIgnoreCase)) {
                     if (points.Count == 0 ||
                         !TryReadPoint(row, ns, shape, relative: true, out (double X, double Y) end) ||
-                        !TryReadRelativeCell(row, ns, "A", shape.Width, out double controlX) ||
-                        !TryReadRelativeCell(row, ns, "B", shape.Height, out double controlY)) {
+                        !TryReadRelativeCell(row, ns, "A", shape.WidthInches, out double controlX) ||
+                        !TryReadRelativeCell(row, ns, "B", shape.HeightInches, out double controlY)) {
                         return false;
                     }
 

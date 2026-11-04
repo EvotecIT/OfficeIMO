@@ -21,8 +21,8 @@ public sealed class CsvDataReaderUtf8TextTests {
             .Concat(Encoding.UTF8.GetBytes("Name,Empty\nZażółć 😀,\nnext,last\n")).ToArray();
         using var stream = new MemoryStream(prefix.Concat(payload).ToArray());
         stream.Position = prefix.Length;
-        using (DbDataReader reader = CsvDocument.OpenDataReader(stream,
-                   new CsvLoadOptions { MaxInputBytes = payload.Length })) {
+        using (DbDataReader reader = CsvDocument.OpenReader(stream,
+            options: new CsvReaderOptions { MaxInputBytes = payload.Length })) {
             Assert.Equal("Name", reader.GetName(0));
             Assert.True(reader.Read());
             Assert.True(reader.TryGetUtf8Text(0, out var text));
@@ -41,7 +41,7 @@ public sealed class CsvDataReaderUtf8TextTests {
     [Fact]
     public void BorrowedTextValidatesCursorAndDistinguishesMissingFields() {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes("A,B\nfirst\n"));
-        using var reader = CsvDocument.OpenDataReader(stream);
+        using var reader = CsvDocument.OpenReader(stream);
         Assert.Throws<InvalidOperationException>(() => reader.TryGetUtf8Text(0, out _));
         Assert.True(reader.Read());
         Assert.True(reader.TryGetUtf8Text(0, out var first));
@@ -61,21 +61,21 @@ public sealed class CsvDataReaderUtf8TextTests {
     public void MalformedUtf8RemainsDecodedTextAndStrictDecoderStillRejectsIt() {
         byte[] data = Encoding.UTF8.GetBytes("Name\n").Concat(new byte[] { 0xC3, 0x28, 0x0A }).ToArray();
         using var stream = new MemoryStream(data);
-        using var reader = CsvDocument.OpenDataReader(stream);
+        using var reader = CsvDocument.OpenReader(stream);
         Assert.True(reader.Read());
         Assert.False(reader.TryGetUtf8Text(0, out var text));
         Assert.True(text.IsEmpty);
         Assert.Equal("�(", reader.GetString(0));
         using var strictStream = new MemoryStream(data);
-        using var strictReader = CsvDocument.OpenDataReader(strictStream,
-            new CsvLoadOptions { Encoding = new UTF8Encoding(false, true) });
+        using var strictReader = CsvDocument.OpenReader(strictStream,
+            options: new CsvReaderOptions { Encoding = new UTF8Encoding(false, true) });
         Assert.Throws<DecoderFallbackException>(() => strictReader.Read());
     }
 
     [Fact]
     public void QuotedFallbackKeepsNormalizedEscapedAndMultilineText() {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes("Name\nplain\n\"a\"\"b\nend\"\nlast\n"));
-        using var reader = CsvDocument.OpenDataReader(stream);
+        using var reader = CsvDocument.OpenReader(stream);
         Assert.True(reader.Read());
         Assert.True(reader.TryGetUtf8Text(0, out _));
         Assert.True(reader.Read());
@@ -91,7 +91,7 @@ public sealed class CsvDataReaderUtf8TextTests {
         string value = new string('a', 8191) + "🐢\"終";
         byte[] payload = Encoding.UTF8.GetBytes("Name\n\"" + value.Replace("\"", "\"\"") + "\"\nnext\n");
         using var stream = new MemoryStream(payload);
-        using var reader = CsvDocument.OpenDataReader(stream);
+        using var reader = CsvDocument.OpenReader(stream);
         Assert.True(reader.Read());
         Assert.False(reader.TryGetUtf8Text(0, out _));
         byte[] expected = Encoding.UTF8.GetBytes(value);
@@ -113,12 +113,12 @@ public sealed class CsvDataReaderUtf8TextTests {
     public void Utf16PreambleAndTrimUseCanonicalTextFallback() {
         byte[] data = Encoding.Unicode.GetPreamble().Concat(Encoding.Unicode.GetBytes("Name\nZażółć\n")).ToArray();
         using var stream = new MemoryStream(data);
-        using var reader = CsvDocument.OpenDataReader(stream);
+        using var reader = CsvDocument.OpenReader(stream);
         Assert.True(reader.Read());
         Assert.False(reader.TryGetUtf8Text(0, out _));
         Assert.Equal("Zażółć", reader.GetString(0));
         using var trimmedStream = new MemoryStream(Encoding.UTF8.GetBytes("Name\n  Ada  \n"));
-        using var trimmed = CsvDocument.OpenDataReader(trimmedStream, new CsvLoadOptions { TrimWhitespace = true });
+        using var trimmed = CsvDocument.OpenReader(trimmedStream, options: new CsvReaderOptions { TrimWhitespace = true });
         Assert.True(trimmed.Read());
         Assert.False(trimmed.TryGetUtf8Text(0, out _));
         Assert.Equal("Ada", trimmed.GetString(0));
@@ -130,14 +130,14 @@ public sealed class CsvDataReaderUtf8TextTests {
         CsvSchema schema = new CsvSchemaBuilder().Column("Name").AsString()
             .ConvertUsing(value => { calls++; return "mapped:" + value; }).Done().Build();
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes("Name\nAda\n"));
-        using var reader = CsvDocument.OpenDataReader(stream, readerOptions: new CsvDataReaderOptions { Schema = schema });
+        using var reader = CsvDocument.OpenReader(stream, options: new CsvReaderOptions { Schema = schema });
         Assert.True(reader.Read());
         int before = calls;
         Assert.False(reader.TryGetUtf8Text(0, out _));
         Assert.Equal(before, calls);
         Assert.Equal("mapped:Ada", reader.GetString(0));
         using var nullStream = new MemoryStream(Encoding.UTF8.GetBytes("Name\nNULL\n"));
-        using var nullReader = CsvDocument.OpenDataReader(nullStream, new CsvLoadOptions { NullValue = "NULL" });
+        using var nullReader = CsvDocument.OpenReader(nullStream, options: new CsvReaderOptions { NullValue = "NULL" });
         Assert.True(nullReader.Read());
         Assert.False(nullReader.TryGetUtf8Text(0, out _));
         Assert.True(nullReader.IsDBNull(0));
@@ -146,7 +146,7 @@ public sealed class CsvDataReaderUtf8TextTests {
     [Fact]
     public void HeaderlessStreamRetainsFirstRowWidthAndCursorState() {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes("first,1\nnext,2\n"));
-        using var reader = CsvDocument.OpenDataReader(stream, new CsvLoadOptions { HasHeaderRow = false });
+        using var reader = CsvDocument.OpenReader(stream, options: new CsvReaderOptions { HasHeaderRow = false });
         Assert.Equal(2, reader.FieldCount);
         Assert.Equal("Column1", reader.GetName(0));
         Assert.True(reader.HasRows);
@@ -160,7 +160,7 @@ public sealed class CsvDataReaderUtf8TextTests {
         Assert.Equal(2, reader.GetInt32(1));
         Assert.False(reader.Read());
         using var emptyStream = new MemoryStream();
-        using var empty = CsvDocument.OpenDataReader(emptyStream, new CsvLoadOptions { HasHeaderRow = false });
+        using var empty = CsvDocument.OpenReader(emptyStream, options: new CsvReaderOptions { HasHeaderRow = false });
         Assert.Equal(0, empty.FieldCount);
         Assert.False(empty.HasRows);
         Assert.False(empty.Read());
@@ -169,22 +169,23 @@ public sealed class CsvDataReaderUtf8TextTests {
     [Fact]
     public void HeaderlessStreamingKeepsWidthLimitsAndCancellation() {
         using var strictStream = new MemoryStream(Encoding.UTF8.GetBytes("first,1\nnext\n"));
-        using var strict = CsvDocument.OpenDataReader(strictStream, new CsvLoadOptions {
+        using var strict = CsvDocument.OpenReader(strictStream,
+            options: new CsvReaderOptions {
             HasHeaderRow = false, ColumnCountMismatchPolicy = CsvColumnCountMismatchPolicy.Strict,
         });
         Assert.True(strict.Read());
         Assert.Throws<CsvException>(() => strict.Read());
         using var boundedStream = new MemoryStream(Encoding.UTF8.GetBytes("first,1\n"));
-        Assert.Throws<InvalidDataException>(() => CsvDocument.OpenDataReader(boundedStream,
-            new CsvLoadOptions { HasHeaderRow = false, MaxInputBytes = 2 }));
+        Assert.Throws<InvalidDataException>(() => CsvDocument.OpenReader(boundedStream,
+            options: new CsvReaderOptions { HasHeaderRow = false, MaxInputBytes = 2 }));
         Assert.True(boundedStream.CanRead);
         using var fieldStream = new MemoryStream(Encoding.UTF8.GetBytes("Name\nlongvalue\n"));
-        using var fieldReader = CsvDocument.OpenDataReader(fieldStream, new CsvLoadOptions { MaxFieldLength = 4 });
+        using var fieldReader = CsvDocument.OpenReader(fieldStream, options: new CsvReaderOptions { MaxFieldLength = 4 });
         Assert.Throws<CsvParseException>(() => fieldReader.Read());
         using var cancellation = new CancellationTokenSource();
         using var canceledStream = new MemoryStream(Encoding.UTF8.GetBytes("first,1\nnext,2\n"));
-        using var canceled = CsvDocument.OpenDataReader(canceledStream,
-            new CsvLoadOptions { HasHeaderRow = false, CancellationToken = cancellation.Token });
+        using var canceled = CsvDocument.OpenReader(canceledStream,
+            options: new CsvReaderOptions { HasHeaderRow = false, CancellationToken = cancellation.Token });
         cancellation.Cancel();
         Assert.ThrowsAny<OperationCanceledException>(() => canceled.Read());
         Assert.True(canceledStream.CanRead);

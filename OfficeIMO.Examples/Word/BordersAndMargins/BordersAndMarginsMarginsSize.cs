@@ -10,22 +10,22 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "Basic Document with page margins.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Section 0");
-                document.Sections[0].SetMargins(WordMargin.Normal);
+                document.Sections[0].PageSetup.Margins.Type = WordMargin.Normal;
 
                 document.AddSection();
-                document.Sections[1].SetMargins(WordMargin.Narrow);
+                document.Sections[1].PageSetup.Margins.Type = WordMargin.Narrow;
                 document.AddParagraph("Section 1");
 
                 document.AddSection();
-                document.Sections[2].SetMargins(WordMargin.Mirrored);
+                document.Sections[2].PageSetup.Margins.Type = WordMargin.Mirrored;
                 document.AddParagraph("Section 2");
 
                 document.AddSection();
-                document.Sections[3].SetMargins(WordMargin.Moderate);
+                document.Sections[3].PageSetup.Margins.Type = WordMargin.Moderate;
                 document.AddParagraph("Section 3");
 
                 document.AddSection();
-                document.Sections[4].SetMargins(WordMargin.Wide);
+                document.Sections[4].PageSetup.Margins.Type = WordMargin.Wide;
                 document.AddParagraph("Section 4");
 
                 //Console.WriteLine("+ Page Orientation (starting): " + document.PageOrientation);

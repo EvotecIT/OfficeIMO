@@ -510,12 +510,12 @@ IOfficeResult<MyDocument> documentResult = result;
 MyDocument document = documentResult.RequireValue();
 
 IOfficeConversionResult<MyDocument, MyConversionReport> conversion = result;
-MyDocument losslessDocument = conversion.RequireNoLoss();
+MyDocument losslessDocument = conversion.ThrowIfLoss();
 ```
 
 `IOfficeResult<T>` standardizes `Succeeded`, `Value`, and `RequireValue()`.
 `IOfficeConversionResult<TValue, TReport>` also exposes `Report`, `HasLoss`, and
-`RequireNoLoss()`. Concrete results continue to expose format-specific diagnostics, warnings,
+`ThrowIfLoss()`. Concrete results continue to expose format-specific diagnostics, warnings,
 or exceptions; the shared interface does not reduce them to an untyped error string.
 
 ### Portable AES for restricted hosts
@@ -1050,6 +1050,12 @@ profile and value-retention omissions appear in `Issues`, and oversized Exif val
 can retain only their source descriptors. Check those issues before treating the
 retained metadata as complete.
 
+### HEIC and HEIF images
+
+HEIC still-image decoding is an opt-in .NET feature. The optional [ImageIO](../OfficeIMO.Drawing.ImageIO/README.md) provider uses Apple frameworks on macOS/iOS. The caller registers it explicitly or passes it through `OfficeRasterDecodeOptions.ImageCodec`; no codec is registered automatically. Other hosts, including Windows, need a caller-supplied `IOfficeRasterImageCodec` as a workaround. Core owns bounded item/grid composition, transforms, alpha and colour conversion, stays COM-free and bundles no HEVC decoder. Without a registered codec, decoding reports `image-codec-unavailable` with `NoPlatformCodec`.
+
+See [the raster workflows](../Docs/officeimo.core-raster-workflows.md#decode-heic-with-a-registered-codec) for decode and document-embedding examples and the [support matrix](../Docs/officeimo.image-export-capability-matrix.md#heicheif-still-images-with-an-opt-in-codec) for limits.
+
 ### Inspect and edit HEIF container metadata
 
 `OfficeHeifMetadataReader` reads HEIF/HEIC brands, primary image dimensions and transforms,
@@ -1166,7 +1172,7 @@ A supported font lookup can legitimately have no applicable parent anchor. The m
 
 Drawing passes the selected font bytes, collection face, variation coordinates, direction, language, cancellation token and source mapping to providers. Measurement and painting share the admitted glyph run. Retained text can be divided only at complete logical source clusters, keeping each source position owned once even when normalization, ligatures or continuation glyphs change the glyph count.
 
-The multilingual mark profile is bounded to static fonts and supported GSUB/GPOS lookups, with cancellation and request-wide work limits. Compositions that combine mark attachment with separate adjustments to a mark are declined when their ordered result cannot be retained. Font-directed Latin under a bidi override that reverses its natural glyph order is declined until that lookup order is qualified. Cursive attachment, device-dependent or variation anchors, feature variations, Indic and Southeast Asian syllable processing, variation selectors and true vertical shaping require another qualified provider. Existing nominal simple-Latin variable-font behavior retains its separate selected-instance contract, including complete nonpainting control source. A declined complex run keeps diagnosed fallback rather than being recorded as complete shaping; `IMAGE_TEXT_SHAPING_FALLBACK` is an approximation and `Policy.RequireNoLoss = true` rejects it. The optional `OfficeIMO.Drawing.HarfBuzz` provider remains available for broader OpenType shaping.
+The multilingual mark profile is bounded to static fonts and supported GSUB/GPOS lookups, with cancellation and request-wide work limits. Compositions that combine mark attachment with separate adjustments to a mark are declined when their ordered result cannot be retained. Font-directed Latin under a bidi override that reverses its natural glyph order is declined until that lookup order is qualified. Cursive attachment, device-dependent or variation anchors, feature variations, Indic and Southeast Asian syllable processing, variation selectors and true vertical shaping require another qualified provider. Existing nominal simple-Latin variable-font behavior retains its separate selected-instance contract, including complete nonpainting control source. A declined complex run keeps diagnosed fallback rather than being recorded as complete shaping; `IMAGE_TEXT_SHAPING_FALLBACK` is an approximation and `Policy.FailOnLoss = true` rejects it. The optional `OfficeIMO.Drawing.HarfBuzz` provider remains available for broader OpenType shaping.
 
 ### Deterministic text measurement
 

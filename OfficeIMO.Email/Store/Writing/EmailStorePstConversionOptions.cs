@@ -7,7 +7,7 @@ public sealed class EmailStorePstConversionOptions {
     /// <summary>Creates conversion options.</summary>
     public EmailStorePstConversionOptions(
         bool overwriteExisting = false,
-        bool failOnDataLoss = false,
+        bool failOnLoss = false,
         bool continueOnItemError = true,
         bool includeAssociatedItems = true,
         bool includeOrphanedItems = true,
@@ -21,7 +21,7 @@ public sealed class EmailStorePstConversionOptions {
         int maxVerificationIssues = 1_000) : this(
             checkpointPath: null,
             overwriteExisting: overwriteExisting,
-            failOnDataLoss: failOnDataLoss,
+            failOnLoss: failOnLoss,
             continueOnItemError: continueOnItemError,
             includeAssociatedItems: includeAssociatedItems,
             includeOrphanedItems: includeOrphanedItems,
@@ -38,7 +38,7 @@ public sealed class EmailStorePstConversionOptions {
     public EmailStorePstConversionOptions(
         string? checkpointPath,
         bool overwriteExisting = false,
-        bool failOnDataLoss = false,
+        bool failOnLoss = false,
         bool continueOnItemError = true,
         bool includeAssociatedItems = true,
         bool includeOrphanedItems = true,
@@ -73,7 +73,7 @@ public sealed class EmailStorePstConversionOptions {
                 nameof(verificationManifestPath));
         }
         OverwriteExisting = overwriteExisting;
-        FailOnDataLoss = failOnDataLoss;
+        FailOnLoss = failOnLoss;
         ContinueOnItemError = continueOnItemError;
         IncludeAssociatedItems = includeAssociatedItems;
         IncludeOrphanedItems = includeOrphanedItems;
@@ -99,7 +99,7 @@ public sealed class EmailStorePstConversionOptions {
     /// Whether any fidelity warning or error blocks completion. When verification is enabled, the destination is
     /// changed only after the staged PST passes semantic verification.
     /// </summary>
-    public bool FailOnDataLoss { get; }
+    public bool FailOnLoss { get; }
     /// <summary>Whether unreadable individual items are reported and skipped instead of aborting immediately.</summary>
     public bool ContinueOnItemError { get; }
     /// <summary>Whether folder-associated information items are copied.</summary>
@@ -153,7 +153,7 @@ public sealed class EmailStorePstConversionOptions {
             finally { Array.Clear(digestKey, 0, digestKey.Length); }
         }
         string value = string.Join("|", "OfficeIMO.StoreMigration.Options.v1",
-            Path.GetFullPath(destinationPath), OverwriteExisting, FailOnDataLoss,
+            Path.GetFullPath(destinationPath), OverwriteExisting, FailOnLoss,
             ContinueOnItemError, IncludeAssociatedItems, IncludeOrphanedItems,
             IncludeSearchFolders, MaxItems, MaxNestedMessageDepth, DisplayName ?? string.Empty,
             VerifyAfterWrite, VerificationManifestPath == null ? string.Empty :

@@ -20,6 +20,9 @@ public static class HtmlRenderDiagnosticCodes {
     public const string BackgroundImageRepeatUnsupported = "HtmlRenderBackgroundImageRepeatUnsupported";
     /// <summary>A CSS background image value used a deterministic supported fallback or was omitted.</summary>
     public const string BackgroundImageValueUnsupported = "HtmlRenderBackgroundImageValueUnsupported";
+
+    /// <summary>A CSS property that changes appearance is recognised but not implemented, so it had no effect.</summary>
+    public const string CssPropertyUnsupported = "HtmlRenderCssPropertyUnsupported";
     /// <summary>A CSS foreground or background color value used its property fallback.</summary>
     public const string ColorValueUnsupported = "HtmlRenderColorValueUnsupported";
     /// <summary>Repeated CSS background images exceeded the configured operation-wide tile limit.</summary>
@@ -269,6 +272,7 @@ public static class HtmlRenderDiagnosticCodes {
         BackgroundImageLayerLimit,
         BackgroundImageRepeatUnsupported,
         BackgroundImageValueUnsupported,
+        CssPropertyUnsupported,
         ColorValueUnsupported,
         BackgroundImageTileLimitExceeded,
         GradientStopLimitExceeded,

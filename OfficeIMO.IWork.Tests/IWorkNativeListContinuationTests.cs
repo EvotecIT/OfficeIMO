@@ -42,9 +42,7 @@ public sealed partial class IWorkEverydayNativeExportTests {
     public void Native_decimal_levels_and_continuation_preserve_source_counters_and_DOCX_measurements(
         string fixture, bool reimported) {
         VerifyManifest(fixture + ".json");
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(
-            Corpus("native-exports/" + fixture + ".pages"),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Open(Corpus("native-exports/" + fixture + ".pages"), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.Report.RequireCompleteEditableReconstruction();
         Assert.True(result.Projection.Body.IsFormattingComplete);
         Assert.Empty(result.Projection.SourceDeclarationIssues);

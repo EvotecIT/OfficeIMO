@@ -19,7 +19,7 @@ public sealed class HtmlEditableLayoutExcelTests {
             + "<p>Closing paragraph</p></article>";
 
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
-            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToExcelWithEvidence(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using var artifact = new MemoryStream();
         using (ExcelDocument workbook = result.Value) workbook.Save(artifact);
         using ExcelDocument reopened = ExcelDocument.Load(new MemoryStream(artifact.ToArray()));
@@ -34,8 +34,8 @@ public sealed class HtmlEditableLayoutExcelTests {
         Assert.True(openingRow < pictures[0].RowIndex && pictures[0].RowIndex < firstCaptionRow);
         Assert.True(firstCaptionRow < middleRow && middleRow < pictures[1].RowIndex);
         Assert.True(pictures[1].RowIndex < secondCaptionRow && secondCaptionRow < closingRow);
-        Assert.True(sheet.GetCellStyle(firstCaptionRow, 1).WrapText);
-        Assert.True(sheet.GetCellStyle(middleRow, 1).WrapText);
+        Assert.True(sheet.Cell(firstCaptionRow, 1).GetStyle().WrapText);
+        Assert.True(sheet.Cell(middleRow, 1).GetStyle().WrapText);
     }
 
     [Fact]
@@ -45,7 +45,7 @@ public sealed class HtmlEditableLayoutExcelTests {
             + "<p><img src='" + image + "'>Leading picture credit</p>";
 
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
-            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToExcelWithEvidence(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.Value;
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
         ExcelImage[] pictures = sheet.Images.ToArray();
@@ -54,7 +54,7 @@ public sealed class HtmlEditableLayoutExcelTests {
         int creditRow = Assert.NotNull(FindCellText(sheet, "Leading picture credit")).Row;
         Assert.True(firstTextRow < pictures[0].RowIndex);
         Assert.True(pictures[1].RowIndex < creditRow);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
             && diagnostic.Detail?.Contains("placement=text-before-image", StringComparison.Ordinal) == true);
     }
@@ -66,7 +66,7 @@ public sealed class HtmlEditableLayoutExcelTests {
             + "' width='200' height='200'><p>After picture</p>";
 
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
-            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic, MaxTableCells = 3 });
+            .ConvertToExcelWithEvidence(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic, MaxTableCells = 3 });
         using ExcelDocument workbook = result.Value;
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
         ExcelImage picture = Assert.Single(sheet.Images);
@@ -81,13 +81,13 @@ public sealed class HtmlEditableLayoutExcelTests {
         string html = "<ul><li>First item</li><li><img src='" + image + "'>Second item</li></ul>";
 
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
-            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToExcelWithEvidence(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.Value;
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
         int listRow = Assert.NotNull(FindCellText(sheet, "First item")).Row;
         ExcelImage picture = Assert.Single(sheet.Images);
         Assert.True(listRow < picture.RowIndex);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
             && diagnostic.Detail?.Contains("nested-image-after-aggregate-text", StringComparison.Ordinal) == true);
     }
@@ -100,7 +100,7 @@ public sealed class HtmlEditableLayoutExcelTests {
             + "<table><tr><td>Table data</td></tr></table>";
 
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
-            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToExcelWithEvidence(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.Value;
         ExcelSheet narrative = Assert.Single(workbook.Sheets, sheet => sheet.Name == "Imported");
         ExcelImage picture = Assert.Single(narrative.Images);
@@ -114,7 +114,7 @@ public sealed class HtmlEditableLayoutExcelTests {
             "<div style='position:absolute;width:140px;height:40px'>Generic region</div></section>";
 
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
-            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToExcelWithEvidence(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.Value;
 
         Assert.Contains(workbook.Sheets, sheet => ContainsCellText(sheet, "Generic region"));
@@ -128,12 +128,12 @@ public sealed class HtmlEditableLayoutExcelTests {
             "<table><caption>First</caption><tr><td>First table</td></tr></table>" +
             "<table><caption>Second</caption><tr><td>Second table" +
             "<div style='display:grid;width:140px;height:40px'>Limited layout</div></td></tr></table>";
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxTables = 1;
         limits.MaxSemanticContainers = 2;
 
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
-            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic, Limits = limits });
+            .ConvertToExcelWithEvidence(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic, Limits = limits });
         using ExcelDocument workbook = result.Value;
 
         Assert.Equal(2, workbook.Sheets.Count);
@@ -148,7 +148,7 @@ public sealed class HtmlEditableLayoutExcelTests {
             "<div style='position:absolute;width:140px;height:40px'>Narrative layout</div>";
 
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
-            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToExcelWithEvidence(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.Value;
 
         Assert.Equal(2, workbook.Sheets.Count);
@@ -164,7 +164,7 @@ public sealed class HtmlEditableLayoutExcelTests {
             + "<div style='position:absolute;left:-48px;top:-48px;width:32px;height:10px'>Origin</div>";
 
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
-            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToExcelWithEvidence(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.Value;
         Assert.Equal(2, workbook.Sheets.Count);
         ExcelSheet sheet = workbook.Sheets[1];
@@ -181,7 +181,7 @@ public sealed class HtmlEditableLayoutExcelTests {
             "<table><caption>Second</caption><tr><td>Two<div style='display:grid;width:140px;height:40px'>Second layout</div></td></tr></table>";
 
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
-            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToExcelWithEvidence(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.Value;
 
         Assert.Equal(2, workbook.Sheets.Count);
@@ -202,7 +202,7 @@ public sealed class HtmlEditableLayoutExcelTests {
             "</style><div class='positioned'>Editable positioned<img src='" + image + "' style='opacity:.4;width:24px;height:18px'></div>" +
             "<div class='grid'>Grid A Grid B</div>";
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
-            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToExcelWithEvidence(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using var stream = new MemoryStream();
         result.Value.Save(stream);
         result.Value.Dispose();
@@ -214,10 +214,10 @@ public sealed class HtmlEditableLayoutExcelTests {
 
         Assert.True(sheet.TryGetCellText(13, 2, out string positioned));
         Assert.Equal("Editable positioned", positioned);
-        Assert.Equal("DBEAFE", sheet.CellAt(13, 2).GetStyle().FillColorHex);
+        Assert.Equal("DBEAFE", sheet.Cell(13, 2).GetStyle().FillColorHex);
         Assert.True(sheet.TryGetCellText(3, 1, out string grid));
         Assert.Equal("Grid A Grid B", grid);
-        Assert.Equal("FEF3C7", sheet.CellAt(3, 1).GetStyle().FillColorHex);
+        Assert.Equal("FEF3C7", sheet.Cell(3, 1).GetStyle().FillColorHex);
         Assert.Contains(sheet.GetMergedRanges(), range => range.A1Range == "B13:E16");
         Assert.Contains(sheet.GetMergedRanges(), range => range.A1Range == "A3:E6");
         Assert.Single(sheet.Images);
@@ -237,11 +237,11 @@ public sealed class HtmlEditableLayoutExcelTests {
         string html = "<div style='position:absolute;left:1000000000000000px;top:1000000000000000px;" +
             "width:1000000000000000px;height:1000000000000000px'>Bounded" +
             "<img src='" + image + "' style='position:absolute;left:0;top:0;width:12px;height:12px'></div>";
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxAbsoluteGeometry = 640D;
 
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
-            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic, Limits = limits });
+            .ConvertToExcelWithEvidence(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic, Limits = limits });
         using ExcelDocument workbook = result.Value;
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
 
@@ -249,7 +249,7 @@ public sealed class HtmlEditableLayoutExcelTests {
         ExcelImage picture = Assert.Single(sheet.Images);
         Assert.InRange(picture.Width.ToPixels(), 1, 12);
         Assert.InRange(picture.Height.ToPixels(), 1, 12);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.SemanticValueInvalid
             && diagnostic.Source != null
             && diagnostic.Source.Contains("editable layout region width", StringComparison.Ordinal));
@@ -260,12 +260,12 @@ public sealed class HtmlEditableLayoutExcelTests {
         const string html = "<div style='position:absolute;left:-128px;top:-40px;width:128px;height:40px'>Clamped anchor</div>";
 
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
-            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToExcelWithEvidence(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.Value;
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
 
         Assert.True(FindCellText(sheet, "Clamped anchor").HasValue);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail != null
             && diagnostic.Detail.Contains("minimumColumn=1", StringComparison.Ordinal));
@@ -279,8 +279,8 @@ public sealed class HtmlEditableLayoutExcelTests {
             html,
             new HtmlConversionDocumentOptions { UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile() });
 
-        HtmlToExcelResult result = document.ToExcelDocumentResult(
-            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+        HtmlToExcelResult result = document.ConvertToExcelWithEvidence(
+            new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.Value;
 
         Assert.Empty(Assert.Single(workbook.Sheets).GetHyperlinks());
@@ -294,7 +294,7 @@ public sealed class HtmlEditableLayoutExcelTests {
             "<div style='position:absolute;left:32px;top:200px;width:240px;height:72px'>Second region" +
             "<img alt='Second picture' src='" + image + "' style='width:12px;height:12px'></div>";
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
-            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToExcelWithEvidence(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.Value;
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
 
@@ -321,7 +321,7 @@ public sealed class HtmlEditableLayoutExcelTests {
         string html = "<img src='" + image + "' style='width:200px;height:80px'>" +
             "<div style='position:absolute;left:128px;top:0;width:64px;height:20px'>After semantic picture</div>";
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
-            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToExcelWithEvidence(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.Value;
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
 
@@ -344,7 +344,7 @@ public sealed class HtmlEditableLayoutExcelTests {
             FormattableString.Invariant($"<img src='{image}' style='position:absolute;left:128px;top:0;width:{width}px;height:{height}px'></div>") +
             FormattableString.Invariant($"<div style='position:absolute;left:{followingLeft}px;top:{followingTop}px;width:64px;height:20px'>After absolute picture</div>");
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
-            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToExcelWithEvidence(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.Value;
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
 
@@ -363,12 +363,12 @@ public sealed class HtmlEditableLayoutExcelTests {
         string html = "<div style='position:absolute;top:120px;width:120px;height:60px'>Budgeted region"
             + "<img src='" + image + "' style='width:12px;height:12px'><img src='" + image
             + "' style='width:12px;height:12px'></div>";
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxImages = 1;
         limits.MaxShapes = 1;
 
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
-            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic, Limits = limits });
+            .ConvertToExcelWithEvidence(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic, Limits = limits });
         using ExcelDocument workbook = result.Value;
 
         Assert.Single(Assert.Single(workbook.Sheets).Images);

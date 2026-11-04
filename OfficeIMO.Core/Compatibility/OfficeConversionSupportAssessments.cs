@@ -34,7 +34,7 @@ internal static class OfficeConversionSupportAssessments {
         if (routeId.StartsWith("bibliography-", StringComparison.Ordinal)) {
             return Established(
                 "Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
-                "Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss.");
+                "Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.");
         }
         if (routeId is "pages-docx" or "numbers-xlsx" or "keynote-pptx") {
             return Targeted(

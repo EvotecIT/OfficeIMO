@@ -18,7 +18,7 @@ internal sealed partial class VisioDrawingProjection {
         _token.ThrowIfCancellationRequested();
         VisioRenderProjection projection = VisioRenderProjection.Create(page, 72D);
         // Preview surfaces impose a minimum size. Diagram pages retain the actual physical dimensions.
-        var drawing = new OfficeDrawing(page.Width * projection.GeometryDensity, page.Height * projection.GeometryDensity);
+        var drawing = new OfficeDrawing(page.WidthInches * projection.GeometryDensity, page.HeightInches * projection.GeometryDensity);
         drawing.Fonts.AddRange(_options.Fonts);
         drawing.TextShapingProvider = _options.TextShapingProvider;
         drawing.TextShapingLanguage = _options.TextShapingLanguage;

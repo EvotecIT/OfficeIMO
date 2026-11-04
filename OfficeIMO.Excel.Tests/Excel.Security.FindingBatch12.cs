@@ -78,7 +78,7 @@ namespace OfficeIMO.Tests {
         public async Task QueryBackedTable_TracksExactAuthoredPartAcrossConnectionIdCollision() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet importedSheet = document.AddSheet("Imported");
-            importedSheet.CellValue(1, 1, "Value");
+            importedSheet.Cell(1, 1).SetValue("Value");
             importedSheet.AddTable(
                 "A1:A1",
                 hasHeader: true,
@@ -124,7 +124,7 @@ namespace OfficeIMO.Tests {
             using var sourceDocument = ExcelDocument.Create(new MemoryStream());
             ExcelSheet source = sourceDocument.AddSheet("Images");
             source.SetInCellImage(1, 1, TinyPng, altText: "Shared A");
-            source.CellValue(1, 2, "placeholder");
+            source.Cell(1, 2).SetValue("placeholder");
             Cell first = source.WorksheetPart.Worksheet!.Descendants<Cell>()
                 .Single(cell => cell.CellReference?.Value == "A1");
             Cell second = source.WorksheetPart.Worksheet.Descendants<Cell>()
@@ -207,7 +207,7 @@ namespace OfficeIMO.Tests {
         public void CellSmartTagMutation_DoesNotRemoveAnUnrelatedParent() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(2, 1, "delete");
+            sheet.Cell(2, 1).SetValue("delete");
             const string extensionNamespace = "urn:officeimo:untrusted-extension";
             var unrelatedParent = new OpenXmlUnknownElement(
                 string.Empty,

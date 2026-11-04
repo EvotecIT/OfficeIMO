@@ -4,15 +4,19 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Explicit criteria used to derive reviewable redaction rectangles from logical content.</summary>
-public sealed class PdfRedactionSearchOptions {
+public sealed class PdfRedactionSearchOptions : IPdfOperationCancellation {
     private readonly List<string> _literalText = new List<string>();
     private readonly List<string> _regularExpressions = new List<string>();
     private readonly List<string> _formFieldNames = new List<string>();
     private readonly HashSet<PdfLogicalElementKind> _logicalElementKinds = new HashSet<PdfLogicalElementKind>();
     private readonly HashSet<int> _pageNumbers = new HashSet<int>();
 
-    /// <summary>Cooperative cancellation checked while deriving candidates.</summary>
-    public CancellationToken CancellationToken { get; set; }
+    // Operation cancellation; public methods take it as a parameter and bind it to a per-call copy.
+    System.Threading.CancellationToken IPdfOperationCancellation.CancellationToken { get => CancellationToken; set => CancellationToken = value; }
+
+    internal System.Threading.CancellationToken CancellationToken { get; set; }
+
+    object IPdfOperationCancellation.CloneForOperation() => MemberwiseClone();
 
     /// <summary>Case-sensitive literal matching when true.</summary>
     public bool MatchCase { get; set; }

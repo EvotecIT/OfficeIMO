@@ -11,7 +11,7 @@ public sealed class ConversionOptionsTests {
     public void ClonedConversionSettingsRetainIndependentFormatOptions() {
         var settings = new OfficeConversionOptions {
             PdfLoad = new PdfLoadOptions { PageSelection = PdfPageSelection.Parse("2") },
-            PdfWord = WordPdfImportOptions.CreateVisualPages()
+            PdfWord = PdfWordExportOptions.CreateVisualPages()
         };
         OfficeConversionOptions first = settings.Clone();
         settings.PdfLoad.PageSelection = PdfPageSelection.Parse("1");
@@ -29,10 +29,10 @@ public sealed class ConversionOptionsTests {
         var route = OfficeWorkflowCatalog.ExecutableRoutes.Single(item => item.Id == id);
         Assert.Equal(pages, route.SupportsPageSelection);
         Assert.Throws<ArgumentException>(() => OfficeIMO.Workflows.OfficeWorkflowRenderingOptions.Capture(new OfficeConversionOptions {
-            PdfWord = new WordPdfImportOptions { Dpi = 144 }
+            PdfWord = new PdfWordExportOptions { Dpi = 144 }
         }).Snapshot(route));
         Assert.Throws<ArgumentException>(() => OfficeIMO.Workflows.OfficeWorkflowRenderingOptions.Capture(new OfficeConversionOptions {
-            PdfWord = new WordPdfImportOptions { Mode = (WordPdfImportMode)999 }
+            PdfWord = new PdfWordExportOptions { Mode = (WordPdfImportMode)999 }
         }).Snapshot(route));
         if (!pages) Assert.Throws<ArgumentException>(() => OfficeIMO.Workflows.OfficeWorkflowRenderingOptions.Capture(new OfficeConversionOptions {
             PdfLoad = "1" == null ? null : new OfficeIMO.Pdf.PdfLoadOptions { PageSelection = OfficeIMO.Pdf.PdfPageSelection.Parse("1") }
@@ -57,7 +57,7 @@ public sealed class ConversionOptionsTests {
                 OutputPath = output,
                 ConversionOptions = (new OfficeConversionOptions() {
                     PdfLoad = new PdfLoadOptions { PageSelection = PdfPageSelection.Parse("2") },
-                    PdfWord = new WordPdfImportOptions { Mode = mode, Dpi = mode == WordPdfImportMode.VisualPages ? 72 : 144 }
+                    PdfWord = new PdfWordExportOptions { Mode = mode, Dpi = mode == WordPdfImportMode.VisualPages ? 72 : 144 }
                 }
 
     ).Clone()
@@ -96,6 +96,13 @@ public sealed class ConversionOptionsTests {
     [InlineData(".HTM")]
     public void HtmlPreviewAcceptsEverySourceExtension(string extension) {
         var preview = OfficeWorkflowRunner.PreviewDocument(Encoding.UTF8.GetBytes("<p>Saved HTML preview</p>"), extension);
+        Assert.Single(preview.Pages);
+        Assert.NotEmpty(preview.Pages[0].Bytes!);
+    }
+
+    [Fact]
+    public void TextPreviewChoosesTheCanonicalRouteAmongRoutesSharingTheExtension() {
+        var preview = OfficeWorkflowRunner.PreviewDocument(Encoding.UTF8.GetBytes("Plain text preview"), "txt");
         Assert.Single(preview.Pages);
         Assert.NotEmpty(preview.Pages[0].Bytes!);
     }
@@ -174,7 +181,7 @@ public sealed class ConversionOptionsTests {
     private static PdfDocument Source(int count = 2) => PdfDocument.Create(compose => {
         for (int index = 0; index < count; index++) {
             string text = index == 0 ? "First page" : "Second page " + index;
-            compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(320)).Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(text)))));
+            compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(320)).Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText(text)))));
         }
     });
 }

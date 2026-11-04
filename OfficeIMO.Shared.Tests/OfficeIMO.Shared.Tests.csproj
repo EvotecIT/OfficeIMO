@@ -10,6 +10,10 @@
     <LangVersion>Latest</LangVersion>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(OfficeIMOCompatibilityTarget)' == 'netstandard2.0'">
+    <DefineConstants>$(DefineConstants);OFFICEIMO_NETSTANDARD_COMPATIBILITY</DefineConstants>
+  </PropertyGroup>
+
   <PropertyGroup Condition="'$(SharedPerformanceEvidence)' == 'true'">
     <DefineConstants>$(DefineConstants);SHARED_PERFORMANCE_EVIDENCE</DefineConstants>
   </PropertyGroup>

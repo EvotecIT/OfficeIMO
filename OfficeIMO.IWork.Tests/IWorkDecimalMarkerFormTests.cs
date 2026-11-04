@@ -18,7 +18,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.All(content.Paragraphs, p => Assert.Equal(sample, p.ListLabel));
         Assert.Equal(new[] { "7. Value", "8. Next", "3. Restart", "4. Continue" },
             content.Paragraphs.Select(p => IWorkReadProjection.RichTextMarkdown(p)));
-        using var result = source.ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly,
+        using var result = source.ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly,
             AllowPartialEditableReconstruction = true });
         using var bytes = new MemoryStream(); result.Value.Save(bytes); bytes.Position = 0;
         using var saved = WordDocument.Load(bytes);
@@ -32,7 +32,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Decimal_marker_forms_use_existing_PPTX_numbering_and_typed_starts(ulong numberType,
         PowerPointNumberingScheme scheme) {
         using var package = DecimalCounterPackage(IWorkDocumentKind.Keynote, numberType: numberType);
-        using var result = IWorkSourceDocument.Open(package).ToPowerPointDocumentResult(new() {
+        using var result = IWorkSourceDocument.Open(package).ToPowerPointResult(new() {
             Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         var content = Assert.Single(Assert.Single(result.Projection.Slides).Tables).Cells[0].RichText!;
         Assert.True(content.IsFormattingComplete);

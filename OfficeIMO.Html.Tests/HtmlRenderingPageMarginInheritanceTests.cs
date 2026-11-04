@@ -344,7 +344,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlPageMarginInheritance_SuppliedPageFaceSetsNaturalMetricsBeforeMarginPainting() {
-        var options = new HtmlToPdfOptions(PageMarginTypographyOptions()) {
+        var options = new HtmlPdfExportOptions(PageMarginTypographyOptions()) {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         };
         options.Fonts.Add("MarginFace", ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(
@@ -388,9 +388,9 @@ public sealed partial class HtmlRenderingTests {
         HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
 
         HtmlRenderPage automatic = Assert.Single(document.RenderToPdfResult(HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged,
-            HtmlRenderEncoder.Pdf, new HtmlToPdfOptions { AllowSystemFontFallback = true })).RenderResult.Document.Pages);
+            HtmlRenderEncoder.Pdf, new HtmlPdfExportOptions { AllowSystemFontFallback = true })).RenderResult.Document.Pages);
         HtmlRenderPage explicitFont = Assert.Single(document.RenderToPdfResult(HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged,
-            HtmlRenderEncoder.Pdf, new HtmlToPdfOptions { FontFamily = family, AllowSystemFontFallback = false })).RenderResult.Document.Pages);
+            HtmlRenderEncoder.Pdf, new HtmlPdfExportOptions { FontFamily = family, AllowSystemFontFallback = false })).RenderResult.Document.Pages);
         HtmlRenderText margin = PageMarginTypographyText(automatic, "top-center");
         HtmlRenderText control = PageMarginTypographyText(explicitFont, "top-center");
 

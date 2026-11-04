@@ -7,7 +7,7 @@ internal static class BibliographyReader {
         if (source == null) throw new ArgumentNullException(nameof(source));
         options ??= new BibliographyReadOptions();
         options.Validate();
-        if (source.Length > options.MaximumInputCharacters) throw new InvalidDataException($"Bibliography input exceeds the configured {options.MaximumInputCharacters} character limit.");
+        if (source.Length > options.MaxInputCharacters) throw new InvalidDataException($"Bibliography input exceeds the configured {options.MaxInputCharacters} character limit.");
         cancellationToken.ThrowIfCancellationRequested();
 
         var diagnostics = new List<BibliographyDiagnostic>();
@@ -61,7 +61,7 @@ internal sealed class BibliographyLimitGuard {
 
     internal void AddItem(IList<BibliographyItem> partial, int offset) {
         _items++;
-        if (_items > _options.MaximumItemCount) throw new BibliographyLimitException("Maximum bibliography item count was exceeded.", partial, offset);
+        if (_items > _options.MaxItemCount) throw new BibliographyLimitException("Maximum bibliography item count was exceeded.", partial, offset);
     }
 
     internal void AddValue(IList<BibliographyItem> partial, string? value, int offset) {
@@ -70,12 +70,12 @@ internal sealed class BibliographyLimitGuard {
 
     internal void AddValue(IList<BibliographyItem> partial, int valueLength, int offset) {
         _values++;
-        if (_values > _options.MaximumValueCount) throw new BibliographyLimitException("Maximum bibliography value count was exceeded.", partial, offset);
-        if (valueLength > _options.MaximumValueLength) throw new BibliographyLimitException("Maximum bibliography value length was exceeded.", partial, offset);
+        if (_values > _options.MaxValueCount) throw new BibliographyLimitException("Maximum bibliography value count was exceeded.", partial, offset);
+        if (valueLength > _options.MaxValueLength) throw new BibliographyLimitException("Maximum bibliography value length was exceeded.", partial, offset);
     }
 
     internal void CheckDepth(IList<BibliographyItem> partial, int depth, int offset) {
-        if (depth > _options.MaximumNestingDepth) throw new BibliographyLimitException("Maximum bibliography nesting depth was exceeded.", partial, offset);
+        if (depth > _options.MaxNestingDepth) throw new BibliographyLimitException("Maximum bibliography nesting depth was exceeded.", partial, offset);
     }
 
     internal void CheckValueLength(IList<BibliographyItem> partial, string value, int offset) {
@@ -83,16 +83,16 @@ internal sealed class BibliographyLimitGuard {
     }
 
     internal void CheckValueLength(IList<BibliographyItem> partial, int length, int offset) {
-        if (length > _options.MaximumValueLength) throw new BibliographyLimitException("Maximum bibliography value length was exceeded.", partial, offset);
+        if (length > _options.MaxValueLength) throw new BibliographyLimitException("Maximum bibliography value length was exceeded.", partial, offset);
     }
 
     internal void CheckAdditionalValueLength(IList<BibliographyItem> partial, int currentLength, int additionalLength, int offset) {
-        if (currentLength < 0 || additionalLength < 0 || currentLength > _options.MaximumValueLength || additionalLength > _options.MaximumValueLength - currentLength)
+        if (currentLength < 0 || additionalLength < 0 || currentLength > _options.MaxValueLength || additionalLength > _options.MaxValueLength - currentLength)
             throw new BibliographyLimitException("Maximum bibliography value length was exceeded.", partial, offset);
     }
 
     internal void AddExpandedCharacters(IList<BibliographyItem> partial, int length, int offset) {
-        if (length < 0 || _expandedCharacters > _options.MaximumInputCharacters - (long)length)
+        if (length < 0 || _expandedCharacters > _options.MaxInputCharacters - (long)length)
             throw new BibliographyLimitException("Maximum cumulative expanded bibliography value length was exceeded.", partial, offset);
         _expandedCharacters += length;
     }
@@ -104,7 +104,7 @@ internal sealed class BibliographyDiagnosticGuard {
     private readonly IList<BibliographyItem> _partialItems;
 
     internal BibliographyDiagnosticGuard(BibliographyReadOptions options, List<BibliographyDiagnostic> diagnostics, IList<BibliographyItem> partialItems) {
-        _maximumCount = options.MaximumDiagnosticCount;
+        _maximumCount = options.MaxDiagnosticCount;
         _diagnostics = diagnostics;
         _partialItems = partialItems;
     }
@@ -157,7 +157,7 @@ internal static class BibliographyFormatDetector {
         if (source == null) throw new ArgumentNullException(nameof(source));
         options ??= new BibliographyReadOptions();
         options.Validate();
-        if (source.Length > options.MaximumInputCharacters) throw new InvalidDataException($"Bibliography input exceeds the configured {options.MaximumInputCharacters} character limit.");
+        if (source.Length > options.MaxInputCharacters) throw new InvalidDataException($"Bibliography input exceeds the configured {options.MaxInputCharacters} character limit.");
         cancellationToken.ThrowIfCancellationRequested();
         int start = SkipWhitespace(source, 0, cancellationToken);
         if (start < source.Length && source[start] == '%') {
@@ -173,7 +173,7 @@ internal static class BibliographyFormatDetector {
         if (LooksLikeCsl(source, start)) return BibliographyFormat.CslJson;
         if (start < source.Length && source[start] == '<') {
             int xml = SkipLeadingXmlTrivia(source, start, cancellationToken);
-            if (LooksLikeEndNoteRoot(source, xml, cancellationToken) || LooksLikeEndNoteRecordsContainer(source, options.MaximumNestingDepth, cancellationToken)) return BibliographyFormat.EndNoteXml;
+            if (LooksLikeEndNoteRoot(source, xml, cancellationToken) || LooksLikeEndNoteRecordsContainer(source, options.MaxNestingDepth, cancellationToken)) return BibliographyFormat.EndNoteXml;
         }
         if (StartsWith(source, start, "@", StringComparison.Ordinal)) return BibliographyFormat.BibLatex;
         if (StartsWith(source, start, "TY  -", StringComparison.OrdinalIgnoreCase)) return BibliographyFormat.Ris;

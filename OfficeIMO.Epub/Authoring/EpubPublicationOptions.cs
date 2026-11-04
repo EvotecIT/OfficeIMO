@@ -25,7 +25,7 @@ public sealed class EpubPublicationLoadOptions {
 }
 
 /// <summary>Bounds serialized output and controls explicit signature invalidation.</summary>
-public sealed class EpubWriteOptions {
+public sealed class EpubSaveOptions {
     /// <summary>Deflates ordinary entries when true. The leading mimetype entry is always stored.</summary>
     public bool CompressEntries { get; set; } = true;
     /// <summary>Maximum compressed output bytes, checked while producing the ZIP.</summary>
@@ -41,9 +41,9 @@ public sealed class EpubWriteOptions {
 }
 
 /// <summary>Preservation and omission evidence for one writer operation; this is not a conformance certificate.</summary>
-public sealed class EpubWriteReport : IOfficeConversionReport {
+public sealed class EpubWriteReport : OfficeConversionReport {
     internal EpubWriteReport(bool usedOriginal, IEnumerable<string> preserved, IEnumerable<string> regenerated, IEnumerable<string> removed,
-        IEnumerable<OfficeConversionFidelityDiagnostic> diagnostics, IReadOnlyDictionary<string, string>? renamed = null, IReadOnlyDictionary<string, string>? merged = null) {
+        IEnumerable<OfficeDiagnostic> diagnostics, IReadOnlyDictionary<string, string>? renamed = null, IReadOnlyDictionary<string, string>? merged = null) {
         UsedOriginalPackage = usedOriginal;
         PreservedEntries = Array.AsReadOnly(preserved.ToArray());
         RegeneratedEntries = Array.AsReadOnly(regenerated.ToArray());
@@ -65,17 +65,19 @@ public sealed class EpubWriteReport : IOfficeConversionReport {
     /// <summary>Original resource paths whose content was consolidated into current paths by chapter merging.</summary>
     public IReadOnlyDictionary<string, string> MergedEntries { get; }
     /// <inheritdoc />
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics { get; }
     /// <inheritdoc />
-    public bool HasLoss => FidelityDiagnostics.Any(item => item.LossKind != OfficeConversionLossKind.None);
+    public override bool HasLoss => FidelityDiagnostics.Any(item => item.LossKind != OfficeConversionLossKind.None);
     /// <inheritdoc />
-    public void RequireNoLoss() {
-        if (HasLoss) throw new OfficeConversionException("EPUB writing reported content loss.", this);
-    }
+    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("EPUB writing reported content loss.", this);
 }
 
 /// <summary>Serialized EPUB bytes and their operation-level preservation report.</summary>
-public sealed class EpubWriteResult : OfficeConversionResult<byte[], EpubWriteReport> {
+public sealed class EpubWriteResult : OfficeConversionResult<byte[]> {
+    /// <summary>Gets the typed conversion report.</summary>
+    public new EpubWriteReport Report => (EpubWriteReport)base.Report;
+
     internal EpubWriteResult(byte[] bytes, EpubWriteReport report) : base(bytes, report) { }
     /// <summary>Complete serialized artifact.</summary>
     public byte[] Bytes => Value;

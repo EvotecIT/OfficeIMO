@@ -28,7 +28,7 @@ public sealed partial class StudioMobileApplicationTests {
                 var services = StudioApplicationServices.Create(new StudioDataPaths(Path.Combine(root, "data")),
                     new StudioLocalDocumentRoot(Path.Combine(root, "documents")));
                 var input = new TestStorageFile("content://mobile/convert.pdf",
-                    PdfDocument.Create(pdf => pdf.Page(page => page.Content(content => content.Text("Shared conversion on iPad")))).ToBytes(), "convert.pdf");
+                    PdfDocument.Create(pdf => pdf.Page(page => page.Content(content => content.AddParagraph("Shared conversion on iPad")))).ToBytes(), "convert.pdf");
                 var provider = DispatchProxy.Create<IStorageProvider, TestStorageFile.StorageProxy>();
                 ((TestStorageFile.StorageProxy)(object)provider).Call = (method, _) => method switch {
                     "OpenFilePickerAsync" => Task.FromResult<IReadOnlyList<IStorageFile>>([input.Item]),

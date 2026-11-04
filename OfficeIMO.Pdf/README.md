@@ -30,10 +30,11 @@ using OfficeIMO.Pdf;
 
 PdfDocument.Create(pdf => pdf.Content(content => content
         .H1("Service review")
-        .Paragraph(p => p
-            .Text("All scheduled checks passed. ")
-            .Bold("Two follow-ups remain open."))
-        .Table(new[] {
+        .AddParagraph(p => {
+            p.AddText("All scheduled checks passed. ");
+            p.AddText("Two follow-ups remain open.").SetBold();
+        })
+        .AddTable(new[] {
             new[] { "Task", "Owner", "Due" },
             new[] { "Rotate certificates", "Platform", "4 Nov" },
             new[] { "Review backups", "Operations", "11 Nov" }
@@ -111,7 +112,7 @@ using OfficeIMO.Pdf;
 
 PdfDocument.Create(pdf => pdf.Content(content => content
         .H1("Salaries 2027")
-        .Paragraph(p => p.Text("Confidential."))),
+        .AddParagraph(p => p.AddText("Confidential."))),
         new PdfCreateOptions().SetEncryption("open-password", ownerPassword: "owner-password"))
     .Save("Salaries.pdf");
 ```
@@ -153,6 +154,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 | Inspect | 3 | 0 | 0 | 0 | 0 | 0 |
 | Validate | 2 | 0 | 0 | 0 | 0 | 1 |
 | Remove | 2 | 0 | 0 | 0 | 0 | 0 |
+| Convert | 0 | 1 | 0 | 0 | 0 | 0 |
 | Export | 5 | 0 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Pdf` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).

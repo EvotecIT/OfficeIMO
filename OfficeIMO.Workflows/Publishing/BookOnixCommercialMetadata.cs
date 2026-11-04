@@ -1,6 +1,3 @@
-#if !NET8_0_OR_GREATER
-using DateOnly = System.DateTime;
-#endif
 namespace OfficeIMO.Workflows;
 
 /// <summary>Explicit ONIX publishing status (list 64), independent of each supplier's availability.</summary>
@@ -135,10 +132,10 @@ public sealed record BookOnixPrice {
     public bool TaxExempt { get; init; }
     /// <summary>Optional narrower price territory; when omitted, uses the supply's explicit market.</summary>
     public BookOnixTerritory? Territory { get; init; }
-    /// <summary>Date on which the price becomes effective (price-date role 14).</summary>
-    public DateOnly? ValidFrom { get; init; }
-    /// <summary>Date on which the price ceases to be effective (price-date role 15).</summary>
-    public DateOnly? ValidUntil { get; init; }
+    /// <summary>Date on which the price becomes effective (price-date role 14). Time of day is ignored during export.</summary>
+    public DateTime? ValidFrom { get; init; }
+    /// <summary>Date on which the price ceases to be effective (price-date role 15). Time of day is ignored during export.</summary>
+    public DateTime? ValidUntil { get; init; }
 }
 
 /// <summary>One geographical segment of a supply market, with additional non-territorial restrictions.</summary>
@@ -165,8 +162,8 @@ public sealed record BookOnixSupply {
     public required BookOnixSupplierRole SupplierRole { get; init; }
     /// <summary>Availability from this supplier.</summary>
     public required BookOnixAvailability Availability { get; init; }
-    /// <summary>Expected availability date (supply-date role 08) for forthcoming or temporary unavailability.</summary>
-    public DateOnly? ExpectedSupplyDate { get; init; }
+    /// <summary>Expected availability date (supply-date role 08) for forthcoming or temporary unavailability. Time of day is ignored during export.</summary>
+    public DateTime? ExpectedSupplyDate { get; init; }
     /// <summary>Explicit exception when no expected availability date is known; mutually exclusive with a date.</summary>
     public bool ExpectedSupplyDateUnknown { get; init; }
     /// <summary>At most 16 prices. Mutually exclusive with Unpriced.</summary>

@@ -16,8 +16,7 @@ internal static class NativeNumbersCrossTableIntegerSmoke {
         Require(hash == (changed ? "0DBFFD11551FFF2D830A671F04E0E7FE0F6E071156F50E2E98F2D31C4E1835BD"
             : "5551AAD4E3BA7E2B918681C39282499A6E409FDE7139C268DE32C63367DF68FD"),
             "Native cross-table integer fixture changed.");
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(path,
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         var tables = result.Projection.Sheets.SelectMany(sheet => sheet.Tables).ToArray();
         Require(tables.Select(table => table.Name).SequenceEqual(new[] { "Data", "Totals", "Empty" })
             && tables.Sum(table => table.Cells.Count(cell => cell.Kind == IWorkCellKind.Formula && cell.FormulaIsComplete)) == 9,
@@ -30,7 +29,7 @@ internal static class NativeNumbersCrossTableIntegerSmoke {
         using var reopened = ExcelDocument.Load(bytes);
         Verify(reopened, changed);
         Require(reopened.Calculate() == 9, "Cross-table calculation count changed."); Verify(reopened, changed);
-        reopened.Sheets[0].CellValue(2, 2, 24d);
+        reopened.Sheets[0].Cell(2, 2).SetValue(24d);
         Require(reopened.Calculate() == 9, "Edited cross-table calculation count changed."); Verify(reopened, true);
         using var finalBytes = new MemoryStream(); reopened.Save(finalBytes); finalBytes.Position = 0;
         using var final = ExcelDocument.Load(finalBytes); Verify(final, true);
@@ -55,7 +54,7 @@ internal static class NativeNumbersCrossTableIntegerSmoke {
         foreach (var cell in cells) {
             var sheet = document.Sheets[cell.Sheet];
             Require(sheet.GetFormulaText(cell.Row, cell.Column) == cell.Formula
-                && sheet.CellAt(cell.Row, cell.Column).GetValue<double>() == cell.Value,
+                && sheet.Cell(cell.Row, cell.Column).GetValue<double>() == cell.Value,
                 "Cross-table formula text, native cache or recalculated value changed.");
         }
     }

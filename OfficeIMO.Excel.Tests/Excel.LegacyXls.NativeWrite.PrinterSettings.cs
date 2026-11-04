@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("PrinterSettings");
-                    sheet.CellValue(1, 1, "Printer settings");
+                    sheet.Cell(1, 1).SetValue("Printer settings");
 
                     SpreadsheetPrinterSettingsPart printerSettingsPart = sheet.WorksheetPart.AddNewPart<SpreadsheetPrinterSettingsPart>();
                     using var stream = new MemoryStream(new byte[] { 0x01, 0x02, 0x03, 0x04 });
@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksOversizedWorksheetPrinterSettingsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("printer settings payload lengths outside BIFF8 limits", (document, sheet) => {
-                sheet.CellValue(1, 1, "Oversized printer settings");
+                sheet.Cell(1, 1).SetValue("Oversized printer settings");
 
                 SpreadsheetPrinterSettingsPart printerSettingsPart = sheet.WorksheetPart.AddNewPart<SpreadsheetPrinterSettingsPart>();
                 using var stream = new MemoryStream(new byte[65534]);
@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksMultipleWorksheetPrinterSettingsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("multiple worksheet printer settings parts", (document, sheet) => {
-                sheet.CellValue(1, 1, "Multiple printer settings");
+                sheet.Cell(1, 1).SetValue("Multiple printer settings");
 
                 SpreadsheetPrinterSettingsPart firstPrinterSettingsPart = sheet.WorksheetPart.AddNewPart<SpreadsheetPrinterSettingsPart>();
                 using var firstStream = new MemoryStream(new byte[] { 0x01, 0x02 });

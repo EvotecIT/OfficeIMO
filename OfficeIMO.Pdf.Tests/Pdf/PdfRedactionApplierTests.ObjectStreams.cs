@@ -21,8 +21,15 @@ public partial class PdfRedactionApplierTests {
     [Theory]
     [InlineData("UndecodableStream")]
     [InlineData("UndecodableUnusedFontFile")]
+    [InlineData("UndecodableImage")]
+    [InlineData("OversizedImage")]
+    [InlineData("OversizedFaxImage")]
+    [InlineData("UndecodableJbig2Image")]
     public void SearchRefusesStreamItCannotDecode(string variant) {
-        PdfDocument source = PdfDocument.Load(BuildCompressedRedactionFixture(variant));
+        PdfLoadOptions? options = variant is "OversizedImage" or "OversizedFaxImage"
+            ? new PdfLoadOptions { Limits = new PdfReadLimits { MaxDecodedStreamBytes = 16384 } }
+            : null;
+        PdfDocument source = PdfDocument.Load(BuildCompressedRedactionFixture(variant), options);
 
         PdfRedactionPlan plan = source.Redactions.Search(new PdfRedactionSearchOptions().AddLiteral("absent"));
 
@@ -137,6 +144,10 @@ public partial class PdfRedactionApplierTests {
             if (variant is "ReferenceLive" or "ReferenceGenerationMismatch") objects[710] = "<< /Value (kept live value) >>";
         }
         if (variant is "UndecodableStream" or "UndecodableUnusedFontFile") objects[700] = "<< /Filter /FlateDecode /Length 4 >>\nstream\nnope\nendstream";
+        if (variant == "UndecodableImage") objects[700] = "<< /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /UnknownDecode /Length 4 >>\nstream\nnope\nendstream";
+        if (variant == "OversizedFaxImage") objects[700] = "<< /Subtype /Image /Width 2048 /Height 256 /ColorSpace /DeviceGray /BitsPerComponent 1 /Filter /CCITTFaxDecode /DecodeParms << /Columns 2048 /Rows 256 /K -1 >> /Length 4 >>\nstream\nnope\nendstream";
+        if (variant == "UndecodableJbig2Image") objects[700] = "<< /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 1 /Filter /JBIG2Decode /Length 4 >>\nstream\nnope\nendstream";
+        if (variant == "OversizedImage") objects[700] = "<< /Subtype /Image /Width 65536 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8 /Length 65536 >>\nstream\n" + new string('X', 65536) + "\nendstream";
         // A FontFile key outside a font's descriptor does not make the stream a font program.
         if (variant == "UndecodableUnusedFontFile") objects[701] = "<< /FontFile2 700 0 R >>";
         if (variant == "DamagedRetainedContainer") objects[700] = "<< /Type /ObjStm /N 1 /First 999 /Filter /ASCIIHexDecode /Length 1 >>\nstream\n>\nendstream";
@@ -193,7 +204,7 @@ public partial class PdfRedactionApplierTests {
         if (variant == "TruncatedClassicTable") {
             int tableOffset = output.Length;
             output.Append("xref\n0 110000\n");
-            for (int number = 0; number < 110000; number++) {
+            for (int number = 0; number < 1000; number++) {
                 if (offsets.TryGetValue(number, out int objectOffset)) output.Append(objectOffset.ToString("D10", CultureInfo.InvariantCulture)).Append(" 00000 n \n");
                 else output.Append("0000000000 65535 f \n");
             }

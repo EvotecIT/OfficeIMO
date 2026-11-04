@@ -19,8 +19,7 @@ internal static class NativeNumbersFixedDurationSmoke {
         Require(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))) == hash, "Duration source fixture changed.");
         string nativePath = Path.Combine(AppContext.BaseDirectory, fixture + "-native.xlsx");
         Require(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(nativePath))) == nativeHash, "Duration native XLSX fixture changed.");
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(path,
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         Require(result.Report.IsPartialEditableReconstruction
             && result.Report.Diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_NUMBERS_CELL_PADDING_OMITTED"),
             "Native duration region padding was silently discarded.");
@@ -43,8 +42,8 @@ internal static class NativeNumbersFixedDurationSmoke {
                     && cell.NumberFormat?.DurationFormat?.LargestUnit == largest[index]
                     && cell.NumberFormat.DurationFormat.SmallestUnit == smallest,
                     "Native duration declaration/cache was not reconstructed.");
-                var target = reopened.Sheets[index].CellAt(cell.Row, cell.Column);
-                var reference = native.Sheets[index].CellAt(cell.Row, cell.Column);
+                var target = reopened.Sheets[index].Cell(cell.Row, cell.Column);
+                var reference = native.Sheets[index].Cell(cell.Row, cell.Column);
                 Require(target.GetStyle().NumberFormatCode == codes[index]
                     && target.GetStyle().NumberFormatCode == reference.GetStyle().NumberFormatCode,
                     "Native duration format differs from Apple XLSX.");
@@ -59,15 +58,15 @@ internal static class NativeNumbersFixedDurationSmoke {
                 }
                 cells++;
             }
-            reopened.Sheets[index].CellValue(2, 3, 11d / 86400d);
-            reopened.Sheets[index].CellValue(3, 3, -11d / 86400d);
-            reopened.Sheets[index].CellValue(5, 3, 1.75d);
+            reopened.Sheets[index].Cell(2, 3).SetValue(11d / 86400d);
+            reopened.Sheets[index].Cell(3, 3).SetValue(-11d / 86400d);
+            reopened.Sheets[index].Cell(5, 3).SetValue(1.75d);
         }
         Require(cells == 42 && formulas == 21, "Native duration cells/formulas were omitted.");
         Require(reopened.Calculate() > 0, "Native duration formulas did not recalculate.");
         using var recalculated = new MemoryStream(); reopened.Save(recalculated); recalculated.Position = 0;
         using var final = ExcelDocument.Load(recalculated);
-        Require(final.Sheets.All(s => s.GetFormulaText(5, 4) == "C5+C5" && s.CellAt(5, 4).GetValue<double>() == 3.5d),
+        Require(final.Sheets.All(s => s.GetFormulaText(5, 4) == "C5+C5" && s.Cell(5, 4).GetValue<double>() == 3.5d),
             "Edited duration operands did not reach saved formula caches.");
         var eleven = milliseconds
             ? new[] { "0h 0m 11.000s ", "0m 11.000s ", "11.000s " }

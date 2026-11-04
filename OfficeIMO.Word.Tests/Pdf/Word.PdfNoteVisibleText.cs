@@ -77,7 +77,7 @@ public partial class Word {
                 Assert.DoesNotContain(removed, text, StringComparison.Ordinal);
             Assert.Single(result.Warnings, warning => warning.Code == "native-footnote-placement-approximated");
             Assert.True(result.HasLoss);
-            Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
         }
         Assert.Equal(bodyBefore, main.Document.OuterXml);
         Assert.Equal(notesBefore, main.FootnotesPart.Footnotes.OuterXml);

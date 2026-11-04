@@ -138,7 +138,7 @@ public partial class Word {
         Assert.True(result.HasLoss);
         Assert.True(result.Report.HasLoss);
         Assert.Equal(PdfConversionFidelityStatus.Degraded, result.Report.FidelityStatus);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
         Assert.Equal(before, CaptureEndnoteContinuationXml(document));
         Assert.Empty(document.ValidateDocument());
     }

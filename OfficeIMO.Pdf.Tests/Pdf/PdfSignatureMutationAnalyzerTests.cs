@@ -77,7 +77,7 @@ public class PdfSignatureMutationAnalyzerTests {
     [Fact]
     public void Analyze_MapsByteRangeToSignedRevisionAndIdentifiesLaterRevision() {
         byte[] original = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Signed revision coverage"))
+            .Paragraph(paragraph => paragraph.AddText("Signed revision coverage"))
             .ToBytes();
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
             original,
@@ -200,7 +200,7 @@ public class PdfSignatureMutationAnalyzerTests {
         int infoObjectNumber = objects.Keys.Max() + 1;
         byte[] infoObject = PdfObjectBytes.WrapIndirectObject(
             infoObjectNumber,
-            PdfInfoDictionaryBuilder.Build(new PdfMetadata { Title = title }));
+            PdfInfoDictionaryBuilder.Build(new PdfDocumentProperties { Title = title }));
         return PdfIncrementalObjectWriter.Append(
             source,
             objects,

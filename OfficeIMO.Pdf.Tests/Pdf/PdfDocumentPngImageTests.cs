@@ -24,7 +24,7 @@ public class PdfDocumentPngImageTests {
 
         try {
             byte[] pdf = PdfDocument.Create()
-                .Paragraph(paragraph => paragraph.InlineImage(source, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), "Status"))
+                .Paragraph(paragraph => paragraph.AddInlineImage(source, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), "Status"))
                 .ToBytes();
 
             Assert.Equal(1, alphaSplitPasses);
@@ -362,7 +362,7 @@ public class PdfDocumentPngImageTests {
     [Fact]
     public void StampImage_With16BitRgbaPng_PreservesSoftMaskImageObject() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(p => p.Text("Stamp source"))
+            .Paragraph(p => p.AddText("Stamp source"))
             .ToBytes();
 
         byte[] stamped = PdfStamper.StampImage(source, PdfPngTestImages.Create16BitRgbaPng(), new PdfImageStampOptions {
@@ -385,7 +385,7 @@ public class PdfDocumentPngImageTests {
     public void ExtractImages_ReturnsRgbaPngWhen16BitRgbaCreatesSoftMask() {
         byte[] source = PdfDocument.Create()
             .Image(PdfPngTestImages.Create16BitRgbaPng(), 24, 24)
-            .Paragraph(p => p.Text("16-bit RGBA image marker"))
+            .Paragraph(p => p.AddText("16-bit RGBA image marker"))
             .ToBytes();
 
         var images = PdfImageExtractor.ExtractImages(source);
@@ -406,7 +406,7 @@ public class PdfDocumentPngImageTests {
     public void ExtractImages_ReturnsGrayAlphaPngWhen16BitGrayscaleAlphaCreatesSoftMask() {
         byte[] source = PdfDocument.Create()
             .Image(PdfPngTestImages.Create16BitGrayscaleAlphaPng(), 24, 24)
-            .Paragraph(p => p.Text("16-bit grayscale-alpha image marker"))
+            .Paragraph(p => p.AddText("16-bit grayscale-alpha image marker"))
             .ToBytes();
 
         var images = PdfImageExtractor.ExtractImages(source);
@@ -427,7 +427,7 @@ public class PdfDocumentPngImageTests {
     public void ExtractImages_ReturnsRgbaPngWhen16BitRgbTransparencyCreatesSoftMask() {
         byte[] source = PdfDocument.Create()
             .Image(PdfPngTestImages.Create16BitRgbPng(includeTransparency: true), 24, 24)
-            .Paragraph(p => p.Text("16-bit RGB transparency image marker"))
+            .Paragraph(p => p.AddText("16-bit RGB transparency image marker"))
             .ToBytes();
 
         var images = PdfImageExtractor.ExtractImages(source);

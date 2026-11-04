@@ -162,18 +162,17 @@ public sealed class ConvertFromOfficeCsvCommand : PSCmdlet
     protected override void EndProcessing()
     {
         ApplyCultureDelimiter();
-        var options = CreateLoadOptions();
         var csvText = _textInput.ToString();
 
         _rowWriter.Reset();
         if (Mode == CsvReadMode.Stream)
         {
-            using var reader = CsvDocument.OpenTextDataReader(csvText, options);
+            using var reader = CsvDocument.OpenReader(new System.IO.StringReader(csvText), options: CreateReaderInputOptions());
             _rowWriter.WriteDataReaderRows(reader, _asHashtable, this);
             return;
         }
 
-        _rowWriter.WriteDocumentRows(CsvDocument.Parse(csvText, options), _asHashtable, this);
+        _rowWriter.WriteDocumentRows(CsvDocument.Parse(csvText, CreateLoadOptions()), _asHashtable, this);
     }
 
     private void ApplyCultureDelimiter()
@@ -195,6 +194,43 @@ public sealed class ConvertFromOfficeCsvCommand : PSCmdlet
     private CsvLoadOptions CreateLoadOptions()
     {
         var options = new CsvLoadOptions
+        {
+            HasHeaderRow = Header is null && !NoHeader.IsPresent,
+            Header = Header,
+            SkipInitialRecords = SkipRows,
+            Delimiter = Delimiter,
+            DelimiterText = DelimiterText,
+            DetectDelimiter = DetectDelimiter.IsPresent,
+            DelimiterCandidates = DelimiterCandidates,
+            TrimWhitespace = TrimWhitespace,
+            AllowEmptyLines = AllowEmptyLines.IsPresent,
+            SkipCommentRowsBeforeHeader = SkipCommentRowsBeforeHeader,
+            SkipCommentRows = SkipCommentRows.IsPresent,
+            CommentCharacter = CommentCharacter,
+            RecognizeW3CFieldsHeader = RecognizeW3CFieldsHeader,
+            DuplicateHeaderBehavior = CsvDuplicateHeaderBehavior.Throw,
+            ColumnCountMismatchPolicy = ColumnCountMismatchPolicy
+        };
+
+        CsvPowerShellOptionBuilder.ApplyTextLoadOptions(
+            options,
+            DuplicateHeaderBehavior,
+            NullValue,
+            DateTimeFormats,
+            QuoteParsingMode,
+            StaticColumns);
+
+        if (Culture != null)
+        {
+            options.Culture = Culture;
+        }
+
+        return options;
+    }
+
+    private CsvReaderOptions CreateReaderInputOptions()
+    {
+        var options = new CsvReaderOptions
         {
             HasHeaderRow = Header is null && !NoHeader.IsPresent,
             Header = Header,

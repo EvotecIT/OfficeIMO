@@ -3,7 +3,7 @@ using OfficeIMO.Markdown;
 
 namespace OfficeIMO.Word.Markdown;
 
-public partial class WordMarkdownImportOptions {
+public partial class MarkdownWordExportOptions {
     private const int MinIntelligenceXVisualMaxWidthPx = 320;
     private const int MaxIntelligenceXVisualMaxWidthPx = 2000;
     private const int DefaultIntelligenceXVisualMaxWidthPx = 760;
@@ -13,14 +13,14 @@ public partial class WordMarkdownImportOptions {
     /// </summary>
     /// <param name="allowedImageDirectories">Local image roots permitted by the transcript import policy.</param>
     /// <param name="visualMaxWidth">Maximum visual width at 96 DPI, rounded to pixels and clamped to 320–2,000 pixels. Defaults to 760 pixels.</param>
-    public static WordMarkdownImportOptions CreateIntelligenceXTranscript(
+    public static MarkdownWordExportOptions CreateIntelligenceXTranscript(
         IReadOnlyList<string>? allowedImageDirectories = null,
         OfficeLength? visualMaxWidth = null) {
         var readerOptions = MarkdownTranscriptPreparation.CreateIntelligenceXTranscriptReaderOptions(
             preservesGroupedDefinitionLikeParagraphs: false,
             visualFenceLanguageMode: MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence);
 
-        var options = new WordMarkdownImportOptions {
+        var options = new MarkdownWordExportOptions {
             FontFamily = "Calibri",
             AllowLocalImages = allowedImageDirectories is { Count: > 0 },
             PreferNarrativeSingleLineDefinitions = true,

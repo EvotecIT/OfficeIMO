@@ -38,8 +38,8 @@ public sealed class WordPdfCrossRunKerningTests {
                 new FontSize { Val = "40" }, new Kern { Val = 2 })));
         WordParagraph paragraph = route switch {
             "cell" => document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0],
-            "header" => document.HeaderDefaultOrCreate.AddParagraph(),
-            "footer" => document.FooterDefaultOrCreate.AddParagraph(),
+            "header" => document.PageSetup.Header.AddParagraph(),
+            "footer" => document.PageSetup.Footer.AddParagraph(),
             _ => document.AddParagraph()
         };
         paragraph._paragraph.RemoveAllChildren<Run>();

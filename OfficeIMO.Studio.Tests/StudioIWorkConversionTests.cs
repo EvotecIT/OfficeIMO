@@ -44,7 +44,7 @@ public sealed partial class StudioIWorkConversionTests {
                 Assert.False(job.HasOutput);
                 job.AllowPartialEditableReconstruction = true;
                 await queue.RetryFailedCommand.ExecuteAsync(null);
-                Assert.Contains(job.ConversionEvidence!.FidelityDiagnostics,
+                Assert.Contains(job.ConversionEvidence!.Diagnostics,
                     diagnostic => diagnostic.Code == (route == "keynote-pptx"
                         ? "IWORK_KEYNOTE_PARAGRAPH_PAGINATION_OMITTED" : "IWORK_NUMBERS_CELL_PADDING_OMITTED"));
             }
@@ -62,9 +62,9 @@ public sealed partial class StudioIWorkConversionTests {
             } else {
                 using var saved = OfficeIMO.Excel.ExcelDocument.Load(job.OutputPath!);
                 var sheet = Assert.Single(saved.Sheets);
-                Assert.Equal("a", sheet.CellAt(1, 1).GetValue<string>());
-                Assert.Equal(2d, sheet.CellAt(2, 2).GetValue<double>());
-                Assert.Equal("Z", sheet.CellAt(3, 3).GetValue<string>());
+                Assert.Equal("a", sheet.Cell(1, 1).GetValue<string>());
+                Assert.Equal(2d, sheet.Cell(2, 2).GetValue<double>());
+                Assert.Equal("Z", sheet.Cell(3, 3).GetValue<string>());
             }
             Assert.True(job.HasConversionEvidence);
             var facts = job.ConversionEvidence!.Facts;
@@ -137,7 +137,7 @@ public sealed partial class StudioIWorkConversionTests {
                 await queue.RetryFailedCommand.ExecuteAsync(null);
                 Assert.Equal(ConversionJobState.Completed, job.State);
                 Assert.Equal("VisualFallback", job.ConversionEvidence!.Facts["projectionKind"]);
-                Assert.Contains(job.ConversionEvidence.FidelityDiagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
+                Assert.Contains(job.ConversionEvidence.Diagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
                 Assert.True(view.FindControl<StackPanel>("ConversionEvidencePanel")!.IsEffectivelyVisible);
                 Assert.Equal(job.SourceFingerprint, view.FindControl<TextBox>("SourceFingerprintText")!.Text);
                 Assert.Contains("incomplete", job.ConversionEvidenceSummary, StringComparison.OrdinalIgnoreCase);

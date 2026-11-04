@@ -17,8 +17,20 @@ internal static partial class PdfWriter {
         string? author,
         string? subject,
         string? keywords,
-        System.Threading.CancellationToken cancellationToken) {
-        byte[] bytes = WriteCore(doc, blocks, opts, title, author, subject, keywords, outputStream: null, cancellationToken, out _, out _, out _, out _)!;
+        System.Threading.CancellationToken cancellationToken) =>
+        Write(doc, blocks, opts, title, author, subject, keywords, cancellationToken, out _);
+
+    internal static byte[] Write(
+        PdfDocument doc,
+        IEnumerable<IPdfBlock> blocks,
+        PdfCreateOptions opts,
+        string? title,
+        string? author,
+        string? subject,
+        string? keywords,
+        System.Threading.CancellationToken cancellationToken,
+        out int pageCount) {
+        byte[] bytes = WriteCore(doc, blocks, opts, title, author, subject, keywords, outputStream: null, cancellationToken, out _, out _, out pageCount, out _)!;
         PdfComplianceValidator.ValidateGeneratedArtifact(opts, bytes, cancellationToken: cancellationToken);
         return bytes;
     }
@@ -1523,7 +1535,8 @@ internal static partial class PdfWriter {
         int count = Math.Min(availableCount, effects.Count);
         for (int index = 0; index < count; index++) {
             PageEffectGroup effect = effects[index];
-            if (effect.ObjectId <= 0 || string.IsNullOrEmpty(effect.Name) || string.IsNullOrEmpty(effect.Token)) continue;
+            if (effect.ObjectId <= 0 || string.IsNullOrEmpty(effect.Name) || string.IsNullOrEmpty(effect.Token)
+                || result.IndexOf(effect.Token, StringComparison.Ordinal) < 0) continue;
             var invocation = new StringBuilder();
             var stream = new ContentStreamBuilder(invocation).SaveState();
             if (!string.IsNullOrEmpty(effect.GraphicsStateName)) stream.GraphicsState(effect.GraphicsStateName!);

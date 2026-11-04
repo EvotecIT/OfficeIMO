@@ -153,6 +153,29 @@ public class WordCreationThemeTables {
         Assert.False(firstRow);
     }
 
+    [Theory]
+    [InlineData("typed")]
+    [InlineData("matrix")]
+    [InlineData("text")]
+    public void CaptionIsAVisibleParagraphBeforeTheTableAndNameStaysTheTitle(string route) {
+        using var document = WordDocument.Create();
+        AddRows(document, route, new WordTableOptions {
+            Name = "Inventory", Caption = "Table 1. Inventory", Style = WordTableStyle.TableGrid, LayoutMode = WordTableLayoutMode.Fixed
+        });
+        var native = ReadNative(document.ToBytes());
+        XElement[] blocks = native.Body.Root!.Element(WordNs + "body")!.Elements()
+            .Where(element => element.Name == WordNs + "p" || element.Name == WordNs + "tbl").ToArray();
+        int tableIndex = Array.FindIndex(blocks, element => element.Name == WordNs + "tbl");
+        Assert.True(tableIndex > 0);
+        Assert.Equal("Table 1. Inventory", string.Concat(blocks[tableIndex - 1].Descendants(WordNs + "t").Select(text => text.Value)));
+        XElement properties = blocks[tableIndex].Element(WordNs + "tblPr")!;
+        Assert.Equal("Inventory", (string?)properties.Element(WordNs + "tblCaption")!.Attribute(WordNs + "val"));
+        Assert.Equal("TableGrid", (string?)properties.Element(WordNs + "tblStyle")!.Attribute(WordNs + "val"));
+        Assert.Equal("fixed", (string?)properties.Element(WordNs + "tblLayout")!.Attribute(WordNs + "type"));
+        Assert.DoesNotContain("Inventory", blocks.Where(element => element.Name == WordNs + "p")
+            .Select(paragraph => string.Concat(paragraph.Descendants(WordNs + "t").Select(text => text.Value))));
+    }
+
     [Fact]
     public void ProjectionFormattingAndExplicitAlignmentWinAndSurviveReload() {
         OfficeTheme theme = CustomTheme("157A67", "Arial");
@@ -383,9 +406,9 @@ public class WordCreationThemeTables {
     [Fact]
     public void DefaultGeometryFillsTheCurrentSectionAndExplicitGridIsStillAvailable() {
         using var document = WordDocument.Create();
-        document.Sections.Last().PageSettings.Width = OfficeLength.Inches(10);
-        document.Sections.Last().Margins.Left = OfficeLength.Inches(1);
-        document.Sections.Last().Margins.Right = OfficeLength.Inches(1);
+        document.Sections.Last().PageSetup.Size.Width = OfficeLength.Inches(10);
+        document.Sections.Last().PageSetup.Margins.Left = OfficeLength.Inches(1);
+        document.Sections.Last().PageSetup.Margins.Right = OfficeLength.Inches(1);
         WordTable table = AddRows(document, "typed");
         Assert.Equal(WordTableStyle.OfficeIMOModern, table.Style);
         document.AddTable(1, 2, WordTableStyle.TableGrid);

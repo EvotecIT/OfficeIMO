@@ -187,8 +187,9 @@ internal static partial class TableDetector {
                         previous[column] = string.IsNullOrWhiteSpace(previous[column]) ? cells[column] : previous[column] + " " + cells[column];
                     }
                 } else {
-                    // A row with a single filled cell is more often a label or note below the table than data.
-                    if (filled < 2) break;
+                    // A row with a single filled cell is more often a label or note below the table than data,
+                    // unless it is a figure in a later column one row pitch down, such as a total.
+                    if (filled < 2 && !IsSparseFigureRow(cells, cursor - rowY, pitch)) break;
                     table.Rows.Add(cells);
                 }
                 foreach (TextLayoutEngine.TextLine line in baseline) {
@@ -224,6 +225,11 @@ internal static partial class TableDetector {
             }
         }
         tables.RemoveAll(absorbedTables.Contains);
+    }
+
+    private static bool IsSparseFigureRow(string[] cells, double gap, double pitch) {
+        int column = Array.FindLastIndex(cells, static cell => !string.IsNullOrWhiteSpace(cell));
+        return column > 0 && gap <= pitch * 1.25D && IsTabularValue(cells[column]);
     }
 
     /// <summary>

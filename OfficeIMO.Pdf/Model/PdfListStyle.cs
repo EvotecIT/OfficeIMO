@@ -14,7 +14,7 @@ public sealed class PdfListStyle {
     private global::OfficeIMO.OfficeLength? _markerWidth;
     private global::OfficeIMO.OfficeLength? _markerFontSize;
     private string? _markerFontFamily;
-    private PdfAlign? _markerAlign;
+    private OfficeAlignment? _markerAlign;
     private global::OfficeIMO.OfficeLength _spacingBefore;
     private global::OfficeIMO.OfficeLength? _spacingAfter;
     private global::OfficeIMO.OfficeLength? _itemSpacing;
@@ -103,11 +103,11 @@ public sealed class PdfListStyle {
     /// <summary>Optional list marker color. When null the marker uses the list block color or list text color.</summary>
     public global::OfficeIMO.OfficeColor? MarkerColor { get; set; }
     /// <summary>Optional horizontal alignment of the marker inside the marker column. When null, bullets use left alignment and numbered lists use right alignment.</summary>
-    public PdfAlign? MarkerAlign {
+    public OfficeAlignment? MarkerAlign {
         get => _markerAlign;
         set {
             if (value.HasValue) {
-                Guard.LeftCenterRightAlign(value.Value, nameof(MarkerAlign), "List marker");
+                value = Guard.LeftCenterRightAlign(value.Value, nameof(MarkerAlign), "List marker");
             }
 
             _markerAlign = value;

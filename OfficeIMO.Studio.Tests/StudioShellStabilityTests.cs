@@ -286,7 +286,7 @@ public sealed class StudioShellStabilityTests {
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "private.pdf");
             PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300)).Content(content =>
-                content.Item(item => item.Paragraph(text => text.Text("Private")))))).Save(source);
+                content.Item(item => item.AddParagraph(text => text.AddText("Private")))))).Save(source);
             var recent = new RecentDocumentViewModel(source, DateTimeOffset.UtcNow);
             tab.RecentDocuments.Add(recent);
             recent.EnsureThumbnail();

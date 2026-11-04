@@ -14,7 +14,7 @@ public sealed partial class PdfRedactionWorkflowTests {
         string output = scope.PathFor("redacted.pdf");
         string evidencePath = scope.PathFor("evidence.json");
         const string sensitive = "WorkflowSecret-4917";
-        PdfDocument.Create().Paragraph(paragraph => paragraph.Text(sensitive)).Save(input);
+        PdfDocument.Create().Paragraph(paragraph => paragraph.AddText(sensitive)).Save(input);
         PdfRedactionRecipe recipe = CreateRecipe(sensitive);
         var runner = new OfficeWorkflowRunner();
 
@@ -65,7 +65,7 @@ public sealed partial class PdfRedactionWorkflowTests {
         using var scope = new RedactionTestDirectory();
         string input = scope.PathFor("source.pdf");
         string output = scope.PathFor("redacted.pdf");
-        PdfDocument.Create().Paragraph(paragraph => paragraph.Text("ReviewSecret-220")).Save(input);
+        PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("ReviewSecret-220")).Save(input);
         PdfRedactionRecipe recipe = CreateRecipe("ReviewSecret-220");
         var runner = new OfficeWorkflowRunner();
         PdfRedactionWorkflowResult planned = await runner.RunRedactionAsync(new PdfRedactionWorkflowRequest { Mode = PdfRedactionWorkflowMode.PlanOnly, InputPath = input, Recipe = recipe });
@@ -89,7 +89,7 @@ public sealed partial class PdfRedactionWorkflowTests {
         using var scope = new RedactionTestDirectory();
         string input = scope.PathFor("signed.pdf");
         string output = scope.PathFor("redacted.pdf");
-        byte[] unsigned = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("signed content")).ToBytes();
+        byte[] unsigned = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("signed content")).ToBytes();
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(unsigned, new PdfExternalSignatureOptions {
             FieldName = "SourceSignature", ReservedSignatureContentsBytes = 512
         });
@@ -113,7 +113,7 @@ public sealed partial class PdfRedactionWorkflowTests {
         string input = scope.PathFor("signed-source.pdf");
         string output = scope.PathFor("signed-redacted.pdf");
         const string sensitive = "SignedWorkflowSecret-884";
-        byte[] unsigned = PdfDocument.Create().Paragraph(paragraph => paragraph.Text(sensitive)).ToBytes();
+        byte[] unsigned = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText(sensitive)).ToBytes();
         PdfExternalSignaturePreparation sourcePreparation = PdfIncrementalUpdater.PrepareExternalSignature(unsigned, new PdfExternalSignatureOptions {
             FieldName = "SourceSignature",
             ReservedSignatureContentsBytes = 512
@@ -164,7 +164,7 @@ public sealed partial class PdfRedactionWorkflowTests {
         string input = scope.PathFor("validator-source.pdf");
         string output = scope.PathFor("validator-redacted.pdf");
         const string sensitive = "ValidatorSecret-219";
-        PdfDocument.Create().Paragraph(paragraph => paragraph.Text(sensitive)).Save(input);
+        PdfDocument.Create().Paragraph(paragraph => paragraph.AddText(sensitive)).Save(input);
         PdfRedactionRecipe recipe = CreateRecipe(sensitive);
         var runner = new OfficeWorkflowRunner();
         PdfRedactionWorkflowResult planned = await runner.RunRedactionAsync(new PdfRedactionWorkflowRequest {
@@ -198,7 +198,7 @@ public sealed partial class PdfRedactionWorkflowTests {
         string input = scope.PathFor("validator-cancellation-source.pdf");
         string output = scope.PathFor("validator-cancellation-redacted.pdf");
         const string sensitive = "ValidatorCancellationSecret-220";
-        PdfDocument.Create().Paragraph(paragraph => paragraph.Text(sensitive)).Save(input);
+        PdfDocument.Create().Paragraph(paragraph => paragraph.AddText(sensitive)).Save(input);
         PdfRedactionRecipe recipe = CreateRecipe(sensitive);
         var runner = new OfficeWorkflowRunner();
         PdfRedactionWorkflowResult planned = await runner.RunRedactionAsync(new PdfRedactionWorkflowRequest {
@@ -246,7 +246,7 @@ public sealed partial class PdfRedactionWorkflowTests {
         const string ownerPassword = "owner-redaction-1";
         const string outputPassword = "output-redaction-2";
         const string sensitive = "ProtectedSecret-712";
-        byte[] encrypted = PdfDocument.Create().Paragraph(paragraph => paragraph.Text(sensitive))
+        byte[] encrypted = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText(sensitive))
             .Security.Encrypt(new PdfStandardEncryptionOptions("reader-redaction-1") { OwnerPassword = ownerPassword }).Pdf;
         await File.WriteAllBytesAsync(input, encrypted);
         PdfRedactionRecipe recipe = CreateRecipe(sensitive);
@@ -299,7 +299,7 @@ public sealed partial class PdfRedactionWorkflowTests {
         const string userPassword = "reader-preserve-1";
         const string ownerPassword = "owner-preserve-2";
         const string sensitive = "PreservedSecret-810";
-        byte[] encrypted = PdfDocument.Create().Paragraph(paragraph => paragraph.Text(sensitive))
+        byte[] encrypted = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText(sensitive))
             .Security.Encrypt(new PdfStandardEncryptionOptions(userPassword) { OwnerPassword = ownerPassword }).Pdf;
         await File.WriteAllBytesAsync(input, encrypted);
         PdfRedactionRecipe recipe = CreateRecipe(sensitive);
@@ -337,7 +337,7 @@ public sealed partial class PdfRedactionWorkflowTests {
         for (int index = 0; index < 2; index++) {
             string secret = "BatchSecret-" + index;
             string input = scope.PathFor("source-" + index + ".pdf");
-            PdfDocument.Create().Paragraph(paragraph => paragraph.Text(secret)).Save(input);
+            PdfDocument.Create().Paragraph(paragraph => paragraph.AddText(secret)).Save(input);
             PdfRedactionRecipe recipe = CreateRecipe(secret);
             PdfRedactionWorkflowResult plan = await runner.RunRedactionAsync(new PdfRedactionWorkflowRequest { Mode = PdfRedactionWorkflowMode.PlanOnly, InputPath = input, Recipe = recipe });
             requests.Add(new PdfRedactionWorkflowRequest {
@@ -374,7 +374,7 @@ public sealed partial class PdfRedactionWorkflowTests {
         string output = scope.PathFor("protected-copy.pdf");
         const string ownerPassword = "zero-owner-password";
         const string outputPassword = "zero-output-password";
-        byte[] encrypted = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("RejectedProtectedCandidate"))
+        byte[] encrypted = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("RejectedProtectedCandidate"))
             .Security.Encrypt(new PdfStandardEncryptionOptions("zero-reader-password") { OwnerPassword = ownerPassword }).Pdf;
         await File.WriteAllBytesAsync(input, encrypted);
         PdfRedactionRecipe recipe = CreateRecipe("RejectedProtectedCandidate");
@@ -453,7 +453,7 @@ public sealed partial class PdfRedactionWorkflowTests {
         string input = scope.PathFor("source.pdf");
         string output = scope.PathFor("redacted.pdf");
         const string sensitive = "SnapshotSecret-491";
-        PdfDocument.Create().Paragraph(paragraph => paragraph.Text(sensitive)).Save(input);
+        PdfDocument.Create().Paragraph(paragraph => paragraph.AddText(sensitive)).Save(input);
         PdfRedactionRecipe recipe = CreateRecipe(sensitive);
         var runner = new OfficeWorkflowRunner();
         PdfRedactionWorkflowResult plan = await runner.RunRedactionAsync(new PdfRedactionWorkflowRequest { Mode = PdfRedactionWorkflowMode.PlanOnly, InputPath = input, Recipe = recipe });
@@ -485,7 +485,7 @@ public sealed partial class PdfRedactionWorkflowTests {
     public async Task RichRegionProducesOneAtomicCandidateForAllNormalizedAreas() {
         using var scope = new RedactionTestDirectory();
         string input = scope.PathFor("source.pdf");
-        PdfDocument.Create().Paragraph(paragraph => paragraph.Text("group region")) .Save(input);
+        PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("group region")) .Save(input);
         var recipe = new PdfRedactionRecipe();
         recipe.Regions.Add(new PdfRedactionRecipeRegion {
             Name = "group",
@@ -510,7 +510,7 @@ public sealed partial class PdfRedactionWorkflowTests {
         using var scope = new RedactionTestDirectory();
         string input = scope.PathFor("source.pdf");
         string evidence = scope.PathFor("plan.json");
-        PdfDocument.Create().Paragraph(paragraph => paragraph.Text("budget target")).Save(input);
+        PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("budget target")).Save(input);
         var request = new PdfRedactionWorkflowRequest {
             Mode = PdfRedactionWorkflowMode.PlanOnly,
             InputPath = input,
@@ -533,7 +533,7 @@ public sealed partial class PdfRedactionWorkflowTests {
         string output = scope.PathFor("ocr-redacted.pdf");
         string evidencePath = scope.PathFor("ocr-evidence.json");
         const string sensitive = "Ocr Secret";
-        PdfDocument.Create().Paragraph(paragraph => paragraph.Text("unrelated native content")).Save(input);
+        PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("unrelated native content")).Save(input);
         int invocation = 0;
         const string metadataLeak = "Account123456789";
         var engine = new DelegateOcrEngine(
@@ -600,7 +600,7 @@ public sealed partial class PdfRedactionWorkflowTests {
         using var scope = new RedactionTestDirectory();
         string input = scope.PathFor("candidate-limit.pdf");
         string evidence = scope.PathFor("candidate-limit.json");
-        PdfDocument.Create().Paragraph(paragraph => paragraph.Text("bounded target")).Save(input);
+        PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("bounded target")).Save(input);
         PdfRedactionRecipe recipe = CreateRecipe("bounded target");
         recipe.Rules.Add(new PdfRedactionRule { Name = "second-rule", Kind = PdfRedactionRuleKind.Literal, Value = "bounded target" });
 
@@ -622,7 +622,7 @@ public sealed partial class PdfRedactionWorkflowTests {
         using var scope = new RedactionTestDirectory();
         string input = scope.PathFor("ocr-source.pdf");
         const string leaked = "ProviderReturnedSensitiveText-991";
-        PdfDocument.Create().Paragraph(paragraph => paragraph.Text("page")).Save(input);
+        PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("page")).Save(input);
         PdfRedactionRecipe recipe = CreateRecipe("secret");
         recipe.DetectionMode = PdfRedactionDetectionMode.OcrOnly;
         var engine = new DelegateOcrEngine("failing-provider", (_, _) => throw new InvalidOperationException(leaked));
@@ -643,7 +643,7 @@ public sealed partial class PdfRedactionWorkflowTests {
     public async Task ApplyRejectsInPlaceOutputAndEvidenceCollisions() {
         using var scope = new RedactionTestDirectory();
         string input = scope.PathFor("source.pdf");
-        PdfDocument.Create().Paragraph(paragraph => paragraph.Text("CollisionSecret")).Save(input);
+        PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("CollisionSecret")).Save(input);
         PdfRedactionRecipe recipe = CreateRecipe("CollisionSecret");
         var runner = new OfficeWorkflowRunner();
         PdfRedactionWorkflowResult planned = await runner.RunRedactionAsync(new PdfRedactionWorkflowRequest { Mode = PdfRedactionWorkflowMode.PlanOnly, InputPath = input, Recipe = recipe });
@@ -672,7 +672,7 @@ public sealed partial class PdfRedactionWorkflowTests {
         using var scope = new RedactionTestDirectory();
         string input = scope.PathFor("source.pdf");
         const string sensitive = "PolicyIdentitySecret";
-        PdfDocument.Create().Paragraph(paragraph => paragraph.Text(sensitive)).Save(input);
+        PdfDocument.Create().Paragraph(paragraph => paragraph.AddText(sensitive)).Save(input);
         PdfRedactionRecipe firstRecipe = CreateRecipe(sensitive);
         firstRecipe.Rules[0].Name = "account-id";
         firstRecipe.Rules[0].ContentScope = PdfRedactionContentScope.TextOnly;
@@ -713,8 +713,8 @@ public sealed partial class PdfRedactionWorkflowTests {
         string manifest = scope.PathFor("batch.json");
         Directory.CreateDirectory(nested);
         const string sensitive = "BatchPlanSecret";
-        PdfDocument.Create().Paragraph(paragraph => paragraph.Text(sensitive)).Save(Path.Combine(nested, "b.pdf"));
-        PdfDocument.Create().Paragraph(paragraph => paragraph.Text(sensitive)).Save(Path.Combine(inputRoot, "a.pdf"));
+        PdfDocument.Create().Paragraph(paragraph => paragraph.AddText(sensitive)).Save(Path.Combine(nested, "b.pdf"));
+        PdfDocument.Create().Paragraph(paragraph => paragraph.AddText(sensitive)).Save(Path.Combine(inputRoot, "a.pdf"));
 
         PdfRedactionBatchResult result = await new OfficeWorkflowRunner().RunRedactionBatchAsync(new PdfRedactionBatchRequest {
             Mode = PdfRedactionWorkflowMode.PlanOnly,
@@ -767,7 +767,7 @@ public sealed partial class PdfRedactionWorkflowTests {
         string evidenceRoot = scope.PathFor("evidence");
         string manifest = scope.PathFor("batch.json");
         Directory.CreateDirectory(inputRoot);
-        PdfDocument.Create().Paragraph(paragraph => paragraph.Text("AtomicBatchSecret")).Save(Path.Combine(inputRoot, "one.pdf"));
+        PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("AtomicBatchSecret")).Save(Path.Combine(inputRoot, "one.pdf"));
         await File.WriteAllTextAsync(manifest, "sentinel");
 
         PdfRedactionBatchResult result = await new OfficeWorkflowRunner().RunRedactionBatchAsync(new PdfRedactionBatchRequest {
@@ -791,7 +791,7 @@ public sealed partial class PdfRedactionWorkflowTests {
         string evidenceRoot = scope.PathFor("evidence");
         string manifest = scope.PathFor("batch.json");
         Directory.CreateDirectory(inputRoot);
-        PdfDocument.Create().Paragraph(paragraph => paragraph.Text("ContinueBatchSecret")).Save(Path.Combine(inputRoot, "good.pdf"));
+        PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("ContinueBatchSecret")).Save(Path.Combine(inputRoot, "good.pdf"));
         await File.WriteAllBytesAsync(Path.Combine(inputRoot, "invalid.pdf"), new byte[2 * 1024 * 1024]);
 
         PdfRedactionBatchResult result = await new OfficeWorkflowRunner().RunRedactionBatchAsync(new PdfRedactionBatchRequest {

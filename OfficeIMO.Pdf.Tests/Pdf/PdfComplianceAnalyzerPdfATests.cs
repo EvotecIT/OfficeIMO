@@ -200,7 +200,7 @@ public partial class PdfComplianceAnalyzerTests {
                 .SetPdfAIdentification(3, "U")
                 .SetSrgbOutputIntent())
             .UseFontFamily("Unicode readiness font", fontPath)
-            .Paragraph(paragraph => paragraph.Text("Embedded Type0 ToUnicode coverage."));
+            .Paragraph(paragraph => paragraph.AddText("Embedded Type0 ToUnicode coverage."));
 
         PdfComplianceReadinessReport report = document.AssessCompliance(PdfComplianceProfile.PdfA3U);
 

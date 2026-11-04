@@ -68,8 +68,8 @@ public class VisioDiagramPageBackgroundTests {
             Assert.Empty(VisioValidator.Validate(path));
             var page = Assert.Single(VisioDocument.Load(path).Pages);
             Assert.Equal(background, page.Shapes[0].FillColor);
-            Assert.Equal(page.Width, page.Shapes[0].Width, 6);
-            Assert.Equal(page.Height, page.Shapes[0].Height, 6);
+            Assert.Equal(page.Width.ToInches(), page.Shapes[0].Width.ToInches(), 6);
+            Assert.Equal(page.Height.ToInches(), page.Shapes[0].Height.ToInches(), 6);
             Assert.True(page.Shapes[0].IsBackgroundSurface);
             Assert.Contains(page.Shapes, shape => shape.Id == "client" && shape.Text == "Client");
             Assert.Contains(page.Shapes, shape => shape.Id == "service" && shape.Text == "Service");

@@ -27,7 +27,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void AddNativeText(
-            PdfCore.PdfParagraphBuilder builder,
+            PdfCore.PdfParagraph builder,
             string text,
             WordParagraph paragraph,
             IReadOnlyList<WordTabStop> tabStops,
@@ -45,34 +45,34 @@ namespace OfficeIMO.Word.Pdf {
             return style.AllCaps || style.SmallCaps ? text.ToUpperInvariant() : text;
         }
 
-        private static void ApplyNativeTextStyle(PdfCore.PdfParagraphBuilder builder, WordParagraph paragraph, WordParagraph? fallback = null, NativeDocumentDefaults? nativeDefaults = null, NativeFontMap? nativeFontMap = null) =>
+        private static void ApplyNativeTextStyle(PdfCore.PdfParagraph builder, WordParagraph paragraph, WordParagraph? fallback = null, NativeDocumentDefaults? nativeDefaults = null, NativeFontMap? nativeFontMap = null) =>
             ApplyNativeTextStyle(builder, ResolveNativeTextRunStyle(paragraph, fallback, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap));
 
-        private static void ApplyNativeTextStyle(PdfCore.PdfParagraphBuilder builder, NativeResolvedTextStyle style) {
-            builder.HorizontalTextScaling(style.TextSpacing.WidthPercentage ?? 100D);
-            builder.CharacterSpacing(global::OfficeIMO.OfficeLength.Points(style.TextSpacing.CharacterSpacing ?? 0D));
-            builder.FeatureSettings(style.TextSpacing.ResolveFeatureSettings(style.EffectiveFontSize));
-            builder.Bold(style.Bold);
-            builder.Italic(style.Italic);
-            builder.Underline(style.UnderlineStyle);
-            builder.Strike(style.StrikeStyle);
-            builder.Baseline(style.Baseline);
+        private static void ApplyNativeTextStyle(PdfCore.PdfParagraph builder, NativeResolvedTextStyle style) {
+            builder.RunDefaults.HorizontalTextScaling = style.TextSpacing.WidthPercentage ?? 100D;
+            builder.RunDefaults.CharacterSpacing = global::OfficeIMO.OfficeLength.Points(style.TextSpacing.CharacterSpacing ?? 0D);
+            builder.RunDefaults.FeatureSettings = style.TextSpacing.ResolveFeatureSettings(style.EffectiveFontSize);
+            builder.RunDefaults.Bold = style.Bold;
+            builder.RunDefaults.Italic = style.Italic;
+            builder.RunDefaults.UnderlineStyle = style.UnderlineStyle;
+            builder.RunDefaults.StrikeStyle = style.StrikeStyle;
+            builder.RunDefaults.Baseline = style.Baseline;
             if (style.FontSize.HasValue) {
-                builder.FontSize(global::OfficeIMO.OfficeLength.Points(style.FontSize.Value));
+                builder.RunDefaults.FontSize = global::OfficeIMO.OfficeLength.Points(style.FontSize.Value);
             }
 
             if (!string.IsNullOrWhiteSpace(style.FontFamily)) {
-                builder.FontFamily(style.FontFamily!);
+                builder.RunDefaults.FontFamily = style.FontFamily!; builder.RunDefaults.StandardFont = null;
             } else if (style.Font.HasValue) {
-                builder.Font(style.Font.Value);
+                builder.RunDefaults.StandardFont = style.Font.Value; builder.RunDefaults.FontFamily = null;
             }
 
             if (style.Color.HasValue) {
-                builder.Color(style.Color.Value);
+                builder.RunDefaults.Color = style.Color.Value;
             }
 
             if (style.BackgroundColor.HasValue) {
-                builder.BackgroundColor(style.BackgroundColor.Value);
+                builder.RunDefaults.BackgroundColor = style.BackgroundColor.Value;
             }
         }
 
@@ -146,19 +146,20 @@ namespace OfficeIMO.Word.Pdf {
             };
         }
 
-        private static void ResetNativeTextStyle(PdfCore.PdfParagraphBuilder builder) {
-            builder.HorizontalTextScaling(100D)
-                .CharacterSpacing(global::OfficeIMO.OfficeLength.Points(0D))
-                .ResetFeatureSettings()
-                .Bold(false)
-                .Italic(false)
-                .Underline(false)
-                .Strike(false)
-                .Baseline(PdfCore.PdfTextBaseline.Normal)
-                .ResetColor()
-                .ResetFontSize()
-                .ResetFont()
-                .ResetBackgroundColor();
+        private static void ResetNativeTextStyle(PdfCore.PdfParagraph builder) {
+            builder.RunDefaults.HorizontalTextScaling = 100D;
+            builder.RunDefaults.CharacterSpacing = global::OfficeIMO.OfficeLength.Points(0D);
+            builder.RunDefaults.FeatureSettings = global::OfficeIMO.Drawing.OfficeTextFeatureSettings.Default;
+            builder.RunDefaults.Bold = false;
+            builder.RunDefaults.Italic = false;
+            builder.RunDefaults.UnderlineStyle = global::OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
+            builder.RunDefaults.StrikeStyle = global::OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
+            builder.RunDefaults.Baseline = PdfCore.PdfTextBaseline.Normal;
+            builder.RunDefaults.Color = null;
+            builder.RunDefaults.FontSize = null;
+            builder.RunDefaults.StandardFont = null;
+            builder.RunDefaults.FontFamily = null;
+            builder.RunDefaults.BackgroundColor = null;
         }
 
     }

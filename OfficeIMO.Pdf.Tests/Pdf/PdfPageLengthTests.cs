@@ -19,7 +19,7 @@ public sealed class PdfPageLengthTests {
         using var document = PdfDocument.Create();
         document.Compose(compose => compose.Page(page => {
             page.Size(size).Margin(margins);
-            page.Content(content => content.Column(column => column.Item().Paragraph(text => text.Text("Explicit lengths"))));
+            page.Content(content => content.Column(column => column.Item().AddParagraph(text => text.AddText("Explicit lengths"))));
         }));
         using var saved = UglyToad.PdfPig.PdfDocument.Open(new MemoryStream(document.ToBytes()));
         Assert.InRange(saved.GetPage(1).Width, size.Width.ToPoints() - 0.001, size.Width.ToPoints() + 0.001);

@@ -15,17 +15,17 @@ public partial class Excel {
         string path = Path.Combine(_directoryWithFiles, "Reader.StoredDoublePrecision.xlsx");
         using (var document = ExcelDocument.Create(path)) {
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(1, 1).SetValue("Value");
-            sheet.CellAt(1, 2).SetValue("Cache");
-            sheet.CellAt(1, 3).SetValue("Text");
+            sheet.Cell(1, 1).SetValue("Value");
+            sheet.Cell(1, 2).SetValue("Cache");
+            sheet.Cell(1, 3).SetValue("Text");
             for (int index = 0; index < expected.Length; index++) {
                 int row = index + 2;
-                sheet.CellAt(row, 1).SetValue(expected[index]);
-                sheet.CellAt(row, 2).SetValue(expected[index]);
-                sheet.CellFormula(row, 2, "=1");
-                sheet.CellAt(row, 3).SetValue(expected[index].ToString("R", CultureInfo.InvariantCulture));
+                sheet.Cell(row, 1).SetValue(expected[index]);
+                sheet.Cell(row, 2).SetValue(expected[index]);
+                sheet.Cell(row, 2).SetFormula("=1");
+                sheet.Cell(row, 3).SetValue(expected[index].ToString("R", CultureInfo.InvariantCulture));
             }
-            sheet.CellAt(4098, 1).SetValue(1d); // Include the supported large-range data-reader path.
+            sheet.Cell(4098, 1).SetValue(1d); // Include the supported large-range data-reader path.
             document.Save();
         }
         var options = new ExcelReaderOptions();
@@ -59,12 +59,12 @@ public partial class Excel {
     public void SaveAsPdf_saved_fraction_values_match_image_snapshot_across_midpoints_and_large_integers() {
         using var document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Fraction precision");
-        sheet.CellAt(1, 1).SetValue(0.6249999999999999d).SetNumberFormat("# ?/4;-# ?/4;0");
-        sheet.CellAt(2, 1).SetValue(-0.6249999999999999d);
-        sheet.CellFormula(2, 1, "=1");
-        sheet.CellAt(2, 1).SetNumberFormat("# ?/4;-# ?/4;0");
-        sheet.CellAt(3, 1).SetValue(1e20d).SetNumberFormat("# ?/8;-# ?/8;0");
-        sheet.CellAt(4, 1).SetValue(-1e20d).SetNumberFormat("# ?/8;-# ?/8;0");
+        sheet.Cell(1, 1).SetValue(0.6249999999999999d).SetNumberFormat("# ?/4;-# ?/4;0");
+        sheet.Cell(2, 1).SetValue(-0.6249999999999999d);
+        sheet.Cell(2, 1).SetFormula("=1");
+        sheet.Cell(2, 1).SetNumberFormat("# ?/4;-# ?/4;0");
+        sheet.Cell(3, 1).SetValue(1e20d).SetNumberFormat("# ?/8;-# ?/8;0");
+        sheet.Cell(4, 1).SetValue(-1e20d).SetNumberFormat("# ?/8;-# ?/8;0");
         // Wide enough that Excel would show the 21-digit values rather than "####".
         sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(30));
         using var saved = new MemoryStream(); document.Save(saved); saved.Position = 0;

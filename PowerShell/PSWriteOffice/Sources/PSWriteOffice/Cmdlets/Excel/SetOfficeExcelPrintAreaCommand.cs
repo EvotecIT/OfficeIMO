@@ -57,7 +57,7 @@ public sealed class SetOfficeExcelPrintAreaCommand : PSCmdlet {
 
         var document = workbook.Document;
         var sheet = ExcelWorkbookCommandService.ResolveSheet(this, document, ParameterSetName, Sheet, SheetIndex);
-        document.SetPrintArea(sheet, Range, save: false);
+        sheet.PageSetup.PrintArea = Range;
         workbook.SaveIfOwned();
 
         if (PassThru.IsPresent) {

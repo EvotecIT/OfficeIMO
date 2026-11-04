@@ -3,7 +3,7 @@ using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Excel.Utilities;
 
 namespace OfficeIMO.Excel {
-    public partial class ExcelCell {
+    public readonly partial struct ExcelCell {
         /// <summary>
         /// Gets a read-only snapshot of the cell's visual style.
         /// </summary>
@@ -11,10 +11,7 @@ namespace OfficeIMO.Excel {
     }
 
     public partial class ExcelSheet {
-        /// <summary>
-        /// Gets a read-only snapshot of the visual style assigned to a worksheet cell.
-        /// </summary>
-        public ExcelCellStyleInfo GetCellStyle(int row, int column) {
+        internal ExcelCellStyleInfo GetCellStyle(int row, int column) {
             Cell? cell = TryGetExistingCell(row, column);
             if (cell == null) {
                 return new ExcelCellStyleInfo();

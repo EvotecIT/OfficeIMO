@@ -6,7 +6,7 @@ namespace OfficeIMO.Word.Html {
         private bool TryProcessNoteAnchor(
             string anchor,
             WordSection section,
-            WordHtmlImportOptions options,
+            HtmlWordExportOptions options,
             ref WordParagraph? currentParagraph,
             WordTableCell? cell,
             WordHeaderFooter? headerFooter) {

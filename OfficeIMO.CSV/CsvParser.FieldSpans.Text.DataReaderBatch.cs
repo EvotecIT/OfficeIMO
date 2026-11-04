@@ -7,7 +7,7 @@ internal static partial class CsvParser
 #if NET8_0_OR_GREATER
     internal static void ReadFieldSpans<TVisitor>(
         string text,
-        CsvLoadOptions options,
+        CsvParsingSettings options,
         int recordsToSkip,
         ref TVisitor fieldVisitor)
         where TVisitor : struct, ICsvFieldSpanVisitor
@@ -26,7 +26,7 @@ internal static partial class CsvParser
 
     private static bool TryReadFieldSpansWithTextDataReaderBatch<TVisitor>(
         string text,
-        CsvLoadOptions options,
+        CsvParsingSettings options,
         int recordsToSkip,
         ref TVisitor fieldVisitor)
         where TVisitor : struct, ICsvFieldSpanVisitor
@@ -114,7 +114,7 @@ internal static partial class CsvParser
 
     private static CsvTextDataReaderBatch CreateFieldSpanTextDataReaderBatch(
         string text,
-        CsvLoadOptions options,
+        CsvParsingSettings options,
         int sourceColumnCount) =>
         new(
             text,

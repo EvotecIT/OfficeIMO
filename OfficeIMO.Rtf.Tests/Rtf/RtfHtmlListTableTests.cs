@@ -39,7 +39,7 @@ public class RtfHtmlListTableTests {
 
         document.AddParagraph("Item").SetList(listId: 3, level: 0, kind: RtfListKind.Decimal);
 
-        string html = document.ToHtml(new RtfToHtmlOptions {
+        string html = document.ToHtml(new RtfHtmlExportOptions {
             IncludeRoundTripMetadata = true,
             EmbedImagesAsDataUri = true,
             FragmentOnly = false,
@@ -48,7 +48,7 @@ public class RtfHtmlListTableTests {
 
         Assert.Contains("<meta name=\"officeimo-rtf-lists\" content=\"", html, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument roundTrip = HtmlConversionDocument.Parse(html).ToRtf();
 
         RtfListDefinition roundTripDefinition = Assert.Single(roundTrip.ListDefinitions);
         Assert.Equal(100, roundTripDefinition.Id);
@@ -94,10 +94,10 @@ public class RtfHtmlListTableTests {
         Assert.Equal(3, paragraph.ListId);
         Assert.Equal(100, paragraph.ListDefinitionId);
 
-        string rtf = roundTrip.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = roundTrip.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         Assert.Contains(@"\listtemplateid77", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\levelnfc0\levelnfcn2\leveljc2\leveljcn1\levelfollow1\levelstartat7\levelspace120\levelindent240\levellegal1\levelnorestart1\levelpicture3\levelpicturenosize", rtf, StringComparison.Ordinal);
-        Assert.Equal(9, RtfDocument.Read(rtf).Document.ListOverrides.Single().LevelOverrides.Count);
+        Assert.Equal(9, RtfDocument.ParseResult(rtf).Document.ListOverrides.Single().LevelOverrides.Count);
         Assert.Equal(9, roundTrip.ResolveListFormatting(paragraph)!.Level.StartAt);
     }
 }

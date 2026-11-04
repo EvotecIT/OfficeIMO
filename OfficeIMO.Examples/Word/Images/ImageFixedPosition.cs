@@ -11,8 +11,8 @@ namespace OfficeIMO.Examples.Word {
             var imagePaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Images");
 
             using var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "Fixed image example";
-            document.BuiltinDocumentProperties.Creator = "example";
+            document.Properties.Title = "Fixed image example";
+            document.Properties.Creator = "example";
 
             var paragraph1 = document.AddParagraph("First Paragraph");
 

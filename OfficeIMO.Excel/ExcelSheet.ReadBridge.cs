@@ -9,10 +9,15 @@ namespace OfficeIMO.Excel {
     // Read convenience methods exposed directly on ExcelSheet to avoid separate reader usage.
     public partial class ExcelSheet {
         /// <summary>
-        /// Returns the used range A1 address for this sheet.
-        /// This is the canonical used-range API for an editable worksheet.
+        /// Gets the range from the first to the last used cell, including unsaved edits. An empty worksheet returns
+        /// <c>A1:A1</c>, as Excel does, so the result is never null.
         /// </summary>
-        public string UsedRangeA1 => GetUsedRangeA1();
+        public ExcelRange UsedRange {
+            get {
+                string address = GetUsedRangeA1();
+                return string.IsNullOrWhiteSpace(address) ? new ExcelRange(this, 1, 1, 1, 1) : new ExcelRange(this, address);
+            }
+        }
 
         /// <summary>
         /// Creates a forward-only data reader over this worksheet in the current open workbook,
@@ -280,7 +285,7 @@ namespace OfficeIMO.Excel {
                 ct,
                 effectiveOptions.CancellationToken);
             CancellationToken token = linkedCancellation.Token;
-            using var rdr = _excelDocument.CreateReader(effectiveOptions.WithCancellationToken(token));
+            using var rdr = _excelDocument.CreateCellEnumerationReader(this, effectiveOptions.WithCancellationToken(token));
             var sh = rdr.GetSheet(Name);
             foreach (ExcelCellValueInfo cell in sh.EnumerateCells(token)) {
                 yield return cell;
@@ -296,7 +301,7 @@ namespace OfficeIMO.Excel {
                 ct,
                 effectiveOptions.CancellationToken);
             CancellationToken token = linkedCancellation.Token;
-            using var rdr = _excelDocument.CreateReader(effectiveOptions.WithCancellationToken(token));
+            using var rdr = _excelDocument.CreateCellEnumerationReader(this, effectiveOptions.WithCancellationToken(token));
             var sh = rdr.GetSheet(Name);
             foreach (ExcelCellValueInfo cell in sh.EnumerateRange(a1Range, token)) {
                 yield return cell;

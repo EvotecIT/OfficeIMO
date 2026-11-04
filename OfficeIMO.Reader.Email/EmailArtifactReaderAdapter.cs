@@ -35,7 +35,7 @@ internal static partial class EmailArtifactReaderAdapter {
             return EmailReaderProjection.ProjectMailboxToPathResult(mailbox, path, readerOptions, cancellationToken, computeSourceHash: false,
                 includeEmbeddedMessageContent: options.MailboxOptions!.MessageOptions.IncludeEmbeddedMessages, concealedTextPolicy: options.ConcealedTextPolicy);
         }
-        using EmailReadResult result = new EmailDocumentReader(EffectiveMessageOptions(options, readerOptions)).Read(path, cancellationToken);
+        using EmailReadResult result = new EmailDocumentReader(EffectiveMessageOptions(options, readerOptions)).ReadDocument(path, cancellationToken);
         return EmailReaderProjection.ProjectEmailDocumentsToPathResult(
             new[] { result.Document }, new string?[] { path }, result.Diagnostics, result.Document.Format,
             path, path, readerOptions, cancellationToken, computeSourceHash: false,
@@ -53,7 +53,7 @@ internal static partial class EmailArtifactReaderAdapter {
             return EmailReaderProjection.ProjectMailboxToStreamResult(mailbox, logicalName, stream, readerOptions, cancellationToken, computeSourceHash: false,
                 includeEmbeddedMessageContent: options.MailboxOptions!.MessageOptions.IncludeEmbeddedMessages, concealedTextPolicy: options.ConcealedTextPolicy);
         }
-        using EmailReadResult result = new EmailDocumentReader(EffectiveMessageOptions(options, readerOptions)).Read(stream, logicalName, cancellationToken);
+        using EmailReadResult result = new EmailDocumentReader(EffectiveMessageOptions(options, readerOptions)).ReadDocument(stream, logicalName, cancellationToken);
         return EmailReaderProjection.ProjectEmailDocumentsToStreamResult(
             new[] { result.Document }, new string?[] { logicalName }, result.Diagnostics, result.Document.Format,
             logicalName, stream, readerOptions, cancellationToken, computeSourceHash: false,

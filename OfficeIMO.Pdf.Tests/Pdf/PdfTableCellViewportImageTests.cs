@@ -12,7 +12,7 @@ public sealed partial class PdfTableCellViewportTests {
     public void Horizontal_image_fragments_preserve_the_full_box_and_intersect_existing_image_clip(string mode) {
         var source = PdfTableCell.WithImages(string.Empty, new[] { new PdfTableCellImage(
             PdfPngTestImages.CreateRgbPng(2, 2), global::OfficeIMO.OfficeLength.Points(36), global::OfficeIMO.OfficeLength.Points(12),
-            new PdfImageStyle { Align = PdfAlign.Center, ClipPath = OfficeIMO.Drawing.OfficeClipPath.Rectangle(36, 6) },
+            new PdfImageStyle { Align = OfficeAlignment.Center, ClipPath = OfficeIMO.Drawing.OfficeClipPath.Rectangle(36, 6) },
             linkUri: "https://example.com/") });
         byte[] bytes = Render(mode, source.WithViewport(new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(24), offsetX: global::OfficeIMO.OfficeLength.Points(100))), PdfCellVerticalAlign.Top);
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);

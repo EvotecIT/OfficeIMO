@@ -52,10 +52,9 @@ internal static class OpenDocumentMilestones {
 
         using (WordDocument word = WordDocument.Create()) {
             word.AddParagraph("Explicit Word to ODT conversion").Style = WordParagraphStyles.Heading1;
-            OdfConversionResult<OdtDocument> conversion = word.ToOpenDocumentResult();
-            OdtDocument converted = conversion.Value;
+            using OdtDocument converted = word.ToOpenDocument(null, out OfficeConversionReport report);
             converted.Save(Path.Combine(output, "converted-from-word.odt"));
-            File.WriteAllLines(Path.Combine(output, "converted-from-word.mapping.txt"), conversion.Report.Mappings
+            File.WriteAllLines(Path.Combine(output, "converted-from-word.mapping.txt"), ((OdfConversionReport)report).Mappings
                 .Select(mapping => $"{mapping.Feature}: {mapping.Status} ({mapping.Count})"));
         }
     }

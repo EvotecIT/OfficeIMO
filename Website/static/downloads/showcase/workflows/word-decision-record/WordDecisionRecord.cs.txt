@@ -26,7 +26,7 @@ internal static class WordDecisionRecord {
             for (int column = 0; column < 3; column++) {
                 table.Rows[row].Cells[column].Paragraphs[0].Text = options[row, column];
                 table.Rows[row].Cells[column].Paragraphs[0].Bold = row == 0;
-                if (row == 0) table.Rows[row].Cells[column].ShadingFillColorHex = "E8EEF8";
+                if (row == 0) table.Rows[row].Cells[column].ShadingFillColor = OfficeColor.Parse("E8EEF8");
             }
         }
         document.AddParagraph("Decision").Style = WordParagraphStyles.Heading2;

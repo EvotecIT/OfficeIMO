@@ -87,7 +87,7 @@ public sealed partial class PdfDocumentReadResult {
     private IReadOnlyDictionary<int, IReadOnlyList<PdfLogicalFormWidget>>? _formWidgetsByPageNumber;
 
     private PdfDocumentReadResult(
-        PdfMetadata metadata,
+        PdfDocumentProperties metadata,
         IReadOnlyList<PdfLogicalPage> pages,
         IReadOnlyList<PdfOutlineItem> outlines,
         IReadOnlyList<PdfPageLabel> pageLabels,
@@ -146,7 +146,7 @@ public sealed partial class PdfDocumentReadResult {
     }
 
     /// <summary>Document metadata read from the PDF Info dictionary when available.</summary>
-    public PdfMetadata Metadata { get; }
+    public PdfDocumentProperties Metadata { get; }
 
     /// <summary>Semantic reconstruction profile used to produce this result.</summary>
     public PdfReadProfile Profile { get; }

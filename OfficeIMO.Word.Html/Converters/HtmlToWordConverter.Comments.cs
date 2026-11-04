@@ -106,7 +106,7 @@ namespace OfficeIMO.Word.Html {
             ref WordParagraph? currentParagraph,
             WordTableCell? cell,
             WordHeaderFooter? headerFooter,
-            WordHtmlImportOptions options) {
+            HtmlWordExportOptions options) {
             if (!options.ImportHtmlComments) {
                 AddDiagnostic(options, "html-comment-skipped", "HTML comment was skipped because raw HTML comment import is disabled.", "comment");
                 return;

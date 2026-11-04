@@ -32,10 +32,10 @@ namespace OfficeIMO.Pdf.Word {
         }
 
         private sealed class ImageOverlapBudget {
-            private readonly WordPdfImportOptions _options;
+            private readonly PdfWordExportOptions _options;
             private long _comparisons;
 
-            internal ImageOverlapBudget(WordPdfImportOptions options) => _options = options;
+            internal ImageOverlapBudget(PdfWordExportOptions options) => _options = options;
 
             internal void Charge() {
                 if ((_comparisons & 255L) == 0L) _options.CancellationToken.ThrowIfCancellationRequested();
@@ -49,7 +49,7 @@ namespace OfficeIMO.Pdf.Word {
             PdfCore.PdfLogicalPage page,
             PdfCore.PdfLogicalImage image,
             PdfCore.PdfImagePlacement? placement,
-            WordPdfImportOptions options) {
+            PdfWordExportOptions options) {
             PdfCore.PdfImagePlacementImportAssessment assessment =
                 PdfCore.PdfImagePlacementImportPolicy.Analyze(page, image, placement);
             if (assessment.IsSuppressed) {
@@ -76,7 +76,7 @@ namespace OfficeIMO.Pdf.Word {
             PdfCore.PdfLogicalImage image,
             PdfCore.PdfImagePlacement? placement,
             bool sourcePageSizeApplied,
-            WordPdfImportOptions options,
+            PdfWordExportOptions options,
             ImageImportContext imageContext) {
             PdfCore.PdfImagePlacementImportAssessment assessment =
                 PdfCore.PdfImagePlacementImportPolicy.Analyze(page, image, placement);
@@ -133,7 +133,7 @@ namespace OfficeIMO.Pdf.Word {
             PdfCore.PdfImagePlacement? placement,
             PdfCore.PdfImagePlacementImportAssessment assessment,
             bool sourcePageSizeApplied,
-            WordPdfImportOptions options,
+            PdfWordExportOptions options,
             ImageImportContext imageContext) {
             PdfCore.PdfExtractedImage source = image.SourceImage;
             if (!source.IsImageFile || source.Bytes.Length == 0) {
@@ -216,14 +216,14 @@ namespace OfficeIMO.Pdf.Word {
                                 ["ImagePaintOrder"] = placement.PaintOrder.ToString(CultureInfo.InvariantCulture)
                             });
                     }
-                    embeddedImage = imageParagraph.AddImage(stream, fileName, (width is { } imageLength1 ? OfficeIMO.OfficeLength.Pixels(imageLength1) : (OfficeIMO.OfficeLength? )null), (height is { } imageLength2 ? OfficeIMO.OfficeLength.Pixels(imageLength2) : (OfficeIMO.OfficeLength? )null), options: new OfficeIMO.Word.WordImageOptions { Wrapping = wrapping, Description = description });
+                    embeddedImage = imageParagraph.AddImage(stream, fileName, (width is { } imageLength1 ? OfficeIMO.OfficeLength.Pixels(imageLength1) : (OfficeIMO.OfficeLength? )null), (height is { } imageLength2 ? OfficeIMO.OfficeLength.Pixels(imageLength2) : (OfficeIMO.OfficeLength? )null), options: new OfficeIMO.Word.WordImageOptions { Wrapping = wrapping, AltText = description });
                     embeddedImage.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
                     embeddedImage.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
                     embeddedImage.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(PdfPointsToEmu(visual.Left));
                     embeddedImage.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(PdfPointsToEmu(visual.Top));
                     embeddedImage.ZOrder = imageContext.GetZOrder(placement);
                 } else {
-                    embeddedImage = imageParagraph.AddImage(stream, fileName, (width is { } imageLength3 ? OfficeIMO.OfficeLength.Pixels(imageLength3) : (OfficeIMO.OfficeLength? )null), (height is { } imageLength4 ? OfficeIMO.OfficeLength.Pixels(imageLength4) : (OfficeIMO.OfficeLength? )null), options: new OfficeIMO.Word.WordImageOptions { Description = description });
+                    embeddedImage = imageParagraph.AddImage(stream, fileName, (width is { } imageLength3 ? OfficeIMO.OfficeLength.Pixels(imageLength3) : (OfficeIMO.OfficeLength? )null), (height is { } imageLength4 ? OfficeIMO.OfficeLength.Pixels(imageLength4) : (OfficeIMO.OfficeLength? )null), options: new OfficeIMO.Word.WordImageOptions { AltText = description });
                     if (placement != null && page.RotationDegrees != 0) {
                         embeddedImage.Rotation = page.RotationDegrees;
                     }
@@ -274,7 +274,7 @@ namespace OfficeIMO.Pdf.Word {
         /// Places a vector drawing (a chart) as a picture of its page region. Its labels are part of the picture, so
         /// they are not imported again as loose paragraphs.
         /// </summary>
-        private static bool AddVectorFigure(WordDocument document, PdfCore.PdfLogicalPage page, PdfCore.PdfLogicalVectorFigure figure, WordPdfImportOptions options) {
+        private static bool AddVectorFigure(WordDocument document, PdfCore.PdfLogicalPage page, PdfCore.PdfLogicalVectorFigure figure, PdfWordExportOptions options) {
             string location = "Page " + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "/VectorFigure";
             byte[]? png = figure.RenderPng(Math.Max(1D, Math.Min(4D, options.Dpi / 72D)));
             if (png == null || png.Length == 0) {
@@ -288,7 +288,7 @@ namespace OfficeIMO.Pdf.Word {
             string description = string.Join(" ", figure.Labels.Select(static label => label.Text.Trim()).Where(static text => text.Length > 0));
             using var stream = new MemoryStream(png);
             paragraph.AddImage(stream, "vector-figure-p" + page.PageNumber.ToString(CultureInfo.InvariantCulture) + ".png",
-                OfficeLength.Points(figure.Width), OfficeLength.Points(figure.Height), options: new WordImageOptions { Description = description });
+                OfficeLength.Points(figure.Width), OfficeLength.Points(figure.Height), options: new WordImageOptions { AltText = description });
             AddWarning(options, "pdf-vector-figure-rasterized", location,
                 "A vector drawing (such as a chart) was placed as a picture of its page region; its shapes and labels are not editable.",
                 PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Approximation,
@@ -380,7 +380,7 @@ namespace OfficeIMO.Pdf.Word {
             WordImage embeddedImage,
             PdfCore.PdfLogicalImage image,
             PdfCore.PdfImagePlacementImportAssessment assessment,
-            WordPdfImportOptions options) {
+            PdfWordExportOptions options) {
             if (assessment.HasNonDefaultOpacity) {
                 embeddedImage.Transparency = assessment.MappedTransparencyPercent;
                 bool opacityIsOmitted = assessment.MappedOpacityIsOmitted;
@@ -419,7 +419,7 @@ namespace OfficeIMO.Pdf.Word {
         private static void ReportSuppressedImagePlacement(
             PdfCore.PdfLogicalImage image,
             PdfCore.PdfImagePlacementImportAssessment assessment,
-            WordPdfImportOptions options) {
+            PdfWordExportOptions options) {
             string code = assessment.Disposition switch {
                 PdfCore.PdfImagePlacementImportDisposition.SuppressInvisible => "pdf-invisible-image-placement-suppressed",
                 PdfCore.PdfImagePlacementImportDisposition.SuppressOutsideVisibleArea => "pdf-non-visible-image-placement-suppressed",
@@ -445,7 +445,7 @@ namespace OfficeIMO.Pdf.Word {
         private static void ReportUnsafeImagePlacement(
             PdfCore.PdfLogicalImage image,
             PdfCore.PdfImagePlacementImportAssessment assessment,
-            WordPdfImportOptions options) {
+            PdfWordExportOptions options) {
             (string code, string message) = assessment.Disposition switch {
                 PdfCore.PdfImagePlacementImportDisposition.OmitClippedPixels => (
                     "pdf-image-clip-not-safely-editable",
@@ -487,7 +487,7 @@ namespace OfficeIMO.Pdf.Word {
             WordDocument document,
             PdfCore.PdfLogicalImage image,
             string reason,
-            WordPdfImportOptions options) {
+            PdfWordExportOptions options) {
             string text = "[PDF image: page "
                 + image.PageNumber.ToString(CultureInfo.InvariantCulture)
                 + ", resource "

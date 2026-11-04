@@ -48,18 +48,18 @@ public partial class Word {
             for (int column = 0; column < 2; column++) table.Rows[row].Cells[column].Paragraphs[0].Text = $"R{row}C{column}";
         }
         if (direct) {
-            table.Rows[0].Cells[0].Paragraphs[0].ColorHex = "FF00FF";
+            table.Rows[0].Cells[0].Paragraphs[0].Color = OfficeColor.Parse("FF00FF");
             table.Rows[0].Cells[0].Paragraphs[0].LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(3D);
         }
         using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordTable result = Assert.Single(restored.Tables);
-        Assert.Equal(direct ? "FF00FF" : "FF0000", result.Rows[0].Cells[0].Paragraphs[0].ColorHex);
+        Assert.Equal(OfficeColor.Parse(direct ? "FF00FF" : "FF0000"), result.Rows[0].Cells[0].Paragraphs[0].Color);
         Assert.Equal(direct ? 60 : 240, checked((int?)(result.Rows[0].Cells[0].Paragraphs[0].LineSpacingAfter?.ToTwips())));
         WordParagraph strongerOnly = result.Rows[regionPair == 0 ? 0 : 1].Cells[regionPair == 0 ? 1 : 0].Paragraphs[0];
         WordParagraph weakerOnly = result.Rows[regionPair == 0 ? 1 : 0].Cells[regionPair == 0 ? 0 : 1].Paragraphs[0];
-        Assert.Equal("FF0000", strongerOnly.ColorHex);
+        Assert.Equal(OfficeColor.Parse("FF0000"), strongerOnly.Color);
         Assert.Equal(240, checked((int?)(strongerOnly.LineSpacingAfter?.ToTwips())));
-        Assert.Equal("0000FF", weakerOnly.ColorHex);
+        Assert.Equal(OfficeColor.Parse("0000FF"), weakerOnly.Color);
         Assert.Equal(360, checked((int?)(weakerOnly.LineSpacingAfter?.ToTwips())));
     }
 }

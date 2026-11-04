@@ -10,6 +10,7 @@ using OfficeIMO.AsciiDoc;
 using OfficeIMO.AsciiDoc.Markdown;
 using OfficeIMO.AsciiDoc.Pdf;
 using OfficeIMO.Excel;
+using OfficeIMO.Excel.Reports;
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
@@ -97,7 +98,7 @@ public sealed class PdfConversionScenarioManifestTests {
             "* Native AsciiDoc parser\n" +
             "* Shared Markdown PDF renderer\n";
 
-        PdfCore.PdfDocumentConversionResult result = AsciiDocDocument.ParseResult(source).Document.ToPdfDocumentResult();
+        var result = AsciiDocDocument.ParseResult(source).Document.ConvertToPdfWithEvidence(null, default);
         byte[] pdf = result.ToBytes();
         string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
         AsciiDocToMarkdownReport projection = Assert.IsType<AsciiDocToMarkdownReport>(
@@ -125,7 +126,7 @@ public sealed class PdfConversionScenarioManifestTests {
             "Semantic route marker with citation \\cite{officeimo} and math $x^2$.\n" +
             "\\end{document}\n";
 
-        PdfCore.PdfDocumentConversionResult result = LatexDocument.ParseResult(source).Document.ToPdfDocumentResult();
+        var result = LatexDocument.ParseResult(source).Document.ConvertToPdfWithEvidence(null, default);
         byte[] pdf = result.ToBytes();
         string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
         LatexToMarkdownReport projection = Assert.IsType<LatexToMarkdownReport>(
@@ -164,7 +165,7 @@ public sealed class PdfConversionScenarioManifestTests {
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf, new PdfCore.PdfTextLayoutOptions {
             ForceSingleColumn = true
         });
-        var options = new PdfToHtmlOptions {
+        var options = new PdfHtmlExportOptions {
             Profile = PdfHtmlProfile.PositionedReview,
             IncludeLinkAnnotations = true
         };
@@ -172,12 +173,12 @@ public sealed class PdfConversionScenarioManifestTests {
         PdfHtmlConversionResult result = PdfHtmlConverterExtensions.ToHtmlResult(logical, options);
         string html = result.Value;
         byte[] activeContentPdf = CreatePdfToHtmlActiveContentProofPdf();
-        PdfHtmlConversionResult activeContentResult = PdfHtmlConverterExtensions.ToHtmlResult(PdfCore.PdfDocumentReadResult.Load(activeContentPdf), new PdfToHtmlOptions {
+        PdfHtmlConversionResult activeContentResult = PdfHtmlConverterExtensions.ToHtmlResult(PdfCore.PdfDocumentReadResult.Load(activeContentPdf), new PdfHtmlExportOptions {
             Profile = PdfHtmlProfile.PositionedReview,
             IncludeLinkAnnotations = true
         });
         byte[] xfaPdf = CreateReaderXfaFormCorpusPdf();
-        PdfHtmlConversionResult xfaResult = PdfHtmlConverterExtensions.ToHtmlResult(PdfCore.PdfDocumentReadResult.Load(xfaPdf), new PdfToHtmlOptions {
+        PdfHtmlConversionResult xfaResult = PdfHtmlConverterExtensions.ToHtmlResult(PdfCore.PdfDocumentReadResult.Load(xfaPdf), new PdfHtmlExportOptions {
             Profile = PdfHtmlProfile.PositionedReview
         });
 
@@ -251,20 +252,18 @@ public sealed class PdfConversionScenarioManifestTests {
             var pdfOptions = new PdfCore.PdfCreateOptions {
                     CompressContentStreams = false,
                     CompressEmbeddedFonts = false,
-                    PageWidth = global::OfficeIMO.OfficeLength.Points(520),
-                    PageHeight = global::OfficeIMO.OfficeLength.Points(420),
-                    MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                    MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                    MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                    MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
+                    PageSetup = {
+                        Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(520), global::OfficeIMO.OfficeLength.Points(420)),
+                        Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                    }
                 }
                 .UseRenderingProfile(renderingProfile);
             pdf = PdfCore.PdfDocument.Create(pdfOptions)
                 .UseFontFamily("OfficeIMO Multilingual", fontPath)
                 .Header(header => header.Text("Q2 multilingual revenue report"))
                 .H1("Q2 multilingual revenue report")
-                .Paragraph(paragraph => paragraph.Text("Executive summary: Zażółć gęślą jaźń Łódź."))
-                .Paragraph(paragraph => paragraph.Text("Regional notes: Ελλάδα Athens pipeline; Київ renewal forecast."))
+                .Paragraph(paragraph => paragraph.AddText("Executive summary: Zażółć gęślą jaźń Łódź."))
+                .Paragraph(paragraph => paragraph.AddText("Regional notes: Ελλάδα Athens pipeline; Київ renewal forecast."))
                 .Table(new[] {
                     new[] { "Region", "Signal", "Status" },
                     new[] { "Polska", "Łódź", "Ready" },
@@ -325,12 +324,12 @@ public sealed class PdfConversionScenarioManifestTests {
         };
         PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Open(pdf);
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf, layoutOptions);
-        RtfDocument imported = logical.ToRtfDocument(new PdfToRtfOptions());
-        string importedRtf = imported.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        RtfDocument imported = logical.ToRtfDocument(new PdfRtfExportOptions());
+        string importedRtf = imported.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         string importedText = string.Join("\n", imported.Paragraphs.Select(paragraph => paragraph.ToPlainText()));
 
         Assert.StartsWith("%PDF-", Encoding.ASCII.GetString(pdf, 0, 5), StringComparison.Ordinal);
-        Assert.Equal("RTF PDF Roundtrip Gate", imported.Info.Title);
+        Assert.Equal("RTF PDF Roundtrip Gate", imported.Properties.Title);
         Assert.Contains("RTF PDF Roundtrip Gate", read.ExtractText(), StringComparison.Ordinal);
         Assert.Contains("Rich run marker", read.ExtractText(), StringComparison.Ordinal);
         Assert.Contains("Table cell marker", read.ExtractText(), StringComparison.Ordinal);
@@ -352,7 +351,7 @@ public sealed class PdfConversionScenarioManifestTests {
             headingCount = logical.Headings.Count,
             tableCount = logical.Tables.Count,
             importedParagraphCount = imported.Paragraphs.Count,
-            importedTitle = imported.Info.Title,
+            importedTitle = imported.Properties.Title,
             acceptedDegradation = "PDF to RTF import is semantic logical text reconstruction, not lossless fixed-layout visual reconstruction."
         };
 
@@ -697,8 +696,8 @@ public sealed class PdfConversionScenarioManifestTests {
 
         byte[] pdf = PdfCore.PdfDocument.Create(options)
             .H1("Provider Shaped Text Gate")
-            .Paragraph(paragraph => paragraph.Text(complexText))
-            .Paragraph(paragraph => paragraph.Font(PdfCore.PdfStandardFont.TimesRoman).Text("office"))
+            .Paragraph(paragraph => paragraph.AddText(complexText))
+            .Paragraph(paragraph => paragraph.AddText("office").SetStandardFont(PdfCore.PdfStandardFont.TimesRoman))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(pdf);
@@ -793,7 +792,7 @@ public sealed class PdfConversionScenarioManifestTests {
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf, new PdfCore.PdfTextLayoutOptions {
             ForceSingleColumn = true
         });
-        var options = new PdfToHtmlOptions {
+        var options = new PdfHtmlExportOptions {
             Profile = PdfHtmlProfile.PositionedReview,
             IncludeLinkAnnotations = true
         };
@@ -1074,7 +1073,7 @@ public sealed class PdfConversionScenarioManifestTests {
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf, new PdfCore.PdfTextLayoutOptions {
             ForceSingleColumn = true
         });
-        var htmlOptions = new PdfToHtmlOptions {
+        var htmlOptions = new PdfHtmlExportOptions {
             Profile = PdfHtmlProfile.PositionedReview,
             IncludeLinkAnnotations = true
         };
@@ -1670,7 +1669,7 @@ public sealed class PdfConversionScenarioManifestTests {
     [Fact]
     public void HtmlCssResourcePolicy_ProducesManifestedReviewProof() {
         const string stylesheetUri = "https://allowed.example.test/policy.css";
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             MaxResourceBytes = 8192,
             MaxTotalResourceBytes = 16384,
             ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(
@@ -1707,7 +1706,7 @@ public sealed class PdfConversionScenarioManifestTests {
     [Fact]
     public void Html_ToPdfResult_ReturnsPdfDocumentAndReportSnapshot() {
         const string stylesheetUri = "https://allowed.example.test/policy.css";
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(
                 request.Uri.AbsoluteUri == stylesheetUri
                     ? new HtmlResolvedResource(Encoding.UTF8.GetBytes("p.policy-note { color:#123456; }"), "text/css")
@@ -1730,8 +1729,8 @@ public sealed class PdfConversionScenarioManifestTests {
         byte[] encrypted = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions().SetEncryption("open", "owner"))
             .Meta(title: "PDF Standard Security Gate", author: "OfficeIMO")
             .H1("PDF Standard Security Gate")
-            .Paragraph(paragraph => paragraph.Text("Credential protected marker"))
-            .Paragraph(paragraph => paragraph.Text("Extracted page marker"))
+            .Paragraph(paragraph => paragraph.AddText("Credential protected marker"))
+            .Paragraph(paragraph => paragraph.AddText("Extracted page marker"))
             .ToBytes();
 
         PdfCore.PdfDocumentPreflight blockedPreflight = PdfCore.PdfInspector.Preflight(encrypted);
@@ -1790,17 +1789,17 @@ public sealed class PdfConversionScenarioManifestTests {
     [Fact]
     public void HtmlPdfRoundTripProfiles_ProduceManifestedReviewProof() {
         const string linkUri = "https://example.com/html-pdf-roundtrip";
-        var htmlOptions = new HtmlToPdfOptions();
+        var htmlOptions = new HtmlPdfExportOptions();
         PdfCore.PdfDocumentConversionResult htmlResult = HtmlConversionDocument.Parse(CreatePracticalHtmlSample(linkUri)).ConvertToPdfWithEvidence(htmlOptions);
         byte[] pdf = htmlResult.ToBytes();
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf, new PdfCore.PdfTextLayoutOptions {
             ForceSingleColumn = true
         });
-        var semanticOptions = new PdfToHtmlOptions {
+        var semanticOptions = new PdfHtmlExportOptions {
             Profile = PdfHtmlProfile.Semantic,
             IncludeLinkAnnotations = true
         };
-        var positionedOptions = new PdfToHtmlOptions {
+        var positionedOptions = new PdfHtmlExportOptions {
             Profile = PdfHtmlProfile.PositionedReview,
             IncludeLinkAnnotations = true
         };
@@ -1870,7 +1869,7 @@ public sealed class PdfConversionScenarioManifestTests {
     public void PdfToHtmlResult_PreservesUnsafeLinksAsInertReviewMetadata() {
         byte[] pdf = CreateLinkAnnotationPdf("javascript:alert(1)");
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
-        var options = new PdfToHtmlOptions {
+        var options = new PdfHtmlExportOptions {
             Profile = PdfHtmlProfile.PositionedReview,
             IncludeLinkAnnotations = true
         };
@@ -1897,7 +1896,7 @@ public sealed class PdfConversionScenarioManifestTests {
         byte[] pdf = CreateOpenActionDictionaryPdf();
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
 
-        PdfHtmlConversionResult result = PdfHtmlConverterExtensions.ToHtmlResult(logical, new PdfToHtmlOptions());
+        PdfHtmlConversionResult result = PdfHtmlConverterExtensions.ToHtmlResult(logical, new PdfHtmlExportOptions());
 
         Assert.True(result.Summary.HasOpenAction);
         Assert.Equal(1, result.Summary.CatalogActionCount);
@@ -1910,7 +1909,7 @@ public sealed class PdfConversionScenarioManifestTests {
     public void PdfToHtmlResult_ReportsCatalogActionsWhenOnlySomePagesAreSelected() {
         byte[] pdf = CreateCatalogAdditionalActionMultiPagePdf();
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
-        var options = new PdfToHtmlOptions {
+        var options = new PdfHtmlExportOptions {
             PageRanges = new[] { PdfCore.PdfPageRange.From(1, 1) }
         };
 
@@ -1923,20 +1922,20 @@ public sealed class PdfConversionScenarioManifestTests {
             warning.Code == OfficeDiagnosticCodes.PdfDocumentActionsOmitted);
         Assert.StartsWith("1 ", warning.Message, StringComparison.Ordinal);
         Assert.True(result.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
     }
 
     [Fact]
     public void PdfToHtmlResult_ReportsFilteredParentOutlineTargetAsLossWhileKeepingItsChild() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions { CreateOutlineFromHeadings = true })
             .H1("Parent outline")
-            .Paragraph(paragraph => paragraph.Text("First page"))
+            .Paragraph(paragraph => paragraph.AddText("First page"))
             .PageBreak()
             .H2("Child outline")
-            .Paragraph(paragraph => paragraph.Text("Second page"))
+            .Paragraph(paragraph => paragraph.AddText("Second page"))
             .ToBytes();
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
-        var options = new PdfToHtmlOptions {
+        var options = new PdfHtmlExportOptions {
             Profile = PdfHtmlProfile.PositionedReview,
             IncludeOutlines = true,
             PageRanges = new[] { PdfCore.PdfPageRange.From(2, 2) }
@@ -1952,14 +1951,14 @@ public sealed class PdfConversionScenarioManifestTests {
             warning.Code == OfficeDiagnosticCodes.PdfOutlinesOmitted);
         Assert.StartsWith("1 PDF outline ", warning.Message, StringComparison.Ordinal);
         Assert.True(result.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
     }
 
     [Fact]
     public void PdfToHtmlResult_PreservesDirectDestinationLinksAsReviewMetadata() {
         byte[] pdf = CreateDirectDestinationLinkPdf();
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
-        var options = new PdfToHtmlOptions {
+        var options = new PdfHtmlExportOptions {
             Profile = PdfHtmlProfile.PositionedReview,
             IncludeLinkAnnotations = true
         };
@@ -1989,7 +1988,7 @@ public sealed class PdfConversionScenarioManifestTests {
         byte[] pdf = CreateDirectDestinationLinkPdf();
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
         Assert.False(Assert.Single(logical.Pages[0].Annotations).HasAction);
-        var options = new PdfToHtmlOptions {
+        var options = new PdfHtmlExportOptions {
             Profile = PdfHtmlProfile.PositionedReview,
             IncludeLinkAnnotations = true,
             PageRanges = new[] { PdfCore.PdfPageRange.From(1, 1) }
@@ -2003,7 +2002,7 @@ public sealed class PdfConversionScenarioManifestTests {
             warning.Code == OfficeDiagnosticCodes.PdfDocumentActionsOmitted &&
             warning.LossKind == OfficeConversionLossKind.Omission);
         Assert.True(result.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
     }
 
     [Fact]
@@ -2015,20 +2014,20 @@ public sealed class PdfConversionScenarioManifestTests {
         PdfCore.PdfDocumentReadResult logicalDocument = PdfCore.PdfDocumentReadResult.Load(pdf, layoutOptions);
 
         using var semanticWordStream = new MemoryStream();
-        var semanticWordOptions = new WordPdfImportOptions();
+        var semanticWordOptions = new PdfWordExportOptions();
         PdfWordConversionResult semanticWordResult = logicalDocument.ConvertToWordWithEvidence(semanticWordOptions);
         using (OfficeIMO.Word.WordDocument semanticWordDocument = semanticWordResult.Value) {
             semanticWordDocument.Save(semanticWordStream);
         }
 
         using var excelStream = new MemoryStream();
-        var excelConversion = logicalDocument.ConvertToExcelWithEvidence(new ExcelPdfImportOptions { AutoFitColumns = false });
+        var excelConversion = logicalDocument.ConvertToExcelWithEvidence(new PdfExcelExportOptions { AutoFitColumns = false });
         using var excelDocument = excelConversion.Value;
         excelDocument.Save(excelStream);
         PdfExcelTableImportReport excelReport = excelConversion.Report;
 
         using var powerPointStream = new MemoryStream();
-        var powerPointConversion = logicalDocument.ConvertToPowerPointWithEvidence(PowerPointPdfImportOptions.CreateEditableTables());
+        var powerPointConversion = logicalDocument.ConvertToPowerPointWithEvidence(PdfPowerPointExportOptions.CreateEditableTables());
         using var powerPointDocument = powerPointConversion.Value;
         powerPointDocument.Save(powerPointStream);
         PdfPowerPointConversionReport powerPointReport = powerPointConversion.Report;
@@ -2231,10 +2230,10 @@ public sealed class PdfConversionScenarioManifestTests {
 
     private static RtfDocument CreateRtfRoundtripDocument() {
         RtfDocument document = RtfDocument.Create();
-        document.Info.Title = "RTF PDF Roundtrip Gate";
-        document.Info.Author = "OfficeIMO";
-        document.Info.Subject = "RTF PDF semantic proof";
-        document.Info.Keywords = "rtf,pdf,roundtrip";
+        document.Properties.Title = "RTF PDF Roundtrip Gate";
+        document.Properties.Author = "OfficeIMO";
+        document.Properties.Subject = "RTF PDF semantic proof";
+        document.Properties.Keywords = "rtf,pdf,roundtrip";
         document.PageSetup.SetPaperSize(7200, 7200);
         document.PageSetup.SetMargins(leftTwips: 720, rightTwips: 720, topTwips: 720, bottomTwips: 720);
 
@@ -2264,17 +2263,15 @@ public sealed class PdfConversionScenarioManifestTests {
     private static byte[] CreateLogicalProofPdf() {
         return PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
                 CreateOutlineFromHeadings = true,
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(460),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(460)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Meta(title: "Logical PDF sample", author: "OfficeIMO")
             .H1("Logical Heading", linkUri: "https://example.com/logical-proof", linkContents: "Logical PDF sample")
-            .Paragraph(paragraph => paragraph.Text("Logical readback marker."))
+            .Paragraph(paragraph => paragraph.AddText("Logical readback marker."))
             .Bullets(new[] { "Detected logical bullet" })
             .H2("Jump to details", linkDestinationName: "Details", linkContents: "Jump to details")
             .Bookmark("Details")
@@ -2289,7 +2286,7 @@ public sealed class PdfConversionScenarioManifestTests {
                 CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
                 CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
-            .Image(PdfPngTestImages.CreateRgbPng(1, 1), 24, 24, alternativeText: "Logical proof pixel")
+            .Image(PdfPngTestImages.CreateRgbPng(1, 1), 24, 24, altText: "Logical proof pixel")
             .ToBytes();
     }
 
@@ -2410,37 +2407,37 @@ public sealed class PdfConversionScenarioManifestTests {
             string workbookPath = Path.Combine(tempDirectory, "dashboard.xlsx");
             using ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Dashboard" });
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Excel Dashboard PDF Gate");
-            sheet.Cell(2, 1, "Pipeline risk");
-            sheet.Cell(3, 1, "Channel");
-            sheet.Cell(3, 2, "Actual");
-            sheet.Cell(3, 3, "Target");
-            sheet.Cell(3, 4, "Risk");
-            sheet.Cell(4, 1, "Renewals");
-            sheet.Cell(4, 2, 128);
-            sheet.Cell(4, 3, 120);
-            sheet.Cell(4, 4, "Low");
-            sheet.Cell(5, 1, "New business");
-            sheet.Cell(5, 2, 92);
-            sheet.Cell(5, 3, 105);
-            sheet.Cell(5, 4, "Medium");
-            sheet.Cell(6, 1, "Services");
-            sheet.Cell(6, 2, 76);
-            sheet.Cell(6, 3, 70);
-            sheet.Cell(6, 4, "Low");
-            sheet.Cell(7, 1, "Expansion");
-            sheet.Cell(7, 2, 54);
-            sheet.Cell(7, 3, 65);
-            sheet.Cell(7, 4, "High");
-            sheet.Cell(9, 1, "Dashboard note");
-            sheet.Cell(9, 2, "Charts, image anchors, print area, and conditional formats stay reviewable.");
+            sheet.Cell(1, 1).SetValue("Excel Dashboard PDF Gate");
+            sheet.Cell(2, 1).SetValue("Pipeline risk");
+            sheet.Cell(3, 1).SetValue("Channel");
+            sheet.Cell(3, 2).SetValue("Actual");
+            sheet.Cell(3, 3).SetValue("Target");
+            sheet.Cell(3, 4).SetValue("Risk");
+            sheet.Cell(4, 1).SetValue("Renewals");
+            sheet.Cell(4, 2).SetValue(128);
+            sheet.Cell(4, 3).SetValue(120);
+            sheet.Cell(4, 4).SetValue("Low");
+            sheet.Cell(5, 1).SetValue("New business");
+            sheet.Cell(5, 2).SetValue(92);
+            sheet.Cell(5, 3).SetValue(105);
+            sheet.Cell(5, 4).SetValue("Medium");
+            sheet.Cell(6, 1).SetValue("Services");
+            sheet.Cell(6, 2).SetValue(76);
+            sheet.Cell(6, 3).SetValue(70);
+            sheet.Cell(6, 4).SetValue("Low");
+            sheet.Cell(7, 1).SetValue("Expansion");
+            sheet.Cell(7, 2).SetValue(54);
+            sheet.Cell(7, 3).SetValue(65);
+            sheet.Cell(7, 4).SetValue("High");
+            sheet.Cell(9, 1).SetValue("Dashboard note");
+            sheet.Cell(9, 2).SetValue("Charts, image anchors, print area, and conditional formats stay reviewable.");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
             sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(12));
             sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(12));
             sheet.SetColumnWidth(4, ExcelColumnWidth.Characters(14));
             sheet.SetColumnWidth(5, ExcelColumnWidth.Characters(16));
-            sheet.AddConditionalColorScale("B4:B7", "FFFFF2CC", "FF70AD47");
-            sheet.AddConditionalDataBar("C4:C7", "FF5B9BD5");
+            sheet.Range("B4:B7").ConditionalFormat().ColorScale("FFFFF2CC", "FF70AD47");
+            sheet.Range("C4:C7").ConditionalFormat().DataBar("FF5B9BD5");
             sheet.AddImage(10, 1, PdfPngTestImages.CreateRgbPng(2, 2), new OfficeIMO.Excel.ExcelImageOptions {
                 ContentType = "image/png",
                 Width = OfficeIMO.OfficeLength.Pixels(36),
@@ -2455,9 +2452,10 @@ public sealed class PdfConversionScenarioManifestTests {
                     new ExcelChartSeries("Target", new[] { 120D, 105D, 70D, 65D }, OfficeChartType.Line, DrawingCore.OfficeChartAxisGroup.Secondary)
                 });
             sheet.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(320), Height = OfficeLength.Pixels(190), Title = "KPI Trend" });
-            sheet.SetHeaderFooter(headerCenter: "Excel Dashboard PDF Gate", footerRight: "Page &P of &N");
-            sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 1U);
-            document.SetPrintArea(sheet, "A1:H14", save: false);
+            sheet.PageSetup.Header.Center.Text = "Excel Dashboard PDF Gate";
+            sheet.PageSetup.Footer.Right.Text = "Page &P of &N";
+            sheet.PageSetup.FitToWidth = 1U; sheet.PageSetup.FitToHeight = 1U;
+            sheet.PageSetup.PrintArea = "A1:H14";
             document.Save();
 
             return (document.ToPdf(new ExcelPdfExportOptions {
@@ -2481,10 +2479,10 @@ public sealed class PdfConversionScenarioManifestTests {
         slide.SetBackgroundGradient("172554", "38BDF8", 35D);
         PowerPointTextBox title = slide.AddTextBox("Layout Theme Group Gate",global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(8),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(34));
         title.FontSize = global::OfficeIMO.OfficeLength.Points(14);
-        title.Color = "FFFFFF";
+        title.Color = OfficeColor.Parse("FFFFFF");
         PowerPointTextBox marker = slide.AddTextBox("Grouped transform marker",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(58),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(20));
         marker.FontSize = global::OfficeIMO.OfficeLength.Points(9);
-        marker.Color = "0F172A";
+        marker.Color = OfficeColor.Parse("0F172A");
         PowerPointAutoShape preset = slide.AddShape(OfficeIMO.Drawing.OfficePresetShapeType.Triangle, OfficeIMO.OfficeLength.Points(176), OfficeIMO.OfficeLength.Points(44), OfficeIMO.OfficeLength.Points(36), OfficeIMO.OfficeLength.Points(36));
         preset.FillColor = "1F4E79";
         preset.OutlineColor = "1F4E79";
@@ -2518,19 +2516,17 @@ public sealed class PdfConversionScenarioManifestTests {
 
     private static byte[] CreateLogicalDiagnosticsPdf() {
         return PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = OfficeLength.Points(460),
-                PageHeight = OfficeLength.Points(380),
-                MarginLeft = OfficeLength.Points(36),
-                MarginRight = OfficeLength.Points(36),
-                MarginTop = OfficeLength.Points(36),
-                MarginBottom = OfficeLength.Points(36),
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(OfficeLength.Points(460), OfficeLength.Points(380)),
+                    Margins = { Left = OfficeLength.Points(36), Right = OfficeLength.Points(36), Top = OfficeLength.Points(36), Bottom = OfficeLength.Points(36) }
+                },
                 DefaultFontSize = OfficeLength.Points(10),
                 // Built-in heading metrics keep this reading fixture independent of the document theme.
                 DefaultHeadingStyles = new PdfCore.PdfHeadingStyles()
             })
             .Meta(title: "Revenue Readback Diagnostics", author: "OfficeIMO")
             .H1("Revenue Readback Diagnostics", linkUri: "https://example.com/pdf-logical-diagnostics", linkContents: "Logical diagnostics")
-            .Paragraph(paragraph => paragraph.Text("Image geometry and table confidence marker."))
+            .Paragraph(paragraph => paragraph.AddText("Image geometry and table confidence marker."))
             .Table(new[] {
                 new[] { "Metric", "Score", "Owner" },
                 new[] { "Renewal quality", "97", "Finance" },
@@ -2542,21 +2538,19 @@ public sealed class PdfConversionScenarioManifestTests {
                 CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
                 CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
-            .Image(PdfPngTestImages.CreateRgbPng(3, 2), 48, 32, alternativeText: "Wide diagnostics badge")
-            .Image(PdfPngTestImages.CreateRgbPng(2, 3), 32, 48, alternativeText: "Tall diagnostics badge")
+            .Image(PdfPngTestImages.CreateRgbPng(3, 2), 48, 32, altText: "Wide diagnostics badge")
+            .Image(PdfPngTestImages.CreateRgbPng(2, 3), 32, 48, altText: "Tall diagnostics badge")
             .ToBytes();
     }
 
     private static byte[] CreateReaderOcrHandoffCorpusPdf() {
         return PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(300),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(24),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(24),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(24),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(24)
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(220)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(24), Right = global::OfficeIMO.OfficeLength.Points(24), Top = global::OfficeIMO.OfficeLength.Points(24), Bottom = global::OfficeIMO.OfficeLength.Points(24) }
+                }
             })
-            .Image(PdfPngTestImages.CreateRgbPng(3, 2), 180, 120, alternativeText: "Scanned statement page")
+            .Image(PdfPngTestImages.CreateRgbPng(3, 2), 180, 120, altText: "Scanned statement page")
             .ToBytes();
     }
 

@@ -14,8 +14,7 @@ public partial class Word {
         using WordDocument source = WordDocument.Create();
         if (headerOnly) {
             source.AddParagraph("Body control");
-            source.AddHeadersAndFooters();
-            source.Header.Default.AddParagraph("First item").Style = WordParagraphStyles.ListParagraph;
+            source.PageSetup.Header.AddParagraph("First item").Style = WordParagraphStyles.ListParagraph;
         } else {
             WordList list = source.AddList(WordListStyle.Numbered);
             list.AddItem("First item");
@@ -28,7 +27,7 @@ public partial class Word {
         string before = styles.OuterXml;
 
         using WordDocument reopened = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
-        WordParagraph paragraph = (headerOnly ? reopened.Header.Default.Paragraphs : reopened.Paragraphs)
+        WordParagraph paragraph = (headerOnly ? reopened.PageSetup.Header.Paragraphs : reopened.Paragraphs)
             .First(item => item.Text == "First item");
         Style actual = reopened._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
             .Elements<Style>().Single(item => item.StyleId?.Value == paragraph.StyleId);

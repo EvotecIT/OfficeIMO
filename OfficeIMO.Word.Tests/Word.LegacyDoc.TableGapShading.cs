@@ -50,7 +50,7 @@ public partial class Word {
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Supported cells";
         using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Assert.Equal("Supported cells", restored.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
-        Assert.Equal(string.Empty, restored.Tables[0].Rows[0].Cells[0].ShadingFillColorHex);
+        Assert.Null(restored.Tables[0].Rows[0].Cells[0].ShadingFillColor);
         Assert.Equal(global::OfficeIMO.OfficeLength.Points((mode.Contains("spacing") ? (short)0 : (short)120) / 20D), restored.Tables[0].StyleDetails!.CellSpacing);
     }
 
@@ -70,7 +70,7 @@ public partial class Word {
         // Word 16 ignores gap shading inside tblStylePr/tblPr even when the region is active.
         using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Assert.Equal("Conditional gap", restored.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
-        Assert.Equal(string.Empty, restored.Tables[0].Rows[0].Cells[0].ShadingFillColorHex);
+        Assert.Null(restored.Tables[0].Rows[0].Cells[0].ShadingFillColor);
         Assert.Equal(global::OfficeIMO.OfficeLength.Points(6), restored.Tables[0].StyleDetails!.CellSpacing);
     }
 
@@ -96,7 +96,7 @@ public partial class Word {
         table._tableProperties.TableStyle = new TableStyle { Val = "GapClear" };
         using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Assert.Equal(global::OfficeIMO.OfficeLength.Points(6), restored.Tables[0].StyleDetails!.CellSpacing);
-        Assert.Equal(string.Empty, restored.Tables[0].Rows[0].Cells[0].ShadingFillColorHex);
+        Assert.Null(restored.Tables[0].Rows[0].Cells[0].ShadingFillColor);
     }
 
     private static WordTable CreateNativeGapShadingTable(WordDocument document, string mode) {

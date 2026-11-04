@@ -54,7 +54,7 @@ public sealed class LatexRequestedReviewTests {
         Assert.Contains(@"\title{A \textbf{rich} title}", result.Source, StringComparison.Ordinal);
         Assert.Contains(result.Value.Labels, label => label.Name == "intro");
         Assert.Contains("[Read **title**](#intro)", ((result.Value.ToMarkdownDocument().ToMarkdown())), StringComparison.Ordinal);
-        Assert.NotEmpty(result.Value.ToPdfBytes());
+        Assert.NotEmpty(result.Value.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
     }
 
     [Fact]
@@ -89,17 +89,17 @@ public sealed class LatexRequestedReviewTests {
     [InlineData(@"\label{p:x}Body. See \ref{p:x}", "Body")]
     public void NonHeadingLabelsProduceWorkingPdfDestinations(string body, string marker) {
         var document = LatexDocument.Parse(@"\documentclass{article}\begin{document}" + body + @"\end{document}");
-        byte[] bytes = document.ToPdfBytes();
+        byte[] bytes = document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.Contains(marker, OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(bytes)).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
     public void MissingReferencesRetainVisibleTextWithAnExportDiagnostic() {
         var document = LatexDocument.Parse(@"\documentclass{article}\begin{document}See \ref{missing:x}\end{document}");
-        var result = document.ToPdfDocumentResult();
-        byte[] bytes = result.Value.ToBytes();
+        var result = document.ToPdf(null, out OfficeConversionReport resultReport);
+        byte[] bytes = result.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.Contains("missing:x", OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(bytes)).ExtractText(), StringComparison.Ordinal);
-        Assert.Contains(result.Warnings, warning => warning.Code == "UnresolvedInternalLink");
+        Assert.Contains(resultReport.Diagnostics, warning => warning.Code == "UnresolvedInternalLink");
     }
 
     [Theory]
@@ -108,7 +108,7 @@ public sealed class LatexRequestedReviewTests {
     public void ProjectionDoesNotExposeInertSourceAfterDocumentEnd(string trailer) {
         var document = LatexDocument.Parse(@"\documentclass{article}\begin{document}Public\end{document}" + trailer);
         Assert.Equal("Public", Assert.IsType<MarkdownTextRun>(Assert.Single(Assert.Single(document.ToMarkdownDocument().Blocks.OfType<ParagraphBlock>()).Inlines.Nodes)).Text);
-        string text = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(document.ToPdfBytes())).ExtractText();
+        string text = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).ExtractText();
         Assert.Contains("Public", text, StringComparison.Ordinal);
         Assert.DoesNotContain("TRAILING", text, StringComparison.Ordinal);
     }

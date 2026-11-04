@@ -44,7 +44,7 @@ public partial class Word {
     [InlineData("pattern", true)]
     public void SaveAsPdf_DecoratedRunningTextBoxParagraphRetainsWarnedContent(string decoration, bool inherited) {
         using WordDocument document = CreateCompactRunningTextBoxPaintControl();
-        W.Paragraph inner = document.Sections[1].Header!.First!.TextBoxes.Single().Content!.Elements<W.Paragraph>().Single();
+        W.Paragraph inner = document.Sections[1].PageSetup.FirstPageHeader.TextBoxes.Single().Content!.Elements<W.Paragraph>().Single();
         OpenXmlElement authored = decoration == "border"
             ? new W.ParagraphBorders(new W.BottomBorder { Val = W.BorderValues.Single, Size = 16U, Color = "FF0000" })
             : decoration == "shading" ? new W.Shading { Val = W.ShadingPatternValues.Clear, Fill = "FFFF00" }
@@ -85,7 +85,7 @@ public partial class Word {
     [InlineData("warp")]
     public void SaveAsPdf_UnsupportedRunningTextBoxBodyLayoutRetainsWarnedContent(string layout) {
         using WordDocument document = CreateCompactRunningTextBoxPaintControl();
-        WordTextBox box = document.Sections[1].Header!.First!.TextBoxes.Single();
+        WordTextBox box = document.Sections[1].PageSetup.FirstPageHeader.TextBoxes.Single();
         Wps.TextBodyProperties body = box.Anchor!.Descendants<Wps.TextBodyProperties>().Single();
         // This run fits the full frame but exceeds one of two equal-width columns.
         // The fixed canvas would otherwise retain a single full-width line.
@@ -122,7 +122,7 @@ public partial class Word {
         WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
         // Keep the 51.84pt frame and its ordinary 2pt outline above the body.
         // Unsupported paint, rather than the body-overlap guard, must decide admission.
-        var anchor = document.Sections[1].Header!.First!.TextBoxes.Single().Anchor!;
+        var anchor = document.Sections[1].PageSetup.FirstPageHeader.TextBoxes.Single().Anchor!;
         anchor.Elements<W14.RelativeHeight>().Single().PercentageHeight!.Text = "8000";
         Wps.TextBodyProperties body = anchor.Descendants<Wps.TextBodyProperties>().Single();
         body.ColumnCount = 1;
@@ -143,7 +143,7 @@ public partial class Word {
     }
 
     private static void ConfigureRunningTextBoxPaint(WordDocument document, string paint) {
-        Wps.ShapeProperties shape = document.Sections[1].Header!.First!.TextBoxes.Single().Anchor!
+        Wps.ShapeProperties shape = document.Sections[1].PageSetup.FirstPageHeader.TextBoxes.Single().Anchor!
             .Descendants<Wps.ShapeProperties>().Single();
         Wps.ShapeStyle? style = shape.Parent!.GetFirstChild<Wps.ShapeStyle>();
         if (paint.StartsWith("theme", StringComparison.Ordinal) && style == null) {

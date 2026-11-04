@@ -22,7 +22,7 @@ public static partial class WordPdfConverterExtensions {
         if (ShouldSuppressNativeContextualSpacingBefore(paragraph)) prepared.Style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D);
         pdf.Paragraph(builder => AddNativeParagraphContent(builder, paragraph, null, selected, true, text,
             Array.Empty<int>(), notes, options, defaults, fontMap, projectedContentOnly: true),
-            PdfCore.PdfAlign.Left, style: prepared.Style);
+            global::OfficeIMO.OfficeAlignment.Left, style: prepared.Style);
         return true;
     }
 
@@ -36,7 +36,7 @@ public static partial class WordPdfConverterExtensions {
         if (defaults.RunningContentSection == null || defaults.RunningStoryHasDisallowedTextBoxPeers ||
             marker != null || WordDocumentTraversal.GetListInfo(paragraph).HasValue ||
             WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0 ||
-            ResolveNativeParagraphAlign(paragraph, allowJustify: false) != PdfCore.PdfAlign.Left) return false;
+            ResolveNativeParagraphAlign(paragraph, allowJustify: false) != global::OfficeIMO.OfficeAlignment.Left) return false;
         options?.CancellationToken.ThrowIfCancellationRequested();
         List<WordTextBox> boxes = GetNativeVisibleTextBoxes(paragraph, runs);
         if (boxes.Count == 0 || boxes.Count > 1 &&

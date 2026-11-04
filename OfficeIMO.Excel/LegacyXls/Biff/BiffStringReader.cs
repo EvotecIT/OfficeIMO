@@ -3,6 +3,8 @@ using OfficeIMO.Excel.LegacyXls.Model;
 
 namespace OfficeIMO.Excel.LegacyXls.Biff {
     internal static class BiffStringReader {
+        private static readonly Encoding CompressedUnicodeEncoding = Encoding.GetEncoding(28591);
+
         internal static string ReadShortUnicodeString(byte[] bytes, ref int offset) {
             if (offset >= bytes.Length) throw new InvalidDataException("Unexpected end of BIFF short string.");
             int charCount = bytes[offset++];
@@ -439,8 +441,21 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     throw new InvalidDataException("The BIFF string character count is invalid.");
                 }
 
-                var builder = new StringBuilder(charCount);
+                if (charCount == 0) return string.Empty;
                 bool currentUtf16 = isUtf16;
+                EnsureStringVariableDataAvailable(ref currentUtf16);
+                byte[] firstSegment = _segments[_segmentIndex];
+                int bytesPerCharacter = currentUtf16 ? 2 : 1;
+                if (charCount <= (firstSegment.Length - _offset) / bytesPerCharacter) {
+                    int byteCount = charCount * bytesPerCharacter;
+                    string text = (currentUtf16 ? Encoding.Unicode : CompressedUnicodeEncoding)
+                        .GetString(firstSegment, _offset, byteCount);
+                    _offset += byteCount;
+                    return text;
+                }
+
+                // Only strings crossing a CONTINUE boundary need incremental assembly.
+                var builder = new StringBuilder(charCount);
                 int remaining = charCount;
                 while (remaining > 0) {
                     EnsureStringVariableDataAvailable(ref currentUtf16);

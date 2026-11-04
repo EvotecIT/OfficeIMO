@@ -55,7 +55,7 @@ public class PdfImageEditorTests {
     [Fact]
     public void AddFindAndRemoveAffectOnlyTheSelectedPlacement() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Keep this text"))
+            .Paragraph(paragraph => paragraph.AddText("Keep this text"))
             .ToBytes();
         byte[] annotated = PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {
             PageNumber = 1,
@@ -906,7 +906,7 @@ public class PdfImageEditorTests {
     }
 
     private static byte[] CreateTextPdf() => PdfDocument.Create()
-        .Paragraph(paragraph => paragraph.Text("Image editor proof"))
+        .Paragraph(paragraph => paragraph.AddText("Image editor proof"))
         .ToBytes();
 
     private static byte[] BuildRawImagePdf(

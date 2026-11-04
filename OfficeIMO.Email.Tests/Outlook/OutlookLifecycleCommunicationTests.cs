@@ -211,5 +211,5 @@ public sealed class OutlookLifecycleCommunicationTests {
     }
 
     private static EmailDocument RoundTrip(EmailDocument document, EmailFileFormat format) =>
-        new EmailDocumentReader().Read(new EmailDocumentWriter().ToBytes(document, format)).Document;
+        new EmailDocumentReader().ReadDocument(new EmailDocumentWriter().ToBytes(document, format)).Document;
 }

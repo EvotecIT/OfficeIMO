@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
         public void CustomScalesPersistAcrossSaveAndLoad() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Page-1", 8.5, 11, VisioMeasurementUnit.Inches);
+            VisioPage page = document.AddPage("Page-1", OfficeLength.Inches(8.5), OfficeLength.Inches(11), scaleUnit: VisioMeasurementUnit.Inches);
             page.ScaleMeasurementUnit = VisioMeasurementUnit.Centimeters;
             page.PageScale = new VisioScaleSetting(2.5, VisioMeasurementUnit.Centimeters);
             page.DrawingScale = new VisioScaleSetting(5, VisioMeasurementUnit.Inches);
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
         public void MetricPagesWithoutExplicitScaleUnitsReloadCorrectly() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Metric", 20, 30, VisioMeasurementUnit.Millimeters);
+            VisioPage page = document.AddPage("Metric", OfficeLength.Millimeters(20), OfficeLength.Millimeters(30), scaleUnit: VisioMeasurementUnit.Millimeters);
             page.ScaleMeasurementUnit = VisioMeasurementUnit.Millimeters;
             page.PageScale = VisioScaleSetting.FromUnit(VisioMeasurementUnit.Millimeters);
             page.DrawingScale = VisioScaleSetting.FromUnit(VisioMeasurementUnit.Millimeters);
@@ -114,15 +114,15 @@ namespace OfficeIMO.Tests {
         public void CustomPageSizeAndDefaultUnitPersistAcrossSaveAndLoad() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Metric", 10, 15, VisioMeasurementUnit.Centimeters);
+            VisioPage page = document.AddPage("Metric", OfficeLength.Centimeters(10), OfficeLength.Centimeters(15), scaleUnit: VisioMeasurementUnit.Centimeters);
             document.Save();
 
             VisioDocument reloaded = VisioDocument.Load(filePath);
             VisioPage reloadedPage = reloaded.Pages[0];
 
             Assert.Equal(VisioMeasurementUnit.Centimeters, reloadedPage.DefaultUnit);
-            Assert.Equal(10, reloadedPage.WidthCentimeters, 5);
-            Assert.Equal(15, reloadedPage.HeightCentimeters, 5);
+            Assert.Equal(10, reloadedPage.Width.ToCentimeters(), 5);
+            Assert.Equal(15, reloadedPage.Height.ToCentimeters(), 5);
         }
 
         [Fact]

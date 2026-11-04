@@ -33,9 +33,9 @@ public sealed class BibliographyReviewWave28RegressionTests {
         document.Items.Add(item);
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV203" && diagnostic.Field == field);
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV203" && diagnostic.Field == field);
     }
 
     [Theory]
@@ -52,7 +52,7 @@ public sealed class BibliographyReviewWave28RegressionTests {
         Assert.Contains(item.NativeFields, field => field.Format == BibliographyFormat.EndNoteXml && field.Name == container && field.RawValue!.Contains(marker, StringComparison.Ordinal));
         item.Title = "After";
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.EndNoteXml).Document.Items);
 
         AssertUnsupportedOwnerIsEmpty(reopened, container);

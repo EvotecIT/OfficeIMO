@@ -33,7 +33,7 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             PowerPointTextBox textBox = slide.AddTitle("Shapes and images",titleBox);
             textBox.FontSize = global::OfficeIMO.OfficeLength.Points(30);
-            textBox.Color = "1F4E79";
+            textBox.Color = OfficeColor.Parse("1F4E79");
 
             const double captionGapCm = 0.6;
             const double captionHeightCm = 1.2;
@@ -86,10 +86,10 @@ namespace OfficeIMO.Examples.PowerPoint {
             PowerPointTextBox label = slide.AddTextBox(
                 "Rotation, layering, and named shapes for lookup.",                captionBox);
             label.FontSize = global::OfficeIMO.OfficeLength.Points(14);
-            label.Color = "1F4E79";
+            label.Color = OfficeColor.Parse("1F4E79");
 
             if (File.Exists(imagePath)) {
-                PowerPointPicture picture = slide.AddImage(imagePath,rightColumn);
+                PowerPointImage picture = slide.AddImage(imagePath,rightColumn);
                 // AddPicture keeps the image's aspect ratio; to fill the column instead, restore the box and crop.
                 picture.Left = rightColumn.Left;
                 picture.Top = rightColumn.Top;

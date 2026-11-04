@@ -60,8 +60,10 @@ public sealed class PdfDocumentSecurity {
         _document.ValidateSignatures(cryptographyProvider, options);
 
     /// <summary>Prepares a placeholder and byte ranges for an externally produced signature.</summary>
-    public PdfExternalSignaturePreparation PrepareExternalSignature(PdfExternalSignatureOptions? options = null) =>
-        _document.PrepareExternalSignature(options);
+    public PdfExternalSignaturePreparation PrepareExternalSignature(PdfExternalSignatureOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return _document.PrepareExternalSignature(options);
+    }
 
     /// <summary>Attempts to prepare an external signature through document preflight.</summary>
     internal PdfOperationResult<PdfExternalSignaturePreparation> PrepareExternalSignatureResult(PdfExternalSignatureOptions? signatureOptions = null, PdfLoadOptions? options = null) =>
@@ -71,8 +73,10 @@ public sealed class PdfDocumentSecurity {
     public PdfDocument CompleteExternalSignature(byte[] signatureContents) => _document.CompleteExternalSignature(signatureContents);
 
     /// <summary>Prepares, delegates signing, and completes an external signature in one operation.</summary>
-    public PdfExternalSignatureCompletion SignExternal(IPdfExternalSigner signer, PdfExternalSignatureOptions? options = null) =>
-        _document.SignExternal(signer, options);
+    public PdfExternalSignatureCompletion SignExternal(IPdfExternalSigner signer, PdfExternalSignatureOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return _document.SignExternal(signer, options);
+    }
 
     /// <summary>
     /// Creates an explicit full-rewrite derivative with invalidated PDF signature fields and revisions removed.

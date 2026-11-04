@@ -15,7 +15,7 @@ public class RtfHtmlLineSpacingRegressionTests {
             "Stylesheet" => @"{\rtf1\ansi{\stylesheet{\s0\sl480\slmult1 Normal;}}\pard\s0 Natural\line Continuation\par}",
             _ => @"{\rtf1\ansi\pard Natural\line Continuation\par}"
         };
-        RtfDocument document = RtfDocument.Read(source).Document;
+        RtfDocument document = RtfDocument.ParseResult(source).Document;
         RtfParagraph paragraph = Assert.Single(document.Paragraphs);
         Assert.Null(paragraph.LineSpacingTwips);
 
@@ -36,7 +36,7 @@ public class RtfHtmlLineSpacingRegressionTests {
         RtfDocument source = RtfDocument.Create();
         source.AddParagraph("List item").SetList(listId: 1, level: 0, kind: RtfListKind.Bullet);
         source.AddTable(1, 1).Rows[0].Cells[0].AddParagraph("Cell text");
-        RtfDocument document = RtfDocument.Read(source.ToRtf()).Document;
+        RtfDocument document = RtfDocument.ParseResult(source.ToRtf()).Document;
 
         string html = document.ToHtml();
 
@@ -55,7 +55,7 @@ public class RtfHtmlLineSpacingRegressionTests {
     public void ParsedRtf_ToHtml_ExplicitLineSpacing_PreservesRequestedCss(int twips, bool? multiple, string expectedLineHeight) {
         string multipleControl = multiple.HasValue ? (multiple.Value ? @"\slmult1" : @"\slmult0") : string.Empty;
         string source = @"{\rtf1\ansi\pard\sl" + twips + multipleControl + @" Explicit\par}";
-        RtfDocument document = RtfDocument.Read(source).Document;
+        RtfDocument document = RtfDocument.ParseResult(source).Document;
         RtfParagraph paragraph = Assert.Single(document.Paragraphs);
 
         string html = document.ToHtml();

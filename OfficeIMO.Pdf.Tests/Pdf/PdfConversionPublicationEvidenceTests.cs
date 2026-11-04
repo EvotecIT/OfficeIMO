@@ -13,7 +13,7 @@ public sealed class PdfConversionPublicationEvidenceTests {
     [InlineData(false)]
     [InlineData(true)]
     public async Task LosslessPublicationFailureRetainsCompletedSourceEvidence(bool asynchronous) {
-        using var document = PdfDocument.Create().Paragraph(p => p.Text("Publication evidence"));
+        using var document = PdfDocument.Create().Paragraph(p => p.AddText("Publication evidence"));
         var source = new OfficeConversionReport("Word", "Pdf", diagnostics: new[] {
             new OfficeDiagnostic(OfficeDiagnosticCodes.WordToMarkdownWarning, OfficeDiagnosticSeverity.Information,
                 "Source was inspected.", lossKind: OfficeConversionLossKind.None)

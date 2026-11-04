@@ -66,7 +66,7 @@ public sealed class AddOfficePdfCanvasTextCommand : PSWriteOffice.Cmdlets.Office
 
     /// <summary>Text alignment within the positioned rectangle.</summary>
     [Parameter]
-    public PdfAlign Align { get; set; } = PdfAlign.Left;
+    public OfficeAlignment Align { get; set; } = OfficeAlignment.Left;
 
     /// <summary>Default font size in PDF points.</summary>
     [Parameter]

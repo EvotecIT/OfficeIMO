@@ -250,12 +250,12 @@ internal static partial class ExcelLibraryComparisonRunner {
         string range = BuildReportWorkbookRange(rowCount);
         sheet.AddTable(range, hasHeader: true, name: ReportWorkbookTableName, style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
         sheet.AutoFitColumns();
-        sheet.Freeze(topRows: 1);
-        sheet.AddConditionalRule($"G2:G{lastRow.ToString(CultureInfo.InvariantCulture)}", ExcelConditionalFormattingOperator.GreaterThan, "700");
-        sheet.AddConditionalDataBar($"G2:G{lastRow.ToString(CultureInfo.InvariantCulture)}", OfficeColor.SteelBlue);
-        sheet.AddConditionalColorScale($"I2:I{lastRow.ToString(CultureInfo.InvariantCulture)}", OfficeColor.LightPink, OfficeColor.LightGreen);
-        sheet.AddConditionalIconSet($"I2:I{lastRow.ToString(CultureInfo.InvariantCulture)}", ExcelIconSet.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
-        sheet.ValidationList($"D2:D{lastRow.ToString(CultureInfo.InvariantCulture)}", new[] { "NA", "EU", "APAC", "LATAM" });
+        sheet.View.Freeze(topRows: 1);
+        sheet.Range($"G2:G{lastRow.ToString(CultureInfo.InvariantCulture)}").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "700");
+        sheet.Range($"G2:G{lastRow.ToString(CultureInfo.InvariantCulture)}").ConditionalFormat().DataBar(OfficeColor.SteelBlue);
+        sheet.Range($"I2:I{lastRow.ToString(CultureInfo.InvariantCulture)}").ConditionalFormat().ColorScale(OfficeColor.LightPink, OfficeColor.LightGreen);
+        sheet.Range($"I2:I{lastRow.ToString(CultureInfo.InvariantCulture)}").ConditionalFormat().IconSet(ExcelIconSet.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
+        sheet.Range($"D2:D{lastRow.ToString(CultureInfo.InvariantCulture)}").Validation().List(new[] { "NA", "EU", "APAC", "LATAM" });
         sheet.ColumnStyleByHeader("Score").NumberFormat("#,##0.000");
         sheet.ColumnStyleByHeader("Created").DateTime("yyyy-mm-dd hh:mm");
     }

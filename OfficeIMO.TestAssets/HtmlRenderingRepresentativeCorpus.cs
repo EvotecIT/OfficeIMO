@@ -203,7 +203,7 @@ internal sealed class HtmlRenderingCorpusCase {
         MinimumHeadingCount = minimumHeadingCount;
         ForbiddenDiagnosticCodes = forbiddenDiagnosticCodes ?? Array.Empty<string>();
         RequiredVisualSources = requiredVisualSources ?? Array.Empty<string>();
-        RequireNoLoss = requireNoLoss;
+        FailOnLoss = requireNoLoss;
     }
 
     internal string Id { get; }
@@ -218,7 +218,7 @@ internal sealed class HtmlRenderingCorpusCase {
     internal int MinimumHeadingCount { get; }
     internal IReadOnlyList<string> ForbiddenDiagnosticCodes { get; }
     internal IReadOnlyList<string> RequiredVisualSources { get; }
-    internal bool RequireNoLoss { get; }
+    internal bool FailOnLoss { get; }
     internal double ExpectedSurfaceWidth => Mode == HtmlRenderMode.Paged
         ? 8.27D * HtmlRenderOptions.CssPixelsPerInch
         : Id switch {
@@ -238,11 +238,11 @@ internal sealed class HtmlRenderingCorpusCase {
             Scale = 0.5D,
             BackgroundColor = OfficeColor.White,
             UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile(),
-            FidelityPolicy = RequireNoLoss ? HtmlRenderFidelityPolicy.RequireNoLoss : HtmlRenderFidelityPolicy.AllowDiagnosedLoss
+            FidelityPolicy = FailOnLoss ? HtmlRenderFidelityPolicy.FailOnLoss : HtmlRenderFidelityPolicy.AllowDiagnosedLoss
         };
         // The strict static corpus owns its font bytes; installed faces cannot
         // decide whether its otherwise supported layout is lossless on a host.
-        if (RequireNoLoss) options.Fonts.Add("Arial",
+        if (FailOnLoss) options.Fonts.Add("Arial",
             OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(
                 System.Linq.Enumerable.Range(32, 224).ToArray()));
         return options;

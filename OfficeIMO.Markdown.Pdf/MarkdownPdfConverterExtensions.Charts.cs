@@ -821,13 +821,13 @@ public static partial class MarkdownPdfConverterExtensions {
 
     private static bool TryGetAvailablePdfContentWidth(MarkdownPdfExportOptions options, out double availableWidth) {
         PdfCore.PdfCreateOptions pdfOptions = options.PdfOptions ?? new PdfCore.PdfCreateOptions();
-        availableWidth = pdfOptions.PageWidth.ToPoints() - pdfOptions.MarginLeft.ToPoints() - pdfOptions.MarginRight.ToPoints();
+        availableWidth = pdfOptions.PageSetup.Size.Width.ToPoints() - pdfOptions.PageSetup.Margins.Left.ToPoints() - pdfOptions.PageSetup.Margins.Right.ToPoints();
         return availableWidth > 0D && !double.IsNaN(availableWidth) && !double.IsInfinity(availableWidth);
     }
 
     private static bool TryGetAvailablePdfContentHeight(MarkdownPdfExportOptions options, out double availableHeight) {
         PdfCore.PdfCreateOptions pdfOptions = options.PdfOptions ?? new PdfCore.PdfCreateOptions();
-        availableHeight = pdfOptions.PageHeight.ToPoints() - pdfOptions.MarginTop.ToPoints() - pdfOptions.MarginBottom.ToPoints();
+        availableHeight = pdfOptions.PageSetup.Size.Height.ToPoints() - pdfOptions.PageSetup.Margins.Top.ToPoints() - pdfOptions.PageSetup.Margins.Bottom.ToPoints();
         return availableHeight > 0D && !double.IsNaN(availableHeight) && !double.IsInfinity(availableHeight);
     }
 

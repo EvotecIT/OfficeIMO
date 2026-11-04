@@ -16,12 +16,10 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Table_SplitsSingleTallRowsAcrossPages() {
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(360),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(180)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         };
@@ -48,7 +46,7 @@ public partial class PdfDocumentVisualQualityTests {
             double bottomMost = page.Letters
                 .Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
                 .Min(letter => letter.StartBaseLine.Y);
-            Assert.True(bottomMost >= options.MarginBottom.ToPoints() - 2, $"Expected split row text to stay above the bottom margin on page {pageNumber}.");
+            Assert.True(bottomMost >= options.PageSetup.Margins.Bottom.ToPoints() - 2, $"Expected split row text to stay above the bottom margin on page {pageNumber}.");
         }
 
         Assert.Contains("segment01", pdf.GetPage(1).Text);
@@ -58,12 +56,10 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Table_SplitRowsUseMeasuredRichLineHeights() {
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(360),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(180)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         };
@@ -89,7 +85,7 @@ public partial class PdfDocumentVisualQualityTests {
             double bottomMost = page.Letters
                 .Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
                 .Min(letter => letter.StartBaseLine.Y);
-            Assert.True(bottomMost >= options.MarginBottom.ToPoints() - 2, $"Expected split rich table row text to stay above the bottom margin on page {pageNumber}.");
+            Assert.True(bottomMost >= options.PageSetup.Margins.Bottom.ToPoints() - 2, $"Expected split rich table row text to stay above the bottom margin on page {pageNumber}.");
         }
 
         Assert.Contains("large01", pdf.GetPage(1).Text);
@@ -99,12 +95,10 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void RowColumnTable_SplitRowsUseMeasuredRichLineHeights() {
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(360),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(180)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         };
@@ -121,7 +115,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { PdfTableCell.TextCell("Type"), PdfTableCell.TextCell("Description") },
                                     new[] { PdfTableCell.TextCell("Finding"), PdfTableCell.RichTextCell(richRuns) }
                                 }, style: style))))))
@@ -135,7 +129,7 @@ public partial class PdfDocumentVisualQualityTests {
             double bottomMost = page.Letters
                 .Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
                 .Min(letter => letter.StartBaseLine.Y);
-            Assert.True(bottomMost >= options.MarginBottom.ToPoints() - 2, $"Expected split rich row-column table text to stay above the bottom margin on page {pageNumber}.");
+            Assert.True(bottomMost >= options.PageSetup.Margins.Bottom.ToPoints() - 2, $"Expected split rich row-column table text to stay above the bottom margin on page {pageNumber}.");
         }
 
         Assert.Contains("large01", pdf.GetPage(1).Text);
@@ -145,12 +139,10 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void RowColumnTable_SplitsSingleTallRowsAcrossPages() {
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(360),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(180)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         };
@@ -165,7 +157,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { "Type", "Description" },
                                     new[] { "Finding", longValue }
                                 }, style: style))))))
@@ -182,7 +174,7 @@ public partial class PdfDocumentVisualQualityTests {
             double bottomMost = page.Letters
                 .Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
                 .Min(letter => letter.StartBaseLine.Y);
-            Assert.True(bottomMost >= options.MarginBottom.ToPoints() - 2, $"Expected split row-column row text to stay above the bottom margin on page {pageNumber}.");
+            Assert.True(bottomMost >= options.PageSetup.Margins.Bottom.ToPoints() - 2, $"Expected split row-column row text to stay above the bottom margin on page {pageNumber}.");
         }
 
         Assert.Contains("segment01", pdf.GetPage(1).Text);
@@ -205,12 +197,10 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Table_PageContinuationSpacingBefore_OffsetsContinuationPages() {
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(260),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(20),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(180)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         };
@@ -247,12 +237,10 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Table_KeepsFinalTwoBodyRowsTogetherAtPageBreak() {
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(260),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(200),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(20),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(200)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         };
@@ -287,12 +275,10 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void RowColumnTable_KeepsFinalTwoBodyRowsTogetherAtPageBreak() {
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(260),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(200),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(20),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(200)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         };
@@ -310,7 +296,7 @@ public partial class PdfDocumentVisualQualityTests {
                         content.Row(row =>
                             row.PercentColumn(100, column => column
                                 .Spacer(global::OfficeIMO.OfficeLength.Points(94))
-                                .Table(new[] {
+                                .AddTable(new[] {
                                     new[] { "Name", "Value" },
                                     new[] { "Row01", "Alpha" },
                                     new[] { "Row02", "Beta" },
@@ -341,7 +327,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(rows, style: style))))))
+                                column.AddTable(rows, style: style))))))
             .ToBytes();
 
         AssertRowSplitUsesPageRemainder(bytes);
@@ -357,12 +343,10 @@ public partial class PdfDocumentVisualQualityTests {
 
         var exception = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create(new PdfCreateOptions {
-                    PageWidth = global::OfficeIMO.OfficeLength.Points(360),
-                    PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-                    MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-                    MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-                    MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-                    MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+                    PageSetup = {
+                        Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(180)),
+                        Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                    },
                     DefaultFont = PdfStandardFont.Helvetica,
                     DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
                 })
@@ -378,12 +362,10 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Table_RowBreakPolicyAllowsSingleTallRows() {
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(360),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(180)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         };
@@ -418,12 +400,10 @@ public partial class PdfDocumentVisualQualityTests {
 
         var exception = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create(new PdfCreateOptions {
-                    PageWidth = global::OfficeIMO.OfficeLength.Points(360),
-                    PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-                    MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-                    MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-                    MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-                    MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+                    PageSetup = {
+                        Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(180)),
+                        Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                    },
                     DefaultFont = PdfStandardFont.Helvetica,
                     DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
                 })
@@ -439,12 +419,10 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void RowColumnTable_RowBreakPolicyAllowsSingleTallRows() {
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(360),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(180)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         };
@@ -461,7 +439,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { "Type", "Description" },
                                     new[] { "Finding", longValue }
                                 }, style: style))))))
@@ -483,12 +461,10 @@ public partial class PdfDocumentVisualQualityTests {
 
         var exception = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create(new PdfCreateOptions {
-                    PageWidth = global::OfficeIMO.OfficeLength.Points(360),
-                    PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-                    MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-                    MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-                    MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-                    MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+                    PageSetup = {
+                        Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(180)),
+                        Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                    },
                     DefaultFont = PdfStandardFont.Helvetica,
                     DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
                 })
@@ -497,7 +473,7 @@ public partial class PdfDocumentVisualQualityTests {
                         page.Content(content =>
                             content.Row(row =>
                                 row.PercentColumn(100, column =>
-                                    column.Table(new[] {
+                                    column.AddTable(new[] {
                                         new[] { "Type", "Description" },
                                         new[] { "Finding", longValue }
                                     }, style: style))))))
@@ -517,12 +493,10 @@ public partial class PdfDocumentVisualQualityTests {
 
         var exception = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create(new PdfCreateOptions {
-                    PageWidth = global::OfficeIMO.OfficeLength.Points(360),
-                    PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-                    MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-                    MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-                    MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-                    MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+                    PageSetup = {
+                        Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(180)),
+                        Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                    },
                     DefaultFont = PdfStandardFont.Helvetica,
                     DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
                 })
@@ -531,7 +505,7 @@ public partial class PdfDocumentVisualQualityTests {
                         page.Content(content =>
                             content.Row(row =>
                                 row.PercentColumn(100, column =>
-                                    column.Table(new[] {
+                                    column.AddTable(new[] {
                                         new[] { "Type", "Description" },
                                         new[] { "Finding", longValue }
                                     }, style: style))))))
@@ -542,12 +516,10 @@ public partial class PdfDocumentVisualQualityTests {
 
     private static PdfCreateOptions CreateRowSplitRemainderOptions() =>
         new() {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(360),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(210),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(210)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         };

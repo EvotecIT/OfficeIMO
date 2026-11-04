@@ -18,7 +18,7 @@ Page margins follow `PdfCreateOptions.Theme` (Modern by default). Setting an ind
 - [Fill a form or make its values permanent](#fill-and-flatten-a-pdf-form).
 - [Review and remove sensitive content](#review-apply-and-verify-redactions).
 - [Create an invoice and matching XML](../OfficeIMO.Invoicing.Pdf/README.md).
-- [Render HTML as PDF](../OfficeIMO.Html/PDF.md).
+- [Render HTML as PDF](../OfficeIMO.Html.Pdf/PDF.md).
 
 For complete workflows, see the [weekly brief](../OfficeIMO.Examples/Showcase/Workflows/WeeklyBrief.cs),
 [equipment inspection](../OfficeIMO.Examples/Showcase/Workflows/EquipmentInspection.cs),
@@ -65,7 +65,7 @@ also share storage while retaining each page occurrence. Output keeps classic cr
 tables; compact object/xref streams remain available through `Optimization`.
 
 Supported PNG/JPEG ICC profiles are retained as ICCBased image resources. Indexed PNGs
-keep their palette and transparency mask. Supported SVG input to `Image(...)` and
+keep their palette and transparency mask. Supported SVG input to `AddImage(...)` and
 `TryPrepareImageBytes(...)` is rendered through the shared managed drawing engine
 and normalized to PNG within the image transcode pixel limit. Unsupported SVG
 features are rejected rather than silently omitted.
@@ -94,12 +94,12 @@ Headers and footers can contain the same bounded paragraph, table, image and dra
 ```csharp
 var document = PdfDocument.Create(document => document.Page(page => {
     page.Header(header => header.Content(content => content
-        .Table(new[] { new[] { "Project", "Status" }, new[] { "Migration", "Active" } }),
+        .AddTable(new[] { new[] { "Project", "Status" }, new[] { "Migration", "Active" } }),
         distanceFromEdge: 18, bodyGap: 6));
     page.Footer(footer => footer.Content(context => content => content
-        .Paragraph(paragraph => paragraph.Text($"Page {context.PageNumber} of {context.DocumentPages}")),
+        .AddParagraph(paragraph => paragraph.AddText($"Page {context.PageNumber} of {context.DocumentPages}")),
         distanceFromEdge: 18));
-    page.Content(content => content.Paragraph(paragraph => paragraph.Text("Report content")));
+    page.Content(content => content.AddParagraph(paragraph => paragraph.AddText("Report content")));
 }));
 document.Save("report.pdf");
 ```
@@ -119,10 +119,11 @@ using OfficeIMO.Pdf;
 
 var document = PdfDocument.Create();
 PdfFootnoteDefinition note = document.Content.DefineFootnote(
-    body => body.Text("1. Additional information about this paragraph."));
-document.Content.Paragraph(paragraph => paragraph
-    .Text("The report includes a page note")
-    .Runs(new[] { PdfTextRun.Superscript("1").WithFootnoteReference(note) }));
+    body => body.AddParagraph("1. Additional information about this paragraph."));
+document.Content.AddParagraph(paragraph => {
+    paragraph.AddText("The report includes a page note");
+    paragraph.AddRuns(new[] { PdfTextRun.Superscript("1").WithFootnoteReference(note) });
+});
 document.Save("report.pdf");
 ```
 
@@ -138,7 +139,7 @@ The first note admitted to a page selects that page's separator, notice and fina
 
 Explicit page breaks and new-page section boundaries finish pending note continuations before starting the following content. Automatic pagination can resume body content on the page containing the final note fragment.
 
-Page notes require single-column body flow and statically authored references. `TableDeferred` batches and replayable `Deferred` callbacks cannot introduce note references; use ordinary tables or static `Flow` content for those references. Deferred content without note references can share pages with notes when it follows the same body-layout constraints.
+Page notes require single-column body flow and statically authored references. `AddDeferredTable` batches and replayable `Deferred` callbacks cannot introduce note references; use ordinary tables or static `Flow` content for those references. Deferred content without note references can share pages with notes when it follows the same body-layout constraints.
 
 Multi-column or row composition, page canvases, references in running stories, floating or non-flow tables, rotated reference cells, repeating table-header references, recursive notes and unsupported note-flow constraints fail explicitly. An active note continuation cannot cross a change in usable page width. A reference and first note fragment that cannot fit in a fresh page body fail with a fitting error; `MaxGeneratedPages` also bounds continuation output.
 
@@ -149,10 +150,11 @@ Note tables do not support floating placement, captions, rotated cells, recursiv
 Use `PdfInlineRule` for a horizontal band that fills the space remaining on a rich-text line:
 
 ```csharp
-document.Content.Paragraph(paragraph => paragraph
-    .Text("Signature: ")
-    .Inline(new PdfInlineRule(height: 0.5, color: OfficeColor.Black,
-        baselineOffset: -2)));
+document.Content.AddParagraph(paragraph => {
+    paragraph.AddText("Signature: ");
+    paragraph.AddInline(new PdfInlineRule(height: 0.5, color: OfficeColor.Black,
+        baselineOffset: -2));
+});
 ```
 
 Height, `MaximumWidth` and `BaselineOffset` are in points. The baseline offset positions the bottom of the band relative to the text baseline; a negative value places it below that baseline. A null `MaximumWidth` fills the remaining line, while a positive value caps the width. Each layout resolves the width against its actual paragraph, table-cell or nested frame. The rule adds no intrinsic width during automatic table sizing, and text following a rule wraps normally if the rule consumes the rest of the line. A frame with no remaining width paints no band.
@@ -200,7 +202,7 @@ lines. Tabs and explicit line breaks keep their separate behavior.
 ```csharp
 var options = new PdfCreateOptions { TextWhitespaceMode = PdfTextWhitespaceMode.Preserve };
 var document = PdfDocument.Create(options);
-document.Content.Paragraph(p => p.Text("  First   second"));
+document.Content.AddParagraph(p => p.AddText("  First   second"));
 document.Save("preserved-spacing.pdf");
 ```
 
@@ -211,7 +213,7 @@ Paragraphs can use a fallback font size independently of the document default:
 
 ```csharp
 var document = PdfDocument.Create(new PdfCreateOptions { DefaultFontSize = 12 });
-document.Content.Paragraph(p => p.Text("First line\nSecond line"), style: new PdfParagraphStyle {
+document.Content.AddParagraph(p => p.AddText("First line\nSecond line"), style: new PdfParagraphStyle {
     FontSize = 8,
     LineSpacing = PdfLineSpacing.Exactly(14),
     SpacingAfter = 0
@@ -240,13 +242,13 @@ measured group fits the available line. An oversized group uses ordinary long-to
 splitting instead of a soft overflow allowance. Wrapping table cells use the same
 width admission, including paragraphs inside nested tables.
 
-`PdfParagraphBuilder.LineBreak()` retains the current run style. A larger font
+`PdfParagraph.AddLineBreak()` uses the paragraph run defaults. A larger font
 on a blank line can expand proportional or minimum spacing; exact spacing keeps
 its fixed advance.
 
 ## Paragraph justification
 
-`PdfAlign.Justify` uses `PdfParagraphStyle.JustificationMode` to select expandable boundaries. `Words`, the default, distributes extra width between word separators. `Characters` distributes it uniformly between shaped grapheme clusters, keeping combining sequences and shaped ligatures together. `JustifyExplicitLineBreaks` and `JustifyLastLine` independently select expansion for explicit-break and final lines; both default to `false`.
+`OfficeAlignment.Justify` uses `PdfParagraphStyle.JustificationMode` to select expandable boundaries. `Words`, the default, distributes extra width between word separators. `Characters` distributes it uniformly between shaped grapheme clusters, keeping combining sequences and shaped ligatures together. `JustifyExplicitLineBreaks` and `JustifyLastLine` independently select expansion for explicit-break and final lines; both default to `false`.
 
 ```csharp
 var style = new PdfParagraphStyle {
@@ -256,9 +258,12 @@ var style = new PdfParagraphStyle {
 };
 var document = PdfDocument.Create();
 document.Compose(layout => layout.Content(content => content
-    .Paragraph(paragraph => paragraph
-        .Text("Distributed first line").LineBreak().Text("Final line"),
-        PdfAlign.Justify, style: style)));
+    .AddParagraph(paragraph => {
+        paragraph.AddText("Distributed first line");
+        paragraph.AddLineBreak();
+        paragraph.AddText("Final line");
+    },
+        OfficeAlignment.Justify, style: style)));
 document.Save("distributed-text.pdf");
 ```
 
@@ -273,8 +278,11 @@ var style = new PdfParagraphStyle { LeftIndent = 36, FirstLineIndent = -36 };
 style.AddTabStop(-18);
 PdfDocument.Create()
     .Compose(layout => layout.Content(content => content
-        .Paragraph(paragraph => paragraph.Text("1.\tFirst field").LineBreak()
-            .Text("Continuation\tLater field"), style: style)))
+        .AddParagraph(paragraph => {
+            paragraph.AddText("1.\tFirst field");
+            paragraph.AddLineBreak();
+            paragraph.AddText("Continuation\tLater field");
+        }, style: style)))
     .Save("hanging-tabs.pdf");
 ```
 
@@ -299,7 +307,7 @@ An explicit decimal tab can select its decimal separator independently of groupi
 var style = new PdfParagraphStyle();
 style.AddTabStop(180, PdfTabAlignment.DecimalSeparator).DecimalSeparator = '.';
 using var pdf = PdfDocument.Create(new PdfCreateOptions { TextWhitespaceMode = PdfTextWhitespaceMode.Preserve });
-pdf.Content.Paragraph(p => p.Text("Total\t1,234.56"), style: style);
+pdf.Content.AddParagraph(p => p.AddText("Total\t1,234.56"), style: style);
 ```
 
 This aligns the period at 180 points from the paragraph frame. A value without the selected separator is right-aligned at that stop. Leaving `DecimalSeparator` unset retains the first-period-or-comma behavior. The setting survives paragraph-style copies and table layout.
@@ -314,7 +322,7 @@ var condensed = PdfTextRun.Normal("Condensed text", fontSize: 12)
     .WithCharacterSpacing(0.5);
 
 using var pdf = PdfDocument.Create();
-pdf.Content.Paragraph(p => p.Runs(new[] { condensed, PdfTextRun.Normal(" Natural text") }));
+pdf.Content.AddParagraph(p => p.AddRuns(new[] { condensed, PdfTextRun.Normal(" Natural text") }));
 pdf.Save("run-spacing.pdf");
 ```
 
@@ -343,12 +351,12 @@ read `Page N of M`. Explicit default styles and block styles take precedence.
 the generated outline:
 
 ```csharp
-var document = PdfDocument.Create(new PdfCreateOptions { Theme = OfficeTheme.Modern, ShowPageNumbers = true });
+var document = PdfDocument.Create(new PdfCreateOptions { Theme = OfficeTheme.Modern, PageSetup = { Footer = { Show = true } } });
 document.Content
     .Title("Community workshop handbook")
     .Subtitle("A practical reference for hosts and facilitators.")
     .H1("Before participants arrive")
-    .Table(new[] { new[] { "Segment", "Minutes" }, new[] { "Welcome", "10" } });
+    .AddTable(new[] { new[] { "Segment", "Minutes" }, new[] { "Welcome", "10" } });
 ```
 
 Use `PdfTheme.FromOfficeTheme(theme)` with `ApplyTheme` to copy those styles into
@@ -384,15 +392,15 @@ image and PDF output limits remain separate.
 ```csharp
 PdfDocument.Create(document => document
     .Settings(options => {
-        options.PageSize = PdfPageSizes.A4;
-        options.Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36));
+        options.PageSetup.Size = PdfPageSizes.A4;
+        options.PageSetup.Margins.Set(PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36)));
     })
     .Content(content => content
         .H1("Work items")
         .Row(row => row
-            .FixedColumn(48, cell => cell.Text("ID"))
-            .AutoColumn(cell => cell.Text("Owner"), maximum: 100)
-            .RelativeColumn(cell => cell.Text("Description")))));
+            .FixedColumn(48, cell => cell.AddParagraph("ID"))
+            .AutoColumn(cell => cell.AddParagraph("Owner"), maximum: 100)
+            .RelativeColumn(cell => cell.AddParagraph("Description")))));
 ```
 
 `Element(...)` is the uniform layout and semantics envelope. Its `Content(...)`
@@ -409,14 +417,14 @@ PdfDocument.Create(document => document
         .Border(OfficeColor.FromRgb(148, 163, 184))
         .Padding(vertical: 10, horizontal: 12)
         .MaxWidth(420)
-        .Align(PdfAlign.Center)
+        .Align(OfficeAlignment.Center)
         .KeepTogether()
         .Content(article => article
             .H1("Accessible report")
-            .Text("One composition path from API to tagged output.")
+            .AddParagraph("One composition path from API to tagged output.")
             .Row(row => row
-                .FixedColumn(64, cell => cell.Text("ID"))
-                .RelativeColumn(cell => cell.Text("Description")))))));
+                .FixedColumn(64, cell => cell.AddParagraph("ID"))
+                .RelativeColumn(cell => cell.AddParagraph("Description")))))));
 ```
 
 Decorated elements use a scoped flow frame rather than a second layout engine.
@@ -434,7 +442,7 @@ Add `using OfficeIMO.Drawing;` when applying an `OfficeRenderingProfile`.
 `Managed` selects the shared dependency-light provider for its
 [horizontal static-font Arabic/Hebrew/Latin profile](../OfficeIMO.Core/README.md#managed-multilingual-shaping),
 including supported mark attachment and required Arabic ligatures. A declined run
-reports approximation loss, so `RequireNoLoss()` rejects its fallback. Supply a
+reports approximation loss, so `ThrowIfLoss()` rejects its fallback. Supply a
 profile containing your embedded font family, fallbacks, language and shaping
 provider when the document requires broader scripts or reproducible font selection.
 
@@ -512,7 +520,7 @@ text coverage, the chosen font is embedded, and an `/ActualText` wrapper owns
 extraction. The writer preserves shaped glyph substitutions and X/Y offsets,
 marks the original text for extraction, and clips paint to the drawing text
 box. Without that font/provider contract it retains searchable stacked text and
-reports `vertical-text-stacked-fallback`; `PdfConversionReport.RequireNoLoss()`
+reports `vertical-text-stacked-fallback`; `PdfConversionReport.ThrowIfLoss()`
 rejects that approximation. The [vertical PDF reference gate](../OfficeIMO.Pdf.Tests/Pdf/Fixtures/Vertical/SOURCE.md)
 records the tested CJK scope and independent render/extraction checks.
 
@@ -557,7 +565,7 @@ move it inward. Offsets preserve text wrapping and padding:
 
 ```csharp
 using var document = PdfDocument.Create();
-document.Content.Panel(panel => panel.Paragraph(p => p.Text("Content in a continuous panel.")),
+document.Content.Panel(panel => panel.AddParagraph(p => p.AddText("Content in a continuous panel.")),
         new PdfPanelStyle {
             RepeatFragmentDecoration = false,
             PaddingY = 4,
@@ -584,7 +592,7 @@ and nested rows remain outer layout boundaries.
 
 Percentages are literal in every row. Use relative weights for proportional fill.
 `Panel` and `Element` preserve child blocks through the same container layout;
-`PanelParagraph` adds one ordinary paragraph inside that container. Keep-together
+`AddPanelParagraph` adds one ordinary paragraph inside that container. Keep-together
 content must fit a complete frame, including padding. Otherwise allow splitting.
 
 ## What it does
@@ -861,8 +869,8 @@ using OfficeIMO.Pdf;
 
 byte[] bytes = PdfDocument.Create(new PdfCreateOptions { DefaultFontSize = 18 })
     .Compose(document => document.Content(content => content
-        .Paragraph(p => p.Text("m").Superscript("-1").Text(" tail"))
-        .Paragraph(p => p.Text("H").Subscript("2").Text("O"))))
+        .AddParagraph(p => { p.AddText("m"); p.AddText("-1").SetSuperscript(); p.AddText(" tail"); })
+        .AddParagraph(p => { p.AddText("H"); p.AddText("2").SetSubscript(); p.AddText("O"); })))
     .ToBytes();
 
 string text = PdfDocument.Load(new MemoryStream(bytes)).Pages[0].ExtractText();
@@ -907,7 +915,7 @@ pdf.SaveAsImages("page-images", new PdfImageExportOptions {
 
 using PdfDocument authored = PdfDocument.Create(composer => composer.Content(content => content
     .H1("Authored PDF")
-    .Paragraph(paragraph => paragraph.Text("The authored model uses the same page renderer."))));
+    .AddParagraph(paragraph => paragraph.AddText("The authored model uses the same page renderer."))));
 authored.SaveAsImages("authored-page-images");
 ```
 
@@ -981,19 +989,21 @@ See the [PDF font support contract](../Docs/officeimo.pdf.current-state.md#resou
 for supported substitutions and limits, and the [shared managed shaping contract](../OfficeIMO.Core/README.md#managed-multilingual-shaping)
 for source-cluster and provider behavior.
 
-`PdfParagraphBuilder.FeatureSettings(...)` applies the same per-run policy to
+`PdfParagraph.FeatureSettings(...)` applies the same per-run policy to
 subsequent plain, styled, linked and fallback text. Use
 `ResetFeatureSettings()` to restore the default policy. Runs supplied through
 `Runs(...)` retain their own feature settings.
 
 ```csharp
 PdfDocument.Create(pdf => pdf.Content(content => content
-    .Paragraph(paragraph => paragraph
-        .FontFamily("Report Serif")
-        .FeatureSettings(OfficeTextFeatureSettings.Default.With("kern", 1))
-        .Text("AV")
-        .ResetFeatureSettings()
-        .Text(" Default text."))), options)
+    .AddParagraph(paragraph => {
+        paragraph.RunDefaults.FontFamily = "Report Serif";
+        paragraph.RunDefaults.StandardFont = null;
+        paragraph.RunDefaults.FeatureSettings = OfficeTextFeatureSettings.Default.With("kern", 1);
+        paragraph.AddText("AV");
+        paragraph.RunDefaults.FeatureSettings = global::OfficeIMO.Drawing.OfficeTextFeatureSettings.Default;
+        paragraph.AddText(" Default text.");
+    })), options)
     .Save("text-features.pdf");
 ```
 
@@ -1004,24 +1014,28 @@ retain their settings through glyph placement, alignment and decoration widths.
 ### Write a generated PDF
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Pdf;
 
 PdfDocument.Create(pdf => pdf.Page(page => page
-        .Header(h => h.AlignCenter().Text("Service report"))
-        .Footer(f => f.AlignRight().Text("Page {page} of {pages}"))
+        .Header(h => h.Alignment(OfficeAlignment.Center).Text("Service report"))
+        .Footer(f => f.Alignment(OfficeAlignment.Right).Text("Page {page} of {pages}"))
         .Content(layout => layout.Item(content => content
             .H1("Service report")
-            .Paragraph(p => p
-                .Text("Generated ")
-                .Bold(DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm 'UTC'"))
-                .Text(" with first-party PDF primitives."))
-            .Table(new[] {
+            .AddParagraph(p => {
+                p.AddText("Generated ");
+                p.AddText(DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm 'UTC'")).SetBold();
+                p.AddText(" with first-party PDF primitives.");
+            })
+            .AddTable(new[] {
                 new[] { "System", "Status", "Owner" },
                 new[] { "Identity", "Green", "Operations" },
                 new[] { "Messaging", "Yellow", "Exchange" }
             })))), new PdfCreateOptions {
-            PageSize = PdfPageSizes.A4,
-            Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Centimeters(1.6)),
+            PageSetup = {
+                Size = PdfPageSizes.A4,
+                Margins = { Left = OfficeIMO.OfficeLength.Centimeters(1.6), Top = OfficeIMO.OfficeLength.Centimeters(1.6), Right = OfficeIMO.OfficeLength.Centimeters(1.6), Bottom = OfficeIMO.OfficeLength.Centimeters(1.6) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 10
         })
@@ -1048,7 +1062,7 @@ PdfDocument.Create(pdf => pdf.Page(page => page
         .FirstPageText(text => text.Run(PdfTextRun.Bolded("Confidential cover")))
         .EvenPagesText(text => text.Run(PdfTextRun.Underlined("Confidential even page"))))
     .Content(layout => layout.Item(content => content
-        .Paragraph(p => p.Text("Generated report body."))))))
+        .AddParagraph(p => p.AddText("Generated report body."))))))
     .Save("styled-header.pdf");
 ```
 
@@ -1063,17 +1077,18 @@ Literal text segments keep braces and page-token-like text unchanged.
 ```csharp
 PdfDocument.Create(pdf => pdf.Content(content => content
         .H1("Operational summary")
-        .Paragraph(p => p
-            .Text("Generated ")
-            .Bold(DateTime.Today.ToString("yyyy-MM-dd"))
-            .Text(" with links, lists, panels, and tables."))
-        .Bullets(new[] {
+        .AddParagraph(p => {
+            p.AddText("Generated ");
+            p.AddText(DateTime.Today.ToString("yyyy-MM-dd")).SetBold();
+            p.AddText(" with links, lists, panels, and tables.");
+        })
+        .AddList(new[] {
             "No runtime package dependencies", "Word-like document flow", "Reusable PDF primitives for adapters"
         })
         .Panel(panel => panel
             .H2("Review note")
-            .Paragraph(p => p.Text("Keep polished report designs in samples; keep reusable primitives in the engine.")))
-        .Table(new[] {
+            .AddParagraph(p => p.AddText("Keep polished report designs in samples; keep reusable primitives in the engine.")))
+        .AddTable(new[] {
             new[] { "Area", "Status" },
             new[] { "Layout", "Ready" },
             new[] { "Reading", "Evolving" }
@@ -1130,7 +1145,7 @@ fragmentStyle.VerticalAlignments = new List<PdfCellVerticalAlign> { PdfCellVerti
 
 PdfDocument.Create().Compose(document => document.Page(page =>
     page.Content(content => content.Item(item =>
-        item.Table(new[] { new[] { lowerHalf } }, style: fragmentStyle)))))
+        item.AddTable(new[] { new[] { lowerHalf } }, style: fragmentStyle)))))
     .Save("cell-fragment.pdf");
 ```
 
@@ -1155,10 +1170,11 @@ var hyphenation = new PdfHyphenationLexicon(new[] {
 });
 
 PdfDocument.Create(pdf => pdf.Content(content => content
-        .Paragraph(paragraph => paragraph
-            .Text("Automation status ")
-            .InlineImage(statusIcon, 12, 12, alternativeText: "Healthy")
-            .Text(" remains available during long reporting runs."))),
+        .AddParagraph(paragraph => {
+            paragraph.AddText("Automation status ");
+            paragraph.AddInlineImage(statusIcon, 12, 12, altText: "Healthy");
+            paragraph.AddText(" remains available during long reporting runs.");
+        })),
     new PdfCreateOptions().UseTextHyphenationDictionary(hyphenation))
     .Save("inline-status.pdf");
 ```
@@ -1273,12 +1289,12 @@ PdfDocument.Create(pdf => pdf.Content(content => content
                 .Padding(10)
                 .KeepTogether()
                 .Content(summary => summary
-                    .Paragraph(p => p.Text("A styled, keep-together summary.")))))
+                    .AddParagraph(p => p.AddText("A styled, keep-together summary.")))))
         .Section("Details", section => section
             .Columns(columns => {
-                columns.Paragraph(p => p.Text("First column"));
+                columns.AddParagraph(p => p.AddText("First column"));
                 columns.ColumnBreak();
-                columns.Paragraph(p => p.Text("Second column"));
+                columns.AddParagraph(p => p.AddText("Second column"));
             }, new PdfMultiColumnOptions { ColumnCount = 2, Gap = 18 }))), options)
     .Save("navigable-report.pdf");
 
@@ -1296,7 +1312,7 @@ Use `ColumnDefinitions` to give sequential columns different widths and gutters:
 ```csharp
 using var document = PdfDocument.Create();
 document.Content.Columns(content =>
-    content.Paragraph(paragraph => paragraph.Text("Text flows through each column in order.")),
+    content.AddParagraph(paragraph => paragraph.AddText("Text flows through each column in order.")),
     new PdfMultiColumnOptions {
         BalanceLastPage = false,
         Gap = 18,
@@ -1344,7 +1360,7 @@ foreach (PdfLogicalPage page in result.Pages) {
 }
 
 string markdown = result.ExtractMarkdown();
-PdfMetadata metadata = result.Metadata;
+PdfDocumentProperties metadata = result.Metadata;
 PdfDocumentSecurityInfo security = result.Security;
 IReadOnlyList<PdfOutlineItem> outlines = result.Outlines;
 IReadOnlyList<PdfLogicalLinkAnnotation> links = result.Links;
@@ -2177,7 +2193,7 @@ var encryption = new PdfStandardEncryptionOptions("reader-password") {
 };
 
 PdfDocument.Create(pdf => pdf.Content(content => content
-        .Paragraph(p => p.Text("Protected in the current host."))),
+        .AddParagraph(p => p.AddText("Protected in the current host."))),
         new PdfCreateOptions().SetEncryption(encryption))
     .Save("protected.pdf");
 
@@ -2278,7 +2294,7 @@ Console.WriteLine(redacted.Evidence.Summary);
 
 `Evidence.Items` records a verified-absent, residual, or inconclusive outcome for every reviewed match. The report also exposes source/output hashes, residual matches, verification details, and affected page numbers. A UI can pass those page numbers to the existing page renderer for before/after previews without making rendering part of the redaction contract.
 
-Redaction search, matching, and verification include artifact text, including painted headers and footers, regardless of `PdfLoadOptions.IncludeArtifactText`. Ordinary reading still omits artifacts by default. Page limits also apply to artifact text. Unsupported glyph mappings produce a blocked plan rather than verified removal.
+Redaction search, matching, and verification include artifact text, including painted headers and footers, regardless of `PdfLoadOptions.IncludeArtifactText`. Ordinary reading still omits artifacts by default. Page limits also apply to artifact text. Unsupported glyph mappings produce a blocked plan rather than verified removal. Removing content also clears `ActualText` and `Alt` from the marked-content section around it, and a search is blocked while its term remains in a comment or after `%%EOF`.
 
 `MatchCase` applies to every copy a search reaches, including alternate text, annotations, form values and metadata, so a copy in different case stays when `MatchCase` is true.
 
@@ -2324,7 +2340,13 @@ hidden layers are removed without a mark and without touching what overlaps them
 (whole-block search takes the hidden line that holds the match). Tagged `Alt`,
 `ActualText`, `E` and `TU` entries holding the searched text are removed, in property
 lists and inline marked content alike, and the output is refused if those entries or
-a Form XObject that no page paints still hold it.
+a Form XObject that no page paints still hold it. A section that loses content loses its
+alternate text, however it is stored and whichever content stream closes it. When the same
+value also describes retained content, through a shared property list, a repeated section,
+a form painted twice or a structure element, it leaves those holders too: a private copy
+would keep the text in the file, so retained sections keep their marks without the
+description. A page-scoped search leaves a shared list and structure elements with the
+pages it did not cover and edits its own page's copy.
 
 A search mark keeps its full height, but only image pixels follow that rectangle.
 Vector paths and annotations are removed when they overlap the matched glyphs, so a
@@ -2841,7 +2863,7 @@ var options = new PdfCreateOptions()
     .EmbedStandardFont(PdfStandardFont.Helvetica, "SourceSerif4-Regular.otf", "Source Serif 4");
 
 PdfComplianceArtifact artifact = PdfDocument.Create(pdf => pdf.Content(content => content
-        .Paragraph(paragraph => paragraph.Text("This artifact is ready for external validation."))), options)
+        .AddParagraph(paragraph => paragraph.AddText("This artifact is ready for external validation."))), options)
     .Meta(title: "Archive copy")
     .CreateComplianceArtifact(PdfComplianceProfile.PdfA2B);
 
@@ -2890,7 +2912,7 @@ var options = new PdfCreateOptions()
     .EmbedStandardFont(PdfStandardFont.Helvetica, fontBytes, "Source Serif 4");
 
 PdfComplianceArtifact artifact = PdfDocument.Create(pdf => pdf.Content(content => content
-        .Paragraph(paragraph => paragraph.Text("Generated colors are converted through the CMYK print condition."))),
+        .AddParagraph(paragraph => paragraph.AddText("Generated colors are converted through the CMYK print condition."))),
         options)
     .Meta(title: "Print-ready report")
     .CreateComplianceArtifact(PdfComplianceProfile.PdfX4);
@@ -2959,7 +2981,7 @@ fonts.RegisterFontFamilySubstitution("Calibri", "Carlito",
     PdfFontFamilySubstitutionImpact.LayoutSensitive);
 ```
 
-Pass `fonts` through `WordToPdfOptions.PdfOptions` or `RtfToPdfOptions.PdfOptions`. Registration makes a family available; a substitution selects it for the named source family. Supply the same files and mappings on each host to make that selection independent of system-font discovery. Other document families still need their own registrations or the normal fallback policy.
+Pass `fonts` through `WordToPdfOptions.PdfOptions` or `RtfPdfExportOptions.PdfOptions`. Registration makes a family available; a substitution selects it for the named source family. Supply the same files and mappings on each host to make that selection independent of system-font discovery. Other document families still need their own registrations or the normal fallback policy.
 
 These files are supplied by the application and are not bundled with the PDF package. Use fonts whose licensing permits the intended embedding and distribution. `LayoutSensitive` records that replacement can affect layout. `Compatible` expresses the caller's compatibility intent; registration does not verify identical glyph advances, line metrics or pagination for the source and replacement font versions. Inspect the conversion report and representative output when choosing a substitute.
 
@@ -3019,7 +3041,7 @@ DateTimeOffset invoiceModifiedAt = File.GetLastWriteTimeUtc("factur-x.xml");
 byte[] fontBytes = File.ReadAllBytes("SourceSerif4-Regular.otf");
 
 PdfDocument.Create(pdf => pdf.Content(content => content
-        .Paragraph(paragraph => paragraph.Text("Invoice preview"))),
+        .AddParagraph(paragraph => paragraph.AddText("Invoice preview"))),
     new PdfCreateOptions()
         .UseFacturX(
             invoiceXml,
@@ -3088,10 +3110,13 @@ its existing low-level XML carrier and bounded `PdfCiiInvoiceDocument` APIs.
 ```csharp
 PdfDocument.Create(pdf => pdf.Content(content => content
         .H1("Draft report")
-        .Paragraph(paragraph => paragraph.Text("This document uses page-level options instead of post-processing."))),
+        .AddParagraph(paragraph => paragraph.AddText("This document uses page-level options instead of post-processing."))),
     new PdfCreateOptions {
-            PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Centimeters(21), OfficeIMO.OfficeLength.Centimeters(29.7)).Portrait(),
-            Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Centimeters(1.5)),
+            PageSetup = {
+                Size = new PdfPageSize(OfficeIMO.OfficeLength.Centimeters(21), OfficeIMO.OfficeLength.Centimeters(29.7)),
+                Orientation = OfficePageOrientation.Portrait,
+                Margins = { Left = OfficeIMO.OfficeLength.Centimeters(1.5), Top = OfficeIMO.OfficeLength.Centimeters(1.5), Right = OfficeIMO.OfficeLength.Centimeters(1.5), Bottom = OfficeIMO.OfficeLength.Centimeters(1.5) }
+            },
             TextWatermark = new PdfTextWatermark("DRAFT") {
                 Opacity = 0.12,
                 RotationAngle = -35
@@ -3101,7 +3126,7 @@ PdfDocument.Create(pdf => pdf.Content(content => content
     .Save("draft.pdf");
 ```
 
-For facing-page layouts, set `PdfCreateOptions.MirrorMargins = true` or use
+For facing-page layouts, set `PdfCreateOptions.PageSetup.MirrorMargins = true` or use
 `page.MirrorMargins()` in a section. The authored left and right margins apply to
 odd visible page numbers and swap on even numbers. `PageNumberStart` restarts
 that parity. Flow content follows the current page frame, including automatic
@@ -3183,7 +3208,7 @@ OfficeIMO.OfficeConversionReport tableReport = statement.SaveAsExcel("bank-state
 Console.WriteLine($"Table reconstruction has loss: {tableReport.HasLoss}");
 
 using var proposal = PdfDocument.Load("proposal.pdf");
-proposal.SaveAsHtml("proposal-review.html", new PdfToHtmlOptions {
+proposal.SaveAsHtml("proposal-review.html", new PdfHtmlExportOptions {
     Profile = PdfHtmlProfile.PositionedReview,
     IncludeLinkAnnotations = true,
     IncludeFormWidgets = true
@@ -3272,7 +3297,7 @@ byte[] bytes = PdfDocument.Create()
     .PageBreak()
     .Bookmark("findings")
     .H1("Findings")
-    .Paragraph(paragraph => paragraph.Text("Evidence and recommendations."))))
+    .AddParagraph(paragraph => paragraph.AddText("Evidence and recommendations."))))
     .ToBytes();
 ```
 

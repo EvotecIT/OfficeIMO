@@ -91,7 +91,7 @@ public static partial class ExcelIWorkConverter {
         if (font.FontSize.HasValue) cell.SetFontSize(font.FontSize.Value);
         if (!string.IsNullOrWhiteSpace(font.FontName)) cell.SetFontName(font.FontName!);
         if (font.FontColor != null) cell.SetFontColor(font.FontColor);
-        if (alignment.HasValue) sheet.CellAlign(cell.Row, cell.Column, alignment.Value);
+        if (alignment.HasValue) sheet.Cell(cell.Row, cell.Column).SetHorizontalAlignment(alignment.Value);
         if (UniformCellHyperlink(content) is { } hyperlink)
             sheet.SetHyperlinkReference(cell.Row, cell.Column, hyperlink, style: false);
     }

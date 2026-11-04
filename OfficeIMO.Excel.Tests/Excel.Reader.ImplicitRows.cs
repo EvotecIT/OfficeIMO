@@ -165,8 +165,8 @@ public partial class Excel {
     public void Reader_ImplicitLiveRowProjectionPreservesWorkbookModel() {
         using var document = ExcelDocument.Create();
         var sheet = document.AddSheet("Data");
-        sheet.CellValue(10, 1, "First");
-        sheet.CellValue(10, 2, "Value");
+        sheet.Cell(10, 1).SetValue("First");
+        sheet.Cell(10, 2).SetValue("Value");
         var worksheet = document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single().Worksheet;
         var row = worksheet.Descendants<DocumentFormat.OpenXml.Spreadsheet.Row>().Single();
         row.RowIndex = null;
@@ -195,10 +195,10 @@ public partial class Excel {
     public void Reader_ImplicitLiveRowsRetainHeaderMapAndWorkbookModel(bool omitFirstCellReference, bool unsorted) {
         using var document = ExcelDocument.Create();
         var sheet = document.AddSheet("Data");
-        sheet.CellValue(6, 1, "Id");
-        sheet.CellValue(6, 2, "Name");
-        sheet.CellValue(7, 1, 42);
-        sheet.CellValue(7, 2, "Alpha");
+        sheet.Cell(6, 1).SetValue("Id");
+        sheet.Cell(6, 2).SetValue("Name");
+        sheet.Cell(7, 1).SetValue(42);
+        sheet.Cell(7, 2).SetValue("Alpha");
         var worksheet = document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single().Worksheet;
         foreach (var row in worksheet.Descendants<DocumentFormat.OpenXml.Spreadsheet.Row>()) {
             row.RowIndex = null;

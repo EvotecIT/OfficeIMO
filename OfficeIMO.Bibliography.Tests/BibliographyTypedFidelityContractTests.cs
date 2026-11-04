@@ -17,11 +17,11 @@ public sealed class BibliographyTypedFidelityContractTests {
         report.Add(new BibliographyConversionDiagnostic(
             "BIBTEST001", severity, "Evidence", action, "cite-key", "title"));
 
-        IOfficeConversionReport common = report;
-        OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(common.FidelityDiagnostics);
+        OfficeConversionReport common = report;
+        OfficeDiagnostic diagnostic = Assert.Single(common.Diagnostics);
 
         Assert.Equal(expected, diagnostic.LossKind);
-        Assert.Equal("OfficeIMO.Bibliography", diagnostic.Source);
+        Assert.Equal("OfficeIMO.Bibliography", diagnostic.Format);
         Assert.Equal("cite-key:title", diagnostic.Location);
         Assert.Equal(expected != OfficeConversionLossKind.None, common.HasLoss);
         Assert.Equal(expected, Assert.Single(OfficeConversionFidelityDiagnostics.Flatten(new[] { common })).LossKind);
@@ -37,11 +37,11 @@ public sealed class BibliographyTypedFidelityContractTests {
         report.Add(new BibliographyConversionDiagnostic(
             code, BibliographyDiagnosticSeverity.Warning, "Source field omitted.", BibliographyConversionAction.Omitted));
 
-        Assert.Equal(code, Assert.Single(report.Diagnostics).Code);
-        OfficeConversionFidelityDiagnostic typed = Assert.Single(report.FidelityDiagnostics);
+        Assert.Equal(code, Assert.Single(report.NativeDiagnostics).Code);
+        OfficeDiagnostic typed = Assert.Single(report.Diagnostics);
         Assert.Equal(string.IsNullOrWhiteSpace(code) ? "BIBLIOGRAPHY_DIAGNOSTIC" : code, typed.Code);
         Assert.Equal(OfficeConversionLossKind.Omission, typed.LossKind);
-        Assert.Equal(typed.Code, Assert.Single(OfficeConversionFidelityDiagnostics.Flatten(new IOfficeConversionReport[] { report })).Code);
-        Assert.Throws<BibliographyConversionLossException>(() => report.RequireNoLoss());
+        Assert.Equal(typed.Code, Assert.Single(OfficeConversionFidelityDiagnostics.Flatten(new OfficeConversionReport[] { report })).Code);
+        Assert.Throws<BibliographyConversionLossException>(() => report.ThrowIfLoss());
     }
 }

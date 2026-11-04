@@ -62,9 +62,9 @@ public sealed class AddOfficeWordImageCommand : OfficeVisualCommandBase {
         }
         WordParagraph paragraph = Paragraph ?? ResolveParagraph();
         WordImage image = visual == null
-            ? paragraph.AddImage(path!, Width, Height, new WordImageOptions { Wrapping = Wrap, Description = Description ?? string.Empty, Title = Title })
+            ? paragraph.AddImage(path!, Width, Height, new WordImageOptions { Wrapping = Wrap, AltText = Description ?? string.Empty, Title = Title })
             : paragraph.AddVisualArtifact(visual, Wrap);
-        if (Description != null) image.Description = Description;
+        if (Description != null) image.AltText = Description;
         if (Title != null) image.Title = Title;
         if (PassThru) WriteObject(image);
     }

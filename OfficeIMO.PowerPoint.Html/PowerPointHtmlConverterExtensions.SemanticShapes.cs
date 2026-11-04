@@ -5,7 +5,7 @@ using PptCore = OfficeIMO.PowerPoint;
 namespace OfficeIMO.PowerPoint.Html;
 
 public static partial class PowerPointHtmlConverterExtensions {
-    private static void AppendSemanticShapes(StringBuilder body, PptCore.PowerPointSlide slide, PowerPointHtmlSaveOptions options) {
+    private static void AppendSemanticShapes(StringBuilder body, PptCore.PowerPointSlide slide, PowerPointHtmlExportOptions options) {
         foreach (PptCore.PowerPointShape shape in slide.Shapes.OrderBy(shape => shape.DrawingOrder)) {
             if (!options.IncludeHiddenShapes && shape.Hidden) {
                 continue;

@@ -94,11 +94,11 @@ public sealed class PowerPointOdpLossClosureTests {
         source.MasterPages[0].BackgroundColor = OdfColor.Parse("#336699");
         slide.MasterPageName = null;
 
-        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        OdfConversionResult<PowerPointDocument> conversion = source.ConvertToPowerPointWithEvidence();
         using PowerPointDocument target = conversion.Value;
         Assert.Contains(conversion.Report.ForFeature("masters-layouts"), mapping =>
             mapping.Status == OdfConversionMappingStatus.Approximated);
-        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToPowerPointWithEvidence(
             new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -113,7 +113,7 @@ public sealed class PowerPointOdpLossClosureTests {
             .SetAttributeValue(OdfNamespaces.Draw + "fill-color", "invalid");
         source.Package.MarkXmlDirty("styles.xml");
 
-        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        OdfConversionResult<PowerPointDocument> conversion = source.ConvertToPowerPointWithEvidence();
         using PowerPointDocument target = conversion.Value;
         Assert.Contains(conversion.Report.ForFeature("masters-layouts"), mapping =>
             mapping.Status == OdfConversionMappingStatus.Approximated);
@@ -131,7 +131,7 @@ public sealed class PowerPointOdpLossClosureTests {
             .SetAttributeValue(OdfNamespaces.Draw + "fill-transparency-gradient-name", "Fade");
         source.Package.MarkXmlDirty("content.xml");
 
-        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        OdfConversionResult<PowerPointDocument> conversion = source.ConvertToPowerPointWithEvidence();
         using PowerPointDocument target = conversion.Value;
         Assert.Contains(conversion.Report.ForFeature("shape-appearance"), mapping =>
             mapping.Status == OdfConversionMappingStatus.Unsupported);
@@ -144,10 +144,10 @@ public sealed class PowerPointOdpLossClosureTests {
     }
 
     private static void AssertPowerPointLoss(PowerPointDocument source, string feature) {
-        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdpPresentation> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(conversion.Report.ForFeature(feature), mapping =>
             mapping.Status == OdfConversionMappingStatus.Unsupported);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 }

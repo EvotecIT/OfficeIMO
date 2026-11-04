@@ -26,8 +26,7 @@ public sealed partial class OfficeWorkflowRunner {
         var diagnostics = new List<OfficeWorkflowDiagnostic>();
         byte[] pdfBytes = bytes;
         if (extension != "pdf") {
-            OfficeWorkflowRoute route = OfficeWorkflowCatalog.ExecutableRoutes.SingleOrDefault(item =>
-                item.TargetExtension == ".pdf" && item.SourceExtensions.Contains("." + extension, StringComparer.OrdinalIgnoreCase))
+            OfficeWorkflowRoute route = OfficeWorkflowCatalog.Find(extension, ".pdf", executableOnly: true)
                 ?? throw new NotSupportedException("This output format has no document preview route.");
             var request = new ValidatedRequest("preview", OfficeWorkflowOperation.Convert,
                 Path.Combine(Path.GetTempPath(), "officeimo-preview." + extension), null, null, route,

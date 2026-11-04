@@ -46,7 +46,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.True(FloatPaintContainsGlyphInk(raster, text),
                 "Retained searchable text must also retain visible glyph ink.");
         }
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -91,7 +91,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Single(rendered.Pages.SelectMany(item => EnumerateRenderVisuals(item.Scene))
                 .OfType<HtmlRenderText>(), item => item.Text == marker);
         }
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     private static bool FloatPaintContainsGlyphInk(OfficeRasterImage raster, HtmlRenderText text) {

@@ -5,16 +5,16 @@ namespace OfficeIMO.Rtf.Pdf;
 internal static class RtfPdfMapping {
     private static readonly global::OfficeIMO.OfficeColor DefaultBorderColor = global::OfficeIMO.OfficeColor.FromRgb(0, 0, 0);
 
-    internal static PdfCore.PdfAlign ToPdfAlign(RtfTextAlignment alignment) {
+    internal static global::OfficeIMO.OfficeAlignment ToPdfAlign(RtfTextAlignment alignment) {
         switch (alignment) {
             case RtfTextAlignment.Center:
-                return PdfCore.PdfAlign.Center;
+                return global::OfficeIMO.OfficeAlignment.Center;
             case RtfTextAlignment.Right:
-                return PdfCore.PdfAlign.Right;
+                return global::OfficeIMO.OfficeAlignment.Right;
             case RtfTextAlignment.Justify:
-                return PdfCore.PdfAlign.Justify;
+                return global::OfficeIMO.OfficeAlignment.Justify;
             default:
-                return PdfCore.PdfAlign.Left;
+                return global::OfficeIMO.OfficeAlignment.Left;
         }
     }
 
@@ -162,7 +162,7 @@ internal static class RtfPdfMapping {
         return border;
     }
 
-    internal static PdfCore.PdfTableStyle ToPdfTableStyle(RtfDocument document, RtfTable table, RtfToPdfOptions options) {
+    internal static PdfCore.PdfTableStyle ToPdfTableStyle(RtfDocument document, RtfTable table, RtfPdfExportOptions options) {
         PdfCore.PdfTableStyle? callerStyle = options.PdfOptions?.HasExplicitDefaultTableStyle == true
             ? options.PdfOptions.DefaultTableStyle
             : null;

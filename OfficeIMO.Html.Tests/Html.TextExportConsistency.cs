@@ -148,7 +148,7 @@ public class HtmlTextExportConsistencyTests {
     public void LetterSpacingKeepsGlyphPaintWidthSeparateFromAdvance() {
         const string html = "<p style='font-family:Arial;font-size:24px;letter-spacing:8px'>AB</p>";
         var source = HtmlConversionDocument.Parse(html);
-        var options = new HtmlToPdfOptions { AllowSystemFontFallback = false };
+        var options = new HtmlPdfExportOptions { AllowSystemFontFallback = false };
         options.Fonts.Add("Arial", OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A', 'B'));
         HtmlRenderDocument rendered = source.RenderToPdfResult(HtmlRenderRequest.Create(
             HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, options)).RenderResult.Document;

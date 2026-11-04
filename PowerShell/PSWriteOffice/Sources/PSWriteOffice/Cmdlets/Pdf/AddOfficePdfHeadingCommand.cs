@@ -38,7 +38,7 @@ public sealed class AddOfficePdfHeadingCommand : PSCmdlet
 
     /// <summary>Heading alignment.</summary>
     [Parameter]
-    public PdfAlign Align { get; set; } = PdfAlign.Left;
+    public OfficeAlignment Align { get; set; } = OfficeAlignment.Left;
 
     /// <summary>Optional heading color. Named colors and hexadecimal values are accepted.</summary>
     [Parameter]

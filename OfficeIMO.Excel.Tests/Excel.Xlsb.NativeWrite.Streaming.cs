@@ -146,14 +146,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void Xlsb_StagedPackage_LateOverlongTextLeavesDestinationUntouched(bool sharedStrings) {
-            var rows = new SnapshotXlsbRows(aboveCaptureLimit: true) { LastValue = new string('X', 32_768) };
+        [InlineData(false, false)]
+        [InlineData(true, false)]
+        [InlineData(false, true)]
+        [InlineData(true, true)]
+        public void Xlsb_StagedPackage_LateOverlongTextLeavesDestinationUntouched(bool sharedStrings, bool flatSnapshot) {
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddSheet("Data");
-            var source = new ExcelDirectTabularSource("Data", rows, includeHeaders: true, preserveMissingValues: true);
+            var sheet = document.AddSheet("Data");
             using var destination = new MemoryStream();
+            if (flatSnapshot) {
+                sheet.WriteData(Enumerable.Range(0, 20_000),
+                    ("Index", row => row), ("Value", row => row == 19_999 ? new string('X', 32_768) : "Value " + row));
+                Assert.Throws<ArgumentException>(() => document.Save(destination,
+                    new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb, XlsbUseSharedStrings = sharedStrings }));
+                Assert.Equal(0, destination.Length);
+                Assert.Equal(0, destination.Position);
+                Assert.Equal(0, destination.Capacity);
+                return;
+            }
+
+            var rows = new SnapshotXlsbRows(aboveCaptureLimit: true) { LastValue = new string('X', 32_768) };
+            var source = new ExcelDirectTabularSource("Data", rows, includeHeaders: true, preserveMissingValues: true);
             byte[] sentinel = Enumerable.Range(0, 64).Select(index => (byte)index).ToArray();
             destination.Write(sentinel, 0, sentinel.Length);
 

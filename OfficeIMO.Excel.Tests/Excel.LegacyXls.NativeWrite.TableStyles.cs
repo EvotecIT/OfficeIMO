@@ -15,8 +15,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("TableStyles");
-                    sheet.CellValue(1, 1, "Default table style names");
-                    sheet.CellAt(1, 1).SetFillColor("#ABCDEF");
+                    sheet.Cell(1, 1).SetValue("Default table style names");
+                    sheet.Cell(1, 1).SetFillColor("#ABCDEF");
 
                     WorkbookStylesPart stylesPart = document.WorkbookPartRoot.WorkbookStylesPart
                         ?? document.WorkbookPartRoot.AddNewPart<WorkbookStylesPart>();
@@ -63,7 +63,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("TableStyles");
-                    sheet.CellValue(1, 1, "Custom workbook table style");
+                    sheet.Cell(1, 1).SetValue("Custom workbook table style");
 
                     WorkbookStylesPart stylesPart = document.WorkbookPartRoot.WorkbookStylesPart
                         ?? document.WorkbookPartRoot.AddNewPart<WorkbookStylesPart>();

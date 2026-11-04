@@ -32,8 +32,7 @@ public partial class Word {
         source.AddParagraph("Anchor");
         WordParagraph target;
         if (route == "header" || route == "footer") {
-            source.AddHeadersAndFooters();
-            target = route == "header" ? source.Header.Default!.AddParagraph("Inherited") : source.Footer.Default!.AddParagraph("Inherited");
+            target = route == "header" ? source.PageSetup.Header.AddParagraph("Inherited") : source.PageSetup.Footer.AddParagraph("Inherited");
         } else if (route == "footnote") {
             target = source.AddParagraph("Note").AddFootNote("Inherited").Paragraph.FootNote!.Paragraphs!.Last();
         } else if (route == "endnote") {

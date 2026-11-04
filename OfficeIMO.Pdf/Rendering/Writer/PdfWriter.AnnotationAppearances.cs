@@ -19,7 +19,7 @@ internal static partial class PdfWriter {
         double availableWidth = Math.Max(0D, width - annotation.Padding * 2D);
         double availableHeight = Math.Max(0D, height - annotation.Padding * 2D);
         var runs = new[] {
-            PdfTextRun.Normal(annotation.Contents, resolvedTextColor, global::OfficeIMO.OfficeLength.Points(annotation.FontSize), font: PdfStandardFont.Helvetica)
+            PdfTextRun.Normal(annotation.Contents, resolvedTextColor, global::OfficeIMO.OfficeLength.Points(annotation.FontSize), standardFont: PdfStandardFont.Helvetica)
         };
         var wrapped = WrapRichRunsCore(
             runs,
@@ -215,10 +215,10 @@ internal static partial class PdfWriter {
         fontResources.Add((name, id));
     }
 
-    private static double ResolveFreeTextAppearanceLineX(PdfAlign textAlign, double padding, double availableWidth, double lineWidth) {
+    private static double ResolveFreeTextAppearanceLineX(OfficeAlignment textAlign, double padding, double availableWidth, double lineWidth) {
         return textAlign switch {
-            PdfAlign.Center => padding + Math.Max(0D, (availableWidth - lineWidth) / 2D),
-            PdfAlign.Right => padding + Math.Max(0D, availableWidth - lineWidth),
+            OfficeAlignment.Center => padding + Math.Max(0D, (availableWidth - lineWidth) / 2D),
+            OfficeAlignment.Right => padding + Math.Max(0D, availableWidth - lineWidth),
             _ => padding
         };
     }

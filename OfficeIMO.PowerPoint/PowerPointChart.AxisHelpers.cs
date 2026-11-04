@@ -62,7 +62,8 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            ApplyTextStyle(EnsureChartTextRunProperties(chartText), fontSize, bold, italic, color, fontName);
+            EnsureChartTextRunProperties(chartText);
+            PowerPointTextContent.FormatRuns(chartText, properties => ApplyTextStyle(properties, fontSize, bold, italic, color, fontName));
             Save();
             return this;
         }

@@ -44,7 +44,7 @@ public sealed class PdfStandardsProofTests {
             .Header(header => header.Text("OfficeIMO standards proof"))
             .Footer(footer => footer.Text("Page {page} of {pages}"))
             .H1("Standards proof")
-            .Paragraph(p => p.Text("Embedded Unicode text and declared profile evidence."))
+            .Paragraph(p => p.AddText("Embedded Unicode text and declared profile evidence."))
             .Table(new[] { new[] { "Item", "Amount" }, new[] { "Service", "119.00 EUR" } })
             .ToBytes();
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);

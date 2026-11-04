@@ -15,7 +15,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         byte[] jpeg = OfficeJpegCodec.Encode(image);
         byte[] png = OfficePngWriter.Encode(image);
         byte[] webp = OfficeWebpCodec.Encode(image);
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Qualified PDF")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Qualified PDF")).ToBytes();
 
         string wordPath = Path.Combine(scope.Path, "qualified.docx");
         using (WordDocument document = WordDocument.Create(wordPath)) {
@@ -24,7 +24,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         }
         string excelPath = Path.Combine(scope.Path, "qualified.xlsx");
         using (ExcelDocument document = ExcelDocument.Create(excelPath)) {
-            document.AddSheet("Data").Cell(1, 1, "Qualified workbook");
+            document.AddSheet("Data").Cell(1, 1).SetValue("Qualified workbook");
             document.Save();
         }
         string powerPointPath = Path.Combine(scope.Path, "qualified.pptx");
@@ -68,7 +68,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         using var scope = new TempScope();
         string path = Path.Combine(scope.Path, "unchanged.pdf");
         const long expanded = 512;
-        byte[] bytes = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Keep this attachment."))
+        byte[] bytes = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Keep this attachment."))
             .AttachFile(new PdfEmbeddedFile("claim.c2pa", new byte[expanded], "application/c2pa", PdfAssociatedFileRelationship.C2paManifest)).ToBytes();
         File.WriteAllBytes(path, bytes);
         var owner = PdfProvenance.Remove(bytes, new OfficeProvenanceRemovalOptions { RemoveC2paManifests = false });
@@ -167,7 +167,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         }
         string excel = Path.Combine(scope.Path, "report.xlsx");
         using (var document = ExcelDocument.Create(excel)) {
-            document.AddSheet("Data").Cell(1, 1, "Preserved content"); document.Save();
+            document.AddSheet("Data").Cell(1, 1).SetValue("Preserved content"); document.Save();
         }
         string deck = Path.Combine(scope.Path, "report.pptx");
         using (var presentation = PowerPointDocument.Create(deck)) {

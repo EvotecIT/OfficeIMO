@@ -15,8 +15,7 @@ public sealed class IWorkDurationFormatCorpusTests {
         string nativePath = Path.Combine(root, expected.GetProperty("nativeExport").GetString()!);
         Assert.Equal(expected.GetProperty("sourceSha256").GetString(), Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(sourcePath))).ToLowerInvariant());
         Assert.Equal(expected.GetProperty("nativeExportSha256").GetString(), Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(nativePath))).ToLowerInvariant());
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(sourcePath,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(sourcePath, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         var cell = result.Projection.Sheets[0].Tables[0].GetCell(5, 3)!;
         Assert.Equal(expected.GetProperty("source").GetProperty("seconds").GetDouble(), cell.Value);
         Assert.Equal(IWorkCellKind.Duration, cell.ValueKind);
@@ -33,8 +32,8 @@ public sealed class IWorkDurationFormatCorpusTests {
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         using var native = ExcelDocument.Load(nativePath);
-        var actual = reopened.Sheets[0].CellAt(5, 3);
-        var oracle = native.Sheets[0].CellAt(6, 3);
+        var actual = reopened.Sheets[0].Cell(5, 3);
+        var oracle = native.Sheets[0].Cell(6, 3);
         Assert.Equal(expected.GetProperty("native").GetProperty("valueDays").GetDouble(), actual.GetValue<double>());
         Assert.Equal(oracle.GetValue<double>(), actual.GetValue<double>());
         Assert.Equal(oracle.GetStyle().NumberFormatCode, actual.GetStyle().NumberFormatCode);

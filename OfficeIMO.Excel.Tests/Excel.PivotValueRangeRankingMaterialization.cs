@@ -88,8 +88,8 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create())
             {
                 var source = document.AddSheet("Source");
-                source.CellValue(1, 1, "Region");
-                source.CellValue(1, 2, "Sales");
+                source.Cell(1, 1).SetValue("Region");
+                source.Cell(1, 2).SetValue("Sales");
                 var entries = new[]
                 {
                     ("Alpha", 10d),
@@ -101,8 +101,8 @@ namespace OfficeIMO.Tests
                 };
                 for (int index = 0; index < entries.Length; index++)
                 {
-                    source.CellValue(index + 2, 1, entries[index].Item1);
-                    source.CellValue(index + 2, 2, entries[index].Item2);
+                    source.Cell(index + 2, 1).SetValue(entries[index].Item1);
+                    source.Cell(index + 2, 2).SetValue(entries[index].Item2);
                 }
 
                 ExcelPivotFilter filter = kind switch
@@ -157,8 +157,8 @@ namespace OfficeIMO.Tests
 
             using var authored = ExcelDocument.Create();
             var source = authored.AddSheet("Source");
-            source.CellValue(1, 1, "Region");
-            source.CellValue(1, 2, "Sales");
+            source.Cell(1, 1).SetValue("Region");
+            source.Cell(1, 2).SetValue("Sales");
             var entries = new[]
             {
                 ("Alpha", 10d),
@@ -170,8 +170,8 @@ namespace OfficeIMO.Tests
             };
             for (int index = 0; index < entries.Length; index++)
             {
-                source.CellValue(index + 2, 1, entries[index].Item1);
-                source.CellValue(index + 2, 2, entries[index].Item2);
+                source.Cell(index + 2, 1).SetValue(entries[index].Item1);
+                source.Cell(index + 2, 2).SetValue(entries[index].Item2);
             }
 
             ExcelPivotFilter filter = kind == "top-sum-tie" ? ExcelPivotFilter.TopSum("Region", "Metric", 40d) : ExcelPivotFilter.TopPercent("Region", "Metric", 10);
@@ -271,8 +271,8 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create())
             {
                 var source = document.AddSheet("Source");
-                source.CellValue(1, 1, "Region");
-                source.CellValue(1, 2, "Sales");
+                source.Cell(1, 1).SetValue("Region");
+                source.Cell(1, 2).SetValue("Sales");
                 string[] names =
                 {
                     "Alpha",
@@ -284,8 +284,8 @@ namespace OfficeIMO.Tests
                 };
                 for (int index = 0; index < names.Length; index++)
                 {
-                    source.CellValue(index + 2, 1, names[index]);
-                    source.CellValue(index + 2, 2, amounts[index]);
+                    source.Cell(index + 2, 1).SetValue(names[index]);
+                    source.Cell(index + 2, 2).SetValue(amounts[index]);
                 }
 
                 {
@@ -343,8 +343,8 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create())
             {
                 var source = document.AddSheet("Source");
-                source.CellValue(1, 1, "Region");
-                source.CellValue(1, 2, "Sales");
+                source.Cell(1, 1).SetValue("Region");
+                source.Cell(1, 2).SetValue("Sales");
                 string[] names =
                 {
                     "Alpha",
@@ -366,18 +366,18 @@ namespace OfficeIMO.Tests
                 string error = kind == "div-zero-top-count" ? "#DIV/0!" : kind == "value-bottom-sum" ? "#VALUE!" : "#N/A";
                 for (int index = 0; index < names.Length; index++)
                 {
-                    source.CellValue(index + 2, 1, names[index]);
+                    source.Cell(index + 2, 1).SetValue(names[index]);
                     if (index == 1)
-                        source.CellError(index + 2, 2, error);
+                        source.Cell(index + 2, 2).SetError(error);
                     else
-                        source.CellValue(index + 2, 2, amounts[index]);
+                        source.Cell(index + 2, 2).SetValue(amounts[index]);
                 }
 
                 bool mixedGroup = kind == "mixed-group-bottom-percent";
                 if (mixedGroup)
                 {
-                    source.CellValue(8, 1, "Bravo");
-                    source.CellValue(8, 2, 15d);
+                    source.Cell(8, 1).SetValue("Bravo");
+                    source.Cell(8, 2).SetValue(15d);
                 }
 
                 source.AddPivotTable(mixedGroup ? "A1:B8" : "A1:B7", "D4", options: new ExcelPivotTableOptions { Name = "FilteredPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", function, "Metric") }, Layout = ExcelPivotLayout.Tabular, PivotFilters = new[] { filter } });
@@ -397,12 +397,12 @@ namespace OfficeIMO.Tests
         {
             using var document = ExcelDocument.Create();
             var source = document.AddSheet("Source");
-            source.CellValue(1, 1, "Region");
-            source.CellValue(1, 2, "Sales");
-            source.CellValue(2, 1, "Alpha");
-            source.CellValue(2, 2, 6e306);
-            source.CellValue(3, 1, "Bravo");
-            source.CellValue(3, 2, 4e306);
+            source.Cell(1, 1).SetValue("Region");
+            source.Cell(1, 2).SetValue("Sales");
+            source.Cell(2, 1).SetValue("Alpha");
+            source.Cell(2, 2).SetValue(6e306);
+            source.Cell(3, 1).SetValue("Bravo");
+            source.Cell(3, 2).SetValue(4e306);
             {
                 var pivotOptions4 = new ExcelPivotTableOptions();
                 pivotOptions4.RowFields.Add("Region");

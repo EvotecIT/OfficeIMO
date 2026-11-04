@@ -81,7 +81,7 @@ public sealed class AddOfficeExcelValidationCustomFormulaCommand : PSCmdlet
 
         var sheet = ResolveSheet();
         string targetRange = ExcelTargetRangeResolver.Resolve(sheet, Range, HeaderName, TableName, HeaderRow, IncludeHeader.IsPresent);
-        sheet.ValidationCustomFormula(targetRange, Formula, AllowBlank, ErrorTitle, ErrorMessage);
+        sheet.Range(targetRange).Validation().CustomFormula(Formula, AllowBlank, ErrorTitle, ErrorMessage);
 
         if (PassThru.IsPresent)
         {

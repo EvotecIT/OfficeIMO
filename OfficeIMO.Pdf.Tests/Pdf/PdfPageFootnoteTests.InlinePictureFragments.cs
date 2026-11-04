@@ -16,12 +16,12 @@ public partial class PdfPageFootnoteTests {
         PdfTextRun[] runs = Enumerable.Range(0, 10).SelectMany(index => index is 1 or 8
             ? new[] { PdfTextRun.Normal($"BEFORE{index} "), PdfTextRun.Inline(picture), PdfTextRun.Normal($" AFTER{index}\n") }
             : new[] { PdfTextRun.Normal($"PLAIN{index}" + (index < 9 ? "\n" : "")) }).ToArray();
-        var note = document.Content.DefineFootnote(body => body.Paragraph(paragraph => paragraph.Runs(runs),
+        var note = document.Content.DefineFootnote(body => body.AddParagraph(paragraph => paragraph.AddRuns(runs),
             style: new PdfParagraphStyle {
                 FontSize = global::OfficeIMO.OfficeLength.Points(10), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(12)), WidowControl = false,
                 SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             }));
-        document.Content.Paragraph(paragraph => paragraph.Runs(new[] {
+        document.Content.AddParagraph(paragraph => paragraph.AddRuns(new[] {
             PdfTextRun.Normal("Reference").WithFootnoteReference(note)
         }), style: Style());
 

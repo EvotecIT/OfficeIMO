@@ -29,10 +29,10 @@ internal sealed class OfficeBatchPortableSettings {
         SourceFormat = SourceFormat, SourceExtension = SourceExtension,
         FailOnLoss = FailOnLoss, Word = CaptureWord(Word), WordLoad = WordFailOnLoss ? new OfficeIMO.Word.WordLoadOptions { FailOnLoss = true } : null, CompressPdfOutput = CompressPdfOutput,
         PdfLoad = PageRanges == null ? null : new PdfLoadOptions { PageSelection = PdfPageSelection.Parse(PageRanges) },
-        PdfWord = WordMode == null ? null : new WordPdfImportOptions { Mode = WordMode.Value, Dpi = RasterDpi ?? 144D },
-        PdfPowerPoint = PowerPointMode == null ? null : new PowerPointPdfImportOptions { Mode = PowerPointMode.Value, Dpi = RasterDpi ?? 144D },
+        PdfWord = WordMode == null ? null : new PdfWordExportOptions { Mode = WordMode.Value, Dpi = RasterDpi ?? 144D },
+        PdfPowerPoint = PowerPointMode == null ? null : new PdfPowerPointExportOptions { Mode = PowerPointMode.Value, Dpi = RasterDpi ?? 144D },
         Excel = WorksheetLayout == null ? null : new ExcelPdfExportOptions { WorksheetLayout = WorksheetLayout.Value },
-        PdfHtml = HtmlProfile == null ? null : new PdfToHtmlOptions { Profile = HtmlProfile.Value },
+        PdfHtml = HtmlProfile == null ? null : new PdfHtmlExportOptions { Profile = HtmlProfile.Value },
         PlainText = TextEncoding == null && TabSize == 8 ? null : new PdfTextImportOptions { EncodingName = TextEncoding, TabSize = TabSize }
     }.Clone();
 
@@ -62,9 +62,9 @@ internal sealed class OfficeBatchPortableSettings {
             throw new NotSupportedException("Saved batches support portable scalar settings and secret references. Advanced renderer objects and runtime callbacks remain execution-only.");
         if (!Same(options.WordLoad, baseline.WordLoad, OfficeBatchConfigurationJsonContext.Default.WordLoadOptions) ||
             !Same(options.Excel, baseline.Excel, OfficeBatchConfigurationJsonContext.Default.ExcelPdfExportOptions) ||
-            !Same(options.PdfWord, baseline.PdfWord, OfficeBatchConfigurationJsonContext.Default.WordPdfImportOptions) ||
-            !Same(options.PdfPowerPoint, baseline.PdfPowerPoint, OfficeBatchConfigurationJsonContext.Default.PowerPointPdfImportOptions) ||
-            !Same(options.PdfHtml, baseline.PdfHtml, OfficeBatchConfigurationJsonContext.Default.PdfToHtmlOptions) ||
+            !Same(options.PdfWord, baseline.PdfWord, OfficeBatchConfigurationJsonContext.Default.PdfWordExportOptions) ||
+            !Same(options.PdfPowerPoint, baseline.PdfPowerPoint, OfficeBatchConfigurationJsonContext.Default.PdfPowerPointExportOptions) ||
+            !Same(options.PdfHtml, baseline.PdfHtml, OfficeBatchConfigurationJsonContext.Default.PdfHtmlExportOptions) ||
             !Same(options.PlainText, baseline.PlainText, OfficeBatchConfigurationJsonContext.Default.PdfTextImportOptions) ||
             !Same(options.PdfLoad, baseline.PdfLoad, OfficeBatchConfigurationJsonContext.Default.PdfLoadOptions))
             throw new NotSupportedException("Advanced native settings cannot be captured by this saved-batch version.");

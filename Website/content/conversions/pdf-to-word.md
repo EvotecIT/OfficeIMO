@@ -33,11 +33,10 @@ PDF stores positioned page content, not the original Word paragraphs, styles, se
 
 ```csharp
 using OfficeIMO.Pdf;
-using OfficeIMO.Word.Pdf;
+using OfficeIMO.Pdf.Word;
 
 PdfDocument pdf = PdfDocument.Load("report.pdf");
-PdfWordConversionResult result = pdf.ToWordDocumentResult();
-using var document = result.Value;
+using var document = pdf.ToWord(null, out OfficeConversionReport report);
 
 File.WriteAllBytes("report.docx", document.ToBytes());
 foreach (PdfConversionWarning warning in result.Report.Warnings) {

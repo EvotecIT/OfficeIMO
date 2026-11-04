@@ -39,13 +39,13 @@ public sealed partial class InvoiceWorkbenchViewModel {
         StudioJobRecord? job = null;
         try {
             // Capture all UI choices before awaiting permission or a storage provider.
-            var validator = CaptureValidator(); var request = CaptureRequest();
+            var validator = CaptureValidator(); var request = CaptureRequest() with { StandardsValidator = validator };
             string label = SelectedOperation.Label;
             string fontPath = IsRendering ? FontPath.Trim() : string.Empty;
             if (fontPath.Length > 0) request = request with { PdfOptions = await LoadFontOptionsAsync(fontPath, cancellation.Token).ConfigureAwait(true) };
             job = _jobs?.Start(label, request.InputPath, request.OutputPath, cancellation.Cancel);
             using IDisposable? execution = _jobs == null ? null : await _jobs.EnterAsync(cancellation.Token).ConfigureAwait(true);
-            var result = await _runner.RunInvoiceAsync(request, validator, cancellation.Token).ConfigureAwait(true);
+            var result = await _runner.RunInvoiceAsync(request, cancellation.Token).ConfigureAwait(true);
             job?.Complete(result.Status, result.OutputPath, result.Summary, result.Recovery);
             if (!_disposed) ShowReport(result, request.ValidationRelease.HasValue);
         } catch (OperationCanceledException) when (cancellation.IsCancellationRequested) {

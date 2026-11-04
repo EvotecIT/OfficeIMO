@@ -16,7 +16,7 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("word-spacing:2px", "Left שלום 42")]
     public void HtmlDefaultFont_BidiInklessSlicesKeepOneLogicalSvgLabel(string declarations, string content) {
         string html = "<p style='margin:0;font:16px BidiFixture;" + declarations + "'>" + content + "</p>";
-        var options = new HtmlToPdfOptions { AllowSystemFontFallback = false, Margins = HtmlRenderMargins.All(0D) };
+        var options = new HtmlPdfExportOptions { AllowSystemFontFallback = false, Margins = HtmlRenderMargins.All(0D) };
         options.Fonts.Add("BidiFixture", ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(true,
             "Left שלום 42".Select(character => (int)character).Distinct().ToArray()));
         HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
@@ -29,14 +29,14 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("Left שלום 42", label);
         HtmlRenderResult raw = HtmlRenderEngine.Execute(source, HtmlRenderRequest.Create(
             HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Png, options));
-        raw.Document.RequireNoLoss();
+        raw.Document.ThrowIfLoss();
         Assert.Equal(raw.ExportImages()[0].Bytes, reopened.Pages[0].ExportImage(OfficeImageExportFormat.Png,
             new PdfCore.PdfImageExportOptions { Scale = 96D / 72D, BackgroundColor = OfficeColor.White }).Bytes);
     }
     [Fact]
     public void HtmlDefaultFont_ResolvedBidiBudgetExhaustionKeepsDiagnosedStaticText() {
         const string text = "Left שלום 42";
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             AllowSystemFontFallback = false, MaxOutlinedTextPathCommands = 1
         };
         options.Fonts.Add("BidiFixture", ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(true,
@@ -49,7 +49,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(result.Report.Warnings, warning =>
             warning.Code == HtmlPdfDiagnosticCodes.FontOutlineBudgetApproximated
                 && warning.LossKind == OfficeConversionLossKind.Approximation);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
     }
 
 }

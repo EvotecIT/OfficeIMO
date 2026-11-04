@@ -36,8 +36,8 @@ public sealed class AdfProjectionIntegrityTests {
         if (type == "paragraph") node.Content.Add(AdfNode.TextNode("Visible"));
         var result = AdfConverter.ToMarkdown(new AdfDocument(new[] { node }));
         Assert.True(result.Report.HasLoss);
-        Assert.Contains(result.Report.FidelityDiagnostics, diagnostic => diagnostic.Code == "ADF_NODE_PROPERTIES_DROPPED" && diagnostic.LossKind == OfficeConversionLossKind.Omission);
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "ADF_NODE_PROPERTIES_DROPPED" && diagnostic.LossKind == OfficeConversionLossKind.Omission);
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
     }
 
     [Fact]
@@ -47,7 +47,7 @@ public sealed class AdfProjectionIntegrityTests {
         Assert.True(document.Validate().IsValid);
         var result = AdfConverter.ToMarkdown(document);
         Assert.Equal("Visible", result.Value);
-        Assert.Contains(result.Report.FidelityDiagnostics, diagnostic => diagnostic.Code == "ADF_BLOCK_MARKS_DROPPED" && diagnostic.LossKind == OfficeConversionLossKind.Omission);
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "ADF_BLOCK_MARKS_DROPPED" && diagnostic.LossKind == OfficeConversionLossKind.Omission);
     }
 
     [Theory]
@@ -60,14 +60,14 @@ public sealed class AdfProjectionIntegrityTests {
         var roundTrip = AdfConverter.FromMarkdown(result.Value);
         Assert.Equal(value, string.Concat(roundTrip.Value.Content.Single().Content.Select(node => node.Text)));
         string expectedCode = type == "inlineCard" ? "ADF_CARD_PROJECTED" : "ADF_INLINE_PROJECTED";
-        Assert.Contains(result.Report.FidelityDiagnostics, diagnostic => diagnostic.Code == expectedCode && diagnostic.LossKind == OfficeConversionLossKind.Omission);
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == expectedCode && diagnostic.LossKind == OfficeConversionLossKind.Omission);
     }
 
     [Fact]
     public void InlineWithoutVisibleFallbackReportsActualOmission() {
         var result = AdfConverter.ToMarkdown(Paragraph(new AdfNode("vendorOpaqueInline")));
         Assert.Equal(string.Empty, result.Value);
-        Assert.Contains(result.Report.FidelityDiagnostics, diagnostic => diagnostic.Code == "ADF_UNSUPPORTED_INLINE_OMITTED" && diagnostic.LossKind == OfficeConversionLossKind.Omission);
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "ADF_UNSUPPORTED_INLINE_OMITTED" && diagnostic.LossKind == OfficeConversionLossKind.Omission);
     }
 
     [Fact]

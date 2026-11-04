@@ -31,7 +31,7 @@ B,80,92
 =C2-B2
 """);
 
-result.Document.SaveAsExcel("revenue.xlsx", new MarkupToExcelOptions {
+result.Document.SaveAsExcel("revenue.xlsx", new MarkupExcelExportOptions {
 });
 ```
 

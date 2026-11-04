@@ -64,22 +64,22 @@ namespace OfficeIMO.Word {
                     var ar = pictureBlip.GetFirstChild<AlphaReplace>();
                     if (ar?.Alpha != null) _fixedOpacity = (int?)(ar.Alpha.Value / 1000);
                     var ai = pictureBlip.GetFirstChild<AlphaInverse>();
-                    _alphaInversionColorHex = ai?.GetFirstChild<RgbColorModelHex>()?.Val;
+                    _alphaInversionColorValue = ai?.GetFirstChild<RgbColorModelHex>()?.Val;
                     var bi = pictureBlip.GetFirstChild<BiLevel>();
                     _blackWhiteThreshold = bi?.Threshold?.Value != null ? (int?)(bi.Threshold.Value / 1000) : null;
                     var blur = pictureBlip.GetFirstChild<Blur>();
                     if (blur != null) { _blurRadius = (int?)blur.Radius?.Value; _blurGrow = blur.Grow?.Value; }
                     var cc = pictureBlip.GetFirstChild<ColorChange>();
                     if (cc != null) {
-                        _colorChangeFromHex = cc.ColorFrom?.GetFirstChild<RgbColorModelHex>()?.Val;
-                        _colorChangeToHex = cc.ColorTo?.GetFirstChild<RgbColorModelHex>()?.Val;
+                        _colorChangeFromValue = cc.ColorFrom?.GetFirstChild<RgbColorModelHex>()?.Val;
+                        _colorChangeToValue = cc.ColorTo?.GetFirstChild<RgbColorModelHex>()?.Val;
                     }
                     var cr = pictureBlip.GetFirstChild<ColorReplacement>();
-                    _colorReplacementHex = cr?.GetFirstChild<RgbColorModelHex>()?.Val;
+                    _colorReplacementValue = cr?.GetFirstChild<RgbColorModelHex>()?.Val;
                     var duo = pictureBlip.GetFirstChild<Duotone>();
                     if (duo != null) {
-                        _duotoneColor1Hex = duo.GetFirstChild<RgbColorModelHex>()?.Val;
-                        _duotoneColor2Hex = duo.Elements<RgbColorModelHex>().Skip(1).FirstOrDefault()?.Val;
+                        _duotoneColor1Value = duo.GetFirstChild<RgbColorModelHex>()?.Val;
+                        _duotoneColor2Value = duo.Elements<RgbColorModelHex>().Skip(1).FirstOrDefault()?.Val;
                     }
                     _grayScale = pictureBlip.GetFirstChild<Grayscale>() != null;
                     var lum = pictureBlip.GetFirstChild<LuminanceEffect>();
@@ -341,7 +341,14 @@ namespace OfficeIMO.Word {
 
         private static MemoryStream? ConvertRasterForWord(Stream stream) {
             if (!OfficeImageReader.TryIdentifyByContent(stream, null, out OfficeImageInfo info)
-                || info.Format is not (OfficeImageFormat.Webp or OfficeImageFormat.Avif)) return null;
+                || info.Format is not (OfficeImageFormat.Webp or OfficeImageFormat.Avif or OfficeImageFormat.Heic)) return null;
+
+            if (info.Format == OfficeImageFormat.Heic) {
+                byte[] encoded = OfficeIMO.Core.Internal.OfficeStreamReader.ReadAllBytes(
+                    stream, new OfficeRasterDecodeOptions().MaximumEncodedBytes);
+                byte[] normalized = OfficeImageReader.NormalizeForEmbedding(encoded, null, out _);
+                return new MemoryStream(normalized, writable: false);
+            }
 
             string format = info.Format == OfficeImageFormat.Webp ? "WebP" : "AVIF";
             var options = new OfficeRasterDecodeOptions {

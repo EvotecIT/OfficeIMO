@@ -17,8 +17,8 @@ public sealed class ReaderTableProjectionIdentityTests {
         } };
         var document = new OfficeDocumentReadResult {
             Chunks = chunks,
-            Tables = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ExtractTables(chunks),
-            Visuals = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ExtractVisuals(chunks)
+            Tables = chunks.ExtractTables(),
+            Visuals = chunks.ExtractVisuals()
         };
         if (roundTrip) document = OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(document));
         var table = Assert.Single(document.EnumerateTables());

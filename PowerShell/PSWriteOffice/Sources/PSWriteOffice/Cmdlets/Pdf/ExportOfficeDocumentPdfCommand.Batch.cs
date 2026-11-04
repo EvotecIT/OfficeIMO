@@ -5,6 +5,7 @@ using System.Management.Automation;
 using System.Threading;
 using System.Threading.Tasks;
 using OfficeIMO.Workflows;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Pdf;
@@ -72,7 +73,7 @@ public sealed partial class ExportOfficeDocumentPdfCommand {
             Recursive = !NoRecurse.IsPresent, Extensions = SourceExtensions, RetryFailed = RetryFailed.IsPresent,
             ConflictPolicy = (OfficePublicationPolicy)Enum.Parse(typeof(OfficePublicationPolicy), ConflictPolicy, true),
             ConversionOptions = new OfficeConversionOptions {
-                SourcePassword = Password,
+                SourcePassword = Password.ToPlainText(),
                 Word = WordOptions, Excel = ExcelOptions, PowerPoint = PowerPointOptions,
                 Markdown = MarkdownOptions, Html = HtmlOptions, PlainText = TextOptions,
                 RegisteredSettings = new OfficeWorkflowRouteSettings { Rtf = RtfOptions },
@@ -82,6 +83,7 @@ public sealed partial class ExportOfficeDocumentPdfCommand {
         if (!ShouldProcess(request.OutputDirectory, "Export selected documents to PDF")) return;
         var progress = new BatchProgress(this);
         PSWriteOffice.Services.OfficeWorkflowCommandUtilities.RegisterConversions();
+        PSWriteOffice.Services.OfficeWorkflowCommandUtilities.ConfigureBatch(request);
         var result = (await OfficeConverter.ConvertAsync(request, progress, CancelToken)).Summary;
         if (!ItemResults.IsPresent && progress.Failures > BatchProgress.MaximumFailureWarnings) {
             WriteWarning($"{progress.Failures - BatchProgress.MaximumFailureWarnings} further failure messages were suppressed. Use -ItemResults for structured per-file outcomes.");

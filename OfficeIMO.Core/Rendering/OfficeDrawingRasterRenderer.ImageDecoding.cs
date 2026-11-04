@@ -6,7 +6,7 @@ namespace OfficeIMO.Drawing;
 public static partial class OfficeDrawingRasterRenderer {
     // The fallback travels with the codec through nested scenes. Built-in decoding still happens
     // once in TryDecodeImage; only unsupported inputs reach this required-decoding boundary.
-    private sealed class RequiredImageCodec : IOfficeRasterImageCodec {
+    internal sealed class RequiredImageCodec : IOfficeRasterImageCodec {
         private readonly IOfficeRasterImageCodec? _codec;
         private readonly long _maximumPixels;
         private readonly CancellationToken _token;
@@ -16,6 +16,8 @@ public static partial class OfficeDrawingRasterRenderer {
             _maximumPixels = maximumPixels;
             _token = token;
         }
+
+        internal IOfficeRasterImageCodec? SourceCodec => _codec;
 
         public bool TryDecode(byte[] encodedBytes, string? contentType, out OfficeRasterImage? image) {
             _token.ThrowIfCancellationRequested();

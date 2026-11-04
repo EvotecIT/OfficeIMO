@@ -91,12 +91,14 @@ deck.Save();
 using OfficeIMO.PowerPoint;
 
 using var deck = PowerPointDocument.Load("Review.pptx");
-int replaced = deck.ReplaceText("Quarterly", "Annual", includeNotes: true);
+int replaced = deck.ReplaceAll("Quarterly", "Annual", new PowerPointTextSearchOptions { IncludeNotes = true });
 foreach (PowerPointSlide slide in deck.Slides) {
     Console.WriteLine(slide.Notes.Text);
 }
 deck.Save("Review-annual.pptx");
 ```
+
+`ReplaceAll` matches ordinally and ignores case by default, like Word and PDF; set `MatchCase` or `WholeWords` on the options to change that. Textbox and table matches lie within one text run, so a word split across differently formatted runs is not replaced. Tables are included by default and speaker notes only with `IncludeNotes`.
 
 For files from outside your organization, load with `PowerPointLoadOptions.UntrustedDefaults`, which rejects macros, embedded objects, ActiveX and external relationships before parsing.
 
@@ -138,7 +140,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 | Inspect | 6 | 0 | 0 | 0 | 0 | 0 |
 | Validate | 4 | 0 | 0 | 0 | 0 | 2 |
 | Remove | 5 | 0 | 0 | 0 | 0 | 0 |
-| Convert | 72 | 14 | 0 | 26 | 0 | 0 |
+| Convert | 72 | 15 | 0 | 26 | 0 | 0 |
 | Export | 5 | 0 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.PowerPoint` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).

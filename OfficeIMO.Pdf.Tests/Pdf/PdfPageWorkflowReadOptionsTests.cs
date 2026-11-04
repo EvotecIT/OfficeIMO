@@ -6,7 +6,7 @@ namespace OfficeIMO.Tests.Pdf;
 public class PdfPageWorkflowReadOptionsTests {
     [Fact]
     public void CropAndTranslateUsesThePasswordCapturedWhenLoadingTheSource() {
-        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Protected crop content")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(p => p.AddText("Protected crop content")).ToBytes();
         byte[] encrypted = PdfDocument.Load(source).Security.Encrypt(new PdfStandardEncryptionOptions("reader") {
             OwnerPassword = "owner", Algorithm = PdfStandardEncryptionAlgorithm.Aes128
         }).Pdf;

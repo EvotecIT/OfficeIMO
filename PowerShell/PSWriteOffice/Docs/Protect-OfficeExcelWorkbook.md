@@ -11,17 +11,17 @@ Protects workbook structure or windows metadata. This is not file encryption.
 ## SYNTAX
 ### Context (Default)
 ```powershell
-Protect-OfficeExcelWorkbook [-NoStructure] [-ProtectWindows] [-Password <string>] [-LegacyPasswordHash <string>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Protect-OfficeExcelWorkbook [-NoStructure] [-ProtectWindows] [-Password <securestring>] [-LegacyPasswordHash <string>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Path
 ```powershell
-Protect-OfficeExcelWorkbook [-Path] <string> [-NoStructure] [-ProtectWindows] [-Password <string>] [-LegacyPasswordHash <string>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Protect-OfficeExcelWorkbook [-Path] <string> [-NoStructure] [-ProtectWindows] [-Password <securestring>] [-LegacyPasswordHash <string>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Protect-OfficeExcelWorkbook -Document <ExcelDocument> [-NoStructure] [-ProtectWindows] [-Password <string>] [-LegacyPasswordHash <string>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Protect-OfficeExcelWorkbook -Document <ExcelDocument> [-NoStructure] [-ProtectWindows] [-Password <securestring>] [-LegacyPasswordHash <string>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -108,7 +108,7 @@ Accept wildcard characters: False
 Optional workbook protection password. This is UI protection, not package encryption.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: Context, Path, Document
 Aliases: None
 Possible values:

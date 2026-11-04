@@ -11,12 +11,12 @@ public enum OdfConversionLossPolicy {
 }
 
 /// <summary>Exception retaining the complete conversion report rejected by a loss policy.</summary>
-public sealed class OdfConversionLossException : InvalidOperationException {
+public sealed class OdfConversionLossException : OfficeConversionException {
     /// <summary>Creates an exception for the rejected report.</summary>
-    public OdfConversionLossException(OdfConversionReport report, string message) : base(message) {
-        Report = report ?? throw new ArgumentNullException(nameof(report));
+    public OdfConversionLossException(OdfConversionReport report, string message) : base(message, report) {
+        Report = report;
     }
 
     /// <summary>Complete feature-level conversion evidence.</summary>
-    public OdfConversionReport Report { get; }
+    public new OdfConversionReport Report { get; }
 }

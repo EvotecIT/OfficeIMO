@@ -17,10 +17,10 @@ public sealed class ProjectReportWorkflowTests {
         using var workbook = ProjectReportWorkflow.CreateExcel(view);
         using var saved = ExcelDocument.Load(new MemoryStream(workbook.ToBytes()));
         var usage = saved.Sheets.Single(sheet => sheet.Name == "Work hours");
-        Assert.Equal(100U, usage.GetPageSetup().Scale); Assert.Null(usage.GetPageSetup().FitToWidth);
-        Assert.Equal(OfficePageOrientation.Landscape, usage.GetPageSetup().Orientation);
-        Assert.Equal(1, usage.GetPrintTitles().FirstRow); Assert.Equal(1, usage.GetPrintTitles().FirstColumn); Assert.Equal(2, usage.GetPrintTitles().LastColumn);
-        Assert.Equal(OfficePageOrientation.Portrait, saved.Sheets.Single(sheet => sheet.Name == "Report").GetPageSetup().Orientation);
+        Assert.Equal(100U, usage.PageSetup.Scale); Assert.Null(usage.PageSetup.FitToWidth);
+        Assert.Equal(OfficePageOrientation.Landscape, usage.PageSetup.Orientation);
+        Assert.Equal(1, usage.PageSetup.PrintTitles.FirstRow); Assert.Equal(1, usage.PageSetup.PrintTitles.FirstColumn); Assert.Equal(2, usage.PageSetup.PrintTitles.LastColumn);
+        Assert.Equal(OfficePageOrientation.Portrait, saved.Sheets.Single(sheet => sheet.Name == "Report").PageSetup.Orientation);
         Assert.Empty(saved.ValidateDocument());
     }
 
@@ -67,8 +67,8 @@ public sealed class ProjectReportWorkflowTests {
     [Fact]
     public void ExcelIntegralDecimalScaleIsNormalizedBeforeIdentityImport() {
         using var workbook = ExcelDocument.Create(); var sheet = workbook.AddSheet("Tasks");
-        sheet.CellValue(1, 1, "Uid"); sheet.CellValue(1, 2, "Name");
-        sheet.CellValue(2, 1, 1.0m); sheet.CellValue(2, 2, "Task");
+        sheet.Cell(1, 1).SetValue("Uid"); sheet.Cell(1, 2).SetValue("Name");
+        sheet.Cell(2, 1).SetValue(1.0m); sheet.Cell(2, 2).SetValue("Task");
         Assert.True(sheet.TryGetCellValueSnapshot(2, 1, out var raw)); Assert.Equal("1.0", raw!.RawValue);
         var table = ProjectDataWorkflow.ReadExcel(sheet, 1, 2);
         var mapped = new ProjectMappedTable(ProjectDataKind.Tasks, table, new[] { ProjectDataField.Uid, ProjectDataField.Name }.Select(f => new ProjectDataColumn(f, f.ToString())));
@@ -83,8 +83,8 @@ public sealed class ProjectReportWorkflowTests {
     public void NativeExcelNumbersNormalizeWithoutLosingPrecision(double number, string expected) {
         using var workbook = ExcelDocument.Create();
         var sheet = workbook.AddSheet("Tasks");
-        sheet.CellValue(1, 1, "Uid"); sheet.CellValue(1, 2, "Name");
-        sheet.CellValue(2, 1, number); sheet.CellValue(2, 2, "Task");
+        sheet.Cell(1, 1).SetValue("Uid"); sheet.Cell(1, 2).SetValue("Name");
+        sheet.Cell(2, 1).SetValue(number); sheet.Cell(2, 2).SetValue("Task");
         var table = ProjectDataWorkflow.ReadExcel(sheet, 1, 2);
         Assert.Equal(expected, table.Rows[0][0]);
         var mapped = new ProjectMappedTable(ProjectDataKind.Tasks, table, new[] { ProjectDataField.Uid, ProjectDataField.Name }.Select(f => new ProjectDataColumn(f, f.ToString())));
@@ -97,7 +97,7 @@ public sealed class ProjectReportWorkflowTests {
     [InlineData(-1e-29)]
     public void NativeExcelNumbersRejectDecimalUnderflow(double number) {
         using var workbook = ExcelDocument.Create(); var sheet = workbook.AddSheet("Data");
-        sheet.CellValue(1, 1, "Cost"); sheet.CellValue(2, 1, number);
+        sheet.Cell(1, 1).SetValue("Cost"); sheet.Cell(2, 1).SetValue(number);
         Assert.Throws<InvalidDataException>(() => ProjectDataWorkflow.ReadExcel(sheet, 1, 1));
     }
 
@@ -119,7 +119,7 @@ public sealed class ProjectReportWorkflowTests {
         Assert.Empty(presentation.ValidateDocument());
         using var presentationCopy = PowerPointDocument.Load(new MemoryStream(presentation.ToBytes()));
         Assert.True(presentationCopy.Slides.Count > 1);
-        Assert.All(presentationCopy.Slides, slide => Assert.Single(slide.Shapes, shape => shape is PowerPointTable || shape is PowerPointPicture));
+        Assert.All(presentationCopy.Slides, slide => Assert.Single(slide.Shapes, shape => shape is PowerPointTable || shape is PowerPointImage));
         using var workbook = ProjectReportWorkflow.CreateExcel(view);
         using var workbookCopy = ExcelDocument.Load(new MemoryStream(workbook.ToBytes()));
         Assert.Empty(workbookCopy.ValidateDocument());

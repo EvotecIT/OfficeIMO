@@ -50,7 +50,7 @@ This matrix defines the current `OfficeIMO.Bibliography` data, preservation, con
 - Date parsing bounds component scanning before allocating substrings. Nonnumeric literal dates retain their original surrounding whitespace; strict output reports only whitespace that the selected destination actually normalizes, while trailing whitespace survives BibLaTeX, RIS, NBIB, and EndNote XML.
 - BibTeX and BibLaTeX keep whitespace-only literal contributor names distinct from structured names, report structured components hidden by a literal name, and observe cancellation during field and directive escaping, terminal-backslash checks, and delimiter-safety scans. CSL native objects and arrays accepted with comments or trailing commas retain their JSON shape and are normalized to strict canonical JSON after edits.
 - `BibliographyConversionReport` records stable codes, severity, action, item key, and field. `HasLoss` covers approximated, omitted, and error decisions.
-- `BibliographyWriteOptions.RequireNoLoss` rejects a write before bytes are returned when conversion would lose data.
+- `BibliographyWriteOptions.ThrowIfLoss` rejects a write before bytes are returned when conversion would lose data.
 - Writer options reject undefined mode or destination-format enum values before preserve or canonical output can mutate a destination.
 
 ## Local reference resolution

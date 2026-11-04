@@ -57,7 +57,7 @@ namespace OfficeIMO.Excel {
             double scale = rasterState.Scale;
             int headerHeight = chrome.HasHeader ? ResolveHeaderFooterBandHeight(chrome.HeaderImageHeightPoints, scale) : 0;
             int footerHeight = chrome.HasFooter ? ResolveHeaderFooterBandHeight(chrome.FooterImageHeightPoints, scale) : 0;
-            bool pageSetupCanvasApplied = ShouldApplyPageSetupCanvas(GetPageSetup());
+            bool pageSetupCanvasApplied = ShouldApplyPageSetupCanvas(PageSetup);
             int width = Math.Max(1, content.Width);
             int height = pageSetupCanvasApplied
                 ? Math.Max(1, content.Height)

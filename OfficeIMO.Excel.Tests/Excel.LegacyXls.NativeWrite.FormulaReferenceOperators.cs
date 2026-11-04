@@ -13,19 +13,19 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("ReferenceOps");
-                    sheet.CellValue(1, 2, 10d);
-                    sheet.CellValue(1, 3, 20d);
-                    sheet.CellValue(1, 4, 30d);
-                    sheet.CellValue(1, 1, 30d);
-                    sheet.CellFormula(1, 1, "SUM((B1:C1))");
-                    sheet.CellValue(2, 1, 30d);
-                    sheet.CellFormula(2, 1, "SUM((B1,C1))");
-                    sheet.CellValue(3, 1, 20d);
-                    sheet.CellFormula(3, 1, "SUM((B1:D1 C1:C1))");
-                    sheet.CellValue(4, 1, 30d);
-                    sheet.CellFormula(4, 1, "SUM(B:C)");
-                    sheet.CellValue(5, 1, 4d);
-                    sheet.CellFormula(5, 1, "COUNT(1:1)");
+                    sheet.Cell(1, 2).SetValue(10d);
+                    sheet.Cell(1, 3).SetValue(20d);
+                    sheet.Cell(1, 4).SetValue(30d);
+                    sheet.Cell(1, 1).SetValue(30d);
+                    sheet.Cell(1, 1).SetFormula("SUM((B1:C1))");
+                    sheet.Cell(2, 1).SetValue(30d);
+                    sheet.Cell(2, 1).SetFormula("SUM((B1,C1))");
+                    sheet.Cell(3, 1).SetValue(20d);
+                    sheet.Cell(3, 1).SetFormula("SUM((B1:D1 C1:C1))");
+                    sheet.Cell(4, 1).SetValue(30d);
+                    sheet.Cell(4, 1).SetFormula("SUM(B:C)");
+                    sheet.Cell(5, 1).SetValue(4d);
+                    sheet.Cell(5, 1).SetFormula("COUNT(1:1)");
 
                     document.Save(xlsOutputPath);
                 }
@@ -68,12 +68,12 @@ namespace OfficeIMO.Tests {
                     ExcelSheet fourth = document.AddSheet("Region 4");
                     ExcelSheet calc = document.AddSheet("Calc");
 
-                    first.CellValue(1, 1, 1d);
-                    second.CellValue(1, 1, 2d);
-                    third.CellValue(1, 1, 3d);
-                    fourth.CellValue(1, 1, 4d);
-                    calc.CellValue(1, 1, 7d);
-                    calc.CellFormula(1, 1, "SUM(('Region 1:Region 2'!A1,'Region 4'!A1))");
+                    first.Cell(1, 1).SetValue(1d);
+                    second.Cell(1, 1).SetValue(2d);
+                    third.Cell(1, 1).SetValue(3d);
+                    fourth.Cell(1, 1).SetValue(4d);
+                    calc.Cell(1, 1).SetValue(7d);
+                    calc.Cell(1, 1).SetFormula("SUM(('Region 1:Region 2'!A1,'Region 4'!A1))");
 
                     document.Save(xlsOutputPath);
                 }

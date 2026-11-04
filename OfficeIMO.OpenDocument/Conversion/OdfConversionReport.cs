@@ -3,7 +3,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.OpenDocument;
 
 /// <summary>Feature mapping report for one explicit conversion between OpenDocument and another Office format.</summary>
-public sealed class OdfConversionReport : IOfficeConversionReport {
+public sealed class OdfConversionReport : OfficeConversionReport {
     private readonly List<OdfConversionMapping> _mappings = new List<OdfConversionMapping>();
 
     /// <summary>Creates an empty conversion report.</summary>
@@ -21,30 +21,27 @@ public sealed class OdfConversionReport : IOfficeConversionReport {
     /// <summary>Feature results in the order reported by the adapter.</summary>
     public IReadOnlyList<OdfConversionMapping> Mappings => _mappings;
     /// <summary>Category-preserving diagnostics for downstream acceptance policies.</summary>
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => Array.AsReadOnly(
-        _mappings.Select(mapping => new OfficeConversionFidelityDiagnostic(
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics => Array.AsReadOnly(
+        _mappings.Select(mapping => new global::OfficeIMO.OfficeDiagnostic(
             "ODF_" + mapping.Status.ToString().ToUpperInvariant(),
+            global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
             mapping.Message ?? $"{mapping.Count} '{mapping.Feature}' item(s) mapped as {mapping.Status}.",
+            mapping.Feature,
+            $"OfficeIMO.OpenDocument:{SourceFormat}->{TargetFormat}",
             mapping.Status switch {
                 OdfConversionMappingStatus.Converted => OfficeConversionLossKind.None,
                 OdfConversionMappingStatus.Approximated => OfficeConversionLossKind.Approximation,
                 _ => OfficeConversionLossKind.Omission
-            },
-            $"OfficeIMO.OpenDocument:{SourceFormat}->{TargetFormat}",
-            mapping.Feature)).ToArray());
+            })).ToArray());
     /// <summary>True when at least one feature was approximated, skipped, or unsupported.</summary>
-    public bool HasLoss => _mappings.Any(mapping => mapping.Status != OdfConversionMappingStatus.Converted);
+    public override bool HasLoss => _mappings.Any(mapping => mapping.Status != OdfConversionMappingStatus.Converted);
     /// <summary>True when at least one feature was skipped or unsupported.</summary>
     public bool HasSkippedOrUnsupported => _mappings.Any(mapping =>
         mapping.Status == OdfConversionMappingStatus.Skipped || mapping.Status == OdfConversionMappingStatus.Unsupported);
 
     /// <summary>Throws when any feature was approximated, skipped, or unsupported.</summary>
-    public void RequireNoLoss() {
-        if (HasLoss) {
-            throw new OdfConversionLossException(this,
-                $"Conversion from {SourceFormat} to {TargetFormat} was lossy. Inspect the attached conversion report for details.");
-        }
-    }
+    protected override OfficeConversionException CreateLossException() => new OdfConversionLossException(this, $"Conversion from {SourceFormat} to {TargetFormat} was lossy. Inspect the attached conversion report for details.");
 
     /// <summary>Throws when any feature was skipped or unsupported; approximations are accepted.</summary>
     public void RequireNoSkippedOrUnsupported() {
@@ -59,7 +56,7 @@ public sealed class OdfConversionReport : IOfficeConversionReport {
         switch (policy) {
             case OdfConversionLossPolicy.ReportOnly: return;
             case OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported: RequireNoSkippedOrUnsupported(); return;
-            case OdfConversionLossPolicy.ThrowOnAnyLoss: RequireNoLoss(); return;
+            case OdfConversionLossPolicy.ThrowOnAnyLoss: ThrowIfLoss(); return;
             default: throw new ArgumentOutOfRangeException(nameof(policy));
         }
     }

@@ -6,7 +6,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
         internal static void Create(string folder) {
             using var document = WordDocument.Create(Path.Combine(folder, "example.docx"));
             document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(11);
-            document.BuiltinDocumentProperties.Title = "Statement of work";
+            document.Properties.Title = "Statement of work";
             document.AddParagraph("Statement of work").Style = WordParagraphStyles.Heading1;
             document.AddParagraph("NORTHWIND / DOCUMENT AUTOMATION / SOW-018");
             document.AddParagraph("Deliver an editable reporting workflow with a clear boundary between implementation and acceptance. This example is a scope record, not a legal template.");
@@ -27,11 +27,11 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
                     cell.MarginBottom = global::OfficeIMO.OfficeLength.Centimeters(0.14D);
                     cell.MarginLeft = global::OfficeIMO.OfficeLength.Centimeters(0.16D);
                     cell.MarginRight = global::OfficeIMO.OfficeLength.Centimeters(0.16D);
-                    cell.ShadingFillColorHex = row == 0 ? "17365D" : row % 2 == 0 ? "F1F5F9" : "FFFFFF";
+                    cell.ShadingFillColor = OfficeColor.Parse(row == 0 ? "17365D" : row % 2 == 0 ? "F1F5F9" : "FFFFFF");
                     var paragraph = cell.Paragraphs[0];
                     paragraph.Text = rows[row][column];
                     paragraph.Bold = row == 0;
-                    paragraph.ColorHex = row == 0 ? "FFFFFF" : "243247";
+                    paragraph.Color = OfficeColor.Parse(row == 0 ? "FFFFFF" : "243247");
                     paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(10);
                     paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(2D);
                 }
@@ -50,7 +50,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
                 paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(heading ? 14 : 0);
                 paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(title ? 14 : heading ? 8 : 7);
                 if (title || heading) {
-                    paragraph.ColorHex = "17365D";
+                    paragraph.Color = OfficeColor.Parse("17365D");
                     paragraph.Bold = true;
                     paragraph.KeepWithNext = true;
                 }

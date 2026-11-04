@@ -23,7 +23,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(rendered.Fonts.TryResolveFaceForText(marker.Text, marker.Font.FamilyName,
             marker.FontDescriptor, marker.Font.Size, out OfficeFontFace? face));
         Assert.Equal(face!.Program.Measure(marker.Text, marker.Font.Size), marker.TextAdvanceWidth!.Value, 6);
-        Assert.DoesNotContain(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.FontMetricsEstimated
+        Assert.DoesNotContain(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.FontMetricsEstimated
             && item.Source == marker.Source);
     }
 
@@ -35,7 +35,7 @@ public sealed partial class HtmlRenderingTests {
             "<ol style='font-family:Supplied,Arial'><li>A</li></ol>"), options);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == "InstalledFontResolved");
         Assert.DoesNotContain(rendered.Fonts.Faces, face => face.FamilyName == "Arial");
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(rendered.Fonts.TryResolveFaceForText(alt.Text, alt.Font.FamilyName,
             alt.FontDescriptor, alt.Font.Size, out OfficeFontFace? face));
         Assert.NotNull(face);
-        Assert.DoesNotContain(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.FontMetricsEstimated
+        Assert.DoesNotContain(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.FontMetricsEstimated
             && item.Source == alt.Source);
     }
 
@@ -68,8 +68,8 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText parent = Assert.Single(rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene))
             .OfType<HtmlRenderText>(), text => text.Text == "AAAA");
         Assert.Contains(rendered.Fonts.Faces, face => face.FamilyName == "Late");
-        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontMetricsEstimated
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontMetricsEstimated
             && diagnostic.Source == parent.Source);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
     }
 }

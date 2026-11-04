@@ -170,9 +170,9 @@ namespace OfficeIMO.Excel {
             document._unchangedPackageBytes = null;
 
             // Initialize document property helpers
-            document.BuiltinDocumentProperties = new ExcelBuiltinDocumentProperties(document);
+            document.Properties = new ExcelBuiltinDocumentProperties(document);
             document.ApplicationProperties = new ExcelApplicationProperties(document);
-            document.CustomDocumentProperties.SetChangeHandler(document.MarkCustomDocumentPropertiesChanged);
+            document.CustomProperties.SetChangeHandler(document.MarkCustomDocumentPropertiesChanged);
             document.LoadCustomDocumentProperties();
 
             if (theme != null) document.SetWorkbookThemeXml(CreateWorkbookThemeXml(theme));
@@ -211,9 +211,9 @@ namespace OfficeIMO.Excel {
                 _persistenceMode = persistenceMode,
             };
 
-            document.BuiltinDocumentProperties = new ExcelBuiltinDocumentProperties(document);
+            document.Properties = new ExcelBuiltinDocumentProperties(document);
             document.ApplicationProperties = new ExcelApplicationProperties(document);
-            document.CustomDocumentProperties.SetChangeHandler(document.MarkCustomDocumentPropertiesChanged);
+            document.CustomProperties.SetChangeHandler(document.MarkCustomDocumentPropertiesChanged);
             document.LoadCustomDocumentProperties();
             ExcelChartAxisIdGenerator.Initialize(document._spreadSheetDocument);
             return document;
@@ -280,21 +280,29 @@ namespace OfficeIMO.Excel {
             bool shouldCopyBackToFilePath = !shouldCopyBack && !string.IsNullOrEmpty(filePath) && saveOnDispose;
             bool shouldRetainPackageStream = shouldCopyBack || shouldCopyBackToFilePath;
 
-            MemoryStream? normalizedStream = null;
+            Stream? normalizedStream = null;
 
             try {
-                normalizedStream = shouldRetainPackageStream
-                    ? new NonDisposingMemoryStream(bytes.Length + StreamBufferSize)
-                    : new MemoryStream(bytes.Length + StreamBufferSize);
-                normalizedStream.Write(bytes, 0, bytes.Length);
-                normalizedStream.Position = 0;
+                byte[] unchangedPackageBytes;
+                if (!shouldRetainPackageStream && Utilities.ExcelPackageUtilities.TryNormalizeContentTypes(
+                        bytes, effectiveOpenSettings.MaxCharactersInPart, out byte[] normalizedBytes, out _)) {
+                    normalizedStream = new ExcelCopyOnWriteStream(normalizedBytes);
+                    unchangedPackageBytes = normalizedBytes;
+                } else {
+                    var packageStream = shouldRetainPackageStream
+                        ? new NonDisposingMemoryStream(bytes.Length + StreamBufferSize)
+                        : new MemoryStream(bytes.Length + StreamBufferSize);
+                    normalizedStream = packageStream;
+                    packageStream.Write(bytes, 0, bytes.Length);
+                    packageStream.Position = 0;
 
-                bool normalizedContentTypes = Utilities.ExcelPackageUtilities.NormalizeContentTypes(
-                    normalizedStream,
-                    leaveOpen: true,
-                    maxCharactersInPart: effectiveOpenSettings.MaxCharactersInPart);
-                normalizedStream.Position = 0;
-                byte[] unchangedPackageBytes = normalizedContentTypes ? normalizedStream.ToArray() : bytes;
+                    bool normalizedContentTypes = Utilities.ExcelPackageUtilities.NormalizeContentTypes(
+                        packageStream,
+                        leaveOpen: true,
+                        maxCharactersInPart: effectiveOpenSettings.MaxCharactersInPart);
+                    packageStream.Position = 0;
+                    unchangedPackageBytes = normalizedContentTypes ? packageStream.ToArray() : bytes;
+                }
 
                 var memDoc = SpreadsheetDocument.Open(normalizedStream, !readOnly, effectiveOpenSettings);
                 ExcelDocument document = CreateDocument(
@@ -308,7 +316,12 @@ namespace OfficeIMO.Excel {
                     packageContentTypesKnownNormalized: true,
                     unchangedPackageBytes: unchangedPackageBytes,
                     persistenceMode: options.PersistenceMode);
+                document._packageCopyOnWriteStream = normalizedStream as ExcelCopyOnWriteStream;
+                document._packageOnCopyOnWriteStream = document._packageCopyOnWriteStream != null ? memDoc : null;
                 document._sourceMaxCharactersInPart = effectiveOpenSettings.MaxCharactersInPart;
+                // The streaming readers apply neither setting, so those loads stay on the SDK route.
+                document._readSnapshotAllowed = effectiveOpenSettings.MaxCharactersInPart == 0
+                    && effectiveOpenSettings.MarkupCompatibilityProcessSettings.ProcessMode == MarkupCompatibilityProcessMode.NoProcess;
                 document._openXmlOriginalPackageBytes = OfficeCompatibilitySourceCarrier.ContainsPackageCarrier(bytes)
                     ? (byte[])bytes.Clone()
                     : null;

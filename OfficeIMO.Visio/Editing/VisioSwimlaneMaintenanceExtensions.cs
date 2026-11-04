@@ -37,7 +37,7 @@ namespace OfficeIMO.Visio {
 
             List<VisioSwimlaneLane> lanes = new();
             int order = 0;
-            foreach (VisioShape body in page.Shapes.Where(IsLaneBody).OrderByDescending(shape => shape.PinY).ThenBy(shape => shape.PinX)) {
+            foreach (VisioShape body in page.Shapes.Where(IsLaneBody).OrderByDescending(shape => shape.PinYInches).ThenBy(shape => shape.PinXInches)) {
                 string? id = GetLaneId(body, header: false);
                 if (string.IsNullOrWhiteSpace(id)) {
                     continue;
@@ -60,7 +60,7 @@ namespace OfficeIMO.Visio {
 
             List<VisioSwimlanePhase> phases = new();
             int order = 0;
-            foreach (VisioShape header in page.Shapes.Where(IsPhaseHeader).OrderBy(shape => shape.PinX)) {
+            foreach (VisioShape header in page.Shapes.Where(IsPhaseHeader).OrderBy(shape => shape.PinXInches)) {
                 string? id = GetPhaseId(header);
                 if (!string.IsNullOrWhiteSpace(id)) {
                     phases.Add(new VisioSwimlanePhase(id!, header, order++));
@@ -81,7 +81,7 @@ namespace OfficeIMO.Visio {
             IReadOnlyList<VisioSwimlaneLane> lanes = page.GetSwimlaneLanes();
             IReadOnlyList<VisioSwimlanePhase> phases = page.GetSwimlanePhases();
             List<VisioSwimlaneActivityPlacement> activities = new();
-            foreach (VisioShape shape in page.Shapes.Where(IsActivityShape).OrderByDescending(shape => shape.PinY).ThenBy(shape => shape.PinX)) {
+            foreach (VisioShape shape in page.Shapes.Where(IsActivityShape).OrderByDescending(shape => shape.PinYInches).ThenBy(shape => shape.PinXInches)) {
                 string? laneId = GetPlacementLaneId(shape) ?? InferLaneId(shape, lanes);
                 string? phaseId = GetPlacementPhaseId(shape) ?? InferPhaseId(shape, phases);
                 activities.Add(new VisioSwimlaneActivityPlacement(shape, laneId, phaseId, GetActivityKind(shape)));
@@ -103,8 +103,8 @@ namespace OfficeIMO.Visio {
             var unassigned = new List<string>();
 
             foreach (VisioShape shape in page.Shapes.Where(IsActivityShape)
-                         .OrderByDescending(item => item.PinY)
-                         .ThenBy(item => item.PinX)
+                         .OrderByDescending(item => item.PinYInches)
+                         .ThenBy(item => item.PinXInches)
                          .ThenBy(item => item.Id, StringComparer.Ordinal)) {
                 string[] matchingLanes = lanes.Where(lane => ContainsCenter(
                         lane.Body.GetShapeBounds(), shape))
@@ -127,14 +127,14 @@ namespace OfficeIMO.Visio {
         }
 
         private static bool ContainsCenter(VisioShapeBounds bounds,
-            VisioShape shape) => shape.PinX >= bounds.Left - BoundsTolerance &&
-            shape.PinX <= bounds.Right + BoundsTolerance &&
-            shape.PinY >= bounds.Bottom - BoundsTolerance &&
-            shape.PinY <= bounds.Top + BoundsTolerance;
+            VisioShape shape) => shape.PinXInches >= bounds.LeftInches - BoundsTolerance &&
+            shape.PinXInches <= bounds.RightInches + BoundsTolerance &&
+            shape.PinYInches >= bounds.BottomInches - BoundsTolerance &&
+            shape.PinYInches <= bounds.TopInches + BoundsTolerance;
 
         private static bool ContainsHorizontalCenter(VisioShapeBounds bounds,
-            VisioShape shape) => shape.PinX >= bounds.Left - BoundsTolerance &&
-            shape.PinX <= bounds.Right + BoundsTolerance;
+            VisioShape shape) => shape.PinXInches >= bounds.LeftInches - BoundsTolerance &&
+            shape.PinXInches <= bounds.RightInches + BoundsTolerance;
 
         /// <summary>
         /// Finds a swimlane lane by identifier.
@@ -222,8 +222,8 @@ namespace OfficeIMO.Visio {
 
             foreach (IGrouping<string, VisioSwimlaneActivityPlacement> group in activities.GroupBy(activity => activity.LaneId + "\u001f" + activity.PhaseId, StringComparer.Ordinal)) {
                 List<VisioSwimlaneActivityPlacement> ordered = group
-                    .OrderByDescending(activity => activity.Shape.PinY)
-                    .ThenBy(activity => activity.Shape.PinX)
+                    .OrderByDescending(activity => activity.Shape.PinYInches)
+                    .ThenBy(activity => activity.Shape.PinXInches)
                     .ThenBy(activity => activity.Shape.Id, StringComparer.Ordinal)
                     .ToList();
                 if (ordered.Count == 0) {
@@ -234,15 +234,15 @@ namespace OfficeIMO.Visio {
                 string phaseId = ordered[0].PhaseId!;
                 VisioShape laneBody = lanes[laneId].Body;
                 VisioShape phaseHeader = phases[phaseId].Header;
-                double totalHeight = ordered.Sum(activity => activity.Shape.Height) + Math.Max(0, ordered.Count - 1) * resolvedOptions.ActivityGap;
-                double y = laneBody.PinY + (totalHeight / 2D);
+                double totalHeight = ordered.Sum(activity => activity.Shape.HeightInches) + Math.Max(0, ordered.Count - 1) * resolvedOptions.ActivityGap;
+                double y = laneBody.PinYInches + (totalHeight / 2D);
                 foreach (VisioSwimlaneActivityPlacement activity in ordered) {
                     VisioShape shape = activity.Shape;
-                    y -= shape.Height / 2D;
-                    shape.PinX = phaseHeader.PinX;
-                    shape.PinY = y;
+                    y -= shape.HeightInches / 2D;
+                    shape.PinXInches = phaseHeader.PinXInches;
+                    shape.PinYInches = y;
                     MarkActivityPlacement(shape, laneId, phaseId, activity.ActivityKind);
-                    y -= shape.Height / 2D + resolvedOptions.ActivityGap;
+                    y -= shape.HeightInches / 2D + resolvedOptions.ActivityGap;
                 }
             }
 
@@ -369,7 +369,7 @@ namespace OfficeIMO.Visio {
         private static string? InferLaneId(VisioShape activity, IReadOnlyList<VisioSwimlaneLane> lanes) {
             foreach (VisioSwimlaneLane lane in lanes) {
                 VisioShapeBounds bounds = lane.Body.GetShapeBounds();
-                if (activity.PinY >= bounds.Bottom - BoundsTolerance && activity.PinY <= bounds.Top + BoundsTolerance) {
+                if (activity.PinYInches >= bounds.BottomInches - BoundsTolerance && activity.PinYInches <= bounds.TopInches + BoundsTolerance) {
                     return lane.Id;
                 }
             }
@@ -380,7 +380,7 @@ namespace OfficeIMO.Visio {
         private static string? InferPhaseId(VisioShape activity, IReadOnlyList<VisioSwimlanePhase> phases) {
             foreach (VisioSwimlanePhase phase in phases) {
                 VisioShapeBounds bounds = phase.Header.GetShapeBounds();
-                if (activity.PinX >= bounds.Left - BoundsTolerance && activity.PinX <= bounds.Right + BoundsTolerance) {
+                if (activity.PinXInches >= bounds.LeftInches - BoundsTolerance && activity.PinXInches <= bounds.RightInches + BoundsTolerance) {
                     return phase.Id;
                 }
             }

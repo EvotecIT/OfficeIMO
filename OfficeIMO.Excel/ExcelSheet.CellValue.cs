@@ -37,7 +37,7 @@ namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         internal const int CellValuePlainStringPromotionSharedStringCount = 4096;
         private const int CellValueSharedStringIndexCacheLimit = 256;
-        private const int PendingDirectCellValueMinimumCellCount = 128;
+        internal const int PendingDirectCellValueMinimumCellCount = 128;
         private static readonly bool EnablePendingDirectCellValueBuffer = true;
         private static readonly bool MirrorPendingDirectCellValueBufferToWorksheet = false;
         private static readonly DateTime CellValueExcelMinimumSupportedDate = DateTime.FromOADate(2d);
@@ -47,10 +47,11 @@ namespace OfficeIMO.Excel {
         private WeakReference<SharedStringTable>? _cellValueSharedStringTable;
         private uint? _cellValueDefaultDateStyleIndex;
         private uint? _cellValueDefaultDurationStyleIndex;
-        private CellValueDirectSaveBuffer? _pendingCellValueDirectSaveBuffer;
+        private ExcelCellValueBuffer? _pendingCellValueDirectSaveBuffer;
         private int _pendingCellValueDirectSaveThreadId;
         private bool _disablePendingCellValueDirectSaveBuffer;
         private bool _materializingPendingCellValueDirectSaveBuffer;
         private bool _hasCellValueDomWrites;
+        private Cell? _styleScratchCell;
     }
 }

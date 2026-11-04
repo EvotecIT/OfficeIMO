@@ -20,7 +20,7 @@ internal static class IWorkTextBoxLayoutReader {
         if (!shape.HasField(2)) return null;
         if (style?.MessageType != 2025) { complete = false; return null; }
         IReadOnlyList<(IWorkArchiveRecord Record, IWorkWireMessage Message)> chain = IWorkStyleReader.ReadChain(
-            index, style.Identifier, budget.MaximumTextStyleInheritanceDepth, type => type == 2025,
+            index, style.Identifier, budget.MaxTextStyleInheritanceDepth, type => type == 2025,
             false, references, ref complete, superArchiveDepth: 2);
         bool? shrink = null;
         bool singleColumn = false;

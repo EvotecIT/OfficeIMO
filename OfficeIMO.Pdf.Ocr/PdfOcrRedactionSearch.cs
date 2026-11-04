@@ -65,8 +65,7 @@ public static class PdfOcrRedactionExtensions {
         if (search.LiteralText.Count == 0 && search.RegularExpressions.Count == 0) {
             throw new ArgumentException("OCR redaction search requires at least one literal or regular-expression criterion.", nameof(search));
         }
-        using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, search.CancellationToken);
-        CancellationToken effectiveCancellation = linkedCancellation.Token;
+        CancellationToken effectiveCancellation = cancellationToken;
         effectiveCancellation.ThrowIfCancellationRequested();
 
         Regex[] expressions = search.RegularExpressions

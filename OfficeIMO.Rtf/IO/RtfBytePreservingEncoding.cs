@@ -76,8 +76,8 @@ internal static class RtfBytePreservingEncoding {
         long actual = stream.CanSeek ? stream.Length : checked(limit + 1);
         return new RtfReadLimitException(
             "RtfInputByteLimitExceeded",
-            $"RTF input exceeded {nameof(RtfReadOptions.MaxInputBytes)} ({actual} > {limit}).",
-            nameof(RtfReadOptions.MaxInputBytes),
+            $"RTF input exceeded {nameof(RtfReadLimits.MaxInputBytes)} ({actual} > {limit}).",
+            nameof(RtfReadLimits.MaxInputBytes),
             actual,
             limit);
     }

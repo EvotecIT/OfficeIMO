@@ -187,10 +187,10 @@ public sealed partial class HtmlRenderingTests {
             + DescendantSpannerParagraphs("T", 4), extraCss: "#columns{background:blue}#spanner{background:red}");
 
         AssertDescendantSpannerSourceOnce(rendered, "P1", "P2", "B1", "B2", "SPAN", "C1", "C2", "T1", "T2", "T3", "T4", "AFTER");
-        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.MultiColumnValueUnsupported
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.MultiColumnValueUnsupported
             && diagnostic.Source == "div#wrapper" && diagnostic.Detail?.Contains("clip-path", StringComparison.Ordinal) == true);
         Assert.True(rendered.HasLoss);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
         Assert.Contains(rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene)).OfType<HtmlRenderPathClipGroup>(),
             clip => clip.ClipPath.Kind == OfficeClipPathKind.Empty
                 && DescendantSpannerOwnedText(clip.Visuals).Any(text => text.Text == "SPAN"));

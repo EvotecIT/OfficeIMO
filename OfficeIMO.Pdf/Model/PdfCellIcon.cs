@@ -8,13 +8,13 @@ public sealed class PdfCellIcon {
     private global::OfficeIMO.OfficeLength _size = global::OfficeIMO.OfficeLength.Points(8D);
     private global::OfficeIMO.OfficeLength _offsetX;
     private global::OfficeIMO.OfficeLength _offsetY;
-    private PdfColumnAlign? _horizontalAlignment;
+    private OfficeAlignment? _horizontalAlignment;
 
     /// <summary>Optional icon alignment independent of cell text. Null uses the cell's alignment.</summary>
-    public PdfColumnAlign? HorizontalAlignment {
+    public OfficeAlignment? HorizontalAlignment {
         get => _horizontalAlignment;
         set {
-            if (value.HasValue && (value.Value < PdfColumnAlign.Left || value.Value > PdfColumnAlign.Right))
+            if (value.HasValue && (value.Value < OfficeAlignment.Left || value.Value > OfficeAlignment.Right))
                 throw new System.ArgumentOutOfRangeException(nameof(value), "Icon alignment must be a supported table column alignment.");
             _horizontalAlignment = value;
         }

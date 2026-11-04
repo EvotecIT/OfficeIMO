@@ -26,7 +26,7 @@ internal static class AdvancedScheduleProof {
             using var document = ProjectDocument.Load(file);
             var result = document.Recalculate(new ProjectScheduleOptions { CalculateAssignments = true });
             string target = Path.Combine(output, Path.GetFileName(file));
-            document.Save(target, new ProjectSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+            document.Save(target, new ProjectSaveOptions { AllowLoss = true });
             Console.WriteLine(JsonSerializer.Serialize(new { name = Path.GetFileName(file), tasks = result.Tasks.Count, assignments = result.Assignments.Count, result.Report.Diagnostics }));
         }
         return 0;

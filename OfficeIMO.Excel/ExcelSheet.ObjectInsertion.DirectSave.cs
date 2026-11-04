@@ -115,7 +115,27 @@ namespace OfficeIMO.Excel {
         }
 
         private bool CanRegisterDirectTabularSaveCandidate(int startRow, int startColumn, int columnCount) {
-            if (startRow != 1 || startColumn != 1 || columnCount <= 0 || _excelDocument.HasPackagePropertiesDirty) {
+            if (startRow != 1 || startColumn != 1 || columnCount <= 0 || !IsOnlyVisibleWorksheetWithoutParts()) {
+                return false;
+            }
+
+            var worksheet = WorksheetRoot;
+            foreach (var child in worksheet.ChildElements) {
+                if (child is SheetViews views && IsNeutralSheetViews(views)) continue;
+                if (child is not SheetData sheetData) {
+                    return false;
+                }
+
+                if (sheetData.Elements<Row>().Any(row => row.Elements<Cell>().Any())) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private bool IsOnlyVisibleWorksheetWithoutParts() {
+            if (_excelDocument.HasPackagePropertiesDirty) {
                 return false;
             }
 
@@ -135,27 +155,11 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (WorksheetPart.DrawingsPart != null || WorksheetPart.WorksheetCommentsPart != null || WorksheetPart.ExternalRelationships.Any()) {
+            if (_worksheetPart.DrawingsPart != null || _worksheetPart.WorksheetCommentsPart != null || _worksheetPart.ExternalRelationships.Any()) {
                 return false;
             }
 
-            if (WorksheetPart.TableDefinitionParts.Any()) {
-                return false;
-            }
-
-            var worksheet = WorksheetRoot;
-            foreach (var child in worksheet.ChildElements) {
-                if (child is SheetViews views && IsNeutralSheetViews(views)) continue;
-                if (child is not SheetData sheetData) {
-                    return false;
-                }
-
-                if (sheetData.Elements<Row>().Any(row => row.Elements<Cell>().Any())) {
-                    return false;
-                }
-            }
-
-            return true;
+            return !_worksheetPart.TableDefinitionParts.Any();
         }
 
         internal static string BuildObjectExportRange(int startRow, int columnCount, int dataRowCount, bool includeHeaders) {

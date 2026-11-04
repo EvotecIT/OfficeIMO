@@ -23,10 +23,12 @@ public class PdfOcrTests {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 // The provider's Native box is authored over this eleven-point, 72-point-origin line.
                 DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(72), MarginRight = global::OfficeIMO.OfficeLength.Points(72), MarginTop = global::OfficeIMO.OfficeLength.Points(72), MarginBottom = global::OfficeIMO.OfficeLength.Points(72),
+                PageSetup = {
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(72), Right = global::OfficeIMO.OfficeLength.Points(72), Top = global::OfficeIMO.OfficeLength.Points(72), Bottom = global::OfficeIMO.OfficeLength.Points(72) }
+                },
                 DefaultParagraphStyle = new PdfParagraphStyle { LineHeight = 1.4, SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) }
             })
-            .Paragraph(paragraph => paragraph.Text("Native text"))
+            .Paragraph(paragraph => paragraph.AddText("Native text"))
             .ToBytes();
         var provider = new StubOcrEngine(request => Result(new[] {
             Word("Native", 150, 140, 100, 30, 0.99),
@@ -81,7 +83,7 @@ public class PdfOcrTests {
     [Fact]
     public async Task Document_MergesNativeAndOcrBlocksInVisualReadingOrder() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Native follows OCR"))
+            .Paragraph(paragraph => paragraph.AddText("Native follows OCR"))
             .ToBytes();
         var provider = new StubOcrEngine(request => Result(new[] {
             At(request, "OCR first", 30, 5, 70, 12)
@@ -103,9 +105,9 @@ public class PdfOcrTests {
     [Fact]
     public async Task RecognizeAndMergeAsync_HonorsSelectionAndCancellation() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("One"))
+            .Paragraph(paragraph => paragraph.AddText("One"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Two"))
+            .Paragraph(paragraph => paragraph.AddText("Two"))
             .ToBytes();
         var provider = new StubOcrEngine(_ => Result(Array.Empty<OcrTextSpan>()));
 
@@ -194,10 +196,10 @@ public class PdfOcrTests {
     [Fact]
     public async Task RecognizeAndMergeAsync_AppliesDocumentEvidenceOnceAfterOcrFusion() {
         byte[] pdf = PdfDocument.Create()
-            .Header(header => header.AlignLeft().Text("Shared running header"))
-            .Paragraph(paragraph => paragraph.Text("First page body."))
+            .Header(header => header.Alignment(OfficeAlignment.Left).Text("Shared running header"))
+            .Paragraph(paragraph => paragraph.AddText("First page body."))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Second page body."))
+            .Paragraph(paragraph => paragraph.AddText("Second page body."))
             .ToBytes();
         var provider = new StubOcrEngine(request => Result(
             request.PageNumber == 1
@@ -251,9 +253,9 @@ public class PdfOcrTests {
     [Fact]
     public async Task RecognizeAndMergeAsync_UsesSharedReadPipelineLimits() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("One"))
+            .Paragraph(paragraph => paragraph.AddText("One"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Two"))
+            .Paragraph(paragraph => paragraph.AddText("Two"))
             .ToBytes();
         var provider = new StubOcrEngine(_ => Result(Array.Empty<OcrTextSpan>()));
 
@@ -292,7 +294,7 @@ public class PdfOcrTests {
 
     [Fact]
     public async Task RecognizeAndMergeAsync_RejectsOversizedProviderArtifactsBeforeMerge() {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Native")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Native")).ToBytes();
         var provider = new StubOcrEngine(_ => Result(new[] {
             Word("one", 10, 10, 10, 10, 0.9),
             Word("two", 30, 10, 10, 10, 0.9)
@@ -329,8 +331,8 @@ public class PdfOcrTests {
     [Fact]
     public async Task RecognizeAndMergeAsync_BoundsNativeOverlapWork() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("First native block"))
-            .Paragraph(paragraph => paragraph.Text("Second native block"))
+            .Paragraph(paragraph => paragraph.AddText("First native block"))
+            .Paragraph(paragraph => paragraph.AddText("Second native block"))
             .ToBytes();
         var provider = new StubOcrEngine(_ => Result(new[] {
             Word("scanned", 10, 10, 10, 10, 0.9)
@@ -495,7 +497,7 @@ public class PdfOcrTests {
     [InlineData(270)]
     public async Task RecognizeAndMergeAsync_UsesVisualCoordinatesForRotatedCroppedPages(int rotation) {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Native rotation"))
+            .Paragraph(paragraph => paragraph.AddText("Native rotation"))
             .ToBytes();
         pdf = PdfPageEditor.SetCropBox(pdf, 0, 200, 595, 842);
         pdf = PdfPageEditor.RotatePages(pdf, rotation);
@@ -532,7 +534,7 @@ public class PdfOcrTests {
     [InlineData(180)]
     [InlineData(270)]
     public async Task Document_PreservesOcrVisualGeometryAcrossPageRotation(int rotation) {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Native anchor")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Native anchor")).ToBytes();
         pdf = PdfPageEditor.SetCropBox(pdf, 20, 40, 500, 700);
         pdf = PdfPageEditor.RotatePages(pdf, rotation);
         var provider = new StubOcrEngine(request => Result(new[] {
@@ -557,7 +559,7 @@ public class PdfOcrTests {
 
     [Fact]
     public async Task Document_InfersOnlyRepeatedAlignedOcrRowsAsEditableTable() {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Native anchor")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Native anchor")).ToBytes();
         var provider = new StubOcrEngine(request => Result(new[] {
             At(request, "Item", 30, 220, 34, 12), At(request, "Value", 150, 220, 38, 12),
             At(request, "Alpha", 30, 245, 38, 12), At(request, "10", 150, 245, 18, 12),
@@ -579,11 +581,11 @@ public class PdfOcrTests {
 
         PdfExcelTableImportResult excelResult = result.Document.ConvertToExcelWithEvidence();
         using (excelResult.Value) Assert.Single(excelResult.Report.Entries);
-        PdfOdsConversionResult odsResult = result.Document.ToOdsDocumentResult();
+        PdfOdsConversionResult odsResult = result.Document.ConvertToOdsWithEvidence(null, default);
         Assert.Single(odsResult.Value.Sheets);
 
         PdfPowerPointConversionResult presentationResult = result.Document
-            .ConvertToPowerPointWithEvidence(PowerPointPdfImportOptions.CreateEditableContent());
+            .ConvertToPowerPointWithEvidence(PdfPowerPointExportOptions.CreateEditableContent());
         using (presentationResult.Value) {
             Assert.Single(presentationResult.Report.EditablePages);
             Assert.Equal(1, presentationResult.Report.EditablePages[0].TableCount);
@@ -591,7 +593,7 @@ public class PdfOcrTests {
 
         string html = result.Document.ToHtml();
         Assert.Equal(1, html.Split(new[] { "Alpha" }, StringSplitOptions.None).Length - 1);
-        string positioned = result.Document.ToHtml(PdfToHtmlOptions.CreatePositionedReviewProfile());
+        string positioned = result.Document.ToHtml(PdfHtmlExportOptions.CreatePositionedReviewProfile());
         Assert.Contains("Native anchor", positioned, StringComparison.Ordinal);
         Assert.Equal(1, positioned.Split(new[] { "Alpha" }, StringSplitOptions.None).Length - 1);
         Assert.Contains("Beta", positioned, StringComparison.Ordinal);
@@ -1070,7 +1072,7 @@ public class PdfOcrTests {
         Assert.Contains("Quarterly review", html, StringComparison.Ordinal);
         Assert.Contains("Ready", html, StringComparison.Ordinal);
         Assert.Contains("Summary narrative", result.Document.ToRtfDocument().ToRtf(), StringComparison.Ordinal);
-        PdfOdtConversionResult odtResult = result.Document.ToOdtDocumentResult();
+        PdfOdtConversionResult odtResult = result.Document.ConvertToOdtWithEvidence(null, default);
         Assert.Contains(odtResult.Value.Paragraphs, paragraph => paragraph.Text.Contains("Summary narrative", StringComparison.Ordinal));
     }
 
@@ -1094,7 +1096,7 @@ public class PdfOcrTests {
 
     [Fact]
     public async Task Document_AlwaysProjectsAcceptedOcrThroughCanonicalAnalysis() {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Native anchor")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Native anchor")).ToBytes();
         var provider = new StubOcrEngine(request => Result(new[] { At(request, "OCR", 30, 250, 30, 12) }));
 
         PdfOcrMergeResult result = await PdfDocument.Load(new System.IO.MemoryStream(pdf)).ReadWithOcrAsync(provider);
@@ -1138,7 +1140,7 @@ public class PdfOcrTests {
         Assert.Equal(88D, word[word.Length - 1].Quad.Right - word[0].Quad.Left, 2);
         Assert.Empty(PdfPageInteractionMap.Create(searchable, 1).TextRegions);
         Assert.True(PdfVisualComparer.Compare(source, searchable).IsMatch);
-        string positioned = PdfDocument.Load(new System.IO.MemoryStream(searchable)).Read().ToHtml(PdfToHtmlOptions.CreatePositionedReviewProfile());
+        string positioned = PdfDocument.Load(new System.IO.MemoryStream(searchable)).Read().ToHtml(PdfHtmlExportOptions.CreatePositionedReviewProfile());
         Assert.Contains("Searchable", positioned, StringComparison.Ordinal);
         Assert.Contains("document", positioned, StringComparison.Ordinal);
         Assert.Equal("fixture", result.Ocr.Pages[0].Provider);
@@ -1256,7 +1258,7 @@ public class PdfOcrTests {
 
     [Fact]
     public async Task MakeSearchableAsync_LeavesDocumentUnchangedWhenNoWordsAreAccepted() {
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Already searchable")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Already searchable")).ToBytes();
         var provider = new StubOcrEngine(_ => Result(Array.Empty<OcrTextSpan>()));
         PdfDocument document = PdfDocument.Load(new System.IO.MemoryStream(source));
 

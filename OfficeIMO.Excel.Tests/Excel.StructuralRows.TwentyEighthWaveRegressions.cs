@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
             Worksheet worksheet = sheet.WorksheetPart.Worksheet;
-            sheet.AutoFilterAdd("A5:B6");
+            sheet.Range("A5:B6").AutoFilter();
             worksheet.Append(
                 new IgnoredErrors(
                     new IgnoredError {

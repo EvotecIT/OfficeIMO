@@ -386,7 +386,7 @@ internal static class BibCodec {
         private bool _diagnosticLimitReported;
 
         internal Parser(string source, BibliographyFormat format, BibliographyReadOptions options, List<BibliographyDiagnostic> diagnostics, IList<BibliographyNativeEntry> nativeEntries, CancellationToken cancellationToken) {
-            _source = source; _format = format; _diagnostics = diagnostics; _nativeEntries = nativeEntries; _cancellationToken = cancellationToken; _limits = new BibliographyLimitGuard(options); _maximumDiagnosticCount = options.MaximumDiagnosticCount;
+            _source = source; _format = format; _diagnostics = diagnostics; _nativeEntries = nativeEntries; _cancellationToken = cancellationToken; _limits = new BibliographyLimitGuard(options); _maximumDiagnosticCount = options.MaxDiagnosticCount;
         }
 
         internal IList<BibliographyItem> Parse() {

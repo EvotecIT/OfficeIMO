@@ -123,8 +123,8 @@ namespace OfficeIMO.Tests {
             WordParagraph[] paragraphs = {
                 source.AddParagraph(),
                 source.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0],
-                source.HeaderDefaultOrCreate.AddParagraph(),
-                source.FooterDefaultOrCreate.AddParagraph(),
+                source.PageSetup.Header.AddParagraph(),
+                source.PageSetup.Footer.AddParagraph(),
                 source.AddParagraph("Reference").AddFootNote("Footnote prefix").Paragraph.FootNote!.Paragraphs!.Single(p => p.Text == "Footnote prefix"),
                 source.AddParagraph("Reference").AddEndNote("Endnote prefix").Paragraph.EndNote!.Paragraphs!.Single(p => p.Text == "Endnote prefix")
             };
@@ -136,8 +136,8 @@ namespace OfficeIMO.Tests {
             IEnumerable<WordParagraph>[] stories = {
                 loaded.Paragraphs,
                 loaded.Tables[0].Rows[0].Cells[0].Paragraphs,
-                loaded.Sections[0].Header.Default!.Paragraphs,
-                loaded.Sections[0].Footer.Default!.Paragraphs,
+                loaded.Sections[0].PageSetup.Header.Paragraphs,
+                loaded.Sections[0].PageSetup.Footer.Paragraphs,
                 Assert.Single(loaded.FootNotes).Paragraphs!,
                 Assert.Single(loaded.EndNotes).Paragraphs!
             };

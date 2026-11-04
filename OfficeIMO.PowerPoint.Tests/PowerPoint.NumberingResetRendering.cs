@@ -55,10 +55,10 @@ public sealed class PowerPointNumberingResetRenderingTests {
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(200));
         var cell = presentation.AddSlide().AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(260),global::OfficeIMO.OfficeLength.Points(150)).GetCell(0, 0);
         cell.FontSize = global::OfficeIMO.OfficeLength.Points(12);
-        cell.FontName = "Arial";
+        cell.FontFamily = "Arial";
         var paragraph = cell.Paragraphs[0];
         paragraph.Text = "Separate marker";
-        paragraph.Runs[0].FontName = "Arial";
+        paragraph.Runs[0].FontFamily = "Arial";
         paragraph.Runs[0].FontSize = global::OfficeIMO.OfficeLength.Points(12);
         if (characterBullet) paragraph.SetBullet('*');
         else paragraph.SetNumbered(PowerPointNumberingScheme.ArabicPeriod, 7);

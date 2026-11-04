@@ -37,12 +37,10 @@ public sealed class PdfCanvasRotatedImageClipTests {
 
     private static byte[] RenderClippedDrawing(OfficeDrawing drawing, double rotationAngle = 0D) =>
         PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(120D),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(120D),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(0D),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(0D),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(0D),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(0D),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(120D)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(0D), Right = global::OfficeIMO.OfficeLength.Points(0D), Top = global::OfficeIMO.OfficeLength.Points(0D), Bottom = global::OfficeIMO.OfficeLength.Points(0D) }
+                },
                 CompressContentStreams = false
             })
             .Canvas(canvas => canvas.Clip(global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(18D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(2D), clipped =>

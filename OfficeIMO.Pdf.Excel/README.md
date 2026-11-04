@@ -33,7 +33,7 @@ using OfficeIMO.Pdf;
 PdfDocument pdf = PdfDocument.Load("bank-statement.pdf");
 OfficeConversionReport report = pdf.SaveAsExcel(
     "bank-statement-q1.xlsx",
-    new ExcelPdfImportOptions {
+    new PdfExcelExportOptions {
         ReadOptions = new PdfLoadOptions {
             PageSelection = PdfPageSelection.Parse("1-3")
         },

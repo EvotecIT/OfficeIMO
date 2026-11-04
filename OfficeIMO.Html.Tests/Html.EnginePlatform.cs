@@ -373,8 +373,8 @@ public partial class Html {
         Assert.Equal(JsonValueKind.Null, optionalJsonDocument.RootElement.GetProperty("roundTripScore").ValueKind);
         Assert.Equal(JsonValueKind.Null, optionalJsonDocument.RootElement.GetProperty("resources").ValueKind);
 
-        WordHtmlImportOptions untrusted = WordHtmlImportOptions.CreateUntrustedHtmlProfile();
-        WordHtmlImportOptions trusted = WordHtmlImportOptions.CreateTrustedDocumentProfile();
+        HtmlWordExportOptions untrusted = HtmlWordExportOptions.UntrustedDefaults;
+        HtmlWordExportOptions trusted = HtmlWordExportOptions.CreateTrustedDocumentProfile();
         Assert.Equal(WordHtmlImageProcessingMode.EmbedDataUriOnly, untrusted.ImageProcessing);
         Assert.True(trusted.Clone().AllowDocumentStylesheetLinks);
     }
@@ -523,10 +523,10 @@ public partial class Html {
         string markdown = conversion.ToMarkdown().ToMarkdown();
         Assert.Contains("# Canonical Contract", markdown);
         Assert.DoesNotContain("file:///secret", markdown, StringComparison.OrdinalIgnoreCase);
-        WordHtmlImportOptions sharedWordDefaults = WordHtmlConverterExtensions.CreateWordOptionsForSharedDocument();
+        HtmlWordExportOptions sharedWordDefaults = WordHtmlConverterExtensions.CreateWordOptionsForSharedDocument();
         Assert.Equal(WordHtmlImageProcessingMode.EmbedDataUriOnly, sharedWordDefaults.ImageProcessing);
         Assert.False(sharedWordDefaults.AllowDocumentStylesheetLinks);
-        WordHtmlImportOptions trustedWordDefaults = WordHtmlConverterExtensions.CreateWordOptionsForSharedDocument(
+        HtmlWordExportOptions trustedWordDefaults = WordHtmlConverterExtensions.CreateWordOptionsForSharedDocument(
             HtmlInputTrust.Trusted);
         Assert.Equal(WordHtmlImageProcessingMode.Embed, trustedWordDefaults.ImageProcessing);
         Assert.True(trustedWordDefaults.AllowDocumentStylesheetLinks);
@@ -670,11 +670,11 @@ public partial class Html {
 
         using var screenWordDocument = WordHtmlConverterExtensions.ToWord(screen);
         var screenRun = screenWordDocument.Paragraphs.Single(paragraph => paragraph.Text.Contains("Total", StringComparison.Ordinal)).GetRuns().First();
-        Assert.Equal("FF0000", screenRun.ColorHex);
+        Assert.Equal(OfficeColor.Parse("FF0000"), screenRun.Color);
 
         using var printWordDocument = WordHtmlConverterExtensions.ToWord(print);
         var printRun = printWordDocument.Paragraphs.Single(paragraph => paragraph.Text.Contains("Total", StringComparison.Ordinal)).GetRuns().First();
-        Assert.Equal("123456", printRun.ColorHex);
+        Assert.Equal(OfficeColor.Parse("123456"), printRun.Color);
 
         byte[] printPdf = (print.ToPdf()).ToBytes();
         Assert.NotEmpty(printPdf);

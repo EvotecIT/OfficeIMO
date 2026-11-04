@@ -334,7 +334,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "MailMergePreflightHeaderFooterMarkers.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Body");
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
 
                 WordHeader header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
                 header.AddParagraph("{{#ShowClientHeader}}");

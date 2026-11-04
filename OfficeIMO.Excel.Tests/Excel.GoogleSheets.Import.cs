@@ -15,8 +15,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (var source = ExcelDocument.Create(sourcePath)) {
                     var sheet = source.AddSheet("Summary");
-                    sheet.CellValue(1, 1, "Name");
-                    sheet.CellValue(2, 1, "Alpha");
+                    sheet.Cell(1, 1).SetValue("Name");
+                    sheet.Cell(2, 1).SetValue("Alpha");
                     source.Save();
                 }
                 byte[] package = File.ReadAllBytes(sourcePath);
@@ -223,7 +223,7 @@ namespace OfficeIMO.Tests {
                 ExcelCellInfo formula = Assert.Single(sheet.Cells, cell => cell.Row == 2 && cell.Column == 2);
                 Assert.Equal("0.00", formula.Style!.NumberFormatCode);
                 Assert.Equal(135, formula.Style.TextRotation);
-                IReadOnlyList<ExcelRichTextRun> richText = result.Document.Sheets[0].CellAt(2, 1).GetRichText();
+                IReadOnlyList<ExcelRichTextRun> richText = result.Document.Sheets[0].Cell(2, 1).GetRichText();
                 Assert.Collection(richText,
                     run => {
                         Assert.Equal("Al", run.Text);
@@ -259,7 +259,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleSheetsDriveVersionDiff.xlsx");
             try {
                 using var source = ExcelDocument.Create(filePath);
-                source.AddSheet("Data").CellValue(1, 1, "value");
+                source.AddSheet("Data").Cell(1, 1).SetValue("value");
                 GoogleSheetsSyncCheckpoint checkpoint = GoogleSheetsDiffPlanner.CreateCheckpoint(source, driveVersion: 5);
                 const string nativeJson = "{\"spreadsheetId\":\"diff-sheet\",\"properties\":{\"title\":\"Diff\"},\"sheets\":[{\"properties\":{\"sheetId\":0,\"title\":\"Data\",\"index\":0},\"data\":[{\"startRow\":0,\"startColumn\":0,\"rowData\":[{\"values\":[{\"userEnteredValue\":{\"stringValue\":\"value\"}}]}]}]}]}";
                 using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
@@ -288,7 +288,7 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsLegacyCheckpoint.xlsx");
             try {
                 using var document = ExcelDocument.Create(path);
-                document.AddSheet("Data").CellValue(1, 1, "Unchanged");
+                document.AddSheet("Data").Cell(1, 1).SetValue("Unchanged");
                 var legacyCheckpoint = new GoogleSheetsSyncCheckpoint { DriveVersion = 7 };
                 legacyCheckpoint.ContentHashes["sheet/Data"] = "old-culture-dependent-hash";
                 int requests = 0;
@@ -316,9 +316,9 @@ namespace OfficeIMO.Tests {
             try {
                 using var source = ExcelDocument.Create(filePath);
                 ExcelSheet data = source.AddSheet("Data");
-                data.CellValue(1, 1, "value");
+                data.Cell(1, 1).SetValue("value");
                 data.AddChart(OfficeChartType.ColumnClustered, new ExcelChartData(new[] { "A" }, new[] { new ExcelChartSeries("Sales", new[] { 1d }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 2 });
-                source.AddSheet("_OfficeIMO_ChartData").CellValue(1, 1, "User content");
+                source.AddSheet("_OfficeIMO_ChartData").Cell(1, 1).SetValue("User content");
                 GoogleSheetsSyncCheckpoint checkpoint = GoogleSheetsDiffPlanner.CreateCheckpoint(source, driveVersion: 6);
                 const string nativeJson = "{\"spreadsheetId\":\"diff-chart\",\"properties\":{\"title\":\"Diff\"},\"sheets\":[{\"properties\":{\"sheetId\":0,\"title\":\"Data\",\"index\":0},\"data\":[{\"startRow\":0,\"startColumn\":0,\"rowData\":[{\"values\":[{\"userEnteredValue\":{\"stringValue\":\"value\"}}]}]}]},{\"properties\":{\"sheetId\":1,\"title\":\"_OfficeIMO_ChartData\",\"index\":1},\"data\":[{\"startRow\":0,\"startColumn\":0,\"rowData\":[{\"values\":[{\"userEnteredValue\":{\"stringValue\":\"User content\"}}]}]}]},{\"properties\":{\"sheetId\":2,\"title\":\"_OfficeIMO_ChartData_2\",\"index\":2,\"hidden\":true,\"gridProperties\":{\"hideGridlines\":true}},\"data\":[{\"startRow\":0,\"startColumn\":0,\"rowData\":[{\"values\":[{\"userEnteredValue\":{\"stringValue\":\"Category\"}},{\"userEnteredValue\":{\"stringValue\":\"Sales\"}}]},{\"values\":[{\"userEnteredValue\":{\"stringValue\":\"A\"}},{\"userEnteredValue\":{\"numberValue\":1}}]}]}]}]}";
                 using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
@@ -346,7 +346,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleSheetsReplacePreflight.xlsx");
             try {
                 using var document = ExcelDocument.Create(filePath);
-                document.AddSheet("Data").CellValue(1, 1, "value");
+                document.AddSheet("Data").Cell(1, 1).SetValue("value");
                 int requestCount = 0;
                 using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
                     requestCount++;
@@ -371,7 +371,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleSheetsReplaceConflict.xlsx");
             try {
                 using var document = ExcelDocument.Create(filePath);
-                document.AddSheet("Data").CellValue(1, 1, "value");
+                document.AddSheet("Data").Cell(1, 1).SetValue("value");
                 int sheetsRequests = 0;
                 using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
                     if (request.RequestUri!.Host == "www.googleapis.com") {
@@ -414,7 +414,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleSheetsFormulaPreflight.xlsx");
             try {
                 using var document = ExcelDocument.Create(filePath);
-                document.AddSheet("Data").CellFormula(1, 1, "WEBSERVICE(A2)");
+                document.AddSheet("Data").Cell(1, 1).SetFormula("WEBSERVICE(A2)");
                 int requestCount = 0;
                 using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
                     requestCount++;
@@ -440,9 +440,9 @@ namespace OfficeIMO.Tests {
             try {
                 using var document = ExcelDocument.Create(filePath);
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "A");
-                sheet.CellValue(3, 1, "B");
-                sheet.CellValue(5, 1, "C");
+                sheet.Cell(1, 1).SetValue("A");
+                sheet.Cell(3, 1).SetValue("B");
+                sheet.Cell(5, 1).SetValue("C");
                 int valueCalls = 0;
                 var progress = new List<GoogleSheetsExportProgress>();
                 using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {

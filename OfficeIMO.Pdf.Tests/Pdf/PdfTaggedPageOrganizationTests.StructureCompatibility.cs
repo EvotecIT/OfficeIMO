@@ -41,7 +41,7 @@ public sealed partial class PdfTaggedPageOrganizationTests {
     public void ImportedRootLanguageRetainsCatalogInheritanceAndExplicitOverrides(bool sourceDocumentRoot, string? targetRole) {
         byte[] source = SetStructureLanguage(CreateTaggedSource(), "fr-FR", sourceDocumentRoot ? "Document" : null, true);
         byte[] target = targetRole == null
-            ? SetStructureLanguage(PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Plain target")).ToBytes(), "en-US", null, false)
+            ? SetStructureLanguage(PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Plain target")).ToBytes(), "en-US", null, false)
             : SetStructureLanguage(CreateTaggedSource(), "en-US", targetRole, false);
         var sourceDocument = PdfDocument.Load(source); var targetDocument = PdfDocument.Load(target);
         var output = PdfReadDocument.Open(targetDocument.Pages.Insert(1, sourceDocument).ToBytes());

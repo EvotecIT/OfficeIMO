@@ -7,11 +7,11 @@ public class PdfGeneratedLayerTests {
     [Fact]
     public void Layer_GeneratesOptionalContentResourcesAndRoundTripsConfiguration() {
         byte[] bytes = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Always visible"))
+            .Paragraph(paragraph => paragraph.AddText("Always visible"))
             .Layer("Review notes", layer => {
-                layer.Paragraph(paragraph => paragraph.Text("Layer page one"));
+                layer.AddParagraph(paragraph => paragraph.AddText("Layer page one"));
                 layer.PageBreak();
-                layer.Paragraph(paragraph => paragraph.Text("Layer page two"));
+                layer.AddParagraph(paragraph => paragraph.AddText("Layer page two"));
             }, new PdfLayerOptions {
                 InitiallyVisible = false,
                 Locked = true,
@@ -37,7 +37,7 @@ public class PdfGeneratedLayerTests {
     public void Layer_NestsWithIndependentOptionalContentGroups() {
         byte[] bytes = PdfDocument.Create()
             .Layer("Outer", outer => outer
-                .Layer("Inner", inner => inner.Paragraph(paragraph => paragraph.Text("Nested"))))
+                .Layer("Inner", inner => inner.AddParagraph(paragraph => paragraph.AddText("Nested"))))
             .ToBytes();
 
         PdfOptionalContentProperties optionalContent = PdfReadDocument.Open(bytes).OptionalContent!;

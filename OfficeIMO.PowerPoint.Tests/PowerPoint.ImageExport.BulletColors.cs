@@ -28,13 +28,13 @@ namespace OfficeIMO.Tests {
                 var cell = slide.AddTable(1, 1, OfficeLength.Points(20), OfficeLength.Points(20), OfficeLength.Points(280), OfficeLength.Points(130)).GetCell(0, 0);
                 cell.Text = "Bullet body";
                 cell.FontSize = OfficeLength.Points(18);
-                cell.Color = "111111";
+                cell.Color = OfficeColor.Parse("111111");
                 paragraph = cell.Paragraphs[0];
                 listStyle = cell.Cell.TextBody!.ListStyle!;
             } else {
                 var box = slide.AddTextBox("Bullet body", OfficeLength.Points(20), OfficeLength.Points(20), OfficeLength.Points(280), OfficeLength.Points(130));
                 box.FontSize = OfficeLength.Points(18);
-                box.Color = "111111";
+                box.Color = OfficeColor.Parse("111111");
                 paragraph = box.Paragraphs[0];
                 listStyle = box.TextBody!.ListStyle!;
             }

@@ -22,4 +22,7 @@ public sealed class WordOpenDocumentConversionOptions {
     public long MaxConvertedTableTextCharacters { get; set; } = 16_000_000;
     /// <summary>Maximum nesting depth of ODT tables.</summary>
     public int MaxTableDepth { get; set; } = 32;
+
+    /// <summary>Creates a copy of these settings.</summary>
+    public WordOpenDocumentConversionOptions Clone() => (WordOpenDocumentConversionOptions)MemberwiseClone();
 }

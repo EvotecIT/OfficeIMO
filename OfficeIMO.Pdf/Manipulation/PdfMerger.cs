@@ -693,9 +693,9 @@ internal static partial class PdfMerger {
         outputPageCount = (int)pages;
     }
 
-    private static PdfMetadata BuildMergedMetadata(IReadOnlyList<ImportedSource> sources, int primarySourceIndex) {
+    private static PdfDocumentProperties BuildMergedMetadata(IReadOnlyList<ImportedSource> sources, int primarySourceIndex) {
         var primary = sources[primarySourceIndex].Metadata;
-        return new PdfMetadata {
+        return new PdfDocumentProperties {
             Title = string.IsNullOrEmpty(primary.Title) ? "Merged PDF" : primary.Title,
             Author = primary.Author,
             Subject = primary.Subject,
@@ -740,7 +740,7 @@ internal static partial class PdfMerger {
 
         public PdfReadDocument Document { get; }
 
-        public PdfMetadata Metadata => Document.UncheckedMetadata;
+        public PdfDocumentProperties Metadata => Document.UncheckedMetadata;
 
         public int[] PageObjectNumbers { get; }
 

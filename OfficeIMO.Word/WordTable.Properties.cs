@@ -65,10 +65,10 @@ namespace OfficeIMO.Word {
             try {
                 var section = ResolveOwningSection();
                 if (section != null) {
-                    var page = section.PageSettings;
+                    var page = section.PageSetup.Size;
                     var width = (int)(checked((uint?)(page.Width?.ToTwips())) ?? checked((uint)(WordPageSizes.A4.Width.ToTwips())));
-                    var left = (int)checked((uint)(section.Margins.Left.GetValueOrDefault().ToTwips()));
-                    var right = (int)checked((uint)(section.Margins.Right.GetValueOrDefault().ToTwips()));
+                    var left = (int)checked((uint)(section.PageSetup.Margins.Left.GetValueOrDefault().ToTwips()));
+                    var right = (int)checked((uint)(section.PageSetup.Margins.Right.GetValueOrDefault().ToTwips()));
                     int content = Math.Max(0, width - left - right);
                     return content > 0 ? content : 9000; // fallback ~6.25"
                 }

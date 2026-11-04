@@ -7,8 +7,8 @@ public sealed class PdfRedactionSearchPageTests {
     [Fact]
     public void PageSelectionPrecedesCandidateLimitAndRejectsInvalidPages() {
         PdfDocument document = PdfDocument.Create(compose => {
-            compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(text => text.Text("Private account 123")))));
-            compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(text => text.Text("Private account 456")))));
+            compose.Page(page => page.Content(content => content.Item(item => item.AddParagraph(text => text.AddText("Private account 123")))));
+            compose.Page(page => page.Content(content => content.Item(item => item.AddParagraph(text => text.AddText("Private account 456")))));
         });
         var options = new PdfRedactionSearchOptions { MaximumCandidates = 1 };
         options.AddLiteral("Private account");

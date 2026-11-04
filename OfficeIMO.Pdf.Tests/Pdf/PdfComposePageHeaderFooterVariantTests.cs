@@ -12,24 +12,24 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void DifferentFirstPageHeaderFooter_UsesFirstPageContentThenRunningContent() {
             var options = new PdfCreateOptions {
-                ShowHeader = true,
-                HeaderFormat = "Running header {page}/{pages}",
-                ShowPageNumbers = true,
-                FooterFormat = "Running footer {page}/{pages}",
-                DifferentFirstPageHeaderFooter = true,
-                FirstPageHeaderFormat = "Cover header {page}/{pages}",
-                FirstPageFooterSegments = new System.Collections.Generic.List<PdfFooterSegment> {
+                PageSetup = {
+                    DifferentFirstPage = true,
+                    Header = { Show = true, Format = "Running header {page}/{pages}" },
+                    FirstPageHeader = { Format = "Cover header {page}/{pages}" },
+                    Footer = { Show = true, Format = "Running footer {page}/{pages}" },
+                    FirstPageFooter = { Segments = new System.Collections.Generic.List<PdfFooterSegment> {
                     new PdfFooterSegment(PdfFooterSegmentKind.Text, "Cover footer "),
                     new PdfFooterSegment(PdfFooterSegmentKind.PageNumber),
                     new PdfFooterSegment(PdfFooterSegmentKind.Text, "/"),
                     new PdfFooterSegment(PdfFooterSegmentKind.TotalPages)
+                } }
                 }
             };
 
             byte[] bytes = PdfDocument.Create(options)
-                .Paragraph(p => p.Text("Cover body."))
+                .Paragraph(p => p.AddText("Cover body."))
                 .PageBreak()
-                .Paragraph(p => p.Text("Running body."))
+                .Paragraph(p => p.AddText("Running body."))
                 .ToBytes();
 
             using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -52,17 +52,13 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void DifferentFirstPageHeaderFooter_BlankFirstPageSuppressesRunningContent() {
             var options = new PdfCreateOptions {
-                ShowHeader = true,
-                HeaderFormat = "Running header",
-                ShowPageNumbers = true,
-                FooterFormat = "Running footer",
-                DifferentFirstPageHeaderFooter = true
+                PageSetup = { DifferentFirstPage = true, Header = { Show = true, Format = "Running header" }, Footer = { Show = true, Format = "Running footer" } }
             };
 
             byte[] bytes = PdfDocument.Create(options)
-                .Paragraph(p => p.Text("Cover body."))
+                .Paragraph(p => p.AddText("Cover body."))
                 .PageBreak()
-                .Paragraph(p => p.Text("Running body."))
+                .Paragraph(p => p.AddText("Running body."))
                 .ToBytes();
 
             using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -78,14 +74,13 @@ namespace OfficeIMO.Tests.Pdf {
     [Fact]
     public void ClearingFirstPageWatermarkDoesNotEnableBlankHeaderFooterVariant() {
         var options = new PdfCreateOptions {
-            ShowHeader = true,
-            HeaderFormat = "Running header"
+            PageSetup = { Header = { Show = true, Format = "Running header" } }
         };
 
         byte[] bytes = PdfDocument.Create(options)
             .Page(page => {
                 page.FirstPageWatermark((PdfTextWatermark?)null);
-                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Body text."))));
+                page.Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText("Body text."))));
             })
             .ToBytes();
 
@@ -98,29 +93,29 @@ namespace OfficeIMO.Tests.Pdf {
     [Fact]
     public void DifferentOddAndEvenPagesHeaderFooter_UsesEvenContentAndKeepsFirstPagePrecedence() {
         var options = new PdfCreateOptions {
-                ShowHeader = true,
-                HeaderFormat = "Odd header {page}/{pages}",
-                ShowPageNumbers = true,
-                FooterFormat = "Odd footer {page}/{pages}",
-                DifferentFirstPageHeaderFooter = true,
-                FirstPageHeaderFormat = "First header {page}/{pages}",
-                FirstPageFooterFormat = "First footer {page}/{pages}",
-                DifferentOddAndEvenPagesHeaderFooter = true,
-                EvenPageHeaderFormat = "Even header {page}/{pages}",
-                EvenPageFooterSegments = new System.Collections.Generic.List<PdfFooterSegment> {
+                PageSetup = {
+                    DifferentFirstPage = true,
+                    DifferentOddAndEvenPages = true,
+                    Header = { Show = true, Format = "Odd header {page}/{pages}" },
+                    FirstPageHeader = { Format = "First header {page}/{pages}" },
+                    EvenPageHeader = { Format = "Even header {page}/{pages}" },
+                    Footer = { Show = true, Format = "Odd footer {page}/{pages}" },
+                    FirstPageFooter = { Format = "First footer {page}/{pages}" },
+                    EvenPageFooter = { Segments = new System.Collections.Generic.List<PdfFooterSegment> {
                     new PdfFooterSegment(PdfFooterSegmentKind.Text, "Even footer "),
                     new PdfFooterSegment(PdfFooterSegmentKind.PageNumber),
                     new PdfFooterSegment(PdfFooterSegmentKind.Text, "/"),
                     new PdfFooterSegment(PdfFooterSegmentKind.TotalPages)
+                } }
                 }
             };
 
             byte[] bytes = PdfDocument.Create(options)
-                .Paragraph(p => p.Text("First body."))
+                .Paragraph(p => p.AddText("First body."))
                 .PageBreak()
-                .Paragraph(p => p.Text("Even body."))
+                .Paragraph(p => p.AddText("Even body."))
                 .PageBreak()
-                .Paragraph(p => p.Text("Odd body."))
+                .Paragraph(p => p.AddText("Odd body."))
                 .ToBytes();
 
             using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -149,19 +144,18 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void DifferentFirstAndEvenPageWatermarks_UseMatchingPageVariant() {
             var options = new PdfCreateOptions {
-                DifferentFirstPageHeaderFooter = true,
-                DifferentOddAndEvenPagesHeaderFooter = true,
+                PageSetup = { DifferentFirstPage = true, DifferentOddAndEvenPages = true },
                 TextWatermark = new PdfTextWatermark("Odd watermark") { Opacity = 0.18 },
                 FirstPageTextWatermark = new PdfTextWatermark("First watermark") { Opacity = 0.18 },
                 EvenPageTextWatermark = new PdfTextWatermark("Even watermark") { Opacity = 0.18 }
             };
 
             byte[] bytes = PdfDocument.Create(options)
-                .Paragraph(p => p.Text("Page one body."))
+                .Paragraph(p => p.AddText("Page one body."))
                 .PageBreak()
-                .Paragraph(p => p.Text("Page two body."))
+                .Paragraph(p => p.AddText("Page two body."))
                 .PageBreak()
-                .Paragraph(p => p.Text("Page three body."))
+                .Paragraph(p => p.AddText("Page three body."))
                 .ToBytes();
 
             using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -187,19 +181,15 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void DifferentOddAndEvenPagesHeaderFooter_BlankEvenPagesSuppressRunningContent() {
             var options = new PdfCreateOptions {
-                ShowHeader = true,
-                HeaderFormat = "Odd header",
-                ShowPageNumbers = true,
-                FooterFormat = "Odd footer",
-                DifferentOddAndEvenPagesHeaderFooter = true
+                PageSetup = { DifferentOddAndEvenPages = true, Header = { Show = true, Format = "Odd header" }, Footer = { Show = true, Format = "Odd footer" } }
             };
 
             byte[] bytes = PdfDocument.Create(options)
-                .Paragraph(p => p.Text("Odd body."))
+                .Paragraph(p => p.AddText("Odd body."))
                 .PageBreak()
-                .Paragraph(p => p.Text("Even body."))
+                .Paragraph(p => p.AddText("Even body."))
                 .PageBreak()
-                .Paragraph(p => p.Text("Odd again body."))
+                .Paragraph(p => p.AddText("Odd again body."))
                 .ToBytes();
 
             using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -229,9 +219,9 @@ namespace OfficeIMO.Tests.Pdf {
                         .FirstPageText(text => text.Text("Compose cover footer ").CurrentPage().Text("/").TotalPages()));
                     page.Content(content =>
                         content.Column(column => {
-                            column.Item().Paragraph(p => p.Text("Compose cover body."));
+                            column.Item().AddParagraph(p => p.AddText("Compose cover body."));
                             column.Item().PageBreak();
-                            column.Item().Paragraph(p => p.Text("Compose running body."));
+                            column.Item().AddParagraph(p => p.AddText("Compose running body."));
                         }));
                 });
             });
@@ -266,11 +256,11 @@ namespace OfficeIMO.Tests.Pdf {
                         .EvenPagesText(text => text.Text("Even compose footer ").CurrentPage().Text("/").TotalPages()));
                     page.Content(content =>
                         content.Column(column => {
-                            column.Item().Paragraph(p => p.Text("Odd compose body."));
+                            column.Item().AddParagraph(p => p.AddText("Odd compose body."));
                             column.Item().PageBreak();
-                            column.Item().Paragraph(p => p.Text("Even compose body."));
+                            column.Item().AddParagraph(p => p.AddText("Even compose body."));
                             column.Item().PageBreak();
-                            column.Item().Paragraph(p => p.Text("Odd compose body again."));
+                            column.Item().AddParagraph(p => p.AddText("Odd compose body again."));
                         }));
                 });
             });
@@ -309,9 +299,9 @@ namespace OfficeIMO.Tests.Pdf {
                         .EvenPagesText(text => text.Text("A footer even ").CurrentPage().Text("/").TotalPages()));
                     page.Content(content =>
                         content.Column(column => {
-                            column.Item().Paragraph(p => p.Text("A first body."));
+                            column.Item().AddParagraph(p => p.AddText("A first body."));
                             column.Item().PageBreak();
-                            column.Item().Paragraph(p => p.Text("A even body."));
+                            column.Item().AddParagraph(p => p.AddText("A even body."));
                         }));
                 });
                 c.Section(page => {
@@ -325,9 +315,9 @@ namespace OfficeIMO.Tests.Pdf {
                         .EvenPagesText(text => text.Text("B footer even ").CurrentPage().Text("/").TotalPages()));
                     page.Content(content =>
                         content.Column(column => {
-                            column.Item().Paragraph(p => p.Text("B first body."));
+                            column.Item().AddParagraph(p => p.AddText("B first body."));
                             column.Item().PageBreak();
-                            column.Item().Paragraph(p => p.Text("B even body."));
+                            column.Item().AddParagraph(p => p.AddText("B even body."));
                         }));
                 });
             });
@@ -368,9 +358,9 @@ namespace OfficeIMO.Tests.Pdf {
                     .EvenPagesText(text => text.Text("Footer even ").CurrentPage().Text("/").TotalPages()));
                 section.Content(content =>
                     content.Column(column => {
-                        column.Item().Paragraph(p => p.Text("Started section first body."));
+                        column.Item().AddParagraph(p => p.AddText("Started section first body."));
                         column.Item().PageBreak();
-                        column.Item().Paragraph(p => p.Text("Started section second body."));
+                        column.Item().AddParagraph(p => p.AddText("Started section second body."));
                     }));
             });
 
@@ -398,12 +388,12 @@ namespace OfficeIMO.Tests.Pdf {
                 c.Page(page => {
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Paragraph(p => p.Text("First composed body."))));
+                            column.Item().AddParagraph(p => p.AddText("First composed body."))));
                 });
                 c.Page(page => {
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Paragraph(p => p.Text("Second composed body."))));
+                            column.Item().AddParagraph(p => p.AddText("Second composed body."))));
                 });
             });
 
@@ -423,9 +413,9 @@ namespace OfficeIMO.Tests.Pdf {
                 .PageNumberStyle(PdfPageNumberStyle.UpperRoman)
                 .Header(header => header.Text("Roman header {page}/{pages}"))
                 .Footer(footer => footer.Text(text => text.Text("Roman footer ").CurrentPage().Text("/").TotalPages()))
-                .Paragraph(p => p.Text("Roman first body."))
+                .Paragraph(p => p.AddText("Roman first body."))
                 .PageBreak()
-                .Paragraph(p => p.Text("Roman second body."));
+                .Paragraph(p => p.AddText("Roman second body."));
 
             using var pdf = PdfPigDocument.Open(new MemoryStream(doc.ToBytes()));
             Assert.Equal(2, pdf.NumberOfPages);
@@ -456,9 +446,9 @@ namespace OfficeIMO.Tests.Pdf {
                     .EvenPagesText(text => text.Text("Letter footer even ").CurrentPage().Text("/").TotalPages()));
                 section.Content(content =>
                     content.Column(column => {
-                        column.Item().Paragraph(p => p.Text("Letter section first body."));
+                        column.Item().AddParagraph(p => p.AddText("Letter section first body."));
                         column.Item().PageBreak();
-                        column.Item().Paragraph(p => p.Text("Letter section second body."));
+                        column.Item().AddParagraph(p => p.AddText("Letter section second body."));
                     }));
             });
 

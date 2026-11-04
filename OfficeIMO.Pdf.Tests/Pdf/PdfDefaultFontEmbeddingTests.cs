@@ -16,7 +16,7 @@ public class PdfDefaultFontEmbeddingTests {
     private static PdfDocument CreateStyledDocument(PdfCreateOptions? options = null) {
         return PdfDocument.Create(options).Compose(c => c.Page(page => page.Content(content => content
             .H1("Quarterly review")
-            .Paragraph(p => p.Text("Regular, ").Bold("bold").Text(" and ").Italic("italic").Text(" text.")))));
+            .AddParagraph(p => { p.AddText("Regular, "); p.AddText("bold").SetBold(); p.AddText(" and "); p.AddText("italic").SetItalic(); p.AddText(" text."); }))));
     }
 
     [Fact]
@@ -44,7 +44,7 @@ public class PdfDefaultFontEmbeddingTests {
         if (!options.HasNamedFontFamily(heading.FontFamily) || !HasInstalledDefaultSansFont()) return;
 
         using PdfDocument document = PdfDocument.Create(options).Compose(composition => composition.Content(content =>
-            content.Title("Executive").H1("Quarterly review").Paragraph(p => p.Text("Regular, body text."))));
+            content.Title("Executive").H1("Quarterly review").AddParagraph(p => p.AddText("Regular, body text."))));
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         var words = pdf.GetPage(1).GetWords().ToArray();
         string headingFont = Assert.Single(words, word => word.Text == "Quarterly").Letters[0].FontName;
@@ -76,7 +76,7 @@ public class PdfDefaultFontEmbeddingTests {
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions { EmbedDefaultFonts = true });
         for (int index = 0; index < 4; index++) {
             int section = index;
-            document.Section(page => page.Content(content => content.H2("Section " + section).Text("Body text for section " + section)));
+            document.Section(page => page.Content(content => content.H2("Section " + section).AddParagraph("Body text for section " + section)));
         }
         byte[] bytes = document.ToBytes();
         string pdf = PdfEncoding.Latin1GetString(bytes);
@@ -111,8 +111,8 @@ public class PdfDefaultFontEmbeddingTests {
             new[] { PdfStandardFont.TimesRoman });
         var options = new PdfCreateOptions { EmbedDefaultFonts = true }.RegisterEmbeddedFontFallbacks(fallbacks);
         byte[] bytes = PdfDocument.Create(options).Compose(c => c.Page(page => page.Content(content => content
-            .Paragraph(p => p.Text("Plain text"))
-            .Paragraph(p => p.Text("A\U0001F600B"))))).ToBytes();
+            .AddParagraph(p => p.AddText("Plain text"))
+            .AddParagraph(p => p.AddText("A\U0001F600B"))))).ToBytes();
 
         string extracted = PdfReadDocument.Open(bytes).ExtractText();
         Assert.Contains("Plain text", extracted, StringComparison.Ordinal);

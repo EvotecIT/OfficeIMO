@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Html {
 
             string html = File.ReadAllText(htmlPath);
             var baseDir = Path.GetDirectoryName(htmlPath)!;
-            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions { FontFamily = "Calibri", BasePath = baseDir });
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions { FontFamily = "Calibri", BasePath = baseDir });
 
             string docxPath = Path.Combine(folderPath, "Html00_AllInOne.docx");
             doc.Save(docxPath);

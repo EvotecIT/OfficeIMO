@@ -15,15 +15,15 @@ public sealed class ExcelPivotPhysicalGeometryTests {
     public void SlicerAndTimelineRetainPhysicalExtentsAfterReload(bool timeline, bool defaults) {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet source = document.AddSheet("Sales");
-        source.CellValue(1, 1, "Region");
-        source.CellValue(1, 2, "OrderDate");
-        source.CellValue(1, 3, "Sales");
-        source.CellValue(2, 1, "East");
-        source.CellValue(2, 2, new System.DateTime(2026, 1, 2));
-        source.CellValue(2, 3, 10D);
-        source.CellValue(3, 1, "West");
-        source.CellValue(3, 2, new System.DateTime(2026, 2, 3));
-        source.CellValue(3, 3, 20D);
+        source.Cell(1, 1).SetValue("Region");
+        source.Cell(1, 2).SetValue("OrderDate");
+        source.Cell(1, 3).SetValue("Sales");
+        source.Cell(2, 1).SetValue("East");
+        source.Cell(2, 2).SetValue(new System.DateTime(2026, 1, 2));
+        source.Cell(2, 3).SetValue(10D);
+        source.Cell(3, 1).SetValue("West");
+        source.Cell(3, 2).SetValue(new System.DateTime(2026, 2, 3));
+        source.Cell(3, 3).SetValue(20D);
         source.AddPivotTable("A1:C3", "E2", options: new ExcelPivotTableOptions {
             Name = "SalesPivot", RowFields = new[] { "Region" },
             DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) }

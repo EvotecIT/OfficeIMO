@@ -50,7 +50,7 @@ public sealed class OfficeOcrConversionTests {
     public async Task LossPolicyAndCancellationLeaveDestinationUntouched() {
         PdfOcrMergeResult source = await RecognizeTableAsync();
         using var destination = new MemoryStream(new byte[] { 1, 2, 3 }, writable: true);
-        Assert.Throws<OfficeConversionException>(() => source.SaveAsWord(destination, new WordPdfImportOptions { FailOnLoss = true }));
+        Assert.Throws<OfficeConversionException>(() => source.SaveAsWord(destination, new PdfWordExportOptions { FailOnLoss = true }));
         Assert.Equal(new byte[] { 1, 2, 3 }, destination.ToArray());
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
@@ -67,7 +67,7 @@ public sealed class OfficeOcrConversionTests {
         })).ToArray();
         var engine = new DelegateOcrEngine("table", (_, _) => Task.FromResult(new OcrResult { Spans = spans }));
         byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAADklEQVR4nGP4CgYMEAoAUHILfRDviCcAAAAASUVORK5CYII=");
-        using var generated = PdfDocument.Create(builder => builder.Content(content => content.Image(png, global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(100))));
+        using var generated = PdfDocument.Create(builder => builder.Content(content => content.AddImage(png, global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(100))));
         using var source = PdfDocument.Load(new MemoryStream(generated.ToBytes()));
         return await source.ReadWithOcrAsync(engine, new PdfOcrMergeOptions { ReconstructLayout = true, Dpi = 72 });
     }

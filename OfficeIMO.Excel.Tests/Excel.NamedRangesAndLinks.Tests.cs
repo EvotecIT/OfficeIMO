@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests {
                 var exception = Record.Exception(() =>
                     doc.SetNamedRange("Single", "A1", save: false, hidden: false, validationMode: ExcelDefinedNameValidationMode.Sanitize));
                 Assert.Null(exception);
-                Assert.Equal("$A$1", doc.GetNamedRange("Single"));
+                Assert.Equal("$A$1", doc.GetNamedRangeText("Single"));
             }
             File.Delete(path);
         }
@@ -49,7 +49,7 @@ namespace OfficeIMO.Tests {
             using (var doc = ExcelDocument.Create(path)) {
                 var data = doc.AddSheet("Data");
                 doc.SetNamedRange("TooBig", "'Data'!A1:B2000000", save: false, hidden: false, validationMode: ExcelDefinedNameValidationMode.Sanitize);
-                var value = doc.GetNamedRange("TooBig");
+                var value = doc.GetNamedRangeText("TooBig");
                 Assert.Equal("'Data'!$A$1:$B$1048576", value);
             }
             File.Delete(path);
@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests {
                 var data = doc.AddSheet("Data??");
                 doc.SetNamedRange("OnData", "Data??!A1", save: false, hidden: false, validationMode: ExcelDefinedNameValidationMode.Sanitize);
 
-                var value = doc.GetNamedRange("OnData");
+                var value = doc.GetNamedRangeText("OnData");
                 Assert.Equal($"'{data.Name}'!$A$1", value);
             }
             File.Delete(path);
@@ -75,8 +75,10 @@ namespace OfficeIMO.Tests {
                 doc.AddSheet("Report!2026");
                 doc.SetNamedRange("BangSheet", "'Report!2026'!A1:B2", save: false, hidden: false, validationMode: ExcelDefinedNameValidationMode.Strict);
 
-                var value = doc.GetNamedRange("BangSheet");
-                Assert.Equal("'Report!2026'!$A$1:$B$2", value);
+                Assert.Equal("'Report!2026'!$A$1:$B$2", doc.GetNamedRangeText("BangSheet"));
+                ExcelRange range = doc.GetNamedRange("BangSheet")!;
+                Assert.Equal("Report!2026", range.Sheet.Name);
+                Assert.Equal("A1:B2", range.Address);
             }
             File.Delete(path);
         }
@@ -88,7 +90,7 @@ namespace OfficeIMO.Tests {
                 doc.AddSheet("Data");
                 doc.SetNamedRange("AbsoluteRange", "'Data'!$A$1:$B$2", save: false, hidden: false, validationMode: ExcelDefinedNameValidationMode.Strict);
 
-                Assert.Equal("'Data'!$A$1:$B$2", doc.GetNamedRange("AbsoluteRange"));
+                Assert.Equal("'Data'!$A$1:$B$2", doc.GetNamedRangeText("AbsoluteRange"));
             }
             File.Delete(path);
         }
@@ -105,7 +107,7 @@ namespace OfficeIMO.Tests {
                     .Single(d => d.Name == "LocalQualified");
 
                 Assert.Equal("'Data'!$A$1", definedName.Text);
-                Assert.Equal("$A$1", data.GetNamedRange("LocalQualified"));
+                Assert.Equal("$A$1", data.GetNamedRangeText("LocalQualified"));
             }
             File.Delete(path);
         }
@@ -123,7 +125,7 @@ namespace OfficeIMO.Tests {
                     .Single(d => d.Name == "LocalCrossSheet");
 
                 Assert.Equal("'Other'!$A$1:$B$2", definedName.Text);
-                Assert.Equal("'Other'!$A$1:$B$2", data.GetNamedRange("LocalCrossSheet"));
+                Assert.Equal("'Other'!$A$1:$B$2", data.GetNamedRangeText("LocalCrossSheet"));
             }
             File.Delete(path);
         }
@@ -147,7 +149,7 @@ namespace OfficeIMO.Tests {
                 main.SetInternalLink(1, 1, target, "A1", display: "Go");
 
                 // Inspect hyperlinks
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
                 var wsPart = (WorksheetPart)wsPartField!.GetValue(main)!;
                 var links = wsPart.Worksheet.Elements<Hyperlinks>().FirstOrDefault();
@@ -168,7 +170,7 @@ namespace OfficeIMO.Tests {
 
                 main.SetInternalLink(1, 1, "Summary??!A1", style: false);
 
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
                 var wsPart = (WorksheetPart)wsPartField!.GetValue(main)!;
                 var links = wsPart.Worksheet.Elements<Hyperlinks>().FirstOrDefault();
@@ -187,7 +189,7 @@ namespace OfficeIMO.Tests {
 
                 main.SetInternalLink(1, 1, "'[Other.xlsx]Summary'!A1", style: false);
 
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
                 var wsPart = (WorksheetPart)wsPartField!.GetValue(main)!;
                 var links = wsPart.Worksheet.Elements<Hyperlinks>().FirstOrDefault();
@@ -206,13 +208,13 @@ namespace OfficeIMO.Tests {
                 doc.AddSheet("Summary Sheet");
                 doc.AddSheet("Quote's Sheet");
 
-                main.CellValue(1, 1, "Name");
-                main.CellValue(2, 1, "Summary Sheet");
-                main.CellValue(3, 1, "Quote's Sheet");
+                main.Cell(1, 1).SetValue("Name");
+                main.Cell(2, 1).SetValue("Summary Sheet");
+                main.Cell(3, 1).SetValue("Quote's Sheet");
 
                 main.LinkCellsToInternalSheets("A2:A3", text => text, targetA1: "B2", display: null, styled: false);
 
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
                 var wsPart = (WorksheetPart)wsPartField!.GetValue(main)!;
                 var links = wsPart.Worksheet.Elements<Hyperlinks>().FirstOrDefault();
@@ -232,12 +234,12 @@ namespace OfficeIMO.Tests {
                 var main = doc.AddSheet("Main");
                 var target = doc.AddSheet("Summary??");
 
-                main.CellValue(1, 1, "Name");
-                main.CellValue(2, 1, "Summary??");
+                main.Cell(1, 1).SetValue("Name");
+                main.Cell(2, 1).SetValue("Summary??");
 
                 main.LinkCellsToInternalSheets("A2:A2", text => text, targetA1: "B2", display: null, styled: false);
 
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
                 var wsPart = (WorksheetPart)wsPartField!.GetValue(main)!;
                 var links = wsPart.Worksheet.Elements<Hyperlinks>().FirstOrDefault();
@@ -255,8 +257,8 @@ namespace OfficeIMO.Tests {
                 var s = doc.AddSheet("Assets");
 
                 // Headers and one data row
-                s.CellValue(1, 1, "Col1"); s.CellValue(1, 2, "Col2");
-                s.CellValue(2, 1, 1); s.CellValue(2, 2, 2);
+                s.Cell(1, 1).SetValue("Col1"); s.Cell(1, 2).SetValue("Col2");
+                s.Cell(2, 1).SetValue(1); s.Cell(2, 2).SetValue(2);
                 s.AddTable("A1:B2", hasHeader: true, name: "T", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
 
                 // Add a tiny 1x1 PNG as drawing
@@ -271,7 +273,7 @@ namespace OfficeIMO.Tests {
                 doc.PreflightWorkbook();
 
                 // Assert drawing exists
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
                 var wsPart = (WorksheetPart)wsPartField!.GetValue(s)!;
                 var drawing = wsPart.Worksheet.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Drawing>();
                 Assert.NotNull(drawing);

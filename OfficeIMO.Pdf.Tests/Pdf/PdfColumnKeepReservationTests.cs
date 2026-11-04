@@ -16,24 +16,26 @@ public sealed class PdfColumnKeepReservationTests {
     [InlineData("panel", false, false)]
     public void Columns_BalancedKeepNextLeadersRetainTheirTerminalGroupWithoutEmptyPageRetries(
         string kind, bool interveningBookmark, bool balanceKeptLines) {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(500), PageHeight = global::OfficeIMO.OfficeLength.Points(400),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(40), MarginRight = global::OfficeIMO.OfficeLength.Points(40), MarginTop = global::OfficeIMO.OfficeLength.Points(40), MarginBottom = global::OfficeIMO.OfficeLength.Points(40), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12),
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(500), global::OfficeIMO.OfficeLength.Points(400)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(40), Right = global::OfficeIMO.OfficeLength.Points(40), Top = global::OfficeIMO.OfficeLength.Points(40), Bottom = global::OfficeIMO.OfficeLength.Points(40) }
+        }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12),
             MaxGeneratedPages = 4 }).Columns(content => {
                 if (kind == "heading") content.H1("Heading001", style: new PdfHeadingStyle {
                     FontSize = global::OfficeIMO.OfficeLength.Points(12), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
                     KeepWithNext = true });
-                if (kind == "list") content.RichNumbered(Enumerable.Range(1, 3).Select(index => new PdfListItem($"Lead{index:D3}")),
+                if (kind == "list") content.AddNumberedList(Enumerable.Range(1, 3).Select(index => new PdfListItem($"Lead{index:D3}")),
                     style: new PdfListStyle { LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), ItemSpacing = global::OfficeIMO.OfficeLength.Points(0),
                         SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), KeepWithNext = true });
-                else if (kind == "panel") content.Panel(panel => panel.Paragraph(p => p.Text("Lead001\nLead002\nLead003"), style: Style()),
+                else if (kind == "panel") content.Panel(panel => panel.AddParagraph(p => p.AddText("Lead001\nLead002\nLead003"), style: Style()),
                     new PdfPanelStyle { PaddingX = global::OfficeIMO.OfficeLength.Points(0), PaddingY = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), KeepWithNext = true });
                 else {
                     var leader = Style(); leader.KeepWithNext = true;
-                    content.Paragraph(p => p.Text("Lead001\nLead002\nLead003"), style: leader);
+                    content.AddParagraph(p => p.AddText("Lead001\nLead002\nLead003"), style: leader);
                 }
                 if (interveningBookmark) content.Bookmark("kept-next");
                 var body = Style(); body.KeepTogether = true;
-                content.Paragraph(p => p.Text("Body001\nBody002\nBody003\nBody004"), style: body);
+                content.AddParagraph(p => p.AddText("Body001\nBody002\nBody003\nBody004"), style: body);
             }, new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceLastPage = true, BalanceKeptParagraphLines = balanceKeptLines }).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         Assert.Equal(1, pdf.NumberOfPages);

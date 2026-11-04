@@ -33,6 +33,7 @@ public sealed partial class OfficeWorkflowRunner {
             if (directory is null && string.IsNullOrEmpty(Path.GetDirectoryName(output)))
                 throw new ArgumentException("Output directory cannot be a filesystem root.");
             var loadOptions = CreatePdfLoadOptions(request.PdfPassword, limits.MaximumInputBytes);
+            var outputLoadOptions = CreatePdfLoadOptions(request.PdfPassword, limits.MaximumOutputBytes);
             var hostGuard = request.PublicationGuard;
             sourceStream ??= new OfficeWorkflowStreamInput(name,
                 token => { token.ThrowIfCancellationRequested(); return Task.FromResult<Stream>(File.OpenRead(source)); });
@@ -78,8 +79,9 @@ public sealed partial class OfficeWorkflowRunner {
                 long size = new FileInfo(path).Length;
                 totalBytes = checked(totalBytes + size);
                 if (totalBytes > limits.MaximumOutputBytes) throw new InvalidOperationException("The split outputs exceed the aggregate output byte limit.");
-                var reopened = await PdfDocument.LoadAsync(path, cancellationToken: cancellationToken).ConfigureAwait(false);
-                if (reopened.Inspect().PageCount != expected) throw new InvalidDataException("A staged split PDF has an unexpected page count.");
+                // Parts keep the source encryption, so verification needs the same password.
+                var reopened = await PdfDocument.LoadAsync(path, outputLoadOptions, cancellationToken).ConfigureAwait(false);
+                if (reopened.Inspect(outputLoadOptions, cancellationToken).PageCount != expected) throw new InvalidDataException("A staged split PDF has an unexpected page count.");
                 staged.Add(new(path, first, expected, size));
             }
             diagnostics.Add(new("SplitPdfsReopened", "Every staged PDF was reopened and its page count verified.", stage: "validate-output"));

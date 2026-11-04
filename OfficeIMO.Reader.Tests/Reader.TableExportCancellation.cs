@@ -30,8 +30,7 @@ public sealed class ReaderTableExportCancellationTests {
                 case "csv": table.ToCsv(cancellation.Token); break;
                 case "markdown": table.ToMarkdownTable(cancellation.Token); break;
                 case "json": table.ToJson(indented: false, cancellationToken: cancellation.Token); break;
-                case "bundle": new OfficeDocumentReaderBuilder().Build()
-                    .ExportTables(new[] { table }, cancellationToken: cancellation.Token); break;
+                case "bundle": new[] { table }.ExportTables(cancellationToken: cancellation.Token); break;
             }
         });
     }

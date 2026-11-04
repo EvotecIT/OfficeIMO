@@ -14,6 +14,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double height,
         IElement source,
         bool paintBorders = true) {
+        RecordContainerWidth(source, style, width);
         // Record the finalized border box even when it has no background or border paint.
         // Descendant geometry then follows the normal overflow/effect/fragmentation path.
         if (CapturePrintLayoutBoxes && width > 0.0001D && height > 0.0001D) {
@@ -29,9 +30,54 @@ internal sealed partial class HtmlRenderLayoutEngine {
         AddInsetBoxShadows(visuals, style, x, y, width, height, style.BorderInsets, radii, source, sourceDescription);
 
         if (paintBorders || style.UnsupportedBorderPaint.Length > 0) {
-            AddBorderPaint(visuals, style, x, y, width, height, radii, source, sourceDescription);
+            if (style.BorderImageLayer != null) AddBorderImagePaint(visuals, style, x, y, width, height, radii, sourceDescription);
+            else AddBorderPaint(visuals, style, x, y, width, height, radii, source, sourceDescription);
         }
         foreach (HtmlRenderVisual visual in visuals.Skip(backgroundStart)) visual.PaintPhase = HtmlRenderPaintPhase.BlockBackground;
+    }
+
+    internal Dictionary<IElement, double> MeasuredContainerWidths { get; } = new();
+
+    // Style resolution sizes ordinary blocks correctly, so only flex and grid items need measuring.
+    // Painting sees their final width, and the last pass over a box is the one that stays.
+    private void RecordContainerWidth(IElement source, HtmlRenderBoxStyle style, double borderBoxWidth) {
+        if (_computedStyles.Elements.TryGetValue(source, out HtmlComputedStyle? computed) && computed.ContainerInlineSize.HasValue
+            && source.ParentElement != null && _computedStyles.Elements.TryGetValue(source.ParentElement, out HtmlComputedStyle? parent)
+            && parent.GetValue("display").Trim().ToLowerInvariant() is "flex" or "inline-flex" or "grid" or "inline-grid") {
+            MeasuredContainerWidths[source] = Math.Max(0D, borderBoxWidth - style.HorizontalInsets);
+        }
+    }
+
+    internal bool ContainerEstimatesDiffer(HtmlComputedStyleSet styles) =>
+        MeasuredContainerWidths.Any(pair => styles.Elements.TryGetValue(pair.Key, out HtmlComputedStyle? computed)
+            && Math.Abs(computed.ContainerInlineSize.GetValueOrDefault() - pair.Value) > 0.5D);
+
+    private void AddBorderImagePaint(
+        ICollection<HtmlRenderVisual> visuals,
+        HtmlRenderBoxStyle style,
+        double x,
+        double y,
+        double width,
+        double height,
+        HtmlResolvedBorderRadii radii,
+        string sourceDescription) {
+        HtmlRenderBorderInsets insets = style.BorderInsets;
+        if (width <= 0D || height <= 0D || insets.Horizontal + insets.Vertical <= 0D) return;
+        HtmlRenderBoxStyle imageStyle = style.Clone();
+        imageStyle.BackgroundColor = null;
+        imageStyle.BackgroundImageLayers = new[] { style.BorderImageLayer! };
+        imageStyle.BackgroundImageLayerCount = 1;
+        imageStyle.HasDeclaredBackgroundImage = true;
+        var paint = new List<HtmlRenderVisual>();
+        AddBoxBackgroundCore(paint, imageStyle, x, y, width, height, insets, radii, sourceDescription, sourceDescription, sourceDescription);
+        double innerRight = width - style.BorderRightWidth, innerBottom = height - style.BorderBottomWidth;
+        OfficeClipPath ring = OfficeClipPath.Path(width, height, new[] {
+            OfficePathCommand.MoveTo(0D, 0D), OfficePathCommand.LineTo(width, 0D), OfficePathCommand.LineTo(width, height),
+            OfficePathCommand.LineTo(0D, height), OfficePathCommand.Close(),
+            OfficePathCommand.MoveTo(style.BorderLeftWidth, style.BorderTopWidth), OfficePathCommand.LineTo(innerRight, style.BorderTopWidth),
+            OfficePathCommand.LineTo(innerRight, innerBottom), OfficePathCommand.LineTo(style.BorderLeftWidth, innerBottom), OfficePathCommand.Close()
+        }, OfficeFillRule.EvenOdd);
+        visuals.Add(new HtmlRenderPathClipGroup(x, y, ring, paint, visuals.Count, source: sourceDescription + ":border-image"));
     }
 
     private void AddBoxOutlinePaint(

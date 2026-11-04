@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests {
             PowerPointClassicAnimation animation = Assert.Single(
                 projected.Slides[0].ClassicAnimations);
             Assert.Equal(buildType, animation.BuildType);
-            Assert.IsType<PowerPointPicture>(Assert.Single(projected.Slides[0].Shapes));
+            Assert.IsType<PowerPointImage>(Assert.Single(projected.Slides[0].Shapes));
         }
 
         [Fact]
@@ -96,8 +96,8 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument projected = PowerPointDocument.Load(
                 input);
             Assert.Empty(projected.Slides[0].Charts);
-            PowerPointPicture projectedPicture = Assert.Single(
-                projected.Slides[0].Pictures);
+            PowerPointImage projectedPicture = Assert.Single(
+                projected.Slides[0].Images);
             Assert.Equal(image.ImageBytes, projectedPicture.GetImageBytes());
             Assert.Empty(projected.ValidateDocument());
             Assert.True(projected.AnalyzeLegacyPptWrite().CanWrite);

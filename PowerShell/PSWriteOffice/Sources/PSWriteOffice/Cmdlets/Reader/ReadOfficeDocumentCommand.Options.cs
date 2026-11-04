@@ -1,7 +1,7 @@
 using System;
 using System.Management.Automation;
-using System.Net;
 using OfficeIMO.Reader;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Reader;
 
 namespace PSWriteOffice.Cmdlets.Reader;
@@ -24,7 +24,7 @@ public sealed partial class ReadOfficeDocumentCommand {
         if (MaximumChunkCharacters.HasValue) common.MaxChars = MaximumChunkCharacters.Value;
         if (MaximumTableRows.HasValue) common.MaxTableRows = MaximumTableRows.Value;
         if (Bound(nameof(NoHashes))) common.ComputeHashes = !NoHashes;
-        if (Bound(nameof(Password))) common.OpenPassword = Password == null ? null : new NetworkCredential(string.Empty, Password).Password;
+        if (Bound(nameof(Password))) common.OpenPassword = Password.ToPlainText();
         if (excel) {
             var options = configuration.Formats.Excel = OfficeReadConfiguration.Copy(configuration.Formats.Excel);
             if (Sheet != null) {

@@ -24,7 +24,7 @@ public sealed class SpreadsheetSheetNameMappingTests {
         consumer.Cell(0, 1).Formula = "of:=\"" + sourceName + "\"";
         consumer.Cell(1, 0).SetHyperlink("Link", "#$'" + sourceName + "'.A1");
         source.AddNamedRange("Original", "$'" + sourceName + "'.$A$1");
-        using ExcelDocument converted = source.ToExcelDocument();
+        using ExcelDocument converted = source.ToExcel();
         using ExcelDocument result = ExcelDocument.Load(new MemoryStream(converted.ToBytes()));
         string firstName = result.Sheets[0].Name, secondName = result.Sheets[1].Name;
         Assert.NotEqual(firstName, secondName);

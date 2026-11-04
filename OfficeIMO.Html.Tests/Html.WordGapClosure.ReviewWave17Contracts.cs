@@ -33,15 +33,15 @@ public partial class HtmlWordGapClosure {
         WordParagraph transparent = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Transparent");
         WordParagraph blended = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Blended");
 
-        Assert.Equal(string.Empty, transparent.ShadingFillColorHex);
-        Assert.Equal("800080", blended.ShadingFillColorHex);
+        Assert.Null(transparent.ShadingFillColor);
+        Assert.Equal(OfficeColor.Parse("800080"), blended.ShadingFillColor);
     }
 
     [Fact]
     public void WordRunShading_ExactFillResetsPatternAndForegroundState() {
         using WordDocument document = WordDocument.Create();
         WordParagraph run = document.AddParagraph("Pattern");
-        run.RunShadingFillColorHex = "0000FF";
+        run.BackgroundColor = OfficeColor.Parse("0000FF");
         Shading shading = run._runProperties!.Shading!;
         shading.Val = ShadingPatternValues.Percent50;
         shading.Color = "FF0000";
@@ -49,9 +49,9 @@ public partial class HtmlWordGapClosure {
         shading.ThemeTint = "44";
         shading.ThemeShade = "77";
 
-        run.RunShadingFillColorHex = "ABCDEF";
+        run.BackgroundColor = OfficeColor.Parse("ABCDEF");
 
-        Assert.Equal("ABCDEF", run.RunShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("ABCDEF"), run.BackgroundColor);
         Assert.Equal(ShadingPatternValues.Clear, shading.Val?.Value);
         Assert.Null(shading.Color);
         Assert.Null(shading.ThemeColor);
@@ -80,9 +80,9 @@ public partial class HtmlWordGapClosure {
         using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph paragraph = Assert.Single(document.Paragraphs, candidate => candidate.Text == "Text");
 
-        Assert.Equal("FF0000", paragraph.Borders.LeftColorHex);
-        Assert.Equal("FF0000", paragraph.Borders.RightColorHex);
-        Assert.Equal("FF0000", paragraph.Borders.TopColorHex);
-        Assert.Equal("FF0000", paragraph.Borders.BottomColorHex);
+        Assert.Equal(OfficeColor.Parse("FF0000"), paragraph.Borders.LeftColor);
+        Assert.Equal(OfficeColor.Parse("FF0000"), paragraph.Borders.RightColor);
+        Assert.Equal(OfficeColor.Parse("FF0000"), paragraph.Borders.TopColor);
+        Assert.Equal(OfficeColor.Parse("FF0000"), paragraph.Borders.BottomColor);
     }
 }

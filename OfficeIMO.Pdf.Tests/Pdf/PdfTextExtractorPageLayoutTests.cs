@@ -38,7 +38,7 @@ public partial class PdfTextExtractorPageTests {
                 DefaultFont = PdfStandardFont.TimesRoman,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Paragraph(p => p.Text("WWWW"))
+            .Paragraph(p => p.AddText("WWWW"))
             .ToBytes();
 
         PdfTextSpan span = Assert.Single(
@@ -58,7 +58,7 @@ public partial class PdfTextExtractorPageTests {
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 TextKerning = false
             })
-            .Paragraph(p => p.Text(text))
+            .Paragraph(p => p.AddText(text))
             .ToBytes();
 
         PdfTextSpan span = Assert.Single(
@@ -77,7 +77,7 @@ public partial class PdfTextExtractorPageTests {
                 DefaultFont = PdfStandardFont.TimesRoman,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Paragraph(p => p.Text(text))
+            .Paragraph(p => p.AddText(text))
             .ToBytes();
 
         PdfTextSpan span = Assert.Single(

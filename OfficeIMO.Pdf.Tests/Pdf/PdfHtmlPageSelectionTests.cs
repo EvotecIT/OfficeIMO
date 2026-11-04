@@ -12,13 +12,13 @@ public sealed class PdfHtmlPageSelectionTests {
     [Fact]
     public void DocumentHtmlExport_AppliesPageRangesBeforeSemanticReading() {
         PdfDocument source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Page 1"));
+            .Paragraph(paragraph => paragraph.AddText("Page 1"));
         for (int pageNumber = 2; pageNumber <= 1001; pageNumber++) {
             int capturedPageNumber = pageNumber;
-            source.PageBreak().Paragraph(paragraph => paragraph.Text("Page " + capturedPageNumber));
+            source.PageBreak().Paragraph(paragraph => paragraph.AddText("Page " + capturedPageNumber));
         }
         PdfDocument document = PdfDocument.Load(new System.IO.MemoryStream(source.ToBytes()));
-        var options = new PdfToHtmlOptions {
+        var options = new PdfHtmlExportOptions {
             ReadOptions = new PdfLoadOptions {
                 Pipeline = new PdfUnderstandingPipelineOptions { MaxPages = 1 }
             },
@@ -57,9 +57,9 @@ public sealed class PdfHtmlPageSelectionTests {
     [Fact]
     public void VisualWordAndPowerPoint_DoNotReportUnusedOptionalContentDefinitions() {
         PdfDocument document = PdfDocument.Load(new System.IO.MemoryStream(PdfOptionalContentSupport.BuildOptionalContentMetadataPdf()));
-        PdfWordConversionResult word = document.ConvertToWordWithEvidence(WordPdfImportOptions.CreateVisualPages());
+        PdfWordConversionResult word = document.ConvertToWordWithEvidence(PdfWordExportOptions.CreateVisualPages());
         PdfPowerPointConversionResult powerPoint = document.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateVisualPages());
+            PdfPowerPointExportOptions.CreateVisualPages());
         using (word.Value)
         using (powerPoint.Value) {
             Assert.DoesNotContain(word.Report.Warnings, static warning =>
@@ -74,13 +74,13 @@ public sealed class PdfHtmlPageSelectionTests {
     [InlineData(2, true)]
     public void VisualWordAndPowerPoint_ReportOptionalContentOnlyForSelectedUsage(int pageNumber, bool expectedWarning) {
         PdfDocument document = PdfDocument.Load(new System.IO.MemoryStream(PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Unlayered page"))
+            .Paragraph(paragraph => paragraph.AddText("Unlayered page"))
             .PageBreak()
-            .Layer("Selected layer", layer => layer.Paragraph(paragraph => paragraph.Text("Layered page")))
+            .Layer("Selected layer", layer => layer.AddParagraph(paragraph => paragraph.AddText("Layered page")))
             .ToBytes()));
-        WordPdfImportOptions wordOptions = WordPdfImportOptions.CreateVisualPages();
+        PdfWordExportOptions wordOptions = PdfWordExportOptions.CreateVisualPages();
         wordOptions.ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(pageNumber) };
-        PowerPointPdfImportOptions powerPointOptions = PowerPointPdfImportOptions.CreateVisualPages();
+        PdfPowerPointExportOptions powerPointOptions = PdfPowerPointExportOptions.CreateVisualPages();
         powerPointOptions.ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(pageNumber) };
         PdfWordConversionResult word = document.ConvertToWordWithEvidence(wordOptions);
         PdfPowerPointConversionResult powerPoint = document.ConvertToPowerPointWithEvidence(powerPointOptions);
@@ -96,14 +96,14 @@ public sealed class PdfHtmlPageSelectionTests {
     [Fact]
     public void VisualWordAndPowerPoint_ReportInconclusiveOptionalContentInspectionWithoutFailingConversion() {
         PdfDocument document = PdfDocument.Load(new System.IO.MemoryStream(PdfDocument.Create()
-            .Layer("Selected layer", layer => layer.Paragraph(paragraph => paragraph.Text("Layered page")))
+            .Layer("Selected layer", layer => layer.AddParagraph(paragraph => paragraph.AddText("Layered page")))
             .ToBytes()));
         PdfReadPage.OptionalContentUsageInspectionObserverForTesting = static () =>
             throw new InvalidDataException("Synthetic optional-content inspection failure.");
         try {
-            PdfWordConversionResult word = document.ConvertToWordWithEvidence(WordPdfImportOptions.CreateVisualPages());
+            PdfWordConversionResult word = document.ConvertToWordWithEvidence(PdfWordExportOptions.CreateVisualPages());
             PdfPowerPointConversionResult powerPoint = document.ConvertToPowerPointWithEvidence(
-                PowerPointPdfImportOptions.CreateVisualPages());
+                PdfPowerPointExportOptions.CreateVisualPages());
             using (word.Value)
             using (powerPoint.Value) {
                 Assert.Contains(word.Report.Warnings, static warning =>
@@ -119,16 +119,16 @@ public sealed class PdfHtmlPageSelectionTests {
     [Fact]
     public void HtmlExport_ReportsOptionalContentOnlyWhenSelectedPagesUseIt() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Unlayered page"))
+            .Paragraph(paragraph => paragraph.AddText("Unlayered page"))
             .PageBreak()
-            .Layer("Selected layer", layer => layer.Paragraph(paragraph => paragraph.Text("Layered page")))
+            .Layer("Selected layer", layer => layer.AddParagraph(paragraph => paragraph.AddText("Layered page")))
             .ToBytes();
         PdfDocument document = PdfDocument.Load(new System.IO.MemoryStream(source));
 
-        PdfHtmlConversionResult firstPage = document.ToHtmlResult(new PdfToHtmlOptions {
+        PdfHtmlConversionResult firstPage = document.ToHtmlResult(new PdfHtmlExportOptions {
             PageRanges = new[] { PdfPageRange.From(1, 1) }
         });
-        PdfHtmlConversionResult secondPage = document.ToHtmlResult(new PdfToHtmlOptions {
+        PdfHtmlConversionResult secondPage = document.ToHtmlResult(new PdfHtmlExportOptions {
             PageRanges = new[] { PdfPageRange.From(2, 2) }
         });
         PdfDocumentReadResult firstPageLogical = document.Read(new PdfLoadOptions {
@@ -188,7 +188,7 @@ public sealed class PdfHtmlPageSelectionTests {
         PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using OfficeIMO.Word.WordDocument wordDocument = word.Value;
         PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateEditableContent());
+            PdfPowerPointExportOptions.CreateEditableContent());
         using OfficeIMO.PowerPoint.PowerPointDocument presentation = powerPoint.Value;
 
         Assert.True(page.HasOptionalContentUsage);
@@ -217,7 +217,7 @@ public sealed class PdfHtmlPageSelectionTests {
         PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using OfficeIMO.Word.WordDocument wordDocument = word.Value;
         PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateEditableContent());
+            PdfPowerPointExportOptions.CreateEditableContent());
         using OfficeIMO.PowerPoint.PowerPointDocument presentation = powerPoint.Value;
 
         Assert.Equal(selectLayeredAppearance, page.HasOptionalContentUsage);
@@ -245,7 +245,7 @@ public sealed class PdfHtmlPageSelectionTests {
         PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using OfficeIMO.Word.WordDocument wordDocument = word.Value;
         PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateEditableContent());
+            PdfPowerPointExportOptions.CreateEditableContent());
         using OfficeIMO.PowerPoint.PowerPointDocument presentation = powerPoint.Value;
 
         Assert.Equal(expectedOptionalContent, page.HasOptionalContentUsage);
@@ -269,7 +269,7 @@ public sealed class PdfHtmlPageSelectionTests {
         PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using OfficeIMO.Word.WordDocument wordDocument = word.Value;
         PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateEditableContent());
+            PdfPowerPointExportOptions.CreateEditableContent());
         using OfficeIMO.PowerPoint.PowerPointDocument presentation = powerPoint.Value;
 
         Assert.True(page.HasOptionalContentUsage);

@@ -613,6 +613,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            PromotePendingDirectCellValuesForMetadata(sheet);
             var candidate = _directDataSetSaveCandidate;
             var sourceModel = candidate?.IsValid == true ? candidate.Model : _materializedDirectDataSetFastSaveModel;
             if (sourceModel == null || !ReferenceEquals(sheet.Document, this)) {

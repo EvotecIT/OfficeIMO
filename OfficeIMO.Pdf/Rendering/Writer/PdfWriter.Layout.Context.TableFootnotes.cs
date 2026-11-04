@@ -39,7 +39,7 @@ internal static partial class PdfWriter {
                 var offsets = SliceTableCellLineXOffsets(lines, startLine, frame.VisibleLineCount);
                 var widths = SliceTableCellLineWidths(lines, startLine, frame.VisibleLineCount, frame.InnerWidth);
                 TableCellContentFrame clip = GetTableCellInkClipFrame(style, row, cell.Column, x, top, width, height);
-                PdfAlign alignment = MapTableCellAlignment(GetTableCellAlignment(style, row, cell.Column, cell.Text));
+                OfficeAlignment alignment = MapTableCellAlignment(GetTableCellAlignment(style, row, cell.Column, cell.Text));
                 OmitInvisibleTableCellViewportLines(visible, heights, alignments, offsets, widths, alignment,
                     frame.FirstBaseline, frame.Content.Left + GetTableCellPaddingLeft(style, row, cell.Column),
                     frame.InnerWidth, clip.Left, clip.Top - clip.Height, clip.Width, clip.Height,

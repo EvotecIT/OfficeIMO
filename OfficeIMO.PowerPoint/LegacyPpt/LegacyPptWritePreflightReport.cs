@@ -34,17 +34,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
     }
 
     /// <summary>Reports whether a presentation fits the native binary writer's supported subset.</summary>
-    public sealed class LegacyPptWritePreflightReport : IOfficeConversionReport {
+    public sealed class LegacyPptWritePreflightReport : OfficeConversionReport {
         internal LegacyPptWritePreflightReport(IReadOnlyList<LegacyPptWriteFinding> findings) {
             LegacyPptWriteFinding[] snapshot = findings.ToArray();
             Findings = Array.AsReadOnly(snapshot);
             FidelityDiagnostics = Array.AsReadOnly(snapshot.Select(finding =>
-                new OfficeConversionFidelityDiagnostic(
+                new global::OfficeIMO.OfficeDiagnostic(
                     finding.Code,
+                    global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
                     finding.Description,
-                    OfficeConversionLossKind.Omission,
+                    FormatLocation(finding),
                     "OfficeIMO.PowerPoint.LegacyPpt.Writer",
-                    FormatLocation(finding))).ToArray());
+                    OfficeConversionLossKind.Omission)).ToArray());
         }
 
         /// <summary>Gets known conversion-loss findings.</summary>
@@ -54,19 +55,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         public bool HasConversionLoss => Findings.Count > 0;
 
         /// <inheritdoc />
-        public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
+        protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+        private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics { get; }
 
         /// <inheritdoc />
-        public bool HasLoss => FidelityDiagnostics.Count > 0;
+        public override bool HasLoss => FidelityDiagnostics.Count > 0;
 
         /// <summary>Gets whether the default loss policy permits writing.</summary>
         public bool CanWrite => !HasConversionLoss;
 
         /// <inheritdoc />
-        public void RequireNoLoss() {
-            if (HasLoss) throw new InvalidDataException(
-                "The legacy PPT write preflight reported content that the native writer would omit. Inspect Findings for details.");
-        }
+        protected override OfficeConversionException CreateLossException() => new OfficeConversionException("The legacy PPT write preflight reported content that the native writer would omit. Inspect Findings for details.", this);
 
         private static string? FormatLocation(LegacyPptWriteFinding finding) {
             if (!finding.SlideIndex.HasValue) return null;

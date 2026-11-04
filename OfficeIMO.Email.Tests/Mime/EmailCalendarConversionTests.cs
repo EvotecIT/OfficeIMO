@@ -32,7 +32,7 @@ public sealed class EmailCalendarConversionTests {
             new EmailAddress("attendee@example.com", "Attendee")));
 
         byte[] eml = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.Eml);
-        EmailReadResult read = new EmailDocumentReader().Read(eml);
+        EmailReadResult read = new EmailDocumentReader().ReadDocument(eml);
         using var oracleStream = new MemoryStream(eml);
         MimeMessage oracle = MimeMessage.Load(oracleStream);
 
@@ -60,7 +60,7 @@ public sealed class EmailCalendarConversionTests {
             "DTSTART:20260801T100000Z\r\nDTEND:20260801T110000Z\r\nSUMMARY:Scoped event\r\n" +
             "END:VEVENT\r\nEND:VCALENDAR\r\n");
 
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         Assert.Equal("Scoped event", document.Subject);
         Assert.Equal(new DateTimeOffset(2026, 8, 1, 10, 0, 0, TimeSpan.Zero), document.Appointment!.Start);
@@ -82,7 +82,7 @@ public sealed class EmailCalendarConversionTests {
             "RRULE:FREQ=DAILY;UNTIL=20260703T030000Z\r\n" +
             "EXDATE:20260703T030000Z\r\nSUMMARY:Zoned series\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
 
-        EmailReadResult read = new EmailDocumentReader().Read(eml);
+        EmailReadResult read = new EmailDocumentReader().ReadDocument(eml);
         OutlookAppointment appointment = read.Document.Appointment!;
         OutlookRecurrence recurrence = appointment.Recurrence!;
 
@@ -107,7 +107,7 @@ public sealed class EmailCalendarConversionTests {
             "RRULE:FREQ=DAILY;UNTIL=20260703T030000Z\r\n" +
             "SUMMARY:Unresolved series\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
 
-        EmailReadResult read = new EmailDocumentReader().Read(eml);
+        EmailReadResult read = new EmailDocumentReader().ReadDocument(eml);
 
         Assert.Null(read.Document.Appointment!.Recurrence);
         Assert.Contains(read.Diagnostics,
@@ -123,7 +123,7 @@ public sealed class EmailCalendarConversionTests {
             "BEGIN:VEVENT\r\nUID:second@example.com\r\nDTSTART:20260702T090000Z\r\n" +
             "RRULE:FREQ=DAILY;COUNT=3\r\nSUMMARY:Second series\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
 
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         Assert.Equal("First event", document.Subject);
         Assert.False(document.Appointment!.IsRecurring);
@@ -142,7 +142,7 @@ public sealed class EmailCalendarConversionTests {
             "DTSTART:20260703T110000Z\r\nDTEND:20260703T120000Z\r\n" +
             "SUMMARY:Moved future series\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
 
-        EmailReadResult read = new EmailDocumentReader().Read(eml);
+        EmailReadResult read = new EmailDocumentReader().ReadDocument(eml);
 
         Assert.NotNull(read.Document.Appointment!.Recurrence);
         Assert.Empty(read.Document.Appointment.Recurrence!.Exceptions);
@@ -160,7 +160,7 @@ public sealed class EmailCalendarConversionTests {
             "BEGIN:VEVENT\r\nUID:cancelled@example.com\r\n" +
             "RECURRENCE-ID:20260703T090000Z\r\nSTATUS:CANCELLED\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
 
-        EmailReadResult read = new EmailDocumentReader().Read(eml);
+        EmailReadResult read = new EmailDocumentReader().ReadDocument(eml);
         OutlookRecurrence recurrence = read.Document.Appointment!.Recurrence!;
 
         Assert.Equal(new DateTime(2026, 7, 3), Assert.Single(recurrence.DeletedOccurrenceDates));
@@ -180,7 +180,7 @@ public sealed class EmailCalendarConversionTests {
             "DTEND:20260703T120000Z\r\nSUMMARY:Unrelated exception\r\nEND:VEVENT\r\n" +
             "END:VCALENDAR\r\n");
 
-        EmailReadResult read = new EmailDocumentReader().Read(eml);
+        EmailReadResult read = new EmailDocumentReader().ReadDocument(eml);
 
         Assert.NotNull(read.Document.Appointment!.Recurrence);
         Assert.Empty(read.Document.Appointment.Recurrence!.Exceptions);
@@ -202,7 +202,7 @@ public sealed class EmailCalendarConversionTests {
             "DTEND:20260703T120000Z\r\nSUMMARY:Unrelated exception\r\nEND:VEVENT\r\n" +
             "END:VCALENDAR\r\n");
 
-        EmailReadResult read = new EmailDocumentReader().Read(eml);
+        EmailReadResult read = new EmailDocumentReader().ReadDocument(eml);
 
         Assert.NotNull(read.Document.Appointment!.Recurrence);
         Assert.Empty(read.Document.Appointment.Recurrence!.Exceptions);
@@ -218,7 +218,7 @@ public sealed class EmailCalendarConversionTests {
             "ATTENDEE;ROLE=REQ-PARTICIPANT;CN=\"Doe; John: Sr.\":mailto:john@example.com\r\n" +
             "END:VEVENT\r\nEND:VCALENDAR\r\n");
 
-        EmailRecipient attendee = Assert.Single(new EmailDocumentReader().Read(eml).Document.Recipients);
+        EmailRecipient attendee = Assert.Single(new EmailDocumentReader().ReadDocument(eml).Document.Recipients);
 
         Assert.Equal("john@example.com", attendee.Address.Address);
         Assert.Equal("Doe; John: Sr.", attendee.Address.DisplayName);
@@ -234,8 +234,8 @@ public sealed class EmailCalendarConversionTests {
             if (calendar[index] == (byte)'#') calendar[index] = 0xe9;
         }
 
-        EmailDocument document = new EmailDocumentReader().Read(prefix.Concat(calendar).ToArray()).Document;
-        EmailDocument roundTrip = new EmailDocumentReader().Read(
+        EmailDocument document = new EmailDocumentReader().ReadDocument(prefix.Concat(calendar).ToArray()).Document;
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter().ToBytes(document, EmailFileFormat.Eml)).Document;
 
         Assert.Equal("Café", document.Subject);
@@ -253,7 +253,7 @@ public sealed class EmailCalendarConversionTests {
             "BEGIN:VALARM\r\nACTION:DISPLAY\r\nTRIGGER:-P1W\r\nEND:VALARM\r\n" +
             "END:VEVENT\r\nEND:VCALENDAR\r\n");
 
-        OutlookAppointment appointment = new EmailDocumentReader().Read(eml).Document.Appointment!;
+        OutlookAppointment appointment = new EmailDocumentReader().ReadDocument(eml).Document.Appointment!;
 
         Assert.Equal(new DateTimeOffset(2026, 8, 8, 10, 0, 0, TimeSpan.Zero), appointment.End);
         Assert.Equal(7 * 24 * 60, appointment.DurationMinutes);
@@ -268,7 +268,7 @@ public sealed class EmailCalendarConversionTests {
             "BEGIN:VALARM\r\nACTION:DISPLAY\r\nTRIGGER:+PT15M\r\nEND:VALARM\r\n" +
             "END:VEVENT\r\nEND:VCALENDAR\r\n");
 
-        OutlookAppointment appointment = new EmailDocumentReader().Read(eml).Document.Appointment!;
+        OutlookAppointment appointment = new EmailDocumentReader().ReadDocument(eml).Document.Appointment!;
 
         Assert.Equal(new DateTimeOffset(2026, 8, 1, 11, 0, 0, TimeSpan.Zero), appointment.End);
         Assert.Equal(60, appointment.DurationMinutes);
@@ -289,7 +289,7 @@ public sealed class EmailCalendarConversionTests {
             new EmailAddress("projector@example.com", "Projector")));
 
         byte[] eml = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.Eml);
-        EmailDocument result = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument result = new EmailDocumentReader().ReadDocument(eml).Document;
         using var stream = new MemoryStream(eml);
         MimePart calendar = Assert.Single(MimeMessage.Load(stream).BodyParts.OfType<MimePart>(),
             part => part.ContentType.MimeType == "text/calendar");
@@ -314,7 +314,7 @@ public sealed class EmailCalendarConversionTests {
             "ATTENDEE;CUTYPE=ROOM;ROLE=NON-PARTICIPANT:mailto:room@example.com\r\n" +
             "END:VEVENT\r\nEND:VCALENDAR\r\n");
 
-        EmailRecipient recipient = Assert.Single(new EmailDocumentReader().Read(eml).Document.Recipients);
+        EmailRecipient recipient = Assert.Single(new EmailDocumentReader().ReadDocument(eml).Document.Recipients);
 
         Assert.Equal(EmailRecipientKind.Room, recipient.Kind);
     }
@@ -331,7 +331,7 @@ public sealed class EmailCalendarConversionTests {
             "ATTENDEE;PARTSTAT=" + participationStatus + ":mailto:person@example.com\r\n" +
             "END:VEVENT\r\nEND:VCALENDAR\r\n");
 
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         Assert.Equal(messageClass, document.MessageClass);
         Assert.Equal("REPLY", IcalendarMethodAfterRoundTrip(document));
@@ -343,7 +343,7 @@ public sealed class EmailCalendarConversionTests {
             "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
             "BEGIN:VEVENT\r\nUID:attach@example.com\r\nDTSTART:20260801T100000Z\r\n" +
             "ATTACH:https://example.com/agenda.pdf\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -360,7 +360,7 @@ public sealed class EmailCalendarConversionTests {
             "BEGIN:VEVENT\r\nUID:range@example.com\r\nDTSTART:00010101T000000Z\r\n" +
             "DTEND:99991231T000000Z\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
 
-        EmailReadResult read = new EmailDocumentReader().Read(eml);
+        EmailReadResult read = new EmailDocumentReader().ReadDocument(eml);
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             read.Document, EmailFileFormat.OutlookMsg);
 
@@ -380,7 +380,7 @@ public sealed class EmailCalendarConversionTests {
             "BEGIN:VALARM\r\nACTION:DISPLAY\r\nTRIGGER:-P2000000D\r\nEND:VALARM\r\n" +
             "END:VEVENT\r\nEND:VCALENDAR\r\n");
 
-        EmailReadResult read = new EmailDocumentReader().Read(eml);
+        EmailReadResult read = new EmailDocumentReader().ReadDocument(eml);
 
         Assert.Equal(new DateTimeOffset(2026, 8, 1, 10, 0, 0, TimeSpan.Zero).AddDays(2000000),
             read.Document.Appointment!.End);
@@ -397,7 +397,7 @@ public sealed class EmailCalendarConversionTests {
             "BEGIN:VEVENT\r\nUID:event@example.com\r\nDTSTART:20260801T100000Z\r\nEND:VEVENT\r\n" +
             "BEGIN:VJOURNAL\r\nUID:journal@example.com\r\nSUMMARY:Journal\r\nEND:VJOURNAL\r\n" +
             "END:VCALENDAR\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -414,7 +414,7 @@ public sealed class EmailCalendarConversionTests {
             "BEGIN:VEVENT\r\nUID:seconds@example.com\r\nDTSTART:20260801T100000Z\r\nDURATION:PT90S\r\n" +
             "BEGIN:VALARM\r\nACTION:DISPLAY\r\nTRIGGER:-PT30S\r\nEND:VALARM\r\n" +
             "END:VEVENT\r\nEND:VCALENDAR\r\n");
-        EmailReadResult read = new EmailDocumentReader().Read(eml);
+        EmailReadResult read = new EmailDocumentReader().ReadDocument(eml);
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             read.Document, EmailFileFormat.OutlookMsg);
@@ -433,7 +433,7 @@ public sealed class EmailCalendarConversionTests {
             "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
             "BEGIN:VEVENT\r\nUID:timezone@example.com\r\n" +
             "DTSTART;TZID=OfficeIMO/Unknown:20260801T100000\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
-        EmailReadResult read = new EmailDocumentReader().Read(eml);
+        EmailReadResult read = new EmailDocumentReader().ReadDocument(eml);
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             read.Document, EmailFileFormat.OutlookMsg);
@@ -452,7 +452,7 @@ public sealed class EmailCalendarConversionTests {
             "BEGIN:VEVENT\r\nUID:end-alarm@example.com\r\nDTSTART:20260801T100000Z\r\n" +
             "DTEND:20260801T110000Z\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\n" +
             "TRIGGER;RELATED=END:-PT15M\r\nEND:VALARM\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -471,7 +471,7 @@ public sealed class EmailCalendarConversionTests {
             "BEGIN:VEVENT\r\nUID:busy@example.com\r\nDTSTART:20260801T100000Z\r\nTRANSP:" + transparency +
             "\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
 
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         Assert.Equal(busyStatus, document.Appointment!.BusyStatus);
     }
@@ -484,9 +484,9 @@ public sealed class EmailCalendarConversionTests {
             "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
             "BEGIN:VEVENT\r\nUID:private@example.com\r\nDTSTART:20260801T100000Z\r\nCLASS:" + calendarClass +
             "\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
-        EmailDocument storeRoundTrip = new EmailDocumentReader().Read(
+        EmailDocument storeRoundTrip = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
         byte[] regeneratedEml = new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).ToBytes(storeRoundTrip, EmailFileFormat.Eml);
         using var stream = new MemoryStream(regeneratedEml);
@@ -526,7 +526,7 @@ public sealed class EmailCalendarConversionTests {
         source.Task.Contacts.Add("Ada Lovelace");
         source.Task.Companies.Add("Analytical Engines");
 
-        EmailDocument result = new EmailDocumentReader().Read(
+        EmailDocument result = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter().ToBytes(source, EmailFileFormat.Eml)).Document;
 
         Assert.Equal(OutlookItemKind.Task, result.OutlookItemKind);
@@ -557,7 +557,7 @@ public sealed class EmailCalendarConversionTests {
             Task = new OutlookTask { Status = status }
         };
 
-        EmailDocument result = new EmailDocumentReader().Read(
+        EmailDocument result = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter().ToBytes(source, EmailFileFormat.Eml)).Document;
 
         Assert.Equal(status, result.Task!.Status);
@@ -649,7 +649,7 @@ public sealed class EmailCalendarConversionTests {
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(source, EmailFileFormat.Eml);
         byte[] warned = new EmailDocumentWriter(new EmailWriterOptions(EmailConversionLossPolicy.Warn))
             .ToBytes(source, EmailFileFormat.Eml);
-        EmailAttachment calendar = Assert.Single(new EmailDocumentReader().Read(warned).Document.Attachments,
+        EmailAttachment calendar = Assert.Single(new EmailDocumentReader().ReadDocument(warned).Document.Attachments,
             attachment => string.Equals(attachment.ContentType, "text/calendar", StringComparison.OrdinalIgnoreCase));
         string text = Encoding.UTF8.GetString(Assert.IsType<byte[]>(calendar.Content));
 
@@ -669,7 +669,7 @@ public sealed class EmailCalendarConversionTests {
             "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:r@example.com\r\n" +
             "DTSTART:20260801T100000Z\r\nDTEND:20260801T110000Z\r\n" +
             "RRULE:FREQ=WEEKLY;COUNT=4\r\nSUMMARY:Recurring\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
         var writer = new EmailDocumentWriter();
 
         EmailConversionReport emlReport = writer.AnalyzeConversion(document, EmailFileFormat.Eml);
@@ -689,11 +689,11 @@ public sealed class EmailCalendarConversionTests {
             "Content-Type: text/calendar; charset=utf-8\r\n\r\n" +
             "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:undated@example.com\r\n" +
             "SUMMARY:Undated\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
         var writer = new EmailDocumentWriter();
 
         EmailConversionReport report = writer.AnalyzeConversion(document, EmailFileFormat.Eml);
-        EmailAttachment calendar = Assert.Single(new EmailDocumentReader().Read(
+        EmailAttachment calendar = Assert.Single(new EmailDocumentReader().ReadDocument(
             writer.ToBytes(document, EmailFileFormat.Eml)).Document.Attachments,
             attachment => string.Equals(attachment.ContentType, "text/calendar", StringComparison.OrdinalIgnoreCase));
         string rewritten = Encoding.ASCII.GetString(Assert.IsType<byte[]>(calendar.Content));
@@ -710,13 +710,13 @@ public sealed class EmailCalendarConversionTests {
             "Content-Type: text/calendar; charset=utf-8\r\n\r\n" +
             "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:edit@example.com\r\n" +
             "DTSTART:20260801T100000Z\r\nSUMMARY:Original\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
         document.Subject = "Edited";
         document.Appointment!.Start = new DateTimeOffset(2026, 8, 1, 12, 0, 0, TimeSpan.Zero);
 
         byte[] output = new EmailDocumentWriter(new EmailWriterOptions(EmailConversionLossPolicy.Warn))
             .ToBytes(document, EmailFileFormat.Eml);
-        EmailAttachment calendar = Assert.Single(new EmailDocumentReader().Read(output).Document.Attachments,
+        EmailAttachment calendar = Assert.Single(new EmailDocumentReader().ReadDocument(output).Document.Attachments,
             attachment => string.Equals(attachment.ContentType, "text/calendar", StringComparison.OrdinalIgnoreCase));
         string rewritten = Encoding.UTF8.GetString(Assert.IsType<byte[]>(calendar.Content));
 
@@ -733,14 +733,14 @@ public sealed class EmailCalendarConversionTests {
             "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nMETHOD:PUBLISH\r\nBEGIN:VEVENT\r\n" +
             "UID:method@example.com\r\nDTSTART:20260801T100000Z\r\nSUMMARY:Published\r\n" +
             "END:VEVENT\r\nEND:VCALENDAR\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
         document.Subject = "Requested";
         document.Recipients.Add(new EmailRecipient(EmailRecipientKind.To,
             new EmailAddress("attendee@example.com")));
 
         byte[] output = new EmailDocumentWriter(new EmailWriterOptions(EmailConversionLossPolicy.Warn))
             .ToBytes(document, EmailFileFormat.Eml);
-        EmailAttachment calendar = Assert.Single(new EmailDocumentReader().Read(output).Document.Attachments,
+        EmailAttachment calendar = Assert.Single(new EmailDocumentReader().ReadDocument(output).Document.Attachments,
             attachment => string.Equals(attachment.ContentType, "text/calendar", StringComparison.OrdinalIgnoreCase));
         string rewritten = Encoding.UTF8.GetString(Assert.IsType<byte[]>(calendar.Content));
 
@@ -759,10 +759,10 @@ public sealed class EmailCalendarConversionTests {
             "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nMETHOD:PUBLISH\r\nBEGIN:VEVENT\r\n" +
             "UID:attached@example.com\r\nDTSTART:20260801T100000Z\r\nSUMMARY:Attached\r\n" +
             "END:VEVENT\r\nEND:VCALENDAR\r\n--x--\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         byte[] output = new EmailDocumentWriter().ToBytes(document, EmailFileFormat.Eml);
-        EmailDocument storeRoundTrip = new EmailDocumentReader().Read(
+        EmailDocument storeRoundTrip = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
         using var stream = new MemoryStream(output);
         MimeMessage message = MimeMessage.Load(stream);
@@ -824,7 +824,7 @@ public sealed class EmailCalendarConversionTests {
             "--x\r\nContent-Type: text/calendar\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
             "BEGIN:VEVENT\r\nUID:event@example.com\r\nDTSTART:20260801T100000Z\r\n" +
             "END:VEVENT\r\nEND:VCALENDAR\r\n--x--\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);

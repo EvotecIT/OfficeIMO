@@ -26,12 +26,12 @@ public sealed class HtmlPdfResourceAdmissionTests {
                     BaseUri = new Uri(Path.Combine(root, "source.html")),
                     ResourceUrlPolicy = new HtmlUrlPolicy { DisallowFileUrls = false }
                 });
-            var options = new HtmlToPdfOptions();
+            var options = new HtmlPdfExportOptions();
             options.ResourcePolicy.AllowLocalFileAccess = true;
             var initial = source.RenderToPdfResult(HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, options));
             using var initialModel = initial.Output.Value;
             Assert.Equal(1, CountImages(initial.Output.ToBytes()));
-            var retained = Assert.IsType<HtmlToPdfOptions>(initial.RenderResult.Request.Options);
+            var retained = Assert.IsType<HtmlPdfExportOptions>(initial.RenderResult.Request.Options);
             if (policy == "resolver") retained.ResourceResolver = (request, token) => Task.FromResult<HtmlResolvedResource?>(null);
             else if (policy == "disable") retained.ResourcePolicy.AllowLocalFileAccess = false;
             HtmlRenderRequest next = initial.RenderResult.Request.WithOptions(retained);
@@ -64,7 +64,7 @@ public sealed class HtmlPdfResourceAdmissionTests {
                     ResourceUrlPolicy = new HtmlUrlPolicy { DisallowFileUrls = false }
                 });
             int requests = 0;
-            var options = new HtmlToPdfOptions {
+            var options = new HtmlPdfExportOptions {
                 ResourceResolver = (request, token) => {
                     requests++;
                     return Task.FromResult<HtmlResolvedResource?>(admit ? new HtmlResolvedResource(pixel, "image/png") : null);

@@ -15,7 +15,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelBuiltinDocumentProperties(ExcelDocument document) {
             _document = document ?? throw new ArgumentNullException(nameof(document));
-            document.BuiltinDocumentProperties = this;
+            document.Properties = this;
             EnsureCorePropertiesPart();
         }
 

@@ -19,10 +19,8 @@ public sealed class IWorkEverydayCorpusTests {
         string applePath = Corpus(manifest.GetProperty("export").GetString()!);
         Assert.Equal(manifest.GetProperty("sourceSha256").GetString(), Hash(path));
         Assert.Equal(manifest.GetProperty("exportSha256").GetString(), Hash(applePath));
-        Assert.Throws<InvalidDataException>(() => ExcelIWorkConverter.ConvertNumbersToExcelResult(path,
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly }));
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(path,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly }));
+        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         IWorkTestPolicy.AssertCellPaddingOmission(result.Report);
         Assert.Empty(result.Report.SourceDeclarationIssues);
         IWorkTable table = Assert.Single(Assert.Single(result.Projection.Sheets).Tables);
@@ -40,9 +38,9 @@ public sealed class IWorkEverydayCorpusTests {
                 Assert.True(reference.TryGetCellValueSnapshot(row + 1, column, out var expected));
                 Assert.Equal(expected!.Kind, cell!.Kind);
                 if (expected.Kind == ExcelCellValueKind.Number) Assert.Equal(expected.RawValue, cell.RawValue);
-                else Assert.Equal(reference.CellAt(row + 1, column).GetValue<string>(), destination.CellAt(row, column).GetValue<string>());
-                var style = destination.GetCellStyle(row, column);
-                var nativeStyle = reference.GetCellStyle(row + 1, column);
+                else Assert.Equal(reference.Cell(row + 1, column).GetValue<string>(), destination.Cell(row, column).GetValue<string>());
+                var style = destination.Cell(row, column).GetStyle();
+                var nativeStyle = reference.Cell(row + 1, column).GetStyle();
                 Assert.Equal(nativeStyle.Bold, style.Bold);
                 Assert.Equal(nativeStyle.FontSize, style.FontSize);
                 Assert.True(string.IsNullOrEmpty(nativeStyle.HorizontalAlignment)
@@ -51,8 +49,7 @@ public sealed class IWorkEverydayCorpusTests {
             }
         }
         Assert.Empty(actual.ValidateOpenXml());
-        Assert.Throws<InvalidOperationException>(() => ExcelIWorkConverter.ConvertNumbersToExcel(path,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true }));
+        Assert.Throws<InvalidOperationException>(() => IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }).RequireCompleteEditableReconstruction());
     }
 
     [Fact]
@@ -67,7 +64,7 @@ public sealed class IWorkEverydayCorpusTests {
         var reference = apple.MainDocumentPart!.Document!.Body!;
         var expected = reference.Elements<Paragraph>().ToArray();
         Assert.Equal(3, expected.Length);
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(path);
+        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Pages).ToWordResult();
         result.Report.RequireCompleteEditableReconstruction();
         Assert.Empty(result.Report.SourceDeclarationIssues);
         Assert.Equal(expected.Select(paragraph => paragraph.InnerText),

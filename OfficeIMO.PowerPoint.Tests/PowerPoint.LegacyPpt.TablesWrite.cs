@@ -112,7 +112,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("C1121F", table.GetCell(1, 1).BorderColor);
             Assert.Equal((int)Math.Round(1.75D * 12700D),
                 leftBorder?.Width?.Value);
-            Assert.Empty(projected.Slides[0].Pictures);
+            Assert.Empty(projected.Slides[0].Images);
             Assert.Empty(projected.ValidateDocument());
         }
 
@@ -136,7 +136,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument reopened =
                 PowerPointDocument.Load(input);
             Assert.Empty(reopened.Slides[0].Tables);
-            Assert.Single(reopened.Slides[0].Pictures);
+            Assert.Single(reopened.Slides[0].Images);
         }
 
         [Fact]

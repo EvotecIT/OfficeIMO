@@ -13,7 +13,7 @@ public sealed class HtmlPrintFittingBudgetTests {
     public async Task HtmlPdf_PrintFittingAndLayoutShareTheDecorationWorkBudget(bool asyncPath) {
         var source = HtmlConversionDocument.Parse("<body style='text-decoration:overline 3px;text-decoration-skip-ink:none'><span style='display:none'>"
             + new string('x', 65536) + "</span></body>");
-        var options = new HtmlToPdfOptions { MaxLayoutOperations = 300, AutoFitWidePrintContent = false };
+        var options = new HtmlPdfExportOptions { MaxLayoutOperations = 300, AutoFitWidePrintContent = false };
         byte[] control = asyncPath ? (await source.ToPdfAsync(options)).Value.ToBytes() : (source.ToPdf(options)).ToBytes();
         Assert.Equal("%PDF", System.Text.Encoding.ASCII.GetString(control, 0, 4));
 
@@ -35,7 +35,7 @@ public sealed class HtmlPrintFittingBudgetTests {
         var source = HtmlConversionDocument.Parse(DecoratedRoot(decoratingTag));
         var document = source.CreateSourceDocumentForConversion();
         HtmlRenderOptions options = PrintFitOptions();
-        var styles = HtmlComputedStyleEngine.ComputeForRendering(document, options, HtmlConversionLimits.CreateUntrustedProfile());
+        var styles = HtmlComputedStyleEngine.ComputeForRendering(document, options, HtmlConversionLimits.UntrustedDefaults);
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
@@ -52,7 +52,7 @@ public sealed class HtmlPrintFittingBudgetTests {
         var source = HtmlConversionDocument.Parse(DecoratedRoot(decoratingTag));
         var document = source.CreateSourceDocumentForConversion();
         HtmlRenderOptions options = PrintFitOptions();
-        var styles = HtmlComputedStyleEngine.ComputeForRendering(document, options, HtmlConversionLimits.CreateUntrustedProfile());
+        var styles = HtmlComputedStyleEngine.ComputeForRendering(document, options, HtmlConversionLimits.UntrustedDefaults);
         var budget = new HtmlRenderOperationBudget();
         budget.ChargeLayoutOperations(99L, options.MaxLayoutOperations, "previous render work");
 

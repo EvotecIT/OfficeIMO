@@ -31,10 +31,14 @@ namespace OfficeIMO.Excel {
             if (string.IsNullOrWhiteSpace(url)) throw new ArgumentNullException(nameof(url));
 
             WriteLock(() => {
-                var cell = GetCell(row, column);
                 string text = string.IsNullOrEmpty(display) ? url : display!;
-                // Avoid nested locks: write value using core method
-                CellValueCore(row, column, text);
+                Cell? cell = null;
+                bool buffered = TrySetPendingHyperlinkCell(row, column, text);
+                if (!buffered) {
+                    cell = GetCell(row, column);
+                    // Avoid nested locks: write value using core method
+                    CellValueCore(row, column, text);
+                }
 
                 var reference = ExcelA1.CellReference(row, column);
                 // Ensure Hyperlinks container exists
@@ -57,7 +61,10 @@ namespace OfficeIMO.Excel {
                     Tooltip = string.IsNullOrWhiteSpace(tooltip) ? null : tooltip
                 };
                 hyperlinks.Append(hl);
-                if (style) ApplyHyperlinkStyle(cell);
+                if (style) {
+                    if (buffered) TryWritePendingCellStyle(row, column, ApplyHyperlinkStyle);
+                    else ApplyHyperlinkStyle(cell!);
+                }
             });
         }
         /// <example>
@@ -308,9 +315,7 @@ namespace OfficeIMO.Excel {
             // Ensure primitives
             EnsureDefaultStylePrimitives(stylesheet);
 
-            int fontCount = stylesheet.Fonts!.ChildElements.Count;
-            int formatCount = stylesheet.CellFormats!.ChildElements.Count;
-            ApplyDerivedCellFormat(stylesheet, cell, "hyperlink", () => {
+            ApplyDerivedCellFormat(stylesPart, stylesheet, cell, "hyperlink", null, () => {
                 CellFormat baseFormat = GetBaseCellFormat(stylesheet, cell.StyleIndex?.Value ?? 0U);
                 uint fontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => {
                     SetFontColor(font, "FF0563C1");
@@ -321,9 +326,6 @@ namespace OfficeIMO.Excel {
                     format.ApplyFont = true;
                 });
             });
-            if (stylesheet.Fonts.ChildElements.Count != fontCount || stylesheet.CellFormats.ChildElements.Count != formatCount) {
-                SaveStylesheet(stylesPart);
-            }
         }
 
         private void ApplyHyperlinkStyle(string reference) {

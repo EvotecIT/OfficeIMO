@@ -744,8 +744,7 @@ namespace OfficeIMO.Tests {
             File.Delete(filePath);
 
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddHeadersAndFooters();
-                document.Header.Default!.AddParagraph("Header target").AddComment("Alice Reviewer", "AR", "Header note.");
+                document.PageSetup.Header.AddParagraph("Header target").AddComment("Alice Reviewer", "AR", "Header note.");
                 document.Save();
             }
 
@@ -960,13 +959,12 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create(path);
 
             document.AddParagraph(label + " body anchor");
-            document.AddHeadersAndFooters();
 
-            WordParagraph headerParagraph = document.Header.Default!.AddParagraph(label + " header target");
+            WordParagraph headerParagraph = document.PageSetup.Header.AddParagraph(label + " header target");
             headerParagraph.AddComment(author, "RV", label + " header comment.");
             headerParagraph.AddInsertedText(label + " header insertion", author, revisionDate);
 
-            WordParagraph footerParagraph = document.Footer.Default!.AddParagraph(label + " footer target");
+            WordParagraph footerParagraph = document.PageSetup.Footer.AddParagraph(label + " footer target");
             footerParagraph.AddComment(author, "RV", label + " footer comment.");
             footerParagraph.AddInsertedText(label + " footer insertion", author, revisionDate);
 

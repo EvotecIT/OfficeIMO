@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
                 formula = function == "IFERROR" || function == "IFNA"
                     ? $"{function}({formula},0)"
                     : $"{function}({formula})";
-            sheet.CellFormula(1, 2, formula);
+            sheet.Cell(1, 2).SetFormula(formula);
 
             Assert.Equal(0, document.Calculate());
             Assert.False(sheet.TryGetCachedFormulaValue(1, 2, out _));
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
                     "DATEDIF" => $"DATEDIF({formula},1,\"D\")",
                     _ => $"TEXTBEFORE(\"text\",\"e\",1,0,{formula})"
                 };
-            sheet.CellFormula(1, 2, formula);
+            sheet.Cell(1, 2).SetFormula(formula);
 
             Assert.Equal(0, document.Calculate());
             Assert.False(sheet.TryGetCachedFormulaValue(1, 2, out _));
@@ -54,7 +54,7 @@ namespace OfficeIMO.Tests {
             string formula = "0";
             for (int depth = 0; depth < 12; depth++)
                 formula = $"LEN(TEXTJOIN(\"\",{formula},\"x\"))";
-            sheet.CellFormula(1, 1, formula);
+            sheet.Cell(1, 1).SetFormula(formula);
 
             Assert.Equal(1, document.Calculate());
             Assert.True(sheet.TryGetCachedFormulaValue(1, 1, out string? cached));

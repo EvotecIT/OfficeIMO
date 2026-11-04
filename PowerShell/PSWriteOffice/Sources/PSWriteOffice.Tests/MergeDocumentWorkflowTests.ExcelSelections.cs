@@ -17,16 +17,16 @@ public sealed partial class MergeDocumentWorkflowTests {
         string second = files.Excel("south.xlsx", "Ignore B", "IGNORE B");
         foreach (var item in new[] { (Path: first, Name: "Sales A", Marker: "NORTH"), (Path: second, Name: "Sales B", Marker: "SOUTH") }) {
             using var source = ExcelDocument.Load(item.Path, new ExcelLoadOptions { PersistenceMode = DocumentPersistenceMode.Explicit });
-            var sales = source.AddSheet(item.Name); sales.CellValue(1, 1, item.Marker);
-            sales.Cell(2, 1, 1.2345, numberFormat: "0.0000");
-            source.AddSheet("Secret").CellValue(1, 1, "MUST NOT IMPORT");
+            var sales = source.AddSheet(item.Name); sales.Cell(1, 1).SetValue(item.Marker);
+            sales.Cell(2, 1).SetValue(1.2345).SetNumberFormat("0.0000");
+            source.AddSheet("Secret").Cell(1, 1).SetValue("MUST NOT IMPORT");
             source.Save();
         }
         var before = files.Snapshot();
         using var selectedOwner = ExcelDocument.Load(first, new ExcelLoadOptions {
             AccessMode = DocumentAccessMode.ReadOnly, PersistenceMode = DocumentPersistenceMode.Explicit
         });
-        using var target = ExcelDocument.Create(); target.AddSheet("Cover").CellValue(1, 1, "COVER");
+        using var target = ExcelDocument.Create(); target.AddSheet("Cover").Cell(1, 1).SetValue("COVER");
         object selector = selection switch {
             "position" => 2,
             "object" => selectedOwner.Sheets[1],
@@ -62,7 +62,7 @@ public sealed partial class MergeDocumentWorkflowTests {
             foreach (var sheet in merged.Sheets.Skip(1)) {
                 Assert.True(sheet.TryGetCellText(1, 1, out string text));
                 Assert.Equal(sheet.Name.EndsWith("A", StringComparison.Ordinal) ? "NORTH" : "SOUTH", text);
-                Assert.Equal("0.0000", sheet.CellAt(2, 1).GetStyle().NumberFormatCode);
+                Assert.Equal("0.0000", sheet.Cell(2, 1).GetStyle().NumberFormatCode);
             }
         } finally { reopened?.Dispose(); }
         Assert.Equal(3, selectedOwner.Sheets.Count);
@@ -80,13 +80,13 @@ public sealed partial class MergeDocumentWorkflowTests {
         string second = files.Excel("second.xlsx", "Shared", "SECOND");
         string unrelated = files.Excel("unrelated.xlsx", "Shared", "UNRELATED");
         using (var source = ExcelDocument.Load(first, new ExcelLoadOptions { PersistenceMode = DocumentPersistenceMode.Explicit })) {
-            source.AddSheet("Shared").CellValue(1, 1, "FIRST SHARED"); source.Save();
+            source.AddSheet("Shared").Cell(1, 1).SetValue("FIRST SHARED"); source.Save();
         }
         var before = files.Snapshot();
         using var foreign = ExcelDocument.Load(unrelated, new ExcelLoadOptions {
             AccessMode = DocumentAccessMode.ReadOnly, PersistenceMode = DocumentPersistenceMode.Explicit
         });
-        using var target = ExcelDocument.Create(); target.AddSheet("Cover").CellValue(1, 1, "COVER");
+        using var target = ExcelDocument.Create(); target.AddSheet("Cover").Cell(1, 1).SetValue("COVER");
         string output = files.PathFor("absent/merged.xlsx");
         using var runspace = OpenRunspace();
         Set(runspace, ("selector", foreignObject ? (object)foreign.Sheets[0] : 2), ("target", target),

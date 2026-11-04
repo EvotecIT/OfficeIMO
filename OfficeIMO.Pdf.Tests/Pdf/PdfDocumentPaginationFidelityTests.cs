@@ -11,27 +11,31 @@ public class PdfDocumentPaginationFidelityTests {
     [Fact]
     public void Paragraph_CustomOrphanAndWidowCountsProduceBalancedSplit() {
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(260),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(170),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(170)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(paragraph => paragraph.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(45)
             })
-            .Paragraph(paragraph => paragraph
-                .Text("BalancedLine1").LineBreak()
-                .Text("BalancedLine2").LineBreak()
-                .Text("BalancedLine3").LineBreak()
-                .Text("BalancedLine4").LineBreak()
-                .Text("BalancedLine5").LineBreak()
-                .Text("BalancedLine6"), style: new PdfParagraphStyle {
+            .Paragraph(paragraph => {
+                paragraph.AddText("BalancedLine1");
+                paragraph.AddLineBreak();
+                paragraph.AddText("BalancedLine2");
+                paragraph.AddLineBreak();
+                paragraph.AddText("BalancedLine3");
+                paragraph.AddLineBreak();
+                paragraph.AddText("BalancedLine4");
+                paragraph.AddLineBreak();
+                paragraph.AddText("BalancedLine5");
+                paragraph.AddLineBreak();
+                paragraph.AddText("BalancedLine6");
+            }, style: new PdfParagraphStyle {
                     MinimumOrphanLines = 3,
                     MinimumWidowLines = 3,
                     SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
@@ -49,12 +53,10 @@ public class PdfDocumentPaginationFidelityTests {
     [Fact]
     public void Table_MinimumBodyRowsOnLastPageKeepsRowsWithFooter() {
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(280),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(160),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(280), global::OfficeIMO.OfficeLength.Points(160)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         };
@@ -87,12 +89,10 @@ public class PdfDocumentPaginationFidelityTests {
     [Fact]
     public void Table_MinimumBodyRowsOnFirstPagePreventsOrphanedHeader() {
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(280),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(280), global::OfficeIMO.OfficeLength.Points(180)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
@@ -102,7 +102,7 @@ public class PdfDocumentPaginationFidelityTests {
         style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20) };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(paragraph => paragraph.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(50)
             })
             .Table(new[] {

@@ -221,7 +221,7 @@ namespace OfficeIMO.Tests {
                 });
 
             Assert.Equal(OfficeImageMetadataKinds.Icc,
-                result.Metadata.Source & OfficeImageMetadataKinds.Icc);
+                result.Metadata.SourceKinds & OfficeImageMetadataKinds.Icc);
             Assert.Equal(OfficeImageMetadataKinds.None,
                 result.Metadata.Preserved & OfficeImageMetadataKinds.Icc);
             Assert.Equal(OfficeImageMetadataKinds.Icc,
@@ -251,7 +251,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(OfficeImageOptimizationStatus.Optimized, result.Status);
             Assert.Equal(OfficeImageMetadataKinds.Icc,
-                result.Metadata.Source & OfficeImageMetadataKinds.Icc);
+                result.Metadata.SourceKinds & OfficeImageMetadataKinds.Icc);
             Assert.Equal(OfficeImageMetadataKinds.None,
                 result.Metadata.Preserved & OfficeImageMetadataKinds.Icc);
             Assert.Equal(OfficeImageMetadataKinds.Icc,
@@ -1251,7 +1251,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(OfficeImageOptimizationStatus.Optimized, result.Status);
             Assert.Equal(OfficeImageMetadataKinds.Resolution,
-                result.Metadata.Source & OfficeImageMetadataKinds.Resolution);
+                result.Metadata.SourceKinds & OfficeImageMetadataKinds.Resolution);
             Assert.Equal(OfficeImageMetadataKinds.Resolution,
                 result.Metadata.Preserved & OfficeImageMetadataKinds.Resolution);
             Assert.Equal(OfficeImageMetadataKinds.None,
@@ -1278,7 +1278,7 @@ namespace OfficeIMO.Tests {
                 });
 
             Assert.Equal(OfficeImageMetadataKinds.Resolution,
-                result.Metadata.Source & OfficeImageMetadataKinds.Resolution);
+                result.Metadata.SourceKinds & OfficeImageMetadataKinds.Resolution);
             Assert.Equal(OfficeImageMetadataKinds.None,
                 result.Metadata.Preserved & OfficeImageMetadataKinds.Resolution);
             Assert.Equal(OfficeImageMetadataKinds.Resolution,
@@ -1306,7 +1306,7 @@ namespace OfficeIMO.Tests {
                 });
 
             Assert.Equal(OfficeImageMetadataKinds.Resolution,
-                result.Metadata.Source & OfficeImageMetadataKinds.Resolution);
+                result.Metadata.SourceKinds & OfficeImageMetadataKinds.Resolution);
             Assert.Equal(OfficeImageMetadataKinds.None,
                 result.Metadata.Preserved & OfficeImageMetadataKinds.Resolution);
             Assert.Equal(OfficeImageMetadataKinds.Resolution,

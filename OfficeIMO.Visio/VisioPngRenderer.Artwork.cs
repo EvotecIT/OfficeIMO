@@ -17,11 +17,11 @@ namespace OfficeIMO.Visio {
             }
 
             double placementScale = string.IsNullOrWhiteSpace(shape.Text) ? 0.58D : 0.34D;
-            double iconSize = Math.Max(0.08D, Math.Min(shape.Width, shape.Height) * placementScale);
-            double localCx = shape.Width / 2D;
+            double iconSize = Math.Max(0.08D, Math.Min(shape.WidthInches, shape.HeightInches) * placementScale);
+            double localCx = shape.WidthInches / 2D;
             double localCy = string.IsNullOrWhiteSpace(shape.Text)
-                ? shape.Height / 2D
-                : shape.Height - Math.Min(shape.Height * 0.28D, iconSize * 0.72D);
+                ? shape.HeightInches / 2D
+                : shape.HeightInches - Math.Min(shape.HeightInches * 0.28D, iconSize * 0.72D);
             (double cx, double cy) = GetPagePoint(shape, localCx, localCy);
             (double x, double y) = ToRaster(page, cx, cy, canvas.Projection);
             double size = iconSize * canvas.Projection.GeometryDensity;
@@ -121,12 +121,12 @@ namespace OfficeIMO.Visio {
             }
 
             double placementScale = string.IsNullOrWhiteSpace(shape.Text) ? 0.64D : 0.42D;
-            double imageWidth = Math.Max(0.01D, shape.Width * placementScale);
-            double imageHeight = Math.Max(0.01D, shape.Height * placementScale);
-            double localCx = shape.Width / 2D;
+            double imageWidth = Math.Max(0.01D, shape.WidthInches * placementScale);
+            double imageHeight = Math.Max(0.01D, shape.HeightInches * placementScale);
+            double localCx = shape.WidthInches / 2D;
             double localCy = string.IsNullOrWhiteSpace(shape.Text)
-                ? shape.Height / 2D
-                : shape.Height - Math.Min(shape.Height * 0.3D, imageHeight * 0.72D);
+                ? shape.HeightInches / 2D
+                : shape.HeightInches - Math.Min(shape.HeightInches * 0.3D, imageHeight * 0.72D);
             (double cx, double cy) = GetPagePoint(shape, localCx, localCy);
             (double centerX, double centerY) = ToRaster(page, cx, cy, canvas.Projection);
             double targetWidth = imageWidth * canvas.Projection.GeometryDensity;

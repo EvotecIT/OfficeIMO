@@ -15,7 +15,7 @@ public partial class Word {
         using WordDocument source = WordDocument.Create();
         bool child = kind is "child" or "grandchild" or "conditional-child";
         WordTable table = CreateTableShadingPrecedenceFixture(source, child);
-        table.StyleDetails!.ShadingFillColorHex = "auto";
+        table.StyleDetails!.ShadingFillValue = "auto";
         table.StyleDetails.CellSpacing = global::OfficeIMO.OfficeLength.Points(6);
         W.Styles styles = source._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
         W.Style grid = styles.Elements<W.Style>().Single(s => s.StyleId?.Value == "TableGrid");
@@ -31,8 +31,8 @@ public partial class Word {
             }
         } else if (kind == "direct") {
             WordTableCell cell = table.Rows[0].Cells[0];
-            cell.ShadingFillColorHex = "auto";
-            cell.ShadingFillColorHex = cell.ShadingFillColorHex;
+            cell.ShadingFillValue = "auto";
+            cell.ShadingFillValue = cell.ShadingFillValue;
         }
         else {
             if (kind == "conditional-child") grid.Append(new W.TableStyleProperties(
@@ -45,7 +45,7 @@ public partial class Word {
         using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         for (int row = 0; row < 2; row++) for (int column = 0; column < 2; column++) {
             bool cleared = kind is "child" or "grandchild" || (row == 0 && (kind != "direct" || column == 0));
-            Assert.Equal(cleared ? string.Empty : "FFFF00", restored.Tables[0].Rows[row].Cells[column].ShadingFillColorHex);
+            Assert.Equal(cleared ? null : OfficeColor.Parse("FFFF00"), restored.Tables[0].Rows[row].Cells[column].ShadingFillColor);
         }
         Assert.Empty(restored.DocumentValidationErrors);
     }
@@ -60,11 +60,11 @@ public partial class Word {
     public void LegacyDoc_TableShading_CellDefaultsSurviveDirectTableGapFormatting(string direct, bool inherited) {
         using WordDocument source = WordDocument.Create();
         WordTable table = CreateTableShadingPrecedenceFixture(source, inherited);
-        if (direct == "foreground") table.StyleDetails!.ShadingColorHex = "FF0000";
-        else table.StyleDetails!.ShadingFillColorHex = direct == "auto" ? "auto" : "FF0000";
+        if (direct == "foreground") table.StyleDetails!.ShadingColor = OfficeColor.Parse("FF0000");
+        else table.StyleDetails!.ShadingFillValue = direct == "auto" ? "auto" : "FF0000";
         table.StyleDetails!.CellSpacing = global::OfficeIMO.OfficeLength.Points((direct == "red" ? (short)0 : (short)120) / 20D);
         using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
-        Assert.All(restored.Tables[0].Rows.SelectMany(row => row.Cells), cell => Assert.Equal("FFFF00", cell.ShadingFillColorHex));
+        Assert.All(restored.Tables[0].Rows.SelectMany(row => row.Cells), cell => Assert.Equal(OfficeColor.Parse("FFFF00"), cell.ShadingFillColor));
         Assert.Equal(global::OfficeIMO.OfficeLength.Points((direct == "red" ? (short)0 : (short)120) / 20D), restored.Tables[0].StyleDetails!.CellSpacing);
         Assert.Empty(restored.DocumentValidationErrors);
     }
@@ -74,9 +74,9 @@ public partial class Word {
         using WordDocument source = WordDocument.Create();
         WordTable table = source.AddTable(1, 1, WordTableStyle.TableGrid);
         table.StyleDetails!.CellSpacing = global::OfficeIMO.OfficeLength.Points(0);
-        table.StyleDetails.ShadingFillColorHex = "FF0000";
+        table.StyleDetails.ShadingFillColor = OfficeColor.Parse("FF0000");
         using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
-        Assert.Equal(string.Empty, restored.Tables[0].Rows[0].Cells[0].ShadingFillColorHex);
+        Assert.Null(restored.Tables[0].Rows[0].Cells[0].ShadingFillColor);
     }
 
     [Fact]
@@ -84,16 +84,16 @@ public partial class Word {
         using WordDocument source = WordDocument.Create();
         WordTable table = CreateTableShadingPrecedenceFixture(source, false);
         table.StyleDetails!.CellSpacing = global::OfficeIMO.OfficeLength.Points(6);
-        table.StyleDetails.ShadingFillColorHex = "auto";
-        table.Rows[0].Cells[0].ShadingFillColorHex = "FFFFFF";
+        table.StyleDetails.ShadingFillValue = "auto";
+        table.Rows[0].Cells[0].ShadingFillColor = OfficeColor.Parse("FFFFFF");
         W.Style grid = source._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!
             .Elements<W.Style>().Single(s => s.StyleId?.Value == "TableGrid");
         grid.Append(new W.TableStyleProperties(new W.TableStyleConditionalFormattingTableCellProperties(
             new W.Shading { Val = W.ShadingPatternValues.Clear, Fill = "00FF00" })) { Type = W.TableStyleOverrideValues.FirstRow });
         using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
-        Assert.Equal("FFFFFF", restored.Tables[0].Rows[0].Cells[0].ShadingFillColorHex);
-        Assert.Equal("00FF00", restored.Tables[0].Rows[0].Cells[1].ShadingFillColorHex);
-        Assert.All(restored.Tables[0].Rows[1].Cells, cell => Assert.Equal("FFFF00", cell.ShadingFillColorHex));
+        Assert.Equal(OfficeColor.Parse("FFFFFF"), restored.Tables[0].Rows[0].Cells[0].ShadingFillColor);
+        Assert.Equal(OfficeColor.Parse("00FF00"), restored.Tables[0].Rows[0].Cells[1].ShadingFillColor);
+        Assert.All(restored.Tables[0].Rows[1].Cells, cell => Assert.Equal(OfficeColor.Parse("FFFF00"), cell.ShadingFillColor));
     }
 
     private static WordTable CreateTableShadingPrecedenceFixture(WordDocument document, bool inherited) {

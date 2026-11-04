@@ -19,8 +19,8 @@ internal static partial class VisioShapeResizing {
         } else {
             // A rotated frame's omitted extents would otherwise default to the
             // resized shape axes rather than its own swapped axes.
-            style.TextWidth = (style.TextWidth ?? source.Width) * frameX;
-            style.TextHeight = (style.TextHeight ?? source.Height) * frameY;
+            style.TextWidth = (style.TextWidth ?? source.WidthInches) * frameX;
+            style.TextHeight = (style.TextHeight ?? source.HeightInches) * frameY;
         }
         style.TextLocPinX *= frameX; style.TextLocPinY *= frameY;
         foreach (double? value in new[] { style.TextPinX, style.TextPinY, style.TextWidth, style.TextHeight, style.TextLocPinX, style.TextLocPinY })

@@ -11,7 +11,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         double top,
         HtmlToPowerPointResult result,
         HtmlImportBudget budget,
-        HtmlToPowerPointOptions options,
+        HtmlPowerPointExportOptions options,
         HtmlSemanticBlock? semanticBlock = null,
         double? genericWidth = null,
         double? genericHeight = null,
@@ -90,8 +90,8 @@ public static partial class HtmlPowerPointConverterExtensions {
         string fill = NormalizeSemanticColor(cell.Style?.GetValue("background-color"));
         if (fill.Length > 0) targetCell.FillColor = fill;
         string color = NormalizeSemanticColor(cell.Style?.GetValue("color"));
-        if (color.Length > 0) {
-            foreach (PptCore.PowerPointTextRun run in targetCell.Runs) run.Color = color;
+        if (global::OfficeIMO.OfficeColor.TryParseHex(color, out global::OfficeIMO.OfficeColor textColor)) {
+            foreach (PptCore.PowerPointTextRun run in targetCell.Runs) run.Color = textColor;
         }
         if (cell.IsHeader && useHeaderTextColor) {
             foreach (PptCore.PowerPointTextRun run in targetCell.Runs) {

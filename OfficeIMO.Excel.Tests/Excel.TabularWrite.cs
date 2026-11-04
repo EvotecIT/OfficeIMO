@@ -13,7 +13,6 @@ namespace OfficeIMO.Tests {
     public partial class Excel {
         [Theory]
         [InlineData(true, false, false, true)]
-        [InlineData(false, true, false, true)]
         [InlineData(false, false, true, false)]
         public void WriteDataReader_RequireStreamingRejectsBufferingBeforeReading(bool sharedStrings, bool autoFit, bool table, bool headers) {
             var source = new DataTable();

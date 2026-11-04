@@ -161,24 +161,24 @@ public sealed class HtmlTableCellHeightDescendantTests {
     public void SpecializedPercentageContentCannotUseCellHeightEqualityAsItsQualification(string formatting) {
         HtmlRenderDocument rendered = Render("<table><tr><td style='height:120px'><span style='height:20px'>"
             + "<div id='fill' style='" + formatting + ";height:100%;background:lime'>Paid</div></span></td></tr></table>" + Following);
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, x => x.Code == HtmlRenderDiagnosticCodes.TableValueUnsupported);
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.NativeDiagnostics, x => x.Code == HtmlRenderDiagnosticCodes.TableValueUnsupported);
 
         Assert.Equal("div#fill", diagnostic.Source);
         Assert.Contains("height=100%", diagnostic.Detail);
         Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
     }
 
     [Fact]
     public void PositionedGeneratedPercentagesInAnAbsoluteCellRetainTheirStrictBoundary() {
         HtmlRenderDocument rendered = Render("<style>#cell::before{content:'Paid';position:absolute;display:block;height:100%;background:lime}</style>"
             + "<table><tr><td id='cell' style='height:120px'></td></tr></table>" + Following);
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, x => x.Code == HtmlRenderDiagnosticCodes.TableValueUnsupported);
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.NativeDiagnostics, x => x.Code == HtmlRenderDiagnosticCodes.TableValueUnsupported);
 
         Assert.Equal("td#cell::before", diagnostic.Source);
         Assert.Contains("height=100%", diagnostic.Detail);
         Assert.Contains("generated", diagnostic.Detail);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
     }
 
     [Fact]
@@ -195,12 +195,12 @@ public sealed class HtmlTableCellHeightDescendantTests {
     public void PositionedGeneratedPercentageContentReportsItsOwnSourceProperty() {
         HtmlRenderDocument rendered = Render("<style>#cell::before{content:'Paid';position:absolute;display:block;height:100%;background:lime}</style>"
             + "<table style='height:200px'><tr><td id='cell'></td></tr></table>" + Following);
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, x => x.Code == HtmlRenderDiagnosticCodes.TableValueUnsupported);
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.NativeDiagnostics, x => x.Code == HtmlRenderDiagnosticCodes.TableValueUnsupported);
 
         Assert.Equal("td#cell::before", diagnostic.Source);
         Assert.Contains("height=100%", diagnostic.Detail);
         Assert.Contains("generated", diagnostic.Detail);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
     }
 
     [Theory]
@@ -244,36 +244,36 @@ public sealed class HtmlTableCellHeightDescendantTests {
     public void UnqualifiedFormattingReportsTheSourceAndEffectivePercentageProperty(string formatting) {
         HtmlRenderDocument rendered = Render("<table style='height:200px'><tr><td><div id='fill' style='" + formatting
             + "height:100%;background:lime'>Paid</div></td></tr></table>" + Following);
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, x => x.Code == HtmlRenderDiagnosticCodes.TableValueUnsupported);
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.NativeDiagnostics, x => x.Code == HtmlRenderDiagnosticCodes.TableValueUnsupported);
 
         Assert.Equal("div#fill", diagnostic.Source);
         Assert.Contains("height=100%", diagnostic.Detail);
         Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
     }
 
     [Fact]
     public void RowspanPercentageContentKeepsAnExplicitStrictLossBoundary() {
         HtmlRenderDocument rendered = Render("<table style='height:200px'><tr><td rowspan='2'><div id='fill' style='height:100%;background:lime'>Paid</div></td><td>A</td></tr>"
             + "<tr><td>B</td></tr></table>" + Following);
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, x => x.Code == HtmlRenderDiagnosticCodes.TableValueUnsupported);
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.NativeDiagnostics, x => x.Code == HtmlRenderDiagnosticCodes.TableValueUnsupported);
 
         Assert.Equal("div#fill", diagnostic.Source);
         Assert.Contains("rowspan", diagnostic.Detail);
         Assert.Equal(200D, Shape(rendered, "div#following").Y, 3);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
     }
 
     [Fact]
     public void AnonymousCellPercentageContentReportsItsSourceProperty() {
         HtmlRenderDocument rendered = Render("<div style='display:table;height:200px;width:240px'><div style='display:table-row'>"
             + "<div id='fill' style='height:100%;background:lime'>Paid</div></div></div>" + Following);
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, x => x.Code == HtmlRenderDiagnosticCodes.TableValueUnsupported);
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.NativeDiagnostics, x => x.Code == HtmlRenderDiagnosticCodes.TableValueUnsupported);
 
         Assert.Equal("div#fill", diagnostic.Source);
         Assert.Contains("height=100%", diagnostic.Detail);
         Assert.Contains("anonymous", diagnostic.Detail);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
     }
 
     [Theory]
@@ -292,13 +292,13 @@ public sealed class HtmlTableCellHeightDescendantTests {
     public void EffectiveRowGroupPercentagesReportTheirUnimplementedAllocation(string sizing, string effective) {
         HtmlRenderDocument rendered = Render("<table style='height:200px;--share:25%'><tbody id='group' style='" + sizing
             + "'><tr><td>Paid</td></tr><tr><td>Due</td></tr></tbody><tbody><tr><td>Other</td></tr></tbody></table>" + Following);
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, x => x.Code == HtmlRenderDiagnosticCodes.TableValueUnsupported);
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.NativeDiagnostics, x => x.Code == HtmlRenderDiagnosticCodes.TableValueUnsupported);
 
         Assert.Equal("tbody#group", diagnostic.Source);
         Assert.Contains("height=" + effective, diagnostic.Detail);
         Assert.Contains("row-group", diagnostic.Detail);
         Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
     }
 
     [Theory]
@@ -385,7 +385,7 @@ public sealed class HtmlTableCellHeightDescendantTests {
         var pdf = OfficeIMO.Pdf.PdfReadDocument.Open(result.ToBytes());
         Assert.Single(pdf.Pages[0].GetLinkAnnotations());
         Assert.Contains("Paid", pdf.ExtractText());
-        result.Output.RequireNoLoss();
+        result.Output.ThrowIfLoss();
     }
 
     [Fact]
@@ -407,7 +407,7 @@ public sealed class HtmlTableCellHeightDescendantTests {
         Assert.Equal(220D, Shape(rendered, "div#following").Y, 3);
         string text = OfficeIMO.Pdf.PdfReadDocument.Open(result.ToBytes()).ExtractText();
         foreach (string token in new[] { "Header", "Footer", "Item1", "Item2", "Item3", "Item4", "Following" }) Assert.Contains(token, text);
-        result.Output.RequireNoLoss();
+        result.Output.ThrowIfLoss();
     }
 
     private const string Pixel = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNg+P//HwAF/gL9HjcXBgAAAABJRU5ErkJggg==";

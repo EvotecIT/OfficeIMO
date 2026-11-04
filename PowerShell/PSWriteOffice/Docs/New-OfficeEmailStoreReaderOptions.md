@@ -11,7 +11,7 @@ Creates bounded email-store reader settings without requiring .NET constructor s
 ## SYNTAX
 ### Options (Default)
 ```powershell
-New-OfficeEmailStoreReaderOptions [-MaxInputBytes <long>] [-MaxNodeCount <int>] [-MaxBTreeDepth <int>] [-MaxCachedBTreePages <int>] [-MaxFolderCount <int>] [-MaxItemCount <int>] [-MaxPropertiesPerItem <int>] [-MaxDecodedPropertyBytesPerItem <long>] [-MaxAttachmentsPerItem <int>] [-MaxAttachmentBytes <long>] [-MaxTotalAttachmentBytes <long>] [-ExcludeAttachmentContent] [-PstPassword <string>] [-PstPasswordEncoding <string>] [-IncludeAssociatedItems] [-IncludeOrphanedItems] [-MaxNestedMessageDepth <int>] [-MaxArchiveEntries <int>] [-MaxArchiveEntryBytes <long>] [-MaxArchiveDecodedBytes <long>] [-MaxXmlCharactersPerItem <long>] [-MaxMessageBytes <long>] [-MaxDirectoryDepth <int>] [-MaxDirectoryFileCount <int>] [-MaxDecodedTableBytes <long>] [<CommonParameters>]
+New-OfficeEmailStoreReaderOptions [-MaxInputBytes <long>] [-MaxNodeCount <int>] [-MaxBTreeDepth <int>] [-MaxCachedBTreePages <int>] [-MaxFolderCount <int>] [-MaxItemCount <int>] [-MaxPropertiesPerItem <int>] [-MaxDecodedPropertyBytesPerItem <long>] [-MaxAttachmentsPerItem <int>] [-MaxAttachmentBytes <long>] [-MaxTotalAttachmentBytes <long>] [-ExcludeAttachmentContent] [-PstPassword <securestring>] [-PstPasswordEncoding <string>] [-IncludeAssociatedItems] [-IncludeOrphanedItems] [-MaxNestedMessageDepth <int>] [-MaxArchiveEntries <int>] [-MaxArchiveEntryBytes <long>] [-MaxArchiveDecodedBytes <long>] [-MaxXmlCharactersPerItem <long>] [-MaxMessageBytes <long>] [-MaxDirectoryDepth <int>] [-MaxDirectoryFileCount <int>] [-MaxDecodedTableBytes <long>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -400,7 +400,7 @@ Accept wildcard characters: False
 Password used to validate legacy protected PST files.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: Options
 Aliases: None
 Possible values:

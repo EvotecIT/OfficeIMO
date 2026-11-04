@@ -239,7 +239,7 @@ public class PdfRedactionVerificationTests {
     }
 
     [Fact]
-    public void ApplyWithEvidenceRejectsPagePathWhoseGraphicsStateCrossesContentStreams() {
+    public void ApplyWithEvidenceRemovesPagePathWhoseGraphicsStateCrossesContentStreams() {
         byte[] source = BuildSplitStreamGraphicsStatePathPdf();
         PdfDocument document = PdfDocument.Load(source);
         PdfRedactionPlan plan = document.Redactions.Plan([
@@ -253,8 +253,8 @@ public class PdfRedactionVerificationTests {
                 RequireCompleteStreamInspection = true
             });
 
-        Assert.False(result.IsVerified);
-        Assert.Contains(result.Evidence.ResidualMatches, static match =>
+        Assert.True(result.IsVerified);
+        Assert.DoesNotContain(result.Evidence.ResidualMatches, static match =>
             match.Kind == PdfRedactionMatchKind.VectorPath);
     }
 
@@ -437,7 +437,7 @@ public class PdfRedactionVerificationTests {
 
     [Fact]
     public void AppliedPlanVerificationReportsResidualContentInsideReviewedArea() {
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Still present")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Still present")).ToBytes();
         var area = new PdfRedactionArea(1, 0D, 0D, 600D, 800D, "whole page");
         PdfRedactionPlan plan = PdfDocument.Load(source).Redactions.Plan([area]);
 
@@ -562,8 +562,8 @@ public class PdfRedactionVerificationTests {
     [Fact]
     public void AppliedPlanVerificationRejectsARewriteThatDropsAReviewedPage() {
         byte[] source = PdfDocument.Create(compose => {
-            compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Retained first page")))));
-            compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Reviewed second page")))));
+            compose.Page(page => page.Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Retained first page")))));
+            compose.Page(page => page.Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Reviewed second page")))));
         }).ToBytes();
         var area = new PdfRedactionArea(2, 0D, 0D, 600D, 800D, "reviewed page");
         PdfRedactionPlan plan = PdfDocument.Load(source).Redactions.Plan([area]);
@@ -580,7 +580,7 @@ public class PdfRedactionVerificationTests {
 
     [Fact]
     public void AppliedPlanVerificationRejectsSameCountRewriteWithChangedPageGeometry() {
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Reviewed page")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Reviewed page")).ToBytes();
         PdfRedactionPlan plan = PdfDocument.Load(source).Redactions.Plan([
             new PdfRedactionArea(1, 0D, 0D, 600D, 800D, "reviewed page")
         ]);
@@ -597,8 +597,8 @@ public class PdfRedactionVerificationTests {
     [Fact]
     public void AppliedPlanVerificationRejectsSameCountRewriteWithReorderedPages() {
         byte[] source = PdfDocument.Create(compose => {
-            compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Reviewed first page")))));
-            compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Reviewed second page")))));
+            compose.Page(page => page.Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Reviewed first page")))));
+            compose.Page(page => page.Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Reviewed second page")))));
         }).ToBytes();
         PdfRedactionPlan plan = PdfDocument.Load(source).Redactions.Plan([
             new PdfRedactionArea(1, 0D, 0D, 600D, 800D, "reviewed first page")
@@ -616,8 +616,8 @@ public class PdfRedactionVerificationTests {
     [Fact]
     public void AppliedPlanVerificationRejectsReorderedPagesThatDifferOnlyByUnredactedAnnotations() {
         byte[] source = PdfDocument.Create(compose => {
-            compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Same page")))));
-            compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Same page")))));
+            compose.Page(page => page.Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Same page")))));
+            compose.Page(page => page.Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Same page")))));
         }).ToBytes();
         byte[] firstAnnotated = PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {
             PageNumber = 1,
@@ -668,7 +668,7 @@ public class PdfRedactionVerificationTests {
 
     [Fact]
     public void AppliedPlanVerificationAcceptsAnEmptySearchDrivenPlan() {
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Nothing confidential")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Nothing confidential")).ToBytes();
         PdfRedactionPlan plan = PdfRedactionPlanner.Search(
             source,
             new PdfRedactionSearchOptions().AddLiteral("absent secret"));
@@ -686,8 +686,8 @@ public class PdfRedactionVerificationTests {
 
     [Fact]
     public void ReviewedPlanCannotBeAppliedToDifferentSourceBytes() {
-        byte[] reviewed = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Reviewed source")).ToBytes();
-        byte[] different = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Different source")).ToBytes();
+        byte[] reviewed = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Reviewed source")).ToBytes();
+        byte[] different = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Different source")).ToBytes();
         PdfRedactionPlan plan = PdfDocument.Load(reviewed).Redactions.Plan([
             new PdfRedactionArea(1, 0D, 0D, 600D, 800D, "whole page")
         ]);
@@ -1394,10 +1394,10 @@ public class PdfRedactionVerificationTests {
         return PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
-            .Paragraph(paragraph => paragraph.Text("Visible image redaction planning marker"))
-            .Image(PdfPngTestImages.CreateRgbPng(3, 2), 48, 32, alternativeText: "Sensitive chart pixels")
+            .Paragraph(paragraph => paragraph.AddText("Visible image redaction planning marker"))
+            .Image(PdfPngTestImages.CreateRgbPng(3, 2), 48, 32, altText: "Sensitive chart pixels")
             .Spacer(8)
-            .Paragraph(paragraph => paragraph.Text("Retained text after image"))
+            .Paragraph(paragraph => paragraph.AddText("Retained text after image"))
             .ToBytes();
     }
 

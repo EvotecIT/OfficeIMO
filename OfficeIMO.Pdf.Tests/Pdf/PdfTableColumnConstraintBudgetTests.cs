@@ -11,8 +11,10 @@ public partial class PdfDocumentVisualQualityTests {
     public void Table_AllocatesManySimultaneouslyBindingMinimumColumns() {
         const int narrowColumns = 256;
         var options = new PdfCreateOptions {
-            PageWidth = OfficeLength.Points(3060), PageHeight = OfficeLength.Points(240),
-            MarginLeft = OfficeLength.Points(30), MarginRight = OfficeLength.Points(30), MarginTop = OfficeLength.Points(30), MarginBottom = OfficeLength.Points(30),
+            PageSetup = {
+                Size = new PdfPageSize(OfficeLength.Points(3060), OfficeLength.Points(240)),
+                Margins = { Left = OfficeLength.Points(30), Right = OfficeLength.Points(30), Top = OfficeLength.Points(30), Bottom = OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = OfficeLength.Points(9)
         };
         var style = PdfTableStyles.Minimal();

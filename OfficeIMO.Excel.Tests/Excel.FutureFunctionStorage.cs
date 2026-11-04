@@ -20,7 +20,7 @@ public sealed class ExcelFutureFunctionStorageTests {
         using var reopened = ExcelDocument.Load(original);
         Verify(reopened.Sheets[0], edited: false);
         Assert.Empty(reopened.ValidateOpenXml());
-        reopened.Sheets[0].CellValue(2, 2, 50d);
+        reopened.Sheets[0].Cell(2, 2).SetValue(50d);
         Assert.Equal(count, reopened.Calculate());
         Verify(reopened.Sheets[0], edited: true);
         using var changed = new MemoryStream(); reopened.Save(changed); VerifySavedKinds(changed);
@@ -78,7 +78,7 @@ public sealed class ExcelFutureFunctionStorageTests {
                 if (column == 5 && row >= firstFormulaRow) {
                     string formula = cases[row - firstFormulaRow].Item1;
                     if (route == "array") sheet.SetArrayFormula($"E{row}:E{row}", formula);
-                    else sheet.CellFormula(row, column, formula);
+                    else sheet.Cell(row, column).SetFormula(formula);
                 } else {
                     object value = (row, column) switch {
                         (1, 1) => "quoted",
@@ -89,11 +89,11 @@ public sealed class ExcelFutureFunctionStorageTests {
                         (4, 2) => 20d,
                         _ => 0d
                     };
-                    sheet.CellValue(row, column, value);
+                    sheet.Cell(row, column).SetValue(value);
                 }
             }
         }
-        if (route == "materialized") sheet.CellAt(1, 1).GetValue();
+        if (route == "materialized") sheet.Cell(1, 1).GetValue();
         using var output = new MemoryStream(); document.Save(output); output.Position = 0;
         if (route == "buffered") Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
         using (var archive = new ZipArchive(output, ZipArchiveMode.Read, leaveOpen: true)) {
@@ -181,12 +181,12 @@ public sealed class ExcelFutureFunctionStorageTests {
                 if (column == 2 && row >= firstFormulaRow) {
                     string formula = cases[row - firstFormulaRow].Formula;
                     if (route == "array") sheet.SetArrayFormula($"B{row}:B{row}", formula);
-                    else sheet.CellFormula(row, column, formula);
-                } else if (row == 1 && column == 4) sheet.CellFormula(row, column, "1+2");
-                else sheet.CellValue(row, column, column == 5 ? row : column == 6 ? row * 10 : 0);
+                    else sheet.Cell(row, column).SetFormula(formula);
+                } else if (row == 1 && column == 4) sheet.Cell(row, column).SetFormula("1+2");
+                else sheet.Cell(row, column).SetValue(column == 5 ? row : column == 6 ? row * 10 : 0);
             }
         }
-        if (route == "materialized") sheet.CellAt(1, 1).GetValue();
+        if (route == "materialized") sheet.Cell(1, 1).GetValue();
         using var output = new MemoryStream(); document.Save(output);
         if (route == "buffered") Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
         VerifyStoredFormulas(output);
@@ -224,14 +224,14 @@ public sealed class ExcelFutureFunctionStorageTests {
         string expression = prefix + new string('x', 8190 - prefix.Length - 2) + "\")";
         using var document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Report");
-        sheet.CellValue(1, 1, 17d); sheet.CellFormula(1, 1, "42");
-        sheet.CellValue(2, 1, "keep");
+        sheet.Cell(1, 1).SetValue(17d); sheet.Cell(1, 1).SetFormula("42");
+        sheet.Cell(2, 1).SetValue("keep");
         if (array) Assert.Throws<ArgumentException>(() => sheet.SetArrayFormula("A1:A2", expression));
-        else Assert.Throws<ArgumentException>(() => sheet.CellFormula(1, 1, expression));
+        else Assert.Throws<ArgumentException>(() => sheet.Cell(1, 1).SetFormula(expression));
         Assert.Equal("42", sheet.GetFormulaText(1, 1));
         Assert.True(sheet.TryGetCachedFormulaValue(1, 1, out string? value));
         Assert.Equal("17", value);
-        Assert.Equal("keep", sheet.CellAt(2, 1).GetValue<string>());
+        Assert.Equal("keep", sheet.Cell(2, 1).GetValue<string>());
     }
 
     [Theory]
@@ -243,13 +243,13 @@ public sealed class ExcelFutureFunctionStorageTests {
         string oversized = prefix + new string('x', 8181 - prefix.Length - 2) + "\")";
         using var document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Report");
-        sheet.CellValue(1, 1, 17d); sheet.CellFormula(1, 1, "42");
-        sheet.CellValue(2, 1, "keep");
+        sheet.Cell(1, 1).SetValue(17d); sheet.Cell(1, 1).SetFormula("42");
+        sheet.Cell(2, 1).SetValue("keep");
         Assert.Throws<ArgumentException>(() => Set(oversized));
         Assert.Equal("42", sheet.GetFormulaText(1, 1));
         Assert.True(sheet.TryGetCachedFormulaValue(1, 1, out string? value));
         Assert.Equal("17", value);
-        Assert.Equal("keep", sheet.CellAt(2, 1).GetValue<string>());
+        Assert.Equal("keep", sheet.Cell(2, 1).GetValue<string>());
         Set(atLimit);
         string stored = sheet.GetFormulaText(1, 1)!;
         Assert.Equal(8192, stored.Length);

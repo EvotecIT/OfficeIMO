@@ -7,7 +7,7 @@ namespace OfficeIMO.Workflows;
 /// <summary>A schema-validated bibliographic ONIX record and the exact EPUB it describes.</summary>
 public sealed class BookOnixExportResult {
     internal BookOnixExportResult(byte[] bytes, EpubWriteResult publication,
-        IReadOnlyList<OfficeConversionFidelityDiagnostic> diagnostics, bool acknowledged) {
+        IReadOnlyList<OfficeDiagnostic> diagnostics, bool acknowledged) {
         Bytes = bytes; Publication = publication;
         OnixSha256 = OfficeRuntimeCompatibility.ToHexString(OfficeRuntimeCompatibility.HashSha256(bytes));
         PublicationSha256 = OfficeRuntimeCompatibility.ToHexString(OfficeRuntimeCompatibility.HashSha256(publication.Bytes));
@@ -22,7 +22,7 @@ public sealed class BookOnixExportResult {
     /// <summary>Uppercase SHA-256 of Publication.Bytes at export time; not a signature or retailer receipt.</summary>
     public string PublicationSha256 { get; }
     /// <summary>Retained import findings; schema validation does not erase conversion losses.</summary>
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> ImportDiagnostics { get; }
+    public IReadOnlyList<OfficeDiagnostic> ImportDiagnostics { get; }
     /// <summary>Whether non-fatal manuscript import losses were acknowledged.</summary>
     public bool ImportLossAcknowledged { get; }
 }

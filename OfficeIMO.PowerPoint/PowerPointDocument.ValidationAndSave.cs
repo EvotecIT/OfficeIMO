@@ -231,10 +231,10 @@ namespace OfficeIMO.PowerPoint {
             PersistFooterDefinitions();
             RefreshFooterFields();
             foreach (PowerPointSlide slide in _slides) {
-                slide.Save();
+                slide.PrepareForPackageSave();
             }
             PowerPointUtils.UpdateDocumentProperties(_presentationPart, _maximumSlideXmlCharacters);
-            PresentationRoot.Save();
+            // Saving the package persists every loaded part root, including slides, notes, and the presentation.
             _document!.Save();
 
 #if NET8_0_OR_GREATER

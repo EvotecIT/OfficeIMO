@@ -409,7 +409,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
         string path = Path.Combine(_root, "text.pdf");
         PdfDocument.Create(document => {
             foreach (string text in new[] { "Alpha needle here", "Nothing to see", "Another NEEDLE" })
-                document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(300)).Content(content => content.Column(column => column.Item().Paragraph(p => p.Text(text)))));
+                document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(300)).Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText(text)))));
         }).Save(path);
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(path, null, default);
 
@@ -436,7 +436,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
         string path = Path.Combine(_root, "text.pdf");
         PdfDocument.Create(document => {
             foreach (string text in new[] { "Alpha needle here", "Nothing to see", "Another NEEDLE and a needle" })
-                document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(300)).Content(content => content.Column(column => column.Item().Paragraph(p => p.Text(text)))));
+                document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(300)).Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText(text)))));
         }).Save(path);
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(path, null, default);
         var pages = new List<StudioNativeSearchPage>();
@@ -533,7 +533,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
         string path = Path.Combine(_root, "text.pdf");
         PdfDocument.Create(document => {
             foreach (string text in new[] { "first page", "second needle" })
-                document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(300)).Content(content => content.Column(column => column.Item().Paragraph(p => p.Text(text)))));
+                document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(300)).Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText(text)))));
         }).Save(path);
         delegate* unmanaged<byte*, byte*, nint, nint*, byte**, int> open = &StudioNativeExports.DocumentOpen;
         delegate* unmanaged<nint, int*, int, nint, byte**, int> reorder = &StudioNativeExports.DocumentReorderPages;
@@ -676,7 +676,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
     public async Task Page_text_gives_each_element_a_box_on_the_page_as_displayed() {
         string path = Path.Combine(_root, "text.pdf");
         PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(300))
-            .Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Hello world")))))).Save(path);
+            .Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText("Hello world")))))).Save(path);
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(path, null, default);
 
         StudioNativePageText text = await document.GetPageTextAsync(1, default);
@@ -816,7 +816,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
     public async Task Making_a_digital_document_searchable_leaves_its_text_alone() {
         string path = Path.Combine(_root, "digital.pdf");
         PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(300))
-            .Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Already searchable")))))).Save(path);
+            .Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText("Already searchable")))))).Save(path);
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(path, null, default);
         long revision = (await document.GetInfoAsync(default)).Revision;
 
@@ -882,10 +882,10 @@ public sealed class StudioNativeEngineTests : IDisposable {
         string workbook = Path.Combine(_root, "figures.xlsx");
         using (var document = OfficeIMO.Excel.ExcelDocument.Create(workbook)) {
             var sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Quarterly figures");
+            sheet.Cell(1, 1).SetValue("Quarterly figures");
             sheet.SetColumnWidth(1, OfficeIMO.Excel.ExcelColumnWidth.Characters(40)); // Search validates visible text, not clipped cell overflow.
             sheet.SetRowHeight(1, OfficeIMO.Excel.ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
-            sheet.CellVerticalAlign(1, 1, OfficeIMO.Excel.ExcelVerticalAlignment.Center);
+            sheet.Cell(1, 1).SetVerticalAlignment(OfficeIMO.Excel.ExcelVerticalAlignment.Center);
             document.Save();
         }
         string deck = Path.Combine(_root, "deck.pptx");
@@ -907,11 +907,13 @@ public sealed class StudioNativeEngineTests : IDisposable {
     [Fact]
     public async Task Conversion_names_its_formats_and_refuses_what_it_cannot_convert() {
         Assert.Contains(PdfConversion.Sources, source => source.Extensions.Contains(".docx"));
+        Assert.All(PdfConversion.Sources, source => Assert.False(
+            OfficeIMO.Workflows.OfficeWorkflowCatalog.Find(source.Route)!.RequiresImageCodec));
         Assert.Equal("txt-pdf", PdfConversion.RouteFor("notes.txt")?.Route);
         Assert.Equal("markdown-pdf", PdfConversion.RouteFor("README.md")?.Route);
-        Assert.Null(PdfConversion.RouteFor("photo.heic"));
+        Assert.Null(PdfConversion.RouteFor("photo.unknown"));
 
-        string unknown = Path.Combine(_root, "photo.heic");
+        string unknown = Path.Combine(_root, "photo.unknown");
         File.WriteAllBytes(unknown, [1, 2, 3]);
         await Assert.ThrowsAsync<NotSupportedException>(() => PdfConversion.ConvertAsync(unknown, Path.Combine(_root, "photo.pdf"), default));
         await Assert.ThrowsAsync<FileNotFoundException>(() => PdfConversion.ConvertAsync(Path.Combine(_root, "missing.docx"), Path.Combine(_root, "missing.pdf"), default));
@@ -925,7 +927,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
     [Fact]
     public async Task PdfConversionRetainsTheOpenDocumentsReadLimits() {
         byte[] pdf = OfficeIMO.Pdf.PdfDocument.Create(compose => compose.Page(page =>
-            page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Budgeted conversion")))))).ToBytes();
+            page.Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Budgeted conversion")))))).ToBytes();
         string output = Path.Combine(_root, "budgeted.docx");
         var options = new OfficeIMO.Pdf.PdfLoadOptions {
             Limits = new OfficeIMO.Pdf.PdfReadLimits { MaxInputBytes = 32 }
@@ -961,9 +963,9 @@ public sealed class StudioNativeEngineTests : IDisposable {
             free(json);
         }
         Assert.True(File.Exists(output));
-        fixed (byte* input = Encoding.UTF8.GetBytes(Path.Combine(_root, "photo.heic") + "\0"))
+        fixed (byte* input = Encoding.UTF8.GetBytes(Path.Combine(_root, "photo.unknown") + "\0"))
         fixed (byte* destination = Encoding.UTF8.GetBytes(output + "\0")) {
-            File.WriteAllBytes(Path.Combine(_root, "photo.heic"), [1]);
+            File.WriteAllBytes(Path.Combine(_root, "photo.unknown"), [1]);
             Assert.Equal(StudioNativeAbi.Unsupported, convert(input, destination, 0, &json, &error));
             free(error);
         }

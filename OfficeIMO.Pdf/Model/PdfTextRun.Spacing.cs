@@ -12,7 +12,7 @@ public sealed partial class PdfTextRun {
     public PdfTextRun WithHorizontalTextScaling(double percentage) {
         Guard.Positive(percentage, nameof(percentage));
         if (InlineElement != null) return this;
-        PdfTextRun copy = CopyRunFormattingTo(new PdfTextRun(Text, Bold, Underline, Color, Italic, Strike, FontSize, Font, LinkUri, LinkContents, Baseline, LinkDestinationName, TabLeader, TabAlignment, BackgroundColor, FontFamily, UnderlineStyle, StrikeStyle, DecorationColor));
+        PdfTextRun copy = CopyRunFormattingTo(new PdfTextRun(Text, Bold, Underline, Color, Italic, Strike, FontSize, StandardFont, LinkUri, LinkContents, Baseline, LinkDestinationName, TabLeader, TabAlignment, BackgroundColor, FontFamily, UnderlineStyle, StrikeStyle, DecorationColor));
         copy.HorizontalTextScaling = percentage;
         return copy;
     }
@@ -21,7 +21,7 @@ public sealed partial class PdfTextRun {
     /// <param name="spacing">Finite positive or negative spacing. Negative values condense the glyph advances.</param>
     public PdfTextRun WithCharacterSpacing(global::OfficeIMO.OfficeLength spacing) {
         if (InlineElement != null) return this;
-        PdfTextRun copy = CopyRunFormattingTo(new PdfTextRun(Text, Bold, Underline, Color, Italic, Strike, FontSize, Font, LinkUri, LinkContents, Baseline, LinkDestinationName, TabLeader, TabAlignment, BackgroundColor, FontFamily, UnderlineStyle, StrikeStyle, DecorationColor));
+        PdfTextRun copy = CopyRunFormattingTo(new PdfTextRun(Text, Bold, Underline, Color, Italic, Strike, FontSize, StandardFont, LinkUri, LinkContents, Baseline, LinkDestinationName, TabLeader, TabAlignment, BackgroundColor, FontFamily, UnderlineStyle, StrikeStyle, DecorationColor));
         copy.CharacterSpacing = spacing;
         return copy;
     }
@@ -42,7 +42,7 @@ public sealed partial class PdfTextRun {
     internal PdfTextRun WithInheritedFontStyle(bool bold, bool italic) {
         if (InlineElement != null || ((!bold || Bold) && (!italic || Italic))) return this;
         return CopyRunFormattingTo(new PdfTextRun(Text, Bold || bold, Underline, Color, Italic || italic,
-            Strike, FontSize, Font, LinkUri, LinkContents, Baseline, LinkDestinationName, TabLeader,
+            Strike, FontSize, StandardFont, LinkUri, LinkContents, Baseline, LinkDestinationName, TabLeader,
             TabAlignment, BackgroundColor, FontFamily, UnderlineStyle, StrikeStyle, DecorationColor));
     }
 

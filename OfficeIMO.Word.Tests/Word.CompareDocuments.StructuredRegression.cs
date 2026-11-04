@@ -20,8 +20,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_body_to_header.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
                 doc.AddParagraph("Body anchor");
-                doc.AddHeadersAndFooters();
-                doc.Header.Default!.AddParagraph("Classification: Confidential");
+                doc.PageSetup.Header.AddParagraph("Classification: Confidential");
                 doc.Save();
             }
 
@@ -445,8 +444,7 @@ namespace OfficeIMO.Tests {
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_body_table_to_header.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
-                doc.AddHeadersAndFooters();
-                WordTable table = doc.Header.Default!.AddTable(1, 1);
+                WordTable table = doc.PageSetup.Header.AddTable(1, 1);
                 table.Rows[0].Cells[0].Paragraphs[0].SetText("Review owner");
                 doc.Save();
             }
@@ -536,8 +534,7 @@ namespace OfficeIMO.Tests {
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_body_image_to_header.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
-                doc.AddHeadersAndFooters();
-                doc.Header.Default!.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
+                doc.PageSetup.Header.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 doc.Save();
             }
 

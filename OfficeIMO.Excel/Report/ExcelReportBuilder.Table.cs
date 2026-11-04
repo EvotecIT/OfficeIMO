@@ -39,7 +39,7 @@ namespace OfficeIMO.Excel {
                 columnLimitGuidance: maxColumnsGuidance);
             IReadOnlyList<System.Collections.Generic.Dictionary<string, object?>> rows = projection.Rows;
             if (rows.Count == 0) {
-                Sheet.Cell(_row, 1, "(no data)");
+                Sheet.Cell(_row, 1).SetValue("(no data)");
                 _row++;
                 return Sheet.AddTable($"A{_row - 1}:A{_row - 1}", hasHeader: false, name: title ?? "Table", style: style, includeAutoFilter: false);
             }
@@ -57,7 +57,7 @@ namespace OfficeIMO.Excel {
             // If we still have no columns (e.g., row type exposes fields but no public properties),
             // degrade gracefully rather than producing an invalid table definition.
             if (paths.Count == 0) {
-                Sheet.Cell(_row, 1, "(no tabular columns for row type)");
+                Sheet.Cell(_row, 1).SetValue("(no tabular columns for row type)");
                 _row++;
                 return Sheet.AddTable($"A{_row - 1}:A{_row - 1}", hasHeader: false, name: title ?? "Table", style: style, includeAutoFilter: false);
             }
@@ -78,7 +78,7 @@ namespace OfficeIMO.Excel {
                 }
                 _row++;
             }
-            Sheet.CellValues(cells);
+            Sheet.SetValues(cells);
 
             int lastRow = _row - 1;
             string start = $"A{headerRow}";

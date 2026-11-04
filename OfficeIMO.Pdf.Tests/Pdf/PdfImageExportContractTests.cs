@@ -183,7 +183,7 @@ public sealed class PdfImageExportContractTests {
     [Fact]
     public void DocumentReaderUsesTheSharedImageExportContract() {
         PdfDocument document = PdfDocument.Load(PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Fluent image export"))
+            .Paragraph(paragraph => paragraph.AddText("Fluent image export"))
             .ToBytes());
 
         OfficeImageExportResult result = Assert.Single(document.Reader.ExportImages(
@@ -197,7 +197,7 @@ public sealed class PdfImageExportContractTests {
     [Fact]
     public void AuthoredDocumentExportsImagesWithoutAReadFacade() {
         PdfDocument document = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Authored page"));
+            .Paragraph(paragraph => paragraph.AddText("Authored page"));
 
         OfficeImageExportResult direct = Assert.Single(document.ExportImages(OfficeImageExportFormat.Webp));
         byte[] png = Assert.Single(document.ExportImages()).Bytes;
@@ -213,7 +213,7 @@ public sealed class PdfImageExportContractTests {
         PdfDocument document = PdfDocument.Create()
             .Deferred(_ => {
                 materialized = true;
-                return item => item.Paragraph(paragraph => paragraph.Text("Deferred page"));
+                return item => item.AddParagraph(paragraph => paragraph.AddText("Deferred page"));
             });
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
@@ -258,7 +258,7 @@ public sealed class PdfImageExportContractTests {
     [Fact]
     public void AuthoredDocumentDirectExportIncludesSnapshotMaterializationInDeadline() {
         PdfDocument document = PdfDocument.Create()
-            .Deferred(_ => item => item.Paragraph(paragraph => paragraph.Text("Deferred page")));
+            .Deferred(_ => item => item.AddParagraph(paragraph => paragraph.AddText("Deferred page")));
         var timeout = TimeSpan.FromTicks(1);
 
         OfficeImageExportTimeoutException exception = Assert.Throws<OfficeImageExportTimeoutException>(() =>
@@ -278,7 +278,7 @@ public sealed class PdfImageExportContractTests {
             "table 1",
             "A source feature was approximated."));
         var conversion = new PdfDocumentConversionResult(
-            PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Projected source")),
+            PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Projected source")),
             report);
 
         OfficeImageExportResult result = Assert.Single(conversion
@@ -314,8 +314,8 @@ public sealed class PdfImageExportContractTests {
     [Fact]
     public async Task PublicImageOptionsPreservePageOrderAndFreezeAsyncSettings() {
         using PdfDocument document = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Page one"))
-            .PageBreak().Paragraph(paragraph => paragraph.Text("Page two"));
+            .Paragraph(paragraph => paragraph.AddText("Page one"))
+            .PageBreak().Paragraph(paragraph => paragraph.AddText("Page two"));
         var options = new PdfImageExportOptions {
             Format = OfficeImageExportFormat.Svg, PageSelector = PdfPageSelector.Parse("last,1"),
             MaximumOutputWidth = 160, MaximumOutputHeight = 160
@@ -347,7 +347,7 @@ public sealed class PdfImageExportContractTests {
     public async Task PublicImageSavesReturnReportsAndRejectLossBeforeWriting() {
         string directory = Path.Combine(Path.GetTempPath(), "officeimo-image-" + Guid.NewGuid().ToString("N"));
         try {
-            using PdfDocument document = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Page"));
+            using PdfDocument document = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Page"));
             var options = new PdfImageExportOptions { Format = OfficeImageExportFormat.Webp };
             OfficeIMO.OfficeConversionReport report = await document.SaveAsImagesAsync(directory, options);
             string path = Assert.Single(Directory.GetFiles(directory));
@@ -370,9 +370,9 @@ public sealed class PdfImageExportContractTests {
 
     private static PdfReadDocument LoadTwoPageDocument() =>
         PdfReadDocument.Open(PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Page one"))
+            .Paragraph(paragraph => paragraph.AddText("Page one"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Page two"))
+            .Paragraph(paragraph => paragraph.AddText("Page two"))
             .ToBytes());
 
     private static PdfDocument CreateCancelingDeferredDocument(
@@ -381,11 +381,11 @@ public sealed class PdfImageExportContractTests {
         PdfDocument.Create()
             .Deferred(_ => {
                 cancellation.Cancel();
-                return item => item.Paragraph(paragraph => paragraph.Text("Cancellation boundary"));
+                return item => item.AddParagraph(paragraph => paragraph.AddText("Cancellation boundary"));
             })
             .Deferred(_ => {
                 onMaterializedAfterCancellation();
-                return item => item.Paragraph(paragraph => paragraph.Text("Must not materialize"));
+                return item => item.AddParagraph(paragraph => paragraph.AddText("Must not materialize"));
             });
 
     private static byte[] BuildSinglePagePdf(string content) {

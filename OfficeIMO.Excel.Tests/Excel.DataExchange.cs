@@ -88,8 +88,8 @@ namespace OfficeIMO.Tests {
         public void Test_DataExchange_JsonRejectsReferencePreservationThatRequiresWholeTableMaterialization() {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Name");
-            sheet.CellValue(2, 1, "Alpha");
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(2, 1).SetValue("Alpha");
             var options = new JsonSerializerOptions { ReferenceHandler = ReferenceHandler.Preserve };
 
             NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
@@ -102,8 +102,8 @@ namespace OfficeIMO.Tests {
         public void Test_DataExchange_JsonRejectsRootCollectionConvertersThatBypassStreaming() {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Name");
-            sheet.CellValue(2, 1, "Alpha");
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(2, 1).SetValue("Alpha");
             var options = new JsonSerializerOptions();
             options.Converters.Add(new RootRowsConverter());
 

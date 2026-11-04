@@ -5,7 +5,7 @@ namespace OfficeIMO.Markdown;
 
 public partial class MarkdownDocument {
     /// <summary>Adds a table from declared properties, fields, or string-keyed dictionary rows in a single pass.</summary>
-    /// <remarks>Typed projection rejects tables exceeding 10,000 data rows or 100 columns before adding a block.</remarks>
+    /// <remarks>Typed projection rejects tables exceeding 10,000 data rows or 100 columns before adding a block. Markdown tables have no name or caption, so a non-null <see cref="OfficeTableOptions.Name"/> or <see cref="OfficeTableOptions.Caption"/> throws <see cref="NotSupportedException"/>.</remarks>
     public TableBlock AddTable<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(
         IEnumerable<T> rows, OfficeTableOptions? options = null) {
         ValidateTableOptions(options);
@@ -50,6 +50,10 @@ public partial class MarkdownDocument {
     private static void ValidateTableOptions(OfficeTableOptions? options) {
         ObjectDataHelpers.ValidateTableAlignments(options);
         if (options == null) return;
+        if (options.Name != null)
+            throw new NotSupportedException("Markdown tables have no native name. Remove OfficeTableOptions.Name or add a heading or paragraph before the table.");
+        if (options.Caption != null)
+            throw new NotSupportedException("Markdown tables have no caption. Remove OfficeTableOptions.Caption or add a paragraph before the table.");
         foreach (var alignment in options.Alignments) _ = MarkdownTableBuilder.ToMarkdownAlignment(alignment);
     }
 }

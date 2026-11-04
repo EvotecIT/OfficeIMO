@@ -9,15 +9,15 @@ namespace OfficeIMO.Examples.Visio {
             string filePath = Path.Combine(folderPath, "Page Settings.vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Print ready", 11, 8.5);
-            page.SetMargins(0.4, 0.5, 0.6, 0.7);
+            VisioPage page = document.AddPage("Print ready", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
+            page.SetMargins(OfficeLength.Inches(0.4), OfficeLength.Inches(0.5), OfficeLength.Inches(0.6), OfficeLength.Inches(0.7));
             page.PrintOrientation = VisioPagePrintOrientation.Landscape;
             page.PageLockReplace = true;
             page.DrawingSizeType = VisioDrawingSizeType.Custom;
             page.AutoResizeDrawing = false;
             page.AllowShapeSplitting = false;
             page.UiVisibility = VisioPageUiVisibility.Normal;
-            page.AddRectangle(5.5, 4.25, 2.4, 1, "Print-ready page");
+            page.AddRectangle(OfficeLength.Inches(5.5), OfficeLength.Inches(4.25), OfficeLength.Inches(2.4), OfficeLength.Inches(1), "Print-ready page");
 
             document.Save();
 

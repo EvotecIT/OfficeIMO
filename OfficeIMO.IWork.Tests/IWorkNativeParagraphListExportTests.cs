@@ -10,9 +10,7 @@ public sealed partial class IWorkEverydayNativeExportTests {
     [Fact]
     public void Native_Pages_spacing_tabs_and_decimal_restarts_survive_strict_DOCX() {
         VerifyManifest("pages-paragraph-list-v15.4.json");
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(
-            Corpus("native-exports/pages-paragraph-list-v15.4.pages"),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Open(Corpus("native-exports/pages-paragraph-list-v15.4.pages"), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         Assert.True(result.Projection.Body.IsFormattingComplete);
         result.Report.RequireCompleteEditableReconstruction();
         Assert.Equal(new double?[] { 1.5, 2, 1 }, result.Projection.Body.Paragraphs.Take(3)

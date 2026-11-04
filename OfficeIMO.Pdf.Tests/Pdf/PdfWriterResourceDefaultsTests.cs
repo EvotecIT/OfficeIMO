@@ -9,7 +9,7 @@ public class PdfWriterResourceDefaultsTests {
     [Fact]
     public void DirectAuthoring_CompressesPagesByDefaultAndHonorsExplicitOptOut() {
         byte[] Generate(PdfCreateOptions options) => PdfDocument.Create(options)
-            .Paragraph(p => p.Text(string.Concat(Enumerable.Repeat("Content stream compression proof. ", 100))))
+            .Paragraph(p => p.AddText(string.Concat(Enumerable.Repeat("Content stream compression proof. ", 100))))
             .ToBytes();
         byte[] compressed = Generate(new PdfCreateOptions());
         byte[] plain = Generate(new PdfCreateOptions { CompressContentStreams = false });
@@ -48,8 +48,8 @@ public class PdfWriterResourceDefaultsTests {
     [InlineData(true)]
     public void IdenticalPageProgramsShareStorageWithoutLosingPageOccurrences(bool compress) {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = compress })
-            .Paragraph(p => p.Text("Repeated page"))
-            .PageBreak().Paragraph(p => p.Text("Repeated page")).ToBytes();
+            .Paragraph(p => p.AddText("Repeated page"))
+            .PageBreak().Paragraph(p => p.AddText("Repeated page")).ToBytes();
         var (objects, _) = PdfSyntax.ParseObjects(pdf);
         PdfDictionary[] pages = objects.Values.Select(o => o.Value).OfType<PdfDictionary>()
             .Where(d => d.Get<PdfName>("Type")?.Name == "Page").ToArray();

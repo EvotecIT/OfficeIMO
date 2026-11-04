@@ -68,7 +68,7 @@ public sealed class PdfSourcePassthroughCancellationTests {
         new Random(71283).NextBytes(payload);
         var options = new PdfCreateOptions().AddEmbeddedFile("payload.bin", payload, "application/octet-stream");
         return PdfDocument.Create(pdf => pdf.Content(content => content
-            .Paragraph(paragraph => paragraph.Text("Opened PDF passthrough cancellation."))), options).ToBytes();
+            .AddParagraph(paragraph => paragraph.AddText("Opened PDF passthrough cancellation."))), options).ToBytes();
     }
 
     private sealed class CancellingWriteStream(CancellationTokenSource cancellation, bool seekable) : Stream {

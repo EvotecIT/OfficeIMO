@@ -394,7 +394,7 @@ public sealed partial class BrowserConversionService {
     }
 
     private static ConversionResult ConvertHtmlToMarkdown(string input) {
-        var options = MarkdownHtmlImportOptions.CreatePortableProfile();
+        var options = HtmlMarkdownExportOptions.CreatePortableProfile();
         using MarkdownDocument converted = HtmlConversionDocument.Parse(input).ToMarkdown(options);
         string markdown = converted.ToMarkdown();
         return TextResult(markdown, "officeimo-html.md", "text/markdown;charset=utf-8", null);
@@ -402,7 +402,7 @@ public sealed partial class BrowserConversionService {
 
     private static ConversionResult ConvertMarkdownToWord(string input) {
         using MarkdownDocument markdown = MarkdownDocument.Parse(input);
-        using WordDocument document = markdown.ToWord(OfficeConverter.ConfigureMarkdownHtml(new WordMarkdownImportOptions {
+        using WordDocument document = markdown.ToWord(OfficeConverter.ConfigureMarkdownHtml(new MarkdownWordExportOptions {
             PreferNarrativeSingleLineDefinitions = true
         }, CancellationToken.None));
         byte[] bytes = document.ToBytes();

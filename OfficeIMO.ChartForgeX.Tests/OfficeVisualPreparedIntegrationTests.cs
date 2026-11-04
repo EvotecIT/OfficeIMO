@@ -54,7 +54,7 @@ namespace OfficeIMO.ChartForgeX.Tests
                     var image = Assert.Single(document.Images);
                     Assert.Equal(160D / 0.75D, image.Width!.Value.ToPixels(), 6);
                     Assert.Equal(100D / 0.75D, image.Height!.Value.ToPixels(), 6);
-                    Assert.Equal(description, image.Description);
+                    Assert.Equal(description, image.AltText);
                     Assert.Equal("Service load", image.Title);
                 }
                 using (var document = ExcelDocument.Load(excelPath)) {
@@ -67,10 +67,10 @@ namespace OfficeIMO.ChartForgeX.Tests
                     Assert.Equal(3, image.ColumnIndex);
                 }
                 using (var document = PowerPointDocument.Load(presentationPath)) {
-                    var picture = Assert.Single(document.Slides[0].Pictures);
+                    var picture = Assert.Single(document.Slides[0].Images);
                     Assert.Equal(160D, picture.Width.ToPoints(), 6);
                     Assert.Equal(100D, picture.Height.ToPoints(), 6);
-                    Assert.Equal(description, picture.Description);
+                    Assert.Equal(description, picture.AltText);
                     Assert.Equal("Service load", picture.Title);
                 }
                 var pdf = File.ReadAllBytes(pdfPath);

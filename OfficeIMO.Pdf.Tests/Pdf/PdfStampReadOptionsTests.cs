@@ -14,12 +14,12 @@ public class PdfStampReadOptionsTests {
     [InlineData("Content")]
     [InlineData("Watermark")]
     public void ExplicitReadOptionsRemainOnStampResultAndSubsequentMutations(string operation) {
-        byte[] original = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Original body")).ToBytes();
+        byte[] original = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Original body")).ToBytes();
         var originalOptions = new PdfLoadOptions { Limits = new PdfReadLimits { MaxJavaScripts = 19 } };
         var explicitOptions = new PdfLoadOptions { Limits = new PdfReadLimits { MaxJavaScripts = 3 } };
         PdfDocument source = PdfDocument.Load(original, originalOptions);
         byte[] image = PdfPngTestImages.CreateRgbPng(20, 80, 180);
-        byte[] overlay = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Imported page")).ToBytes();
+        byte[] overlay = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Imported page")).ToBytes();
 
         PdfDocument stamped = operation switch {
             "Text" => source.Stamp.Text("Stamp", null, explicitOptions),

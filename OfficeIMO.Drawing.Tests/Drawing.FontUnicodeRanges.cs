@@ -35,6 +35,17 @@ public sealed class DrawingFontUnicodeRangeTests {
     }
 
     [Fact]
+    public void FontCollection_PlansFacesRegisteredAfterAnEarlierPlan() {
+        var fonts = new OfficeFontFaceCollection();
+        Assert.True(fonts.TryAdd("First", ManagedTextShapingTestAssets.CreateFont('A')));
+        Assert.Equal("First", Assert.Single(fonts.PlanFallbackRuns("A", "Later, First")).FamilyName);
+
+        Assert.True(fonts.TryAdd("Later", ManagedTextShapingTestAssets.CreateFont('A')));
+
+        Assert.Equal("Later", Assert.Single(fonts.PlanFallbackRuns("A", "Later, First")).FamilyName);
+    }
+
+    [Fact]
     public void FontCollection_UsesRangesBeforeGlyphCoverageForOneCssFamily() {
         byte[] font = ManagedTextShapingTestAssets.CreateFont('A', 0x05D0);
         Assert.True(OfficeFontUnicodeRangeSet.TryParseCss("U+0000-007F", out OfficeFontUnicodeRangeSet? latin));

@@ -11,8 +11,8 @@ public sealed class ExcelCustomIndexedColorTests {
     public void Workbook_palette_colors_reach_cell_inspection_visual_snapshots_and_saved_readback() {
         using var document = ExcelDocument.Create();
         var sheet = document.AddSheet("Palette");
-        sheet.CellValue(1, 1, "Custom palette");
-        sheet.CellAt(1, 1).SetFontColor("112233").SetFillColor("445566")
+        sheet.Cell(1, 1).SetValue("Custom palette");
+        sheet.Cell(1, 1).SetFontColor("112233").SetFillColor("445566")
             .SetBorder(ExcelCellBorders.Bottom, ExcelBorderStyle.Thin, "778899");
         var workbook = document.OpenXmlDocument.WorkbookPart!;
         var styles = workbook.WorkbookStylesPart!.Stylesheet!;
@@ -25,19 +25,19 @@ public sealed class ExcelCustomIndexedColorTests {
         styles.Colors = new Colors(new IndexedColors(new RgbColor { Rgb = "FF112233" },
             new RgbColor { Rgb = "FF445566" }, new RgbColor { Rgb = "FF778899" }));
 
-        AssertPaletteStyle(sheet.GetCellStyle(1, 1));
+        AssertPaletteStyle(sheet.Cell(1, 1).GetStyle());
         AssertPaletteStyle(Assert.Single(Assert.Single(document.Inspect().Worksheets).Cells).Style!);
         AssertPaletteStyle(Assert.Single(sheet.Range("A1").CreateVisualSnapshot().Cells).Style);
         using var saved = new MemoryStream(); document.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
-        AssertPaletteStyle(reopened.Sheets[0].GetCellStyle(1, 1));
+        AssertPaletteStyle(reopened.Sheets[0].Cell(1, 1).GetStyle());
         Assert.Empty(reopened.ValidateOpenXml());
     }
 
     [Fact]
     public void Custom_palette_resolution_applies_tint_and_observes_palette_edits_without_changing_default_colors() {
         using var document = ExcelDocument.Create();
-        document.AddSheet("Palette").CellAt(1, 1).SetFontColor("112233");
+        document.AddSheet("Palette").Cell(1, 1).SetFontColor("112233");
         var workbook = document.OpenXmlDocument.WorkbookPart!;
         var styles = workbook.WorkbookStylesPart!.Stylesheet!;
         var entry = new RgbColor { Rgb = "FF112233" };
@@ -55,8 +55,8 @@ public sealed class ExcelCustomIndexedColorTests {
     public void Content_safety_inspection_uses_the_workbook_palette_for_indexed_font_colors() {
         using var document = ExcelDocument.Create();
         var sheet = document.AddSheet("Palette");
-        sheet.CellValue(1, 1, "Concealed text");
-        sheet.CellAt(1, 1).SetFontColor("112233");
+        sheet.Cell(1, 1).SetValue("Concealed text");
+        sheet.Cell(1, 1).SetFontColor("112233");
         var workbook = document.OpenXmlDocument.WorkbookPart!;
         var styles = workbook.WorkbookStylesPart!.Stylesheet!;
         Cell cell = workbook.WorksheetParts.Single().Worksheet.Descendants<Cell>().Single();

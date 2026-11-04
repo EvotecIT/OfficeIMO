@@ -11,12 +11,12 @@ namespace OfficeIMO.Tests {
             string cacheKind, int calculated, string expected) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Unresolved");
-            if (cacheKind == "number") sheet.CellValue(1, 1, 1d);
-            else if (cacheKind == "text") sheet.CellValue(1, 1, string.Empty);
-            sheet.CellFormula(1, 1, "UNKNOWN()");
-            sheet.CellValue(2, 1, 2d);
-            sheet.CellValue(1, 4, 42d);
-            sheet.CellFormula(1, 4, "IFERROR(SUMPRODUCT(A1:A2),99)");
+            if (cacheKind == "number") sheet.Cell(1, 1).SetValue(1d);
+            else if (cacheKind == "text") sheet.Cell(1, 1).SetValue(string.Empty);
+            sheet.Cell(1, 1).SetFormula("UNKNOWN()");
+            sheet.Cell(2, 1).SetValue(2d);
+            sheet.Cell(1, 4).SetValue(42d);
+            sheet.Cell(1, 4).SetFormula("IFERROR(SUMPRODUCT(A1:A2),99)");
             Assert.Equal(calculated, document.Calculate());
             AssertFormulaCache(sheet, 1, 4, expected);
         }
@@ -46,13 +46,13 @@ namespace OfficeIMO.Tests {
         public void Test_FormulaEvaluator_ComposedErrorsRemainTyped(string expression) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Errors");
-            sheet.CellValue(1, 1, 1d);
-            sheet.CellValue(2, 1, 2d);
-            sheet.CellFormula(1, 2, "NA()");
-            sheet.CellValue(2, 2, 2d);
-            sheet.CellFormula(1, 4, expression);
-            sheet.CellFormula(2, 4, "IFERROR(D1,99)");
-            sheet.CellFormula(3, 4, "IFNA(D1,7)");
+            sheet.Cell(1, 1).SetValue(1d);
+            sheet.Cell(2, 1).SetValue(2d);
+            sheet.Cell(1, 2).SetFormula("NA()");
+            sheet.Cell(2, 2).SetValue(2d);
+            sheet.Cell(1, 4).SetFormula(expression);
+            sheet.Cell(2, 4).SetFormula("IFERROR(D1,99)");
+            sheet.Cell(3, 4).SetFormula("IFNA(D1,7)");
             Assert.Equal(4, document.Calculate());
             AssertFormulaCache(sheet, 1, 4, "#N/A");
             AssertFormulaCache(sheet, 2, 4, "99");
@@ -68,11 +68,11 @@ namespace OfficeIMO.Tests {
         public void Test_FormulaEvaluator_UnsupportedCompositionDoesNotActivateFallback(string expression) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Errors");
-            sheet.CellValue(1, 1, 1d);
-            sheet.CellValue(2, 1, 2d);
-            sheet.CellFormula(1, 2, "NA()");
-            sheet.CellValue(1, 4, 42d);
-            sheet.CellFormula(1, 4, $"IFERROR({expression},99)");
+            sheet.Cell(1, 1).SetValue(1d);
+            sheet.Cell(2, 1).SetValue(2d);
+            sheet.Cell(1, 2).SetFormula("NA()");
+            sheet.Cell(1, 4).SetValue(42d);
+            sheet.Cell(1, 4).SetFormula($"IFERROR({expression},99)");
             Assert.Equal(1, document.Calculate());
             AssertFormulaCache(sheet, 1, 4, "42");
         }
@@ -81,7 +81,7 @@ namespace OfficeIMO.Tests {
         public void Test_FormulaEvaluator_TextBeforeDoesNotEvaluateUnusedErrorFallback() {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Text");
-            sheet.CellFormula(1, 1, "TEXTBEFORE(\"a:b\",\":\",1,0,0,NA())");
+            sheet.Cell(1, 1).SetFormula("TEXTBEFORE(\"a:b\",\":\",1,0,0,NA())");
             Assert.Equal(1, document.Calculate());
             AssertFormulaCache(sheet, 1, 1, "a");
         }
@@ -90,12 +90,12 @@ namespace OfficeIMO.Tests {
         public void Test_FormulaEvaluator_BlankReferenceConditionsUseNumericZero() {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Blank");
-            sheet.CellValue(2, 1, "");
+            sheet.Cell(2, 1).SetValue("");
             string[] formulas = { "IF(A1=0,1,2)", "IF(0=A1,1,2)", "IF(A1<1,1,2)",
                 "IF(A1=\"0\",1,2)", "IF(A2=0,1,2)", "IFS(A1=0,1,TRUE,2)",
                 "IF(A1,1,2)", "AND(A1=0,TRUE)", "OR(A1=0,FALSE)", "NOT(A1=0)" };
             string[] expected = { "1", "1", "1", "2", "2", "1", "2", "1", "1", "0" };
-            for (int index = 0; index < formulas.Length; index++) sheet.CellFormula(index + 1, 3, formulas[index]);
+            for (int index = 0; index < formulas.Length; index++) sheet.Cell(index + 1, 3).SetFormula(formulas[index]);
             Assert.Equal(formulas.Length, document.Calculate());
             for (int index = 0; index < formulas.Length; index++) AssertFormulaCache(sheet, index + 1, 3, expected[index]);
         }
@@ -104,13 +104,13 @@ namespace OfficeIMO.Tests {
         public void Test_FormulaEvaluator_LookupErrorsPropagateInsideArithmetic() {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Arithmetic");
-            sheet.CellValue(1, 1, 1d);
-            sheet.CellValue(2, 1, 2d);
-            sheet.CellValue(1, 2, 10d);
-            sheet.CellValue(2, 2, 20d);
+            sheet.Cell(1, 1).SetValue(1d);
+            sheet.Cell(2, 1).SetValue(2d);
+            sheet.Cell(1, 2).SetValue(10d);
+            sheet.Cell(2, 2).SetValue(20d);
             string[] expressions = { "INDEX(A1:A2,3)+1", "VLOOKUP(9,A1:B2,2,FALSE)+1",
                 "HLOOKUP(9,A1:B2,2,FALSE)+1", "XLOOKUP(9,A1:A2,B1:B2)+1" };
-            for (int index = 0; index < expressions.Length; index++) sheet.CellFormula(index + 1, 4, $"IFERROR({expressions[index]},99)");
+            for (int index = 0; index < expressions.Length; index++) sheet.Cell(index + 1, 4).SetFormula($"IFERROR({expressions[index]},99)");
             Assert.Equal(expressions.Length, document.Calculate());
             for (int index = 0; index < expressions.Length; index++) AssertFormulaCache(sheet, index + 1, 4, "99");
         }

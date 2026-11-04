@@ -29,7 +29,7 @@ public sealed partial class HtmlRenderingTests {
         AssertFixedHeightOverflowPlacement(rendered, "ENTRY-AFTER", 11, 80D);
         OfficeRasterImage preceding = OfficeDrawingRasterRenderer.Render(rendered.Pages[10].CreateDrawing());
         Assert.Equal(OfficeColor.White, preceding.GetPixel(500, 90));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -74,7 +74,7 @@ public sealed partial class HtmlRenderingTests {
             if (leadingBlankPages > 0) Assert.Empty(rendered.Pages[0].Visuals.OfType<HtmlRenderText>());
             Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
                 diagnostic.Code == HtmlRenderDiagnosticCodes.ConstrainedOverflowPaginationPending);
-            rendered.RequireNoLoss();
+            rendered.ThrowIfLoss();
         }
     }
 
@@ -106,7 +106,7 @@ public sealed partial class HtmlRenderingTests {
         AssertFixedHeightOverflowPlacement(rendered, "KEEP-ONE", 2, 0D);
         AssertFixedHeightOverflowPlacement(rendered, "KEEP-TWO", 2, 20D);
         AssertFixedHeightOverflowPlacement(rendered, "KEEP-THREE", 2, 40D);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -138,7 +138,7 @@ public sealed partial class HtmlRenderingTests {
         AssertFixedHeightOverflowPlacement(rendered, "KEEP-ONE", 2, 20D);
         AssertFixedHeightOverflowPlacement(rendered, "KEEP-TWO", 2, 40D);
         AssertFixedHeightOverflowPlacement(rendered, "KEEP-THREE", 2, 60D);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -158,7 +158,7 @@ public sealed partial class HtmlRenderingTests {
         AssertFixedHeightOverflowPlacement(rendered, "KEEP-TWO", 2, 40D);
         AssertFixedHeightOverflowPlacement(rendered, "KEEP-THREE", 2, 60D);
         AssertFixedHeightOverflowPlacement(rendered, "KEEP-AFTER", 2, 80D);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -176,7 +176,7 @@ public sealed partial class HtmlRenderingTests {
         AssertFixedHeightOverflowPlacement(rendered, "KEEP-TWO", 2, 20D);
         AssertFixedHeightOverflowPlacement(rendered, "KEEP-THREE", 2, 40D);
         AssertFixedHeightOverflowPlacement(rendered, "KEEP-AFTER", 2, 60D);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -202,7 +202,7 @@ public sealed partial class HtmlRenderingTests {
         AssertFixedHeightOverflowPlacement(rendered, "KEEP-TWO", 2, 40D);
         AssertFixedHeightOverflowPlacement(rendered, "KEEP-THREE", 2, 60D);
         AssertFixedHeightOverflowPlacement(rendered, "KEEP-AFTER", 2, 80D);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -235,7 +235,7 @@ public sealed partial class HtmlRenderingTests {
         AssertFixedHeightOverflowPlacement(rendered, "KEEP-TWO", 2, 40D);
         AssertFixedHeightOverflowPlacement(rendered, "KEEP-THREE", 2, 60D);
         AssertFixedHeightOverflowPlacement(rendered, "KEEP-AFTER", 2, 80D);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -258,7 +258,7 @@ public sealed partial class HtmlRenderingTests {
         AssertFixedHeightOverflowPlacement(rendered, "TWO2", 4, 40D);
         AssertFixedHeightOverflowPlacement(rendered, "THREE2", 4, 60D);
         AssertFixedHeightOverflowPlacement(rendered, "AFTER", 4, 80D);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -301,6 +301,6 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.ConstrainedOverflowPaginationPending
             || diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 }

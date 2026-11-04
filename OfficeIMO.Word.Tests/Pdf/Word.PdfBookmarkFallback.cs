@@ -22,7 +22,7 @@ public partial class Word {
         PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "native-bookmark-target-unprojected");
         Assert.Equal(OfficeConversionLossKind.Omission, warning.LossKind);
         Assert.True(result.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
         byte[] bytes = result.ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         string text = string.Concat(pdf.GetPages().Select(page => page.Text));
@@ -47,7 +47,7 @@ public partial class Word {
         using WordDocument source = CreateFootnoteDiagnosticDocument();
         if (owner == "table") source.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].SetText("TARGET").AddBookmark("UnprojectedTarget");
         else if (owner == "textbox") source.AddParagraph(string.Empty).AddTextBox("TARGET", WordImageTextWrapping.Square).Paragraphs[0].AddBookmark("UnprojectedTarget");
-        else source.HeaderDefaultOrCreate.AddParagraph("TARGET").AddBookmark("UnprojectedTarget");
+        else source.PageSetup.Header.AddParagraph("TARGET").AddBookmark("UnprojectedTarget");
         source.AddParagraph("VALIDTARGET").AddBookmark("ValidTarget");
         WordParagraph body = source.AddParagraph(string.Empty);
         body._paragraph.Append(BookmarkFallbackLink("UNSAFE", "BODYTAIL", "UnprojectedTarget"));

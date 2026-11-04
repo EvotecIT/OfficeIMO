@@ -7,7 +7,7 @@ internal sealed class ShapeBlock : IPdfBlock {
     public PdfDrawingStyle? Style { get; }
     public string? LinkUri { get; }
     public string? LinkContents { get; }
-    public PdfAlign Align => (Style ?? new PdfDrawingStyle()).Align;
+    public OfficeAlignment Align => (Style ?? new PdfDrawingStyle()).Align;
     public double SpacingBefore => (Style ?? new PdfDrawingStyle()).SpacingBefore.ToPoints();
     public double SpacingAfter => (Style ?? new PdfDrawingStyle()).SpacingAfter.ToPoints();
     public string? AlternativeText => Style?.AlternativeText;
@@ -30,7 +30,7 @@ internal sealed class ShapeBlock : IPdfBlock {
         LinkContents = linkUri == null ? null : linkContents ?? "Shape";
     }
 
-    public ShapeBlock(OfficeShape shape, PdfAlign align, double spacingBefore, double spacingAfter, string? linkUri = null, string? linkContents = null)
+    public ShapeBlock(OfficeShape shape, OfficeAlignment align, double spacingBefore, double spacingAfter, string? linkUri = null, string? linkContents = null)
         : this(shape, new PdfDrawingStyle {
             Align = align,
             SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore),

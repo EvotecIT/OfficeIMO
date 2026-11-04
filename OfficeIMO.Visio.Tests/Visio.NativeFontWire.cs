@@ -17,12 +17,12 @@ public class VisioNativeFontWireTests {
     [Fact]
     public void NamedNativeFontsLoadIntoEditableShapeConnectorAndMasterStyles() {
         var seed = VisioDocument.Create();
-        var master = seed.RegisterMaster("Native font master", new VisioShape("1", 1, .5, 2, 1, "native master"));
+        var master = seed.RegisterMaster("Native font master", new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(.5), OfficeLength.Inches(2), OfficeLength.Inches(1), "native master"));
         var page = seed.AddPage("Fonts");
-        var shape = page.AddRectangle(2, 2, 2, 1, "native shape");
-        var target = page.AddRectangle(6, 2, 2, 1, "target");
+        var shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "native shape");
+        var target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "target");
         page.AddConnector(shape, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left).Label = "native connector";
-        page.AddShape("instance", master, 2, 5, 2, 1);
+        page.AddShape("instance", master, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)));
 
         byte[] input = RewritePackage(seed.ToBytes(), archive => {
             RewritePart(archive, "visio/document.xml", xml => {
@@ -60,7 +60,7 @@ public class VisioNativeFontWireTests {
     [Fact]
     public void NativePackagesWithoutFontEntriesOmitTheEmptyFaceNamesTable() {
         var document = VisioDocument.Create();
-        document.AddPage("No fonts").AddRectangle(2, 2, 2, 1, "plain");
+        document.AddPage("No fonts").AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), "plain");
         byte[] saved = document.ToBytes();
         Assert.Null(ReadPart(saved, "visio/document.xml").Root!.Element(Native + "FaceNames"));
         Assert.Null(ReadPart(LoadNative(saved).ToBytes(), "visio/document.xml").Root!.Element(Native + "FaceNames"));
@@ -213,7 +213,7 @@ public class VisioNativeFontWireTests {
         try {
             File.WriteAllBytes(path, changed);
             destination.ImportStencilMasters(path);
-            destination.Pages[0].AddShape("instance", destination.GetMaster("Fonts"), 2, 2, 2, 1);
+            destination.Pages[0].AddShape("instance", destination.GetMaster("Fonts"), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, destination.Pages[0].DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, destination.Pages[0].DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, destination.Pages[0].DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, destination.Pages[0].DefaultUnit)));
             for (int round = 0; round < 2; round++) {
                 byte[] saved = destination.ToBytes();
                 XElement master = FindTextShape(ReadPart(saved, "visio/masters/master1.xml"), "master");

@@ -342,7 +342,7 @@ public sealed class HtmlEmailImageExportTests {
         var email = new EmailDocument();
         email.Body.Rtf = "{\\rtf1\\ansi Rendered RTF body}";
         var options = new EmailImageExportOptions {
-            Policy = new OfficeImageExportPolicy { RequireNoLoss = true }
+            Policy = new OfficeImageExportPolicy { FailOnLoss = true }
         };
 
         OfficeImageExportPolicyException exception =

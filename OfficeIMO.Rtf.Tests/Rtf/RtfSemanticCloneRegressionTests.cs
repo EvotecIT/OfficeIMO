@@ -11,7 +11,7 @@ public class RtfSemanticCloneRegressionTests {
         RtfObject original = source.AddObject(RtfObjectKind.Embedded, new byte[] { 1, 2, 3 });
         original.Result.AddText("Fallback").SetBold();
         source.Fonts[0].Embedding = new RtfFontEmbedding { Data = new byte[] { 7, 8 } };
-        source.Info.Title = "Original";
+        source.Properties.Title = "Original";
 
         RtfDocument clone = source.Clone();
         RtfObject copied = Assert.IsType<RtfObject>(Assert.Single(clone.Blocks));
@@ -21,12 +21,12 @@ public class RtfSemanticCloneRegressionTests {
         copied.Data[0] = 9;
         copied.Result.Runs[0].Bold = false;
         clone.Fonts[0].Embedding!.Data[0] = 10;
-        clone.Info.Title = "Copy";
+        clone.Properties.Title = "Copy";
 
         Assert.Equal(1, original.Data[0]);
         Assert.True(original.Result.Runs[0].Bold);
         Assert.Equal(7, source.Fonts[0].Embedding!.Data[0]);
-        Assert.Equal("Original", source.Info.Title);
+        Assert.Equal("Original", source.Properties.Title);
     }
 
     [Fact]

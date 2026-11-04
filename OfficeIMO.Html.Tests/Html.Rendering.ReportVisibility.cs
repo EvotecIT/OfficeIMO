@@ -18,7 +18,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<style>@media print{.reveal{display:" + display + "!important}}</style>"
             + fragment + "<section hidden>PLAIN-HIDDEN</section><p style='display:none'>CSS-HIDDEN</p>";
 
-        byte[] bytes = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions {
+        byte[] bytes = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions {
             HonorCssPageRules = false, InteractiveFormControls = false
         })).ToBytes();
         string text = OfficeIMO.Pdf.PdfReadDocument.Open(bytes).ExtractText();

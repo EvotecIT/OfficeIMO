@@ -27,9 +27,9 @@ namespace OfficeIMO.Tests
             using var stream = new MemoryStream();
             using ExcelDocument document = ExcelDocument.Create(stream);
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "First");
-            sheet.CellValue(1, 2, "Second");
-            sheet.CellValue(1, 3, "Value");
+            sheet.Cell(1, 1).SetValue("First");
+            sheet.Cell(1, 2).SetValue("Second");
+            sheet.Cell(1, 3).SetValue("Value");
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => sheet.AddPivotTable("A1:C1048576", "E2", options: new ExcelPivotTableOptions { RowFields = new[] { "First", "Second" }, DataFields = new[] { new ExcelPivotDataField("Value", ExcelPivotDataFunction.Sum) } }));
             Assert.Contains("shared-item discovery", exception.Message, StringComparison.Ordinal);
         }
@@ -77,7 +77,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "SecurityBatch11.InvalidDimensionRow.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "safe");
+                sheet.Cell(1, 1).SetValue("safe");
                 SheetData sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
                 sheetData.Append(new Row(new Cell(new CellValue("attacker"))) { RowIndex = uint.MaxValue });
                 document.Save();
@@ -92,7 +92,7 @@ namespace OfficeIMO.Tests
             using var stream = new MemoryStream();
             using ExcelDocument document = ExcelDocument.Create(stream);
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "safe");
+            sheet.Cell(1, 1).SetValue("safe");
             Cell cell = sheet.WorksheetPart.Worksheet.Descendants<Cell>().Single();
             cell.DataType = CellValues.SharedString;
             cell.CellValue = new CellValue(int.MaxValue.ToString(System.Globalization.CultureInfo.InvariantCulture));

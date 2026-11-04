@@ -11,13 +11,13 @@ public sealed class OfficeConverterConversionTests {
     [InlineData(true)]
     public void PdfHtmlUsesCommonSemanticPolicyUnlessAdapterOverridesIt(bool adapterOverride) {
         using var pdf = PdfDocument.Create(builder => {
-            builder.Page(page => page.Content(content => content.Text("First source page")));
-            builder.Page(page => page.Content(content => content.Text("Second source page")));
+            builder.Page(page => page.Content(content => content.AddParagraph("First source page")));
+            builder.Page(page => page.Content(content => content.AddParagraph("Second source page")));
         });
         using var source = new MemoryStream(pdf.ToBytes());
         using var output = new MemoryStream();
         var policy = new PdfLoadOptions { Profile = PdfReadProfile.Fast, PageSelection = PdfPageSelection.Parse("2") };
-        var html = adapterOverride ? new OfficeIMO.Html.Pdf.PdfToHtmlOptions {
+        var html = adapterOverride ? new OfficeIMO.Html.Pdf.PdfHtmlExportOptions {
             ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.Parse("1") }
         } : null;
         OfficeConverter.Convert(source, OfficeDocumentFormat.Pdf, output, OfficeDocumentFormat.Html,
@@ -40,7 +40,7 @@ public sealed class OfficeConverterConversionTests {
         Assert.True(report.HasLoss);
         Assert.True(report.ItemsWritten > 0);
         // Conversion reports a completed rendering while retaining the target authoring model.
-        result.Compose(builder => builder.Content(content => content.Text("Post-conversion authoring")));
+        result.Compose(builder => builder.Content(content => content.AddParagraph("Post-conversion authoring")));
         byte[] bytes = result.ToBytes(new PdfSaveOptions { AllowLoss = true });
         Assert.NotEmpty(bytes);
         using var reopened = PdfDocument.Load(new MemoryStream(bytes), new PdfLoadOptions { Password = encrypt ? password : null });

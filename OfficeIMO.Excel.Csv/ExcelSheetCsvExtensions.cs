@@ -32,8 +32,8 @@ public static class ExcelSheetCsvExtensions {
         if (sheet == null) throw new ArgumentNullException(nameof(sheet));
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
         ExcelCsvImportOptions resolved = ExcelDocumentCsvExtensions.ResolveOptions(options);
-        using var linkedCancellation = ExcelDocumentCsvExtensions.CreateLinkedLoadOptions(resolved, cancellationToken, out CsvLoadOptions loadOptions);
-        using DbDataReader reader = CsvDocument.OpenDataReader(path, loadOptions, resolved.ReaderOptions);
+        using var linkedCancellation = ExcelDocumentCsvExtensions.CreateLinkedLoadOptions(resolved, cancellationToken, out CsvReaderOptions loadOptions);
+        using DbDataReader reader = CsvDocument.OpenReader(path, loadOptions);
         return ImportCsvCore(sheet, reader, resolved, cancellationToken);
     }
 
@@ -45,14 +45,14 @@ public static class ExcelSheetCsvExtensions {
         CancellationToken cancellationToken = default) {
         if (sheet == null) throw new ArgumentNullException(nameof(sheet));
         ExcelCsvImportOptions resolved = ExcelDocumentCsvExtensions.ResolveOptions(options);
-        using var linkedCancellation = ExcelDocumentCsvExtensions.CreateLinkedLoadOptions(resolved, cancellationToken, out CsvLoadOptions loadOptions);
-        using DbDataReader reader = CsvDocument.OpenDataReader(stream, loadOptions, resolved.ReaderOptions);
+        using var linkedCancellation = ExcelDocumentCsvExtensions.CreateLinkedLoadOptions(resolved, cancellationToken, out CsvReaderOptions loadOptions);
+        using DbDataReader reader = CsvDocument.OpenReader(stream, loadOptions);
         return ImportCsvCore(sheet, reader, resolved, cancellationToken);
     }
 
     /// <summary>
     /// Parses CSV text and imports it into an existing worksheet. Because the input is already decoded,
-    /// <see cref="CsvLoadOptions.Encoding"/> applies only to file and stream imports.
+    /// <see cref="CsvReaderOptions.Encoding"/> applies only to file and stream imports.
     /// </summary>
     public static ExcelCsvImportResult ImportCsvText(
         this ExcelSheet sheet,
@@ -62,9 +62,9 @@ public static class ExcelSheetCsvExtensions {
         if (sheet == null) throw new ArgumentNullException(nameof(sheet));
         if (text == null) throw new ArgumentNullException(nameof(text));
         ExcelCsvImportOptions resolved = ExcelDocumentCsvExtensions.ResolveOptions(options);
-        using var linkedCancellation = ExcelDocumentCsvExtensions.CreateLinkedLoadOptions(resolved, cancellationToken, out CsvLoadOptions loadOptions);
-        using DbDataReader reader = CsvDocument.OpenTextDataReader(
-            text, loadOptions, resolved.ReaderOptions);
+        using var linkedCancellation = ExcelDocumentCsvExtensions.CreateLinkedLoadOptions(resolved, cancellationToken, out CsvReaderOptions loadOptions);
+        using DbDataReader reader = CsvDocument.OpenReader(
+            new StringReader(text), loadOptions);
         return ImportCsvCore(sheet, reader, resolved, cancellationToken);
     }
 
@@ -155,10 +155,10 @@ public static class ExcelSheetCsvExtensions {
         cancellationToken.ThrowIfCancellationRequested();
         char delimiter = reader is ICsvDataReaderMetadata metadata
             ? metadata.Delimiter
-            : options.LoadOptions.Delimiter;
+            : options.ReaderOptions.Delimiter;
         string delimiterText = reader is ICsvDataReaderDialectMetadata dialect
             ? dialect.DelimiterText
-            : options.LoadOptions.DelimiterText ?? delimiter.ToString();
+            : options.ReaderOptions.DelimiterText ?? delimiter.ToString();
         if (reader.FieldCount == 0) {
             return new ExcelCsvImportResult(sheet.Name, null, string.Empty, delimiterText);
         }

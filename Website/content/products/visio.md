@@ -52,12 +52,13 @@ OfficeIMO.Visio lets you generate and modify `.vsdx` diagrams from pure .NET cod
 ## Quick start
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Diagrams;
 
 VisioDocument.Create("Architecture.vsdx")
     .ArchitectureDiagram("System Overview", diagram => diagram
-        .Title()
+        .AddTitle()
         .Legend()
         .Theme(VisioStyleTheme.Technical())
         .Region("vnet", "Virtual Network", 1, 0, 3, 2)

@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Excel {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Test");
+                sheet.Cell(1, 1).SetValue("Test");
 
                 Console.WriteLine(document.DocumentIsValid);
                 Console.WriteLine(document.DocumentValidationErrors);

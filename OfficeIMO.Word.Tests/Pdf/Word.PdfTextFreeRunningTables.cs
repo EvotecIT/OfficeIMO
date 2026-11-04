@@ -14,7 +14,7 @@ public partial class Word {
     [InlineData(true, true)]
     public void SaveAsPdf_TextFreeRunningTableRetainsBordersAndDrawsImageOnce(bool footer, bool image) {
         using WordDocument document = WordDocument.Create();
-        WordHeaderFooter story = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
+        WordHeaderFooter story = footer ? document.PageSetup.Footer : document.PageSetup.Header;
         WordTable table = story.AddTable(1, 2, WordTableStyle.TableGrid);
         if (image) table.Rows[0].Cells[0].Paragraphs[0].AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(32));
         document.AddParagraph("BODY");
@@ -37,12 +37,12 @@ public partial class Word {
     [InlineData("even", true)]
     public void SaveAsPdf_TextFreeRunningTablePreservesGeneratedNumberSelection(string variant, bool image) {
         using WordDocument document = WordDocument.Create();
-        WordHeaderFooter story = variant == "first" ? document.FooterFirstOrCreate
-            : variant == "even" ? document.FooterEvenOrCreate : document.FooterDefaultOrCreate;
+        WordHeaderFooter story = variant == "first" ? document.PageSetup.FirstPageFooter
+            : variant == "even" ? document.PageSetup.EvenPageFooter : document.PageSetup.Footer;
         // Isolate footer variants from header peers created by the fluent API.
         document.Sections[0]._sectionProperties.RemoveAllChildren<W.HeaderReference>();
-        document.Sections[0].DifferentFirstPage = variant == "first";
-        document.Sections[0].DifferentOddAndEvenPages = variant == "even";
+        document.Sections[0].PageSetup.DifferentFirstPage = variant == "first";
+        document.Sections[0].PageSetup.DifferentOddAndEvenPages = variant == "even";
         WordTable table = story.AddTable(1, 2, WordTableStyle.TableGrid);
         if (image) table.Rows[0].Cells[0].Paragraphs[0].AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(32));
         SetInheritedRunningControlStyle(document.AddParagraph("BODY"));

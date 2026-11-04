@@ -58,7 +58,7 @@ public sealed class EmailHtmlImageDocument {
         if (html == null) throw new ArgumentNullException(nameof(html));
 
         HtmlUrlPolicy compatibleResources = HtmlUrlPolicy.CreateOfficeIMOProfile();
-        var options = HtmlConversionDocumentOptions.CreateUntrustedProfile();
+        var options = HtmlConversionDocumentOptions.UntrustedDefaults;
         options.IncludeNormalizedHtml = false;
         options.UseBodyContentsOnly = false;
         options.ResourceUrlPolicy = compatibleResources;

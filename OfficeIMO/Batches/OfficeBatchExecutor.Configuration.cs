@@ -1,4 +1,6 @@
+using System.Collections.Concurrent;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using OfficeIMO.Pdf;
@@ -15,6 +17,23 @@ internal static partial class OfficeBatchExecutor {
     private static string CaptureConfiguration(OfficeBatchOptions settings) => Hash(string.Join("\n", Schema, "replace-source-extension.v1",
         settings.InputDirectory == null ? "selected-files" : OfficePathIdentity.GetPathIdentityKey(settings.InputDirectory),
         OfficePathIdentity.GetPathIdentityKey(settings.OutputDirectory), settings.TargetExtension));
+
+    private const int FingerprintSaltBytes = 16;
+    // OWASP's minimum for PBKDF2-HMAC-SHA1. Derived once per route and run.
+    private const int FingerprintIterations = 1_300_000;
+
+    private static string CreateFingerprintSalt() {
+        var salt = new byte[FingerprintSaltBytes];
+        using (var random = RandomNumberGenerator.Create()) random.GetBytes(salt);
+        return OfficeRuntimeCompatibility.ToHexString(salt);
+    }
+
+    /// <summary>Rendering settings can hold PDF and document passwords, so receipts only record a salted, deliberately slow derivation of them.</summary>
+    private sealed class RenderingFingerprints(OfficeBatchOptions settings, string salt) {
+        private readonly ConcurrentDictionary<string, Lazy<string>> _routes = new(StringComparer.Ordinal);
+        internal string Get(string routeId) => _routes.GetOrAdd(routeId, id => new Lazy<string>(() => OfficeRuntimeCompatibility.ToHexString(
+            OfficeRuntimeCompatibility.DerivePbkdf2Sha1(Encoding.UTF8.GetBytes(CaptureRenderingConfiguration(settings, id)), Encoding.UTF8.GetBytes(salt), FingerprintIterations)))).Value;
+    }
 
     private static string CaptureRenderingConfiguration(OfficeBatchOptions settings, string routeId) {
         OfficeConversionOptions options = settings.ConversionOptions.ForRoute(routeId);

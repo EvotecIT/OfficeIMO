@@ -78,8 +78,8 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet data = document.AddSheet("Data");
             ExcelSheet summary = document.AddSheet("Summary");
-            summary.CellValue(1, 1, "Value");
-            summary.CellValue(2, 1, 1);
+            summary.Cell(1, 1).SetValue("Value");
+            summary.Cell(2, 1).SetValue(1);
             summary.AddTable(
                 "A1:A2",
                 hasHeader: true,
@@ -90,7 +90,7 @@ namespace OfficeIMO.Tests {
             TableColumn tableColumn = Assert.Single(table.TableColumns!.Elements<TableColumn>());
             tableColumn.CalculatedColumnFormula = new CalculatedColumnFormula("Data!A5");
 
-            summary.CellValue(2, 2, 1);
+            summary.Cell(2, 2).SetValue(1);
             summary.AddSparklines("A2:B2", "C2");
             X14.Sparkline sparkline = Assert.Single(
                 summary.WorksheetPart.Worksheet.Descendants<X14.Sparkline>());
@@ -139,8 +139,8 @@ namespace OfficeIMO.Tests {
 
             Assert.False(document.HasUnmaterializedDirectDataSetRows);
             Assert.True(plan.IsApplied);
-            Assert.Equal("Name", sheet.CellAt(1, 1).GetValue<string>());
-            Assert.Equal("North", sheet.CellAt(3, 1).GetValue<string>());
+            Assert.Equal("Name", sheet.Cell(1, 1).GetValue<string>());
+            Assert.Equal("North", sheet.Cell(3, 1).GetValue<string>());
         }
 
         private static DataTable CreateDataTable() {

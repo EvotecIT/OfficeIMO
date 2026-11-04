@@ -443,7 +443,7 @@ namespace OfficeIMO.Tests {
         private static void CreateDocumentWithDefaultHeaderForReviewWave(string path, string text) {
             using WordDocument doc = WordDocument.Create(path);
             doc.AddParagraph("Body");
-            doc.HeaderDefaultOrCreate.AddParagraph(text);
+            doc.PageSetup.Header.AddParagraph(text);
             doc.Save();
         }
 

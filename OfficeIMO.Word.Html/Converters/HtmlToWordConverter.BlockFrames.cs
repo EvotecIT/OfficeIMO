@@ -273,8 +273,8 @@ namespace OfficeIMO.Word.Html {
             ParseElementBlockFrameStyles(element, out string? background, out var sideBorders);
             foreach (WordTableRow row in rows) {
                 foreach (WordTableCell cell in row.Cells) {
-                    if (!string.IsNullOrEmpty(background) && string.IsNullOrEmpty(cell.ShadingFillColorHex)) {
-                        cell.ShadingFillColorHex = background!;
+                    if (!string.IsNullOrEmpty(background) && string.IsNullOrEmpty(cell.ShadingFillValue)) {
+                        cell.ShadingFillValue = background!;
                     }
                 }
             }
@@ -320,22 +320,22 @@ namespace OfficeIMO.Word.Html {
                 case BlockBorderSide.Left:
                     cell.Borders.LeftStyle = value.Style.ToOfficeEnum();
                     cell.Borders.LeftSize = WordBorderLengths.FromSize(value.Size);
-                    cell.Borders.LeftColorHex = color;
+                    cell.Borders.LeftColorValue = color;
                     break;
                 case BlockBorderSide.Right:
                     cell.Borders.RightStyle = value.Style.ToOfficeEnum();
                     cell.Borders.RightSize = WordBorderLengths.FromSize(value.Size);
-                    cell.Borders.RightColorHex = color;
+                    cell.Borders.RightColorValue = color;
                     break;
                 case BlockBorderSide.Top:
                     cell.Borders.TopStyle = value.Style.ToOfficeEnum();
                     cell.Borders.TopSize = WordBorderLengths.FromSize(value.Size);
-                    cell.Borders.TopColorHex = color;
+                    cell.Borders.TopColorValue = color;
                     break;
                 case BlockBorderSide.Bottom:
                     cell.Borders.BottomStyle = value.Style.ToOfficeEnum();
                     cell.Borders.BottomSize = WordBorderLengths.FromSize(value.Size);
-                    cell.Borders.BottomColorHex = color;
+                    cell.Borders.BottomColorValue = color;
                     break;
             }
         }
@@ -393,8 +393,8 @@ namespace OfficeIMO.Word.Html {
 
             if (!string.IsNullOrEmpty(background)) {
                 foreach (WordParagraph paragraph in paragraphs) {
-                    if (string.IsNullOrEmpty(paragraph.ShadingFillColorHex)) {
-                        paragraph.ShadingFillColorHex = background!;
+                    if (string.IsNullOrEmpty(paragraph.ShadingFillValue)) {
+                        paragraph.ShadingFillValue = background!;
                     }
                 }
             }
@@ -754,22 +754,22 @@ namespace OfficeIMO.Word.Html {
                 case BlockBorderSide.Left:
                     paragraph.Borders.LeftStyle = value.Style.ToOfficeEnum();
                     paragraph.Borders.LeftSize = OfficeLength.Points(value.Size / 8D);
-                    paragraph.Borders.LeftColorHex = color;
+                    paragraph.Borders.LeftColorValue = color;
                     break;
                 case BlockBorderSide.Right:
                     paragraph.Borders.RightStyle = value.Style.ToOfficeEnum();
                     paragraph.Borders.RightSize = OfficeLength.Points(value.Size / 8D);
-                    paragraph.Borders.RightColorHex = color;
+                    paragraph.Borders.RightColorValue = color;
                     break;
                 case BlockBorderSide.Top:
                     paragraph.Borders.TopStyle = value.Style.ToOfficeEnum();
                     paragraph.Borders.TopSize = OfficeLength.Points(value.Size / 8D);
-                    paragraph.Borders.TopColorHex = color;
+                    paragraph.Borders.TopColorValue = color;
                     break;
                 case BlockBorderSide.Bottom:
                     paragraph.Borders.BottomStyle = value.Style.ToOfficeEnum();
                     paragraph.Borders.BottomSize = OfficeLength.Points(value.Size / 8D);
-                    paragraph.Borders.BottomColorHex = color;
+                    paragraph.Borders.BottomColorValue = color;
                     break;
             }
         }

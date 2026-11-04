@@ -91,7 +91,7 @@ internal static class PdfComplianceValidator {
     /// <summary>Prevents native save options from retaining identification that prohibits encryption.</summary>
     internal static void ValidateOutputEncryptionIdentification(PdfReadDocument document) {
         PdfXmpMetadataInfo? xmp = document.XmpMetadata;
-        PdfMetadata metadata = document.Metadata;
+        PdfDocumentProperties metadata = document.Metadata;
         if (xmp?.HasPdfAIdentification == true || xmp?.HasPdfXIdentification == true ||
             xmp?.HasElectronicInvoiceMetadata == true || !string.IsNullOrEmpty(metadata.PdfXVersion) ||
             !string.IsNullOrEmpty(metadata.PdfXConformance))

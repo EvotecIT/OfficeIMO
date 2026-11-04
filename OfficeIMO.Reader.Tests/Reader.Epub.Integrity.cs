@@ -12,7 +12,7 @@ public sealed class ReaderEpubIntegrityTests {
         byte[] package = Package(new[] { ("c", "chapter.xhtml", "application/xhtml+xml", "") },
             "<itemref idref='c'/><itemref idref='c'/>", new[] { ("chapter.xhtml", Xhtml("")) });
         ReaderChunk[] chunks = EpubReaderAdapter.Read(new MemoryStream(package), "empty.epub",
-            epubOptions: new EpubReadOptions { MaxTotalRawHtmlBytes = 1 }).Where(chunk => chunk.Location.SourceBlockKind == "chapter").ToArray();
+            epubOptions: new EpubLoadOptions { MaxTotalRawHtmlBytes = 1 }).Where(chunk => chunk.Location.SourceBlockKind == "chapter").ToArray();
         Assert.Equal(2, chunks.Length);
         Assert.Equal(new int?[] { 0, 1 }, chunks.Select(chunk => chunk.Location.SourceBlockIndex));
         Assert.Equal(2, chunks.Select(chunk => chunk.Id).Distinct().Count());
@@ -26,7 +26,7 @@ public sealed class ReaderEpubIntegrityTests {
         byte[] package = Package(new[] {
             ("a", "a.xhtml", "application/xhtml+xml", ""), ("b", "b.xhtml", "application/xhtml+xml", "") },
             "<itemref idref='a'/><itemref idref='b'/>", new[] { ("a.xhtml", Xhtml("<p>One</p>")), ("b.xhtml", Xhtml("<p>Two</p>")) });
-        var options = new EpubReadOptions {
+        var options = new EpubLoadOptions {
             MaxChapters = budget == "count" ? 1 : 500,
             MaxTotalTextCharacters = budget == "text" ? 3 : 1000
         };

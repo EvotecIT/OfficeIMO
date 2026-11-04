@@ -11,7 +11,7 @@ Creates native HTML-to-Markdown import and writer settings without converting or
 ## SYNTAX
 ### Default (Default)
 ```powershell
-New-OfficeHtmlMarkdownOptions [-BaseOptions <MarkdownHtmlImportOptions>] [-Portable] [-BaseUri <string>] [-IncludeDocumentChrome] [-PreserveScriptsAndStyles] [-DropUnsupportedBlocks] [-DropUnsupportedInlineHtml] [-MaxInputCharacters <Int32>] [-Base64ImageHandling <MarkdownHtmlBase64ImageHandling>] [-Base64ImageOutputDirectory <string>] [-ListingCardMetadataMode <MarkdownHtmlListingCardMetadataMode>] [-MaxTableExpandedColumns <Int32>] [-WriteOptions <MarkdownSaveOptions>] [-WriteProfile <OfficeMarkdownWriteProfile>] [-ImageRenderingMode <MarkdownImageRenderingMode>] [-LineEnding <OfficeLineEnding>] [-UnorderedListMarker <string>] [<CommonParameters>]
+New-OfficeHtmlMarkdownOptions [-BaseOptions <HtmlMarkdownExportOptions>] [-Portable] [-BaseUri <string>] [-IncludeDocumentChrome] [-PreserveScriptsAndStyles] [-DropUnsupportedBlocks] [-DropUnsupportedInlineHtml] [-MaxInputCharacters <Int32>] [-Base64ImageHandling <MarkdownHtmlBase64ImageHandling>] [-Base64ImageOutputDirectory <string>] [-ListingCardMetadataMode <MarkdownHtmlListingCardMetadataMode>] [-MaxTableExpandedColumns <Int32>] [-WriteOptions <MarkdownSaveOptions>] [-WriteProfile <OfficeMarkdownWriteProfile>] [-ImageRenderingMode <MarkdownImageRenderingMode>] [-LineEnding <OfficeLineEnding>] [-UnorderedListMarker <string>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -64,7 +64,7 @@ Accept wildcard characters: False
 Native settings to copy before applying explicit changes.
 
 ```yaml
-Type: MarkdownHtmlImportOptions
+Type: HtmlMarkdownExportOptions
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -309,7 +309,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `OfficeIMO.Markdown.Html.MarkdownHtmlImportOptions`
+- `OfficeIMO.Markdown.Html.HtmlMarkdownExportOptions`
 
 ## RELATED LINKS
 

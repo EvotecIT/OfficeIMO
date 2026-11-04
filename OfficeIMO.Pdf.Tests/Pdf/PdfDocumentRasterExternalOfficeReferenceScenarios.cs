@@ -387,8 +387,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             assets["Carlito-BoldItalic.ttf"]);
         var options = new PdfCore.PdfCreateOptions {
             DefaultFont = PdfCore.PdfStandardFont.Helvetica,
-            HeaderFont = PdfCore.PdfStandardFont.Helvetica,
-            FooterFont = PdfCore.PdfStandardFont.Helvetica,
+            PageSetup = { Header = { StandardFont = PdfCore.PdfStandardFont.Helvetica }, Footer = { StandardFont = PdfCore.PdfStandardFont.Helvetica } },
             TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers,
             TextShapingMode = PdfCore.PdfTextShapingMode.LatinLigatures
         };

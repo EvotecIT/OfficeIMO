@@ -21,14 +21,14 @@ namespace OfficeIMO.Tests {
             using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(
                 new MemoryStream(compound), new LegacyXlsImportOptions { ReportUnsupportedContent = false });
             Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == code);
-            Assert.Contains(result.FidelityDiagnostics, diagnostic =>
+            Assert.Contains(result.Diagnostics, diagnostic =>
                 diagnostic.Code == code && diagnostic.LossKind == OfficeConversionLossKind.Omission);
             Assert.True(result.HasLoss);
             Assert.True(result.HasDocument);
-            Assert.Throws<InvalidDataException>(() => result.RequireNoLoss());
-            Assert.Contains(result.Summary.FidelityDiagnostics, diagnostic =>
+            Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
+            Assert.Contains(result.Summary.Diagnostics, diagnostic =>
                 diagnostic.Code == code && diagnostic.LossKind == OfficeConversionLossKind.Omission);
-            Assert.Throws<InvalidDataException>(() => result.Summary.RequireNoLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => result.Summary.ThrowIfLoss());
             LegacyXlsCell cell = Assert.Single(Assert.Single(result.AdvancedWorkbook.Worksheets).Cells);
             Assert.Equal(string.Empty, cell.Value);
         }
@@ -44,13 +44,13 @@ namespace OfficeIMO.Tests {
                 new MemoryStream(compound), new LegacyXlsImportOptions { ReportUnsupportedContent = false });
             Assert.True(result.HasDocument);
             Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == code);
-            Assert.Contains(result.FidelityDiagnostics, diagnostic =>
+            Assert.Contains(result.Diagnostics, diagnostic =>
                 diagnostic.Code == code && diagnostic.LossKind == OfficeConversionLossKind.Omission);
-            Assert.Contains(result.Summary.FidelityDiagnostics, diagnostic =>
+            Assert.Contains(result.Summary.Diagnostics, diagnostic =>
                 diagnostic.Code == code && diagnostic.LossKind == OfficeConversionLossKind.Omission);
             Assert.Single(result.AdvancedWorkbook.Worksheets);
-            Assert.Throws<InvalidDataException>(() => result.RequireNoLoss());
-            Assert.Throws<InvalidDataException>(() => result.Summary.RequireNoLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => result.Summary.ThrowIfLoss());
         }
 
         [Fact]
@@ -61,10 +61,10 @@ namespace OfficeIMO.Tests {
             using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(
                 new MemoryStream(compound), new LegacyXlsImportOptions { ReportUnsupportedContent = false });
             Assert.True(result.HasDocument);
-            Assert.Contains(result.FidelityDiagnostics, diagnostic =>
+            Assert.Contains(result.Diagnostics, diagnostic =>
                 diagnostic.Code == "xls-biff-sheet-offset-invalid"
                 && diagnostic.LossKind == OfficeConversionLossKind.Omission);
-            Assert.Throws<InvalidDataException>(() => result.RequireNoLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
         }
 
         [Theory]
@@ -78,11 +78,11 @@ namespace OfficeIMO.Tests {
                 new MemoryStream(compound), new LegacyXlsImportOptions { ReportUnsupportedContent = false });
             Assert.True(result.HasDocument);
             Assert.Empty(result.AdvancedWorkbook.ExternalReferences);
-            Assert.Contains(result.FidelityDiagnostics, diagnostic =>
+            Assert.Contains(result.Diagnostics, diagnostic =>
                 diagnostic.Code == code && diagnostic.LossKind == OfficeConversionLossKind.Omission);
-            Assert.Contains(result.Summary.FidelityDiagnostics, diagnostic =>
+            Assert.Contains(result.Summary.Diagnostics, diagnostic =>
                 diagnostic.Code == code && diagnostic.LossKind == OfficeConversionLossKind.Omission);
-            Assert.Throws<InvalidDataException>(() => result.RequireNoLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
         }
 
         [Fact]

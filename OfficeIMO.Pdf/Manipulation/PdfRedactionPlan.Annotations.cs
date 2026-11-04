@@ -27,7 +27,7 @@ public sealed partial class PdfRedactionPlan {
                 annotations.Add(annotation);
                 if (!annotation.ObjectNumber.HasValue || annotation.Subtype == "Widget") continue;
                 if (!(annotation.HasReadableRectangle && IntersectsReviewedUnderlay(pageAreas, annotation.X1, annotation.Y1, annotation.Width, annotation.Height)) &&
-                    !PdfRedactionApplier.CarriesSearchedText(document.Objects, page.ObjectNumber, annotation, pageAreas)) continue;
+                    !PdfRedactionApplier.CarriesSearchedText(document.Objects, page.ObjectNumber, annotation, pageAreas, document.ReadOptions.Limits)) continue;
                 removed.Add(annotation.ObjectNumber.Value);
                 if (annotation.SourceDictionary?.Items.TryGetValue("Popup", out PdfObject? popup) == true && popup is PdfReference reference) removed.Add(reference.ObjectNumber);
             }
@@ -57,7 +57,7 @@ public sealed partial class PdfRedactionPlan {
             if (affectedFields.Count > 0 && annotation.SourceDictionary is PdfDictionary widget &&
                 affectedFields.Contains(PdfRedactionApplier.GetFieldName(document.Objects, widget))) continue;
             // Carrying the searched text takes it out of the kept set wherever it sits.
-            if (PdfRedactionApplier.CarriesSearchedText(document.Objects, page.ObjectNumber, annotation, pageAreas)) continue;
+            if (PdfRedactionApplier.CarriesSearchedText(document.Objects, page.ObjectNumber, annotation, pageAreas, document.ReadOptions.Limits)) continue;
 
             identity.Append("|A:");
             AppendIdentityString(identity, annotation.Subtype);

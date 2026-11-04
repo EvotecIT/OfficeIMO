@@ -39,11 +39,37 @@ new CsvDocument()
 | Need | Start with |
 |---|---|
 | Edit, transform, or save rows | `CsvDocument.Load(...)` or `new CsvDocument()` |
-| Read rows once with a forward-only cursor | `CsvDocument.OpenDataReader(...)` |
-| Read from the source incrementally with async I/O on .NET 8+ | `CsvDocument.OpenDataReaderAsync(...)` |
+| Read rows once with a forward-only cursor | `CsvDocument.OpenReader(...)` |
+| Read from the source incrementally with async I/O on .NET 8+ | `CsvDocument.OpenReaderAsync(...)` |
+
+`CsvLoadOptions` controls `Load`, `LoadAsync` and `Parse`. `CsvReaderOptions`
+controls forward-only readers and reader projection. Both use the same delimiter,
+header, culture, encoding and input-limit property names and defaults. Reader
+options also include `Schema`, `InferSchema`, `SchemaSampleRows` and
+`ParallelProcessing`. `OpenReader` accepts
+a file path, `Stream` or `TextReader` and returns `CsvDataReader`, which derives
+from `DbDataReader`. `OpenReaderAsync` accepts a path or stream and returns
+`Task<CsvDataReader>` on .NET 8 and later.
 
 For a memory-backed snapshot, use `LoadAsync(...)` followed by
-`CreateDataReader()`. The incremental reader avoids buffering the complete file.
+`CreateDataReader(options)`, which also returns `CsvDataReader`. The incremental
+reader avoids buffering the complete file. For decoded text, pass a text reader:
+
+```csharp
+using System.IO;
+using OfficeIMO.CSV;
+
+using var source = new StringReader("Id,Amount\n1,12.50\n");
+using CsvDataReader reader = CsvDocument.OpenReader(source,
+    new CsvReaderOptions { InferSchema = true });
+while (reader.Read()) {
+    Console.WriteLine(reader.GetDecimal(reader.GetOrdinal("Amount")));
+}
+```
+
+CSV schema inference uses `decimal` for decimal values. Use an explicit `Schema`
+to select other column types.
+
 Profiles, schema inference, explicit mapping, and parallel projection are optional
 settings on these paths, not separate document models.
 
@@ -132,7 +158,8 @@ document.EnsureInferredSchema()
 
 Use a profile to select explicit defaults, then edit the returned options for the
 file's dialect. Each call creates independent options; existing constructors and
-APIs retain their current defaults.
+APIs retain their current defaults. Use `CreateReaderOptions(profile)` for
+`OpenReader` and `CreateLoadOptions(profile)` for loaded documents.
 
 ```csharp
 CsvLoadOptions input = CsvProfiles.CreateLoadOptions(CsvProfile.Strict);
@@ -183,16 +210,18 @@ For a forward-only typed pipeline, project the existing `DbDataReader` surface.
 This avoids building a `CsvDocument` and keeps reader lifetime explicit:
 
 ```csharp
-using System.Data.Common;
+using OfficeIMO.Data;
 
-using DbDataReader reader = CsvDocument.OpenDataReader("people.csv");
+using CsvDataReader reader = CsvDocument.OpenReader("people.csv");
 foreach (Person person in reader.RowsAs<Person>()) {
     Process(person);
 }
 ```
 
-The same automatic and explicit `RowsAs<T>` mappings work on both a materialized
-`CsvDocument` and a forward-only reader. The caller owns and disposes the reader.
+Automatic, configured `RowMapper<T>` and factory mappings use the shared
+`OfficeIMO.Data` implementation on CSV and Excel readers and loaded documents.
+Loaded-document overloads accept format-specific `options` and a
+`cancellationToken`; the caller owns and disposes an explicitly opened reader.
 
 On .NET 8 and later, ordinary unquoted UTF-8 file and seekable-stream readers
 also support the optional `OfficeIMO.Data` borrowed-text capability:
@@ -200,7 +229,7 @@ also support the optional `OfficeIMO.Data` borrowed-text capability:
 ```csharp
 using OfficeIMO.Data;
 
-using var reader = CsvDocument.OpenDataReader("people.csv");
+using var reader = CsvDocument.OpenReader("people.csv");
 while (reader.Read()) {
     if (reader.TryGetUtf8Text(0, out ReadOnlySpan<byte> text)) {
         ProcessUtf8Name(text);
@@ -224,26 +253,24 @@ On .NET 8 and later, use `RowsAsAsync<T>()` when the reader should advance throu
 ```csharp
 using OfficeIMO.CSV;
 using OfficeIMO.Data;
-using System.Data.Common;
 
-await using DbDataReader reader = await CsvDocument.OpenDataReaderAsync(
-    "people.csv",
-    cancellationToken: cancellationToken);
+await using CsvDataReader reader = await CsvDocument.OpenReaderAsync(
+    "people.csv", cancellationToken: cancellationToken);
 
 await foreach (Person person in reader.RowsAsAsync<Person>(cancellationToken)) {
     await ProcessAsync(person, cancellationToken);
 }
 ```
 
-`OpenDataReaderAsync` opens an incremental reader owned by the caller. Each
+`OpenReaderAsync` opens an incremental reader owned by the caller. Each
 `ReadAsync` advances through the source without loading a whole-file snapshot.
 Automatic, explicit `RowMapper<T>`, and factory mapping all have async overloads.
 For direct field access:
 
 ```csharp
-await using DbDataReader reader = await CsvDocument.OpenDataReaderAsync(
+await using CsvDataReader reader = await CsvDocument.OpenReaderAsync(
     "people.csv",
-    loadOptions: new CsvLoadOptions { Delimiter = ',' },
+    options: new CsvReaderOptions { Delimiter = ',' },
     cancellationToken: cancellationToken);
 
 while (await reader.ReadAsync(cancellationToken)) {
@@ -253,7 +280,7 @@ while (await reader.ReadAsync(cancellationToken)) {
 
 Initialization reads the header or the first data record when headers are supplied
 or generated; schema inference additionally buffers at most
-`SchemaSampleSize` records and replays them during traversal. Temporary parsing
+`SchemaSampleRows` records and replays them during traversal. Temporary parsing
 memory follows the largest record, with fixed transport buffers. String interning
 can retain distinct field values. `DetectDelimiter` samples at most 64 Ki characters
 and 64 logical records, then replays the sampled prefix. If the bound cuts through
@@ -367,14 +394,27 @@ explicit throughput-versus-working-set tradeoff:
 
 ```csharp
 using OfficeIMO.Data;
-using System.Data.Common;
 
-using DbDataReader reader = CsvDocument.OpenDataReader("people.csv");
+using CsvDataReader reader = CsvDocument.OpenReader("people.csv");
 Person[] people = reader.RowsAsParallel<Person>(
     new ParallelRowMappingOptions {
         MaxDegreeOfParallelism = 8
     },
     cancellationToken).ToArray();
+```
+
+Loaded documents expose the same parallel mapping shapes, with separate
+`parallelOptions`, CSV `options` and cancellation:
+
+```csharp
+using OfficeIMO.CSV;
+using OfficeIMO.Data;
+
+CsvDocument document = CsvDocument.Load("people.csv");
+Person[] people = document.RowsAsParallel<Person>(
+    parallelOptions: new ParallelRowMappingOptions { MaxDegreeOfParallelism = 8 },
+    options: new CsvReaderOptions { InferSchema = true },
+    cancellationToken: cancellationToken).ToArray();
 ```
 
 The automatic, explicit `RowMapper<T>`, and `Func<IDataRecord, T>` projection
@@ -414,7 +454,7 @@ Person[] people = CsvDocument.ReadTextRowsAsParallel<Person>(
 `CsvRecord`, and every span returned by it, is valid only during that factory
 call. Do not retain either one. Use `CsvRecord.IsMissing(ordinal)` when a short
 source row omitted a field and `CsvRecord.IsNull(ordinal)` to inspect a present
-field's null state. Without a schema, this identifies `CsvLoadOptions.NullValue`;
+field's null state. Without a schema, this identifies `CsvReaderOptions.NullValue`;
 schema converters and defaults follow the canonical reader's `IsDBNull` result.
 An omitted field is not also reported as null. The path falls back to correct
 sequential record access when selected CSV options or a record shape cannot use
@@ -520,21 +560,21 @@ On .NET 8 and later, explicit `DateOnly` and `TimeOnly` targets are supported by
 `AsTimeOnly()`. Default schema inference remains `DateTime`, so moving between
 target frameworks does not silently change a column's inferred type.
 
-Set `CsvLoadOptions.MappingErrorValuePolicy` to
+Set `CsvLoadOptions.MappingErrorValuePolicy` (or `CsvReaderOptions.MappingErrorValuePolicy` for a reader) to
 `DataMappingErrorValuePolicy.Redact` when schema and row-mapping failures must
 not include source values or custom-converter exception details. The default is
 `Include` for compatibility.
 
 ## Read once or edit
 
-Use `CsvDocument.OpenDataReader` when the caller only needs a forward-only
+Use `CsvDocument.OpenReader` when the caller only needs a forward-only
 ADO.NET reader. CSV parsing, delimiter handling, schema inference, limits, and
 stream ownership remain in `OfficeIMO.CSV`.
 
 ```csharp
 using OfficeIMO.CSV;
 
-using var reader = CsvDocument.OpenDataReader("large.csv");
+using var reader = CsvDocument.OpenReader("large.csv");
 while (reader.Read()) {
     int id = reader.GetInt32(reader.GetOrdinal("Id"));
     string status = reader.GetString(reader.GetOrdinal("Status"));
@@ -554,7 +594,7 @@ var transformed = CsvDocument.Load("large.csv")
 transformed.Save("ready.csv");
 ```
 
-The object returned by `CsvDocument.OpenDataReader` is an ADO.NET
+`CsvDocument.OpenReader` returns a `CsvDataReader` derived from ADO.NET's
 `DbDataReader`, so it also plugs directly into
 `DataTable.Load` and provider bulk-copy APIs. Enable inference when delimited
 text should expose typed columns:
@@ -564,13 +604,11 @@ using System.Data;
 using System.Globalization;
 using OfficeIMO.CSV;
 
-using var reader = CsvDocument.OpenDataReader(
-    "large.csv",
-    new CsvLoadOptions { Culture = CultureInfo.InvariantCulture },
-    new CsvDataReaderOptions {
-        InferSchema = true,
-        SchemaSampleSize = 1000
-    });
+using CsvDataReader reader = CsvDocument.OpenReader("large.csv", new CsvReaderOptions {
+    Culture = CultureInfo.InvariantCulture,
+    InferSchema = true,
+    SchemaSampleRows = 1000
+});
 
 var table = new DataTable();
 table.Load(reader);
@@ -591,15 +629,13 @@ var schema = new CsvSchemaBuilder()
     .Done()
     .Build();
 
-using var reader = CsvDocument.OpenDataReader(
-    "large.csv",
-    readerOptions: new CsvDataReaderOptions {
-        Schema = schema,
-        ParallelProcessing = new CsvDataReaderParallelOptions {
-            MaxDegreeOfParallelism = 4,
-            BatchSize = 4096
-        }
-    });
+using CsvDataReader reader = CsvDocument.OpenReader("large.csv", new CsvReaderOptions {
+    Schema = schema,
+    ParallelProcessing = new CsvDataReaderParallelOptions {
+        MaxDegreeOfParallelism = 4,
+        BatchSize = 4096
+    }
+});
 ```
 
 Parallel processing is opt-in and targets typed value conversion. String-only
@@ -610,8 +646,8 @@ hybrid CPUs. Custom schema converters may run concurrently in this mode and
 must be thread-safe; keep the reader sequential when a converter depends on
 mutable single-threaded state.
 
-`OpenDataReader` is the streaming forward-only entry point. On .NET 8 and later,
-`OpenDataReaderAsync` performs incremental asynchronous source I/O with
+`OpenReader` is the streaming forward-only entry point. On .NET 8 and later,
+`OpenReaderAsync` performs incremental asynchronous source I/O with
 explicit delimiters or bounded detection, and optional ordered parallel typed projection.
 Use `CsvDocument.Load` when an editable materialized document is required.
 `LoadAsync` materializes the document. `SaveAsync` formats and writes one record
@@ -703,7 +739,7 @@ Long-running import paths can opt into cancellation and progress reporting witho
 ```csharp
 using var cancellation = new CancellationTokenSource();
 
-using var reader = CsvDocument.OpenDataReader("large.csv", new CsvLoadOptions {
+using var reader = CsvDocument.OpenReader("large.csv", new CsvReaderOptions {
     CancellationToken = cancellation.Token,
     ProgressReportInterval = 10_000,
     ProgressCallback = progress =>

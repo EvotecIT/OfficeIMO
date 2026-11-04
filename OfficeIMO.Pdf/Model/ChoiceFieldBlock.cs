@@ -7,7 +7,7 @@ internal sealed class ChoiceFieldBlock : IPdfBlock {
     public IReadOnlyList<string> Values { get; }
     public double Width { get; }
     public double Height { get; }
-    public PdfAlign Align { get; }
+    public OfficeAlignment Align { get; }
     public double FontSize { get; }
     public double SpacingBefore { get; }
     public double SpacingAfter { get; }
@@ -15,16 +15,16 @@ internal sealed class ChoiceFieldBlock : IPdfBlock {
     public bool AllowsMultipleSelection { get; }
     public PdfFormFieldStyle Style { get; }
 
-    public ChoiceFieldBlock(string name, IEnumerable<string> options, string? value, double width, double height, PdfAlign align, double fontSize, double spacingBefore, double spacingAfter, bool isComboBox, PdfFormFieldStyle? style = null)
+    public ChoiceFieldBlock(string name, IEnumerable<string> options, string? value, double width, double height, OfficeAlignment align, double fontSize, double spacingBefore, double spacingAfter, bool isComboBox, PdfFormFieldStyle? style = null)
         : this(name, options, value is null ? null : new[] { value }, width, height, align, fontSize, spacingBefore, spacingAfter, isComboBox, allowsMultipleSelection: false, style) {
     }
 
-    public ChoiceFieldBlock(string name, IEnumerable<string> options, IEnumerable<string>? values, double width, double height, PdfAlign align, double fontSize, double spacingBefore, double spacingAfter, bool isComboBox, bool allowsMultipleSelection, PdfFormFieldStyle? style = null) {
+    public ChoiceFieldBlock(string name, IEnumerable<string> options, IEnumerable<string>? values, double width, double height, OfficeAlignment align, double fontSize, double spacingBefore, double spacingAfter, bool isComboBox, bool allowsMultipleSelection, PdfFormFieldStyle? style = null) {
         Guard.NotNullOrWhiteSpace(name, nameof(name));
         Guard.NotNull(options, nameof(options));
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
-        Guard.LeftCenterRightAlign(align, nameof(align), "Choice field");
+        align = Guard.LeftCenterRightAlign(align, nameof(align), "Choice field");
         Guard.Positive(fontSize, nameof(fontSize));
         Guard.NonNegative(spacingBefore, nameof(spacingBefore));
         Guard.NonNegative(spacingAfter, nameof(spacingAfter));

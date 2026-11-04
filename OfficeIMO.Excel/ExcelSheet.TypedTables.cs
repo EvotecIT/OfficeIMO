@@ -6,10 +6,11 @@ namespace OfficeIMO.Excel;
 
 public partial class ExcelSheet {
     /// <summary>Adds an editable native table from typed properties, fields, or string-keyed dictionary columns.</summary>
+    /// <remarks>Excel tables have no visible caption, so a non-null <see cref="OfficeTableOptions.Caption"/> throws <see cref="NotSupportedException"/>.</remarks>
     public ExcelTable AddTable<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(
         IEnumerable<T> rows, OfficeTableOptions? options = null, int row = 1, int column = 1) {
         ValidateTypedTableOrigin(row, column);
-        ObjectDataHelpers.ValidateTableAlignments(options);
+        ValidateTypedTableOptions(options);
         bool headers = options?.IncludeHeaders ?? true;
         var excelOptions = options as ExcelTableOptions;
         var projection = new ExcelObjectTableProjection(this, row, column, headers);
@@ -34,10 +35,11 @@ public partial class ExcelSheet {
     }
 
     /// <summary>Adds an editable native table from a data table, preserving its typed cell values.</summary>
+    /// <remarks>Excel tables have no visible caption, so a non-null <see cref="OfficeTableOptions.Caption"/> throws <see cref="NotSupportedException"/>.</remarks>
     public ExcelTable AddTable(DataTable data, OfficeTableOptions? options = null, int row = 1, int column = 1) {
         if (data == null) throw new ArgumentNullException(nameof(data));
         ValidateTypedTableOrigin(row, column);
-        ObjectDataHelpers.ValidateTableAlignments(options);
+        ValidateTypedTableOptions(options);
         bool headers = options?.IncludeHeaders ?? true;
         int count = checked(data.Rows.Count + (headers ? 1 : 0));
         if (count == 0 || data.Columns.Count == 0 || count > ExcelA1.MaxRows - row + 1)
@@ -57,6 +59,12 @@ public partial class ExcelSheet {
                 headers, options as ExcelTableOptions)));
         FinalizeTypedTable(table, options);
         return table;
+    }
+
+    private static void ValidateTypedTableOptions(OfficeTableOptions? options) {
+        ObjectDataHelpers.ValidateTableAlignments(options);
+        if (options?.Caption != null)
+            throw new NotSupportedException("Excel tables have no visible caption. Write the caption to a cell above the table, or use OfficeTableOptions.Name for the table name.");
     }
 
     private static void ValidateTypedTableOrigin(int row, int column) {

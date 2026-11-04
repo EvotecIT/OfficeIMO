@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests {
             AddFormulaName(document, "Guarded", "IFERROR(INDEX(Data!$A$1:$A$6,99),11)");
             AddFormulaName(document, "Textual", "CONCAT(\"Rate=\",Rate)");
             AddFormulaName(document, "Generated", "SEQUENCE(3,2)");
-            report.CellFormula(1, 1, formula);
+            report.Cell(1, 1).SetFormula(formula);
             Assert.Equal(1, document.Calculate());
             AssertFormulaCache(report, 1, 1, expected);
             Assert.True(Assert.Single(report.InspectFormulas().Formulas).IsSupportedByOfficeIMO, caseId);
@@ -39,10 +39,10 @@ namespace OfficeIMO.Tests {
             var data = CreateLookupModeSheet(document);
             var report = document.AddSheet("Report");
             AddFormulaName(document, "Total", "SUM(Data!$A$1:$A$6)");
-            report.CellFormula(1, 1, "Total*2");
+            report.Cell(1, 1).SetFormula("Total*2");
             Assert.Equal(1, document.Calculate());
             AssertFormulaCache(report, 1, 1, "340");
-            data.CellValue(6, 1, 60d);
+            data.Cell(6, 1).SetValue(60d);
             Assert.Equal(1, document.Calculate());
             AssertFormulaCache(report, 1, 1, "360");
             var name = Assert.Single(document.OpenXmlDocument.WorkbookPart!.Workbook.DefinedNames!.Elements<DefinedName>());
@@ -65,10 +65,10 @@ namespace OfficeIMO.Tests {
             var report = document.AddSheet("Report");
             document.SetNamedFormula("Total", "=0", save: false);
             document.SetNamedFormula("tOtAl", "=SUM(Data!$A$1:$A$6)*2", save: false);
-            Assert.Equal("SUM(Data!$A$1:$A$6)*2", document.GetNamedRange("TOTAL"));
+            Assert.Equal("SUM(Data!$A$1:$A$6)*2", document.GetNamedRangeText("TOTAL"));
             data.SetNamedFormula("Rate", "5", save: false, hidden: true);
             report.SetNamedFormula("Rate", "7", save: false);
-            report.CellFormula(1, 1, "Total+Rate+Data!Rate");
+            report.Cell(1, 1).SetFormula("Total+Rate+Data!Rate");
             Assert.Equal(1, document.Calculate());
             AssertFormulaCache(report, 1, 1, "352");
             using var saved = new MemoryStream();
@@ -85,13 +85,13 @@ namespace OfficeIMO.Tests {
         public void FormulaEvaluator_NameChangesInvalidateCachePreflightAndPersistDirtyState() {
             using var document = ExcelDocument.Create();
             var source = document.AddSheet("Data");
-            source.CellValue(1, 1, 3d);
-            source.CellValue(2, 1, 6d);
+            source.Cell(1, 1).SetValue(3d);
+            source.Cell(2, 1).SetValue(6d);
             var report = document.AddSheet("Report");
             document.SetNamedFormula("Rate", "1", save: false);
             document.SetNamedRange("Chosen", "Data!A1", save: false);
-            report.CellFormula(1, 1, "Rate*2");
-            report.CellFormula(1, 2, "Chosen");
+            report.Cell(1, 1).SetFormula("Rate*2");
+            report.Cell(1, 2).SetFormula("Chosen");
             Assert.Equal(2, document.Calculate());
             Assert.All(report.InspectFormulas().Formulas, formula => Assert.False(formula.IsDirty));
             Assert.True(document.InspectFeatures().Can(ExcelPreflightCapability.UseCachedFormulaValues));
@@ -123,21 +123,21 @@ namespace OfficeIMO.Tests {
         public void FormulaEvaluator_NamedArraySpillsRefreshTheirShape() {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, 2d);
+            sheet.Cell(1, 1).SetValue(2d);
             document.SetNamedFormula("Series", "SEQUENCE(Data!A1,2)", save: false);
-            sheet.CellFormula(1, 3, "SUM(Series)");
+            sheet.Cell(1, 3).SetFormula("SUM(Series)");
             sheet.SetDynamicArrayFormula("D1", "Series");
             Assert.Equal(2, document.Calculate());
             AssertFormulaCache(sheet, 1, 3, "10");
-            Assert.Equal(4d, sheet.CellAt(2, 5).GetValue().Value);
-            sheet.CellValue(1, 1, 3d);
+            Assert.Equal(4d, sheet.Cell(2, 5).GetValue().Value);
+            sheet.Cell(1, 1).SetValue(3d);
             Assert.Equal(2, document.Calculate());
             AssertFormulaCache(sheet, 1, 3, "21");
-            Assert.Equal(6d, sheet.CellAt(3, 5).GetValue().Value);
-            sheet.CellValue(1, 1, 1d);
+            Assert.Equal(6d, sheet.Cell(3, 5).GetValue().Value);
+            sheet.Cell(1, 1).SetValue(1d);
             Assert.Equal(2, document.Calculate());
             AssertFormulaCache(sheet, 1, 3, "3");
-            Assert.Null(sheet.CellAt(3, 5).GetValue().Value);
+            Assert.Null(sheet.Cell(3, 5).GetValue().Value);
         }
 
         [Fact]
@@ -146,9 +146,9 @@ namespace OfficeIMO.Tests {
             var sheet = document.AddSheet("Names");
             AddFormulaName(document, "CycleLeft", "CycleRight+1");
             AddFormulaName(document, "CycleRight", "CycleLeft+1");
-            sheet.CellValue(1, 1, 42d);
-            sheet.CellFormula(1, 1, "CycleLeft");
-            sheet.CellFormula(2, 1, "2+5");
+            sheet.Cell(1, 1).SetValue(42d);
+            sheet.Cell(1, 1).SetFormula("CycleLeft");
+            sheet.Cell(2, 1).SetFormula("2+5");
             Assert.Equal(1, document.Calculate());
             AssertFormulaCache(sheet, 1, 1, "42");
             AssertFormulaCache(sheet, 2, 1, "7");

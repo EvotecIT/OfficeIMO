@@ -14,19 +14,19 @@ namespace OfficeIMO.Tests {
         public void Xlsb_DirectTabularSave_WritesSupportedScalarValuesThroughPublicApi(bool sharedStrings) {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Text");
-            sheet.CellValue(1, 2, "Integer");
-            sheet.CellValue(1, 3, "Decimal");
-            sheet.CellValue(1, 4, "Boolean");
-            sheet.CellValue(2, 1, "Zażółć gęślą");
-            sheet.CellValue(2, 2, 42);
-            sheet.CellValue(2, 3, 12.5m);
-            sheet.CellValue(2, 4, true);
+            sheet.Cell(1, 1).SetValue("Text");
+            sheet.Cell(1, 2).SetValue("Integer");
+            sheet.Cell(1, 3).SetValue("Decimal");
+            sheet.Cell(1, 4).SetValue("Boolean");
+            sheet.Cell(2, 1).SetValue("Zażółć gęślą");
+            sheet.Cell(2, 2).SetValue(42);
+            sheet.Cell(2, 3).SetValue(12.5m);
+            sheet.Cell(2, 4).SetValue(true);
             for (int row = 3; row <= 256; row++) {
-                sheet.CellValue(row, 1, "Row " + row);
-                sheet.CellValue(row, 2, row);
-                sheet.CellValue(row, 3, row + 0.5m);
-                sheet.CellValue(row, 4, (row & 1) == 0);
+                sheet.Cell(row, 1).SetValue("Row " + row);
+                sheet.Cell(row, 2).SetValue(row);
+                sheet.Cell(row, 3).SetValue(row + 0.5m);
+                sheet.Cell(row, 4).SetValue((row & 1) == 0);
             }
 
             byte[] workbook = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb,  XlsbUseSharedStrings = sharedStrings });
@@ -90,8 +90,8 @@ namespace OfficeIMO.Tests {
             DateTime expected = new DateTime(2026, 8, 10, 14, 30, 0, DateTimeKind.Unspecified);
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "When");
-            sheet.CellValue(2, 1, expected);
+            sheet.Cell(1, 1).SetValue("When");
+            sheet.Cell(2, 1).SetValue(expected);
 
             byte[] workbook = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
 
@@ -106,8 +106,8 @@ namespace OfficeIMO.Tests {
             static ExcelDocument CreateDocument() {
                 ExcelDocument document = ExcelDocument.Create();
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Value");
-                for (int row = 2; row <= 256; row++) sheet.CellValue(row, 1, row - 1);
+                sheet.Cell(1, 1).SetValue("Value");
+                for (int row = 2; row <= 256; row++) sheet.Cell(row, 1).SetValue(row - 1);
                 return document;
             }
 
@@ -133,7 +133,7 @@ namespace OfficeIMO.Tests {
                 AssertWorkbookOpensViaExcelComWhenAvailable(
                     path,
                     "The directly generated XLSB workbook failed to open in desktop Excel.");
-                fileDocument.Sheets[0].CellValue(2, 1, 2);
+                fileDocument.Sheets[0].Cell(2, 1).SetValue(2);
                 fileDocument.Save();
                 AssertSingleValue(File.ReadAllBytes(path), 2);
             } finally {
@@ -145,8 +145,8 @@ namespace OfficeIMO.Tests {
         public async Task Xlsb_DirectTabularSave_HonorsPreCanceledAsyncStreamWrite() {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Value");
-            sheet.CellValue(2, 1, 1);
+            sheet.Cell(1, 1).SetValue("Value");
+            sheet.Cell(2, 1).SetValue(1);
             using var destination = new MemoryStream();
             using var cancellation = new CancellationTokenSource();
             cancellation.Cancel();

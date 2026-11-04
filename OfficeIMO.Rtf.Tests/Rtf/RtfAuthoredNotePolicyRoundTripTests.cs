@@ -22,7 +22,7 @@ public sealed class RtfAuthoredNotePolicyRoundTripTests {
                 break;
             case "empty-append":
                 source = RtfDocument.Create();
-                source.AppendDocument(original).Report.RequireNoLoss();
+                source.AppendDocument(original).Report.ThrowIfLoss();
                 break;
             default:
                 source = original;
@@ -32,10 +32,10 @@ public sealed class RtfAuthoredNotePolicyRoundTripTests {
         Assert.Empty(source.Notes);
 
         string saved = source.ToRtf();
-        RtfDocument reopened = RtfDocument.Read(saved).Document;
+        RtfDocument reopened = RtfDocument.ParseResult(saved).Document;
         RtfNote added = Assert.Single(reopened.Paragraphs).AddFootnote("1", "Added after save").Note!;
         Assert.Equal(RtfNoteKind.Footnote, added.Kind);
-        using WordDocument word = reopened.ToWordDocument();
+        using WordDocument word = reopened.ToWord();
         using var stream = new MemoryStream();
         word.Save(stream);
         stream.Position = 0;

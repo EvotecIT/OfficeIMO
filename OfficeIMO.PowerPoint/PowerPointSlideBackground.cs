@@ -30,7 +30,7 @@ namespace OfficeIMO.PowerPoint {
             string? color,
             byte[]? imageBytes,
             string? imageContentType,
-            PowerPointPictureCrop imageCrop,
+            PowerPointImageCrop imageCrop,
             string? gradientStartColor,
             string? gradientEndColor,
             double? gradientAngleDegrees,
@@ -91,18 +91,18 @@ namespace OfficeIMO.PowerPoint {
         public string? UnsupportedReason { get; }
 
         internal static PowerPointSlideBackground None() =>
-            new PowerPointSlideBackground(PowerPointSlideBackgroundKind.None, null, null, null, PowerPointPictureCrop.None, null, null, null, null);
+            new PowerPointSlideBackground(PowerPointSlideBackgroundKind.None, null, null, null, PowerPointImageCrop.None, null, null, null, null);
 
         internal static PowerPointSlideBackground SolidColor(string color) =>
-            new PowerPointSlideBackground(PowerPointSlideBackgroundKind.SolidColor, color, null, null, PowerPointPictureCrop.None, null, null, null, null);
+            new PowerPointSlideBackground(PowerPointSlideBackgroundKind.SolidColor, color, null, null, PowerPointImageCrop.None, null, null, null, null);
 
-        internal static PowerPointSlideBackground Image(byte[] imageBytes, string? contentType, PowerPointPictureCrop imageCrop = default) =>
-            new PowerPointSlideBackground(PowerPointSlideBackgroundKind.Image, null, imageBytes, contentType, imageCrop.Equals(default(PowerPointPictureCrop)) ? PowerPointPictureCrop.None : imageCrop, null, null, null, null);
+        internal static PowerPointSlideBackground Image(byte[] imageBytes, string? contentType, PowerPointImageCrop imageCrop = default) =>
+            new PowerPointSlideBackground(PowerPointSlideBackgroundKind.Image, null, imageBytes, contentType, imageCrop.Equals(default(PowerPointImageCrop)) ? PowerPointImageCrop.None : imageCrop, null, null, null, null);
 
         internal static PowerPointSlideBackground LinearGradient(string startColor, string endColor, double angleDegrees) =>
-            new PowerPointSlideBackground(PowerPointSlideBackgroundKind.LinearGradient, null, null, null, PowerPointPictureCrop.None, startColor, endColor, angleDegrees, null);
+            new PowerPointSlideBackground(PowerPointSlideBackgroundKind.LinearGradient, null, null, null, PowerPointImageCrop.None, startColor, endColor, angleDegrees, null);
 
         internal static PowerPointSlideBackground Unsupported(string reason) =>
-            new PowerPointSlideBackground(PowerPointSlideBackgroundKind.Unsupported, null, null, null, PowerPointPictureCrop.None, null, null, null, reason);
+            new PowerPointSlideBackground(PowerPointSlideBackgroundKind.Unsupported, null, null, null, PowerPointImageCrop.None, null, null, null, reason);
     }
 }

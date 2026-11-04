@@ -201,7 +201,7 @@ namespace OfficeIMO.Word.Html {
             return _options.AllowedStylesheetContentTypes.Contains(contentType!.Trim());
         }
 
-        private void ApplyClassStyle(IElement element, WordParagraph paragraph, WordHtmlImportOptions options) {
+        private void ApplyClassStyle(IElement element, WordParagraph paragraph, HtmlWordExportOptions options) {
             string? classAttr = element.GetAttribute("class");
             if (string.IsNullOrWhiteSpace(classAttr)) {
                 return;

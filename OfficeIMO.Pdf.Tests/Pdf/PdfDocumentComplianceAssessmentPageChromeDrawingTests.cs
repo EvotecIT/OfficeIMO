@@ -16,7 +16,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
             })
             .Header(header => header.Image(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(12), alternativeText: "Header logo"))
             .Footer(footer => footer.Image(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(12), alternativeText: "Footer logo"))
-            .Paragraph(paragraph => paragraph.Text("Header and footer image marked content."))
+            .Paragraph(paragraph => paragraph.AddText("Header and footer image marked content."))
             .ToBytes();
 
         string content = PdfTestContentText.ReadDecoded(pdf);
@@ -32,7 +32,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
             })
             .BackgroundImage(CreateMinimalRgbPng(), OfficeIMO.Drawing.OfficeImageFit.Stretch, opacity: 0.2)
             .ImageWatermark(CreateMinimalRgbPng(), 80, 40, opacity: 0.2)
-            .Paragraph(paragraph => paragraph.Text("Decorative image artifact marked content."))
+            .Paragraph(paragraph => paragraph.AddText("Decorative image artifact marked content."))
             .ToBytes();
 
         string content = PdfTestContentText.ReadDecoded(pdf);
@@ -49,7 +49,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
             .TaggedPdfCatalogMarkers()
             .Header(header => header.Image(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(12)))
             .Footer(footer => footer.Image(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(12)))
-            .Paragraph(paragraph => paragraph.Text("Header and footer decorative images."))
+            .Paragraph(paragraph => paragraph.AddText("Header and footer decorative images."))
             .ToBytes();
 
         string content = PdfTestContentText.ReadDecoded(pdf);
@@ -69,7 +69,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
             .ImageWatermark(CreateMinimalRgbPng(), 80, 40, opacity: 0.2)
             .Watermark("DRAFT", fontSize: 48, opacity: 0.18)
             .PageBorder(inset: 30, opacity: 0.4)
-            .Paragraph(paragraph => paragraph.Text("Decorative page chrome artifact marked content."))
+            .Paragraph(paragraph => paragraph.AddText("Decorative page chrome artifact marked content."))
             .ToBytes();
 
         string content = PdfTestContentText.ReadDecoded(pdf);
@@ -88,14 +88,14 @@ public partial class PdfDocumentComplianceAssessmentTests {
             })
             .TaggedPdfCatalogMarkers()
             .Header(header => {
-                if (contentStory) header.Content(content => content.Paragraph(paragraph => paragraph.Text("Running header")), global::OfficeIMO.OfficeLength.Points(24D));
+                if (contentStory) header.Content(content => content.AddParagraph(paragraph => paragraph.AddText("Running header")), global::OfficeIMO.OfficeLength.Points(24D));
                 else header.Text("Running header");
             })
             .Footer(footer => {
-                if (contentStory) footer.Content(content => content.Paragraph(paragraph => paragraph.Text("Running footer")), global::OfficeIMO.OfficeLength.Points(24D));
+                if (contentStory) footer.Content(content => content.AddParagraph(paragraph => paragraph.AddText("Running footer")), global::OfficeIMO.OfficeLength.Points(24D));
                 else footer.Text("Page {page} of {pages}");
             })
-            .Paragraph(paragraph => paragraph.Text("Body text remains structured."))
+            .Paragraph(paragraph => paragraph.AddText("Body text remains structured."))
             .ToBytes();
 
         string content = PdfTestContentText.ReadDecoded(pdf);
@@ -113,7 +113,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
             .TaggedPdfCatalogMarkers()
             .Header(header => header.Shape(CreateComplianceShape()))
             .Footer(footer => footer.Shape(CreateComplianceShape()))
-            .Paragraph(paragraph => paragraph.Text("Body text remains structured."))
+            .Paragraph(paragraph => paragraph.AddText("Body text remains structured."))
             .ToBytes();
 
         string content = Encoding.ASCII.GetString(pdf);
@@ -128,14 +128,14 @@ public partial class PdfDocumentComplianceAssessmentTests {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
-            .Paragraph(paragraph => paragraph.Text("Before top-level rule."))
+            .Paragraph(paragraph => paragraph.AddText("Before top-level rule."))
             .HR(thickness: 1.2, color: global::OfficeIMO.OfficeColor.FromRgb(148, 163, 184), spacingBefore: 2, spacingAfter: 2)
-            .Paragraph(paragraph => paragraph.Text("After top-level rule."))
+            .Paragraph(paragraph => paragraph.AddText("After top-level rule."))
             .Compose(document => document.Page(page => page.Content(content => content.Row(row => row
                 .PercentColumn(100, column => column
-                    .Paragraph(paragraph => paragraph.Text("Before row rule."))
+                    .AddParagraph(paragraph => paragraph.AddText("Before row rule."))
                     .HR(thickness: global::OfficeIMO.OfficeLength.Points(0.8), color: global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225), spacingBefore: global::OfficeIMO.OfficeLength.Points(2), spacingAfter: global::OfficeIMO.OfficeLength.Points(2))
-                    .Paragraph(paragraph => paragraph.Text("After row rule.")))))))
+                    .AddParagraph(paragraph => paragraph.AddText("After row rule.")))))))
             .ToBytes();
 
         string content = PdfTestContentText.ReadDecoded(pdf);
@@ -176,7 +176,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
-            .Panel(panel => panel.Paragraph(paragraph => paragraph.Text("Decorative panel chrome.")), panelStyle)
+            .Panel(panel => panel.AddParagraph(paragraph => paragraph.AddText("Decorative panel chrome.")), panelStyle)
             .Table(new[] {
                 new[] { "Name", "Status" },
                 new[] { "Alpha", "Ready" },

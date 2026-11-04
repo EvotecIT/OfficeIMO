@@ -25,10 +25,10 @@ public class HtmlOneNoteTableCaptions {
     public void EditableTableCaptionSurvivesOneNoteRoundTrip() {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(RegulatoryTableHtml);
 
-        HtmlToOneNoteSectionResult oneNoteResult = source.ToOneNoteSectionResult();
+        HtmlToOneNoteSectionResult oneNoteResult = source.ConvertToOneNoteSectionWithEvidence();
         OneNoteSection reopenedOneNote = OneNoteSectionReader.Read(
             new MemoryStream(OneNoteSectionWriter.Write(oneNoteResult.RequireValue())));
-        Assert.Contains(RegulatoryTableCaption, reopenedOneNote.ToHtmlDocument(), StringComparison.Ordinal);
+        Assert.Contains(RegulatoryTableCaption, reopenedOneNote.ConvertToHtmlWithEvidence().RequireValue(), StringComparison.Ordinal);
         Assert.Single(reopenedOneNote.Pages.SelectMany(page => page.Outlines)
             .SelectMany(outline => outline.Children).OfType<OneNoteTable>());
         Assert.Contains(reopenedOneNote.Pages.SelectMany(page => page.Outlines)

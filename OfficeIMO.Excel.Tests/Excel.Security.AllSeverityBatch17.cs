@@ -14,8 +14,8 @@ public partial class Excel {
         using var sourceStream = new MemoryStream();
         using (ExcelDocument source = ExcelDocument.Create(sourceStream)) {
             ExcelSheet data = source.AddSheet("Data");
-            data.CellValue(1, 1, 21);
-            data.CellFormula(1, 2, "TaxRate*2");
+            data.Cell(1, 1).SetValue(21);
+            data.Cell(1, 2).SetFormula("TaxRate*2");
             source.SetNamedRange("TaxRate", "A1", data, save: false);
             source.Save(sourceStream);
         }

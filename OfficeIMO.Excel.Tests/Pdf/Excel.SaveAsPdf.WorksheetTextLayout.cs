@@ -29,14 +29,14 @@ public partial class Excel {
     public void SaveAsPdf_LeftAlignedTextOverflowsIntoEmptyNeighbours() {
         using ExcelDocument spilled = ExcelDocument.Create();
         ExcelSheet sheet = spilled.AddSheet("Overflow");
-        sheet.Cell(1, 1, "Quarterly sales against target and plan");
-        sheet.Cell(1, 5, "Edge");
+        sheet.Cell(1, 1).SetValue("Quarterly sales against target and plan");
+        sheet.Cell(1, 5).SetValue("Edge");
         Assert.Empty(ConvertAndCollectClippedCells(spilled));
 
         using ExcelDocument blocked = ExcelDocument.Create();
         ExcelSheet blockedSheet = blocked.AddSheet("Blocked");
-        blockedSheet.Cell(1, 1, "Quarterly sales against target and plan");
-        blockedSheet.Cell(1, 2, "Next");
+        blockedSheet.Cell(1, 1).SetValue("Quarterly sales against target and plan");
+        blockedSheet.Cell(1, 2).SetValue("Next");
         // A neighbour with a value stops the overflow, as in Excel.
         Assert.Single(ConvertAndCollectClippedCells(blocked));
     }
@@ -45,12 +45,12 @@ public partial class Excel {
     public void SaveAsPdf_RightAndCentreAlignedTextOverflowTowardsEmptyNeighbours() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Overflow");
-        sheet.Cell(1, 1, "A1");
-        sheet.Cell(1, 4, "Right aligned label spills left");
-        sheet.CellAlign(1, 4, ExcelHorizontalAlignment.Right);
-        sheet.Cell(2, 3, "Centred label spills");
-        sheet.CellAlign(2, 3, ExcelHorizontalAlignment.Center);
-        sheet.Cell(2, 6, "F2");
+        sheet.Cell(1, 1).SetValue("A1");
+        sheet.Cell(1, 4).SetValue("Right aligned label spills left");
+        sheet.Cell(1, 4).SetHorizontalAlignment(ExcelHorizontalAlignment.Right);
+        sheet.Cell(2, 3).SetValue("Centred label spills");
+        sheet.Cell(2, 3).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
+        sheet.Cell(2, 6).SetValue("F2");
         Assert.Empty(ConvertAndCollectClippedCells(document));
 
         using PdfPigDocument pdf = OpenWorksheetPdf(document);
@@ -67,9 +67,9 @@ public partial class Excel {
     public void SaveAsPdf_WrappedAndNumericCellsDoNotOverflow() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("NoOverflow");
-        sheet.Cell(1, 1, 1234567890123.456);
-        sheet.Cell(2, 1, new DateTime(2026, 10, 27));
-        sheet.FormatCell(2, 1, "yyyy-mm-dd");
+        sheet.Cell(1, 1).SetValue(1234567890123.456);
+        sheet.Cell(2, 1).SetValue(new DateTime(2026, 10, 27));
+        sheet.Cell(2, 1).SetNumberFormat("yyyy-mm-dd");
         sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(6));
         using (PdfPigDocument pdf = OpenWorksheetPdf(document, CreateDeterministicFontOptions())) {
             string text = GetPageText(pdf.GetPage(1));
@@ -80,8 +80,8 @@ public partial class Excel {
 
         using ExcelDocument wrappedDocument = ExcelDocument.Create();
         ExcelSheet wrappedSheet = wrappedDocument.AddSheet("Wrapped");
-        wrappedSheet.Cell(1, 2, "Wrapped text stays inside its column");
-        wrappedSheet.CellWrapText(1, 2);
+        wrappedSheet.Cell(1, 2).SetValue("Wrapped text stays inside its column");
+        wrappedSheet.Cell(1, 2).SetWrapText();
         wrappedSheet.SetColumnWidth(2, ExcelColumnWidth.Characters(14));
         using PdfPigDocument wrappedPdf = OpenWorksheetPdf(wrappedDocument, CreateDeterministicFontOptions());
         var words = wrappedPdf.GetPage(1).GetWords().ToArray();
@@ -95,7 +95,7 @@ public partial class Excel {
     public void SaveAsPdf_GeneralNumbersRoundToElevenCharacters() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("General");
-        sheet.Cell(1, 1, Math.PI);
+        sheet.Cell(1, 1).SetValue(Math.PI);
         sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(20));
 
         using PdfPigDocument pdf = OpenWorksheetPdf(document);
@@ -107,9 +107,9 @@ public partial class Excel {
     public void SaveAsPdf_RowsWithoutStoredHeightGrowForLargeFonts() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Heights");
-        sheet.Cell(1, 1, "Title");
-        sheet.CellFontSize(1, 1, OfficeLength.Points(20));
-        sheet.Cell(2, 1, "Body");
+        sheet.Cell(1, 1).SetValue("Title");
+        sheet.Cell(1, 1).SetFontSize(OfficeLength.Points(20));
+        sheet.Cell(2, 1).SetValue("Body");
 
         using PdfPigDocument pdf = OpenWorksheetPdf(document);
         var words = pdf.GetPage(1).GetWords().ToArray();
@@ -125,10 +125,10 @@ public partial class Excel {
     public void SaveAsPdf_WrappedRowsWithoutStoredHeightGrowForEveryLine() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Wrap");
-        sheet.Cell(1, 1, "one two three four five six");
-        sheet.CellWrapText(1, 1);
+        sheet.Cell(1, 1).SetValue("one two three four five six");
+        sheet.Cell(1, 1).SetWrapText();
         sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(6));
-        sheet.Cell(2, 1, "after");
+        sheet.Cell(2, 1).SetValue("after");
 
         using PdfPigDocument pdf = OpenWorksheetPdf(document);
         string text = GetPageText(pdf.GetPage(1));
@@ -146,11 +146,11 @@ public partial class Excel {
     public void SaveAsPdf_MergedTitleExtendingBeyondValuesIsNotClipped() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Merged");
-        sheet.Cell(1, 1, "Quarterly sales against target");
-        sheet.CellFontSize(1, 1, OfficeLength.Points(16));
-        sheet.MergeRange("A1:F1");
-        sheet.Cell(2, 1, "Q1");
-        sheet.Cell(2, 2, 42);
+        sheet.Cell(1, 1).SetValue("Quarterly sales against target");
+        sheet.Cell(1, 1).SetFontSize(OfficeLength.Points(16));
+        sheet.Range("A1:F1").Merge();
+        sheet.Cell(2, 1).SetValue("Q1");
+        sheet.Cell(2, 2).SetValue(42);
 
         using PdfPigDocument pdf = OpenWorksheetPdf(document);
         Assert.Contains("Quarterly sales against target", GetPageText(pdf.GetPage(1)));
@@ -160,9 +160,9 @@ public partial class Excel {
     public void SaveAsPdf_UncachedFormulasShowCalculatedValues() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Formulas");
-        sheet.Cell(1, 1, 2D);
-        sheet.Cell(2, 1, 3D);
-        sheet.CellFormula(3, 1, "SUM(A1:A2)");
+        sheet.Cell(1, 1).SetValue(2D);
+        sheet.Cell(2, 1).SetValue(3D);
+        sheet.Cell(3, 1).SetFormula("SUM(A1:A2)");
         sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
 
         using PdfPigDocument pdf = OpenWorksheetPdf(document);
@@ -175,10 +175,10 @@ public partial class Excel {
     public void SaveAsPdf_CustomNumberFormatKeepsLeadingZeros() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Formats");
-        sheet.Cell(1, 1, 123D);
-        sheet.FormatCell(1, 1, "000000");
-        sheet.Cell(2, 1, 1234D);
-        sheet.FormatCell(2, 1, "#,##0000000");
+        sheet.Cell(1, 1).SetValue(123D);
+        sheet.Cell(1, 1).SetNumberFormat("000000");
+        sheet.Cell(2, 1).SetValue(1234D);
+        sheet.Cell(2, 1).SetNumberFormat("#,##0000000");
         sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(16));
 
         using PdfPigDocument pdf = OpenWorksheetPdf(document);

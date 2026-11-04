@@ -4,7 +4,7 @@ using OfficeIMO.Html;
 namespace OfficeIMO.PowerPoint.Html;
 
 /// <summary>PowerPoint HTML output and visual snapshot diagnostics from one conversion.</summary>
-public sealed class PowerPointToHtmlResult : HtmlConversionResult<string> {
+internal sealed class PowerPointToHtmlResult : HtmlConversionResult<string> {
     internal PowerPointToHtmlResult(
         string value,
         IEnumerable<OfficeImageExportDiagnostic> imageDiagnostics,
@@ -29,11 +29,13 @@ public sealed class PowerPointToHtmlResult : HtmlConversionResult<string> {
             OfficeImageExportDiagnosticSeverity.Warning => HtmlDiagnosticSeverity.Warning,
             _ => HtmlDiagnosticSeverity.Info
         };
-        OfficeConversionLossKind lossKind = diagnostic.Severity switch {
-            OfficeImageExportDiagnosticSeverity.Error => OfficeConversionLossKind.Failure,
-            OfficeImageExportDiagnosticSeverity.Warning => OfficeConversionLossKind.Approximation,
-            _ => OfficeConversionLossKind.None
-        };
+        OfficeConversionLossKind lossKind = diagnostic.LossKind != OfficeConversionLossKind.None
+            ? diagnostic.LossKind
+            : diagnostic.Severity switch {
+                OfficeImageExportDiagnosticSeverity.Error => OfficeConversionLossKind.Failure,
+                OfficeImageExportDiagnosticSeverity.Warning => OfficeConversionLossKind.Approximation,
+                _ => OfficeConversionLossKind.None
+            };
         return new HtmlDiagnostic(
             "OfficeIMO.PowerPoint.Html",
             diagnostic.Code,

@@ -95,7 +95,7 @@ public sealed class VisioNativeStyleReferencePreservationTests {
             + Pages(Shape("1", "LineStyle='7' FillStyle='8' TextStyle='6'") + Shape("2", "")
                 + Connector("3", "NameU='Dynamic connector'") + Connector("4", "TextStyle='6'")));
         VisioPage source = document.Pages[0];
-        source.AddShape("5", document.GetMaster("Native box"), 4, 4, 2, 1);
+        source.AddShape("5", document.GetMaster("Native box"), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, source.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, source.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, source.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, source.DefaultUnit)));
         document.DuplicatePage(source, "Copy");
         foreach (VisioDocument candidate in new[] { document, ReopenPackage(document), ReopenLegacy(document) }) {
             XDocument xml = Export(candidate);

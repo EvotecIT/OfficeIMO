@@ -17,11 +17,11 @@ namespace OfficeIMO.Examples.Word {
                 table.ColumnWidth = new List<WordTableWidth?> { WordTableWidth.Length(global::OfficeIMO.OfficeLength.Points(72)), WordTableWidth.Length(global::OfficeIMO.OfficeLength.Points(144)) };
                 var cell1 = table.Rows[0].Cells[0];
                 cell1.AddParagraph("Red");
-                cell1.ShadingFillColorHex = "ff0000";
+                cell1.ShadingFillColor = OfficeColor.Parse("ff0000");
 
                 var cell2 = table.Rows[0].Cells[1];
                 cell2.AddParagraph("Blue");
-                cell2.ShadingFillColorHex = "0000ff";
+                cell2.ShadingFillColor = OfficeColor.Parse("0000ff");
 
                 document.Save();
                 if (openWord) document.OpenInApplication();

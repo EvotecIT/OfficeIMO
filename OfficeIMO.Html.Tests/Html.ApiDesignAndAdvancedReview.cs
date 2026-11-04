@@ -17,34 +17,34 @@ public partial class Html {
     [Fact]
     public void OfficeHtmlExportOptions_UseSourceSpecificProfilesAndRejectCrossFormatCompatibilityValues() {
         Assert.Equal(ExcelHtmlExportProfile.SemanticTables,
-            ExcelHtmlSaveOptions.CreateSemanticTablesProfile().ExportProfile);
+            ExcelHtmlExportOptions.CreateSemanticTablesProfile().ExportProfile);
         Assert.Equal(ExcelHtmlExportProfile.VisualReview,
-            ExcelHtmlSaveOptions.CreateVisualReviewProfile().ExportProfile);
+            ExcelHtmlExportOptions.CreateVisualReviewProfile().ExportProfile);
         Assert.Equal(PowerPointHtmlExportProfile.SemanticSlides,
-            PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile().ExportProfile);
+            PowerPointHtmlExportOptions.CreateSemanticSlidesProfile().ExportProfile);
         Assert.Equal(PowerPointHtmlExportProfile.VisualReview,
-            PowerPointHtmlSaveOptions.CreateVisualReviewProfile().ExportProfile);
+            PowerPointHtmlExportOptions.CreateVisualReviewProfile().ExportProfile);
         Assert.Equal(WordHtmlExportProfile.PrintReview,
             WordHtmlExportOptions.CreatePrintReviewProfile().ExportProfile);
         Assert.Equal(RtfHtmlExportProfile.PrintReview,
-            RtfToHtmlOptions.CreatePrintReviewProfile().ExportProfile);
+            RtfHtmlExportOptions.CreatePrintReviewProfile().ExportProfile);
         Assert.Equal(HtmlConversionProfile.Semantic,
-            ExcelHtmlSaveOptions.CreateSemanticTablesProfile().SharedProfile);
+            ExcelHtmlExportOptions.CreateSemanticTablesProfile().SharedProfile);
         Assert.Equal(HtmlConversionProfile.PositionedReview,
-            PowerPointHtmlSaveOptions.CreateVisualReviewProfile().SharedProfile);
+            PowerPointHtmlExportOptions.CreateVisualReviewProfile().SharedProfile);
         Assert.Equal(HtmlConversionProfile.Document,
             WordHtmlExportOptions.CreateDocumentRoundTripProfile().SharedProfile);
         Assert.Equal(HtmlConversionProfile.HighFidelityPrint,
-            RtfToHtmlOptions.CreatePrintReviewProfile().SharedProfile);
+            RtfHtmlExportOptions.CreatePrintReviewProfile().SharedProfile);
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new ExcelHtmlSaveOptions().Profile = OfficeHtmlConversionProfile.WordPrintReview);
+            new ExcelHtmlExportOptions().Profile = OfficeHtmlConversionProfile.WordPrintReview);
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new PowerPointHtmlSaveOptions().Profile = OfficeHtmlConversionProfile.ExcelVisualReview);
+            new PowerPointHtmlExportOptions().Profile = OfficeHtmlConversionProfile.ExcelVisualReview);
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             new WordHtmlExportOptions().Profile = OfficeHtmlConversionProfile.PowerPointVisualReview);
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new RtfToHtmlOptions().Profile = OfficeHtmlConversionProfile.WordSemanticDocument);
+            new RtfHtmlExportOptions().Profile = OfficeHtmlConversionProfile.WordSemanticDocument);
     }
 
     [Fact]
@@ -134,7 +134,7 @@ public partial class Html {
 
     [Fact]
     public void DocumentOutputSettings_ComposeShellPolicyAndKeepCompatibilityAliasesSynchronized() {
-        var excel = ExcelHtmlSaveOptions.CreateVisualReviewProfile();
+        var excel = ExcelHtmlExportOptions.CreateVisualReviewProfile();
         excel.DocumentOutput.EmitDocumentShell = false;
         excel.DocumentOutput.Language = "pl-PL";
         excel.DocumentOutput.NewLine = "\r\n";
@@ -147,7 +147,7 @@ public partial class Html {
         Assert.True(excel.IncludeDefaultStyles);
         Assert.Equal(OfficeVisualThemeKind.Report, excel.Theme);
 
-        var rtf = RtfToHtmlOptions.CreateWebSafeProfile();
+        var rtf = RtfHtmlExportOptions.CreateWebSafeProfile();
         Assert.True(rtf.FragmentOnly);
         rtf.FragmentOnly = false;
         Assert.True(rtf.DocumentOutput.EmitDocumentShell);
@@ -175,8 +175,8 @@ public partial class Html {
             diagnostic.Code == "document-head-metadata-omitted-for-fragment");
 
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        workbook.AddSheet("Data").CellValue(1, 1, "Value");
-        ExcelHtmlSaveOptions excelOptions = ExcelHtmlSaveOptions.CreateSemanticTablesProfile();
+        workbook.AddSheet("Data").Cell(1, 1).SetValue("Value");
+        ExcelHtmlExportOptions excelOptions = ExcelHtmlExportOptions.CreateSemanticTablesProfile();
         excelOptions.Title = "Packed review";
         excelOptions.Language = "pl-PL";
         excelOptions.NewLine = "\r\n";
@@ -201,8 +201,8 @@ public partial class Html {
         Assert.Contains("class=\"officeimo-html officeimo-word-html customer-shell\"", word.ToHtml(wordOptions), StringComparison.Ordinal);
 
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        workbook.AddSheet("Data").CellValue(1, 1, "Excel");
-        ExcelHtmlSaveOptions excelOptions = ExcelHtmlSaveOptions.CreateSemanticTablesProfile();
+        workbook.AddSheet("Data").Cell(1, 1).SetValue("Excel");
+        ExcelHtmlExportOptions excelOptions = ExcelHtmlExportOptions.CreateSemanticTablesProfile();
         excelOptions.DocumentOutput.BodyClass = "customer-shell";
         Assert.Contains("<body class=\"officeimo-html officeimo-excel-html customer-shell\"", workbook.ToHtml(excelOptions), StringComparison.Ordinal);
 
@@ -210,7 +210,7 @@ public partial class Html {
         try {
             using PowerPointDocument presentation = PowerPointDocument.Create(presentationPath);
             presentation.AddSlide().AddTextBox("PowerPoint");
-            PowerPointHtmlSaveOptions powerPointOptions = PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile();
+            PowerPointHtmlExportOptions powerPointOptions = PowerPointHtmlExportOptions.CreateSemanticSlidesProfile();
             powerPointOptions.DocumentOutput.BodyClass = "customer-shell";
             Assert.Contains("<body class=\"officeimo-html officeimo-powerpoint-html customer-shell\"", presentation.ToHtml(powerPointOptions), StringComparison.Ordinal);
         } finally {
@@ -219,7 +219,7 @@ public partial class Html {
 
         RtfDocument rtf = RtfDocument.Create();
         rtf.AddParagraph("RTF");
-        RtfToHtmlOptions rtfOptions = RtfToHtmlOptions.CreatePrintReviewProfile();
+        RtfHtmlExportOptions rtfOptions = RtfHtmlExportOptions.CreatePrintReviewProfile();
         rtfOptions.DocumentOutput.BodyClass = "customer-shell";
         Assert.Contains("<body class=\"officeimo-html officeimo-rtf-html customer-shell\"", rtf.ToHtml(rtfOptions), StringComparison.Ordinal);
 
@@ -228,7 +228,7 @@ public partial class Html {
     [Fact]
     public void WordFieldReviewPolicy_PreservesStoredResultAndMakesInstructionsInertOptInMetadata() {
         using WordDocument document = WordDocument.Create();
-        document.BuiltinDocumentProperties.Creator = "Stored Author";
+        document.Properties.Creator = "Stored Author";
         document.AddParagraph("Author: ").AddField(WordFieldType.Author);
 
         HtmlTextConversionResult visible = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
@@ -252,7 +252,7 @@ public partial class Html {
             "iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABFSURBVEhLY1BNfv2flpgBXYDaeBhaILCzkSKMbt6oBRgY3bxRCzAwunmjFmBgdPNGLcDA6OaNWoCB0c3DsIDaeNQCghgAFxBXzP1LTe4AAAAASUVORK5CYII=");
         using var imageStream = new MemoryStream(pixels);
         WordParagraph paragraph = document.AddParagraph();
-        paragraph.AddImage(imageStream, "floating.png", OfficeIMO.OfficeLength.Pixels(48), OfficeIMO.OfficeLength.Pixels(36), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.Square, Description = "Floating marker" });
+        paragraph.AddImage(imageStream, "floating.png", OfficeIMO.OfficeLength.Pixels(48), OfficeIMO.OfficeLength.Pixels(36), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.Square, AltText = "Floating marker" });
         WordImage image = Assert.IsType<WordImage>(paragraph.Image);
         image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
         image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
@@ -278,10 +278,10 @@ public partial class Html {
     public void WordHtmlReview_ProjectsTrackedChangesAcrossStoriesWithoutMutatingSource() {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("Body ").AddInsertedText("new", "Reviewer").AddDeletedText("old", "Reviewer");
-        document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default)
+        document.Sections[0].PageSetup.Header
             .AddParagraph("Header ").AddInsertedText("new", "Reviewer").AddDeletedText("old", "Reviewer");
         string bodyXml = document._document.OuterXml;
-        string headerXml = document.Sections[0].Header.Default!._header!.OuterXml;
+        string headerXml = document.Sections[0].PageSetup.Header._header!.OuterXml;
 
         string finalHtml = document.ToHtml(new WordHtmlExportOptions {
             ExportHeadersAndFooters = true,
@@ -303,7 +303,7 @@ public partial class Html {
         Assert.Contains("<del", markupHtml, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("data-officeimo-review-policy=\"markup\"", markupHtml, StringComparison.Ordinal);
         Assert.Equal(bodyXml, document._document.OuterXml);
-        Assert.Equal(headerXml, document.Sections[0].Header.Default!._header!.OuterXml);
+        Assert.Equal(headerXml, document.Sections[0].PageSetup.Header._header!.OuterXml);
     }
 
     [Fact]
@@ -313,7 +313,7 @@ public partial class Html {
         body.AddField(WordFieldType.Author);
         body.AddInsertedText("body revision", "Reviewer");
         WordParagraph header = document.Sections[0]
-            .GetOrCreateHeader(WordHeaderFooterType.Default)
+            .PageSetup.Header
             .AddParagraph("PRIVATE HEADER ");
         header._paragraph.Append(new SimpleField(new Run(new Text("PRIVATE HEADER RESULT"))) {
             Instruction = "PRIVATE_HEADER_FIELD"
@@ -414,19 +414,19 @@ public partial class Html {
         try {
             using ExcelDocument document = ExcelDocument.Create(path);
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Region");
-            sheet.CellValue(1, 2, "Sales");
-            sheet.CellValue(2, 1, "East");
-            sheet.CellValue(2, 2, 10);
-            sheet.CellValue(3, 1, "West");
-            sheet.CellValue(3, 2, 12);
+            sheet.Cell(1, 1).SetValue("Region");
+            sheet.Cell(1, 2).SetValue("Sales");
+            sheet.Cell(2, 1).SetValue("East");
+            sheet.Cell(2, 2).SetValue(10);
+            sheet.Cell(3, 1).SetValue("West");
+            sheet.Cell(3, 2).SetValue(12);
             sheet.AddPivotTable("A1:B3", "D2", options: new ExcelPivotTableOptions {
                 Name = "SalesPivot",
                 RowFields = new[] { "Region" },
                 DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Total Sales") }
             });
 
-            HtmlTextConversionResult result = document.ToHtmlResult(ExcelHtmlSaveOptions.CreateSemanticTablesProfile());
+            HtmlTextConversionResult result = document.ConvertToHtmlWithEvidence(ExcelHtmlExportOptions.CreateSemanticTablesProfile());
             string html = result.Value;
 
             Assert.Contains("data-officeimo-feature=\"pivot-table\"", html, StringComparison.Ordinal);
@@ -437,7 +437,7 @@ public partial class Html {
                 diagnostic.Code == HtmlConversionDiagnosticCodes.ExcelPivotReviewApproximated &&
                 diagnostic.LossKind == OfficeConversionLossKind.Approximation);
             Assert.True(result.HasLoss);
-            Assert.Throws<HtmlConversionException>(() => result.RequireNoLoss());
+            Assert.Throws<HtmlConversionException>(() => result.Report.ThrowIfLoss());
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }
@@ -453,8 +453,7 @@ public partial class Html {
             PowerPointMedia media = slide.AddLinkedVideo(new Uri("https://example.test/review-video.mp4"));
             media.LuminanceBrightness = 15;
 
-            PowerPointToHtmlResult result = presentation.ToHtmlResult(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
-            string html = result.Value;
+            string html = presentation.ToHtml(PowerPointHtmlExportOptions.CreateSemanticSlidesProfile(), out OfficeConversionReport report);
 
             Assert.Contains("data-officeimo-feature=\"slide-master\"", html, StringComparison.Ordinal);
             Assert.Contains("data-officeimo-feature=\"smartart\"", html, StringComparison.Ordinal);
@@ -463,16 +462,16 @@ public partial class Html {
             Assert.Contains("data-officeimo-poster-frame=\"true\"", html, StringComparison.Ordinal);
             Assert.Contains("Audio and video are never executed", html, StringComparison.Ordinal);
             Assert.DoesNotContain("<script", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            Assert.Contains(report.Diagnostics, diagnostic =>
                 diagnostic.Code == HtmlConversionDiagnosticCodes.PowerPointMasterReviewApproximated);
-            Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            Assert.Contains(report.Diagnostics, diagnostic =>
                 diagnostic.Code == HtmlConversionDiagnosticCodes.PowerPointSmartArtReviewApproximated);
-            Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            Assert.Contains(report.Diagnostics, diagnostic =>
                 diagnostic.Code == HtmlConversionDiagnosticCodes.PowerPointMediaReviewApproximated);
-            Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            Assert.Contains(report.Diagnostics, diagnostic =>
                 diagnostic.Code == HtmlConversionDiagnosticCodes.PowerPointEffectReviewApproximated);
-            Assert.True(result.HasLoss);
-            Assert.Throws<HtmlConversionException>(() => result.RequireNoLoss());
+            Assert.True(report.HasLoss);
+            Assert.Throws<OfficeConversionException>(() => report.ThrowIfLoss());
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }

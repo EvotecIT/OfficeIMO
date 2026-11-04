@@ -14,7 +14,6 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Section 0");
-                document.AddHeadersAndFooters();
 
                 var section0 = document.Sections[0];
                 var section0Header = GetRequiredHeader(section0);

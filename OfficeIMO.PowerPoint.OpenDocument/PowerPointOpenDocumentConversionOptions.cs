@@ -18,4 +18,7 @@ public sealed class PowerPointOpenDocumentConversionOptions {
 
     /// <summary>Maximum columns allowed in a converted presentation table. Default: 256.</summary>
     public int MaxTableColumns { get; set; } = 256;
+
+    /// <summary>Creates a copy of these settings.</summary>
+    public PowerPointOpenDocumentConversionOptions Clone() => (PowerPointOpenDocumentConversionOptions)MemberwiseClone();
 }

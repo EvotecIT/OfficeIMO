@@ -22,10 +22,10 @@ namespace OfficeIMO.Tests
         {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Source");
-            sheet.CellValue(1, 1, "Key");
-            sheet.CellValue(1, 2, "Amount");
-            sheet.CellValue(2, 1, "A");
-            sheet.CellValue(2, 2, 1d);
+            sheet.Cell(1, 1).SetValue("Key");
+            sheet.Cell(1, 2).SetValue("Amount");
+            sheet.Cell(2, 1).SetValue("A");
+            sheet.Cell(2, 2).SetValue(1d);
             Assert.Throws<ArgumentException>(() => sheet.AddPivotTable("A1:B2", "D1", options: new ExcelPivotTableOptions { Name = "Pivot", RowFields = new[] { "Key" }, DataFields = new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Revenue"), new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Count, "revenue") } }));
             Assert.Empty(sheet.WorksheetPart.PivotTableParts);
         }
@@ -38,12 +38,12 @@ namespace OfficeIMO.Tests
         {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Source");
-            sheet.CellValue(1, 1, "Region");
-            sheet.CellValue(1, 2, "Channel");
-            sheet.CellValue(1, 3, "Sales");
-            sheet.CellValue(2, 1, "East");
-            sheet.CellValue(2, 2, "Retail");
-            sheet.CellValue(2, 3, 10d);
+            sheet.Cell(1, 1).SetValue("Region");
+            sheet.Cell(1, 2).SetValue("Channel");
+            sheet.Cell(1, 3).SetValue("Sales");
+            sheet.Cell(2, 1).SetValue("East");
+            sheet.Cell(2, 2).SetValue("Retail");
+            sheet.Cell(2, 3).SetValue(10d);
             var measures = new List<ExcelPivotDataField>
             {
                 new("Sales", ExcelPivotDataFunction.Sum, "Metric")
@@ -79,7 +79,7 @@ namespace OfficeIMO.Tests
                 for (int row = 1; row <= 9; row++)
                     for (int column = 1; column <= 4; column++)
                         if (source[row - 1, column - 1] != null)
-                            sheet.CellValue(row, column, source[row - 1, column - 1]);
+                            sheet.Cell(row, column).SetValue(source[row - 1, column - 1]);
                 sheet.AddPivotTable("A1:D9", "F1", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, ColumnFields = new[] { "Product" }, DataFields = new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Revenue"), new ExcelPivotDataField("Units", ExcelPivotDataFunction.Average, "AvgUnits"), new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Count, "Entries") }, Layout = ExcelPivotLayout.Tabular, DataOnRows = valuesOnRows });
                 Assert.True(Assert.Single(sheet.GetPivotTables()).HasValuesAxisField);
                 var result = sheet.MaterializePivotTable("SalesPivot");
@@ -123,7 +123,7 @@ namespace OfficeIMO.Tests
             var lookup = document.GetSheet("Lookups");
             lookup.ClearCachedFormulaResults();
             Assert.Equal(324, lookup.RecalculateSupportedFormulas());
-            for (int row = 1; row <= 324; row++) AssertPivotLookupOracleValue(expected[row - 1, 0], lookup.CellAt(row, 2).GetValue().Value);
+            for (int row = 1; row <= 324; row++) AssertPivotLookupOracleValue(expected[row - 1, 0], lookup.Cell(row, 2).GetValue().Value);
         }
 
         [Theory]
@@ -151,7 +151,7 @@ namespace OfficeIMO.Tests
                 lookup.ClearCachedFormulaResults();
                 Assert.Equal(324, lookup.RecalculateSupportedFormulas());
                 for (int index = 0; index < 27; index++)
-                    AssertPivotLookupOracleValue(expected[index, 0], lookup.CellAt(profile * 27 + index + 1, 2).GetValue().Value);
+                    AssertPivotLookupOracleValue(expected[index, 0], lookup.Cell(profile * 27 + index + 1, 2).GetValue().Value);
                 document.Save(output);
             }
             using var reopened = ExcelDocumentReader.Open(output);

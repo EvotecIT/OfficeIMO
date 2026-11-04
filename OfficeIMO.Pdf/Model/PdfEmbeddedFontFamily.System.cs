@@ -189,9 +189,14 @@ public sealed partial class PdfEmbeddedFontFamily {
             }
 
             byte[] fileData = PdfFontInput.ReadFile(path);
+            // Name tables already say which faces of a collection this family can use.
+            System.Predicate<int>? selectedFace = inspectedAllFaces && metadataFaces != null
+                ? index => index < metadataFaces.Count
+                    && GetMetadataFamilyMatchScore(metadataFaces[index], normalizedMetadataFamily) >= 0
+                : null;
             System.Collections.Generic.List<byte[]> fontPrograms = IsOpenTypeCffData(fileData)
                 ? new System.Collections.Generic.List<byte[]> { fileData }
-                : ExtractTrueTypeFontPrograms(fileData);
+                : ExtractTrueTypeFontPrograms(fileData, selectedFace);
             var found = new System.Collections.Generic.List<SystemFontFaceCandidate>();
             for (int i = 0; i < fontPrograms.Count; i++) {
                 if (TryReadSystemFontFace(path, fontPrograms[i], normalizedMetadataFamily, acceptedFileNamePrefixes, out SystemFontFaceCandidate? candidate) &&
@@ -218,9 +223,6 @@ public sealed partial class PdfEmbeddedFontFamily {
     private static bool TryReadSystemFontFace(string path, byte[] data, string normalizedMetadataFamily, string[] acceptedFileNamePrefixes, out SystemFontFaceCandidate? candidate) {
         candidate = null;
         try {
-            if (IsOpenTypeCffData(data))
-                _ = PdfFontProgramCache.GetOpenTypeCff(data, fontNameOverride: null);
-            else _ = PdfFontProgramCache.GetTrueType(data, fontNameOverride: null);
             if (TryReadTrueTypeNameMetadata(data, out TrueTypeNameMetadata? metadata, out bool nameTableAbsent) && metadata != null) {
                 int familyScore = GetMetadataFamilyMatchScore(metadata, normalizedMetadataFamily);
                 if (familyScore >= 0) {
@@ -258,8 +260,27 @@ public sealed partial class PdfEmbeddedFontFamily {
     }
 
     private static void SelectBetterFace(ref SystemFontFaceCandidate? current, SystemFontFaceCandidate candidate) {
-        if (current == null || candidate.Score > current.Score) {
+        if ((current == null || candidate.Score > current.Score) && HasUsableProgram(candidate.Data)) {
             current = candidate;
+        }
+    }
+
+    // Decoding a program is the expensive step, so it waits until a face would actually be used.
+    private static bool HasUsableProgram(byte[] data) {
+        try {
+            if (IsOpenTypeCffData(data)) _ = PdfFontProgramCache.GetOpenTypeCff(data, fontNameOverride: null);
+            else _ = PdfFontProgramCache.GetTrueType(data, fontNameOverride: null);
+            return true;
+        } catch (System.Exception exception) when (
+            exception is System.IO.IOException ||
+            exception is System.UnauthorizedAccessException ||
+            exception is System.NotSupportedException ||
+            exception is System.ArgumentException ||
+            exception is System.ArithmeticException ||
+            exception is System.FormatException ||
+            exception is System.IndexOutOfRangeException ||
+            exception is System.InvalidOperationException) {
+            return false;
         }
     }
 

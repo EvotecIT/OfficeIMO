@@ -36,7 +36,7 @@ namespace OfficeIMO.Excel {
             AddUnsupportedHeaderFooterImage(headerFooter.FooterRightImage, sheetName, "footer right", ref count, details);
         }
 
-        private static void AddUnsupportedHeaderFooterImage(ExcelSheet.ExcelHeaderFooterImageInfo? image, string sheetName, string location, ref int count, List<string> details) {
+        private static void AddUnsupportedHeaderFooterImage(ExcelHeaderFooterImageInfo? image, string sheetName, string location, ref int count, List<string> details) {
             if (image == null || IsPdfSupportedHeaderFooterImage(image, out string reason)) {
                 return;
             }
@@ -46,7 +46,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static void AddUnsupportedPrintArea(ExcelSheet sheet, string sheetName, ref int count, List<string> details) {
-            foreach (string area in sheet.GetPrintAreas()) {
+            foreach (string area in sheet.GetPrintAreaParts()) {
                 if (sheet.TryParsePrintAreaReference(area, out _)) continue;
                 count++;
                 details.Add($"{sheetName}: {area} is not a valid local print-area reference; PDF export rejects it instead of expanding the printed range.");
@@ -165,7 +165,7 @@ namespace OfficeIMO.Excel {
                 reason = $"target cell '{sheetName}!{normalizedCellReference}' is hidden or outside the selected print areas and titles.";
                 return false;
             }
-            if (targetSheet.GetPrintAreas().Count > 0) {
+            if (targetSheet.GetPrintAreaParts().Count > 0) {
                 reason = string.Empty;
                 return true;
             }
@@ -366,7 +366,7 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static bool IsPdfSupportedHeaderFooterImage(ExcelSheet.ExcelHeaderFooterImageInfo image, out string reason) {
+        private static bool IsPdfSupportedHeaderFooterImage(ExcelHeaderFooterImageInfo image, out string reason) {
             if (!IsPdfSupportedImageContentType(image.ContentType)) {
                 reason = $"content type '{image.ContentType}' is not supported by the first-party PDF image writer.";
                 return false;

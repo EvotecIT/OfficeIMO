@@ -111,7 +111,7 @@ public sealed class PdfInvoiceContainerTests {
             .AddFacturXInvoiceXml(Snapshot().ToXmlBytes(), relationship: PdfAssociatedFileRelationship.Alternative)
             .SetEmbeddedFileModificationDate("factur-x.xml", DateTimeOffset.UtcNow);
         PdfDocument document = PdfDocument.Create(options);
-        document.Content.Paragraph(p => p.Text("Invoice container regression"));
+        document.Content.AddParagraph(p => p.AddText("Invoice container regression"));
         foreach (PdfComplianceProfile profile in new[] { PdfComplianceProfile.FacturX, PdfComplianceProfile.Zugferd }) {
             PdfComplianceReadinessReport generated = document.AssessCompliance(profile);
             Assert.Contains(generated.MissingRequirements, requirement => requirement.Id == "pdfa-identification");
@@ -136,7 +136,7 @@ public sealed class PdfInvoiceContainerTests {
         options.RequireCompliance(PdfComplianceProfile.PdfA4F);
         InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => {
             PdfDocument strictDocument = PdfDocument.Create(options);
-            strictDocument.Content.Paragraph(p => p.Text("Strict invoice carrier regression"));
+            strictDocument.Content.AddParagraph(p => p.AddText("Strict invoice carrier regression"));
             strictDocument.ToBytes();
         });
         Assert.Contains("PDF/A-3a", error.Message);
@@ -152,7 +152,7 @@ public sealed class PdfInvoiceContainerTests {
         // letting its PDF 2.0 version be the only reason invoice proof fails.
         options.FileVersion = PdfFileVersion.Pdf17;
         PdfDocument document = PdfDocument.Create(options);
-        document.Content.Paragraph(p => p.Text("Invoice UA declaration regression"));
+        document.Content.AddParagraph(p => p.AddText("Invoice UA declaration regression"));
         byte[] pdf = document.ToBytes();
         PdfDocument saved = PdfDocument.Load(new System.IO.MemoryStream(pdf));
         foreach (PdfComplianceProfile profile in new[] { PdfComplianceProfile.FacturX, PdfComplianceProfile.Zugferd }) {

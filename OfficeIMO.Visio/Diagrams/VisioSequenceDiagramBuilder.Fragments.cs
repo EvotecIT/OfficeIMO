@@ -11,7 +11,7 @@ namespace OfficeIMO.Visio.Diagrams {
         private void AddFragments(VisioPage page, double firstMessageY) {
             foreach (FragmentItem fragment in _fragments.OrderBy(GetFragmentDepth).ThenBy(item => item.StartRowIndex).ThenByDescending(item => item.EndRowIndex).ThenBy(item => item.Id, StringComparer.Ordinal)) {
                 FragmentLayout layout = CalculateFragmentLayout(page, fragment, firstMessageY);
-                VisioShape frame = page.AddStencilShape(VisioStencils.Sequence, "seq.fragment", fragment.Id, layout.X, layout.Y, layout.Width, layout.Height, string.Empty);
+                VisioShape frame = page.AddStencilShapeInches(VisioStencils.Sequence, "seq.fragment", fragment.Id, layout.X, layout.Y, layout.Width, layout.Height, string.Empty);
                 frame.FillColor = OfficeColor.Transparent;
                 frame.FillPattern = 0;
                 frame.LineColor = _theme.ControlConnector.LineColor;
@@ -29,7 +29,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 frame.SetUserCell("OfficeIMO.SequenceFragmentOverlapLane", layout.OverlapLane.ToString(global::System.Globalization.CultureInfo.InvariantCulture), "STR", prompt: "OfficeIMO sequence fragment overlap lane");
                 page.AddToLayer(FragmentLayer, frame);
 
-                VisioShape label = page.AddTextBox(GetFragmentLabelId(fragment.Id), layout.LabelLeft + (layout.LabelWidth / 2D), layout.LabelY, layout.LabelWidth, FragmentHeaderHeight, fragment.Text, _unit);
+                VisioShape label = page.AddTextBoxInches(GetFragmentLabelId(fragment.Id), layout.LabelLeft + (layout.LabelWidth / 2D), layout.LabelY, layout.LabelWidth, FragmentHeaderHeight, fragment.Text, _unit);
                 label.FillColor = _theme.Container.FillColor;
                 label.FillPattern = 1;
                 label.LineColor = OfficeColor.Transparent;
@@ -52,7 +52,7 @@ namespace OfficeIMO.Visio.Diagrams {
             double left = participants.Min(participant => participant.PinX) - (_participantWidth / 2D) - FragmentHorizontalPadding;
             double right = participants.Max(participant => participant.PinX) + (_participantWidth / 2D) + FragmentHorizontalPadding;
             left = Math.Max(_leftMargin, left);
-            double pageWidth = page.Width.FromInches(_unit);
+            double pageWidth = page.WidthInches.FromInches(_unit);
             right = Math.Min(pageWidth - _rightMargin, right);
 
             double topY = firstMessageY - (fragment.StartRowIndex * _messageSpacing) + (_messageSpacing * 0.46D) + FragmentVerticalPadding;
@@ -162,7 +162,7 @@ namespace OfficeIMO.Visio.Diagrams {
             double labelWidth = Math.Max(0.72D, Math.Min(layout.Width - 0.16D, 0.42D + (operand.Text.Trim().Length * 0.055D)));
             double labelLeft = Math.Max(layout.Left + 0.12D, layout.FirstParticipantX + (ActivationWidth / 2D) + 0.12D);
             labelLeft = Math.Min(labelLeft, layout.Left + layout.Width - labelWidth - 0.04D);
-            VisioShape label = page.AddTextBox(GetFragmentOperandLabelId(operand.Id), labelLeft + (labelWidth / 2D), labelY, labelWidth, FragmentOperandLabelHeight, operand.Text, _unit);
+            VisioShape label = page.AddTextBoxInches(GetFragmentOperandLabelId(operand.Id), labelLeft + (labelWidth / 2D), labelY, labelWidth, FragmentOperandLabelHeight, operand.Text, _unit);
             label.FillColor = _theme.Container.FillColor;
             label.FillPattern = 1;
             label.LineColor = OfficeColor.Transparent;

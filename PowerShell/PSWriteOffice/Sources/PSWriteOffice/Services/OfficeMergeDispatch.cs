@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
-using System.Net;
 using System.Security;
 using OfficeIMO;
 using OfficeIMO.Excel;
@@ -49,7 +48,7 @@ internal static partial class OfficeMergeDispatch {
         }
     }
 
-    internal static void Execute(IReadOnlyList<string> paths, SecureString[]? passwords, OfficeMergeFamily family,
+    internal static void Execute(IReadOnlyList<string> paths, SecureString?[]? passwords, OfficeMergeFamily family,
         string extension, object options, object? document, string? output, bool noClobber) {
         var owned = new List<IDisposable>();
         Exception? operationFailure = null;
@@ -57,7 +56,7 @@ internal static partial class OfficeMergeDispatch {
             // Open every source before touching a caller-owned target. A later bad password/file cannot partially append earlier inputs.
             for (int index = 0; index < paths.Count; index++) {
                 SecureString? secure = passwords == null ? null : passwords[passwords.Length == 1 ? 0 : index];
-                string? password = secure == null ? null : new NetworkCredential(string.Empty, secure).Password;
+                string? password = secure.ToPlainText();
                 bool primary = document == null && index == 0;
                 IDisposable source = family switch {
                     OfficeMergeFamily.Word => WordDocument.Load(paths[index], new WordLoadOptions {

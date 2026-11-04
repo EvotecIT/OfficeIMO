@@ -19,18 +19,18 @@ public sealed class ExcelXlsbStructureEditingTests {
         using var document = encryptedSource ? ExcelDocument.LoadEncrypted(encrypted, "test-password") : ExcelDocument.Load(new MemoryStream(original));
         string removedName = document.Sheets[1].Name;
         string? removedCodeName = document.Sheets[1].WorksheetPart.Worksheet!.SheetProperties?.CodeName?.Value;
-        var retained = document.Sheets[0]; retained.Name = "Sales Łódź"; retained.CellValue(1, 1, 42D);
+        var retained = document.Sheets[0]; retained.Name = "Sales Łódź"; retained.Cell(1, 1).SetValue(42D);
         document.ReorderWorksheet(retained, document.WorkbookRoot.Sheets!.Elements<Sheet>().Count() - 1);
         document.RemoveWorksheet(removedName);
         var added = document.AddSheet("Added data");
-        added.CellValue(1, 1, "New worksheet host");
-        added.CellFormula(2, 1, "'Sales Łódź'!A1+1"); added.RecalculateSupportedFormulas();
+        added.Cell(1, 1).SetValue("New worksheet host");
+        added.Cell(2, 1).SetFormula("'Sales Łódź'!A1+1"); added.RecalculateSupportedFormulas();
         byte[] bytes = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
         using var loaded = ExcelDocument.Load(new MemoryStream(bytes));
         Assert.Equal(document.Sheets.Select(sheet => sheet.Name), loaded.Sheets.Select(sheet => sheet.Name));
         Assert.Equal(4, loaded.WorkbookPartRoot.ChartsheetParts.Count());
-        Assert.Equal(42D, loaded.GetSheet("Sales Łódź").CellAt(1, 1).GetValue<double>());
-        Assert.Equal(43D, loaded.GetSheet("Added data").CellAt(2, 1).GetValue<double>());
+        Assert.Equal(42D, loaded.GetSheet("Sales Łódź").Cell(1, 1).GetValue<double>());
+        Assert.Equal(43D, loaded.GetSheet("Added data").Cell(2, 1).GetValue<double>());
         string? addedCodeName = loaded.GetSheet("Added data").WorksheetPart.Worksheet!.SheetProperties?.CodeName?.Value;
         Assert.False(string.IsNullOrEmpty(addedCodeName));
         var beforeProject = seed.ReadVbaProject()!; var afterProject = loaded.ReadVbaProject()!;
@@ -47,15 +47,15 @@ public sealed class ExcelXlsbStructureEditingTests {
     [Fact]
     public void Removing_named_sheet_keeps_remaining_name_tokens_and_local_scopes_attached() {
         using var seed = ExcelDocument.Create();
-        var first = seed.AddSheet("First"); first.CellValue(1, 1, 10);
-        var second = seed.AddSheet("Second"); second.CellValue(1, 1, 20);
-        var third = seed.AddSheet("Third"); third.CellValue(1, 1, 30);
+        var first = seed.AddSheet("First"); first.Cell(1, 1).SetValue(10);
+        var second = seed.AddSheet("Second"); second.Cell(1, 1).SetValue(20);
+        var third = seed.AddSheet("Third"); third.Cell(1, 1).SetValue(30);
         seed.SetNamedRange("FirstLocal", "A1", first, save: false);
         seed.SetNamedRange("SecondLocal", "A1", second, save: false);
         seed.SetNamedRange("DeletedTarget", "'First'!A1", save: false);
         seed.SetNamedRange("GlobalThird", "'Third'!A1", save: false);
         using var editable = ExcelDocument.Load(new MemoryStream(seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb })));
-        editable.GetSheet("Third").CellFormula(2, 1, "GlobalThird+1"); editable.RecalculateSupportedFormulas();
+        editable.GetSheet("Third").Cell(2, 1).SetFormula("GlobalThird+1"); editable.RecalculateSupportedFormulas();
         using var document = ExcelDocument.Load(new MemoryStream(editable.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb })));
         document.ReorderWorksheet("Second", 0); document.RemoveWorksheet("First");
         byte[] bytes = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
@@ -64,10 +64,10 @@ public sealed class ExcelXlsbStructureEditingTests {
         Assert.DoesNotContain(loaded.WorkbookRoot.DefinedNames!.Elements<DefinedName>(), name => name.Name == "FirstLocal");
         Assert.Equal(0U, loaded.WorkbookRoot.DefinedNames.Elements<DefinedName>().Single(name => name.Name == "SecondLocal").LocalSheetId?.Value);
         Assert.Equal("GlobalThird+1", loaded.GetSheet("Third").WorksheetPart.Worksheet!.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A2").CellFormula?.Text);
-        Assert.Equal(31D, loaded.GetSheet("Third").CellAt(2, 1).GetValue<double>());
+        Assert.Equal(31D, loaded.GetSheet("Third").Cell(2, 1).GetValue<double>());
         Assert.Equal("#REF!", loaded.WorkbookRoot.DefinedNames.Elements<DefinedName>().Single(name => name.Name == "DeletedTarget").Text);
-        document.GetSheet("Third").CellValue(3, 1, "second save");
+        document.GetSheet("Third").Cell(3, 1).SetValue("second save");
         using var secondSave = ExcelDocument.Load(new MemoryStream(document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb })));
-        Assert.Equal("second save", secondSave.GetSheet("Third").CellAt(3, 1).GetValue<string>());
+        Assert.Equal("second save", secondSave.GetSheet("Third").Cell(3, 1).GetValue<string>());
     }
 }

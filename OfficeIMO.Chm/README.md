@@ -7,7 +7,7 @@ Read compiled HTML Help (`.chm`) in process on Windows, macOS, and Linux. `ChmDo
 ```csharp
 using OfficeIMO.Chm;
 
-ChmDocument book = ChmDocument.Load("manual.chm", new ChmReadOptions {
+ChmDocument book = ChmDocument.Load("manual.chm", new ChmLoadOptions {
     MaxInputBytes = 64L * 1024 * 1024,
     MaxExpandedBytes = 128L * 1024 * 1024
 });
@@ -31,9 +31,9 @@ Topics follow contents order, then unlisted HTML topics in ordinal path order. C
 | Package | Entry point | Result |
 | --- | --- | --- |
 | `OfficeIMO.Chm` | `ToHtmlDocumentResult()` | Linked canonical HTML book and fidelity report |
-| [OfficeIMO.Chm.Markdown](../OfficeIMO.Chm.Markdown/README.md) | `ToMarkdownResult()` | Linked Markdown book and fidelity report |
-| [OfficeIMO.Chm.Epub](../OfficeIMO.Chm.Epub/README.md) | `ToEpubBytesResult()` | Reflowable EPUB with contents and embedded resources |
-| [OfficeIMO.Chm.Pdf](../OfficeIMO.Chm.Pdf/README.md) | `ToPdfBytesResult()` | Independently rendered topic pages and combined fidelity evidence |
+| [OfficeIMO.Chm.Markdown](../OfficeIMO.Chm.Markdown/README.md) | `ToMarkdown()`, `SaveAsMarkdown()` | Linked Markdown book and fidelity report |
+| [OfficeIMO.Chm.Epub](../OfficeIMO.Chm.Epub/README.md) | `ToEpub()`, `SaveAsEpub()` | Reflowable EPUB with contents and embedded resources |
+| [OfficeIMO.Chm.Pdf](../OfficeIMO.Chm.Pdf/README.md) | `ToPdf()` / `SaveAsPdf()` | Independently rendered topic pages and combined fidelity evidence |
 | [OfficeIMO.Reader.Chm](../OfficeIMO.Reader.Chm/README.md) | `AddChmHandler()` | Reader chunks, tables, links, assets, hashes, and topic citations |
 
 ```csharp
@@ -42,11 +42,11 @@ ChmConversionResult<OfficeIMO.Html.HtmlConversionDocument> htmlBook =
         TopicPaths = new[] { "/introduction.html", "/installation.html" },
         MaxOutputBytes = 32L * 1024 * 1024
     });
-foreach (var finding in htmlBook.Report.FidelityDiagnostics)
+foreach (var finding in htmlBook.Report.Diagnostics)
     Console.WriteLine($"{finding.Code}: {finding.Message}");
 ```
 
-Topic selection retains book order and rejects unknown or non-topic paths. `RequireValue()` rejects conversion failure; `Report.RequireNoLoss()` additionally rejects reported approximations and omissions. Raw archive extraction and converted-document fidelity are separate contracts.
+Topic selection retains book order and rejects unknown or non-topic paths. `RequireValue()` rejects conversion failure; `Report.ThrowIfLoss()` additionally rejects reported approximations and omissions. Raw archive extraction and converted-document fidelity are separate contracts.
 
 ## Bounds and ownership
 

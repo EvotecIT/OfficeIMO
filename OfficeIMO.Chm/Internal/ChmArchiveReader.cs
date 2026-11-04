@@ -9,7 +9,7 @@ internal static class ChmArchiveReader {
         internal int Length;
     }
 
-    internal static ChmDocument Read(byte[] archive, ChmReadOptions options, CancellationToken token) {
+    internal static ChmDocument Read(byte[] archive, ChmLoadOptions options, CancellationToken token) {
         token.ThrowIfCancellationRequested();
         if (archive.LongLength > options.MaxInputBytes) throw ChmBinary.Error("INPUT_LIMIT", "The CHM archive exceeds MaxInputBytes.");
         ChmBinary.Range(archive, 0, 88);
@@ -48,7 +48,7 @@ internal static class ChmArchiveReader {
         return new ChmDocument(entries.AsReadOnly(), options, version, ChmBinary.U32(archive, 20), token);
     }
 
-    private static IReadOnlyList<DirectoryEntry> ReadDirectory(byte[] archive, int offset, int length, ChmReadOptions options, CancellationToken token) {
+    private static IReadOnlyList<DirectoryEntry> ReadDirectory(byte[] archive, int offset, int length, ChmLoadOptions options, CancellationToken token) {
         ChmBinary.Range(archive, offset, 84);
         if (length < 84 || !ChmBinary.Signature(archive, offset, "ITSP") || ChmBinary.U32(archive, offset + 4) != 1)
             throw ChmBinary.Error("DIRECTORY", "The CHM directory header is invalid or unsupported.");
@@ -102,7 +102,7 @@ internal static class ChmArchiveReader {
         return result;
     }
 
-    private static byte[] Decompress(Dictionary<string, ChmEntry> entries, ChmReadOptions options, CancellationToken token, out long logicalLength) {
+    private static byte[] Decompress(Dictionary<string, ChmEntry> entries, ChmLoadOptions options, CancellationToken token, out long logicalLength) {
         const string prefix = "::DataSpace/Storage/MSCompressed/";
         ChmEntry Require(string path) {
             if (!entries.TryGetValue(prefix + path, out ChmEntry? entry)) throw ChmBinary.Error("COMPRESSION_METADATA", "Required uncompressed LZX metadata is missing: " + path);

@@ -64,7 +64,7 @@ public class OpenDocumentPackageKernelTests {
     [Fact]
     public void NativePackageWriterProducesStableDeterministicBytes() {
         OdtDocument document = OdtDocument.Create();
-        document.Metadata.Title = "Deterministic package";
+        document.Properties.Title = "Deterministic package";
 
         byte[] first = document.ToBytes();
         byte[] second = document.ToBytes();
@@ -102,14 +102,14 @@ public class OpenDocumentPackageKernelTests {
         byte[] source = created.ToBytes();
 
         OdtDocument edited = OdtDocument.Load(new MemoryStream(source));
-        edited.Metadata.Title = "Updated";
+        edited.Properties.Title = "Updated";
         OdfSaveResult save = edited.Serialize();
         byte[] output = save.Value;
 
         Assert.Contains("content.xml", save.Report.CopiedEntries);
         Assert.Contains("meta.xml", save.Report.RewrittenEntries);
         OdtDocument reopened = OdtDocument.Load(new MemoryStream(output));
-        Assert.Equal("Updated", reopened.Metadata.Title);
+        Assert.Equal("Updated", reopened.Properties.Title);
         Assert.Equal(new byte[] { 1, 3, 5, 7 }, reopened.Package.GetRequiredEntry("Vendor/custom.bin").GetOriginalBytes());
         Assert.NotNull(reopened.GetXml("content.xml").Root!.Element(vendor + "extension"));
     }
@@ -138,14 +138,14 @@ public class OpenDocumentPackageKernelTests {
     [Fact]
     public void LoadSeekableStreamReadsCompletePackageAndRestoresPosition() {
         OdtDocument document = OdtDocument.Create();
-        document.Metadata.Title = "Position contract";
+        document.Properties.Title = "Position contract";
         using var stream = new MemoryStream(document.ToBytes());
         long originalPosition = stream.Length;
         stream.Position = originalPosition;
 
         OdtDocument loaded = OdtDocument.Load(stream);
 
-        Assert.Equal("Position contract", loaded.Metadata.Title);
+        Assert.Equal("Position contract", loaded.Properties.Title);
         Assert.Equal(originalPosition, stream.Position);
     }
 
@@ -193,7 +193,7 @@ public class OpenDocumentPackageKernelTests {
         OdtDocument document = OdtDocument.Create();
         using var destination = new MemoryStream();
         document.Save(destination);
-        document.Metadata.Title = "Changed";
+        document.Properties.Title = "Changed";
 
         OdfSaveResult firstSerialization = document.Serialize();
         Assert.Contains("meta.xml", firstSerialization.Report.RewrittenEntries);
@@ -212,7 +212,7 @@ public class OpenDocumentPackageKernelTests {
     public void FailedDestinationWriteDoesNotAcceptDirtyState() {
         OdtDocument document = OdtDocument.Create();
         document.Save(new MemoryStream());
-        document.Metadata.Title = "Pending";
+        document.Properties.Title = "Pending";
 
         Assert.Throws<IOException>(() => document.Save(new ThrowingWriteStream()));
         OdfSaveResult serialization = document.Serialize();
@@ -236,14 +236,13 @@ public class OpenDocumentPackageKernelTests {
     [Fact]
     public async Task SaveAsyncReturnsExactBytesAndOperationReport() {
         OdtDocument document = OdtDocument.Create();
-        document.Metadata.Title = "Async save result";
+        document.Properties.Title = "Async save result";
         using var destination = new MemoryStream();
 
         OdfSaveResult result = await document.SaveAsync(destination);
 
         Assert.Equal(result.Value, destination.ToArray());
-        Assert.Equal(result.Value, result.RequireNoLoss());
-        Assert.NotSame(result.Value, result.RequireNoLoss());
+        result.ThrowIfLoss();
         Assert.Contains("meta.xml", result.Report.RewrittenEntries);
     }
 
@@ -253,23 +252,23 @@ public class OpenDocumentPackageKernelTests {
         string copyPath = Path.Combine(Path.GetTempPath(), "OfficeIMO.OpenDocument.Copy." + Guid.NewGuid().ToString("N") + ".odt");
         try {
             OdtDocument source = OdtDocument.Create();
-            source.Metadata.Title = "Original";
+            source.Properties.Title = "Original";
             source.Save(sourcePath);
 
             OdtDocument loaded = await OdtDocument.LoadAsync(sourcePath);
-            loaded.Metadata.Title = "Copy";
+            loaded.Properties.Title = "Copy";
             await loaded.SaveCopyAsync(copyPath);
 
             Assert.Equal(Path.GetFullPath(sourcePath), loaded.FilePath);
-            Assert.Equal("Original", OdtDocument.Load(sourcePath).Metadata.Title);
-            Assert.Equal("Copy", OdtDocument.Load(copyPath).Metadata.Title);
+            Assert.Equal("Original", OdtDocument.Load(sourcePath).Properties.Title);
+            Assert.Equal("Copy", OdtDocument.Load(copyPath).Properties.Title);
 
             using var stream = new System.IO.MemoryStream(loaded.ToBytes());
             stream.Position = stream.Length;
             long originalPosition = stream.Position;
             OdtDocument streamLoaded = await OdtDocument.LoadAsync(stream);
             Assert.Equal(originalPosition, stream.Position);
-            Assert.Equal("Copy", streamLoaded.Metadata.Title);
+            Assert.Equal("Copy", streamLoaded.Properties.Title);
             stream.ReadByte();
         } finally {
             if (File.Exists(sourcePath)) File.Delete(sourcePath);

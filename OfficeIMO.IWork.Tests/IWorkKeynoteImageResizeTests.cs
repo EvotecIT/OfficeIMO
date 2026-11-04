@@ -33,7 +33,7 @@ public sealed class IWorkKeynoteImageResizeTests {
         string name = "keynote-preserved-resized" + (edited ? "-edited" : "") + "-v15.4.key";
         var source = IWorkSourceDocument.Open(Fixture(name)); var projection = source.ReadKeynote();
         Assert.Empty(projection.Diagnostics); Assert.Empty(projection.SourceDeclarationIssues); Assert.Empty(projection.SourceReferenceIssues);
-        using var conversion = source.ToPowerPointDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var conversion = source.ToPowerPointResult(new() { Mode = IWorkConversionMode.EditableOnly });
         conversion.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); conversion.Value.Save(output); output.Position = 0;
         using var saved = PowerPointDocument.Load(output);
@@ -51,7 +51,7 @@ public sealed class IWorkKeynoteImageResizeTests {
             Assert.Equal(index == 1 ? 180 : 168, image.Geometry.HeightPoints);
             Assert.Equal(original.Slides[index].Drawables.Select(drawable => drawable.Kind),
                 projection.Slides[index].Drawables.Select(drawable => drawable.Kind));
-            var picture = Assert.Single(saved.Slides[index].Pictures); var oracle = Assert.Single(native.Slides[index].Pictures);
+            var picture = Assert.Single(saved.Slides[index].Images); var oracle = Assert.Single(native.Slides[index].Images);
             Assert.Equal(image.GetBytes(), picture.GetImageBytes()); Assert.Equal(oracle.GetImageBytes(), picture.GetImageBytes());
             Assert.Equal(image.AccessibilityDescription, picture.AltText); Assert.Equal(oracle.AltText, picture.AltText);
             Assert.Equal(OfficeLength.Points(image.Geometry.LeftPoints), picture.Left); Assert.Equal(OfficeLength.Points(image.Geometry.TopPoints), picture.Top);

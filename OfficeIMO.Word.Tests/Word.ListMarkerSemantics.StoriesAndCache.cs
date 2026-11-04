@@ -10,7 +10,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     [Fact]
     public void NumberingCountersAreIndependentAcrossDocumentStories() {
         using WordDocument document = WordDocument.Create();
-        document.AddHeadersAndFooters();
+        _ = document.PageSetup.Header;
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
 
@@ -19,15 +19,15 @@ public sealed partial class WordListMarkerSemanticsTests {
         WordParagraph bodySecond = document.AddParagraph("Body second");
         AttachToList(bodySecond, list.NumberId);
 
-        WordParagraph headerFirst = document.Header!.Default!.AddParagraph("Header first");
+        WordParagraph headerFirst = document.PageSetup.Header.AddParagraph("Header first");
         AttachToList(headerFirst, list.NumberId);
-        WordParagraph headerSecond = document.Header.Default.AddParagraph("Header second");
+        WordParagraph headerSecond = document.PageSetup.Header.AddParagraph("Header second");
         AttachToList(headerSecond, list.NumberId);
-        WordParagraph firstPageHeader = document.HeaderFirstOrCreate.AddParagraph("First-page header");
+        WordParagraph firstPageHeader = document.PageSetup.FirstPageHeader.AddParagraph("First-page header");
         AttachToList(firstPageHeader, list.NumberId);
-        WordParagraph evenPageHeader = document.HeaderEvenOrCreate.AddParagraph("Even-page header");
+        WordParagraph evenPageHeader = document.PageSetup.EvenPageHeader.AddParagraph("Even-page header");
         AttachToList(evenPageHeader, list.NumberId);
-        WordParagraph footer = document.Footer!.Default!.AddParagraph("Footer item");
+        WordParagraph footer = document.PageSetup.Footer.AddParagraph("Footer item");
         AttachToList(footer, list.NumberId);
 
         var markers = WordDocumentTraversal.BuildListMarkers(document);
@@ -50,12 +50,11 @@ public sealed partial class WordListMarkerSemanticsTests {
     [Fact]
     public void PdfHeaderAndBodyListsEachStartAtOne() {
         using WordDocument document = WordDocument.Create();
-        document.AddHeadersAndFooters();
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
         WordParagraph body = document.AddParagraph("Body item");
         AttachToList(body, list.NumberId);
-        WordParagraph header = document.Header!.Default!.AddParagraph("Header item");
+        WordParagraph header = document.PageSetup.Header.AddParagraph("Header item");
         AttachToList(header, list.NumberId);
 
         string pdfText = PdfReadDocument.Open(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }), new PdfLoadOptions { IncludeArtifactText = true }).ExtractText();

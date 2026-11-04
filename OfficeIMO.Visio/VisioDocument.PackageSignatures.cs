@@ -5,20 +5,20 @@ namespace OfficeIMO.Visio;
 
 public partial class VisioDocument {
     /// <summary>Inspects a saved VSDX package through the shared dependency-light OPC signature engine.</summary>
-    public static OfficePackageSignatureInfo InspectPackageSignatures(
+    public static OfficePackageSignatureInfo InspectSignatures(
         string filePath,
         OfficePackageSignatureInspectionOptions? options = null) =>
         OfficePackageSignatureService.Inspect(filePath, options);
 
     /// <summary>Validates a saved VSDX package through an explicitly supplied security provider.</summary>
-    public static OfficePackageSignatureValidationReport ValidatePackageSignatures(
+    public static OfficePackageSignatureValidationReport ValidateSignatures(
         string filePath,
         IOfficeSecurityProvider securityProvider,
         OfficePackageSignatureValidationOptions? options = null) =>
         OfficePackageSignatureService.Validate(filePath, securityProvider, options);
 
     /// <summary>Creates and validates an OPC signature in a saved VSDX package.</summary>
-    public static OfficePackageSigningResult SignPackageSignature(
+    public static OfficePackageSigningResult SignPackage(
         string filePath,
         IOfficeSecurityProvider securityProvider,
         X509Certificate2 signingCertificate,
@@ -26,7 +26,7 @@ public partial class VisioDocument {
         OfficePackageSignatureService.Sign(filePath, securityProvider, signingCertificate, options);
 
     /// <summary>Attempts OPC signature creation without throwing for an ordinary signing failure.</summary>
-    public static OfficePackageSigningResult TrySignPackageSignature(
+    public static OfficePackageSigningResult TrySignPackage(
         string filePath,
         IOfficeSecurityProvider securityProvider,
         X509Certificate2 signingCertificate,

@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(PowerPointFileFormat.Ppt, projected.SourceFormat);
             Assert.Contains(projected.Slides[0].TextBoxes,
                 textBox => textBox.Text == "Encrypted binary deck");
-            Assert.Single(projected.Slides[0].Pictures);
+            Assert.Single(projected.Slides[0].Images);
         }
 
         [Fact]
@@ -353,7 +353,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointDocument source =
                    PowerPointDocument.Create()) {
                 source.AddSlide().AddTextBox("Visible slide text");
-                source.BuiltinDocumentProperties.Title = title;
+                source.Properties.Title = title;
                 encryptedBytes = source.ToEncryptedBytes(password,
                     PowerPointFileFormat.Ppt);
             }
@@ -364,7 +364,7 @@ namespace OfficeIMO.Tests {
             using var input = new MemoryStream(encryptedBytes);
             using PowerPointDocument reopened =
                 PowerPointDocument.LoadEncrypted(input, password);
-            Assert.Equal(title, reopened.BuiltinDocumentProperties.Title);
+            Assert.Equal(title, reopened.Properties.Title);
         }
 
         [Fact]
@@ -375,7 +375,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointDocument source =
                    PowerPointDocument.Create()) {
                 source.AddSlide().AddTextBox("Encrypted slide text");
-                source.BuiltinDocumentProperties.Title = title;
+                source.Properties.Title = title;
                 encryptedBytes = source.ToEncryptedBytes(password,
                     PowerPointFileFormat.Ppt,
                     new PowerPointSaveOptions {
@@ -389,7 +389,7 @@ namespace OfficeIMO.Tests {
             using var input = new MemoryStream(encryptedBytes);
             using PowerPointDocument reopened =
                 PowerPointDocument.LoadEncrypted(input, password);
-            Assert.Equal(title, reopened.BuiltinDocumentProperties.Title);
+            Assert.Equal(title, reopened.Properties.Title);
         }
 
         [Fact]

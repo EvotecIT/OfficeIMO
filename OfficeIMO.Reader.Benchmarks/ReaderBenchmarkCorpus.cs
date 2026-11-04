@@ -119,15 +119,15 @@ internal static class ReaderBenchmarkCorpus {
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.Cell(1, 1, "Id");
-                sheet.Cell(1, 2, "Name");
-                sheet.Cell(1, 3, "Amount");
-                sheet.Cell(1, 4, "Active");
+                sheet.Cell(1, 1).SetValue("Id");
+                sheet.Cell(1, 2).SetValue("Name");
+                sheet.Cell(1, 3).SetValue("Amount");
+                sheet.Cell(1, 4).SetValue("Active");
                 for (int row = 2; row <= 2501; row++) {
-                    sheet.Cell(row, 1, row - 1);
-                    sheet.Cell(row, 2, "Item " + (row - 1));
-                    sheet.Cell(row, 3, (row - 1) * 1.25m);
-                    sheet.Cell(row, 4, row % 2 == 0);
+                    sheet.Cell(row, 1).SetValue(row - 1);
+                    sheet.Cell(row, 2).SetValue("Item " + (row - 1));
+                    sheet.Cell(row, 3).SetValue((row - 1) * 1.25m);
+                    sheet.Cell(row, 4).SetValue(row % 2 == 0);
                 }
                 document.Save();
             }
@@ -169,7 +169,7 @@ internal static class ReaderBenchmarkCorpus {
                 content.H1("Reader benchmark page " + page);
                 for (int paragraph = 1; paragraph <= 8; paragraph++) {
                     int currentParagraph = paragraph;
-                    content.Paragraph(value => value.Text(
+                    content.AddParagraph(value => value.AddText(
                         "Representative PDF paragraph " + currentParagraph + " with extraction, geometry, and diagnostic content."));
                 }
             }
@@ -180,12 +180,12 @@ internal static class ReaderBenchmarkCorpus {
     private static byte[] BuildVisio() {
         using var stream = new MemoryStream();
         VisioDocument document = VisioDocument.Create(stream);
-        VisioPage page = document.AddPage("Process").Size(16, 10);
+        VisioPage page = document.AddPage("Process").Size(OfficeLength.Inches(16), OfficeLength.Inches(10));
         VisioShape? previous = null;
         for (int index = 0; index < 40; index++) {
             double x = 1 + (index % 8) * 1.8;
             double y = 1 + (index / 8) * 1.7;
-            VisioShape shape = page.AddRectangle(x, y, 1.3, 0.7, "Step " + (index + 1));
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(x), OfficeLength.Inches(y), OfficeLength.Inches(1.3), OfficeLength.Inches(0.7), "Step " + (index + 1));
             if (previous != null) page.AddConnector(previous, shape, ConnectorKind.RightAngle);
             previous = shape;
         }

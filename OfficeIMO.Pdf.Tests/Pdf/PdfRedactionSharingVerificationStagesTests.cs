@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests.Pdf {
         [InlineData(false)]
         [InlineData(true)]
         public void SharingPreservesGeneratedOutputReadAllowancesThroughLineageChecks(bool tightContentBudgets) {
-            byte[] bytes = PdfDocument.Create(pdf => pdf.Content(content => content.Text("Retained source content")),
+            byte[] bytes = PdfDocument.Create(pdf => pdf.Content(content => content.AddParagraph("Retained source content")),
                 new PdfCreateOptions { CompressContentStreams = false }).ToBytes();
             PdfStream[] streams = PdfSyntax.ParseObjects(bytes).Map.Values
                 .Select(static item => item.Value).OfType<PdfStream>().ToArray();
@@ -100,7 +100,7 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         private static PdfDocument CreateSource() => PdfDocument.Create(document => document.Content(content => content
-            .Text("PRIVATE-MARKER").PageBreak().Text("PUBLIC-MARKER"))).Meta(author: "PRIVATE-MARKER");
+            .AddParagraph("PRIVATE-MARKER").PageBreak().AddParagraph("PUBLIC-MARKER"))).Meta(author: "PRIVATE-MARKER");
 
         private static PdfRedactionVerificationOptions CreateVerification(IPdfRedactionExternalValidator? validator = null) {
             PdfRedactionVerificationOptions result = new PdfRedactionVerificationOptions {

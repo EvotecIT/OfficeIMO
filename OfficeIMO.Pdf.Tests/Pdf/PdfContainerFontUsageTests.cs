@@ -13,9 +13,9 @@ public class PdfContainerFontUsageTests {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions())
             .EmbedStandardFont(PdfStandardFont.Helvetica, File.ReadAllBytes(fontPath), "Panel CFF")
             .Panel(content => content
-                .Paragraph(paragraph => paragraph.Text("PlainBox"))
-                .Paragraph(paragraph => paragraph.Text("BulletBox"))
-                .Paragraph(paragraph => paragraph.Text("UnmarkedBox")))
+                .AddParagraph(paragraph => paragraph.AddText("PlainBox"))
+                .AddParagraph(paragraph => paragraph.AddText("BulletBox"))
+                .AddParagraph(paragraph => paragraph.AddText("UnmarkedBox")))
             .ToBytes();
 
         string text = PdfReadDocument.Open(pdf).ExtractText();
@@ -38,18 +38,18 @@ public class PdfContainerFontUsageTests {
             : new PdfCreateOptions().UseFontFamily(family);
         byte[] pdf = PdfDocument.Create(options)
             .Panel(content => content
-                .Paragraph(paragraph => {
-                    if (namedFont) paragraph.FontFamily("Panel Font");
-                    paragraph.Text("PlainBox");
+                .AddParagraph(paragraph => {
+                    if (namedFont) { paragraph.RunDefaults.FontFamily = "Panel Font"; paragraph.RunDefaults.StandardFont = null; }
+                    paragraph.AddText("PlainBox");
                 })
                 .Panel(nested => nested
-                    .Paragraph(paragraph => {
-                        if (namedFont) paragraph.FontFamily("Panel Font");
-                        paragraph.Text("BulletBox");
+                    .AddParagraph(paragraph => {
+                        if (namedFont) { paragraph.RunDefaults.FontFamily = "Panel Font"; paragraph.RunDefaults.StandardFont = null; }
+                        paragraph.AddText("BulletBox");
                     })
-                    .Paragraph(paragraph => {
-                        if (namedFont) paragraph.FontFamily("Panel Font");
-                        paragraph.Text("UnmarkedBox");
+                    .AddParagraph(paragraph => {
+                        if (namedFont) { paragraph.RunDefaults.FontFamily = "Panel Font"; paragraph.RunDefaults.StandardFont = null; }
+                        paragraph.AddText("UnmarkedBox");
                     })))
             .ToBytes();
 

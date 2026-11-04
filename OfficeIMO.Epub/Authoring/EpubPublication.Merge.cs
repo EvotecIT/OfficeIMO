@@ -145,7 +145,7 @@ public sealed partial class EpubPublication {
         foreach (var entry in selectorStyles.Entries) entries.Add(entry.Key, entry.Value);
         long delta = entries.Values.Sum(value => value.LongLength) - _retainedBytes;
         EnsurePackageBudget(package, delta);
-        ValidatePublication(package, entries, new List<OfficeConversionFidelityDiagnostic>(), cancellationToken, changed: true);
+        ValidatePublication(package, entries, new List<OfficeDiagnostic>(), cancellationToken, changed: true);
         EnsurePackageBudget(package, delta);
         cancellationToken.ThrowIfCancellationRequested();
         foreach (var edit in packageEdits) edit.Attribute.Value = edit.Value;

@@ -40,7 +40,7 @@ public partial class Html {
             </main>
             """;
 
-        HtmlToExcelResult untrusted = HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
+        HtmlToExcelResult untrusted = HtmlConversionDocument.Parse(html).ConvertToExcelWithEvidence();
         using OfficeIMO.Excel.ExcelDocument publicSafe = untrusted.RequireValue();
         Assert.Contains(untrusted.Report.Diagnostics,
             diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.SemanticRestorationTrustRequired
@@ -49,7 +49,7 @@ public partial class Html {
         HtmlConversionDocument trustedSource = HtmlConversionDocument.Parse(
             html,
             HtmlConversionDocumentOptions.CreateTrustedProfile());
-        using OfficeIMO.Excel.ExcelDocument trusted = trustedSource.ToExcelDocumentResult().RequireValue();
+        using OfficeIMO.Excel.ExcelDocument trusted = trustedSource.ConvertToExcelWithEvidence().RequireValue();
         Assert.Equal("Data", Assert.Single(trusted.Sheets).Name);
     }
 
@@ -70,7 +70,7 @@ public partial class Html {
         Assert.False(envelope.IsSupported);
         Assert.False(envelope.CanRestoreTargetSpecific(HtmlInputTrust.Trusted));
 
-        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ConvertToExcelWithEvidence();
         Assert.False(result.Succeeded);
         Assert.Contains(result.Report.Diagnostics,
             diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.SemanticSchemaUnsupported

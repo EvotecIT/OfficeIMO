@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace OfficeIMO;
 
-internal sealed record OfficeBatchCheckpointPlan(string Schema, string ConfigurationSha256);
+internal sealed record OfficeBatchCheckpointPlan(string Schema, string ConfigurationSha256, string? FingerprintSalt);
 internal sealed record OfficeBatchReceipt(string Schema, string ConfigurationSha256, string InputSha256,
     string? OutputSha256, OfficeBatchItemStatus Status, string Summary, OfficeBatchStoredDiagnostic[] Diagnostics, int DiagnosticCount,
     string? PendingStageId = null);

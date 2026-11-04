@@ -5,7 +5,7 @@ namespace OfficeIMO.Visio {
     /// <summary>
     /// Editing helpers for adding semantic callouts and annotation leader lines.
     /// </summary>
-    public static class VisioCalloutExtensions {
+    public static partial class VisioCalloutExtensions {
         /// <summary>
         /// Adds a callout near a target shape using an automatically assigned shape identifier.
         /// </summary>
@@ -15,7 +15,7 @@ namespace OfficeIMO.Visio {
         /// <param name="pinX">Callout pin X coordinate.</param>
         /// <param name="pinY">Callout pin Y coordinate.</param>
         /// <param name="options">Optional callout options.</param>
-        public static VisioShape AddCallout(this VisioPage page, VisioShape target, string text, double pinX, double pinY, VisioCalloutOptions? options = null) {
+        internal static VisioShape AddCalloutInches(this VisioPage page, VisioShape target, string text, double pinX, double pinY, VisioCalloutOptions? options = null) {
             if (page == null) {
                 throw new ArgumentNullException(nameof(page));
             }
@@ -27,7 +27,7 @@ namespace OfficeIMO.Visio {
             VisioCalloutOptions effectiveOptions = options ?? new VisioCalloutOptions();
             VisioCalloutOptions pageOptions = ConvertOptionsToPageUnits(effectiveOptions, page.DefaultUnit);
             EnsureTargetBelongsToPage(page, target);
-            VisioShape callout = page.AddRectangle(pinX, pinY, effectiveOptions.Width, effectiveOptions.Height, text, page.DefaultUnit);
+            VisioShape callout = page.AddRectangleInches(pinX, pinY, effectiveOptions.Width, effectiveOptions.Height, text, page.DefaultUnit);
             ConfigureCallout(page, target, callout, pageOptions);
             return callout;
         }
@@ -41,7 +41,7 @@ namespace OfficeIMO.Visio {
         /// <param name="placement">Side of the target where the callout should be placed.</param>
         /// <param name="gap">Distance between the target edge and callout edge, in page units.</param>
         /// <param name="options">Optional callout options.</param>
-        public static VisioShape AddCallout(this VisioPage page, VisioShape target, string text, VisioSide placement, double gap = 0.35D, VisioCalloutOptions? options = null) {
+        internal static VisioShape AddCalloutInches(this VisioPage page, VisioShape target, string text, VisioSide placement, double gap = 0.35D, VisioCalloutOptions? options = null) {
             if (page == null) {
                 throw new ArgumentNullException(nameof(page));
             }
@@ -66,7 +66,7 @@ namespace OfficeIMO.Visio {
         /// <param name="pinX">Callout pin X coordinate.</param>
         /// <param name="pinY">Callout pin Y coordinate.</param>
         /// <param name="options">Optional callout options.</param>
-        public static VisioShape AddCallout(this VisioPage page, VisioShape target, string id, string text, double pinX, double pinY, VisioCalloutOptions? options = null) {
+        internal static VisioShape AddCalloutInches(this VisioPage page, VisioShape target, string id, string text, double pinX, double pinY, VisioCalloutOptions? options = null) {
             if (page == null) {
                 throw new ArgumentNullException(nameof(page));
             }
@@ -105,7 +105,7 @@ namespace OfficeIMO.Visio {
         /// <param name="placement">Side of the target where the callout should be placed.</param>
         /// <param name="gap">Distance between the target edge and callout edge, in page units.</param>
         /// <param name="options">Optional callout options.</param>
-        public static VisioShape AddCallout(this VisioPage page, VisioShape target, string id, string text, VisioSide placement, double gap = 0.35D, VisioCalloutOptions? options = null) {
+        internal static VisioShape AddCalloutInches(this VisioPage page, VisioShape target, string id, string text, VisioSide placement, double gap = 0.35D, VisioCalloutOptions? options = null) {
             if (page == null) {
                 throw new ArgumentNullException(nameof(page));
             }
@@ -125,7 +125,7 @@ namespace OfficeIMO.Visio {
         }
 
         private static VisioShape AddCalloutInPageCoordinates(VisioPage page, VisioShape target, string text, double pinX, double pinY, VisioCalloutOptions options) {
-            VisioShape callout = page.AddRectangle(pinX, pinY, options.Width, options.Height, text, VisioMeasurementUnit.Inches);
+            VisioShape callout = page.AddRectangleInches(pinX, pinY, options.Width, options.Height, text, VisioMeasurementUnit.Inches);
             ConfigureCallout(page, target, callout, options);
             return callout;
         }
@@ -184,20 +184,20 @@ namespace OfficeIMO.Visio {
             }
 
             VisioSide effectivePlacement = placement == VisioSide.Auto ? VisioSide.Right : placement;
-            pinX = target.PinX;
-            pinY = target.PinY;
+            pinX = target.PinXInches;
+            pinY = target.PinYInches;
             switch (effectivePlacement) {
                 case VisioSide.Left:
-                    pinX = target.PinX - (target.Width / 2D) - gap - (options.Width / 2D);
+                    pinX = target.PinXInches - (target.WidthInches / 2D) - gap - (options.Width / 2D);
                     break;
                 case VisioSide.Right:
-                    pinX = target.PinX + (target.Width / 2D) + gap + (options.Width / 2D);
+                    pinX = target.PinXInches + (target.WidthInches / 2D) + gap + (options.Width / 2D);
                     break;
                 case VisioSide.Bottom:
-                    pinY = target.PinY - (target.Height / 2D) - gap - (options.Height / 2D);
+                    pinY = target.PinYInches - (target.HeightInches / 2D) - gap - (options.Height / 2D);
                     break;
                 case VisioSide.Top:
-                    pinY = target.PinY + (target.Height / 2D) + gap + (options.Height / 2D);
+                    pinY = target.PinYInches + (target.HeightInches / 2D) + gap + (options.Height / 2D);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(placement));
@@ -226,8 +226,8 @@ namespace OfficeIMO.Visio {
         }
 
         private static VisioSide ChooseSide(VisioShape target, VisioShape callout) {
-            double dx = callout.PinX - target.PinX;
-            double dy = callout.PinY - target.PinY;
+            double dx = callout.PinXInches - target.PinXInches;
+            double dy = callout.PinYInches - target.PinYInches;
             if (Math.Abs(dx) >= Math.Abs(dy)) {
                 return dx < 0 ? VisioSide.Left : VisioSide.Right;
             }

@@ -70,7 +70,7 @@ public partial class Word {
             foreach (WordTableCell cell in row.Cells) {
                 cell.Borders.TopStyle = cell.Borders.BottomStyle = cell.Borders.LeftStyle = cell.Borders.RightStyle = WordBorderStyle.Single;
                 cell.Borders.TopSize = cell.Borders.BottomSize = cell.Borders.LeftSize = cell.Borders.RightSize = global::OfficeIMO.OfficeLength.Points(0.5);
-                cell.Borders.TopColorHex = cell.Borders.BottomColorHex = cell.Borders.LeftColorHex = cell.Borders.RightColorHex = "000000";
+                cell.Borders.TopColor = cell.Borders.BottomColor = cell.Borders.LeftColor = cell.Borders.RightColor = OfficeColor.Parse("000000");
             }
         string raw = PdfOperatorSearchText.From(document.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Contains("1 0 0 RG", raw);
@@ -102,7 +102,7 @@ public partial class Word {
             foreach (WordTableCell cell in row.Cells) {
                 cell.Borders.TopStyle = cell.Borders.BottomStyle = cell.Borders.LeftStyle = cell.Borders.RightStyle = WordBorderStyle.Double;
                 cell.Borders.TopSize = cell.Borders.BottomSize = cell.Borders.LeftSize = cell.Borders.RightSize = global::OfficeIMO.OfficeLength.Points(1.5);
-                cell.Borders.TopColorHex = cell.Borders.BottomColorHex = cell.Borders.LeftColorHex = cell.Borders.RightColorHex = "000000";
+                cell.Borders.TopColor = cell.Borders.BottomColor = cell.Borders.LeftColor = cell.Borders.RightColor = OfficeColor.Parse("000000");
             }
         using PdfPigDocument after = PdfPigDocument.Open(document.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         double borderedX = after.GetPage(1).GetWords().Single(word => word.Text == "Frame0").Letters[0].StartBaseLine.X;
@@ -230,7 +230,7 @@ public partial class Word {
         } else table._tableProperties!.Append(shade);
         if (clear) table._tableProperties!.Append(new W.Shading { Val = W.ShadingPatternValues.Clear, Fill = "auto" });
         foreach (WordTableRow row in table.Rows)
-            foreach (WordTableCell cell in row.Cells) cell.ShadingFillColorHex = "FFFFFF";
+            foreach (WordTableCell cell in row.Cells) cell.ShadingFillColor = OfficeColor.Parse("FFFFFF");
         using WordDocument imported = WordDocument.Load(new MemoryStream(source.ToBytes()));
         string xml = imported._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
         byte[] bytes = imported.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });

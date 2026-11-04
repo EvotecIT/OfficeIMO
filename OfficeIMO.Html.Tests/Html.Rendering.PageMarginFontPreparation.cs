@@ -28,14 +28,14 @@ public sealed partial class HtmlRenderingTests {
         string html = PageMarginFontBudgetSource(referenced: false, attributeValue: false);
 
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(html),
-            new HtmlToPdfOptions { MaxLayoutOperations = 3_500, AllowSystemFontFallback = false });
+            new HtmlPdfExportOptions { MaxLayoutOperations = 3_500, AllowSystemFontFallback = false });
 
         Assert.Single(rendered.Pages);
         Assert.Equal("BODY", rendered.Text.Trim());
     }
 
     private static void AssertPageMarginFontBudget(string html) {
-        var options = new HtmlToPdfOptions { MaxLayoutOperations = 3_500, AllowSystemFontFallback = false };
+        var options = new HtmlPdfExportOptions { MaxLayoutOperations = 3_500, AllowSystemFontFallback = false };
         HtmlDomLimitException error = Assert.Throws<HtmlDomLimitException>(() =>
             HtmlRenderEngine.Render(HtmlConversionDocument.Parse(html), options));
 

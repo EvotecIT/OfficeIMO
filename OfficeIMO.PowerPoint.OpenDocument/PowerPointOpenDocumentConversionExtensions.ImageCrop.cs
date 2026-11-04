@@ -44,7 +44,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         return true;
     }
 
-    private static int ApplyOdpCrop(OdpImage source, OfficeImageInfo image, PowerPointPicture target) {
+    private static int ApplyOdpCrop(OdpImage source, OfficeImageInfo image, PowerPointImage target) {
         try {
             if (!source.Crop.HasValue) return 0;
             OfficeImageSourceCrop crop = OdfImageCropCodec.ToSourceFractions(source.Crop.Value, image);

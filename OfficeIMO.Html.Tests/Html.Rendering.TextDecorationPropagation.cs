@@ -93,7 +93,7 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("border:2px solid blue")]
     public void TextDecorationDescendantInlineEdgesRetainSpecificContinuityLoss(string declarations) {
         var scene = RenderDecorationFixture("<span style='text-decoration:underline 4px solid red;text-decoration-skip-ink:none'>Left<span style='" + declarations + "'>Middle</span>Right</span>");
-        Assert.Contains(scene.Diagnostics, d => d.Code == "HtmlRenderTextDecorationThicknessApproximated"
+        Assert.Contains(scene.NativeDiagnostics, d => d.Code == "HtmlRenderTextDecorationThicknessApproximated"
             && d.Detail?.Contains("continuity across descendant inline", StringComparison.Ordinal) == true);
         Assert.True(scene.HasLoss);
         Assert.NotEmpty(DecorationLines(scene));

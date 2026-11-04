@@ -12,7 +12,7 @@ public sealed class EmailSmimeLimitTests {
         byte[] message = clearSigned
             ? CreateClearSignedMessage(cms)
             : CreateOpaqueMessage(cms);
-        using EmailReadResult read = new EmailDocumentReader().Read(message);
+        using EmailReadResult read = new EmailDocumentReader().ReadDocument(message);
         var options = new CmsVerificationOptions { MaxEncodedBytes = 8 };
 
         EmailSmimeVerificationResult result = EmailSmime.Verify(
@@ -32,7 +32,7 @@ public sealed class EmailSmimeLimitTests {
     [Fact]
     public void RawEmlInvalidBase64FallbackHonorsConfiguredEncodedLimit() {
         byte[] message = CreateOpaqueMessage(new string('!', 64));
-        using EmailReadResult read = new EmailDocumentReader().Read(message);
+        using EmailReadResult read = new EmailDocumentReader().ReadDocument(message);
         var options = new CmsVerificationOptions { MaxEncodedBytes = 8 };
 
         EmailSmimeVerificationResult result = EmailSmime.Verify(
@@ -51,7 +51,7 @@ public sealed class EmailSmimeLimitTests {
     [Fact]
     public void RawEmlClearSignedContentHonorsConfiguredContentLimit() {
         byte[] message = CreateClearSignedMessage(new byte[] { 1, 2, 3 }, new string('x', 64));
-        using EmailReadResult read = new EmailDocumentReader().Read(message);
+        using EmailReadResult read = new EmailDocumentReader().ReadDocument(message);
         var options = new CmsVerificationOptions {
             MaxEncodedBytes = 1024,
             MaxContentBytes = 8

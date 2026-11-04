@@ -12,7 +12,7 @@ namespace OfficeIMO.Word.Html {
         public string Title { get; set; } = "Word HTML Roundtrip";
 
         /// <summary>Options used for importing source HTML into Word.</summary>
-        public WordHtmlImportOptions? ImportOptions { get; set; }
+        public HtmlWordExportOptions? ImportOptions { get; set; }
 
         /// <summary>Options used for exporting the Word document back to HTML.</summary>
         public WordHtmlExportOptions? ExportOptions { get; set; }

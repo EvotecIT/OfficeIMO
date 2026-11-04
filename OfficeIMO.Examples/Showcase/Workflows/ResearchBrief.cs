@@ -7,7 +7,7 @@ internal static class ResearchBrief {
     internal static void Create(string folder) {
         using WordDocument document = WordDocument.Create(Path.Combine(folder, "example.docx"));
         document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(11);
-        document.BuiltinDocumentProperties.Title = "Customer research brief";
+        document.Properties.Title = "Customer research brief";
         document.AddParagraph("Customer research brief").Style = WordParagraphStyles.Heading1;
         document.AddParagraph("NORTHWIND / REQUEST PORTAL / SYNTHETIC RESEARCH DATA");
         document.AddParagraph("Question: where do people lose confidence after submitting a request?");

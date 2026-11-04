@@ -20,12 +20,12 @@ namespace OfficeIMO.Word.Markdown {
         // Current footnote definitions map; scoped to this per-conversion converter instance.
         private IReadOnlyDictionary<string, string>? _currentFootnotes;
 
-        public WordDocument Convert(Omd.MarkdownDocument markdown, WordMarkdownImportOptions options, CancellationToken cancellationToken = default) {
+        public WordDocument Convert(Omd.MarkdownDocument markdown, MarkdownWordExportOptions options, CancellationToken cancellationToken = default) {
             if (markdown == null) {
                 throw new ArgumentNullException(nameof(markdown));
             }
 
-            options ??= new WordMarkdownImportOptions();
+            options ??= new MarkdownWordExportOptions();
 
             var document = WordDocument.Create();
             options.ApplyDefaults(document);
@@ -36,7 +36,7 @@ namespace OfficeIMO.Word.Markdown {
             return document;
         }
 
-        private void RenderDocument(Omd.MarkdownDocument markdown, WordDocument document, WordMarkdownImportOptions options, double pageContentWidthPixels, CancellationToken cancellationToken) {
+        private void RenderDocument(Omd.MarkdownDocument markdown, WordDocument document, MarkdownWordExportOptions options, double pageContentWidthPixels, CancellationToken cancellationToken) {
             var blocks = GetRenderableBlocks(markdown, options);
 
             _currentFootnotes = blocks
@@ -221,7 +221,7 @@ namespace OfficeIMO.Word.Markdown {
             }
         }
 
-        private IReadOnlyList<Omd.IMarkdownBlock> GetRenderableBlocks(Omd.MarkdownDocument markdown, WordMarkdownImportOptions options) {
+        private IReadOnlyList<Omd.IMarkdownBlock> GetRenderableBlocks(Omd.MarkdownDocument markdown, MarkdownWordExportOptions options) {
             var (realized, catalog) = markdown.GetBlocksAndHeadingSlugs();
             var blocks = realized ?? new List<Omd.IMarkdownBlock>();
             _headingCatalog = catalog;
@@ -280,7 +280,7 @@ namespace OfficeIMO.Word.Markdown {
             return candidate;
         }
 
-        private string? ResolveHeadingBookmark(Omd.HeadingBlock heading, WordMarkdownImportOptions options) {
+        private string? ResolveHeadingBookmark(Omd.HeadingBlock heading, MarkdownWordExportOptions options) {
             if (_headingCatalog == null || options.HeadingBookmarks == null) {
                 return null;
             }
@@ -290,7 +290,7 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         /// <summary>Returns the bookmark for an in-document <c>#fragment</c> link, or <see langword="null"/> for other links.</summary>
-        internal static string? ResolveInternalLinkBookmark(string? url, WordMarkdownImportOptions options) {
+        internal static string? ResolveInternalLinkBookmark(string? url, MarkdownWordExportOptions options) {
             if (string.IsNullOrEmpty(url) || url![0] != '#' || url.Length < 2) {
                 return null;
             }

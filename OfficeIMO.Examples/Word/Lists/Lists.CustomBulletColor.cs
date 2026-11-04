@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.Word {
                 bulletList.AddItem("Red bullet item");
                 bulletList.AddItem("Another item");
 
-                var second = document.AddCustomBulletList('o', "Calibri", "0000ff", fontSize: global::OfficeIMO.OfficeLength.Points(12));
+                var second = document.AddCustomBulletList('o', "Calibri", OfficeColor.Parse("0000ff"), fontSize: global::OfficeIMO.OfficeLength.Points(12));
                 second.AddItem("Blue bullet item");
                 second.AddItem("Second blue item");
                 document.Save();

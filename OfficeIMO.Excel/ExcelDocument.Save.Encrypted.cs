@@ -96,10 +96,10 @@ public partial class ExcelDocument {
         return output.ToArray();
     }
 
-    /// <summary>Encrypted associated destinations require explicit saves; no password is retained for automatic persistence.</summary>
+    /// <summary>Plaintext copyback always stops; SaveOnDispose stays only when a retained password can re-encrypt the destination.</summary>
     private void DisableImplicitPersistenceAfterEncryptedSave(Stream? destination = null) {
         if (destination != null && !ReferenceEquals(destination, _sourceStream)) return;
-        _persistenceMode = DocumentPersistenceMode.Explicit;
+        if (_loadedPassword == null) _persistenceMode = DocumentPersistenceMode.Explicit;
         _copyPackageToSourceOnDispose = false;
         _copyPackageToFilePathOnDispose = false;
     }

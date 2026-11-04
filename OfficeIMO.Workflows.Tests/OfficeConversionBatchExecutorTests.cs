@@ -1,4 +1,6 @@
 using System.Text;
+using System.Text.Json;
+using OfficeIMO.Pdf;
 
 namespace OfficeIMO.Workflows.Tests;
 
@@ -192,6 +194,39 @@ public sealed class OfficeConversionBatchExecutorTests {
         Assert.Equal(1, (await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), scope.Request with { ConversionOptions = new() { PlainText = new() { TabSize = 4 } } })).Failed);
         using var lease = new FileStream(Path.Combine(scope.Request.CheckpointDirectory!, "batch.lock"), FileMode.Open, FileAccess.ReadWrite, FileShare.None);
         await Assert.ThrowsAsync<IOException>(() => OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), scope.Request));
+    }
+
+    [Fact]
+    public async Task EncryptedOutputCheckpointBindsPasswordToItsOwnSalt() {
+        using var scope = new BatchDirectory();
+        File.WriteAllText(Path.Combine(scope.Input, "one.txt"), "original");
+        OfficeBatchOptions Protected(string password) {
+            var text = new PdfTextImportOptions();
+            text.PdfOptions.SetEncryption(password);
+            return scope.Request with { ConversionOptions = new() { PlainText = text } };
+        }
+        string output = Path.Combine(scope.Output, "one.pdf");
+        string plan = scope.Request.ResumeFrom!;
+        (string Salt, string Receipt) ReadCheckpoint() => (
+            JsonDocument.Parse(File.ReadAllText(plan)).RootElement.GetProperty("FingerprintSalt").GetString()!,
+            JsonDocument.Parse(File.ReadAllText(Directory.GetFiles(Path.Combine(scope.Request.CheckpointDirectory!, "items"), "*.json", SearchOption.AllDirectories).Single()))
+                .RootElement.GetProperty("ConfigurationSha256").GetString()!);
+
+        Assert.Equal(1, (await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), Protected("first-secret"))).Completed);
+        (string firstSalt, string firstReceipt) = ReadCheckpoint();
+        byte[] published = File.ReadAllBytes(output);
+
+        Assert.Equal(1, (await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), Protected("first-secret"))).Reused);
+        Assert.Equal(1, (await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), Protected("other-secret"))).Failed);
+        Assert.Equal(published, File.ReadAllBytes(output));
+
+        Directory.Delete(scope.Request.CheckpointDirectory!, true);
+        File.Delete(plan);
+        File.Delete(output);
+        Assert.Equal(1, (await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), Protected("first-secret"))).Completed);
+        (string secondSalt, string secondReceipt) = ReadCheckpoint();
+        Assert.NotEqual(firstSalt, secondSalt);
+        Assert.NotEqual(firstReceipt, secondReceipt);
     }
 
     [Fact]

@@ -60,7 +60,10 @@ public enum HtmlRenderTableHeaderScope {
 
 /// <summary>Paint-neutral semantic group retained by the shared HTML render model.</summary>
 public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
-    private readonly ReadOnlyCollection<HtmlRenderVisual> _visuals;
+    private ReadOnlyCollection<HtmlRenderVisual>? _visuals;
+    // A translated group keeps its source children and the steps still to apply, and copies
+    // them on first read. Repeated positioning of a subtree then copies each child once.
+    private PendingVisuals? _pending;
 
     internal HtmlRenderSemanticGroup(
         HtmlRenderSemanticGroupRole role,
@@ -99,7 +102,7 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
         double y,
         double width,
         double height,
-        List<HtmlRenderVisual> orderedVisuals,
+        PendingVisuals pending,
         int paintOrder,
         string? source,
         int columnSpan,
@@ -121,7 +124,7 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
         ColumnSpan = columnSpan;
         RowSpan = rowSpan;
         HeaderScope = headerScope;
-        _visuals = orderedVisuals.AsReadOnly();
+        _pending = pending;
     }
 
     /// <summary>Semantic role of this group.</summary>
@@ -157,13 +160,81 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
             or HtmlRenderSemanticGroupRole.Heading5 or HtmlRenderSemanticGroupRole.Heading6;
 
     /// <summary>Ordered child visuals.</summary>
-    public IReadOnlyList<HtmlRenderVisual> Visuals => _visuals;
+    public IReadOnlyList<HtmlRenderVisual> Visuals => Volatile.Read(ref _visuals) ?? MaterializeVisuals();
+
+    internal bool HasPendingTranslation => Volatile.Read(ref _pending) != null;
+
+    /// <summary>
+    /// Children for queries about translation-invariant state such as paint phase, stacking
+    /// contexts and out-of-flow marks. Unlike <see cref="Visuals"/>, it does not copy a pending
+    /// translation, so positions and paint order of the returned visuals may be stale.
+    /// </summary>
+    internal IReadOnlyList<HtmlRenderVisual> InvariantVisuals =>
+        Volatile.Read(ref _pending)?.Source ?? Volatile.Read(ref _visuals) ?? Visuals;
+
+    /// <summary>Reads the untranslated children and the steps a read of <see cref="Visuals"/> would apply.</summary>
+    internal bool TryGetPendingTranslation(out IReadOnlyList<HtmlRenderVisual> source, out HtmlRenderOffset[] offsets) {
+        PendingVisuals? pending = Volatile.Read(ref _pending);
+        source = pending?.Source!;
+        offsets = pending?.Offsets!;
+        return pending != null;
+    }
+
+    /// <summary>
+    /// A copy of this group whose children are <paramref name="sourceChildren"/> moved by <paramref name="offsets"/>
+    /// and numbered by position when read. The caller passes a list it no longer changes.
+    /// </summary>
+    internal HtmlRenderSemanticGroup WithPendingChildren(IReadOnlyList<HtmlRenderVisual> sourceChildren, HtmlRenderOffset[] offsets) =>
+        new(Role, X, Y, Width, Height, new PendingVisuals(sourceChildren, offsets), PaintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY, StructureElementKey, LayoutHeight, AlternativeText, MathMlSource, LogicalOrder, ListStyleType);
 
     internal override HtmlRenderVisual TranslateCore(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, TranslateVisuals(offsetX, offsetY, translatePaint: false), paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY + offsetY, StructureElementKey, LayoutHeight, AlternativeText, MathMlSource, LogicalOrder, ListStyleType);
+        TranslateThroughCore(new[] { new HtmlRenderOffset(offsetX, offsetY, paintOnly: false) }, paintOrder);
 
     internal override HtmlRenderVisual TranslatePaintCore(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, TranslateVisuals(offsetX, offsetY, translatePaint: true), paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY, StructureElementKey, LayoutHeight, AlternativeText, MathMlSource, LogicalOrder, ListStyleType);
+        TranslateThroughCore(new[] { new HtmlRenderOffset(offsetX, offsetY, paintOnly: true) }, paintOrder);
+
+    internal override HtmlRenderVisual TranslateThrough(HtmlRenderOffset[] offsets, int paintOrder) =>
+        CopyStackingContextTo(TranslateThroughCore(offsets, paintOrder));
+
+    private HtmlRenderSemanticGroup TranslateThroughCore(HtmlRenderOffset[] offsets, int paintOrder) {
+        double x = X, y = Y, layoutY = LayoutY;
+        foreach (HtmlRenderOffset offset in offsets) {
+            x += offset.X;
+            y += offset.Y;
+            if (!offset.PaintOnly) layoutY += offset.Y;
+        }
+        // Materialization publishes the children before it clears the pending steps.
+        PendingVisuals pending = Volatile.Read(ref _pending) is { } own
+            ? new PendingVisuals(own.Source, HtmlRenderOffset.Append(own.Offsets, offsets))
+            : new PendingVisuals(Volatile.Read(ref _visuals)!, offsets);
+        return new HtmlRenderSemanticGroup(Role, x, y, Width, Height, pending, paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, layoutY, StructureElementKey, LayoutHeight, AlternativeText, MathMlSource, LogicalOrder, ListStyleType);
+    }
+
+    private ReadOnlyCollection<HtmlRenderVisual> MaterializeVisuals() {
+        PendingVisuals? pending = Volatile.Read(ref _pending);
+        if (pending == null) return Volatile.Read(ref _visuals)!;
+        var translated = new List<HtmlRenderVisual>(pending.Source.Count);
+        for (int index = 0; index < pending.Source.Count; index++) {
+            HtmlRenderVisual source = pending.Source[index];
+            translated.Add(pending.Offsets.Length == 1
+                ? pending.Offsets[0].Apply(source, index)
+                : source.TranslateThrough(pending.Offsets, index));
+        }
+        ReadOnlyCollection<HtmlRenderVisual> result = translated.AsReadOnly();
+        ReadOnlyCollection<HtmlRenderVisual> published = Interlocked.CompareExchange(ref _visuals, result, null) ?? result;
+        Volatile.Write(ref _pending, null);
+        return published;
+    }
+
+    private sealed class PendingVisuals {
+        internal PendingVisuals(IReadOnlyList<HtmlRenderVisual> source, HtmlRenderOffset[] offsets) {
+            Source = source;
+            Offsets = offsets;
+        }
+
+        internal IReadOnlyList<HtmlRenderVisual> Source { get; }
+        internal HtmlRenderOffset[] Offsets { get; }
+    }
 
     internal HtmlRenderVisual ProjectPaint(IEnumerable<HtmlRenderVisual> visuals, double offsetX, double offsetY, int paintOrder) =>
         new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, visuals,
@@ -181,15 +252,5 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
         return (ordered
             ? materialized
             : materialized.OrderBy(item => item.PaintOrder).ToList()).AsReadOnly();
-    }
-
-    private List<HtmlRenderVisual> TranslateVisuals(double offsetX, double offsetY, bool translatePaint) {
-        var translated = new List<HtmlRenderVisual>(_visuals.Count);
-        for (int index = 0; index < _visuals.Count; index++) {
-            translated.Add(translatePaint
-                ? _visuals[index].TranslatePaint(offsetX, offsetY, index)
-                : _visuals[index].Translate(offsetX, offsetY, index));
-        }
-        return translated;
     }
 }

@@ -54,7 +54,8 @@ namespace OfficeIMO.Excel {
             Action? consumeScannedElement = null,
             ExcelReference? rewriteBoundary = null,
             ExcelCellShiftDirection? cellShiftDirection = null,
-            Func<ExcelReference, ExcelReference?>? capacityTransform = null) {
+            Func<ExcelReference, ExcelReference?>? capacityTransform = null,
+            ExcelFormulaAxisShift? plainFormulaShift = null) {
             ValidateA1MutationReferenceMode(operation);
             _excelDocument.ValidateMutationReferencesCanBeRewritten(
                 this,
@@ -62,7 +63,8 @@ namespace OfficeIMO.Excel {
                 consumeScannedElement,
                 rewriteBoundary,
                 cellShiftDirection,
-                capacityTransform);
+                capacityTransform,
+                plainFormulaShift);
         }
     }
 }

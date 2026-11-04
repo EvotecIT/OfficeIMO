@@ -245,7 +245,7 @@ internal static partial class ResourceResolver {
             }
         }
 
-        PdfReadLimits effectiveLimits = limits ?? PdfReadLimits.Default;
+        PdfReadLimits effectiveLimits = limits ?? new PdfReadLimits();
         int traversedObjects = 0;
         CollectImageXObjectsFromResources(resources, objects, pageNumber, emit, new HashSet<(PdfStream Stream, PdfDictionary Resources)>(), new HashSet<string>(System.StringComparer.Ordinal), placedImagesByKey, placedImagesByResourceNameWithoutIdentity, colorizeImageMasks, effectiveLimits, outputIntentColorTransform, colorFunctionEvaluationBudget, functionResolutionContext, depth: 0, ref traversedObjects, cancellationToken);
     }

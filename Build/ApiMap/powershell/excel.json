@@ -606,7 +606,7 @@
               "pipeline": "none"
             },
             {
-              "name": "SchemaSampleSize",
+              "name": "SchemaSampleRows",
               "type": "int",
               "mandatory": false,
               "pipeline": "none"
@@ -674,7 +674,7 @@
               "pipeline": "none"
             },
             {
-              "name": "SchemaSampleSize",
+              "name": "SchemaSampleRows",
               "type": "int",
               "mandatory": false,
               "pipeline": "none"
@@ -740,7 +740,7 @@
               "pipeline": "none"
             },
             {
-              "name": "SchemaSampleSize",
+              "name": "SchemaSampleRows",
               "type": "int",
               "mandatory": false,
               "pipeline": "none"
@@ -811,7 +811,7 @@
               "pipeline": "none"
             },
             {
-              "name": "SchemaSampleSize",
+              "name": "SchemaSampleRows",
               "type": "int",
               "mandatory": false,
               "pipeline": "none"
@@ -879,7 +879,7 @@
               "pipeline": "none"
             },
             {
-              "name": "SchemaSampleSize",
+              "name": "SchemaSampleRows",
               "type": "int",
               "mandatory": false,
               "pipeline": "none"
@@ -952,7 +952,7 @@
               "pipeline": "none"
             },
             {
-              "name": "SchemaSampleSize",
+              "name": "SchemaSampleRows",
               "type": "int",
               "mandatory": false,
               "pipeline": "none"
@@ -1013,7 +1013,7 @@
               "pipeline": "none"
             },
             {
-              "name": "SchemaSampleSize",
+              "name": "SchemaSampleRows",
               "type": "int",
               "mandatory": false,
               "pipeline": "none"
@@ -1079,7 +1079,7 @@
               "pipeline": "none"
             },
             {
-              "name": "SchemaSampleSize",
+              "name": "SchemaSampleRows",
               "type": "int",
               "mandatory": false,
               "pipeline": "none"
@@ -15582,7 +15582,8 @@
         "AsDataTable": "As",
         "AsDataReader": "As",
         "ByColumn": "As",
-        "CultureName": "Culture"
+        "CultureName": "Culture",
+        "SchemaSampleSize": "SchemaSampleRows"
       },
       "hint": "Import-OfficeExcel -Path .\\Book.xlsx -Sheet Data -Range A1:D20"
     },

@@ -21,7 +21,7 @@ public class ExcelTextEscapingTests {
             using var stream = new MemoryStream();
             using var document = ExcelDocument.Create(new MemoryStream());
             var sheet = document.AddSheet("Text");
-            sheet.CellValue(1, 1, "placeholder");
+            sheet.Cell(1, 1).SetValue("placeholder");
             Cell cell = sheet.WorksheetPart.Worksheet.Descendants<Cell>().Single();
             cell.CellValue = null;
             cell.DataType = CellValues.InlineString;
@@ -88,9 +88,9 @@ public class ExcelTextEscapingTests {
         using (var document = ExcelDocument.Create(new MemoryStream())) {
             OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
             var sheet = document.AddSheet("Text");
-            sheet.CellValue(1, 1, value);
-            sheet.CellValue(1, 2, "inline");
-            sheet.CellValue(1, 3, "plain");
+            sheet.Cell(1, 1).SetValue(value);
+            sheet.Cell(1, 2).SetValue("inline");
+            sheet.Cell(1, 3).SetValue("plain");
             var cells = sheet.WorksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
             cells["B1"].CellValue = null;
             cells["B1"].DataType = CellValues.InlineString;
@@ -128,7 +128,7 @@ public class ExcelTextEscapingTests {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(new MemoryStream())) {
             var sheet = document.AddSheet("Text");
-            sheet.CellValue(1, 1, value);
+            sheet.Cell(1, 1).SetValue(value);
             sheet.AddChart(OfficeChartType.ColumnClustered, new ExcelChartData(new[] { "One" }, new[] { new ExcelChartSeries("Values", new[] { 1.0 }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 3, Title = "Values" });
             document.Save(stream);
             Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
@@ -146,10 +146,10 @@ public class ExcelTextEscapingTests {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(new MemoryStream())) {
             var sheet = document.AddSheet("Text");
-            sheet.CellValue(1, 1, value);
-            sheet.CellValue(1, 2, "inline");
-            sheet.CellValue(1, 3, "plain");
-            sheet.CellValue(1, 4, "#DIV/0!");
+            sheet.Cell(1, 1).SetValue(value);
+            sheet.Cell(1, 2).SetValue("inline");
+            sheet.Cell(1, 3).SetValue("plain");
+            sheet.Cell(1, 4).SetValue("#DIV/0!");
             var cells = sheet.WorksheetPart.Worksheet.Descendants<Cell>()
                 .ToDictionary(cell => cell.CellReference!.Value!);
             cells["B1"].CellValue = null;
@@ -189,7 +189,7 @@ public class ExcelTextEscapingTests {
         using (var document = ExcelDocument.Create(new MemoryStream())) {
             for (int index = 0; index < 12; index++) {
                 var sheet = document.AddSheet("Text" + index);
-                sheet.CellValue(1, 1, "Sheet" + index + "\r\nLine\rEnd");
+                sheet.Cell(1, 1).SetValue("Sheet" + index + "\r\nLine\rEnd");
                 var cell = sheet.WorksheetPart.Worksheet.Descendants<Cell>().Single();
                 cell.CellValue = null;
                 cell.DataType = CellValues.InlineString;
@@ -223,8 +223,8 @@ public class ExcelTextEscapingTests {
     public void CarriageReturnScanDoesNotMaterializeUntouchedWorksheets() {
         using var source = new MemoryStream();
         using (var created = ExcelDocument.Create(new MemoryStream())) {
-            created.AddSheet("Changed").CellValue(1, 1, "before");
-            created.AddSheet("Untouched").CellValue(1, 1, "raw");
+            created.AddSheet("Changed").Cell(1, 1).SetValue("before");
+            created.AddSheet("Untouched").Cell(1, 1).SetValue("raw");
             created.Save(source, new ExcelSaveOptions { DisableFastPackageWriter = true });
         }
 
@@ -236,7 +236,7 @@ public class ExcelTextEscapingTests {
         Assert.False(untouchedPart.IsRootElementLoaded);
 
         var changed = document["Changed"];
-        changed.CellValue(1, 1, "after\rvalue");
+        changed.Cell(1, 1).SetValue("after\rvalue");
         Cell changedCell = changed.WorksheetPart.Worksheet.Descendants<Cell>().Single();
         changedCell.CellValue = null;
         changedCell.DataType = CellValues.InlineString;
@@ -254,7 +254,7 @@ public class ExcelTextEscapingTests {
         const string value = "First\r\nSecond\rThird";
         using var source = new MemoryStream();
         using (var created = ExcelDocument.Create(new MemoryStream())) {
-            created.AddSheet("Text").CellValue(1, 1, value);
+            created.AddSheet("Text").Cell(1, 1).SetValue(value);
             created.Save(source, new ExcelSaveOptions { DisableFastPackageWriter = true });
         }
 

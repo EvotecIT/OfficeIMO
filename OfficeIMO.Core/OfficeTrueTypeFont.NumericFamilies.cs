@@ -53,8 +53,16 @@ public sealed partial class OfficeTrueTypeFont {
         lock (FontCacheLock) { if (NumericFamilyCache.TryGetValue(key, out var cached)) return cached; }
         var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var result = new List<FontFamilyResolution>();
+        // The directory scan does not depend on the style, so list the font folders once rather
+        // than once per style; paths are still added in the same order.
+        List<string>? directoryPaths = null;
         foreach (OfficeFontStyle style in new[] { OfficeFontStyle.Regular, OfficeFontStyle.Bold, OfficeFontStyle.Italic, OfficeFontStyle.Bold | OfficeFontStyle.Italic }) {
-            foreach (string path in CandidateStyledFamilyPaths(key, style, cancellationToken)) {
+            foreach (string path in CandidateStyledFamilyPaths(key, style, cancellationToken, includeDirectories: false)) {
+                cancellationToken.ThrowIfCancellationRequested();
+                paths.Add(path);
+            }
+            directoryPaths ??= new List<string>(CandidateFontDirectoryPaths(key, cancellationToken));
+            foreach (string path in directoryPaths) {
                 cancellationToken.ThrowIfCancellationRequested();
                 paths.Add(path);
             }

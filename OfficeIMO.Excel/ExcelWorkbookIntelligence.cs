@@ -392,7 +392,7 @@ namespace OfficeIMO.Excel {
             if (string.IsNullOrWhiteSpace(oldName)) throw new ArgumentException("Old name is required.", nameof(oldName));
             if (string.IsNullOrWhiteSpace(newName)) throw new ArgumentException("New name is required.", nameof(newName));
 
-            string? reference = GetNamedRange(oldName, scope);
+            string? reference = GetNamedRangeText(oldName, scope);
             if (reference == null) return false;
 
             bool hidden = ListNamedRanges(includeBuiltIn: true, includeHidden: true)

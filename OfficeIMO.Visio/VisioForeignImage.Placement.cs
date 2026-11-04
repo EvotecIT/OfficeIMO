@@ -13,15 +13,15 @@ internal static partial class VisioForeignImage {
         projection = default;
         try {
             double x = ReadCell(shape, "ImgOffsetX", 0, diagnostics, source), y = ReadCell(shape, "ImgOffsetY", 0, diagnostics, source);
-            double width = ReadCell(shape, "ImgWidth", shape.Width, diagnostics, source), height = ReadCell(shape, "ImgHeight", shape.Height, diagnostics, source);
-            if (!Finite(width) || !Finite(height) || width <= 0 || height <= 0 || !Finite(shape.Width) || !Finite(shape.Height) || shape.Width < 0 || shape.Height < 0)
+            double width = ReadCell(shape, "ImgWidth", shape.WidthInches, diagnostics, source), height = ReadCell(shape, "ImgHeight", shape.HeightInches, diagnostics, source);
+            if (!Finite(width) || !Finite(height) || width <= 0 || height <= 0 || !Finite(shape.WidthInches) || !Finite(shape.HeightInches) || shape.WidthInches < 0 || shape.HeightInches < 0)
                 throw new InvalidDataException("Foreign image dimensions must be finite and positive.");
-            double left = Math.Max(0, x), right = Math.Min(shape.Width, x + width);
-            double bottom = Math.Max(0, y), top = Math.Min(shape.Height, y + height);
+            double left = Math.Max(0, x), right = Math.Min(shape.WidthInches, x + width);
+            double bottom = Math.Max(0, y), top = Math.Min(shape.HeightInches, y + height);
             if (right <= left || top <= bottom) return false; // A fully cropped image is intentionally invisible.
             var crop = OfficeImageSourceCrop.FromStrictFractions((left - x) / width, (y + height - top) / height,
                 (x + width - right) / width, (bottom - y) / height);
-            OfficeTransform transform = PageTransform(shape, page.Height, diagnostics, source);
+            OfficeTransform transform = PageTransform(shape, page.HeightInches, diagnostics, source);
             OfficePoint center = transform.TransformPoint(new OfficePoint((left + right) / 2, (bottom + top) / 2));
             OfficePoint a = transform.TransformPoint(new OfficePoint(left, top));
             OfficePoint b = transform.TransformPoint(new OfficePoint(right, top));

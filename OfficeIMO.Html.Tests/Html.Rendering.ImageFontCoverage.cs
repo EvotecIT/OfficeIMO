@@ -9,28 +9,21 @@ namespace OfficeIMO.Tests;
 
 public sealed class HtmlImageFontCoverageTests {
     [Fact]
-    public void HtmlImages_UncoveredJoiningScriptUsesThePdfEncodingFailureContract() {
+    public void HtmlImages_UncoveredJoiningScriptRendersWithTheSameReplacementAsPdf() {
         const string html = "<p dir='rtl'>ܫܠܡ</p>";
         HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             AllowSystemFontFallback = false,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
             FidelityPolicy = HtmlRenderFidelityPolicy.AllowDiagnosedLoss
         };
 
-        HtmlConversionException pdf = Assert.Throws<HtmlConversionException>(() => (document.ToPdf(options)).ToBytes());
-        HtmlConversionException png = Assert.Throws<HtmlConversionException>(() => document.ToPng(options));
+        HtmlPdfRenderRequestResult pdf = document.RenderToPdfResult(
+            HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, options));
 
-        foreach (HtmlConversionException failure in new[] { pdf, png }) {
-            HtmlDiagnostic[] encoding = failure.Diagnostics.Where(item => item.Code == "unsupported-text-glyph").ToArray();
-            Assert.NotEmpty(encoding);
-            Assert.All(encoding, diagnostic => {
-                Assert.Equal(HtmlDiagnosticSeverity.Error, diagnostic.Severity);
-                Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
-            });
-            Assert.Contains(encoding, diagnostic => diagnostic.Message.Contains("U+072B", StringComparison.Ordinal));
-        }
-        Assert.Equal(pdf.Diagnostics.Select(item => item.Code), png.Diagnostics.Select(item => item.Code));
+        Assert.Contains(pdf.Output.Report.Warnings, warning => warning.Code == HtmlPdfDiagnosticCodes.UnavailableTextGlyphReplaced
+            && warning.Message.Contains("U+072B", StringComparison.Ordinal));
+        Assert.NotEmpty(document.ToPng(options));
         Assert.Equal(html, document.SourceHtml);
     }
 
@@ -47,10 +40,10 @@ public sealed class HtmlImageFontCoverageTests {
             + "<p dir='rtl' style=\"font-family:'OfficeIMO Shaping Test'\">"
             + (styled ? "<span style='color:red'>" + text + " </span><span>" + text + "</span>" : text) + "</p>");
         var provider = new LayoutOnlyShapingProvider();
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             AllowSystemFontFallback = false,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss,
             TextShapingProvider = provider,
             TextShapingLanguage = "syr"
         };
@@ -69,7 +62,7 @@ public sealed class HtmlImageFontCoverageTests {
         } else {
             Assert.Equal(synchronous, asynchronous);
             PdfCore.PdfDocumentConversionResult pdf = document.ConvertToPdfWithEvidence(options);
-            pdf.RequireNoLoss();
+            pdf.ThrowIfLoss();
             Assert.Equal(expectedText, PdfCore.PdfReadDocument.Open(pdf.ToBytes()).ExtractText().Trim());
             OfficeImageExportResult replay = Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(
                 pdf, OfficeImageExportFormat.Png, new PdfCore.PdfImageExportOptions { Scale = 96D / 72D }));
@@ -89,10 +82,10 @@ public sealed class HtmlImageFontCoverageTests {
             + "<p dir='rtl' style=\"font-family:'OfficeIMO Shaping Test'\">"
             + (styled ? "<span style='color:red'>" + text + " </span><span>" + text + "</span>" : text) + "</p>");
         var provider = new ManagedTextShapingTestAssets.RecordingProvider();
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             AllowSystemFontFallback = false,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss,
             TextShapingProvider = provider,
             TextShapingLanguage = "syr"
         };
@@ -124,10 +117,10 @@ public sealed class HtmlImageFontCoverageTests {
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
             "<style>@page{size:160px 60px;margin:0}body{margin:0}p{margin:0;font:20px Primary;white-space:pre-wrap}</style><p>"
             + text + "</p>");
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             AllowSystemFontFallback = false,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         };
         options.Fonts.Add("Primary", ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A', 'B'))
             .Add("Spacing Fallback", ManagedTextShapingTestAssets.CreateFontWithEmptyGlyphs(2, separator))
@@ -151,10 +144,10 @@ public sealed class HtmlImageFontCoverageTests {
     public void HtmlImages_UncoveredSpacingGlyphStillFailsWithTypedLoss(char separator) {
         string html = "<p style='font-family:Primary;white-space:pre-wrap'>A" + separator + "B</p>";
         HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             AllowSystemFontFallback = false,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
-            FidelityPolicy = HtmlRenderFidelityPolicy.AllowDiagnosedLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         };
         options.Fonts.Add("Primary", ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A', 'B'));
 

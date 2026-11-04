@@ -35,7 +35,7 @@ public class VisioMasterEditsTests {
     [Fact]
     public void NewStringChildIdIsMappedWithoutChangingExistingShapeIds() {
         var document = LoadMaster("<Shapes><Shape ID='2'><Text>existing</Text></Shape></Shapes>");
-        document.Masters.First().Shape.Children.Insert(0, new VisioShape("new-child", 1, 1, 1, 1, "inserted"));
+        document.Masters.First().Shape.Children.Insert(0, new VisioShape("new-child", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "inserted"));
         var xml = XDocument.Load(new MemoryStream(document.ToLegacyXmlResult().Value));
         var shapes = xml.Descendants(Ns + "Shape").ToArray();
         Assert.All(shapes, shape => Assert.True(uint.TryParse((string?)shape.Attribute("ID"), out _)));
@@ -44,7 +44,7 @@ public class VisioMasterEditsTests {
         var reopened = VisioDocument.Load(new MemoryStream(document.ToBytes()));
         Assert.Equal(new[] { "new-child", "2" }, reopened.Masters.First().Shape.Children.Select(shape => shape.Id));
         string persistedChildId = (string)shapes.Single(shape => (string?)shape.Element(Ns + "Text") == "inserted").Attribute("ID")!;
-        reopened.Masters.First().Shape.Children.Insert(0, new VisioShape(persistedChildId, 1, 1, 1, 1, "another"));
+        reopened.Masters.First().Shape.Children.Insert(0, new VisioShape(persistedChildId, OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "another"));
         var again = XDocument.Load(new MemoryStream(reopened.ToLegacyXmlResult().Value));
         Assert.Equal((string?)shapes.Single(shape => (string?)shape.Element(Ns + "Text") == "inserted").Attribute("ID"),
             (string?)again.Descendants(Ns + "Shape").Single(shape => (string?)shape.Element(Ns + "Text") == "inserted").Attribute("ID"));
@@ -54,7 +54,7 @@ public class VisioMasterEditsTests {
     public void InsertedNumericIdCannotCollideWithPreservedAdditionalRoot() {
         var document = LoadMaster("<Shapes><Shape ID='3'><Text>existing child</Text></Shape></Shapes>",
             "<Shape ID='2'><Text>additional root</Text></Shape>");
-        document.Masters.First().Shape.Children.Insert(0, new VisioShape("2", 1, 1, 1, 1, "inserted"));
+        document.Masters.First().Shape.Children.Insert(0, new VisioShape("2", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "inserted"));
         var xml = XDocument.Load(new MemoryStream(document.ToLegacyXmlResult().Value));
         var shapes = xml.Descendants(Ns + "Shape").ToArray();
         Assert.Equal(shapes.Length, shapes.Select(shape => (string?)shape.Attribute("ID")).Distinct().Count());
@@ -64,19 +64,19 @@ public class VisioMasterEditsTests {
     [Fact]
     public void ExplicitZeroLocalPinCanBeEditedToTheDefaultCenter() {
         var document = LoadMaster("<XForm><Width>2</Width><Height>2</Height><LocPinX>0</LocPinX><LocPinY>0</LocPinY></XForm>");
-        document.Masters.First().Shape.LocPinX = 1;
-        document.Masters.First().Shape.LocPinY = 1;
+        document.Masters.First().Shape.LocPinX = OfficeLength.Inches(1);
+        document.Masters.First().Shape.LocPinY = OfficeLength.Inches(1);
         var reopened = VisioDocument.Load(new MemoryStream(document.ToBytes())).Masters.First().Shape;
-        Assert.Equal(1, reopened.LocPinX); Assert.Equal(1, reopened.LocPinY);
+        Assert.Equal(1, reopened.LocPinX.ToInches()); Assert.Equal(1, reopened.LocPinY.ToInches());
     }
 
     [Fact]
     public void ExplicitZeroDimensionsCanBeEditedToTheDefaultSize() {
         var document = LoadMaster("<XForm><Width>0</Width><Height>0</Height></XForm>");
-        document.Masters.First().Shape.Width = 1;
-        document.Masters.First().Shape.Height = 1;
+        document.Masters.First().Shape.Width = OfficeLength.Inches(1);
+        document.Masters.First().Shape.Height = OfficeLength.Inches(1);
         var reopened = VisioDocument.Load(new MemoryStream(document.ToBytes())).Masters.First().Shape;
-        Assert.Equal(1, reopened.Width); Assert.Equal(1, reopened.Height);
+        Assert.Equal(1, reopened.Width.ToInches()); Assert.Equal(1, reopened.Height.ToInches());
     }
 
     private static VisioDocument LoadMaster(string body, string additionalShapes = "") {

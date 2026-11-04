@@ -32,14 +32,14 @@ public partial class HtmlWordGapClosure {
     [Fact]
     public void HtmlToWord_StrictCssAcceptsTransparentInlineBackground() {
         const string html = """<p><span style="background-color:transparent">Clear</span></p>""";
-        var options = new WordHtmlImportOptions {
+        var options = new HtmlWordExportOptions {
             UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Error,
         };
 
         using WordDocument document = HtmlConversionDocument.Parse(html).ToWord(options);
         WordParagraph run = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Clear");
 
-        Assert.Equal(string.Empty, run.RunShadingFillColorHex);
+        Assert.Null(run.BackgroundColor);
     }
 
     [Fact]
@@ -54,7 +54,7 @@ public partial class HtmlWordGapClosure {
         WordParagraph paragraph = Assert.Single(document.Paragraphs, candidate => candidate.Text == "Nested");
 
         Assert.Equal(WordBorderStyle.Single, paragraph.Borders.LeftStyle);
-        Assert.Equal("0000FF", paragraph.Borders.LeftColorHex);
+        Assert.Equal(OfficeColor.Parse("0000FF"), paragraph.Borders.LeftColor);
         Assert.Equal(OfficeLength.Points(1.5), paragraph.Borders.LeftSize);
     }
 
@@ -62,7 +62,7 @@ public partial class HtmlWordGapClosure {
     public void WordTableCell_AddHtml_NumberedHeadingKeepsInlinePlaceholderContent() {
         using WordDocument document = WordDocument.Create();
         WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
-        var options = new WordHtmlImportOptions { SupportsHeadingNumbering = true };
+        var options = new HtmlWordExportOptions { SupportsHeadingNumbering = true };
 
         cell.AddHtml(HtmlConversionDocument.Parse("Intro<h1>Heading</h1>"), options);
 

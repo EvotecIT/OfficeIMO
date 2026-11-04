@@ -9,7 +9,7 @@ public sealed class BibliographyReviewRemediationTests {
     public void Parsers_stop_after_the_configured_diagnostic_limit(BibliographyFormat format, string fragment, string separator, int limit) {
         string source = string.Join(separator, Enumerable.Repeat(fragment, 100));
 
-        BibliographyReadResult read = BibliographyDocument.Parse(source, format, new BibliographyReadOptions { MaximumDiagnosticCount = limit });
+        BibliographyReadResult read = BibliographyDocument.Parse(source, format, new BibliographyReadOptions { MaxDiagnosticCount = limit });
 
         Assert.True(read.HasErrors);
         Assert.Equal(limit + 1, read.Diagnostics.Count);
@@ -35,20 +35,20 @@ public sealed class BibliographyReviewRemediationTests {
 
         BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical });
         BibliographyConversionLossException strict = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
         using JsonDocument json = JsonDocument.Parse(written.Content);
         JsonElement root = json.RootElement[0];
         Assert.Equal(itemValue, root.GetProperty(itemField).GetString());
-        Assert.Contains(written.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV126" && diagnostic.Field == itemField);
-        Assert.Contains(strict.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV126" && diagnostic.Field == itemField);
+        Assert.Contains(written.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV126" && diagnostic.Field == itemField);
+        Assert.Contains(strict.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV126" && diagnostic.Field == itemField);
         if (includeNameAndDateOwners) {
             Assert.Equal("name-edited", root.GetProperty("author")[0].GetProperty("x-name").GetString());
             Assert.Equal("date-edited", root.GetProperty("issued").GetProperty("x-date").GetString());
-            Assert.Contains(written.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV127" && diagnostic.Field == "author.x-name");
-            Assert.Contains(written.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV128" && diagnostic.Field == "issued.x-date");
-            Assert.Contains(strict.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV127" && diagnostic.Field == "author.x-name");
-            Assert.Contains(strict.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV128" && diagnostic.Field == "issued.x-date");
+            Assert.Contains(written.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV127" && diagnostic.Field == "author.x-name");
+            Assert.Contains(written.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV128" && diagnostic.Field == "issued.x-date");
+            Assert.Contains(strict.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV127" && diagnostic.Field == "author.x-name");
+            Assert.Contains(strict.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV128" && diagnostic.Field == "issued.x-date");
         }
     }
 
@@ -61,7 +61,7 @@ public sealed class BibliographyReviewRemediationTests {
         document.Items.Add(item);
 
         BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical });
-        BibliographyConversionLossException strict = Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+        BibliographyConversionLossException strict = Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
         Assert.False(BibliographyDocument.Parse(written.Content, BibliographyFormat.BibLatex).HasErrors);
         Assert.DoesNotContain("custom id", written.Content, StringComparison.OrdinalIgnoreCase);
@@ -78,7 +78,7 @@ public sealed class BibliographyReviewRemediationTests {
     [InlineData("<xml><extension><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/></extension><records/></xml>", 80, false)]
     [InlineData("<xml xmlns:ext=\"urn:extension\"><records><record><rec-number>1</rec-number><ext:data><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/></ext:data></record></records></xml>", 80, false)]
     public void EndNote_XML_values_observe_the_value_length_limit(string source, int limit, bool requireLengthMessage) {
-        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml, new BibliographyReadOptions { MaximumValueLength = limit });
+        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml, new BibliographyReadOptions { MaxValueLength = limit });
 
         Assert.True(read.HasErrors);
         Assert.Contains(read.Diagnostics, diagnostic => diagnostic.Code == "BIBLIM001"
@@ -90,7 +90,7 @@ public sealed class BibliographyReviewRemediationTests {
     public void EndNote_limit_diagnostics_report_character_offsets() {
         const string source = "<xml>\r\n  <records>\r\n    <record>\r\n      <rec-number>1</rec-number>\r\n      <ref-type name=\"Book\">6</ref-type>\r\n      <titles><title>abcdef</title></titles>\r\n    </record>\r\n  </records>\r\n</xml>";
 
-        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml, new BibliographyReadOptions { MaximumValueLength = 5 });
+        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml, new BibliographyReadOptions { MaxValueLength = 5 });
 
         BibliographyDiagnostic diagnostic = Assert.Single(read.Diagnostics, static diagnostic => diagnostic.Code == "BIBLIM001");
         Assert.Equal(source.IndexOf("<title>", StringComparison.Ordinal), diagnostic.Offset);
@@ -100,7 +100,7 @@ public sealed class BibliographyReviewRemediationTests {
     public void Bib_native_entries_observe_the_value_count_limit() {
         const string source = "@comment{a}\n@comment{b}\n@comment{c}";
 
-        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.BibLatex, new BibliographyReadOptions { MaximumValueCount = 2 });
+        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.BibLatex, new BibliographyReadOptions { MaxValueCount = 2 });
 
         Assert.True(read.HasErrors);
         Assert.Contains(read.Diagnostics, diagnostic => diagnostic.Code == "BIBLIM001");
@@ -110,7 +110,7 @@ public sealed class BibliographyReviewRemediationTests {
     public void Bib_keyword_items_observe_the_value_count_limit() {
         const string source = "@book{x,keywords={alpha,beta,gamma}}";
 
-        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.BibLatex, new BibliographyReadOptions { MaximumValueCount = 4 });
+        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.BibLatex, new BibliographyReadOptions { MaxValueCount = 4 });
 
         Assert.True(read.HasErrors);
         Assert.Contains(read.Diagnostics, diagnostic => diagnostic.Code == "BIBLIM001");
@@ -120,7 +120,7 @@ public sealed class BibliographyReviewRemediationTests {
     public void Strict_canonical_write_rejects_partially_recovered_source() {
         BibliographyDocument document = BibliographyDocument.Parse("@book{a,title={A}}\n@book", BibliographyFormat.BibLatex).Document;
 
-        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
         Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV222");
     }
@@ -132,7 +132,7 @@ public sealed class BibliographyReviewRemediationTests {
     public void Strict_canonical_write_rejects_ignored_source_fragments(string source, BibliographyFormat format) {
         BibliographyDocument document = BibliographyDocument.Parse(source, format).Document;
 
-        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
         Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV222");
     }
@@ -144,7 +144,7 @@ public sealed class BibliographyReviewRemediationTests {
         item.Contributors.Add(new BibliographyContributor(BibliographyContributorRole.Author, new BibliographyName { Literal = "Research and Development Team" }));
         document.Items.Add(item);
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyContributor contributor = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.BibLatex).Document.Items[0].Contributors);
 
         Assert.Contains("{{Research and Development Team}}", written.Content, StringComparison.Ordinal);
@@ -155,7 +155,7 @@ public sealed class BibliographyReviewRemediationTests {
     public void Csl_keyword_delimiters_survive_strict_canonical_round_trip() {
         BibliographyDocument document = BibliographyDocument.Parse("[{\"id\":\"x\",\"type\":\"book\",\"keyword\":\"alpha, beta; gamma\"}]", BibliographyFormat.CslJson).Document;
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson).Document.Items);
 
         Assert.Equal("alpha, beta; gamma", Assert.Single(reopened.Keywords));
@@ -165,7 +165,7 @@ public sealed class BibliographyReviewRemediationTests {
     public void Empty_CSL_contributor_objects_count_toward_the_value_limit() {
         const string source = "[{\"id\":\"x\",\"type\":\"book\",\"author\":[{},{},{}]}]";
 
-        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.CslJson, new BibliographyReadOptions { MaximumValueCount = 4 });
+        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.CslJson, new BibliographyReadOptions { MaxValueCount = 4 });
 
         Assert.True(read.HasErrors);
         Assert.Contains(read.Diagnostics, diagnostic => diagnostic.Code == "BIBLIM001");
@@ -180,19 +180,19 @@ public sealed class BibliographyReviewRemediationTests {
 
         BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical });
         BibliographyConversionLossException strict = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
         BibliographyNativeField reopened = BibliographyDocument.Parse(written.Content, BibliographyFormat.EndNoteXml).Document.Items[0].NativeFields.Single(field => field.Name == "custom");
 
         Assert.Equal("edited", reopened.Value);
         Assert.Contains("<custom>edited</custom>", written.Content, StringComparison.Ordinal);
-        Assert.Contains(strict.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV234" && diagnostic.Field == "native.custom");
+        Assert.Contains(strict.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV234" && diagnostic.Field == "native.custom");
     }
 
     [Theory]
     [InlineData("TY  - BOOK\r\nTI  - abcde\r\nER  -\r\n", BibliographyFormat.Ris, "TI")]
     [InlineData("PMID- 1\r\nTI  - abcde\r\n", BibliographyFormat.Nbib, "TI")]
     public void Tagged_limit_diagnostics_report_character_offsets(string source, BibliographyFormat format, string failingTag) {
-        BibliographyReadResult read = BibliographyDocument.Parse(source, format, new BibliographyReadOptions { MaximumValueLength = 4 });
+        BibliographyReadResult read = BibliographyDocument.Parse(source, format, new BibliographyReadOptions { MaxValueLength = 4 });
 
         BibliographyDiagnostic diagnostic = Assert.Single(read.Diagnostics, static diagnostic => diagnostic.Code == "BIBLIM001");
         Assert.Equal(source.IndexOf(failingTag, StringComparison.Ordinal), diagnostic.Offset);
@@ -202,17 +202,17 @@ public sealed class BibliographyReviewRemediationTests {
     public void CSL_writer_rejects_native_values_that_require_nondefault_read_depth() {
         string nested = new string('[', 1010) + "0" + new string(']', 1010);
         string source = "[{\"id\":\"x\",\"type\":\"book\",\"custom\":" + nested + "}]";
-        var readOptions = new BibliographyReadOptions { MaximumNestingDepth = 1024 };
+        var readOptions = new BibliographyReadOptions { MaxNestingDepth = 1024 };
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.CslJson, readOptions).Document;
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
         BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical });
         BibliographyReadResult reopened = BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson);
 
         Assert.False(reopened.HasErrors);
         Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV247" || diagnostic.Code == "BIBCONV126");
-        Assert.Contains(written.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV126" && diagnostic.Field == "custom");
+        Assert.Contains(written.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV126" && diagnostic.Field == "custom");
     }
 
     [Fact]

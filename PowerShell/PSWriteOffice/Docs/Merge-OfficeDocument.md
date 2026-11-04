@@ -149,7 +149,7 @@ Accept wildcard characters: False
 ```
 
 ### -Password
-One source password reused for all files, or one password per resolved file in order.
+One source password reused for all files, or one password per resolved file in order; use $null for an unencrypted file in a per-file list.
 
 ```yaml
 Type: SecureString[]

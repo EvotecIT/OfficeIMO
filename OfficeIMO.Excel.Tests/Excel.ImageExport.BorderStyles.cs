@@ -11,16 +11,16 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Borders");
             for (int column = 1; column <= 5; column++) {
-                sheet.CellValue(1, column, "B" + column.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                sheet.Cell(1, column).SetValue("B" + column.ToString(System.Globalization.CultureInfo.InvariantCulture));
                 sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(11));
             }
 
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
-            sheet.CellAt(1, 1).SetBorder(ExcelBorderStyle.Dashed, "C00000");
-            sheet.CellAt(1, 2).SetBorder(ExcelBorderStyle.Dotted, "00A000");
-            sheet.CellAt(1, 3).SetBorder(ExcelBorderStyle.MediumDashDotDot, "004C99");
-            sheet.CellAt(1, 4).SetBorder(ExcelBorderStyle.Double, "C00000");
-            sheet.CellAt(1, 5).SetDiagonalBorder(ExcelBorderStyle.DashDotDot, "004C99", diagonalUp: true, diagonalDown: true);
+            sheet.Cell(1, 1).SetBorder(ExcelBorderStyle.Dashed, "C00000");
+            sheet.Cell(1, 2).SetBorder(ExcelBorderStyle.Dotted, "00A000");
+            sheet.Cell(1, 3).SetBorder(ExcelBorderStyle.MediumDashDotDot, "004C99");
+            sheet.Cell(1, 4).SetBorder(ExcelBorderStyle.Double, "C00000");
+            sheet.Cell(1, 5).SetDiagonalBorder(ExcelBorderStyle.DashDotDot, "004C99", diagonalUp: true, diagonalDown: true);
 
             ExcelRange range = sheet.Range("A1:E1");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();

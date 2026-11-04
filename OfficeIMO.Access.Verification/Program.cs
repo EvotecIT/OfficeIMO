@@ -60,9 +60,9 @@ using (AccessDataReader reader = contacts.OpenDataReader()) {
 database.Queries.Add("Names", "SELECT Name FROM Contacts;");
 AccessOperationReport assessment = database.AssessSave("contacts.accdb");
 assessment.RequireCurrent(database);
-ExpectUnsupported(() => assessment.RequireNoLoss());
+ExpectUnsupported(() => assessment.ThrowIfLoss());
 ExpectUnsupported(() => database.Save("contacts.accdb"));
-ExpectUnsupported(() => database.AssessSave("contacts.mdb", new AccessSaveOptions { LossPolicy = OfficeConversionLossPolicy.Block }).RequireNoLoss());
+ExpectUnsupported(() => database.AssessSave("contacts.mdb", new AccessSaveOptions { AllowLoss = false }).ThrowIfLoss());
 
 foreach (string file in new[] { "jet4.mdb", "ace12.accdb" }) {
     using AccessDocument source = await AccessDocument.LoadAsync(Path.Combine(corpus, file), new AccessLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });

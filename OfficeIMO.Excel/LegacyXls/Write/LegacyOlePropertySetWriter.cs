@@ -21,7 +21,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         private static byte[]? CreateSummaryInformation(ExcelDocument document) {
-            ExcelBuiltinDocumentProperties properties = document.BuiltinDocumentProperties;
+            ExcelBuiltinDocumentProperties properties = document.Properties;
             var oleProperties = new List<OfficeOleProperty> {
                 OfficeOleProperty.Int16(OfficeOlePropertySetWriter.CodePagePropertyId, 1200)
             };
@@ -46,20 +46,20 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             var documentSummaryProperties = new List<OfficeOleProperty> {
                 OfficeOleProperty.Int16(OfficeOlePropertySetWriter.CodePagePropertyId, 1200)
             };
-            OfficeOlePropertySetWriter.AddString(documentSummaryProperties, 2, document.BuiltinDocumentProperties.Category);
+            OfficeOlePropertySetWriter.AddString(documentSummaryProperties, 2, document.Properties.Category);
             OfficeOlePropertySetWriter.AddString(documentSummaryProperties, 14, document.ApplicationProperties.Manager);
             OfficeOlePropertySetWriter.AddString(documentSummaryProperties, 15, document.ApplicationProperties.Company);
             if (documentSummaryProperties.Count > 1) {
                 sections.Add((OfficeOlePropertySetWriter.DocumentSummaryInformationFormatId, OfficeOlePropertySetWriter.CreateSection(documentSummaryProperties)));
             }
 
-            if (document.CustomDocumentProperties.Count > 0) {
+            if (document.CustomProperties.Count > 0) {
                 var customProperties = new List<OfficeOleProperty> {
                     OfficeOleProperty.Int16(OfficeOlePropertySetWriter.CodePagePropertyId, 1200)
                 };
                 var dictionary = new Dictionary<uint, string>();
                 uint propertyId = 2;
-                foreach (KeyValuePair<string, ExcelCustomProperty> pair in document.CustomDocumentProperties.OrderBy(property => property.Key, StringComparer.OrdinalIgnoreCase)) {
+                foreach (KeyValuePair<string, ExcelCustomProperty> pair in document.CustomProperties.OrderBy(property => property.Key, StringComparer.OrdinalIgnoreCase)) {
                     if (TryCreateCustomProperty(propertyId, pair.Value, out OfficeOleProperty property)) {
                         dictionary[propertyId] = pair.Key;
                         customProperties.Add(property);

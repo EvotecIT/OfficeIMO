@@ -63,11 +63,11 @@ internal sealed class VisioConnectorNativeGeometry {
         OfficePoint start = connector.StartPoint, end = connector.EndPoint;
         (double scale, double angle) = GetTransform(connector);
         double cosine = Math.Cos(angle), sine = Math.Sin(angle);
-        double px = (_source.PinX - _start.X) * scale, py = (_source.PinY - _start.Y) * scale;
+        double px = (_source.PinXInches - _start.X) * scale, py = (_source.PinYInches - _start.Y) * scale;
         VisioShape shape = new("connector-geometry") {
-            PinX = start.X + px * cosine - py * sine, PinY = start.Y + px * sine + py * cosine,
-            Width = _source.Width * scale, Height = _source.Height * scale,
-            LocPinX = _source.LocPinX * scale, LocPinY = _source.LocPinY * scale, Angle = _source.Angle + angle
+            PinXInches = start.X + px * cosine - py * sine, PinYInches = start.Y + px * sine + py * cosine,
+            WidthInches = _source.WidthInches * scale, HeightInches = _source.HeightInches * scale,
+            LocPinXInches = _source.LocPinXInches * scale, LocPinYInches = _source.LocPinYInches * scale, Angle = _source.Angle + angle
         };
         foreach (XElement section in connector.PreservedGeometrySections) shape.PreservedGeometrySections.Add(new XElement(section));
         VisioGeometryScaling.Scale(shape, scale, scale, requireCompleteRows: requireCompleteRows);
@@ -75,7 +75,7 @@ internal sealed class VisioConnectorNativeGeometry {
     }
 
     internal (double X, double Y) ToPage(VisioShape shape, double x, double y) =>
-        shape.GetAbsolutePoint(_flipX ? shape.Width - x : x, _flipY ? shape.Height - y : y);
+        shape.GetAbsolutePoint(_flipX ? shape.WidthInches - x : x, _flipY ? shape.HeightInches - y : y);
 
     internal bool TryGetPoints(VisioConnector connector, out List<(double X, double Y)> points) {
         points = new();
@@ -135,8 +135,8 @@ internal static class VisioConnectorGeometry {
         OfficePoint start = connector.StartPoint, end = connector.EndPoint;
         double dx = end.X - start.X, dy = end.Y - start.Y, width = Math.Sqrt(dx * dx + dy * dy);
         VisioShape shape = new("connector-geometry") {
-            PinX = (start.X + end.X) / 2, PinY = (start.Y + end.Y) / 2, Width = width, Height = 0,
-            LocPinX = width / 2, LocPinY = 0, Angle = Math.Atan2(dy, dx)
+            PinXInches = (start.X + end.X) / 2, PinYInches = (start.Y + end.Y) / 2, WidthInches = width, HeightInches = 0,
+            LocPinXInches = width / 2, LocPinYInches = 0, Angle = Math.Atan2(dy, dx)
         };
         XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
         XElement section = VisioGeometrySection.CreateGenerated(ns, noFill: true);

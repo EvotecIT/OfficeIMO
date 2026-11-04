@@ -12,7 +12,7 @@ public sealed partial class IWorkBoundaryTests {
             imageBytes: ValidPreviewPng(), metadataOuterFieldCount: 2);
         IWorkSourceDocument source = IWorkSourceDocument.Open(package,
             IWorkDocumentKind.Pages,
-            new IWorkReadOptions { MaximumProjectedImages = 1 });
+            new IWorkReadOptions { MaxProjectedImages = 1 });
         IWorkArchiveRecord image = Assert.Single(source.Records,
             record => record.MessageType == 3005);
         var budget = new IWorkProjectionBudget(source.Options);
@@ -44,7 +44,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(
             1, rotation: 0.00001f);
 
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.Projection.HasEditableContent);
         Assert.True(result.IsVisualFallback);

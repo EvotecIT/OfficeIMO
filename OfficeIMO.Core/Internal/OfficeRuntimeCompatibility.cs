@@ -55,6 +55,15 @@ namespace OfficeIMO.Internal {
 #endif
         }
 
+        /// <summary>PBKDF2-HMAC-SHA1 is the one PBKDF2 digest netstandard2.0 exposes, so every framework derives the same value.</summary>
+        internal static byte[] DerivePbkdf2Sha1(byte[] password, byte[] salt, int iterations) {
+#if NET8_0_OR_GREATER
+            return Rfc2898DeriveBytes.Pbkdf2(password, salt, iterations, HashAlgorithmName.SHA1, 20);
+#else
+            using (var derivation = new Rfc2898DeriveBytes(password, salt, iterations)) return derivation.GetBytes(20);
+#endif
+        }
+
         internal static byte[] HashSha256(byte[] bytes, int offset, int count) {
             using (var algorithm = SHA256.Create()) return algorithm.ComputeHash(bytes, offset, count);
         }

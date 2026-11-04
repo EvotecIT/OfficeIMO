@@ -61,7 +61,7 @@ public sealed partial class ProjectDocument {
             throw new NotSupportedException("Global.mpt is an application-wide store, not a qualified document template.");
     }
     private static ProjectSaveOptions WithFormat(ProjectSaveOptions options, ProjectFileFormat format, bool? preserveBytes = null) => new ProjectSaveOptions {
-        Format = format, MpxEncoding = options.MpxEncoding, MpxSeparator = options.MpxSeparator, Indent = options.Indent, LossPolicy = options.LossPolicy, FileConflictPolicy = options.FileConflictPolicy,
+        Format = format, MpxEncoding = options.MpxEncoding, MpxSeparator = options.MpxSeparator, Indent = options.Indent, AllowLoss = options.AllowLoss, FileConflictPolicy = options.FileConflictPolicy,
         MaxOutputBytes = options.MaxOutputBytes, PreserveUnchangedBytes = preserveBytes ?? options.PreserveUnchangedBytes
     };
 
@@ -76,7 +76,7 @@ public sealed partial class ProjectDocument {
             return new ProjectReport(Revision, retained);
         }
         if (format == ProjectFileFormat.Mpx4 && ProjectMpxWriter.CanRetain(this, options)) return ProjectMpxWriter.Plan(this, options, false, token).Report;
-        var diagnostics = Validate(token).Diagnostics.ToList();
+        var diagnostics = Validate(token).NativeDiagnostics.ToList();
         if (format == ProjectFileFormat.Xml) AddXmlRangeDiagnostics(diagnostics, token);
         if (format == ProjectFileFormat.Xml) {
             foreach (var task in AllTasks) {
@@ -93,12 +93,12 @@ public sealed partial class ProjectDocument {
         if (format == ProjectFileFormat.Mpx4) {
             diagnostics.RemoveAll(d => d.Code == "PROJECT_OPAQUE_REFERENCES");
             if (includeWriterPlan && !diagnostics.Any(d => d.Severity == ProjectDiagnosticSeverity.Error))
-                diagnostics.AddRange(ProjectMpxWriter.Plan(this, WithFormat(options, format), false, token).Report.Diagnostics);
+                diagnostics.AddRange(ProjectMpxWriter.Plan(this, WithFormat(options, format), false, token).Report.NativeDiagnostics);
         } else if (IsNativeFormat(format)) {
             diagnostics.RemoveAll(d => d.Code == "PROJECT_OPAQUE_REFERENCES");
             if (MpxSource != null) diagnostics.AddRange(MpxSource.Unmodeled.Select(d => new ProjectDiagnostic("PROJECT_MPX_CONVERSION_LOSS", ProjectDiagnosticSeverity.Warning, d.Message + " This source content is omitted during conversion.", d.Location, OfficeConversionLossKind.Omission)));
             if (includeWriterPlan && !diagnostics.Any(d => d.Severity == ProjectDiagnosticSeverity.Error))
-                diagnostics.AddRange(ProjectNativeWriter.Plan(this, WithFormat(options, format), false, token).Report.Diagnostics);
+                diagnostics.AddRange(ProjectNativeWriter.Plan(this, WithFormat(options, format), false, token).Report.NativeDiagnostics);
         } else if (NativeSource != null) {
             if (Settings.CurrencyCode == null) diagnostics.Add(new ProjectDiagnostic("PROJECT_CURRENCY_CODE", ProjectDiagnosticSeverity.Error,
                 "Set a currency code before converting this native project to MSPDI.", "/Project/CurrencyCode"));

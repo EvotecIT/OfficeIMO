@@ -10989,6 +10989,14 @@
       "origins": [
         "OfficeIMO.Core/OfficeImageExportDiagnosticCodes.cs:27"
       ]
+    },
+    {
+      "oldCode": "image-codec-unavailable",
+      "catalogCode": "image-codec-unavailable",
+      "member": "ImageCodecUnavailable",
+      "origins": [
+        "OfficeIMO.Core/Raster/OfficeRasterImageCodecs.cs"
+      ]
     }
   ],
   "dynamicPatterns": [

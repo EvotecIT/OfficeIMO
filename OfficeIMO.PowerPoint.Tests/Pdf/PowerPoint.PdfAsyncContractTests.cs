@@ -27,11 +27,11 @@ public sealed class PowerPointPdfAsyncContractTests {
     [Fact]
     public async Task PdfImportAsyncPassesCancellationIntoSemanticReconstruction() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Cancellation probe"))
+            .Paragraph(paragraph => paragraph.AddText("Cancellation probe"))
             .ToBytes();
         using var cancellation = new CancellationTokenSource();
         var stage = new CancelingSemanticStage(cancellation);
-        var options = PowerPointPdfImportOptions.CreateEditableTables();
+        var options = PdfPowerPointExportOptions.CreateEditableTables();
         options.ReadOptions = new PdfLoadOptions {
             Pipeline = new PdfUnderstandingPipelineOptions { SemanticClassification = stage }
         };
@@ -46,10 +46,10 @@ public sealed class PowerPointPdfAsyncContractTests {
     [Fact]
     public async Task PdfImportAsyncPassesMethodCancellationIntoSaveStage() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Save cancellation probe"))
+            .Paragraph(paragraph => paragraph.AddText("Save cancellation probe"))
             .ToBytes();
         using var cancellation = new CancellationTokenSource();
-        var options = PowerPointPdfImportOptions.CreateEditableContent();
+        var options = PdfPowerPointExportOptions.CreateEditableContent();
         using var output = new CancelOnWriteStream(cancellation);
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
@@ -61,12 +61,12 @@ public sealed class PowerPointPdfAsyncContractTests {
     [Fact]
     public void LogicalPdfImportHonorsMethodCancellation() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Logical cancellation probe"))
+            .Paragraph(paragraph => paragraph.AddText("Logical cancellation probe"))
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocument.Load(pdf).Read();
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
-        var options = PowerPointPdfImportOptions.CreateEditableTables();
+        var options = PdfPowerPointExportOptions.CreateEditableTables();
 
         Assert.ThrowsAny<OperationCanceledException>(() =>
             logical.ConvertToPowerPointWithEvidence(options, cancellation.Token));

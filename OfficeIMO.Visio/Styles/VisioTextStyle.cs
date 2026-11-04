@@ -88,7 +88,7 @@ namespace OfficeIMO.Visio {
         }
 
         /// <summary>Horizontal text alignment.</summary>
-        public VisioTextHorizontalAlignment? HorizontalAlignment { get; set; }
+        public OfficeAlignment? HorizontalAlignment { get; set; }
 
         /// <summary>Vertical text alignment.</summary>
         public VisioTextVerticalAlignment? VerticalAlignment { get; set; }

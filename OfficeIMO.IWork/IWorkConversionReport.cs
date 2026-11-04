@@ -1,7 +1,7 @@
 namespace OfficeIMO.IWork;
 
 /// <summary>Loss-aware summary of one iWork-to-OfficeIMO projection.</summary>
-public sealed class IWorkConversionReport : global::OfficeIMO.IOfficeConversionReport {
+public sealed class IWorkConversionReport : OfficeConversionReport {
     internal IWorkConversionReport(IWorkDocumentKind sourceKind, IWorkProjectionKind projectionKind,
         IReadOnlyList<string> buildVersions, IReadOnlyList<IWorkArchiveRecord> preservedRecords,
         IReadOnlyList<IWorkDiagnostic> diagnostics, IWorkPreviewAsset? visualPreview,
@@ -15,7 +15,7 @@ public sealed class IWorkConversionReport : global::OfficeIMO.IOfficeConversionR
         ProjectionKind = projectionKind;
         BuildVersions = Array.AsReadOnly(buildVersions.ToArray());
         PreservedRecords = Array.AsReadOnly(preservedRecords.ToArray());
-        Diagnostics = Array.AsReadOnly(diagnostics.ToArray());
+        NativeDiagnostics = Array.AsReadOnly(diagnostics.ToArray());
         VisualPreview = visualPreview;
         TotalRecordCount = totalRecordCount;
         PreservedRecordCount = preservedRecordCount;
@@ -28,58 +28,71 @@ public sealed class IWorkConversionReport : global::OfficeIMO.IOfficeConversionR
         SourceReferenceIssues = Array.AsReadOnly((sourceReferenceIssues ?? Array.Empty<IWorkSourceReferenceIssue>()).ToArray());
         SourceDeclarationIssues = Array.AsReadOnly((sourceDeclarationIssues ?? Array.Empty<IWorkSourceDeclarationIssue>()).ToArray());
         SourceCellIssues = Array.AsReadOnly((sourceCellIssues ?? Array.Empty<IWorkSourceCellIssue>()).ToArray());
-        var fidelityDiagnostics = new List<global::OfficeIMO.OfficeConversionFidelityDiagnostic>();
-        foreach (IWorkDiagnostic diagnostic in Diagnostics) {
-            fidelityDiagnostics.Add(new global::OfficeIMO.OfficeConversionFidelityDiagnostic(
+        var fidelityDiagnostics = new List<OfficeDiagnostic>();
+        foreach (IWorkDiagnostic diagnostic in NativeDiagnostics) {
+            fidelityDiagnostics.Add(new global::OfficeIMO.OfficeDiagnostic(
                 diagnostic.Code,
+                diagnostic.LossKind == global::OfficeIMO.OfficeConversionLossKind.None ? global::OfficeIMO.OfficeDiagnosticSeverity.Information : global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
                 diagnostic.Message,
-                diagnostic.LossKind,
+                diagnostic.EntryPath,
                 "OfficeIMO.IWork",
-                diagnostic.EntryPath));
+                diagnostic.LossKind));
         }
         if (ProjectionKind == IWorkProjectionKind.VisualFallback) {
-            fidelityDiagnostics.Add(new global::OfficeIMO.OfficeConversionFidelityDiagnostic(
+            fidelityDiagnostics.Add(new global::OfficeIMO.OfficeDiagnostic(
                 "IWORK_VISUAL_FALLBACK",
+                global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
                 "The source was represented by a visual preview instead of editable reconstruction.",
+                null,
+                "OfficeIMO.IWork",
                 VisualPreview?.Coverage == IWorkVisualCoverage.FullDocument
                     ? global::OfficeIMO.OfficeConversionLossKind.Approximation
-                    : global::OfficeIMO.OfficeConversionLossKind.Omission,
-                "OfficeIMO.IWork"));
+                    : global::OfficeIMO.OfficeConversionLossKind.Omission));
         }
         if (UnassessedRecordCount > 0) {
-            fidelityDiagnostics.Add(new global::OfficeIMO.OfficeConversionFidelityDiagnostic(
+            fidelityDiagnostics.Add(new global::OfficeIMO.OfficeDiagnostic(
                 "IWORK_RECORD_FIDELITY_UNASSESSED",
+                global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
                 UnassessedRecordCount + " source record(s) remain available for preservation, but record-level fidelity has not been assessed. This count is not a count of omitted content.",
-                global::OfficeIMO.OfficeConversionLossKind.Unassessed,
-                "OfficeIMO.IWork"));
+                null,
+                "OfficeIMO.IWork",
+                global::OfficeIMO.OfficeConversionLossKind.Unassessed));
         }
         if (SourceReferenceIssues.Count > 0) {
-            fidelityDiagnostics.Add(new global::OfficeIMO.OfficeConversionFidelityDiagnostic(
+            fidelityDiagnostics.Add(new global::OfficeIMO.OfficeDiagnostic(
                 "IWORK_SOURCE_REFERENCES_UNRESOLVED",
+                global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
                 SourceReferenceIssues.Count + " declared reference occurrence(s) in assessed content paths could not be resolved. These occurrences do not identify omitted objects or establish visual coverage.",
-                global::OfficeIMO.OfficeConversionLossKind.Unassessed,
-                "OfficeIMO.IWork"));
+                null,
+                "OfficeIMO.IWork",
+                global::OfficeIMO.OfficeConversionLossKind.Unassessed));
         }
         if (SourceDeclarationIssues.Count > 0) {
-            fidelityDiagnostics.Add(new global::OfficeIMO.OfficeConversionFidelityDiagnostic(
+            fidelityDiagnostics.Add(new global::OfficeIMO.OfficeDiagnostic(
                 "IWORK_SOURCE_DECLARATIONS_UNASSESSED",
+                global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
                 SourceDeclarationIssues.Count + " selected source path(s) contain unreadable, rejected or unsupported declarations. Their nested references and content coverage remain unknown; these are not omitted-object counts.",
-                global::OfficeIMO.OfficeConversionLossKind.Unassessed,
-                "OfficeIMO.IWork"));
+                null,
+                "OfficeIMO.IWork",
+                global::OfficeIMO.OfficeConversionLossKind.Unassessed));
         }
         if (SourceCellIssues.Count > 0) {
-            fidelityDiagnostics.Add(new global::OfficeIMO.OfficeConversionFidelityDiagnostic(
+            fidelityDiagnostics.Add(new global::OfficeIMO.OfficeDiagnostic(
                 "IWORK_SOURCE_CELLS_UNDECODED",
+                global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
                 SourceCellIssues.Count + " materialized selected cell(s) could not be decoded. Their source contents remain unassessed; this is not a count of omitted cells or unreadable storage entries.",
-                global::OfficeIMO.OfficeConversionLossKind.Unassessed,
-                "OfficeIMO.IWork"));
+                null,
+                "OfficeIMO.IWork",
+                global::OfficeIMO.OfficeConversionLossKind.Unassessed));
         }
         if (FormulaSummary.UnassessedExpressionCount > 0) {
-            fidelityDiagnostics.Add(new global::OfficeIMO.OfficeConversionFidelityDiagnostic(
+            fidelityDiagnostics.Add(new global::OfficeIMO.OfficeDiagnostic(
                 "IWORK_FORMULA_CELLS_UNASSESSED",
+                global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
                 "Supported cell headers declare formulas whose contents could not be decoded; their expressions and caches remain unassessed.",
-                global::OfficeIMO.OfficeConversionLossKind.Unassessed,
-                "OfficeIMO.IWork"));
+                null,
+                "OfficeIMO.IWork",
+                global::OfficeIMO.OfficeConversionLossKind.Unassessed));
         }
         FidelityDiagnostics = fidelityDiagnostics.AsReadOnly();
     }
@@ -93,9 +106,10 @@ public sealed class IWorkConversionReport : global::OfficeIMO.IOfficeConversionR
     /// <summary>Gets source IWA payloads retained for inspection, including consumed, partially consumed, and auxiliary records. Presence here does not imply content was omitted.</summary>
     public IReadOnlyList<IWorkArchiveRecord> PreservedRecords { get; }
     /// <summary>Gets parser and projection diagnostics.</summary>
-    public IReadOnlyList<IWorkDiagnostic> Diagnostics { get; }
+    public IReadOnlyList<IWorkDiagnostic> NativeDiagnostics { get; }
     /// <summary>Gets category-preserving diagnostics for downstream acceptance policies.</summary>
-    public IReadOnlyList<global::OfficeIMO.OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics { get; }
     /// <summary>Gets the preview used by visual fallback, when applicable.</summary>
     public IWorkPreviewAsset? VisualPreview { get; }
     /// <summary>Gets the total number of IWA payload records in the source.</summary>
@@ -121,13 +135,13 @@ public sealed class IWorkConversionReport : global::OfficeIMO.IOfficeConversionR
     /// <summary>Gets aggregate source expression/cache assessment, including unassessed declared formulas. Unknown headers and inactive table records are excluded.</summary>
     public IWorkFormulaSummary FormulaSummary { get; }
     /// <summary>Gets whether any typed fidelity diagnostic reports omission, approximation, failure, or unassessed fidelity.</summary>
-    public bool HasLoss => FidelityDiagnostics.Any(static diagnostic =>
+    public override bool HasLoss => FidelityDiagnostics.Any(static diagnostic =>
         diagnostic.LossKind != global::OfficeIMO.OfficeConversionLossKind.None);
     /// <summary>Gets whether the parser or semantic projection reported an error diagnostic.</summary>
-    public bool HasErrors => Diagnostics.Any(diagnostic => diagnostic.Severity == IWorkDiagnosticSeverity.Error);
+    public bool HasErrors => NativeDiagnostics.Any(diagnostic => diagnostic.Severity == IWorkDiagnosticSeverity.Error);
     /// <summary>Gets whether editable output needed the partial-reconstruction policy, including known source or destination omissions.</summary>
     public bool IsPartialEditableReconstruction => ProjectionKind == IWorkProjectionKind.EditableReconstruction
-        && Diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_PARTIAL_EDITABLE_RECONSTRUCTION"
+        && NativeDiagnostics.Any(diagnostic => diagnostic.Code == "IWORK_PARTIAL_EDITABLE_RECONSTRUCTION"
             || diagnostic.LossKind == global::OfficeIMO.OfficeConversionLossKind.Omission);
 
     /// <summary>Throws unless the output is an editable reconstruction without explicitly partial content.</summary>
@@ -162,16 +176,11 @@ public sealed class IWorkConversionReport : global::OfficeIMO.IOfficeConversionR
     public IWorkConversionReport RequireNoErrors() {
         if (HasErrors) {
             throw new InvalidOperationException("The iWork conversion reported errors: "
-                + string.Join("; ", Diagnostics.Where(diagnostic => diagnostic.Severity == IWorkDiagnosticSeverity.Error).Take(8)));
+                + string.Join("; ", NativeDiagnostics.Where(diagnostic => diagnostic.Severity == IWorkDiagnosticSeverity.Error).Take(8)));
         }
         return this;
     }
 
     /// <summary>Throws when any typed fidelity diagnostic reports omission, approximation, failure, or unassessed fidelity.</summary>
-    public void RequireNoLoss() {
-        if (HasLoss) {
-            throw new InvalidOperationException(
-                "The iWork conversion contains a typed fidelity diagnostic reporting omission, approximation, failure, or unassessed fidelity.");
-        }
-    }
+    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("The iWork conversion contains a typed fidelity diagnostic reporting omission, approximation, failure, or unassessed fidelity.", this);
 }

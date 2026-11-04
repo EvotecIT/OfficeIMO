@@ -1,0 +1,14 @@
+{
+  "package": "OfficeIMO.Latex",
+  "changes": [
+    {
+      "old": "OfficeIMO.Latex.LatexParseOptions Maximum* properties",
+      "kind": "property",
+      "action": "rename",
+      "new": "Max* (MaxInputLength, MaxInputBytes, MaxTokenCount, MaxNestingDepth, MaxExpansionDepth, MaxExpansionLength, MaxExpansionInputLength, MaxExpansionTokenCount)",
+      "category": "limits",
+      "reason": "Load and parse budgets use one Max vocabulary and sit under a discoverable Limits object.",
+      "applied": true
+    }
+  ]
+}

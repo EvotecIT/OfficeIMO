@@ -76,7 +76,7 @@ public partial class PdfComplianceAnalyzerTests {
             .ConfigureFacturXGroundwork(CreateCiiXml())
             .SetEmbeddedFileModificationDate("factur-x.xml", new DateTimeOffset(2026, 8, 24, 8, 30, 0, TimeSpan.Zero));
         byte[] pdf = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("Factur-X invoice"))
+            .Paragraph(paragraph => paragraph.AddText("Factur-X invoice"))
             .ToBytes();
 
         PdfComplianceReadinessReport report = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.FacturX, pdf);
@@ -95,7 +95,7 @@ public partial class PdfComplianceAnalyzerTests {
             .SetSrgbOutputIntent()
             .AddEmbeddedFile("terms.pdf", Encoding.UTF8.GetBytes("%PDF-1.7\n"), "application/pdf", PdfAssociatedFileRelationship.Data);
         byte[] pdf = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("Factur-X invoice shell"))
+            .Paragraph(paragraph => paragraph.AddText("Factur-X invoice shell"))
             .ToBytes();
 
         PdfComplianceReadinessReport report = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.FacturX, pdf);

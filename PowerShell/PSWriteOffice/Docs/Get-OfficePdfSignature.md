@@ -11,7 +11,7 @@ Gets lightweight PDF signature structure and preservation validation.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Get-OfficePdfSignature [-Path] <string> [-Password <string>] [-IgnorePermissionRestrictions] [<CommonParameters>]
+Get-OfficePdfSignature [-Path] <string> [-Password <securestring>] [-IgnorePermissionRestrictions] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -51,7 +51,7 @@ Accept wildcard characters: False
 Password used to inspect a Standard password-encrypted PDF.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

@@ -15,11 +15,11 @@ namespace OfficeIMO.Tests {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("SubtotalArgs");
                     for (int row = 1; row <= 31; row++) {
-                        sheet.CellValue(row, 1, row);
+                        sheet.Cell(row, 1).SetValue(row);
                     }
 
-                    sheet.CellValue(1, 2, 496d);
-                    sheet.CellFormula(1, 2, formula);
+                    sheet.Cell(1, 2).SetValue(496d);
+                    sheet.Cell(1, 2).SetFormula(formula);
 
                     document.Save(xlsOutputPath);
                 }

@@ -362,7 +362,7 @@ namespace OfficeIMO.Visio.Diagrams {
             ResolveRange(out DateTime start, out DateTime end);
             EnsurePageCanFit();
 
-            VisioPage page = _document.AddPage(_pageName, _pageWidth, _pageHeight, _unit);
+            VisioPage page = _document.AddPageInches(_pageName, _pageWidth, _pageHeight, _unit);
             page.Grid(visible: false, snap: true);
             AddAxis(page, start, end);
             AddSpans(page, start, end);
@@ -435,7 +435,7 @@ namespace OfficeIMO.Visio.Diagrams {
             }
 
             double y = _pageHeight - _topMargin - (_titleHeight / 2D);
-            VisioShape title = page.AddTextBox(_titleId, _pageWidth / 2D, y, Math.Max(1D, _pageWidth - _leftMargin - _rightMargin), _titleHeight, _titleText, _unit);
+            VisioShape title = page.AddTextBoxInches(_titleId, _pageWidth / 2D, y, Math.Max(1D, _pageWidth - _leftMargin - _rightMargin), _titleHeight, _titleText, _unit);
             title.TextStyle = CreateTitleTextStyle();
             VisioSemanticUserCells.MarkGeneratedAdornment(title);
         }
@@ -444,7 +444,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
         private void AddAxis(VisioPage page, DateTime start, DateTime end) {
             double width = TimelineWidth();
-            VisioShape axis = page.AddStencilShape(VisioStencils.Timeline, "time.axis", "timeline-axis", _leftMargin + (width / 2D), _axisY, width, _axisHeight, string.Empty);
+            VisioShape axis = page.AddStencilShapeInches(VisioStencils.Timeline, "time.axis", "timeline-axis", _leftMargin + (width / 2D), _axisY, width, _axisHeight, string.Empty);
             _theme.Emphasis.ApplyTo(axis);
 
             AddTick(page, "timeline-start", start, start);
@@ -457,7 +457,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 x = _pageWidth - _rightMargin;
             }
 
-            VisioShape label = page.AddStencilShape(VisioStencils.Timeline, "time.label", id + "-label", x, _axisY - 0.42D, 1.05, 0.28, FormatShortDate(date));
+            VisioShape label = page.AddStencilShapeInches(VisioStencils.Timeline, "time.label", id + "-label", x, _axisY - 0.42D, 1.05, 0.28, FormatShortDate(date));
             _theme.Container.ApplyTo(label);
         }
 
@@ -467,7 +467,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 double endX = DateX(span.End, start, end);
                 double width = Math.Max(0.28D, endX - startX);
                 double y = SpanY(span);
-                VisioShape shape = page.AddStencilShape(VisioStencils.Timeline, "time.span", span.Id, startX + (width / 2D), y, width, _spanHeight, span.Text);
+                VisioShape shape = page.AddStencilShapeInches(VisioStencils.Timeline, "time.span", span.Id, startX + (width / 2D), y, width, _spanHeight, span.Text);
                 _theme.Primary.ApplyTo(shape);
                 span.Shape = shape;
             }
@@ -492,11 +492,11 @@ namespace OfficeIMO.Visio.Diagrams {
                     ? markerY + (_milestoneSize / 2D) + _labelGap + (_labelHeight / 2D) + (level * (_labelHeight + _labelGap))
                     : markerY - (_milestoneSize / 2D) - _labelGap - (_labelHeight / 2D) - (level * (_labelHeight + _labelGap));
 
-                VisioShape marker = page.AddStencilShape(VisioStencils.Timeline, GetMarkerStencilId(milestone.Kind), milestone.Id, x, markerY, _milestoneSize, _milestoneSize, string.Empty);
+                VisioShape marker = page.AddStencilShapeInches(VisioStencils.Timeline, GetMarkerStencilId(milestone.Kind), milestone.Id, x, markerY, _milestoneSize, _milestoneSize, string.Empty);
                 GetMilestoneStyle(milestone.Kind).ApplyTo(marker);
                 milestone.MarkerShape = marker;
 
-                VisioShape label = page.AddStencilShape(VisioStencils.Timeline, "time.label", GetMilestoneLabelId(milestone.Id), x, labelY, _labelWidth, _labelHeight, GetMilestoneText(milestone));
+                VisioShape label = page.AddStencilShapeInches(VisioStencils.Timeline, "time.label", GetMilestoneLabelId(milestone.Id), x, labelY, _labelWidth, _labelHeight, GetMilestoneText(milestone));
                 GetMilestoneLabelStyle(milestone.Kind).ApplyTo(label);
             }
         }
@@ -509,9 +509,9 @@ namespace OfficeIMO.Visio.Diagrams {
                 }
 
                 if (callout.UsePlacement) {
-                    page.AddCallout(target, callout.Id, callout.Text, callout.Placement, callout.Gap, callout.Options);
+                    page.AddCalloutInches(target, callout.Id, callout.Text, callout.Placement, callout.Gap, callout.Options);
                 } else {
-                    page.AddCallout(target, callout.Id, callout.Text, callout.PinX, callout.PinY, callout.Options);
+                    page.AddCalloutInches(target, callout.Id, callout.Text, callout.PinX, callout.PinY, callout.Options);
                 }
             }
         }
@@ -528,10 +528,10 @@ namespace OfficeIMO.Visio.Diagrams {
 
             double horizontalMargin = Math.Min(_leftMargin, _rightMargin).ToInches(_unit);
             double verticalMargin = Math.Min(_topMargin, _bottomMargin).ToInches(_unit);
-            bool overflows = bounds.Left < horizontalMargin ||
-                             bounds.Bottom < verticalMargin ||
-                             bounds.Right > page.Width - horizontalMargin ||
-                             bounds.Top > page.Height - verticalMargin;
+            bool overflows = bounds.LeftInches < horizontalMargin ||
+                             bounds.BottomInches < verticalMargin ||
+                             bounds.RightInches > page.WidthInches - horizontalMargin ||
+                             bounds.TopInches > page.HeightInches - verticalMargin;
             if (overflows) {
                 page.FitToContent(horizontalMargin, verticalMargin);
             }

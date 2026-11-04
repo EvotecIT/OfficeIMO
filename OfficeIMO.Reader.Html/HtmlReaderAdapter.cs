@@ -141,7 +141,7 @@ internal static partial class HtmlReaderAdapter {
 
     private static HtmlConversionDocumentOptions CreateConversionOptions(ReaderHtmlOptions options, Uri? projectionBaseUri) {
         HtmlConversionDocumentOptions conversionOptions = options.ConversionOptions?.Clone()
-            ?? HtmlConversionDocumentOptions.CreateUntrustedProfile();
+            ?? HtmlConversionDocumentOptions.UntrustedDefaults;
         conversionOptions.UseBodyContentsOnly = false;
         conversionOptions.IncludeNormalizedHtml = false;
         if (projectionBaseUri != null) conversionOptions.BaseUri = projectionBaseUri;

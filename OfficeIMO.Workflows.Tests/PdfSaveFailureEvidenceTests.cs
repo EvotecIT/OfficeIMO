@@ -18,7 +18,7 @@ public sealed class PdfSaveFailureEvidenceTests {
             string input = Path.Combine(root, "source" + extension), output = Path.Combine(root, "result.pdf");
             const string text = "مرحبا";
             if (extension == ".docx") { using var word = WordDocument.Create(input); word.AddParagraph(text); word.Save(); }
-            else if (extension == ".xlsx") { using var excel = ExcelDocument.Create(input); excel.AddSheet("Unicode").CellValue(1, 1, text); excel.Save(); }
+            else if (extension == ".xlsx") { using var excel = ExcelDocument.Create(input); excel.AddSheet("Unicode").Cell(1, 1).SetValue(text); excel.Save(); }
             else if (extension == ".pptx") { using var ppt = PowerPointDocument.Create(input); ppt.AddSlide().AddTextBox(text); ppt.Save(); }
             else {
                 var drawing = OdgDocument.Create();
@@ -43,7 +43,7 @@ public sealed class PdfSaveFailureEvidenceTests {
             Assert.False(result.Succeeded);
             var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
             const string encodingCode = "unsupported-text-glyph";
-            Assert.Contains(evidence.FidelityDiagnostics, finding => finding.Code == encodingCode);
+            Assert.Contains(evidence.Diagnostics, finding => finding.Code == encodingCode);
             Assert.Contains(result.Diagnostics, finding => finding.Code == encodingCode);
             Assert.Equal(source, File.ReadAllBytes(input));
             Assert.Equal(destination, File.ReadAllBytes(output));

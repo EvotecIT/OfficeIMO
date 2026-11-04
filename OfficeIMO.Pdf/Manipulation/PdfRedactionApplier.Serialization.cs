@@ -5,7 +5,7 @@ internal static partial class PdfRedactionApplier {
     private static byte[] RewriteAllObjects(
         Dictionary<int, PdfIndirectObject> objects,
         int catalogObjectNumber,
-        PdfMetadata metadata,
+        PdfDocumentProperties metadata,
         byte[] sourcePdf,
         PdfMutationPlan? mutationPlan = null,
         PdfRedactionSearchCriteria[]? searchCriteria = null,

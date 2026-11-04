@@ -10,11 +10,11 @@ public sealed class ExcelSheetCopyMoveWorkflowTests {
     [Fact]
     public void NativeSourcesKeepSelectedSheetReferencesAndMoveUsesOneBasedPositions() {
         using var target = ExcelDocument.Create();
-        target.AddSheet("Summary").CellValue(1, 1, "Keep");
+        target.AddSheet("Summary").Cell(1, 1).SetValue("Keep");
         using var source = ExcelDocument.Create();
-        source.AddSheet("Sales West").CellValue(1, 1, 42);
-        source.AddSheet("Sales Total").CellFormula(1, 1, "'Sales West'!A1");
-        source.AddSheet("Other").CellValue(1, 1, "Do not import");
+        source.AddSheet("Sales West").Cell(1, 1).SetValue(42);
+        source.AddSheet("Sales Total").Cell(1, 1).SetFormula("'Sales West'!A1");
+        source.AddSheet("Other").Cell(1, 1).SetValue("Do not import");
         using var runspace = Open();
         runspace.SessionStateProxy.SetVariable("book", target);
         runspace.SessionStateProxy.SetVariable("source", PSObject.AsPSObject(source));
@@ -23,9 +23,9 @@ public sealed class ExcelSheetCopyMoveWorkflowTests {
             .Select(item => Assert.IsType<ExcelSheet>(item.BaseObject)).ToArray();
         Assert.Equal(new[] { "Imported Sales West", "Imported Sales Total" }, copied.Select(sheet => sheet.Name));
         Assert.All(copied, sheet => Assert.Same(target, sheet.Document));
-        Assert.Contains("Imported Sales West", copied[1].CellAt(1, 1).GetValue().Formula);
-        Assert.Equal(42, copied[0].CellAt(1, 1).GetValue<int>());
-        Assert.Equal("Keep", target["Summary"].CellAt(1, 1).GetValue<string>());
+        Assert.Contains("Imported Sales West", copied[1].Cell(1, 1).GetValue().Formula);
+        Assert.Equal(42, copied[0].Cell(1, 1).GetValue<int>());
+        Assert.Equal("Keep", target["Summary"].Cell(1, 1).GetValue<string>());
         Assert.Equal(3, source.Sheets.Count);
         runspace.SessionStateProxy.SetVariable("copied", copied[1]);
         Assert.Empty(Invoke(runspace, "$book | Move-OfficeExcelSheet -Sheet $copied -Position 1 -WhatIf"));
@@ -38,9 +38,9 @@ public sealed class ExcelSheetCopyMoveWorkflowTests {
         saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         Assert.Equal("Imported Sales Total", reopened.Sheets[0].Name);
-        Assert.Contains("Imported Sales West", reopened.Sheets[0].CellAt(1, 1).GetValue().Formula);
-        Assert.Equal(42, reopened["Imported Sales West"].CellAt(1, 1).GetValue<int>());
-        Assert.Equal(42, source["Sales West"].CellAt(1, 1).GetValue<int>());
+        Assert.Contains("Imported Sales West", reopened.Sheets[0].Cell(1, 1).GetValue().Formula);
+        Assert.Equal(42, reopened["Imported Sales West"].Cell(1, 1).GetValue<int>());
+        Assert.Equal(42, source["Sales West"].Cell(1, 1).GetValue<int>());
     }
 
     [Theory]
@@ -54,11 +54,11 @@ public sealed class ExcelSheetCopyMoveWorkflowTests {
             string targetPath = Path.Combine(root, "target[1].xlsx");
             string sourcePath = Path.Combine(root, "source[1].xlsx");
             using (var target = ExcelDocument.Create()) {
-                target.AddSheet("Summary").CellValue(1, 1, "Keep");
+                target.AddSheet("Summary").Cell(1, 1).SetValue("Keep");
                 target.Save(targetPath);
             }
             using (var source = ExcelDocument.Create()) {
-                source.AddSheet("Incoming").CellValue(1, 1, "Imported");
+                source.AddSheet("Incoming").Cell(1, 1).SetValue("Imported");
                 source.Save(sourcePath);
             }
             byte[] before = File.ReadAllBytes(targetPath);
@@ -75,14 +75,14 @@ public sealed class ExcelSheetCopyMoveWorkflowTests {
             ExcelSheet copy = Assert.IsType<ExcelSheet>(Assert.Single(Invoke(runspace,
                 command + arguments + " -Confirm:$false")).BaseObject);
             using (copy.Document) {
-                Assert.Equal("Imported", copy.CellAt(1, 1).GetValue<string>());
-                Assert.Equal("Keep", copy.Document["Summary"].CellAt(1, 1).GetValue<string>());
-                copy.CellValue(2, 1, "Still open");
+                Assert.Equal("Imported", copy.Cell(1, 1).GetValue<string>());
+                Assert.Equal("Keep", copy.Document["Summary"].Cell(1, 1).GetValue<string>());
+                copy.Cell(2, 1).SetValue("Still open");
                 copy.Document.Save();
             }
             using var reopened = ExcelDocument.Load(targetPath);
-            Assert.Equal("Imported", reopened["Copied"].CellAt(1, 1).GetValue<string>());
-            Assert.Equal("Still open", reopened["Copied"].CellAt(2, 1).GetValue<string>());
+            Assert.Equal("Imported", reopened["Copied"].Cell(1, 1).GetValue<string>());
+            Assert.Equal("Still open", reopened["Copied"].Cell(2, 1).GetValue<string>());
             Assert.Equal(sourceBefore, File.ReadAllBytes(sourcePath));
         } finally { Directory.Delete(root, recursive: true); }
     }
@@ -95,7 +95,7 @@ public sealed class ExcelSheetCopyMoveWorkflowTests {
     public void InvalidSelectionsFailBeforeChangingTheWorkbook(string command) {
         using var target = ExcelDocument.Create();
         var keep = target.AddSheet("Keep");
-        keep.CellValue(1, 1, "Unchanged");
+        keep.Cell(1, 1).SetValue("Unchanged");
         using var source = ExcelDocument.Create();
         source.AddSheet("First");
         source.AddSheet("Second");
@@ -109,7 +109,7 @@ public sealed class ExcelSheetCopyMoveWorkflowTests {
         Exception? error = Record.Exception(() => shell.Invoke());
         Assert.True(error != null || shell.HadErrors);
         Assert.Equal("Keep", Assert.Single(target.Sheets).Name);
-        Assert.Equal("Unchanged", keep.CellAt(1, 1).GetValue<string>());
+        Assert.Equal("Unchanged", keep.Cell(1, 1).GetValue<string>());
         Assert.Equal(2, source.Sheets.Count);
     }
 

@@ -122,11 +122,11 @@ public sealed class EpubResourceRenameContracts {
         book.RenameResource("image", "EPUB/art/final.png");
         var report = book.Write().Report;
         Assert.Equal("EPUB/art/final.png", report.RenamedEntries["EPUB/images/dot.png"]);
-        report.RequireNoLoss();
+        report.ThrowIfLoss();
         book.RemoveResource("image");
         var removed = book.Write().Report;
         Assert.Empty(removed.RenamedEntries);
-        Assert.Contains(removed.FidelityDiagnostics, item => item.Code == "EPUB_WRITE_ENTRY_REMOVED" && item.Location == "EPUB/images/dot.png");
+        Assert.Contains(removed.Diagnostics, item => item.Code == "EPUB_WRITE_ENTRY_REMOVED" && item.Location == "EPUB/images/dot.png");
     }
 
     [Fact]
@@ -173,7 +173,7 @@ public sealed class EpubResourceRenameContracts {
         var report = book.Write().Report;
         Assert.Empty(report.RenamedEntries);
         Assert.True(report.HasLoss);
-        Assert.Contains(report.FidelityDiagnostics, item => item.Code == "EPUB_WRITE_ENTRY_REMOVED" && item.Location == "EPUB/images/dot.png");
+        Assert.Contains(report.Diagnostics, item => item.Code == "EPUB_WRITE_ENTRY_REMOVED" && item.Location == "EPUB/images/dot.png");
     }
 
     [Theory]

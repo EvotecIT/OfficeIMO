@@ -1,6 +1,6 @@
 namespace OfficeIMO.Html;
 
-public sealed partial class HtmlToRtfOptions {
+public sealed partial class HtmlRtfExportOptions {
     internal void AddDiagnostic(string code, string message, string? source = null, Exception? exception = null, HtmlRtfConversionDiagnosticSeverity severity = HtmlRtfConversionDiagnosticSeverity.Warning, RtfConversionAction? action = null) {
         string? detail = exception is HtmlRtfConversionLimitException limitException && !string.IsNullOrEmpty(limitException.Detail)
             ? exception.GetType().Name + ": " + limitException.Detail

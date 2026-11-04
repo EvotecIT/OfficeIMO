@@ -12,7 +12,7 @@ public sealed class EpubEmptyImageExportContracts {
     [InlineData(true)]
     public async Task Export_RejectsAnEmptyExtractionBeforeInvokingConsumers(bool asynchronous) {
         byte[] package = OfficeIMO.Shared.Tests.EpubIntegrityFixtures.OneChapter("<p>Too long</p>");
-        var document = EpubDocument.Load(new MemoryStream(package), new EpubReadOptions { MaxTotalTextCharacters = 1 });
+        var document = EpubDocument.Load(new MemoryStream(package), new EpubLoadOptions { MaxTotalTextCharacters = 1 });
         Assert.Empty(document.Chapters);
         Assert.Contains(document.Diagnostics, diagnostic => diagnostic.Code == "epub.chapter.text-total-limit");
         var options = new EpubImageExportOptions { Policy = new OfficeImageExportPolicy { RequireNoOmissions = true } };

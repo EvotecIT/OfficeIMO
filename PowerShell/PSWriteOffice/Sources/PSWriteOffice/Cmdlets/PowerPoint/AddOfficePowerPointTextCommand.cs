@@ -67,7 +67,7 @@ public sealed class AddOfficePowerPointTextCommand : OfficeCmdlet {
         }
         PowerPointTextRun? run = null;
         try {
-            run = paragraph.AddRun(Text);
+            run = paragraph.AddText(Text);
             if (textScope != null) PowerPointTextFormatting.Apply(run, textScope, Bold, Italic, Strikethrough, Underline, Color, Highlight, Font, Size, Link);
             else PowerPointTextFormatting.Apply(run, scope!, Bold, Italic, Strikethrough, Underline, Color, Highlight, Font, Size, Link);
             if (body != null) scope!.Blocks.Add(new PowerPointLayoutText(Text) { NativeBody = body });

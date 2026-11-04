@@ -24,7 +24,7 @@ public sealed partial class HtmlRenderingTests {
         AssertPhysicalFaces(HtmlRenderEngine.Render(source, options));
         // Target preparation must retain the same requested styles without
         // treating its library-only policy as arbitrary document-font access.
-        AssertPhysicalFaces(HtmlRenderEngine.Render(source, new HtmlToPdfOptions(options)));
+        AssertPhysicalFaces(HtmlRenderEngine.Render(source, new HtmlPdfExportOptions(options)));
 
         void AssertPhysicalFaces(HtmlRenderDocument rendered) {
             var text = rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene))
@@ -47,7 +47,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.NotEqual(regularFace.Program.Fingerprint, boldFace.Program.Fingerprint);
             Assert.NotEqual(regularFace.Program.Fingerprint, italicFace.Program.Fingerprint);
             Assert.NotEqual(boldFace.Program.Fingerprint, italicFace.Program.Fingerprint);
-            rendered.RequireNoLoss();
+            rendered.ThrowIfLoss();
 
             OfficeFontFace Resolve(HtmlRenderText run) {
                 Assert.True(rendered.Fonts.TryResolveFaceForText(run.Text, run.Font.FamilyName,

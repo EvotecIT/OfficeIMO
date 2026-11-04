@@ -17,7 +17,7 @@ public sealed class HtmlResourcePipelineOptions {
     public HtmlUrlPolicy? ResourceUrlPolicy { get; set; }
 
     /// <summary>Shared source, DOM, stylesheet, and semantic-metadata limits applied before discovery.</summary>
-    public HtmlConversionLimits Limits { get; set; } = HtmlConversionLimits.CreateUntrustedProfile();
+    public HtmlConversionLimits Limits { get; set; } = HtmlConversionLimits.UntrustedDefaults;
 
     /// <summary>Additional responsive image candidate cap per source set. Null adds no cap; a stricter shared limit still applies.</summary>
     public int? MaxResponsiveImageCandidates { get; set; } = HtmlConversionLimits.DefaultMaxResponsiveImageCandidates;

@@ -297,7 +297,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Bounds_Header_Images_Across_Runs() {
         string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
         using WordDocument document = WordDocument.Create();
-        document.AddHeadersAndFooters();
+        _ = document.PageSetup.Header;
         WordParagraph paragraph = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph();
         paragraph.AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(32));
         paragraph.AddText(" between ").AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(32));

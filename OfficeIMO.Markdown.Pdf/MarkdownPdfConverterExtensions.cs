@@ -27,7 +27,7 @@ public static partial class MarkdownPdfConverterExtensions {
 
         // Caller-supplied PDF options own the page furniture, including fonts that may not cover the footer text.
         if (options.ShowPageNumbers && options.PdfOptions == null) {
-            pdfOptions.ShowPageNumbers = true;
+            pdfOptions.PageSetup.Footer.Show = true;
         }
 
         if (options.CreateOutlineFromHeadings) {
@@ -50,7 +50,7 @@ public static partial class MarkdownPdfConverterExtensions {
         RenderBlocks(pdf, topLevelBlocks.Where(block => !(block is FootnoteDefinitionBlock)), document, options, visualTheme, promotedFrontMatterTitle);
         RenderBlocks(pdf, topLevelBlocks.OfType<FootnoteDefinitionBlock>(), document, options, visualTheme);
         if (topLevelBlocks.Count == 0) {
-            pdf.Paragraph(paragraph => paragraph.Text(string.Empty));
+            pdf.Paragraph(paragraph => paragraph.AddText(string.Empty));
         }
 
         return pdf;

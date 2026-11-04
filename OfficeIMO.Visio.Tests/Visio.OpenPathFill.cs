@@ -19,7 +19,7 @@ public sealed class VisioOpenPathFillTests {
     [InlineData(true, "vdx")]
     public void OpenNurbsKeepsItsFillWithoutStrokingTheClosingChord(bool resized, string route) {
         var source = CreateDocument(Section(false, Point("MoveTo", 0, 0), Nurbs()));
-        if (resized) source.Pages[0].ResizeShape(source.Pages[0].Shapes[0], 2, 2);
+        if (resized) source.Pages[0].ResizeShape(source.Pages[0].Shapes[0], OfficeLength.Inches(2), OfficeLength.Inches(2));
         var document = Reopen(source, route);
         string geometry = SavedGeometry(document);
 
@@ -170,7 +170,7 @@ public sealed class VisioOpenPathFillTests {
 
     private static VisioDocument CreateDocument(XElement geometry) {
         var source = VisioDocument.Create();
-        VisioShape shape = source.AddPage("Page", 4, 4).AddRectangle(1.5, 1.5, 1, 1);
+        VisioShape shape = source.AddPage("Page", OfficeLength.Inches(4), OfficeLength.Inches(4)).AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)));
         Style(shape);
         shape.PreservedGeometrySections.Clear();
         shape.PreservedGeometrySections.Add(geometry);

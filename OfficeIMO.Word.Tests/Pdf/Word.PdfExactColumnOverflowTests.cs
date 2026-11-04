@@ -34,9 +34,9 @@ public partial class Word {
         source.CompatibilitySettings.CompatibilityMode = WordCompatibilityMode.Word2013;
         source.Sections[0].ColumnCount = partial ? 1 : 2;
         source.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(12);
-        source.Sections[0].Margins.HeaderDistance = source.Sections[0].Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(36D);
-        if (header) SetColumnStory(source.HeaderDefaultOrCreate);
-        if (footer) SetColumnStory(source.FooterDefaultOrCreate);
+        source.Sections[0].PageSetup.Margins.HeaderDistance = source.Sections[0].PageSetup.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(36D);
+        if (header) SetColumnStory(source.PageSetup.Header);
+        if (footer) SetColumnStory(source.PageSetup.Footer);
         if (partial) {
             WordParagraph preceding = source.AddParagraph("P");
             preceding.FontSize = global::OfficeIMO.OfficeLength.Points(12);
@@ -84,8 +84,8 @@ public partial class Word {
         source.CompatibilitySettings.CompatibilityMode = WordCompatibilityMode.Word2013;
         source.Sections[0].ColumnCount = 2;
         source.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(12);
-        source.Sections[0].Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(36D);
-        SetColumnStory(source.FooterDefaultOrCreate);
+        source.Sections[0].PageSetup.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(36D);
+        SetColumnStory(source.PageSetup.Footer);
         WordParagraph tall = source.AddParagraph();
         tall._paragraph.Append(TextLine("A", 12, false));
         tall.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(100));

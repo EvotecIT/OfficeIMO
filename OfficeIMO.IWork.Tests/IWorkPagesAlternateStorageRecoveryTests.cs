@@ -22,11 +22,10 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(12ul, issue.TargetIdentifier);
         Assert.Contains(projection.Diagnostics, d => d.Code == "IWORK_PAGES_DRAWABLE_UNSUPPORTED");
         package.Position = 0;
-        using var fallback = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var fallback = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(fallback.IsVisualFallback);
         package.Position = 0;
-        using var partial = WordIWorkConverter.ConvertPagesToWordResult(package,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var partial = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(partial.IsVisualFallback);
         using var saved = new MemoryStream(); partial.Value.Save(saved); saved.Position = 0;
         using var reopened = WordDocument.Load(saved);

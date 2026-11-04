@@ -33,7 +33,7 @@ namespace OfficeIMO.Word.Html {
         /// image to the Word content width, while preserving its aspect ratio.
         /// </summary>
         private static void FitImageToWidthConstraints(
-            WordImage image, double? contentWidth, double? maximumWidth, WordHtmlImportOptions options,
+            WordImage image, double? contentWidth, double? maximumWidth, HtmlWordExportOptions options,
             string source, string alternativeText) {
             double? limit = contentWidth;
             if (maximumWidth is > 0D) {

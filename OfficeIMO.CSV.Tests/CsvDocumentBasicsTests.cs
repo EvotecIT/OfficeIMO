@@ -652,7 +652,7 @@ public class CsvDocumentBasicsTests
     public void Delimiterless_Comment_With_Unmatched_Quote_Does_Not_Force_Lookahead()
     {
         var lines = new List<string> { "# note \"unterminated" };
-        for (int index = 0; index < CsvLoadOptions.DefaultMaxCommentContinuationLines; index++)
+        for (int index = 0; index < CsvReaderOptions.DefaultMaxCommentContinuationLines; index++)
         {
             lines.Add("continuation-" + index.ToString(CultureInfo.InvariantCulture));
         }
@@ -660,14 +660,14 @@ public class CsvDocumentBasicsTests
 
         using var reader = new ReadLimitedTextReader(
             lines,
-            maximumReads: CsvLoadOptions.DefaultMaxCommentContinuationLines + 1);
+            maximumReads: CsvReaderOptions.DefaultMaxCommentContinuationLines + 1);
 
-        string[] first = CsvDocument.ReadRecords(reader, new CsvLoadOptions {
+        string[] first = CsvDocument.ReadRecords(reader, new CsvReaderOptions {
             SkipCommentRows = true
         }).First();
 
         Assert.Equal(new[] { "continuation-0" }, first);
-        Assert.Equal(CsvLoadOptions.DefaultMaxCommentContinuationLines + 1, reader.ReadCount);
+        Assert.Equal(CsvReaderOptions.DefaultMaxCommentContinuationLines + 1, reader.ReadCount);
     }
 
     [Fact]

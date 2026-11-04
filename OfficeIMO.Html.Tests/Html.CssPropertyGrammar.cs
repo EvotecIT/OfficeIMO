@@ -251,7 +251,7 @@ public sealed class HtmlCssPropertyGrammarTests {
             "<p id='large' style='--payload:" + largeValue + "'>Large</p>");
         Assert.NotNull(HtmlComputedStyleEngine.Compute(unbounded)[unbounded.QuerySelector("#large")!]);
 
-        var limits = HtmlConversionLimits.CreateTrustedProfile();
+        var limits = new HtmlConversionLimits();
         limits.MaxCssBytes = 16;
         limits.MaxTotalCssBytes = 16;
         HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() => HtmlConversionDocument.Parse(
@@ -263,7 +263,7 @@ public sealed class HtmlCssPropertyGrammarTests {
 
     [Fact]
     public void InlineSyntaxTranslatesTheConfiguredTokenLimitToTheConversionContract() {
-        var limits = HtmlConversionLimits.CreateTrustedProfile();
+        var limits = new HtmlConversionLimits();
         limits.MaxCssTokens = 2;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
             "<p id='bounded' style='color:red'>Bounded</p>",
@@ -279,7 +279,7 @@ public sealed class HtmlCssPropertyGrammarTests {
 
     [Fact]
     public void InlineSyntaxTranslatesTheConfiguredSyntaxNodeLimitToTheConversionContract() {
-        var limits = HtmlConversionLimits.CreateTrustedProfile();
+        var limits = new HtmlConversionLimits();
         limits.MaxCssTokens = 32;
         limits.MaxCssSyntaxNodes = 1;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(

@@ -17,8 +17,8 @@ namespace OfficeIMO.Tests {
         public async Task HtmlToWordConverter_Convert_EqualsAsync() {
             string html = "<p>Test</p>";
             OfficeIMO.Html.HtmlConversionDocument source = OfficeIMO.Html.HtmlConversionDocument.Parse(html);
-            using var syncDoc = source.ToWord(new WordHtmlImportOptions());
-            using var asyncDoc = (await source.ToWordAsync(new WordHtmlImportOptions())).Value;
+            using var syncDoc = source.ToWord(new HtmlWordExportOptions());
+            using var asyncDoc = (await source.ToWordAsync(new HtmlWordExportOptions())).Value;
             Assert.Equal(syncDoc.Paragraphs.Count, asyncDoc.Paragraphs.Count);
             Assert.Equal(syncDoc.Paragraphs[0].Text, asyncDoc.Paragraphs[0].Text);
         }

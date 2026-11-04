@@ -67,7 +67,7 @@ namespace OfficeIMO.Visio {
             }
 
             if (!string.IsNullOrWhiteSpace(raw) &&
-                CellExpressionParser.TryEvaluate(raw!, shape.Width, shape.Height, shape.LocPinX, shape.LocPinY, shape.PinX, shape.PinY, shape.Angle, out value) &&
+                CellExpressionParser.TryEvaluate(raw!, shape.WidthInches, shape.HeightInches, shape.LocPinXInches, shape.LocPinYInches, shape.PinXInches, shape.PinYInches, shape.Angle, out value) &&
                 IsFinite(value)) {
                 return true;
             }
@@ -111,7 +111,7 @@ namespace OfficeIMO.Visio {
                     return false;
                 }
 
-                points.Add((xIsLocal ? rawX : rawX * shape.Width, yIsLocal ? rawY : rawY * shape.Height));
+                points.Add((xIsLocal ? rawX : rawX * shape.WidthInches, yIsLocal ? rawY : rawY * shape.HeightInches));
             }
 
             return points.Count > 0;
@@ -159,7 +159,7 @@ namespace OfficeIMO.Visio {
                     return false;
                 }
 
-                controlPoints.Add((xIsLocal ? rawX : rawX * shape.Width, yIsLocal ? rawY : rawY * shape.Height));
+                controlPoints.Add((xIsLocal ? rawX : rawX * shape.WidthInches, yIsLocal ? rawY : rawY * shape.HeightInches));
                 weights.Add(weight);
                 suppliedKnots.Add(knot);
             }

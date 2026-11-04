@@ -355,8 +355,8 @@ public sealed class ReaderStructuredExtractionTests {
     public async Task StaticStructuredReadSupportsSyncAndAsyncByteSurfaces() {
         byte[] markdown = Encoding.UTF8.GetBytes("# Overview\n\nUseful body");
 
-        OfficeDocumentStructuredExtractionResult sync = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadStructured(markdown, "note.md");
-        OfficeDocumentStructuredExtractionResult asyncResult = await OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadStructuredAsync(markdown, "note.md");
+        OfficeDocumentStructuredExtractionResult sync = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(markdown, "note.md").ExtractStructured();
+        OfficeDocumentStructuredExtractionResult asyncResult = (await OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocumentAsync(markdown, "note.md")).ExtractStructured();
 
         Assert.NotEmpty(sync.Sections);
         Assert.Contains("Overview", sync.Sections[0].Heading ?? sync.Sections[0].Text, StringComparison.Ordinal);
@@ -376,8 +376,8 @@ public sealed class ReaderStructuredExtractionTests {
             }))
             .Build();
 
-        OfficeDocumentStructuredExtractionResult sync = reader.ReadStructured(markdown, "note.md");
-        OfficeDocumentStructuredExtractionResult asyncResult = await reader.ReadStructuredAsync(markdown, "note.md");
+        OfficeDocumentStructuredExtractionResult sync = reader.ReadDocument(markdown, "note.md").ExtractStructured();
+        OfficeDocumentStructuredExtractionResult asyncResult = (await reader.ReadDocumentAsync(markdown, "note.md")).ExtractStructured();
 
         Assert.Contains(sync.Records, record => record.Name == "Processed" && record.Value == "yes");
         Assert.Contains(asyncResult.Records, record => record.Name == "Processed" && record.Value == "yes");

@@ -18,7 +18,7 @@ public sealed class WordContentsTitleParagraphTests {
         title.Style = WordParagraphStyles.Heading2;
         title.PageBreakBefore = true;
         title.FontSize = global::OfficeIMO.OfficeLength.Points(14);
-        title.ColorHex = "202428";
+        title.Color = OfficeColor.Parse("202428");
         WordParagraph heading = document.AddParagraph("Evidence");
         heading.Style = WordParagraphStyles.Heading1;
         heading.PageBreakBefore = true;
@@ -33,7 +33,7 @@ public sealed class WordContentsTitleParagraphTests {
         Assert.Equal(WordParagraphStyles.Heading2, restored.TitleParagraph!.Style);
         Assert.True(restored.TitleParagraph.PageBreakBefore);
         Assert.Equal(14, restored.TitleParagraph.FontSize?.ToPoints());
-        Assert.Equal("202428", restored.TitleParagraph.ColorHex);
+        Assert.Equal(OfficeColor.Parse("202428"), restored.TitleParagraph.Color);
         Assert.Single(restored.RefreshEntries().Entries);
         PdfReadDocument pdf = PdfReadDocument.Open(reopened.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes());
         Assert.True(pdf.Pages.Count == 3, string.Join(" | ", pdf.Pages.Select(page => page.ExtractText())));

@@ -16,7 +16,7 @@ public partial class PdfDocumentVisualQualityTests {
             .BackgroundShape(band)
             .H1("Title page")
             .PageBreak()
-            .Paragraph(p => p.Text("Continuation page"))
+            .Paragraph(p => p.AddText("Continuation page"))
             .ToBytes();
 
         string firstPage = string.Concat(GetPageContentStreams(bytes, pageNumber: 1));

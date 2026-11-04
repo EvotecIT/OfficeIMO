@@ -66,7 +66,7 @@ namespace OfficeIMO.Tests
                 var sheet = document.AddSheet("Source");
                 for (int row = 0; row < 12; row++)
                     for (int column = 0; column < 2; column++)
-                        sheet.CellValue(row + 1, column + 1, numbersStoredAsText && row > 0 && column == 0 ? Convert.ToString(sourceValues[row, column], CultureInfo.InvariantCulture) : sourceValues[row, column]);
+                        sheet.Cell(row + 1, column + 1).SetValue(numbersStoredAsText && row > 0 && column == 0 ? Convert.ToString(sourceValues[row, column], CultureInfo.InvariantCulture) : sourceValues[row, column]);
                 {
                     var pivotOptions1 = new ExcelPivotTableOptions();
                     pivotOptions1.RowFields.Add("Quantity");
@@ -98,8 +98,8 @@ namespace OfficeIMO.Tests
             var expectedLookups = oracle.GetSheet("Lookups").ReadRange("B1:B8");
             using (var document = ExcelDocument.Load(PivotDecimalGroupOraclePath)) {
                 var source = document.GetSheet("Source");
-                source.CellValue(2, 1, 0.75d);
-                source.CellValue(3, 1, 2.26d);
+                source.Cell(2, 1).SetValue(0.75d);
+                source.Cell(3, 1).SetValue(2.26d);
                 var sheet = document.GetSheet("Grouped");
                 Assert.Equal("A4:B10", sheet.MaterializePivotTable("PivotGrouped").OutputRange);
                 for (int index = 0; index < DecimalGroupSelections.Length; index++)
@@ -125,7 +125,7 @@ namespace OfficeIMO.Tests
                 var sheet = document.AddSheet("Source");
                 for (int row = 0; row < 12; row++)
                     for (int column = 0; column < 2; column++)
-                        sheet.CellValue(row + 1, column + 1, sourceValues[row, column]);
+                        sheet.Cell(row + 1, column + 1).SetValue(sourceValues[row, column]);
                 {
                     var pivotOptions2 = new ExcelPivotTableOptions();
                     pivotOptions2.RowFields.Add("Quantity");
@@ -163,12 +163,12 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(output))
             {
                 var sheet = document.AddSheet("Source");
-                sheet.CellValue(1, 1, "Quantity");
-                sheet.CellValue(1, 2, "Sales");
+                sheet.Cell(1, 1).SetValue("Quantity");
+                sheet.Cell(1, 2).SetValue("Sales");
                 for (int index = 1; index <= 4; index++)
                 {
-                    sheet.CellValue(index + 1, 1, index / 10d);
-                    sheet.CellValue(index + 1, 2, index);
+                    sheet.Cell(index + 1, 1).SetValue(index / 10d);
+                    sheet.Cell(index + 1, 2).SetValue(index);
                 }
 
                 {
@@ -207,14 +207,14 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(output))
             {
                 var sheet = document.AddSheet("Source");
-                sheet.CellValue(1, 1, "Quantity");
-                sheet.CellValue(1, 2, "Sales");
-                sheet.CellValue(2, 1, start);
-                sheet.CellValue(2, 2, 1d);
-                sheet.CellValue(3, 1, next);
-                sheet.CellValue(3, 2, 2d);
-                sheet.CellValue(4, 1, end);
-                sheet.CellValue(4, 2, 3d);
+                sheet.Cell(1, 1).SetValue("Quantity");
+                sheet.Cell(1, 2).SetValue("Sales");
+                sheet.Cell(2, 1).SetValue(start);
+                sheet.Cell(2, 2).SetValue(1d);
+                sheet.Cell(3, 1).SetValue(next);
+                sheet.Cell(3, 2).SetValue(2d);
+                sheet.Cell(4, 1).SetValue(end);
+                sheet.Cell(4, 2).SetValue(3d);
                 {
                     var pivotOptions4 = new ExcelPivotTableOptions();
                     pivotOptions4.RowFields.Add("Quantity");

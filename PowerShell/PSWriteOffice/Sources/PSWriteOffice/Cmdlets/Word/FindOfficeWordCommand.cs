@@ -85,9 +85,8 @@ public sealed class FindOfficeWordCommand : PSCmdlet {
             }
 
             if (ParameterSetName == ParameterSetPathText || ParameterSetName == ParameterSetDocumentText) {
-                var comparison = CaseSensitive.IsPresent ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
-                var results = document.Find(Text, comparison);
-                WriteObject(results, enumerateCollection: true);
+                var results = document.Find(Text, new OfficeIMO.OfficeTextSearchOptions { MatchCase = CaseSensitive.IsPresent });
+                WriteObject(results.Paragraphs, enumerateCollection: true);
                 return;
             }
 
@@ -97,23 +96,12 @@ public sealed class FindOfficeWordCommand : PSCmdlet {
             if (AsResult.IsPresent) {
                 WriteObject(result);
             } else {
-                WriteObject(Flatten(result), enumerateCollection: true);
+                WriteObject(result.Paragraphs, enumerateCollection: true);
             }
         } finally {
             if (dispose) {
                 document?.Dispose();
             }
         }
-    }
-
-    private static IEnumerable<WordParagraph> Flatten(WordSearchResult result) {
-        foreach (var paragraph in result.BodyParagraphs) yield return paragraph;
-        foreach (var paragraph in result.TableParagraphs) yield return paragraph;
-        foreach (var paragraph in result.DefaultHeaderParagraphs) yield return paragraph;
-        foreach (var paragraph in result.EvenPageHeaderParagraphs) yield return paragraph;
-        foreach (var paragraph in result.FirstPageHeaderParagraphs) yield return paragraph;
-        foreach (var paragraph in result.DefaultFooterParagraphs) yield return paragraph;
-        foreach (var paragraph in result.EvenPageFooterParagraphs) yield return paragraph;
-        foreach (var paragraph in result.FirstPageFooterParagraphs) yield return paragraph;
     }
 }

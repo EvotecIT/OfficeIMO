@@ -31,15 +31,15 @@ public class CsvIncrementalRefillTests
         string oversized = new string('x', 40000);
         csv.Append("3,").Append(oversized).Append(",,NULL,\n# ignored,,NULL,\n4, final ,,NULL");
         byte[] bytes = Encoding.UTF8.GetBytes(csv.ToString());
-        var options = new CsvLoadOptions
+        var options = new CsvReaderOptions
         {
             TrimWhitespace = true, NullValue = "NULL", SkipCommentRows = true,
             QuoteParsingMode = CsvQuoteParsingMode.Strict
         };
         using var expectedInput = new MemoryStream(bytes);
-        using var expected = CsvDocument.OpenDataReader(expectedInput, options);
+        using var expected = CsvDocument.OpenReader(expectedInput, options: options);
         using var input = new SegmentedInput(bytes, chunk, !asynchronous, boundary, quoteBoundary, bytes.Length);
-        using var actual = (CsvDataReader)await CsvDocument.OpenDataReaderAsync(input, options);
+        using var actual = (CsvDataReader)await CsvDocument.OpenReaderAsync(input, options: options);
         string[] names = { padding, "crossing", "one\r\ntwo \"quoted\"", oversized, "final" };
         int[] startLines = { 2, 3, 4, 6, 8 };
         int[] endLines = { 2, 3, 5, 6, 8 };
@@ -84,7 +84,7 @@ public class CsvIncrementalRefillTests
         if (lineFeed) csv.Append('\n');
         csv.Append("# ignored\r\nnext\r\nlast");
         using var input = new AsyncInput(Encoding.UTF8.GetBytes(csv.ToString()), 32768);
-        using var reader = await CsvDocument.OpenDataReaderAsync(input, new CsvLoadOptions { SkipCommentRows = true });
+        using var reader = await CsvDocument.OpenReaderAsync(input, options: new CsvReaderOptions { SkipCommentRows = true });
         Assert.True(await reader.ReadAsync());
         Assert.Equal(padding, reader.GetString(0));
         Assert.True(await reader.ReadAsync());
@@ -110,8 +110,9 @@ public class CsvIncrementalRefillTests
         using var input = new AsyncInput(Encoding.UTF8.GetBytes(csv), 32768, blockAtEnd: true);
         using var lifetime = new CancellationTokenSource();
         using var operation = new CancellationTokenSource();
-        using var reader = await CsvDocument.OpenDataReaderAsync(input,
-            new CsvLoadOptions { TrimWhitespace = true }, cancellationToken: lifetime.Token);
+        using var reader = await CsvDocument.OpenReaderAsync(input,
+            options: new CsvReaderOptions { TrimWhitespace = true },
+            cancellationToken: lifetime.Token);
         Assert.True(await reader.ReadAsync());
         string retained = reader.GetString(0);
         Assert.Equal("first", retained);

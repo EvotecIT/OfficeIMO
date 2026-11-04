@@ -14,7 +14,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Pages_reader_and_report_include_only_selected_header_footer_content(
         bool first, bool even, bool hideFirst, int reconstructedItems) {
         using MemoryStream package = CreatePagesPackageWithHeaderFooterVariants(first, even, hideFirst);
-        using var converted = WordIWorkConverter.ConvertPagesToWordResult(package);
+        using var converted = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult();
         IWorkPagesSection section = Assert.Single(converted.Projection.Sections);
         Assert.Equal(3, section.HeaderContents.Count);
         Assert.Equal(3, section.FooterContents.Count);

@@ -65,9 +65,9 @@ public sealed class DocBookDocumentTests {
     public void LimitsAndEntityPolicyAreBounded() {
         Assert.Throws<InvalidDataException>(() => DocBookDocument.Parse(
             "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><para/><para/></article>",
-            new DocBookReadOptions { MaxElements = 2 }));
+            new DocBookLoadOptions { MaxElements = 2 }));
         const string entity = "<!DOCTYPE article [<!ENTITY a \"1234567890\">]><article><para>&a;&a;</para></article>";
-        Assert.ThrowsAny<Exception>(() => DocBookDocument.Parse(entity, new DocBookReadOptions { MaxCharactersFromEntities = 10 }));
+        Assert.ThrowsAny<Exception>(() => DocBookDocument.Parse(entity, new DocBookLoadOptions { MaxCharactersFromEntities = 10 }));
         InvalidDataException external = Assert.Throws<InvalidDataException>(() => DocBookDocument.Parse(
             "<!DOCTYPE article [<!ENTITY external SYSTEM \"file:///etc/passwd\">]><article><para>&external;</para></article>"));
         Assert.Contains("external and parameter entity declarations", external.Message, StringComparison.Ordinal);
@@ -83,7 +83,7 @@ public sealed class DocBookDocumentTests {
             string.Concat(Enumerable.Repeat("<!--padding-->", 32)) + "</article>";
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            DocBookDocument.Parse(source, new DocBookReadOptions { MaxElements = 2 }));
+            DocBookDocument.Parse(source, new DocBookLoadOptions { MaxElements = 2 }));
         Assert.Contains("MaxMaterializedNodes", exception.Message, StringComparison.Ordinal);
     }
 
@@ -1162,7 +1162,7 @@ public sealed class DocBookDocumentTests {
         DocBookDocument document = await DocBookDocument.LoadAsync(input);
         Assert.Equal(3, input.Position);
         using var output = new MemoryStream(new byte[512], writable: true);
-        await document.WriteAsync(output);
+        await document.SaveAsync(output);
         Assert.Equal(0, output.Position);
         Assert.Equal(DocBookProfile.DocBook52, DocBookDocument.Load(output).Profile);
     }
@@ -1174,13 +1174,13 @@ public sealed class DocBookDocumentTests {
         DocBookDocument loaded = DocBookDocument.Load(new MemoryStream(latinBytes));
         Assert.Equal(latinSource, loaded.ToDocBook());
         using var exact = new MemoryStream();
-        loaded.Write(exact);
+        loaded.Save(exact);
         Assert.Equal(latinBytes, exact.ToArray());
 
         const string utf16Declaration = "<?xml version=\"1.0\" encoding=\"utf-16\"?><article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"/>";
         DocBookDocument parsed = DocBookDocument.Parse(utf16Declaration);
         using var output = new MemoryStream();
-        parsed.Write(output);
+        parsed.Save(output);
         string serialized = Encoding.UTF8.GetString(output.ToArray());
         Assert.Contains("encoding=\"utf-8\"", serialized, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(DocBookProfile.DocBook52, DocBookDocument.Load(new MemoryStream(output.ToArray())).Profile);
@@ -1377,7 +1377,7 @@ public sealed class DocBookDocumentTests {
         Assert.True(Flatten(root).Sum(node => (long)node.Text.Length) <= 12);
         Assert.All(converted.Diagnostics.Where(diagnostic => diagnostic.Code == "DB123"),
             diagnostic => Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind));
-        Assert.All(converted.FidelityDiagnostics.Where(diagnostic => diagnostic.Code == "DB123"),
+        Assert.All(converted.Diagnostics.Where(diagnostic => diagnostic.Code == "DB123"),
             diagnostic => Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind));
         Assert.Throws<ArgumentOutOfRangeException>(() => DocBookDocument.Parse(source)
             .ToOfficeDocumentModel(options: new DocBookConversionOptions { MaxTotalTextCharacters = 0 }));
@@ -2127,7 +2127,7 @@ public sealed class DocBookDocumentTests {
         DocBookConversionResult<DocBookDocument> converted = DocBookDocument.FromOfficeDocumentModel(model);
 
         Assert.True(converted.HasLoss);
-        Assert.Contains(converted.Diagnostics, diagnostic =>
+        Assert.Contains(converted.NativeDiagnostics, diagnostic =>
             diagnostic.Code == "DB015" && diagnostic.Severity == DocBookDiagnosticSeverity.Error);
     }
 
@@ -2386,12 +2386,12 @@ public sealed class DocBookDocumentTests {
         };
 
         DocBookConversionResult<DocBookDocument> converted = DocBookDocument.FromOfficeDocumentModel(model);
-        DocBookDiagnostic diagnostic = Assert.Single(converted.Diagnostics, item => item.Code == "DB117");
+        DocBookDiagnostic diagnostic = Assert.Single(converted.NativeDiagnostics, item => item.Code == "DB117");
 
         Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
         Assert.Equal(OfficeConversionLossKind.Omission,
-            Assert.Single(converted.FidelityDiagnostics, item => item.Code == "DB117").LossKind);
-        Assert.Throws<InvalidDataException>(converted.RequireNoLoss);
+            Assert.Single(converted.Diagnostics, item => item.Code == "DB117").LossKind);
+        Assert.ThrowsAny<OfficeConversionException>(converted.ThrowIfLoss);
     }
 
     [Fact]

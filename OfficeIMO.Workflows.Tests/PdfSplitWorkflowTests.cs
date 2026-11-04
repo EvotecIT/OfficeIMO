@@ -24,6 +24,26 @@ public sealed class PdfSplitWorkflowTests {
     }
 
     [Fact]
+    public async Task PasswordProtectedSourceSplitsIntoPartsThatOpenWithThatPassword() {
+        string root = NewRoot();
+        try {
+            string plain = Path.Combine(root, "plain.pdf"), source = Path.Combine(root, "source.pdf");
+            File.WriteAllBytes(plain, CreatePdf(2));
+            File.WriteAllBytes(source, PdfDocument.Load(plain).Security.Encrypt(new PdfStandardEncryptionOptions("reader") {
+                OwnerPassword = "owner", Algorithm = PdfStandardEncryptionAlgorithm.Aes128
+            }).Pdf);
+            var result = await new OfficeWorkflowRunner().SplitPdfAsync(new() {
+                InputPath = source, OutputDirectory = Path.Combine(root, "parts"), PdfPassword = "reader", PagesPerDocument = 1
+            });
+            Assert.Equal(OfficeWorkflowStatus.Completed, result.Status);
+            Assert.All(result.Files, file => {
+                Assert.ThrowsAny<Exception>(() => PdfDocument.Load(file.Path).Inspect());
+                Assert.Equal(1, PdfDocument.Load(file.Path, new PdfLoadOptions { Password = "reader" }).Inspect().PageCount);
+            });
+        } finally { Directory.Delete(root, true); }
+    }
+
+    [Fact]
     public async Task ExplicitPlansProduceOneVerifiedFilePerPart() {
         string root = NewRoot();
         try {

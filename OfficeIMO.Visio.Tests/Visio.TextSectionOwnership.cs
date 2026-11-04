@@ -21,7 +21,7 @@ public sealed class VisioTextSectionOwnershipTests {
         style.Size = 17;
         style.Bold = false;
         style.Italic = true;
-        style.HorizontalAlignment = VisioTextHorizontalAlignment.Right;
+        style.HorizontalAlignment = OfficeAlignment.Right;
 
         document = Reopen(document, package);
         XElement shape = SavedShape(document);
@@ -67,7 +67,7 @@ public sealed class VisioTextSectionOwnershipTests {
         VisioTextStyle style = Style(document, connector);
         style.LeftMargin = 0.2;
         style.Size = 24;
-        style.HorizontalAlignment = VisioTextHorizontalAlignment.Center;
+        style.HorizontalAlignment = OfficeAlignment.Center;
         foreach (var candidate in new[] { document, Reopen(document, false), Reopen(document, true) }) {
             XElement saved = SavedShape(candidate);
             Assert.Equal(original.Elements(Legacy + "Char").Select(e => e.ToString()),
@@ -98,7 +98,7 @@ public sealed class VisioTextSectionOwnershipTests {
         VisioShapeSheetSection paragraph = Sections(document, connector).Single(s => s.Name == "Paragraph");
         paragraph.Rows.Single().SetCell("HorzAlign", "2");
         Set(document, connector, paragraph);
-        Assert.Equal(VisioTextHorizontalAlignment.Right, Style(document, connector).HorizontalAlignment);
+        Assert.Equal(OfficeAlignment.Right, Style(document, connector).HorizontalAlignment);
         document = Reopen(document, package);
         Assert.Equal(24, Style(document, connector).Size);
         Assert.Single(SavedShape(document).Elements(Legacy + "Char"));
@@ -160,7 +160,7 @@ public sealed class VisioTextSectionOwnershipTests {
         var document = VisioDocument.LoadLegacyXml(new MemoryStream(Encoding.UTF8.GetBytes(source))).Value;
         XNamespace svg = "http://www.w3.org/2000/svg";
         Assert.Equal(new[] { "*", "FIRST" }, PaintedText(document));
-        document.Pages[0].Shapes[0].TextStyle!.HorizontalAlignment = VisioTextHorizontalAlignment.Right;
+        document.Pages[0].Shapes[0].TextStyle!.HorizontalAlignment = OfficeAlignment.Right;
         foreach (var candidate in new[] { document, Reopen(document, false), Reopen(document, true) }) {
             byte[] before = candidate.ToLegacyXmlResult().Value;
             Assert.Equal(new[] { "*", "FIRST" }, PaintedText(candidate));
@@ -180,13 +180,13 @@ public sealed class VisioTextSectionOwnershipTests {
         if (connector) {
             page.AddConnector("1", new OfficeIMO.Drawing.OfficePoint(1, 1), new OfficeIMO.Drawing.OfficePoint(3, 1)).Label = "Label";
         } else {
-            page.Shapes.Add(new VisioShape("1", 2, 1, 2, 1, "Label"));
+            page.Shapes.Add(new VisioShape("1", OfficeLength.Inches(2), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Label"));
         }
         VisioTextStyle style = Style(document, connector);
         style.FontFamily = "Arial";
         style.Size = 18;
         style.Bold = true;
-        style.HorizontalAlignment = VisioTextHorizontalAlignment.Right;
+        style.HorizontalAlignment = OfficeAlignment.Right;
         style.LeftMargin = 0.2;
         byte[] before = document.ToLegacyXmlResult().Value;
         Assert.Empty(Sections(document, connector));
@@ -197,7 +197,7 @@ public sealed class VisioTextSectionOwnershipTests {
             Assert.Equal("Arial", style.FontFamily);
             Assert.Equal(18, style.Size);
             Assert.True(style.Bold);
-            Assert.Equal(VisioTextHorizontalAlignment.Right, style.HorizontalAlignment);
+            Assert.Equal(OfficeAlignment.Right, style.HorizontalAlignment);
             Assert.Equal(0.2, style.LeftMargin);
             Assert.Equal(before, document.ToLegacyXmlResult().Value);
         }

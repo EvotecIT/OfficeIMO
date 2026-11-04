@@ -17,7 +17,7 @@ public class RtfHtmlDocumentDataTests {
         document.AddDocumentVariable("Empty", string.Empty);
         document.AddParagraph("Body");
 
-        string html = document.ToHtml(new RtfToHtmlOptions {
+        string html = document.ToHtml(new RtfHtmlExportOptions {
             IncludeRoundTripMetadata = true,
             EmbedImagesAsDataUri = true,
             FragmentOnly = false,
@@ -27,7 +27,7 @@ public class RtfHtmlDocumentDataTests {
         Assert.Contains("<meta name=\"officeimo-rtf-user-properties\" content=\"", html, StringComparison.Ordinal);
         Assert.Contains("<meta name=\"officeimo-rtf-document-variables\" content=\"", html, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument roundTrip = HtmlConversionDocument.Parse(html).ToRtf();
 
         Assert.Collection(roundTrip.UserProperties,
             property => {
@@ -65,7 +65,7 @@ public class RtfHtmlDocumentDataTests {
                 Assert.Equal(string.Empty, variable.Value);
             });
 
-        string rtf = roundTrip.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = roundTrip.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         Assert.Contains(@"{\*\userprops{\propname Client}\proptype30{\staticval Contoso}{\propname Approved}\proptype11{\staticval 1}{\propname Score}\proptype5{\staticval 98.5}{\propname External}{\linkval Sheet1!A1}}", rtf, StringComparison.Ordinal);
         Assert.Contains(@"{\*\docvar {Mode}{Draft}}{\*\docvar {Empty}{}}", rtf, StringComparison.Ordinal);
     }

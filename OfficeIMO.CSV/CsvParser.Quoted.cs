@@ -162,7 +162,7 @@ internal static partial class CsvParser
         char delimiter,
         bool trim,
         bool strictQuotes,
-        CsvLoadOptions options,
+        CsvParsingSettings options,
         ref int lineNumber,
         out string[] fields)
     {
@@ -203,7 +203,7 @@ internal static partial class CsvParser
         char delimiter,
         bool trim,
         bool strictQuotes,
-        CsvLoadOptions options,
+        CsvParsingSettings options,
         ref int lineNumber,
         List<string> fields)
     {

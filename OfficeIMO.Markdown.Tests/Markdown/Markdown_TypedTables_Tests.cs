@@ -62,6 +62,13 @@ public sealed class Markdown_TypedTables_Tests {
     }
 
     [Fact]
+    public void TableNameIsRejectedBecauseMarkdownTablesHaveNoNativeName() {
+        using var document = MarkdownDocument.Create();
+        Assert.Throws<NotSupportedException>(() => document.AddTable(new[] { new Row() }, new OfficeTableOptions { Name = "Totals" }));
+        Assert.Empty(document.Blocks);
+    }
+
+    [Fact]
     public void HeaderlessTablesAndRuntimeDataRetainTheirValues() {
         using var document = MarkdownDocument.Create();
         var headerless = document.AddTable(new[] { new Row { Name = "First", Amount = 2 } },

@@ -77,7 +77,7 @@ public sealed class ReaderGoldenFixtureTests {
                 new ArchiveTraversalOptions { DeterministicOrder = true },
                 new ReaderZipOptions { ReadNestedZipEntries = false })
             .Build();
-        var chunks = reader.Read(
+        var chunks = reader.Enumerate(
             zipStream, "golden.zip", new ReaderOptions {
                 MaxChars = 8_000
             }).ToList();
@@ -94,7 +94,7 @@ public sealed class ReaderGoldenFixtureTests {
             readerOptions: new ReaderOptions {
                 MaxChars = 8_000
             },
-            epubOptions: new EpubReadOptions {
+            epubOptions: new EpubLoadOptions {
                 PreferSpineOrder = true
             }).ToList();
 

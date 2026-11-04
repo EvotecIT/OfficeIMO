@@ -73,7 +73,7 @@ internal sealed class AsciiDocTableConfiguration {
             int repeat = 1, star = specifier.IndexOf('*');
             if (star > 0 && (!int.TryParse(specifier.Substring(0, star), out repeat) || repeat < 1))
                 throw new InvalidDataException("Invalid AsciiDoc table column repetition.");
-            if ((long)styles.Count + repeat > maximumColumns) throw new InvalidDataException("AsciiDoc source exceeds MaximumTableColumnCount.");
+            if ((long)styles.Count + repeat > maximumColumns) throw new InvalidDataException("AsciiDoc source exceeds MaxTableColumnCount.");
             char style = specifier.Length > 0 && "adehlms".IndexOf(specifier[specifier.Length - 1]) >= 0 ? specifier[specifier.Length - 1] : 'd';
             for (int index = 0; index < repeat; index++) styles.Add(style);
         }
@@ -103,7 +103,7 @@ internal static class AsciiDocTableParser {
 
         int columns = configuration.ColumnCount ?? InferColumnCount(factory.Source.Text, descriptors, configuration.Format);
         if (columns < 1) columns = Math.Max(1, descriptors.Count);
-        if (columns > factory.Options.MaximumTableColumnCount) throw new InvalidDataException("AsciiDoc source exceeds MaximumTableColumnCount.");
+        if (columns > factory.Options.MaxTableColumnCount) throw new InvalidDataException("AsciiDoc source exceeds MaxTableColumnCount.");
         var cells = new List<AsciiDocTableCell>(descriptors.Count);
         var syntaxNodes = new List<AsciiDocSyntaxNode>(descriptors.Count);
         int logicalRow = 0;
@@ -128,8 +128,8 @@ internal static class AsciiDocTableParser {
                 logicalRow,
                 logicalColumn,
                 configuration.ColumnStyles.Count > 0 ? configuration.ColumnStyles[logicalColumn % configuration.ColumnStyles.Count] : 'd');
-            if (cell.ColumnSpan > factory.Options.MaximumTableSpan || cell.RowSpan > factory.Options.MaximumTableSpan)
-                throw new InvalidDataException("AsciiDoc source exceeds MaximumTableSpan.");
+            if (cell.ColumnSpan > factory.Options.MaxTableSpan || cell.RowSpan > factory.Options.MaxTableSpan)
+                throw new InvalidDataException("AsciiDoc source exceeds MaxTableSpan.");
             cells.Add(cell);
             syntaxNodes.Add(cellSyntax);
             if (configuration.Format == AsciiDocTableFormat.Psv) {

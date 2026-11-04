@@ -38,6 +38,7 @@ public sealed partial class PdfDocument {
             return output;
         }
         if (_source != null) return SerializeBytes(cancellationToken);
+        if (TryPublishCompletedOutput(options, out byte[] completed)) return completed;
         using var scope = new PdfOutputDiagnosticScope();
         byte[] bytes = SerializeBytes(cancellationToken);
         OfficeConversionReport report = PdfConversionEvidence.CreateReport("Pdf", new[] { scope.Report });
@@ -48,7 +49,7 @@ public sealed partial class PdfDocument {
     /// <summary>Atomically saves the native document to a file and associates that path.</summary>
     public void Save(string path, PdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
         string fullPath = ValidateOutputPath(path);
-        ThrowIfTextEncodingPreflightFails(cancellationToken);
+        if (Volatile.Read(ref _completedOutput) == null) ThrowIfTextEncodingPreflightFails(cancellationToken);
         OfficeFileCommit.Write(fullPath, output => WriteNativeWithLossCheck(output, options, cancellationToken),
             cancellationToken, ResolveConflictPolicy(options));
         _filePath = fullPath;

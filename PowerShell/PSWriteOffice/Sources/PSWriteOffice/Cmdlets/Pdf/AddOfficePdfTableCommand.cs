@@ -85,7 +85,7 @@ public sealed class AddOfficePdfTableCommand : PSCmdlet
 
     /// <summary>Table alignment.</summary>
     [Parameter]
-    public PdfAlign Align { get; set; } = PdfAlign.Left;
+    public OfficeAlignment Align { get; set; } = OfficeAlignment.Left;
 
     /// <summary>OfficeIMO table style preset or supported Word table style name.</summary>
     [Parameter]
@@ -160,7 +160,7 @@ public sealed class AddOfficePdfTableCommand : PSCmdlet
 
     /// <summary>Caption alignment.</summary>
     [Parameter]
-    public PdfAlign? CaptionAlign { get; set; }
+    public OfficeAlignment? CaptionAlign { get; set; }
 
     /// <summary>Caption color. Named colors and hexadecimal values are accepted.</summary>
     [Parameter]
@@ -182,7 +182,7 @@ public sealed class AddOfficePdfTableCommand : PSCmdlet
 
     /// <summary>Per-column horizontal alignment.</summary>
     [Parameter]
-    public PdfColumnAlign[]? ColumnAlign { get; set; }
+    public OfficeAlignment[]? ColumnAlign { get; set; }
 
     /// <summary>Measure flexible columns from content.</summary>
     [Parameter]
@@ -283,7 +283,7 @@ public sealed class AddOfficePdfTableCommand : PSCmdlet
         if (OfficeTableSpecParser.TryCreate(projectedRows, Property, Header, out var tableSpec, normalizationOptions))
         {
             var style = ApplyPdfCellStyles(CreateStyle(), tableSpec.Placements);
-            content.Table(ToPdfRows(tableSpec), Align, style);
+            content.AddTable(ToPdfRows(tableSpec), Align, style);
             return;
         }
 
@@ -294,7 +294,7 @@ public sealed class AddOfficePdfTableCommand : PSCmdlet
             ? PdfCommandUtilities.ConvertDataRows(enumerable, Header, normalizationOptions)
             : PdfCommandUtilities.ConvertToTableRows(projectedRows, Property, Header, normalizationOptions);
 
-        content.Table(rows, Align, CreateStyle());
+        content.AddTable(rows, Align, CreateStyle());
     }
 
     private static bool IsRowEnumerable(object item)
@@ -368,8 +368,8 @@ public sealed class AddOfficePdfTableCommand : PSCmdlet
 
             if (!string.IsNullOrWhiteSpace(cellStyle.Align))
             {
-                style.CellAlignments ??= new Dictionary<(int Row, int Column), PdfColumnAlign>();
-                style.CellAlignments[key] = ParseCellEnum<PdfColumnAlign>(cellStyle.Align!, nameof(cellStyle.Align));
+                style.CellAlignments ??= new Dictionary<(int Row, int Column), OfficeAlignment>();
+                style.CellAlignments[key] = ParseCellEnum<OfficeAlignment>(cellStyle.Align!, nameof(cellStyle.Align));
             }
 
             if (!string.IsNullOrWhiteSpace(cellStyle.VerticalAlign))

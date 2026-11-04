@@ -137,7 +137,7 @@ public partial class Word {
             "picture-tall-explicit-defaults.docx");
         using WordDocument source = WordDocument.Load(path);
         source.Sections[0].ColumnCount = columns;
-        source.Paragraphs[1].ShadingFillColorHex = "EFEFEF";
+        source.Paragraphs[1].ShadingFillColor = OfficeColor.Parse("EFEFEF");
         source.Paragraphs[1].KeepLinesTogether = true;
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         Assert.Empty(document.ValidateDocument());

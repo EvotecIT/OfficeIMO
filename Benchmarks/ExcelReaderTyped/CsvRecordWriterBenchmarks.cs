@@ -59,10 +59,10 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         }
         private void Validate(MemoryStream stream, string engine) {
             stream.Position = 0;
-            using (DbDataReader reader = CsvDocument.OpenDataReader(stream)) CsvBenchmarkFixture.Validate(reader, RowCount, headers: true);
+            using (DbDataReader reader = CsvDocument.OpenReader(stream)) CsvBenchmarkFixture.Validate(reader, RowCount, headers: true);
             stream.Position = 0;
             using StreamReader text = new StreamReader(stream, Encoding.UTF8, true, 1024, leaveOpen: true);
-            using CsvDataReader independent = global::Sylvan.Data.Csv.CsvDataReader.Create(text,
+            using global::Sylvan.Data.Csv.CsvDataReader independent = global::Sylvan.Data.Csv.CsvDataReader.Create(text,
                 new global::Sylvan.Data.Csv.CsvDataReaderOptions { Culture = CultureInfo.InvariantCulture });
             CsvBenchmarkFixture.Validate(independent, RowCount, headers: true);
             Console.WriteLine($"Qualified CSV record writer={engine}; mapped={Mapped}; rows={RowCount}; bytes={stream.Length}; "

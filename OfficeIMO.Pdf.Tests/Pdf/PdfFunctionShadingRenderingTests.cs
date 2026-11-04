@@ -104,7 +104,9 @@ public sealed class PdfFunctionShadingRenderingTests {
     }
 
     private static byte[] Document(OfficeShape shape) =>
-        PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(shape.Width), PageHeight = global::OfficeIMO.OfficeLength.Points(shape.Height),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(0), MarginBottom = global::OfficeIMO.OfficeLength.Points(0), MarginLeft = global::OfficeIMO.OfficeLength.Points(0), MarginRight = global::OfficeIMO.OfficeLength.Points(0) })
+        PdfDocument.Create(new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(shape.Width), global::OfficeIMO.OfficeLength.Points(shape.Height)),
+            Margins = { Top = global::OfficeIMO.OfficeLength.Points(0), Bottom = global::OfficeIMO.OfficeLength.Points(0), Left = global::OfficeIMO.OfficeLength.Points(0), Right = global::OfficeIMO.OfficeLength.Points(0) }
+        } })
             .Compose(c => c.Page(p => p.Content(content => content.Shape(shape)))).ToBytes();
 }

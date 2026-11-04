@@ -78,7 +78,9 @@ namespace OfficeIMO.PowerPoint {
             A.Table table = TableElement;
             var regions = CaptureMergeRegions();
             var templateHorizontalRegions = regions
-                .Where(region => region.Row == templateRowIndex && region.RowSpan == 1)
+                .Where(region => region.Row <= templateRowIndex && templateRowIndex < region.Row + region.RowSpan
+                    && region.ColumnSpan > 1)
+                .Select(region => (region.Row, region.Column, RowSpan: 1, region.ColumnSpan))
                 .ToList();
             A.TableRow templateRow = table.Elements<A.TableRow>().ElementAt(templateRowIndex);
             A.TableRow newRow = (A.TableRow)templateRow.CloneNode(true);
@@ -193,9 +195,11 @@ namespace OfficeIMO.PowerPoint {
             int existingColumns = Columns;
             var regions = CaptureMergeRegions();
             var templateVerticalRegions = regions
-                .Where(region => region.Column == templateColumnIndex && region.ColumnSpan == 1)
+                .Where(region => region.Column <= templateColumnIndex &&
+                    templateColumnIndex < region.Column + region.ColumnSpan && region.RowSpan > 1)
+                .Select(region => (region.Row, region.Column, region.RowSpan, ColumnSpan: 1))
                 .ToList();
-            A.GridColumn templateColumn =grid.Elements<A.GridColumn>().ElementAt(templateColumnIndex);
+            A.GridColumn templateColumn = grid.Elements<A.GridColumn>().ElementAt(templateColumnIndex);
             A.GridColumn newColumn = (A.GridColumn)templateColumn.CloneNode(true);
 
             int insertAt = index.HasValue ? Math.Min(index.Value, existingColumns) : existingColumns;

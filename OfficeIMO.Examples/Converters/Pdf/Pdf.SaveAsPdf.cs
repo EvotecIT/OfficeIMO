@@ -21,11 +21,11 @@ namespace OfficeIMO.Examples.Word {
             string imagePath = Path.Combine(Directory.GetCurrentDirectory(), "Images", "EvotecLogo.png");
 
             using (WordDocument document = WordDocument.Create(docPath)) {
-                var defaultHeader = document.HeaderDefaultOrCreate;
+                var defaultHeader = document.PageSetup.Header;
                 defaultHeader.AddParagraph("Example Header");
                 WordTable headerTable = defaultHeader.AddTable(1, 1);
                 headerTable.Rows[0].Cells[0].Paragraphs[0].Text = "H1";
-                var defaultFooter = document.FooterDefaultOrCreate;
+                var defaultFooter = document.PageSetup.Footer;
                 defaultFooter.AddParagraph("Example Footer");
                 WordTable footerTable = defaultFooter.AddTable(1, 1);
                 footerTable.Rows[0].Cells[0].Paragraphs[0].Text = "F1";

@@ -23,7 +23,7 @@ meta.software.price_currency: "USD"
 ```csharp
 using OfficeIMO.Epub;
 
-EpubDocument book = EpubDocument.Load("handbook.epub", new EpubReadOptions {
+EpubDocument book = EpubDocument.Load("handbook.epub", new EpubLoadOptions {
     PreferSpineOrder = true,
     MaxChapters = 100
 });

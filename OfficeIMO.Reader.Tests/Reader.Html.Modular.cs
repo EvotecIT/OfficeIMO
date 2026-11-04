@@ -114,7 +114,7 @@ public sealed class ReaderHtmlModularTests {
         string directory = Path.Combine(Path.GetTempPath(), "officeimo-reader-html-images-" + Guid.NewGuid().ToString("N"));
         try {
             var options = new ReaderHtmlOptions {
-                HtmlToMarkdownOptions = new MarkdownHtmlImportOptions {
+                HtmlToMarkdownOptions = new HtmlMarkdownExportOptions {
                     Base64Images = handling,
                     Base64ImageOutputDirectory = directory
                 }
@@ -255,7 +255,7 @@ public sealed class ReaderHtmlModularTests {
     public void DocumentReaderHtml_RichProjection_AppliesConfiguredElementFilters() {
         const string html = "<section class=\"private\"><p>Private text</p><a href=\"https://private.test\">Private link</a></section>"
             + "<p id=\"delegate-private\">Delegate private</p><p>Public text</p>";
-        var markdownOptions = MarkdownHtmlImportOptions.CreateOfficeIMOProfile();
+        var markdownOptions = HtmlMarkdownExportOptions.CreateOfficeIMOProfile();
         markdownOptions.ExcludeSelectors.Add(".private");
         int delegateMatchCount = 0;
         markdownOptions.ElementFilters.Add(element => {
@@ -282,9 +282,9 @@ public sealed class ReaderHtmlModularTests {
     [InlineData("blocked.example", false)]
     [InlineData("allowed.example", true)]
     public void PreparedNoscriptImageRespectsDocumentResourceHostPolicy(string host, bool allowed) {
-        var projection = MarkdownHtmlImportOptions.CreateOfficeIMOProfile();
+        var projection = HtmlMarkdownExportOptions.CreateOfficeIMOProfile();
         projection.ExcludeSelectors.Add(".remove");
-        var conversion = HtmlConversionDocumentOptions.CreateUntrustedProfile();
+        var conversion = HtmlConversionDocumentOptions.UntrustedDefaults;
         HtmlUrlPolicy resourcePolicy = HtmlUrlPolicy.CreateWebOnlyProfile();
         resourcePolicy.ResolvedUrlTransform = url => new Uri(url).Host == "allowed.example" ? url : null;
         conversion.ResourceUrlPolicy = resourcePolicy;
@@ -489,7 +489,7 @@ public sealed class ReaderHtmlModularTests {
             html: html,
             sourceName: "limited.html",
             htmlOptions: new ReaderHtmlOptions {
-                HtmlToMarkdownOptions = new MarkdownHtmlImportOptions {
+                HtmlToMarkdownOptions = new HtmlMarkdownExportOptions {
                     MaxInputCharacters = 12
                 }
             }).ToList());
@@ -631,7 +631,7 @@ public sealed class ReaderHtmlModularTests {
 
         var html = "<html><body><h2>Registry HTML</h2><p>From stream.</p></body></html>";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(html), writable: false);
-        var chunks = reader.Read(stream, "registry.html").ToList();
+        var chunks = reader.Enumerate(stream, "registry.html").ToList();
 
         Assert.NotEmpty(chunks);
         Assert.Contains(chunks, c =>
@@ -647,7 +647,7 @@ public sealed class ReaderHtmlModularTests {
 
         var html = "<html><body><h2>Registry XHTML</h2><p>From stream.</p></body></html>";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(html), writable: false);
-        var chunks = reader.Read(stream, "registry.xhtml").ToList();
+        var chunks = reader.Enumerate(stream, "registry.xhtml").ToList();
 
         Assert.NotEmpty(chunks);
         Assert.Contains(chunks, c =>
@@ -692,7 +692,7 @@ public sealed class ReaderHtmlModularTests {
 
         var html = "<html><body><h2>Registry HTML</h2><p>From stream.</p></body></html>";
         using var stream = new NonSeekableReadStream(Encoding.UTF8.GetBytes(html));
-        var ex = Assert.Throws<IOException>(() => reader.Read(
+        var ex = Assert.Throws<IOException>(() => reader.Enumerate(
             stream,
             "registry.html",
             new ReaderOptions { MaxInputBytes = 16 }).ToList());
@@ -704,7 +704,7 @@ public sealed class ReaderHtmlModularTests {
     public void DocumentReaderHtml_BuilderHandler_PreservesConfiguredMaxInputCharacters() {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
             .AddHtmlHandler(new ReaderHtmlOptions {
-                    HtmlToMarkdownOptions = new MarkdownHtmlImportOptions {
+                    HtmlToMarkdownOptions = new HtmlMarkdownExportOptions {
                         MaxInputCharacters = 12
                     }
                 })
@@ -712,7 +712,7 @@ public sealed class ReaderHtmlModularTests {
 
         var html = "<html><body><p>Too much content for this limit.</p></body></html>";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(html), writable: false);
-        var ex = Assert.Throws<ArgumentOutOfRangeException>(() => reader.Read(stream, "configured.html").ToList());
+        var ex = Assert.Throws<ArgumentOutOfRangeException>(() => reader.Enumerate(stream, "configured.html").ToList());
 
         Assert.Contains("MaxInputCharacters", ex.Message, StringComparison.Ordinal);
     }
@@ -721,7 +721,7 @@ public sealed class ReaderHtmlModularTests {
     public void DocumentReaderHtml_BuilderHandler_AppliesConfiguredMarkdownOptions() {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
             .AddHtmlHandler(new ReaderHtmlOptions {
-                    HtmlToMarkdownOptions = new MarkdownHtmlImportOptions {
+                    HtmlToMarkdownOptions = new HtmlMarkdownExportOptions {
                         BaseUri = new Uri("https://example.com/docs/")
                     }
                 })
@@ -729,7 +729,7 @@ public sealed class ReaderHtmlModularTests {
 
         var html = "<html><body><p><a href=\"guide/getting-started\">Docs</a></p></body></html>";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(html), writable: false);
-        var chunks = reader.Read(stream, "configured.html").ToList();
+        var chunks = reader.Enumerate(stream, "configured.html").ToList();
 
         Assert.NotEmpty(chunks);
         Assert.Contains(chunks, c =>

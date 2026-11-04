@@ -1,0 +1,3862 @@
+{
+  "date": "2026-11-03",
+  "baselineCommit": "5d3305799019daab57252672df44e9f51d7812cf",
+  "implementationCommit": "40734fa5ac8a8240a2c4baec2ea693fd45392de3",
+  "host": {
+    "BenchmarkDotNetCaption": "BenchmarkDotNet",
+    "BenchmarkDotNetVersion": "0.15.8",
+    "OsVersion": "macOS 27.0.1 (26A434) [Darwin 27.0.0]",
+    "ProcessorName": "Apple M4",
+    "PhysicalProcessorCount": 1,
+    "PhysicalCoreCount": 10,
+    "LogicalCoreCount": 10,
+    "RuntimeVersion": ".NET 10.0.14 (10.0.14, 10.0.1426.52326)",
+    "Architecture": "Arm64",
+    "HasAttachedDebugger": false,
+    "HasRyuJit": true,
+    "Configuration": "RELEASE",
+    "DotNetCliVersion": "10.0.403",
+    "ChronometerFrequency": {
+      "Hertz": 1000000000
+    },
+    "HardwareTimerKind": "Unknown"
+  },
+  "hostLimits": "Shared M4; normal priority, no affinity or quiet-host claim. Retain launch variation.",
+  "measurement": {
+    "rows": 50000,
+    "warmups": 8,
+    "measurements": 12,
+    "invocations": 16,
+    "unroll": 1,
+    "outliers": "DontRemove",
+    "toolchain": "InProcessEmit",
+    "ordering": "before2, after3, before3, after4",
+    "lock": "shared heavy-run lock; builds limited to two MSBuild workers"
+  },
+  "packages": {
+    "ExcelDataReader": "3.9.0",
+    "ExcelReader.NET": "7.3.4",
+    "SpreadCheetah": "1.28.0",
+    "Sylvan.Data.Excel": "0.5.8"
+  },
+  "inputFiles": {
+    "generated-four-columns-50000.xls": {
+      "bytes": 5203456,
+      "sha256": "57a4d6f06964444b8e35ab1830bc3e0f1c3ac9a1fcdad003e74afe3d9a3baae2"
+    },
+    "generated-four-columns-50000.xlsb": {
+      "bytes": 846930,
+      "sha256": "870df6ba8ed20131d0811e5bbaf16a00967bd581da7ad962cb75fe9cfc628e5a"
+    },
+    "generated-four-columns-50000.xlsx": {
+      "bytes": 926935,
+      "sha256": "8ffa84c5ddf6a282b861c5a2bdaaf13c0a0d411cae5f3b178a6dcd2eaee60b44"
+    }
+  },
+  "assemblyVariants": {
+    "baseline": {
+      "OfficeIMO.Excel.Benchmarks.dll": "9f27f06dfc0f199875d42af3a0e8301b21966f57ae44096470d4a31271ba544e",
+      "OfficeIMO.Data.Arrow.dll": "70db7f05695c78e1810c6dc6a66283bbd036de3f25fcaf9c7b3fdac22f46d29b",
+      "OfficeIMO.Core.dll": "6247bf8498009414d26584bcb412eb76d75a0635041d4695c45da7e0c4fb3a54",
+      "OfficeIMO.Excel.dll": "76be3ed6f14103585f90860023e5ac269bd7771c2037944996e84792ffbed6e3"
+    },
+    "direct-unreserved": {
+      "OfficeIMO.Excel.Benchmarks.dll": "c43eaf67674c06d916b1c573e26c21161ec9558cdd6444d2d3df565176c756fb",
+      "OfficeIMO.Data.Arrow.dll": "6c6a4643b054ad94be4c626d7140bef9de7b7a7cb907d4943ac8517cbfb39be7",
+      "OfficeIMO.Core.dll": "a94b998cf0734f2a4648dfa9f99c94ff799f4e94d64cedf52041edb96548c795",
+      "OfficeIMO.Excel.dll": "4bd2b897a9f98f9b756208541b1bc5bf916b0081fb98b55f309e92d46984d578"
+    },
+    "inline-and-reserved": {
+      "OfficeIMO.Excel.Benchmarks.dll": "5200795f6b479d2f9987e8ad641a1f5863e50d1ea1f41d4a9b49895c37d2ed7d",
+      "OfficeIMO.Data.Arrow.dll": "5a45c4aa87fc20147bc2f64be1c0f5e9d14d43256d28f8992eddc1f00d8eaf0a",
+      "OfficeIMO.Core.dll": "bbfb11fcdd78c5539efd9f69bb61cdce2c72ac1db3ede5166e2d51023072dfb7",
+      "OfficeIMO.Excel.dll": "27c4a6802c42cd62ef7c84215c436365097cdd70bfaca2f320d6fdb1698f5199"
+    },
+    "final": {
+      "OfficeIMO.Excel.Benchmarks.dll": "2a0b7c18fe91aaf09ecf2773fcc3928bc76f721bccaed44598aa60ce7a882ef2",
+      "OfficeIMO.Data.Arrow.dll": "18accb88bb9c8d00ec369b5b867a65cb08c4cdda8c0d0fb577ae6073a00457ad",
+      "OfficeIMO.Core.dll": "6f509a70fd014b0de4dd7a0c7df868753acfb741ca36d3bf088a5d02ba5792f9",
+      "OfficeIMO.Excel.dll": "6e0636b5728c8dc6bd5e5260af4f8b19bd5f2446398c7deaafbd089d2e88f95f"
+    }
+  },
+  "stablePairs": [
+    {
+      "beforeLabel": "before2",
+      "afterLabel": "after3",
+      "before": [
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "OfficeIMO_Parse",
+          "parameters": "Format=Xlsx&RowCount=50000",
+          "medianMs": 12.700558625,
+          "allocatedBytes": 4783786,
+          "samplesMs": [
+            13.448059875,
+            12.90283075,
+            12.27321875,
+            12.6147474375,
+            13.2043385,
+            12.5870051875,
+            16.2588801875,
+            12.3245051875,
+            11.868234375,
+            11.940638,
+            12.7863698125,
+            12.9339010625
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "ExcelReaderNet_Parse",
+          "parameters": "Format=Xlsx&RowCount=50000",
+          "medianMs": 9.154009125,
+          "allocatedBytes": 4724673,
+          "samplesMs": [
+            9.30471875,
+            8.4937630625,
+            9.0752005,
+            9.7691953125,
+            8.7397500625,
+            10.19640625,
+            10.2165208125,
+            8.9306406875,
+            9.23281775,
+            9.4259166875,
+            9.00885675,
+            8.694099
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "OfficeIMO_Parse",
+          "parameters": "Format=Xls&RowCount=50000",
+          "medianMs": 8.244721375,
+          "allocatedBytes": 5827464,
+          "samplesMs": [
+            8.42165625,
+            8.191455750000001,
+            8.240789062500001,
+            8.210075562499998,
+            8.40175,
+            8.264112,
+            8.296208375,
+            8.709109375,
+            8.2486536875,
+            8.1948255,
+            8.1684895625,
+            8.1668203125
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "ExcelReaderNet_Parse",
+          "parameters": "Format=Xls&RowCount=50000",
+          "medianMs": 7.9522186875,
+          "allocatedBytes": 6345248,
+          "samplesMs": [
+            8.01566925,
+            8.054747375,
+            8.065872312500002,
+            7.8733905625,
+            7.937674437499999,
+            7.9649686875,
+            7.895916625,
+            7.9394686875,
+            7.934494750000001,
+            7.9719426875,
+            7.7951640625,
+            7.9712994375
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "OfficeIMO_Parse",
+          "parameters": "Format=Xlsb&RowCount=50000",
+          "medianMs": 8.02286459375,
+          "allocatedBytes": 4796036,
+          "samplesMs": [
+            8.023483093749999,
+            8.01447009375,
+            7.95833203125,
+            7.936832031249999,
+            7.97410803125,
+            8.02224609375,
+            8.03686853125,
+            8.09047790625,
+            10.36610284375,
+            10.99569921875,
+            8.063342468750001,
+            7.98042578125
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "ExcelReaderNet_Parse",
+          "parameters": "Format=Xlsb&RowCount=50000",
+          "medianMs": 6.4935989375,
+          "allocatedBytes": 4724246,
+          "samplesMs": [
+            6.5476171875,
+            6.4382083125,
+            6.540890625,
+            6.5834556875,
+            6.46073175,
+            6.5982005,
+            6.516773375,
+            6.42636975,
+            6.4302811875,
+            6.504401,
+            6.478197875,
+            6.482796875
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "OfficeIMO_Read",
+          "parameters": "Format=Xlsx&RowCount=50000",
+          "medianMs": 10.54856775,
+          "allocatedBytes": 2383946,
+          "samplesMs": [
+            10.5578515625,
+            10.6025078125,
+            10.4710364375,
+            10.5593801875,
+            10.5591796875,
+            10.5818880625,
+            10.5519661875,
+            10.5451693125,
+            10.5345676875,
+            10.4942031875,
+            10.5253020625,
+            10.41614325
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "Sylvan_Read",
+          "parameters": "Format=Xlsx&RowCount=50000",
+          "medianMs": 31.406487,
+          "allocatedBytes": 2669484,
+          "samplesMs": [
+            31.90554425,
+            31.7171198125,
+            31.6680286875,
+            30.013690125,
+            31.03349225,
+            31.2473255625,
+            31.813369812499996,
+            32.3814375,
+            31.539940124999998,
+            30.6950208125,
+            31.273033875,
+            30.720247375
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "ExcelDataReader_Read",
+          "parameters": "Format=Xlsx&RowCount=50000",
+          "medianMs": 65.90657553125,
+          "allocatedBytes": 35526180,
+          "samplesMs": [
+            66.19020574999999,
+            65.64256512499999,
+            65.96103387500001,
+            65.53358337499999,
+            65.724362,
+            65.6565078125,
+            65.1861354375,
+            66.6603125,
+            71.224224,
+            65.8521171875,
+            71.130614625,
+            69.0631640625
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "ExcelReaderNet_Read",
+          "parameters": "Format=Xlsx&RowCount=50000",
+          "medianMs": 7.2891991875,
+          "allocatedBytes": 2324407,
+          "samplesMs": [
+            7.178854125,
+            7.51263275,
+            7.6081328125,
+            7.5198073125,
+            7.81985675,
+            7.39954425,
+            6.63235675,
+            6.602778625,
+            6.595273375,
+            7.6837499375,
+            6.60148175,
+            6.580453125
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "OfficeIMO_Read",
+          "parameters": "Format=Xls&RowCount=50000",
+          "medianMs": 6.09102990625,
+          "allocatedBytes": 3427210,
+          "samplesMs": [
+            6.08004425,
+            6.4331875,
+            5.736809875,
+            6.052359375,
+            5.7641796875,
+            6.1651145625,
+            6.5713541875,
+            6.02578125,
+            6.5813515625,
+            5.783416625,
+            6.1020155625,
+            6.1409609375
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "Sylvan_Read",
+          "parameters": "Format=Xls&RowCount=50000",
+          "medianMs": 6.0950481875,
+          "allocatedBytes": 2848234,
+          "samplesMs": [
+            6.975190125,
+            6.019684875,
+            6.5585781875,
+            6.84975525,
+            5.8162135625,
+            5.946552125,
+            5.712770875,
+            5.909565125,
+            5.9965469375,
+            6.1704115,
+            6.199328125,
+            6.354708375
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "ExcelDataReader_Read",
+          "parameters": "Format=Xls&RowCount=50000",
+          "medianMs": 46.13184115625,
+          "allocatedBytes": 53435828,
+          "samplesMs": [
+            43.2918698125,
+            43.7863020625,
+            44.3848411875,
+            45.4490755,
+            46.7186145625,
+            45.4487604375,
+            45.54506775,
+            54.6046744375,
+            52.200591125,
+            52.812502625,
+            53.8068854375,
+            50.4534505
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "ExcelReaderNet_Read",
+          "parameters": "Format=Xls&RowCount=50000",
+          "medianMs": 4.903884125,
+          "allocatedBytes": 3944105,
+          "samplesMs": [
+            5.0585703125,
+            4.9945,
+            4.82678125,
+            5.0375676875,
+            4.8555989375,
+            4.856109375,
+            4.8361823125,
+            4.7843515625,
+            4.83589325,
+            5.1090599375,
+            5.0857578125,
+            4.951658875
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "OfficeIMO_Read",
+          "parameters": "Format=Xlsb&RowCount=50000",
+          "medianMs": 6.433833375,
+          "allocatedBytes": 2395470,
+          "samplesMs": [
+            6.6932916875,
+            7.3345729375,
+            6.5894453125,
+            6.42738025,
+            6.3594375625,
+            6.394216125,
+            6.417096375,
+            6.4006198125,
+            6.394596375,
+            6.4402865,
+            6.589226625,
+            6.5042578125
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "Sylvan_Read",
+          "parameters": "Format=Xlsb&RowCount=50000",
+          "medianMs": 5.87523309375,
+          "allocatedBytes": 2583174,
+          "samplesMs": [
+            5.9880625625,
+            5.9467760625,
+            5.876612,
+            5.8738541875,
+            5.9096640625,
+            5.8224166875,
+            5.85675525,
+            5.8145365,
+            5.7860234375,
+            5.9281068125,
+            5.894221375,
+            5.861083375
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "ExcelDataReader_Read",
+          "parameters": "Format=Xlsb&RowCount=50000",
+          "medianMs": 23.0010495,
+          "allocatedBytes": 19609952,
+          "samplesMs": [
+            22.74959115625,
+            22.73798178125,
+            22.68397915625,
+            22.72866665625,
+            22.96612240625,
+            23.01870315625,
+            22.98339584375,
+            23.17727084375,
+            23.31260934375,
+            23.27164065625,
+            23.28594009375,
+            23.27413278125
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "ExcelReaderNet_Read",
+          "parameters": "Format=Xlsb&RowCount=50000",
+          "medianMs": 4.76381121875,
+          "allocatedBytes": 2324190,
+          "samplesMs": [
+            4.760724,
+            4.754013,
+            4.753112,
+            4.7842031875,
+            4.7421015625,
+            4.766690125,
+            4.7676536875,
+            4.76944275,
+            4.7609323125,
+            4.742958375,
+            4.7774583125,
+            4.769747375
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedWriteBenchmarks",
+          "method": "OfficeIMO",
+          "parameters": "Format=Xls&RowCount=50000",
+          "medianMs": 17.60242840625,
+          "allocatedBytes": 37951074,
+          "samplesMs": [
+            18.167690125,
+            17.928349,
+            17.695390625,
+            17.3612760625,
+            17.253476625,
+            17.462015625,
+            17.6071536875,
+            17.54733075,
+            17.429177125,
+            17.6481823125,
+            17.6859193125,
+            17.597703125
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedWriteBenchmarks",
+          "method": "ExcelReaderNet",
+          "parameters": "Format=Xls&RowCount=50000",
+          "medianMs": 3.92551175,
+          "allocatedBytes": 17903299,
+          "samplesMs": [
+            4.09464325,
+            3.926065125,
+            3.9249583749999997,
+            3.8950885625,
+            3.9220703125000003,
+            3.93351825,
+            3.9421693125000004,
+            3.9264713749999993,
+            3.9317265625000006,
+            3.9171380625000003,
+            3.9083854375,
+            3.9177890625000003
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedWriteBenchmarks",
+          "method": "OfficeIMO",
+          "parameters": "Format=Xlsb&RowCount=50000",
+          "medianMs": 16.4577695,
+          "allocatedBytes": 15910015,
+          "samplesMs": [
+            16.1847395625,
+            16.2847864375,
+            16.2760025625,
+            16.4075703125,
+            16.46830725,
+            16.574403625,
+            16.781078125,
+            16.500890624999997,
+            16.44723175,
+            16.18209375,
+            16.507127625000003,
+            16.812041625
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedWriteBenchmarks",
+          "method": "ExcelReaderNet",
+          "parameters": "Format=Xlsb&RowCount=50000",
+          "medianMs": 5.592177125,
+          "allocatedBytes": 9258116,
+          "samplesMs": [
+            5.7188125625,
+            5.7176615,
+            5.64564325,
+            5.595974,
+            5.58838025,
+            5.6197890625,
+            5.5849036875,
+            5.5360156875,
+            5.6317734375,
+            5.5225078125,
+            5.55386725,
+            5.5498125
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+          "method": "OfficeIMO",
+          "parameters": "",
+          "medianMs": 10.22035675,
+          "allocatedBytes": 9505828,
+          "samplesMs": [
+            10.224653625,
+            10.1879765625,
+            10.216059875,
+            10.2061171875,
+            10.2812890625,
+            10.4130989375,
+            10.283721375,
+            10.25335675,
+            10.2326926875,
+            10.1694426875,
+            10.187395875,
+            10.15055725
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+          "method": "ExcelReaderNet",
+          "parameters": "",
+          "medianMs": 8.05349865625,
+          "allocatedBytes": 9445132,
+          "samplesMs": [
+            8.17263153125,
+            8.279027343749998,
+            8.18069396875,
+            8.107501281249998,
+            8.375108031249999,
+            8.104720031249999,
+            7.978704406249999,
+            7.993009093750001,
+            7.990839843749999,
+            8.00227728125,
+            7.97440228125,
+            7.969506531249999
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+          "method": "SpreadCheetah",
+          "parameters": "",
+          "medianMs": 12.76995565625,
+          "allocatedBytes": 11676145,
+          "samplesMs": [
+            12.8332343125,
+            12.7911744375,
+            12.78244525,
+            12.8576926875,
+            12.7574660625,
+            12.7244556875,
+            12.7150936875,
+            12.6875441875,
+            12.7865989375,
+            12.80300775,
+            12.725651,
+            12.7552499375
+          ]
+        }
+      ],
+      "after": [
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "OfficeIMO_Parse",
+          "parameters": "Format=Xlsx&RowCount=50000",
+          "medianMs": 11.0206041875,
+          "allocatedBytes": 4783794,
+          "samplesMs": [
+            11.2545729375,
+            11.3031171875,
+            11.0383099375,
+            10.89128125,
+            10.9458541875,
+            10.9443125625,
+            10.94520575,
+            11.0247291875,
+            11.0435078125,
+            11.085403625,
+            11.0164791875,
+            10.927283875
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "ExcelReaderNet_Parse",
+          "parameters": "Format=Xlsx&RowCount=50000",
+          "medianMs": 8.093184875,
+          "allocatedBytes": 4724922,
+          "samplesMs": [
+            8.06985675,
+            8.0298436875,
+            8.0057655625,
+            8.063755187500002,
+            8.0580495,
+            8.140572875,
+            8.1728515,
+            8.0318436875,
+            8.156622375000001,
+            8.140138,
+            8.1443385,
+            8.116513
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "OfficeIMO_Parse",
+          "parameters": "Format=Xls&RowCount=50000",
+          "medianMs": 6.76878771875,
+          "allocatedBytes": 5827768,
+          "samplesMs": [
+            6.771291625,
+            6.814151,
+            6.8631926875,
+            6.7889686875,
+            6.797210875,
+            6.712171875,
+            6.758046875,
+            6.7935885,
+            6.7662838125,
+            6.74857025,
+            6.759362,
+            6.737184875
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "ExcelReaderNet_Parse",
+          "parameters": "Format=Xls&RowCount=50000",
+          "medianMs": 7.67846746875,
+          "allocatedBytes": 6345248,
+          "samplesMs": [
+            7.5441823125,
+            7.58759375,
+            7.6526328125,
+            7.70854425,
+            7.641020875,
+            7.6939349375,
+            7.694690125,
+            7.9052786875,
+            7.9006354375,
+            7.76739325,
+            7.663,
+            7.652849
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "OfficeIMO_Parse",
+          "parameters": "Format=Xlsb&RowCount=50000",
+          "medianMs": 7.0900246875,
+          "allocatedBytes": 4796292,
+          "samplesMs": [
+            7.0872681875,
+            7.086237,
+            7.0927811875,
+            7.042783875,
+            7.117888,
+            7.0720208125,
+            7.0507525625,
+            10.1981171875,
+            7.693158875,
+            7.1068150625,
+            7.0983905625,
+            7.0819061875
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "ExcelReaderNet_Parse",
+          "parameters": "Format=Xlsb&RowCount=50000",
+          "medianMs": 6.32781246875,
+          "allocatedBytes": 4724600,
+          "samplesMs": [
+            6.34273175,
+            6.3442968125,
+            6.3209296875,
+            6.335242125,
+            6.3211926875,
+            6.3081484375,
+            6.3261614375,
+            6.318,
+            6.329789,
+            6.3294635,
+            6.3259609375,
+            6.3637005
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "OfficeIMO_Read",
+          "parameters": "Format=Xlsx&RowCount=50000",
+          "medianMs": 10.1336705625,
+          "allocatedBytes": 2383964,
+          "samplesMs": [
+            9.963091125,
+            9.9348489375,
+            10.2089556875,
+            10.3330520625,
+            10.3401926875,
+            10.3398671875,
+            10.17793225,
+            10.03711975,
+            9.9950546875,
+            9.979479125,
+            10.089408875,
+            10.2318359375
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "Sylvan_Read",
+          "parameters": "Format=Xlsx&RowCount=50000",
+          "medianMs": 28.86402996875,
+          "allocatedBytes": 2669526,
+          "samplesMs": [
+            28.832479125,
+            28.8424088125,
+            28.835346375,
+            28.87520575,
+            28.835,
+            29.007028625,
+            28.8528541875,
+            28.8272734375,
+            29.6988671875,
+            29.837460875,
+            29.54244525,
+            29.238484375
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "ExcelDataReader_Read",
+          "parameters": "Format=Xlsx&RowCount=50000",
+          "medianMs": 65.99708728125,
+          "allocatedBytes": 35526432,
+          "samplesMs": [
+            64.11760937499999,
+            64.17452868749999,
+            67.4503541875,
+            66.3079296875,
+            64.3960599375,
+            66.281645875,
+            69.6569635625,
+            65.71252868750001,
+            65.1877813125,
+            68.152445375,
+            66.44633075,
+            65.1575078125
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "ExcelReaderNet_Read",
+          "parameters": "Format=Xlsx&RowCount=50000",
+          "medianMs": 6.7227513125,
+          "allocatedBytes": 2324287,
+          "samplesMs": [
+            6.697987,
+            6.7200495,
+            6.725453125,
+            6.7164166875,
+            6.8154609375,
+            6.7038385625,
+            6.7362318125,
+            7.0621796875,
+            7.08481775,
+            6.7127291875,
+            6.6699688125,
+            7.0628671875
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "OfficeIMO_Read",
+          "parameters": "Format=Xls&RowCount=50000",
+          "medianMs": 5.82938021875,
+          "allocatedBytes": 3427440,
+          "samplesMs": [
+            7.56568884375,
+            6.81560028125,
+            6.87050390625,
+            7.19857678125,
+            5.83822009375,
+            5.78991015625,
+            5.76460546875,
+            5.74268878125,
+            5.79813153125,
+            5.80105596875,
+            5.82054034375,
+            5.87308203125
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "Sylvan_Read",
+          "parameters": "Format=Xls&RowCount=50000",
+          "medianMs": 5.36659765625,
+          "allocatedBytes": 2848160,
+          "samplesMs": [
+            6.91271484375,
+            6.12341790625,
+            5.38040753125,
+            5.36811328125,
+            5.32426953125,
+            5.32211590625,
+            5.33300646875,
+            5.30800128125,
+            5.36868096875,
+            5.36508203125,
+            5.37880859375,
+            5.32597521875
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "ExcelDataReader_Read",
+          "parameters": "Format=Xls&RowCount=50000",
+          "medianMs": 45.78572528125,
+          "allocatedBytes": 53435690,
+          "samplesMs": [
+            47.0959010625,
+            45.618382875,
+            45.9712448125,
+            45.6706823125,
+            45.6244505625,
+            44.9614323125,
+            45.90076825,
+            46.4814010625,
+            44.395984375,
+            46.9877395625,
+            47.19919275,
+            44.7453906875
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "ExcelReaderNet_Read",
+          "parameters": "Format=Xls&RowCount=50000",
+          "medianMs": 4.76000653125,
+          "allocatedBytes": 3944230,
+          "samplesMs": [
+            4.743296875,
+            4.7261224375,
+            4.724109375,
+            4.75603125,
+            4.741440125,
+            4.748783875,
+            4.764362,
+            4.78063025,
+            4.8076015625,
+            4.7639818125,
+            4.804289125,
+            4.800458375
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "OfficeIMO_Read",
+          "parameters": "Format=Xlsb&RowCount=50000",
+          "medianMs": 6.37955209375,
+          "allocatedBytes": 2395526,
+          "samplesMs": [
+            6.368695375,
+            6.31484375,
+            6.3246485,
+            6.3549010625,
+            6.3935781875,
+            6.3576171875,
+            6.37160675,
+            6.3874974375,
+            6.400020875,
+            6.4060676875,
+            6.4621484375,
+            6.4930443125
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "Sylvan_Read",
+          "parameters": "Format=Xlsb&RowCount=50000",
+          "medianMs": 5.8907383125,
+          "allocatedBytes": 2583174,
+          "samplesMs": [
+            5.93723175,
+            5.9216666875,
+            5.9315286875,
+            5.893971375,
+            5.9194505625,
+            5.9048020625,
+            5.8655755625,
+            5.8662109375,
+            5.8798333125,
+            5.88750525,
+            5.8268255,
+            5.8863073125
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "ExcelDataReader_Read",
+          "parameters": "Format=Xlsb&RowCount=50000",
+          "medianMs": 23.66527990625,
+          "allocatedBytes": 19609952,
+          "samplesMs": [
+            23.66491925,
+            23.82679425,
+            23.613263,
+            23.6656405625,
+            23.7284765,
+            23.7640755,
+            23.3854453125,
+            23.4034323125,
+            23.7883203125,
+            23.67755725,
+            23.4627681875,
+            23.007604125
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "ExcelReaderNet_Read",
+          "parameters": "Format=Xlsb&RowCount=50000",
+          "medianMs": 4.869140625,
+          "allocatedBytes": 2324190,
+          "samplesMs": [
+            4.905349,
+            4.9088255625,
+            4.8766770625,
+            4.8264531875,
+            4.8375260625,
+            4.847533875,
+            4.880341125,
+            4.8866484375,
+            4.8616041875,
+            4.8472890625,
+            4.888377625,
+            4.840440125
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedWriteBenchmarks",
+          "method": "OfficeIMO",
+          "parameters": "Format=Xls&RowCount=50000",
+          "medianMs": 18.19553515625,
+          "allocatedBytes": 31533108,
+          "samplesMs": [
+            18.7313671875,
+            18.07420575,
+            18.2242760625,
+            18.17021875,
+            17.87560675,
+            17.895328125,
+            18.1644375625,
+            18.025112,
+            18.2208515625,
+            18.278309875,
+            18.2714375,
+            18.4374453125
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedWriteBenchmarks",
+          "method": "ExcelReaderNet",
+          "parameters": "Format=Xls&RowCount=50000",
+          "medianMs": 4.21792709375,
+          "allocatedBytes": 17903362,
+          "samplesMs": [
+            4.3309323125,
+            4.18749225,
+            4.1973489375,
+            4.2313854375,
+            4.2365156875,
+            4.2163125,
+            4.215458375,
+            4.25329425,
+            4.2139688125,
+            4.2386849375,
+            4.2150859375,
+            4.2195416875
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedWriteBenchmarks",
+          "method": "OfficeIMO",
+          "parameters": "Format=Xlsb&RowCount=50000",
+          "medianMs": 16.6829830625,
+          "allocatedBytes": 16221104,
+          "samplesMs": [
+            16.6100078125,
+            16.8265625,
+            16.8225599375,
+            16.78669275,
+            16.6977083125,
+            16.7490365,
+            16.6682578125,
+            16.579898500000002,
+            16.601059875,
+            16.5575599375,
+            16.5008385625,
+            16.7308671875
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedWriteBenchmarks",
+          "method": "ExcelReaderNet",
+          "parameters": "Format=Xlsb&RowCount=50000",
+          "medianMs": 5.5027044375,
+          "allocatedBytes": 9258138,
+          "samplesMs": [
+            5.54689978125,
+            5.50064190625,
+            5.51227734375,
+            5.55295965625,
+            5.49714978125,
+            5.52603515625,
+            5.53864978125,
+            5.50476696875,
+            5.49133203125,
+            5.49768878125,
+            5.43982421875,
+            5.46946484375
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+          "method": "OfficeIMO",
+          "parameters": "",
+          "medianMs": 10.0863580625,
+          "allocatedBytes": 9506038,
+          "samplesMs": [
+            10.1024973125,
+            10.083229125,
+            10.0581875,
+            10.06371875,
+            10.03141925,
+            10.0866328125,
+            10.167091125,
+            10.0860833125,
+            10.142197875,
+            10.078125,
+            10.1020833125,
+            10.0880311875
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+          "method": "ExcelReaderNet",
+          "parameters": "",
+          "medianMs": 8.16317834375,
+          "allocatedBytes": 9445154,
+          "samplesMs": [
+            8.1273749375,
+            8.1033385,
+            8.16930725,
+            8.064546875000001,
+            8.167072874999999,
+            8.120927062500002,
+            8.16668225,
+            8.1912056875,
+            8.1484061875,
+            8.1596744375,
+            8.1736535625,
+            8.173018187499999
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+          "method": "SpreadCheetah",
+          "parameters": "",
+          "medianMs": 12.3012604375,
+          "allocatedBytes": 11676184,
+          "samplesMs": [
+            12.3132604375,
+            12.30701825,
+            12.267778625,
+            12.2965599375,
+            12.3059609375,
+            12.3108645625,
+            12.3199115,
+            12.3183515625,
+            12.2548854375,
+            12.2690469375,
+            12.271627625,
+            12.218875
+          ]
+        }
+      ]
+    },
+    {
+      "beforeLabel": "before3",
+      "afterLabel": "after4",
+      "before": [
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "OfficeIMO_Parse",
+          "parameters": "Format=Xlsx&RowCount=50000",
+          "medianMs": 11.46544140625,
+          "allocatedBytes": 4783786,
+          "samplesMs": [
+            11.5693698125,
+            11.4635703125,
+            11.4836250625,
+            11.48440625,
+            11.48826825,
+            11.4749791875,
+            11.4673125,
+            11.41714325,
+            11.4324661875,
+            11.38884375,
+            11.32126825,
+            11.2987188125
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "ExcelReaderNet_Parse",
+          "parameters": "Format=Xlsx&RowCount=50000",
+          "medianMs": 7.98622390625,
+          "allocatedBytes": 4724943,
+          "samplesMs": [
+            8.006408874999998,
+            8.020640625,
+            8.0293541875,
+            8.019700499999999,
+            7.988992125000001,
+            7.9834556875,
+            7.94725,
+            7.9545208125,
+            7.9737916874999994,
+            7.976536437499999,
+            7.973362,
+            8.0283150625
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "OfficeIMO_Parse",
+          "parameters": "Format=Xls&RowCount=50000",
+          "medianMs": 7.42681509375,
+          "allocatedBytes": 5827760,
+          "samplesMs": [
+            7.4829400625,
+            7.502625,
+            7.46228125,
+            7.3907734375,
+            7.4885780625,
+            7.36736975,
+            7.3913489375,
+            7.3504609375,
+            7.338765625,
+            7.2679921875,
+            7.494585875,
+            7.5192369375
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "ExcelReaderNet_Parse",
+          "parameters": "Format=Xls&RowCount=50000",
+          "medianMs": 7.72437890625,
+          "allocatedBytes": 6344749,
+          "samplesMs": [
+            7.7408073125,
+            7.7629375625,
+            7.814153624999999,
+            7.77271875,
+            7.7246354375,
+            7.724122375,
+            7.630096375,
+            7.66409375,
+            7.622020875,
+            7.65883075,
+            7.675599,
+            7.74761725
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "OfficeIMO_Parse",
+          "parameters": "Format=Xlsb&RowCount=50000",
+          "medianMs": 8.02348309375,
+          "allocatedBytes": 4796330,
+          "samplesMs": [
+            8.07247265625,
+            8.08584765625,
+            8.09360546875,
+            8.07652215625,
+            7.99032684375,
+            7.93330078125,
+            7.959704406249999,
+            7.980352843750001,
+            7.97121746875,
+            7.856509093750001,
+            8.05663934375,
+            8.09518621875
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "ExcelReaderNet_Parse",
+          "parameters": "Format=Xlsb&RowCount=50000",
+          "medianMs": 6.10158590625,
+          "allocatedBytes": 4724726,
+          "samplesMs": [
+            6.0754556875,
+            6.1224765625,
+            6.21534375,
+            6.12816925,
+            6.1154166875,
+            6.12074475,
+            6.1112838125,
+            6.091888,
+            6.0852525625,
+            6.04011975,
+            6.0248203125,
+            6.06184375
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "OfficeIMO_Read",
+          "parameters": "Format=Xlsx&RowCount=50000",
+          "medianMs": 10.169235625,
+          "allocatedBytes": 2383964,
+          "samplesMs": [
+            10.21825,
+            10.419309875,
+            10.2620078125,
+            10.264664,
+            10.251112,
+            10.143903625,
+            10.162460875,
+            10.1416458125,
+            10.12274475,
+            10.0873958125,
+            10.1633306875,
+            10.1751405625
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "Sylvan_Read",
+          "parameters": "Format=Xlsx&RowCount=50000",
+          "medianMs": 29.3541393125,
+          "allocatedBytes": 2669526,
+          "samplesMs": [
+            29.56137634375,
+            29.51659246875,
+            29.34876171875,
+            29.24820184375,
+            29.35916015625,
+            29.30484503125,
+            29.23498828125,
+            29.42841540625,
+            29.34911846875,
+            29.49688934375,
+            29.23203778125,
+            29.38087109375
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "ExcelDataReader_Read",
+          "parameters": "Format=Xlsx&RowCount=50000",
+          "medianMs": 63.872490875,
+          "allocatedBytes": 35526432,
+          "samplesMs": [
+            63.81257031250001,
+            63.9365573125,
+            63.795992125,
+            63.870640625,
+            63.93606768749999,
+            64.0496875,
+            63.8289296875,
+            63.87434112500001,
+            64.1136301875,
+            63.74155725000001,
+            63.69055725,
+            64.2636275625
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "ExcelReaderNet_Read",
+          "parameters": "Format=Xlsx&RowCount=50000",
+          "medianMs": 6.37113278125,
+          "allocatedBytes": 2324470,
+          "samplesMs": [
+            6.3774453125,
+            6.3608593125,
+            6.384888,
+            6.3988046875,
+            6.3592369375,
+            6.372653625,
+            6.3696119375,
+            6.345862,
+            6.380809875,
+            6.3734635,
+            6.3677994375,
+            6.351888
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "OfficeIMO_Read",
+          "parameters": "Format=Xls&RowCount=50000",
+          "medianMs": 5.353388,
+          "allocatedBytes": 3427440,
+          "samplesMs": [
+            5.2964843125,
+            5.193234375,
+            5.1977395625,
+            5.16385675,
+            5.270953125,
+            5.41388275,
+            5.368729125,
+            5.3590338125,
+            5.3477421875,
+            5.3906745,
+            5.3934270625,
+            5.388638
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "Sylvan_Read",
+          "parameters": "Format=Xls&RowCount=50000",
+          "medianMs": 5.13180075,
+          "allocatedBytes": 2848197,
+          "samplesMs": [
+            5.1416431875,
+            5.1264244375,
+            5.132403625,
+            5.131197875,
+            5.16241925,
+            5.1596301875,
+            5.166591125,
+            5.1588306875,
+            5.078903625,
+            5.1098333125,
+            5.075184875,
+            5.0858671875
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "ExcelDataReader_Read",
+          "parameters": "Format=Xls&RowCount=50000",
+          "medianMs": 43.74628909375,
+          "allocatedBytes": 53434950,
+          "samplesMs": [
+            43.16979425,
+            43.7719818125,
+            43.833851625,
+            43.790520875,
+            42.90413025,
+            43.720596375,
+            43.7916615,
+            43.923309875,
+            43.1772448125,
+            43.396833375,
+            43.9628801875,
+            43.6571745
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "ExcelReaderNet_Read",
+          "parameters": "Format=Xls&RowCount=50000",
+          "medianMs": 4.59846615625,
+          "allocatedBytes": 3944232,
+          "samplesMs": [
+            4.594221375,
+            4.58171875,
+            4.5965729375,
+            4.586658875,
+            4.600359375,
+            4.618349,
+            4.6131041875,
+            4.5945156875,
+            4.580270875,
+            4.70278125,
+            4.7174818125,
+            4.670127625
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "OfficeIMO_Read",
+          "parameters": "Format=Xlsb&RowCount=50000",
+          "medianMs": 6.3225299375,
+          "allocatedBytes": 2395490,
+          "samplesMs": [
+            6.2750181875,
+            6.3400833125,
+            6.3183828125,
+            6.3266770625,
+            6.301471375,
+            6.287877625,
+            6.2084088125,
+            6.29648175,
+            6.327966125,
+            6.3803150625,
+            6.4536953125,
+            6.343747375
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "Sylvan_Read",
+          "parameters": "Format=Xlsb&RowCount=50000",
+          "medianMs": 5.74122784375,
+          "allocatedBytes": 2583174,
+          "samplesMs": [
+            5.689763,
+            5.79685675,
+            5.655875,
+            5.710789,
+            5.6993280625,
+            5.7553203125,
+            5.7329140625,
+            5.779523375,
+            5.8687578125,
+            5.6724895625,
+            5.749541625,
+            5.7711145625
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "ExcelDataReader_Read",
+          "parameters": "Format=Xlsb&RowCount=50000",
+          "medianMs": 22.64594659375,
+          "allocatedBytes": 19609952,
+          "samplesMs": [
+            22.60383465625,
+            22.77120965625,
+            22.71841796875,
+            22.70613415625,
+            22.65113153125,
+            22.57604553125,
+            22.59036328125,
+            22.53094403125,
+            22.52360546875,
+            22.69834246875,
+            22.64917578125,
+            22.64271740625
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "ExcelReaderNet_Read",
+          "parameters": "Format=Xlsb&RowCount=50000",
+          "medianMs": 4.77760803125,
+          "allocatedBytes": 2324190,
+          "samplesMs": [
+            4.811502625,
+            4.793684875,
+            4.7818931875,
+            4.7726431875,
+            4.7688333125,
+            4.78754425,
+            4.773322875,
+            4.787398375,
+            4.76513275,
+            4.7563645625,
+            4.76166925,
+            4.7920234375
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedWriteBenchmarks",
+          "method": "OfficeIMO",
+          "parameters": "Format=Xls&RowCount=50000",
+          "medianMs": 17.69378775,
+          "allocatedBytes": 37951252,
+          "samplesMs": [
+            18.048596375,
+            17.7314479375,
+            17.7760859375,
+            17.7782578125,
+            17.6705703125,
+            17.7170051875,
+            17.57496875,
+            17.45254425,
+            17.287971375,
+            17.7257318125,
+            17.6265078125,
+            17.6550495
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedWriteBenchmarks",
+          "method": "ExcelReaderNet",
+          "parameters": "Format=Xls&RowCount=50000",
+          "medianMs": 3.90521221875,
+          "allocatedBytes": 17903299,
+          "samplesMs": [
+            4.03764325,
+            3.997875,
+            3.9112734375,
+            3.9077473749999996,
+            3.899903625,
+            3.8831484375,
+            3.8760936875,
+            4.0137369375,
+            3.9370416249999995,
+            3.9026770625,
+            3.8765390625,
+            3.8985390625
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedWriteBenchmarks",
+          "method": "OfficeIMO",
+          "parameters": "Format=Xlsb&RowCount=50000",
+          "medianMs": 16.06364321875,
+          "allocatedBytes": 15909792,
+          "samplesMs": [
+            15.949575499999998,
+            15.985653625,
+            15.867127625,
+            16.115075500000003,
+            16.0686015625,
+            16.04818225,
+            16.106218687499997,
+            16.058684874999997,
+            16.212617187499998,
+            16.478661437499998,
+            16.087919250000002,
+            15.976578125
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedWriteBenchmarks",
+          "method": "ExcelReaderNet",
+          "parameters": "Format=Xlsb&RowCount=50000",
+          "medianMs": 5.44736459375,
+          "allocatedBytes": 9258116,
+          "samplesMs": [
+            5.4523229375,
+            5.435489625,
+            5.42208075,
+            5.4636875,
+            5.4181719375,
+            5.4564479375,
+            5.4471145625,
+            5.423349,
+            5.4501823125,
+            5.44844275,
+            5.447614625,
+            5.42858075
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+          "method": "OfficeIMO",
+          "parameters": "",
+          "medianMs": 9.912165375,
+          "allocatedBytes": 9506018,
+          "samplesMs": [
+            9.8889140625,
+            9.895690125,
+            9.901375,
+            9.9802239375,
+            9.9523359375,
+            9.9288828125,
+            9.945086,
+            9.92295575,
+            9.878408875,
+            9.9249818125,
+            9.833096375,
+            9.8089140625
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+          "method": "ExcelReaderNet",
+          "parameters": "",
+          "medianMs": 8.05285803125,
+          "allocatedBytes": 9445132,
+          "samplesMs": [
+            8.03961975,
+            8.0482968125,
+            8.078002562500002,
+            8.084697875,
+            8.05741925,
+            8.097005187499999,
+            8.0940338125,
+            8.0613436875,
+            8.033934875,
+            8.0209713125,
+            7.997570312499999,
+            8.0270520625
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+          "method": "SpreadCheetah",
+          "parameters": "",
+          "medianMs": 12.307239625,
+          "allocatedBytes": 11676163,
+          "samplesMs": [
+            12.3030364375,
+            12.305177125,
+            12.2279765625,
+            12.323974,
+            12.283614625,
+            12.309302125,
+            12.3174036875,
+            12.316734375,
+            12.2930078125,
+            12.269565125,
+            12.3174375,
+            12.3297109375
+          ]
+        }
+      ],
+      "after": [
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "OfficeIMO_Parse",
+          "parameters": "Format=Xlsx&RowCount=50000",
+          "medianMs": 10.8575260625,
+          "allocatedBytes": 4783794,
+          "samplesMs": [
+            10.9477161875,
+            11.305328125,
+            11.182796875,
+            11.06908075,
+            10.8431328125,
+            10.856612,
+            10.8042161875,
+            10.858440125,
+            10.8656224375,
+            10.7521615,
+            10.79045575,
+            10.831703125
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "ExcelReaderNet_Parse",
+          "parameters": "Format=Xlsx&RowCount=50000",
+          "medianMs": 8.0228698125,
+          "allocatedBytes": 4724943,
+          "samplesMs": [
+            8.04658075,
+            8.0321510625,
+            8.029346375,
+            8.0240104375,
+            7.9994739375,
+            8.026273437499999,
+            8.026114625,
+            7.968125,
+            8.0186666875,
+            8.0217291875,
+            8.0209193125,
+            8.0031926875
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "OfficeIMO_Parse",
+          "parameters": "Format=Xls&RowCount=50000",
+          "medianMs": 6.63908075,
+          "allocatedBytes": 5827767,
+          "samplesMs": [
+            6.653958375,
+            6.667890625,
+            6.6798698125,
+            6.665377625,
+            6.624203125,
+            6.667849,
+            6.6127995,
+            6.7251510625,
+            6.6039115,
+            6.623739625,
+            6.5684531875,
+            6.6027864375
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "ExcelReaderNet_Parse",
+          "parameters": "Format=Xls&RowCount=50000",
+          "medianMs": 7.6611184375,
+          "allocatedBytes": 6344750,
+          "samplesMs": [
+            7.6868255,
+            7.6610963125,
+            7.633479125,
+            7.730734375,
+            7.6611405625,
+            7.55434375,
+            7.530796875,
+            7.5704843125,
+            7.731216125,
+            7.737536375,
+            7.7908671875,
+            7.5563280625
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "OfficeIMO_Parse",
+          "parameters": "Format=Xlsb&RowCount=50000",
+          "medianMs": 7.055847625,
+          "allocatedBytes": 4796338,
+          "samplesMs": [
+            7.1317681875,
+            7.103385375,
+            7.124822875,
+            7.056867125,
+            7.054828125,
+            10.360690125,
+            7.1044869375,
+            6.995617125,
+            7.0079088125,
+            7.0313203125,
+            6.9909426875,
+            7.0253645625
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "ExcelReaderNet_Parse",
+          "parameters": "Format=Xlsb&RowCount=50000",
+          "medianMs": 6.1928046875,
+          "allocatedBytes": 4724726,
+          "samplesMs": [
+            6.236572875,
+            6.2347369375,
+            6.240684875,
+            6.1403801875,
+            6.1368515,
+            6.1467578125,
+            6.2062265625,
+            6.1793828125,
+            6.145697875,
+            6.2251614375,
+            6.2160546875,
+            6.1771745
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "OfficeIMO_Read",
+          "parameters": "Format=Xlsx&RowCount=50000",
+          "medianMs": 9.92745703125,
+          "allocatedBytes": 2383964,
+          "samplesMs": [
+            9.934976625,
+            9.930140625,
+            9.9334791875,
+            9.9111640625,
+            9.9432395625,
+            9.9030234375,
+            9.9859193125,
+            9.923945375,
+            9.906638,
+            9.9461354375,
+            9.9247734375,
+            9.8731563125
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "Sylvan_Read",
+          "parameters": "Format=Xlsx&RowCount=50000",
+          "medianMs": 28.77814715625,
+          "allocatedBytes": 2669526,
+          "samplesMs": [
+            28.7756198125,
+            28.806721375,
+            28.8066328125,
+            28.7471615,
+            28.87996875,
+            28.7299505625,
+            28.8471875,
+            28.7448073125,
+            28.7806745,
+            28.998414125,
+            28.7315078125,
+            28.7028203125
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "ExcelDataReader_Read",
+          "parameters": "Format=Xlsx&RowCount=50000",
+          "medianMs": 67.11502996875,
+          "allocatedBytes": 35525952,
+          "samplesMs": [
+            73.154349,
+            69.54239325,
+            64.505289125,
+            64.02110418749999,
+            66.9653255625,
+            68.0524531875,
+            75.29892975,
+            71.5666615,
+            64.0932551875,
+            65.02258075,
+            67.264734375,
+            64.1861745
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "ExcelReaderNet_Read",
+          "parameters": "Format=Xlsx&RowCount=50000",
+          "medianMs": 6.6556263125,
+          "allocatedBytes": 2324200,
+          "samplesMs": [
+            6.5776666875,
+            6.6629505625,
+            6.609908875,
+            6.563234375,
+            6.7038438125,
+            6.7059296875,
+            6.7379818125,
+            6.662002625,
+            6.64925,
+            6.6671068125,
+            6.5689323125,
+            6.595802125
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "OfficeIMO_Read",
+          "parameters": "Format=Xls&RowCount=50000",
+          "medianMs": 5.53293746875,
+          "allocatedBytes": 3427360,
+          "samplesMs": [
+            5.6037056875,
+            5.551638,
+            5.445888,
+            5.9041458125,
+            5.3920806875,
+            5.7011484375,
+            5.479854125,
+            5.6198854375,
+            5.45540625,
+            5.5271744375,
+            5.4248984375,
+            5.5387005
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "Sylvan_Read",
+          "parameters": "Format=Xls&RowCount=50000",
+          "medianMs": 5.46540884375,
+          "allocatedBytes": 2847927,
+          "samplesMs": [
+            5.852528625,
+            5.5177005,
+            5.38421875,
+            5.4721614375,
+            5.45865625,
+            5.2954765625,
+            5.336260375,
+            5.3409374375,
+            5.888015625,
+            5.5395676875,
+            5.293778625,
+            5.7059556875
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "ExcelDataReader_Read",
+          "parameters": "Format=Xls&RowCount=50000",
+          "medianMs": 45.95139584375,
+          "allocatedBytes": 53435093,
+          "samplesMs": [
+            45.5404166875,
+            46.351815125,
+            47.618237,
+            45.6017318125,
+            46.0262421875,
+            46.1115208125,
+            45.4707995,
+            45.8765495,
+            45.1281510625,
+            45.8521953125,
+            46.37308075,
+            48.054895875
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "ExcelReaderNet_Read",
+          "parameters": "Format=Xls&RowCount=50000",
+          "medianMs": 5.0232994375,
+          "allocatedBytes": 3944106,
+          "samplesMs": [
+            4.958947875,
+            5.0025364375,
+            5.0966041875,
+            4.9927135,
+            5.1001275625,
+            5.0827005,
+            5.0898306875,
+            5.2331614375,
+            5.03282025,
+            5.0038698125,
+            5.0023801875,
+            5.013778625
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "OfficeIMO_Read",
+          "parameters": "Format=Xlsb&RowCount=50000",
+          "medianMs": 6.74319921875,
+          "allocatedBytes": 2395490,
+          "samplesMs": [
+            6.681151,
+            6.752328125,
+            6.7312551875,
+            6.7273958125,
+            6.8266770625,
+            6.755252625,
+            6.6891431875,
+            6.7340703125,
+            6.7071614375,
+            6.7744061875,
+            6.7923176875,
+            6.8001770625
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "Sylvan_Read",
+          "parameters": "Format=Xlsb&RowCount=50000",
+          "medianMs": 5.98186328125,
+          "allocatedBytes": 2583132,
+          "samplesMs": [
+            5.99340625,
+            5.99821875,
+            5.9150365,
+            5.988096375,
+            5.98914325,
+            5.9639844375,
+            5.9065781875,
+            6.026114625,
+            6.000627625,
+            5.9756301875,
+            5.9581171875,
+            5.956815125
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "ExcelDataReader_Read",
+          "parameters": "Format=Xlsb&RowCount=50000",
+          "medianMs": 23.45183853125,
+          "allocatedBytes": 19609952,
+          "samplesMs": [
+            23.79929690625,
+            23.90686196875,
+            23.41365103125,
+            23.39818746875,
+            23.34469009375,
+            23.48374478125,
+            23.68104946875,
+            27.99372915625,
+            27.12528646875,
+            23.41993228125,
+            22.84150778125,
+            23.05448171875
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedBenchmarks",
+          "method": "ExcelReaderNet_Read",
+          "parameters": "Format=Xlsb&RowCount=50000",
+          "medianMs": 4.7676210625,
+          "allocatedBytes": 2324190,
+          "samplesMs": [
+            4.7620234375,
+            4.772289,
+            4.771247375,
+            4.7653958125,
+            4.771059875,
+            4.7698463125,
+            4.776341125,
+            4.7645364375,
+            4.722585875,
+            4.8000208125,
+            4.7619479375,
+            4.7508671875
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedWriteBenchmarks",
+          "method": "OfficeIMO",
+          "parameters": "Format=Xls&RowCount=50000",
+          "medianMs": 18.7274023125,
+          "allocatedBytes": 31533105,
+          "samplesMs": [
+            19.05765625,
+            19.1468958125,
+            18.8992890625,
+            18.556625,
+            18.346388,
+            17.350497375,
+            17.2582369375,
+            18.773921875,
+            17.39136975,
+            18.804166625,
+            18.8715989375,
+            18.68088275
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedWriteBenchmarks",
+          "method": "ExcelReaderNet",
+          "parameters": "Format=Xls&RowCount=50000",
+          "medianMs": 4.241485625,
+          "allocatedBytes": 17903362,
+          "samplesMs": [
+            4.4313515,
+            4.2501301875,
+            4.20391925,
+            4.2437681875,
+            4.2528854375,
+            4.20683075,
+            4.245591125,
+            4.17825,
+            4.2577265625,
+            4.20548175,
+            4.2392030625,
+            4.2276093125
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedWriteBenchmarks",
+          "method": "OfficeIMO",
+          "parameters": "Format=Xlsb&RowCount=50000",
+          "medianMs": 16.686578125,
+          "allocatedBytes": 16222138,
+          "samplesMs": [
+            16.6734583125,
+            16.6996979375,
+            16.7524479375,
+            16.521132812500003,
+            16.554471375,
+            16.3948229375,
+            16.417190125,
+            16.667523499999998,
+            16.7131224375,
+            16.8183724375,
+            16.8143046875,
+            16.954265625
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedWriteBenchmarks",
+          "method": "ExcelReaderNet",
+          "parameters": "Format=Xlsb&RowCount=50000",
+          "medianMs": 5.46209634375,
+          "allocatedBytes": 9258138,
+          "samplesMs": [
+            5.4365963125,
+            5.405434875,
+            5.446328125,
+            5.497934875,
+            5.505453125,
+            5.453734375,
+            5.446385375,
+            5.4704583125,
+            5.527263,
+            5.485109375,
+            5.4417005,
+            5.491622375
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+          "method": "OfficeIMO",
+          "parameters": "",
+          "medianMs": 9.93316271875,
+          "allocatedBytes": 9506034,
+          "samplesMs": [
+            9.8699270625,
+            9.8874218125,
+            9.9470390625,
+            9.9445181875,
+            9.92357025,
+            9.9427551875,
+            9.9582655625,
+            9.8657186875,
+            9.920104125,
+            9.94945825,
+            9.8970755,
+            9.948747375
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+          "method": "ExcelReaderNet",
+          "parameters": "",
+          "medianMs": 7.991684875,
+          "allocatedBytes": 9445154,
+          "samplesMs": [
+            8.001992125,
+            7.9944739375,
+            7.986598937500001,
+            8.084369812499999,
+            7.96718225,
+            7.9886770625,
+            7.984130187499999,
+            7.988895812499999,
+            8.0234921875,
+            8.0073645625,
+            8.008039,
+            7.968151
+          ]
+        },
+        {
+          "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+          "method": "SpreadCheetah",
+          "parameters": "",
+          "medianMs": 12.29839584375,
+          "allocatedBytes": 11676184,
+          "samplesMs": [
+            12.3142474375,
+            12.2893203125,
+            12.310877625,
+            12.3276745,
+            12.30275525,
+            12.2940364375,
+            12.230989625,
+            12.280484375,
+            12.2652890625,
+            12.279565125,
+            12.3529635625,
+            12.30439325
+          ]
+        }
+      ]
+    }
+  ],
+  "xlBenchShapes": {
+    "fullBefore": [
+      {
+        "scenario": "write",
+        "officeMs": 22.0,
+        "officeMiB": 9.29,
+        "sdkMs": 95.6,
+        "sdkMiB": 134.88,
+        "timeRatio": 0.23,
+        "allocationRatio": 0.07,
+        "validation": "validated"
+      },
+      {
+        "scenario": "read-all",
+        "officeMs": 238.6,
+        "officeMiB": 50.54,
+        "sdkMs": 1007.5,
+        "sdkMiB": 627.85,
+        "timeRatio": 0.24,
+        "allocationRatio": 0.08,
+        "validation": "n/a"
+      },
+      {
+        "scenario": "sheets-20",
+        "officeMs": 69.2,
+        "officeMiB": 13.08,
+        "sdkMs": 383.3,
+        "sdkMiB": 184.22,
+        "timeRatio": 0.18,
+        "allocationRatio": 0.07,
+        "validation": "n/a"
+      },
+      {
+        "scenario": "read-while-writing",
+        "officeMs": 102.3,
+        "officeMiB": 21.43,
+        "sdkMs": 414.4,
+        "sdkMiB": 217.18,
+        "timeRatio": 0.25,
+        "allocationRatio": 0.1,
+        "validation": "n/a"
+      },
+      {
+        "scenario": "wide-read",
+        "officeMs": 900.3,
+        "officeMiB": 88.9,
+        "sdkMs": 1375.7,
+        "sdkMiB": 1071.02,
+        "timeRatio": 0.65,
+        "allocationRatio": 0.08,
+        "validation": "n/a"
+      },
+      {
+        "scenario": "edited-read",
+        "officeMs": 794.9,
+        "officeMiB": 412.78,
+        "sdkMs": 2072.9,
+        "sdkMiB": 642.73,
+        "timeRatio": 0.38,
+        "allocationRatio": 0.64,
+        "validation": "n/a"
+      },
+      {
+        "scenario": "edited-sheets-read",
+        "officeMs": 335.5,
+        "officeMiB": 139.36,
+        "sdkMs": 283.5,
+        "sdkMiB": 108.16,
+        "timeRatio": 1.18,
+        "allocationRatio": 1.29,
+        "validation": "n/a"
+      },
+      {
+        "scenario": "report",
+        "officeMs": 5.8,
+        "officeMiB": 4.08,
+        "sdkMs": 5.7,
+        "sdkMiB": 5.25,
+        "timeRatio": 1.02,
+        "allocationRatio": 0.78,
+        "validation": "validated"
+      },
+      {
+        "scenario": "edit",
+        "officeMs": 8.5,
+        "officeMiB": 3.87,
+        "sdkMs": 18.4,
+        "sdkMiB": 9.99,
+        "timeRatio": 0.46,
+        "allocationRatio": 0.39,
+        "validation": "validated"
+      },
+      {
+        "scenario": "edit-save",
+        "officeMs": 10.7,
+        "officeMiB": 5.12,
+        "sdkMs": 18.2,
+        "sdkMiB": 10.12,
+        "timeRatio": 0.59,
+        "allocationRatio": 0.51,
+        "validation": "n/a"
+      },
+      {
+        "scenario": "insert",
+        "officeMs": 9.3,
+        "officeMiB": 3.8,
+        "sdkMs": 23.0,
+        "sdkMiB": 13.45,
+        "timeRatio": 0.41,
+        "allocationRatio": 0.28,
+        "validation": "validated"
+      },
+      {
+        "scenario": "insert-save",
+        "officeMs": 9.2,
+        "officeMiB": 6.51,
+        "sdkMs": 22.6,
+        "sdkMiB": 13.64,
+        "timeRatio": 0.41,
+        "allocationRatio": 0.48,
+        "validation": "n/a"
+      },
+      {
+        "scenario": "calc",
+        "officeMs": 30.9,
+        "officeMiB": 16.57,
+        "sdkMs": null,
+        "sdkMiB": null,
+        "timeRatio": null,
+        "allocationRatio": null,
+        "validation": "validated"
+      },
+      {
+        "scenario": "template",
+        "officeMs": 11.2,
+        "officeMiB": 7.72,
+        "sdkMs": 13.5,
+        "sdkMiB": 13.83,
+        "timeRatio": 0.83,
+        "allocationRatio": 0.56,
+        "validation": "validated"
+      },
+      {
+        "scenario": "properties",
+        "officeMs": 0.4,
+        "officeMiB": 0.7,
+        "sdkMs": 0.2,
+        "sdkMiB": 0.41,
+        "timeRatio": 1.78,
+        "allocationRatio": 1.72,
+        "validation": "validated"
+      }
+    ],
+    "fullAfter": [
+      {
+        "scenario": "write",
+        "officeMs": 30.4,
+        "officeMiB": 9.29,
+        "sdkMs": 97.4,
+        "sdkMiB": 134.88,
+        "timeRatio": 0.31,
+        "allocationRatio": 0.07,
+        "validation": "validated"
+      },
+      {
+        "scenario": "read-all",
+        "officeMs": 232.1,
+        "officeMiB": 50.55,
+        "sdkMs": 723.6,
+        "sdkMiB": 627.85,
+        "timeRatio": 0.32,
+        "allocationRatio": 0.08,
+        "validation": "n/a"
+      },
+      {
+        "scenario": "sheets-20",
+        "officeMs": 62.2,
+        "officeMiB": 13.08,
+        "sdkMs": 300.6,
+        "sdkMiB": 184.22,
+        "timeRatio": 0.21,
+        "allocationRatio": 0.07,
+        "validation": "n/a"
+      },
+      {
+        "scenario": "read-while-writing",
+        "officeMs": 92.2,
+        "officeMiB": 21.43,
+        "sdkMs": 330.1,
+        "sdkMiB": 217.18,
+        "timeRatio": 0.28,
+        "allocationRatio": 0.1,
+        "validation": "n/a"
+      },
+      {
+        "scenario": "wide-read",
+        "officeMs": 773.5,
+        "officeMiB": 88.9,
+        "sdkMs": 1128.5,
+        "sdkMiB": 1071.02,
+        "timeRatio": 0.69,
+        "allocationRatio": 0.08,
+        "validation": "n/a"
+      },
+      {
+        "scenario": "edited-read",
+        "officeMs": 661.9,
+        "officeMiB": 412.77,
+        "sdkMs": 1932.3,
+        "sdkMiB": 642.73,
+        "timeRatio": 0.34,
+        "allocationRatio": 0.64,
+        "validation": "n/a"
+      },
+      {
+        "scenario": "edited-sheets-read",
+        "officeMs": 310.6,
+        "officeMiB": 139.36,
+        "sdkMs": 272.0,
+        "sdkMiB": 108.16,
+        "timeRatio": 1.14,
+        "allocationRatio": 1.29,
+        "validation": "n/a"
+      },
+      {
+        "scenario": "report",
+        "officeMs": 5.1,
+        "officeMiB": 4.08,
+        "sdkMs": 4.9,
+        "sdkMiB": 5.25,
+        "timeRatio": 1.04,
+        "allocationRatio": 0.78,
+        "validation": "validated"
+      },
+      {
+        "scenario": "edit",
+        "officeMs": 8.1,
+        "officeMiB": 3.87,
+        "sdkMs": 17.8,
+        "sdkMiB": 9.99,
+        "timeRatio": 0.46,
+        "allocationRatio": 0.39,
+        "validation": "validated"
+      },
+      {
+        "scenario": "edit-save",
+        "officeMs": 11.0,
+        "officeMiB": 5.12,
+        "sdkMs": 17.6,
+        "sdkMiB": 10.12,
+        "timeRatio": 0.63,
+        "allocationRatio": 0.51,
+        "validation": "n/a"
+      },
+      {
+        "scenario": "insert",
+        "officeMs": 9.1,
+        "officeMiB": 3.8,
+        "sdkMs": 22.8,
+        "sdkMiB": 13.45,
+        "timeRatio": 0.4,
+        "allocationRatio": 0.28,
+        "validation": "validated"
+      },
+      {
+        "scenario": "insert-save",
+        "officeMs": 10.0,
+        "officeMiB": 6.51,
+        "sdkMs": 22.0,
+        "sdkMiB": 13.64,
+        "timeRatio": 0.46,
+        "allocationRatio": 0.48,
+        "validation": "n/a"
+      },
+      {
+        "scenario": "calc",
+        "officeMs": 46.0,
+        "officeMiB": 16.57,
+        "sdkMs": null,
+        "sdkMiB": null,
+        "timeRatio": null,
+        "allocationRatio": null,
+        "validation": "validated"
+      },
+      {
+        "scenario": "template",
+        "officeMs": 9.3,
+        "officeMiB": 7.9,
+        "sdkMs": 11.6,
+        "sdkMiB": 13.83,
+        "timeRatio": 0.81,
+        "allocationRatio": 0.57,
+        "validation": "validated"
+      },
+      {
+        "scenario": "properties",
+        "officeMs": 0.3,
+        "officeMiB": 0.7,
+        "sdkMs": 0.2,
+        "sdkMiB": 0.41,
+        "timeRatio": 1.64,
+        "allocationRatio": 1.72,
+        "validation": "validated"
+      }
+    ],
+    "fullAfterAssemblyVariant": "inline-and-reserved",
+    "scopeNote": "All fifteen full shapes use XLSX paths unchanged between the full-after snapshot and final candidate. The XLSB inline-text trial was removed; selected timing confirmations use the exact final assembly.",
+    "focusedFinalPairs": [
+      {
+        "before": [
+          {
+            "scenario": "calc",
+            "officeMs": 103.0,
+            "officeMiB": 16.57,
+            "sdkMs": null,
+            "sdkMiB": null,
+            "timeRatio": null,
+            "allocationRatio": null,
+            "validation": "validated"
+          },
+          {
+            "scenario": "template",
+            "officeMs": 19.4,
+            "officeMiB": 7.88,
+            "sdkMs": 26.2,
+            "sdkMiB": 11.5,
+            "timeRatio": 0.74,
+            "allocationRatio": 0.69,
+            "validation": "validated"
+          }
+        ],
+        "after": [
+          {
+            "scenario": "calc",
+            "officeMs": 112.3,
+            "officeMiB": 16.57,
+            "sdkMs": null,
+            "sdkMiB": null,
+            "timeRatio": null,
+            "allocationRatio": null,
+            "validation": "validated"
+          },
+          {
+            "scenario": "template",
+            "officeMs": 21.3,
+            "officeMiB": 7.9,
+            "sdkMs": 28.7,
+            "sdkMiB": 13.82,
+            "timeRatio": 0.74,
+            "allocationRatio": 0.57,
+            "validation": "validated"
+          }
+        ]
+      },
+      {
+        "before": [
+          {
+            "scenario": "calc",
+            "officeMs": 114.3,
+            "officeMiB": 16.57,
+            "sdkMs": null,
+            "sdkMiB": null,
+            "timeRatio": null,
+            "allocationRatio": null,
+            "validation": "validated"
+          },
+          {
+            "scenario": "template",
+            "officeMs": 20.0,
+            "officeMiB": 7.9,
+            "sdkMs": 25.8,
+            "sdkMiB": 11.5,
+            "timeRatio": 0.77,
+            "allocationRatio": 0.69,
+            "validation": "validated"
+          }
+        ],
+        "after": [
+          {
+            "scenario": "calc",
+            "officeMs": 102.7,
+            "officeMiB": 16.57,
+            "sdkMs": null,
+            "sdkMiB": null,
+            "timeRatio": null,
+            "allocationRatio": null,
+            "validation": "validated"
+          },
+          {
+            "scenario": "template",
+            "officeMs": 19.2,
+            "officeMiB": 7.88,
+            "sdkMs": 25.8,
+            "sdkMiB": 11.5,
+            "timeRatio": 0.74,
+            "allocationRatio": 0.69,
+            "validation": "validated"
+          }
+        ]
+      }
+    ]
+  },
+  "experiments": {
+    "directWithoutExactReservation": [
+      {
+        "type": "ExcelReaderGeneratedBenchmarks",
+        "method": "OfficeIMO_Parse",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 11.367859375,
+        "allocatedBytes": 4783794,
+        "samplesMs": [
+          11.18522784375,
+          11.52423828125,
+          11.34075909375,
+          11.39495965625,
+          11.57238934375,
+          11.79486853125,
+          11.91245184375,
+          11.69878515625,
+          11.26728515625,
+          11.01382678125,
+          10.92664715625,
+          11.01114715625
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedBenchmarks",
+        "method": "ExcelReaderNet_Parse",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 8.36522525,
+        "allocatedBytes": 4724943,
+        "samplesMs": [
+          8.174033875,
+          8.135359437500002,
+          8.1228568125,
+          8.25069275,
+          8.3827005,
+          8.496487,
+          8.4921745,
+          8.62183075,
+          8.5427291875,
+          8.477065125,
+          8.34775,
+          8.1296614375
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedBenchmarks",
+        "method": "OfficeIMO_Parse",
+        "parameters": "Format=Xls&RowCount=50000",
+        "medianMs": 7.02172915625,
+        "allocatedBytes": 5827768,
+        "samplesMs": [
+          7.1250364375,
+          6.9878255,
+          7.0556328125,
+          7.6514426875,
+          7.610484375,
+          7.4646770625,
+          7.1181275625,
+          6.983010375,
+          6.8387083125,
+          6.6787708125,
+          6.712234375,
+          6.6727265
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedBenchmarks",
+        "method": "ExcelReaderNet_Parse",
+        "parameters": "Format=Xls&RowCount=50000",
+        "medianMs": 7.69486590625,
+        "allocatedBytes": 6345247,
+        "samplesMs": [
+          7.829630187499999,
+          7.512875,
+          7.5901171875,
+          7.6798124375,
+          7.6459374375,
+          7.6917604375,
+          7.7092838125,
+          7.697971375,
+          7.6191249375,
+          7.72823175,
+          7.8553932500000005,
+          7.84920575
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedBenchmarks",
+        "method": "OfficeIMO_Parse",
+        "parameters": "Format=Xlsb&RowCount=50000",
+        "medianMs": 6.83794925,
+        "allocatedBytes": 4796212,
+        "samplesMs": [
+          6.91533075,
+          6.8382135625,
+          6.8615755,
+          6.8376849375,
+          6.791296875,
+          6.7963541875,
+          6.8204115,
+          6.80978125,
+          6.8002786875,
+          7.108882875,
+          7.14200525,
+          7.1392161875
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedBenchmarks",
+        "method": "ExcelReaderNet_Parse",
+        "parameters": "Format=Xlsb&RowCount=50000",
+        "medianMs": 6.1853541875,
+        "allocatedBytes": 4724726,
+        "samplesMs": [
+          6.0142135625,
+          6.295640625,
+          6.190190125,
+          6.2059010625,
+          6.301945375,
+          6.18051825,
+          6.2171328125,
+          6.28973175,
+          6.1226171875,
+          6.1241068125,
+          6.076708375,
+          6.1414193125
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedBenchmarks",
+        "method": "OfficeIMO_Read",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 10.2631431875,
+        "allocatedBytes": 2383630,
+        "samplesMs": [
+          10.238375,
+          10.2712213125,
+          10.2550650625,
+          10.2484609375,
+          10.2230833125,
+          10.2071588125,
+          10.1959426875,
+          10.475859375,
+          10.634401,
+          10.9399869375,
+          10.792890625,
+          10.450497375
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedBenchmarks",
+        "method": "Sylvan_Read",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 29.02075653125,
+        "allocatedBytes": 2669526,
+        "samplesMs": [
+          28.8693176875,
+          28.912851625,
+          29.0274140625,
+          30.8212395625,
+          29.014099,
+          28.7660520625,
+          29.0378255625,
+          29.6527943125,
+          29.6585416875,
+          29.417895875,
+          28.7611171875,
+          28.82745575
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedBenchmarks",
+        "method": "ExcelDataReader_Read",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 65.452224,
+        "allocatedBytes": 35526432,
+        "samplesMs": [
+          63.193203125,
+          63.1175416875,
+          65.7535755625,
+          64.0201849375,
+          64.9544375,
+          64.795487,
+          65.15087243750001,
+          65.75464324999999,
+          83.04223175,
+          68.73621875,
+          85.050908875,
+          96.476224
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedBenchmarks",
+        "method": "ExcelReaderNet_Read",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 10.4070364375,
+        "allocatedBytes": 2324407,
+        "samplesMs": [
+          15.22459240625,
+          13.38343621875,
+          12.83541534375,
+          9.89237628125,
+          10.41570440625,
+          9.11056640625,
+          10.39836846875,
+          11.90455340625,
+          11.38912103125,
+          10.18387884375,
+          8.94861846875,
+          8.021602843750001
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedBenchmarks",
+        "method": "OfficeIMO_Read",
+        "parameters": "Format=Xls&RowCount=50000",
+        "medianMs": 6.73413284375,
+        "allocatedBytes": 3427440,
+        "samplesMs": [
+          6.7183099375,
+          6.929836,
+          7.1038255,
+          6.5221354375,
+          6.74995575,
+          7.884273437499999,
+          6.1881484375,
+          6.92303125,
+          6.7749036875,
+          6.5041328125,
+          6.578224,
+          6.601315125
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedBenchmarks",
+        "method": "Sylvan_Read",
+        "parameters": "Format=Xls&RowCount=50000",
+        "medianMs": 6.263553375,
+        "allocatedBytes": 2848169,
+        "samplesMs": [
+          8.1257734375,
+          8.039184874999998,
+          6.2890078125,
+          6.340809875,
+          6.1638436875,
+          7.0208333125,
+          5.7877448125,
+          6.1815025625,
+          5.9473020625,
+          6.2380989375,
+          6.68441925,
+          6.1047030625
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedBenchmarks",
+        "method": "ExcelDataReader_Read",
+        "parameters": "Format=Xls&RowCount=50000",
+        "medianMs": 93.74564321875,
+        "allocatedBytes": 53434885,
+        "samplesMs": [
+          102.63387628125,
+          99.85462890625,
+          67.06954553124999,
+          76.23175390625,
+          135.40363928125,
+          138.70830859375,
+          128.10722003125002,
+          108.00009240625,
+          87.63665753125,
+          81.56867834375,
+          70.97261590625,
+          56.10282678125
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedBenchmarks",
+        "method": "ExcelReaderNet_Read",
+        "parameters": "Format=Xls&RowCount=50000",
+        "medianMs": 7.210084625,
+        "allocatedBytes": 3943926,
+        "samplesMs": [
+          7.34947396875,
+          6.65695053125,
+          6.08657290625,
+          7.23076040625,
+          6.88850003125,
+          6.16247134375,
+          7.18940884375,
+          7.01051821875,
+          8.298137968750002,
+          8.76158071875,
+          9.28719528125,
+          8.36943228125
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedBenchmarks",
+        "method": "OfficeIMO_Read",
+        "parameters": "Format=Xlsb&RowCount=50000",
+        "medianMs": 9.42196875,
+        "allocatedBytes": 2395060,
+        "samplesMs": [
+          9.35934765625,
+          8.83081378125,
+          7.67377471875,
+          10.16231121875,
+          10.89809509375,
+          8.07266534375,
+          9.02206384375,
+          9.28220184375,
+          10.41883203125,
+          9.59836590625,
+          9.48458984375,
+          10.30060546875
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedBenchmarks",
+        "method": "Sylvan_Read",
+        "parameters": "Format=Xlsb&RowCount=50000",
+        "medianMs": 8.7998645625,
+        "allocatedBytes": 2583174,
+        "samplesMs": [
+          8.239281250000001,
+          8.99204425,
+          9.5478125,
+          9.6288073125,
+          8.8530989375,
+          8.7466301875,
+          8.9528515625,
+          7.3154479375,
+          9.0526770625,
+          7.27101825,
+          7.130953125,
+          8.024796875
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedBenchmarks",
+        "method": "ExcelDataReader_Read",
+        "parameters": "Format=Xlsb&RowCount=50000",
+        "medianMs": 32.9409426875,
+        "allocatedBytes": 19609742,
+        "samplesMs": [
+          36.60188146875,
+          36.09018359375,
+          33.05595959375,
+          27.60475128125,
+          28.99376434375,
+          32.82592578125,
+          59.41911071875,
+          58.91652734375,
+          30.62481640625,
+          35.29765234375,
+          29.39988153125,
+          30.45206896875
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedBenchmarks",
+        "method": "ExcelReaderNet_Read",
+        "parameters": "Format=Xlsb&RowCount=50000",
+        "medianMs": 5.53156121875,
+        "allocatedBytes": 2323917,
+        "samplesMs": [
+          6.66256775,
+          5.7050755,
+          5.3424245,
+          5.533984375,
+          5.3186926875,
+          5.94669275,
+          5.5291380625,
+          5.4096328125,
+          5.339138,
+          5.623640625,
+          5.930622375,
+          5.4087031875
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "OfficeIMO",
+        "parameters": "Format=Xls&RowCount=50000",
+        "medianMs": 24.8797421875,
+        "allocatedBytes": 37406386,
+        "samplesMs": [
+          29.001653625,
+          32.560833312499994,
+          23.3508125,
+          23.583640625,
+          24.558515625,
+          25.20096875,
+          21.3186796875,
+          20.0468176875,
+          23.4174921875,
+          33.8990234375,
+          45.6024140625,
+          79.076447875
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "ExcelReaderNet",
+        "parameters": "Format=Xls&RowCount=50000",
+        "medianMs": 7.48831640625,
+        "allocatedBytes": 17904960,
+        "samplesMs": [
+          8.9627460625,
+          8.3403736875,
+          5.8173685,
+          6.5085195625,
+          6.858915375,
+          6.33735025,
+          7.0027174375,
+          7.7043685,
+          8.026410125,
+          7.4410820625,
+          7.53555075,
+          8.4085690625
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "OfficeIMO",
+        "parameters": "Format=Xlsb&RowCount=50000",
+        "medianMs": 24.47505209375,
+        "allocatedBytes": 16220318,
+        "samplesMs": [
+          22.89000259375,
+          26.05714584375,
+          26.85921871875,
+          35.50810678125,
+          31.89876828125,
+          31.07834634375,
+          26.65060678125,
+          21.62320053125,
+          22.89295834375,
+          22.77036196875,
+          21.61987759375,
+          20.65635934375
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "ExcelReaderNet",
+        "parameters": "Format=Xlsb&RowCount=50000",
+        "medianMs": 12.96335675,
+        "allocatedBytes": 9257948,
+        "samplesMs": [
+          6.309471375,
+          10.8604635,
+          18.873765625,
+          15.700197875,
+          17.8053515625,
+          12.397341125,
+          11.8699791875,
+          12.68040625,
+          11.125072875,
+          17.77310675,
+          16.9510546875,
+          13.24630725
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+        "method": "OfficeIMO",
+        "parameters": "",
+        "medianMs": 14.2829986875,
+        "allocatedBytes": 9505948,
+        "samplesMs": [
+          25.185565125,
+          22.55440625,
+          22.3582890625,
+          13.357559875,
+          18.8630625,
+          13.6264375,
+          12.5925729375,
+          12.4770911875,
+          12.4132734375,
+          14.227015625,
+          14.33898175,
+          14.3755729375
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+        "method": "ExcelReaderNet",
+        "parameters": "",
+        "medianMs": 20.86057028125,
+        "allocatedBytes": 9445112,
+        "samplesMs": [
+          12.08894790625,
+          15.775700531250003,
+          24.55398953125,
+          18.29020315625,
+          21.68568746875,
+          23.62861453125,
+          20.03545309375,
+          24.18296609375,
+          24.93650003125,
+          29.17430728125,
+          18.70623696875,
+          17.45452340625
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+        "method": "SpreadCheetah",
+        "parameters": "",
+        "medianMs": 14.91916925,
+        "allocatedBytes": 11676145,
+        "samplesMs": [
+          21.68098309375,
+          19.02116015625,
+          21.95519665625,
+          16.11442059375,
+          14.66761846875,
+          15.95848834375,
+          13.39959771875,
+          12.63231903125,
+          12.36046228125,
+          12.06465234375,
+          13.47407684375,
+          15.17072003125
+        ]
+      }
+    ],
+    "inlineTextWithExactReservation": [
+      {
+        "type": "ExcelReaderGeneratedBenchmarks",
+        "method": "OfficeIMO_Parse",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 13.00897915625,
+        "allocatedBytes": 4783794,
+        "samplesMs": [
+          11.42781384375,
+          11.50285284375,
+          12.42834246875,
+          12.66294921875,
+          12.94734240625,
+          12.95150909375,
+          13.58649346875,
+          13.85755859375,
+          13.75974865625,
+          14.32779559375,
+          14.59517578125,
+          13.06644921875
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedBenchmarks",
+        "method": "ExcelReaderNet_Parse",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 9.6542604375,
+        "allocatedBytes": 4724655,
+        "samplesMs": [
+          9.0391485,
+          13.1440235,
+          13.6087864375,
+          10.79739325,
+          8.968471375,
+          9.5611484375,
+          8.5302760625,
+          8.8127161875,
+          8.5009140625,
+          10.15564325,
+          10.5488099375,
+          9.7473724375
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedBenchmarks",
+        "method": "OfficeIMO_Parse",
+        "parameters": "Format=Xls&RowCount=50000",
+        "medianMs": 7.839886718750001,
+        "allocatedBytes": 5827339,
+        "samplesMs": [
+          7.855796875000001,
+          7.782599,
+          7.3355078125,
+          7.2822395625,
+          7.823976562500001,
+          7.6195260625,
+          8.056484375,
+          7.857533812500001,
+          8.195890625,
+          7.3961458125,
+          7.890807312500001,
+          8.4775963125
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedBenchmarks",
+        "method": "ExcelReaderNet_Parse",
+        "parameters": "Format=Xls&RowCount=50000",
+        "medianMs": 8.9119830625,
+        "allocatedBytes": 6344418,
+        "samplesMs": [
+          8.91607678125,
+          8.90788934375,
+          9.61127990625,
+          10.20788928125,
+          8.75017315625,
+          9.04873565625,
+          9.32196740625,
+          9.61629553125,
+          8.68789446875,
+          8.49036584375,
+          8.64502471875,
+          8.66013934375
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedBenchmarks",
+        "method": "OfficeIMO_Parse",
+        "parameters": "Format=Xlsb&RowCount=50000",
+        "medianMs": 8.20143753125,
+        "allocatedBytes": 4796192,
+        "samplesMs": [
+          9.1035859375,
+          7.4651745,
+          8.937171875,
+          8.4110676875,
+          8.9644505625,
+          7.9698359375,
+          7.73140625,
+          7.6584479375,
+          8.2055260625,
+          8.203502625,
+          8.1115416875,
+          8.1993724375
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedBenchmarks",
+        "method": "ExcelReaderNet_Parse",
+        "parameters": "Format=Xlsb&RowCount=50000",
+        "medianMs": 7.103796875,
+        "allocatedBytes": 4724558,
+        "samplesMs": [
+          6.8219518125,
+          7.844444062500001,
+          7.269022125,
+          6.5110950625,
+          7.6332643125,
+          7.21669925,
+          6.9908945,
+          6.47641275,
+          6.734821625,
+          6.6264935,
+          7.311655,
+          7.3282486875
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedBenchmarks",
+        "method": "OfficeIMO_Read",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 11.6307513125,
+        "allocatedBytes": 2383756,
+        "samplesMs": [
+          11.8678073125,
+          11.8254010625,
+          11.6143073125,
+          11.730864625,
+          11.4478724375,
+          12.33363025,
+          11.2690755,
+          12.20633075,
+          11.1452448125,
+          11.5195703125,
+          11.6471953125,
+          11.0218854375
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedBenchmarks",
+        "method": "Sylvan_Read",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 31.43153128125,
+        "allocatedBytes": 2669508,
+        "samplesMs": [
+          33.481372437500006,
+          32.678591125000004,
+          30.0966875,
+          30.4029296875,
+          31.282849,
+          31.875921874999996,
+          31.5802135625,
+          32.45438025,
+          29.93467975,
+          29.294474,
+          30.69019275,
+          33.630783875
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedBenchmarks",
+        "method": "ExcelDataReader_Read",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 68.27382290625,
+        "allocatedBytes": 35526414,
+        "samplesMs": [
+          67.8147005,
+          67.2827109375,
+          75.48849475,
+          64.134296875,
+          64.507171875,
+          72.3850390625,
+          65.509497375,
+          67.502341125,
+          71.2941354375,
+          69.5869791875,
+          75.4597943125,
+          68.7329453125
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedBenchmarks",
+        "method": "ExcelReaderNet_Read",
+        "parameters": "Format=Xlsx&RowCount=50000",
+        "medianMs": 6.55445703125,
+        "allocatedBytes": 2324470,
+        "samplesMs": [
+          6.5923801875,
+          6.6616874375,
+          6.5959765,
+          6.543125,
+          6.5337890625,
+          6.5265390625,
+          6.56516925,
+          6.5437448125,
+          6.495125,
+          6.5156458125,
+          6.5944869375,
+          6.6680573125
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedBenchmarks",
+        "method": "OfficeIMO_Read",
+        "parameters": "Format=Xls&RowCount=50000",
+        "medianMs": 5.63936071875,
+        "allocatedBytes": 3427752,
+        "samplesMs": [
+          5.4986875,
+          5.6563255625,
+          5.72201825,
+          5.5617109375,
+          5.5904036875,
+          5.5978203125,
+          5.622395875,
+          5.58120575,
+          5.7677448125,
+          5.96767975,
+          6.4183671875,
+          5.9529895625
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedBenchmarks",
+        "method": "Sylvan_Read",
+        "parameters": "Format=Xls&RowCount=50000",
+        "medianMs": 5.45758465625,
+        "allocatedBytes": 2848002,
+        "samplesMs": [
+          5.709283875,
+          5.951096375,
+          5.6943255625,
+          5.5066849375,
+          5.429849,
+          5.4335260625,
+          5.457065125,
+          5.4274765625,
+          5.4581041875,
+          5.428190125,
+          5.3675078125,
+          5.7774583125
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedBenchmarks",
+        "method": "ExcelDataReader_Read",
+        "parameters": "Format=Xls&RowCount=50000",
+        "medianMs": 48.61140228125,
+        "allocatedBytes": 53434811,
+        "samplesMs": [
+          46.0364348125,
+          48.44043225,
+          46.3762265,
+          45.5219921875,
+          44.3876015,
+          47.1057239375,
+          49.207742125,
+          49.297638,
+          50.39624475,
+          50.300638,
+          50.4995754375,
+          48.7823723125
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedBenchmarks",
+        "method": "ExcelReaderNet_Read",
+        "parameters": "Format=Xls&RowCount=50000",
+        "medianMs": 4.80613934375,
+        "allocatedBytes": 3944230,
+        "samplesMs": [
+          4.834690125,
+          4.7825599375,
+          4.822528625,
+          4.826515625,
+          4.791224,
+          4.8672135625,
+          4.8113984375,
+          4.833002625,
+          4.80088025,
+          4.795984375,
+          4.78931775,
+          4.7638229375
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedBenchmarks",
+        "method": "OfficeIMO_Read",
+        "parameters": "Format=Xlsb&RowCount=50000",
+        "medianMs": 6.525875,
+        "allocatedBytes": 2395326,
+        "samplesMs": [
+          6.464252625,
+          6.426390625,
+          6.5474426875,
+          6.4846979375,
+          6.5920755625,
+          6.5654010625,
+          6.5659375,
+          6.585921875,
+          6.5530078125,
+          6.5043073125,
+          6.4785313125,
+          6.4574974375
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedBenchmarks",
+        "method": "Sylvan_Read",
+        "parameters": "Format=Xlsb&RowCount=50000",
+        "medianMs": 5.955809875,
+        "allocatedBytes": 2583174,
+        "samplesMs": [
+          6.8405676875,
+          6.4128984375,
+          6.7327525625,
+          6.555828125,
+          5.982783875,
+          5.830747375,
+          5.7687708125,
+          5.818375,
+          5.9727864375,
+          5.9388333125,
+          5.8384869375,
+          5.7688385625
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedBenchmarks",
+        "method": "ExcelDataReader_Read",
+        "parameters": "Format=Xlsb&RowCount=50000",
+        "medianMs": 23.79423571875,
+        "allocatedBytes": 19609952,
+        "samplesMs": [
+          23.844476625,
+          23.547474,
+          23.8999219375,
+          23.6131614375,
+          23.6315443125,
+          24.0656354375,
+          23.7867318125,
+          23.8634635625,
+          23.8121536875,
+          23.7546796875,
+          23.801739625,
+          23.5843801875
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedBenchmarks",
+        "method": "ExcelReaderNet_Read",
+        "parameters": "Format=Xlsb&RowCount=50000",
+        "medianMs": 4.85760153125,
+        "allocatedBytes": 2324190,
+        "samplesMs": [
+          4.84585675,
+          4.8199765625,
+          4.8571588125,
+          4.8138046875,
+          4.85804425,
+          4.8784088125,
+          4.98260675,
+          4.8506275625,
+          4.8663333125,
+          4.8703515625,
+          4.8519140625,
+          4.88
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "OfficeIMO",
+        "parameters": "Format=Xls&RowCount=50000",
+        "medianMs": 18.70642315625,
+        "allocatedBytes": 31533075,
+        "samplesMs": [
+          18.82880725,
+          18.2328306875,
+          18.7058645625,
+          18.670953125,
+          20.474880125,
+          18.787604125,
+          18.7396458125,
+          18.70698175,
+          18.575786375,
+          18.6086171875,
+          18.5645936875,
+          19.2601275625
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "ExcelReaderNet",
+        "parameters": "Format=Xls&RowCount=50000",
+        "medianMs": 4.33995184375,
+        "allocatedBytes": 17903299,
+        "samplesMs": [
+          4.416796875,
+          4.41579425,
+          4.3489245,
+          4.3828698125,
+          4.4066823125,
+          4.3428099375,
+          4.2946484375,
+          4.2907995,
+          4.25050525,
+          4.33709375,
+          4.288239625,
+          4.234046875
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "OfficeIMO",
+        "parameters": "Format=Xlsb&RowCount=50000",
+        "medianMs": 17.46331903125,
+        "allocatedBytes": 16221022,
+        "samplesMs": [
+          17.30487496875,
+          16.95163278125,
+          17.40153909375,
+          17.08703903125,
+          16.99417703125,
+          19.29695571875,
+          19.27750259375,
+          17.87573953125,
+          17.11770309375,
+          17.52509896875,
+          18.74055203125,
+          17.85426040625
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "ExcelReaderNet",
+        "parameters": "Format=Xlsb&RowCount=50000",
+        "medianMs": 5.73332684375,
+        "allocatedBytes": 9257970,
+        "samplesMs": [
+          5.85236846875,
+          5.76586590625,
+          5.74867059375,
+          5.73198309375,
+          5.73467059375,
+          5.73569140625,
+          5.74183203125,
+          5.72402478125,
+          5.72799346875,
+          5.59644928125,
+          5.60516796875,
+          5.63594921875
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+        "method": "OfficeIMO",
+        "parameters": "",
+        "medianMs": 12.2937929375,
+        "allocatedBytes": 9505864,
+        "samplesMs": [
+          15.9318176875,
+          14.2202499375,
+          10.202622375,
+          10.1521119375,
+          12.0474400625,
+          15.31804425,
+          16.229872375,
+          11.1912760625,
+          10.5343306875,
+          10.3295364375,
+          17.1366744375,
+          12.5401458125
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+        "method": "ExcelReaderNet",
+        "parameters": "",
+        "medianMs": 8.44882809375,
+        "allocatedBytes": 9445112,
+        "samplesMs": [
+          8.84339971875,
+          8.74865753125,
+          8.43148821875,
+          8.55271221875,
+          8.48689453125,
+          8.48699865625,
+          8.45111321875,
+          8.42464971875,
+          8.44654296875,
+          8.388212218749999,
+          8.36051953125,
+          8.38210803125
+        ]
+      },
+      {
+        "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+        "method": "SpreadCheetah",
+        "parameters": "",
+        "medianMs": 11.977677125,
+        "allocatedBytes": 11676145,
+        "samplesMs": [
+          12.963658875,
+          12.1422786875,
+          12.0372265625,
+          11.83194275,
+          11.8290286875,
+          11.956190125,
+          11.8188255625,
+          12.0137760625,
+          11.889989625,
+          11.999164125,
+          11.839997375,
+          12.814599
+        ]
+      }
+    ],
+    "inflateChunkSizes": [
+      {
+        "type": "InflateChunkProbe",
+        "method": "ReadPart",
+        "parameters": "Format=Xlsb&Chunk=81920",
+        "medianMs": 2.141421875,
+        "allocatedBytes": 9272,
+        "samplesMs": [
+          2.131987,
+          2.1357943125,
+          2.1270755625,
+          2.13503125,
+          2.142716125,
+          2.1346458125,
+          2.1452943125,
+          2.1528880625,
+          2.140127625,
+          2.2768724375,
+          2.41526825,
+          2.443671875
+        ]
+      },
+      {
+        "type": "InflateChunkProbe",
+        "method": "ReadPart",
+        "parameters": "Format=Xlsb&Chunk=262144",
+        "medianMs": 2.14152215625,
+        "allocatedBytes": 9335,
+        "samplesMs": [
+          2.14145575,
+          2.1662265625,
+          2.2071823125,
+          2.13189325,
+          2.1415885625,
+          2.128820375,
+          2.1420104375,
+          2.13706775,
+          2.1409635625,
+          2.142724,
+          2.1366354375,
+          2.143609375
+        ]
+      },
+      {
+        "type": "InflateChunkProbe",
+        "method": "ReadPart",
+        "parameters": "Format=Xlsb&Chunk=1048576",
+        "medianMs": 2.12666403125,
+        "allocatedBytes": 9563,
+        "samplesMs": [
+          2.204513,
+          2.119596375,
+          2.12684375,
+          2.1174375,
+          2.122466125,
+          2.1273931875,
+          2.1282343125,
+          2.1235416875,
+          2.1211458125,
+          2.1264843125,
+          2.1296119375,
+          2.1269505
+        ]
+      },
+      {
+        "type": "InflateChunkProbe",
+        "method": "ReadPart",
+        "parameters": "Format=Xlsb&Chunk=2147483647",
+        "medianMs": 2.131046875,
+        "allocatedBytes": 9272,
+        "samplesMs": [
+          2.13036846875,
+          2.13011853125,
+          2.19110284375,
+          2.20955603125,
+          2.12638671875,
+          2.12485803125,
+          2.15528771875,
+          2.18257165625,
+          2.12472784375,
+          2.13172528125,
+          2.12888153125,
+          2.14096484375
+        ]
+      },
+      {
+        "type": "InflateChunkProbe",
+        "method": "ReadPart",
+        "parameters": "Format=Xlsx&Chunk=81920",
+        "medianMs": 2.60677471875,
+        "allocatedBytes": 11337,
+        "samplesMs": [
+          2.56378125,
+          2.64546875,
+          2.583398375,
+          2.614263,
+          2.581497375,
+          2.6091431875,
+          2.594565125,
+          2.6094114375,
+          2.6141458125,
+          2.582453125,
+          2.6477499375,
+          2.60440625
+        ]
+      },
+      {
+        "type": "InflateChunkProbe",
+        "method": "ReadPart",
+        "parameters": "Format=Xlsx&Chunk=262144",
+        "medianMs": 2.61867059375,
+        "allocatedBytes": 11211,
+        "samplesMs": [
+          2.703114625,
+          2.6609479375,
+          2.6066875,
+          2.6024323125,
+          2.6156171875,
+          2.6202005625,
+          2.617140625,
+          2.7001354375,
+          2.623815125,
+          2.6791301875,
+          2.5601041875,
+          2.60088025
+        ]
+      },
+      {
+        "type": "InflateChunkProbe",
+        "method": "ReadPart",
+        "parameters": "Format=Xlsx&Chunk=1048576",
+        "medianMs": 2.58485546875,
+        "allocatedBytes": 11355,
+        "samplesMs": [
+          2.5859921875,
+          2.6010494375,
+          2.58691925,
+          2.5763463125,
+          2.5778150625,
+          2.5699713125,
+          2.5754140625,
+          2.5525780625,
+          2.5963203125,
+          2.58371875,
+          2.6011926875,
+          2.6103124375
+        ]
+      },
+      {
+        "type": "InflateChunkProbe",
+        "method": "ReadPart",
+        "parameters": "Format=Xlsx&Chunk=2147483647",
+        "medianMs": 2.60512240625,
+        "allocatedBytes": 11355,
+        "samplesMs": [
+          2.84096875,
+          2.605221375,
+          2.657484375,
+          2.6111171875,
+          2.5970755625,
+          2.5983568125,
+          2.612770875,
+          2.6413333125,
+          2.6050234375,
+          2.57185675,
+          2.579096375,
+          2.5822786875
+        ]
+      }
+    ]
+  },
+  "compatibility": {
+    "binaryReaderSource": "Identical to baseline. Complete validation, width discovery, dimension trimming and errors retained.",
+    "writeData": "Enumeration and selector buffering unchanged.",
+    "signedZeroCellControl": {
+      "baseline": [
+        "Xlsx resave=False: 0",
+        "Xlsx resave=True: 0",
+        "Xlsb resave=False: 0",
+        "Xlsb resave=True: 0",
+        "Xls resave=False: 0",
+        "Xls resave=True: 0"
+      ],
+      "candidate": [
+        "Xlsx resave=False: 0",
+        "Xlsx resave=True: 0",
+        "Xlsb resave=False: 0",
+        "Xlsb resave=True: 0",
+        "Xls resave=False: 0",
+        "Xls resave=True: 0"
+      ]
+    },
+    "frameworkBuilds": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0",
+      "net472"
+    ],
+    "nativeAot": [
+      "PASS | Xlsx write, read and constructor-bound typed mapping",
+      "PASS | Xlsb write, read and constructor-bound typed mapping",
+      "PASS | Xls write, read and constructor-bound typed mapping"
+    ]
+  },
+  "validation": "Every timed read checks row count/checksum; setup verifies values. Binary writes pass strict OfficeIMO and independent ExcelDataReader checks, including XLS INDEX/DBCELL coverage."
+}

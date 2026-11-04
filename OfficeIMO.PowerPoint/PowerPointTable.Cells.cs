@@ -175,6 +175,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             A.Table table = TableElement;
+            DissolveMergesTouching(topRow, leftColumn, bottomRow, rightColumn);
             for (int r = topRow; r <= bottomRow; r++) {
                 A.TableRow row = table.Elements<A.TableRow>().ElementAt(r);
                 for (int c = leftColumn; c <= rightColumn; c++) {

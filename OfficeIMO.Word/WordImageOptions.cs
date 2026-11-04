@@ -8,8 +8,8 @@ public sealed class WordImageOptions {
     public WordImageTextWrapping Wrapping { get; set; } = WordImageTextWrapping.InLineWithText;
     /// <summary>Gets or sets the image title.</summary>
     public string? Title { get; set; }
-    /// <summary>Gets or sets the alternative text description.</summary>
-    public string Description { get; set; } = string.Empty;
+    /// <summary>Gets or sets the image alternative text.</summary>
+    public string AltText { get; set; } = string.Empty;
     /// <summary>Gets or sets an external image hyperlink.</summary>
     public Uri? Hyperlink { get; set; }
     /// <summary>Gets or sets an optional displayed width limit.</summary>

@@ -38,7 +38,7 @@ public partial class HtmlWordGapClosure {
         using WordDocument document = WordDocument.Create();
         WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
         cell.Paragraphs[0].Text = "Existing";
-        var options = new WordHtmlImportOptions { MaxImageBytes = 1 };
+        var options = new HtmlWordExportOptions { MaxImageBytes = 1 };
 
         cell.AddHtml(
             HtmlConversionDocument.Parse(
@@ -56,7 +56,7 @@ public partial class HtmlWordGapClosure {
     public void HtmlToWord_InvalidBlockBorderLonghands_CanStopConversion(
         string propertyName,
         string propertyValue) {
-        var options = new WordHtmlImportOptions {
+        var options = new HtmlWordExportOptions {
             UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Error,
         };
 
@@ -89,7 +89,7 @@ public partial class HtmlWordGapClosure {
             document.Paragraphs,
             paragraph => paragraph.Text == "Side reset");
 
-        Assert.True(string.IsNullOrEmpty(background.ShadingFillColorHex));
+        Assert.Null(background.ShadingFillColor);
         Assert.Null(border.Borders.TopStyle);
         Assert.Null(border.Borders.LeftStyle);
         Assert.Null(side.Borders.LeftStyle);
@@ -108,9 +108,9 @@ public partial class HtmlWordGapClosure {
             document.Paragraphs,
             candidate => candidate.Text == "Inherited frame");
 
-        Assert.Equal("ABCDEF", paragraph.ShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("ABCDEF"), paragraph.ShadingFillColor);
         Assert.Equal(WordBorderStyle.Single, paragraph.Borders.TopStyle);
-        Assert.Equal("123456", paragraph.Borders.LeftColorHex);
+        Assert.Equal(OfficeColor.Parse("123456"), paragraph.Borders.LeftColor);
     }
 
     [Fact]
@@ -140,14 +140,14 @@ public partial class HtmlWordGapClosure {
             candidate => candidate.Text == "Marked");
 
         Assert.Equal(WordHighlightColor.Yellow, run.Highlight);
-        Assert.Equal(string.Empty, run.RunShadingFillColorHex);
+        Assert.Null(run.BackgroundColor);
     }
 
     [Fact]
     public void HtmlToWord_SupportedTableSpacing_PassesStrictDiagnostics() {
         using WordDocument document = HtmlConversionDocument
             .Parse("""<table style="margin:0 auto;padding:4px"><tr><td>Cell</td></tr></table>""")
-            .ToWord(new WordHtmlImportOptions {
+            .ToWord(new HtmlWordExportOptions {
                 UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Error
             });
         WordTable table = Assert.Single(document.Tables);
@@ -165,10 +165,10 @@ public partial class HtmlWordGapClosure {
             candidate => candidate.Text == "Framed");
 
         Assert.True(paragraph.IsListItem);
-        Assert.Equal("ABCDEF", paragraph.ShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("ABCDEF"), paragraph.ShadingFillColor);
         Assert.Equal(WordBorderStyle.Single, paragraph.Borders.TopStyle);
         Assert.Equal(WordBorderStyle.Single, paragraph.Borders.BottomStyle);
-        Assert.Equal("123456", paragraph.Borders.LeftColorHex);
+        Assert.Equal(OfficeColor.Parse("123456"), paragraph.Borders.LeftColor);
     }
 
     [Fact]
@@ -176,7 +176,7 @@ public partial class HtmlWordGapClosure {
         HtmlUnsupportedCssException exception = Assert.Throws<HtmlUnsupportedCssException>(() =>
             HtmlConversionDocument
                 .Parse("""<p style="margin-block-start:-10px">Unsupported vertical overlap</p>""")
-                .ToWord(new WordHtmlImportOptions {
+                .ToWord(new HtmlWordExportOptions {
                     UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Error
                 }));
 
@@ -244,9 +244,9 @@ public partial class HtmlWordGapClosure {
         using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph paragraph = Assert.Single(document.Paragraphs);
 
-        Assert.Equal("ABCDEF", paragraph.ShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("ABCDEF"), paragraph.ShadingFillColor);
         Assert.Equal(WordBorderStyle.Single, paragraph.Borders.TopStyle);
-        Assert.Equal("123456", paragraph.Borders.TopColorHex);
+        Assert.Equal(OfficeColor.Parse("123456"), paragraph.Borders.TopColor);
         Assert.Equal(60, checked((int?)(paragraph.IndentationBefore?.ToTwips())));
         Assert.Equal(60, checked((int?)(paragraph.IndentationAfter?.ToTwips())));
     }
@@ -280,7 +280,7 @@ public partial class HtmlWordGapClosure {
     public void WordTableCell_AddHtml_BelowTableCaptionReusesTheTrailingParagraph() {
         using WordDocument document = WordDocument.Create();
         WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
-        var options = new WordHtmlImportOptions { TableCaptionPosition = WordHtmlTableCaptionPosition.Below };
+        var options = new HtmlWordExportOptions { TableCaptionPosition = WordHtmlTableCaptionPosition.Below };
 
         cell.AddHtml(
             HtmlConversionDocument.Parse(
@@ -371,9 +371,9 @@ public partial class HtmlWordGapClosure {
         using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph paragraph = Assert.Single(document.Paragraphs);
 
-        Assert.Equal("ABCDEF", paragraph.ShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("ABCDEF"), paragraph.ShadingFillColor);
         Assert.Equal(WordBorderStyle.Single, paragraph.Borders.TopStyle);
-        Assert.Equal("123456", paragraph.Borders.TopColorHex);
+        Assert.Equal(OfficeColor.Parse("123456"), paragraph.Borders.TopColor);
         Assert.Equal(60, checked((int?)(paragraph.IndentationBefore?.ToTwips())));
         Assert.Equal(60, checked((int?)(paragraph.IndentationAfter?.ToTwips())));
     }
@@ -382,7 +382,7 @@ public partial class HtmlWordGapClosure {
     public void WordToHtml_VisibleHighlight_TakesPrecedenceOverExactRunShading() {
         using WordDocument document = WordDocument.Create();
         WordParagraph run = document.AddParagraph("Layered");
-        run.RunShadingFillColorHex = "ABCDEF";
+        run.BackgroundColor = OfficeColor.Parse("ABCDEF");
         run.Highlight = WordHighlightColor.Cyan;
 
         string html = document.ToHtml(new WordHtmlExportOptions { IncludeRunHighlightStyles = true });
@@ -400,7 +400,7 @@ public partial class HtmlWordGapClosure {
         accent.Append(new A.RgbColorModelHex { Val = "000000" });
 
         WordParagraph run = document.AddParagraph("Themed");
-        run.RunShadingFillColorHex = "FFFFFF";
+        run.BackgroundColor = OfficeColor.Parse("FFFFFF");
         run._runProperties!.Shading!.ThemeFill = ThemeColorValues.Accent1;
         run._runProperties.Shading.ThemeFillTint = "80";
 
@@ -414,7 +414,7 @@ public partial class HtmlWordGapClosure {
     public void WordToHtml_SolidRunShading_UsesForegroundColorInsteadOfFill() {
         using WordDocument document = WordDocument.Create();
         WordParagraph run = document.AddParagraph("Solid");
-        run.RunShadingFillColorHex = "0000FF";
+        run.BackgroundColor = OfficeColor.Parse("0000FF");
         run._runProperties!.Shading!.Val = ShadingPatternValues.Solid;
         run._runProperties.Shading.Color = "FF0000";
 
@@ -429,14 +429,14 @@ public partial class HtmlWordGapClosure {
     public void HtmlToWord_TransparentBlockBackground_PassesStrictDiagnosticsAndClearsFill() {
         using WordDocument document = HtmlConversionDocument
             .Parse("""<div style="background-color:#ff0000;background-color:transparent"><p>Cleared</p></div>""")
-            .ToWord(new WordHtmlImportOptions {
+            .ToWord(new HtmlWordExportOptions {
                 UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Error
             });
         WordParagraph paragraph = Assert.Single(
             document.Paragraphs,
             candidate => candidate.Text == "Cleared");
 
-        Assert.True(string.IsNullOrEmpty(paragraph.ShadingFillColorHex));
+        Assert.Null(paragraph.ShadingFillColor);
     }
 
     [Fact]
@@ -476,9 +476,9 @@ public partial class HtmlWordGapClosure {
 
         Assert.Equal(WordBorderStyle.Single, restored.Borders.LeftStyle);
         Assert.Equal(OfficeLength.Points(0.75), restored.Borders.LeftSize);
-        Assert.Equal("FF0000", restored.Borders.LeftColorHex);
+        Assert.Equal(OfficeColor.Parse("FF0000"), restored.Borders.LeftColor);
         Assert.Equal(WordBorderStyle.Single, currentColor.Borders.TopStyle);
-        Assert.Equal("123456", currentColor.Borders.TopColorHex);
+        Assert.Equal(OfficeColor.Parse("123456"), currentColor.Borders.TopColor);
     }
 
     [Fact]
@@ -520,7 +520,7 @@ public partial class HtmlWordGapClosure {
             response.Content.Headers.ContentType = new MediaTypeHeaderValue("image/png");
             return Task.FromResult(response);
         }));
-        var options = new WordHtmlImportOptions {
+        var options = new HtmlWordExportOptions {
             HttpClient = httpClient,
             ImageProcessing = WordHtmlImageProcessingMode.Embed,
             MaxConcurrentResourceLoads = 2,

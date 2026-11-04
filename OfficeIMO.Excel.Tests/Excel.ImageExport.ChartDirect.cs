@@ -15,12 +15,12 @@ namespace OfficeIMO.Tests {
         public void ExcelChart_ExportsDirectlyThroughSharedImageContract(OfficeImageExportFormat format) {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Summary");
-            sheet.CellValue(1, 1, "Category");
-            sheet.CellValue(1, 2, "Value");
-            sheet.CellValue(2, 1, "Open");
-            sheet.CellValue(2, 2, 12);
-            sheet.CellValue(3, 1, "Closed");
-            sheet.CellValue(3, 2, 30);
+            sheet.Cell(1, 1).SetValue("Category");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("Open");
+            sheet.Cell(2, 2).SetValue(12);
+            sheet.Cell(3, 1).SetValue("Closed");
+            sheet.Cell(3, 2).SetValue(30);
             ExcelChart chart = sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(360), Height = OfficeLength.Pixels(220), Title = "Ticket status" });
             chart.Name = "TicketStatus";
 
@@ -38,10 +38,10 @@ namespace OfficeIMO.Tests {
         public void ExcelChart_UsesTheSharedFluentImageBuilder() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Summary");
-            sheet.CellValue(1, 1, "Category");
-            sheet.CellValue(1, 2, "Value");
-            sheet.CellValue(2, 1, "Open");
-            sheet.CellValue(2, 2, 12);
+            sheet.Cell(1, 1).SetValue("Category");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("Open");
+            sheet.Cell(2, 2).SetValue(12);
             ExcelChart chart = sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(360), Height = OfficeLength.Pixels(220), Title = "Ticket status" });
 
             byte[] result = chart.ToImage(new ExcelImageExportOptions { Format = OfficeImageExportFormat.Webp, Scale = 1.25D });
@@ -56,10 +56,10 @@ namespace OfficeIMO.Tests {
         public void ExcelChart_FitWithinAppliesToRasterAndSvg(OfficeImageExportFormat format) {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Summary");
-            sheet.CellValue(1, 1, "Category");
-            sheet.CellValue(1, 2, "Value");
-            sheet.CellValue(2, 1, "Open");
-            sheet.CellValue(2, 2, 12);
+            sheet.Cell(1, 1).SetValue("Category");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("Open");
+            sheet.Cell(2, 2).SetValue(12);
             ExcelChart chart = sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(360), Height = OfficeLength.Pixels(220), Title = "Bounded chart" });
 
             byte[] result = chart.ToImage(new ExcelImageExportOptions {
@@ -77,10 +77,10 @@ namespace OfficeIMO.Tests {
         public void ExcelChart_PreservesSmallAnchoredDimensions(OfficeImageExportFormat format) {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Summary");
-            sheet.CellValue(1, 1, "Category");
-            sheet.CellValue(1, 2, "Value");
-            sheet.CellValue(2, 1, "Open");
-            sheet.CellValue(2, 2, 12);
+            sheet.Cell(1, 1).SetValue("Category");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("Open");
+            sheet.Cell(2, 2).SetValue(12);
             ExcelChart chart = sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(160), Height = OfficeLength.Pixels(90), Title = "Small chart" });
 
             OfficeImageExportResult result = chart.ExportImage(format);
@@ -93,10 +93,10 @@ namespace OfficeIMO.Tests {
         public void ExcelChart_SvgUsesRequestedExportBackgroundWhenChartHasNoFill() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Summary");
-            sheet.CellValue(1, 1, "Category");
-            sheet.CellValue(1, 2, "Value");
-            sheet.CellValue(2, 1, "Open");
-            sheet.CellValue(2, 2, 12);
+            sheet.Cell(1, 1).SetValue("Category");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("Open");
+            sheet.Cell(2, 2).SetValue(12);
             ExcelChart chart = sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(320), Height = OfficeLength.Pixels(180), Title = "Transparent chart" });
             chart.SetChartAreaStyle(noFill: true, noLine: true);
 
@@ -115,10 +115,10 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                     ExcelSheet sheet = document.AddSheet("Summary");
-                    sheet.CellValue(1, 1, "Category");
-                    sheet.CellValue(1, 2, "Value");
-                    sheet.CellValue(2, 1, "Open");
-                    sheet.CellValue(2, 2, 12);
+                    sheet.Cell(1, 1).SetValue("Category");
+                    sheet.Cell(1, 2).SetValue("Value");
+                    sheet.Cell(2, 1).SetValue("Open");
+                    sheet.Cell(2, 2).SetValue(12);
                     sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(320), Height = OfficeLength.Pixels(180), Title = "Absolute chart" });
                     document.Save();
                 }

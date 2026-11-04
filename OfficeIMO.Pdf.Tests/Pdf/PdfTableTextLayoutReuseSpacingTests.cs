@@ -15,7 +15,7 @@ public sealed class PdfTableTextLayoutReuseSpacingTests {
     public void RepeatedCellTextPreservesEachRunsScalingAndSpacing(double scale, double spacing, bool styledFirst) {
         var natural = PdfTextRun.Normal("ABCD");
         var styled = PdfTextRun.Normal("ABCD").WithHorizontalTextScaling(scale).WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(spacing));
-        byte[] bytes = PdfDocument.Create(pdf => pdf.Content(content => content.Table(new[] {
+        byte[] bytes = PdfDocument.Create(pdf => pdf.Content(content => content.AddTable(new[] {
             new[] { PdfTableCell.RichTextCell(new[] { styledFirst ? styled : natural }) },
             new[] { PdfTableCell.RichTextCell(new[] { styledFirst ? natural : styled }) }
         }, style: new PdfTableStyle {

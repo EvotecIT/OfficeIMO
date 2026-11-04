@@ -19,7 +19,7 @@ public class HtmlOneNoteRoleTables {
     [InlineData("<colgroup><col style='width:100px'><col></colgroup>", true)]
     public void OneNoteHtml_ColumnLossRequiresMeaningfulPresentation(string columns, bool loss) {
         var result = HtmlConversionDocument.Parse("<table>" + columns + "<tr><td>A</td><td>B</td></tr></table>")
-            .ToOneNoteSectionResult();
+            .ConvertToOneNoteSectionWithEvidence();
         Assert.Equal(loss, result.Report.HasLoss);
     }
 
@@ -29,7 +29,7 @@ public class HtmlOneNoteRoleTables {
     [InlineData("width='480' style='width:auto'", 15D)]
     public void OneNoteHtml_TableWidthHintSurvivesNativeReopen(string attributes, double expected) {
         var result = HtmlConversionDocument.Parse("<table " + attributes + "><tr><td>A</td><td>B</td></tr></table>")
-            .ToOneNoteSectionResult();
+            .ConvertToOneNoteSectionWithEvidence();
         var reopened = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(result.RequireValue())));
         var table = Assert.Single(reopened.Pages.SelectMany(p => p.Outlines).SelectMany(o => o.Children).OfType<OneNoteTable>());
         Assert.InRange(table.ColumnWidths.Sum(), expected - 0.01, expected + 0.01);
@@ -38,7 +38,7 @@ public class HtmlOneNoteRoleTables {
     [Fact]
     public void OneNoteHtml_ExplicitRowSpanDoesNotOccupyNextRowGroup() {
         var result = HtmlConversionDocument.Parse("<table><tbody><tr><td rowspan='2'>A</td></tr></tbody><tbody><tr><td>B</td></tr></tbody></table>")
-            .ToOneNoteSectionResult();
+            .ConvertToOneNoteSectionWithEvidence();
         var reopened = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(result.RequireValue())));
         var table = Assert.Single(reopened.Pages.SelectMany(p => p.Outlines).SelectMany(o => o.Children).OfType<OneNoteTable>());
         Assert.All(table.Rows, row => Assert.Single(row.Cells));
@@ -53,7 +53,7 @@ public class HtmlOneNoteRoleTables {
             + "</div>";
         HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
 
-        HtmlToOneNoteSectionResult oneNoteResult = source.ToOneNoteSectionResult();
+        HtmlToOneNoteSectionResult oneNoteResult = source.ConvertToOneNoteSectionWithEvidence();
         OneNoteSection section = oneNoteResult.RequireValue();
         OneNoteSection reopenedSection = OneNoteSectionReader.Read(
             new MemoryStream(OneNoteSectionWriter.Write(section)));
@@ -70,7 +70,7 @@ public class HtmlOneNoteRoleTables {
         const string html = "<table><tr><th colspan='2'>SI base units</th></tr>"
             + "<tr><td>Length</td><td>meter</td></tr><tr><td>Time</td></tr></table>";
 
-        HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(html).ToOneNoteSectionResult();
+        HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(html).ConvertToOneNoteSectionWithEvidence();
         OneNoteSection reopened = OneNoteSectionReader.Read(
             new MemoryStream(OneNoteSectionWriter.Write(result.RequireValue())));
         OneNoteTable table = Assert.Single(reopened.Pages.SelectMany(page => page.Outlines)
@@ -78,8 +78,8 @@ public class HtmlOneNoteRoleTables {
 
         Assert.Equal(3, table.Rows.Count);
         Assert.All(table.Rows, row => Assert.Equal(2, row.Cells.Count));
-        Assert.Contains("SI base units", reopened.ToHtmlDocument(), StringComparison.Ordinal);
-        Assert.Contains("meter", reopened.ToHtmlDocument(), StringComparison.Ordinal);
+        Assert.Contains("SI base units", reopened.ConvertToHtmlWithEvidence().RequireValue(), StringComparison.Ordinal);
+        Assert.Contains("meter", reopened.ConvertToHtmlWithEvidence().RequireValue(), StringComparison.Ordinal);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
             && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
@@ -91,7 +91,7 @@ public class HtmlOneNoteRoleTables {
             + "<tr><td rowspan='2'>Basic</td><td>30 minutes</td><td>Improved source</td></tr>"
             + "<tr><td>Limited</td><td>Over 30 minutes</td></tr></table>";
 
-        HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(html).ToOneNoteSectionResult();
+        HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(html).ConvertToOneNoteSectionWithEvidence();
         OneNoteSection reopened = OneNoteSectionReader.Read(
             new MemoryStream(OneNoteSectionWriter.Write(result.RequireValue())));
         OneNoteTable table = Assert.Single(reopened.Pages.SelectMany(page => page.Outlines)
@@ -119,12 +119,12 @@ public class HtmlOneNoteRoleTables {
     public void OneNoteHtml_OversizedTableLeavesBudgetForFollowingValidTable() {
         const string html = "<table><tr><td>Too</td><td>many</td></tr><tr><td>cells</td><td>here</td></tr></table>"
             + "<table><tr><td>Retained</td></tr></table>";
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxTables = 1;
         limits.MaxTableCells = 3;
 
-        HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(html).ToOneNoteSectionResult(
-            new HtmlToOneNoteOptions { Limits = limits });
+        HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(html).ConvertToOneNoteSectionWithEvidence(
+            new HtmlOneNoteExportOptions { Limits = limits });
         OneNoteSection reopened = OneNoteSectionReader.Read(
             new MemoryStream(OneNoteSectionWriter.Write(result.RequireValue())));
         OneNoteTable table = Assert.Single(reopened.Pages.SelectMany(page => page.Outlines)
@@ -146,7 +146,7 @@ public class HtmlOneNoteRoleTables {
             .CreateSemanticDocumentForConversion(HtmlCssMediaContext.Screen).RootTables).Table!;
         Assert.Equal(new[] { 0, 2 }, semantic.Rows.Select(row => row.SourceRowIndex));
 
-        HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(html).ToOneNoteSectionResult();
+        HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(html).ConvertToOneNoteSectionWithEvidence();
         OneNoteSection reopened = OneNoteSectionReader.Read(
             new MemoryStream(OneNoteSectionWriter.Write(result.RequireValue())));
         OneNoteTable table = Assert.Single(reopened.Pages.SelectMany(page => page.Outlines)
@@ -163,7 +163,7 @@ public class HtmlOneNoteRoleTables {
     [Fact]
     public void OneNoteHtml_AuthoredColumnWidthsSurviveNativeReopen() {
         var result = HtmlConversionDocument.Parse("<table style='width:360px'><tr><td style='width:120px'>A</td><td style='width:240px'>B</td></tr></table>")
-            .ToOneNoteSectionResult();
+            .ConvertToOneNoteSectionWithEvidence();
         var reopened = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(result.RequireValue())));
         var table = Assert.Single(reopened.Pages.SelectMany(p => p.Outlines).SelectMany(o => o.Children).OfType<OneNoteTable>());
         Assert.Equal(2, table.ColumnWidths.Count);
@@ -173,10 +173,10 @@ public class HtmlOneNoteRoleTables {
 
     [Fact]
     public void OneNoteHtml_LinkedCaptionKeepsTextWhenLinkExceedsMetadataLimit() {
-        var limits = HtmlImportLimits.CreateDefault(); limits.MaxMetadataCharacters = 256;
+        var limits = new HtmlImportLimits(); limits.MaxMetadataCharacters = 256;
         var result = HtmlConversionDocument.Parse("<table><caption><a href='https://example.org/" + new string('x', 300)
             + "'>Retained caption</a></caption><tr><td>Cell</td></tr></table>")
-            .ToOneNoteSectionResult(new HtmlToOneNoteOptions { Limits = limits });
+            .ConvertToOneNoteSectionWithEvidence(new HtmlOneNoteExportOptions { Limits = limits });
         var reopened = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(result.RequireValue())));
         var caption = Assert.Single(reopened.Pages.SelectMany(p => p.Outlines).SelectMany(o => o.Children).OfType<OneNoteParagraph>());
         Assert.Equal("Retained caption", string.Concat(caption.Runs.Select(r => r.Text)));
@@ -189,9 +189,9 @@ public class HtmlOneNoteRoleTables {
     public void OneNoteHtml_ImageLinkSurvivesNativeReopenWithinMetadataLimit(bool oversized) {
         const string png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aX1sAAAAASUVORK5CYII=";
         string link = "https://example.org/" + (oversized ? new string('x', 300) : "source");
-        var limits = HtmlImportLimits.CreateDefault(); limits.MaxMetadataCharacters = 256;
+        var limits = new HtmlImportLimits(); limits.MaxMetadataCharacters = 256;
         var result = HtmlConversionDocument.Parse("<a href='" + link + "'><img src='data:image/png;base64," + png + "' alt='Photo'></a>")
-            .ToOneNoteSectionResult(new HtmlToOneNoteOptions { Limits = limits });
+            .ConvertToOneNoteSectionWithEvidence(new HtmlOneNoteExportOptions { Limits = limits });
         var reopened = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(result.RequireValue())));
         var image = Assert.Single(reopened.Pages.SelectMany(p => p.Outlines).SelectMany(o => o.Children).OfType<OneNoteImage>());
         Assert.Equal("Photo", image.AltText);

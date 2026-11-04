@@ -603,7 +603,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         [Fact]
         public void Image_With_Dimensions_Renders_Size_And_Caption() {
             var doc = MarkdownDocument.Create()
-                .Image("images/photo.png", alt: "Alt text", title: "Title text", width: OfficeIMO.OfficeLength.Pixels(640), height: OfficeIMO.OfficeLength.Pixels(480))
+                .Image("images/photo.png", altText: "Alt text", title: "Title text", width: OfficeIMO.OfficeLength.Pixels(640), height: OfficeIMO.OfficeLength.Pixels(480))
                 .Caption("Photo caption");
 
             var block = Assert.IsType<ImageBlock>(Assert.Single(doc.Blocks));

@@ -15,7 +15,7 @@ namespace OfficeIMO.Visio {
                 return false;
             }
 
-            point = relative ? (x * shape.Width, y * shape.Height) : (x, y);
+            point = relative ? (x * shape.WidthInches, y * shape.HeightInches) : (x, y);
             return true;
         }
 
@@ -293,10 +293,10 @@ namespace OfficeIMO.Visio {
                 return false;
             }
 
-            AddInfiniteLineIntersection(points, first, dx, dy, x: 0D, y: null, width: shape.Width, height: shape.Height);
-            AddInfiniteLineIntersection(points, first, dx, dy, x: shape.Width, y: null, width: shape.Width, height: shape.Height);
-            AddInfiniteLineIntersection(points, first, dx, dy, x: null, y: 0D, width: shape.Width, height: shape.Height);
-            AddInfiniteLineIntersection(points, first, dx, dy, x: null, y: shape.Height, width: shape.Width, height: shape.Height);
+            AddInfiniteLineIntersection(points, first, dx, dy, x: 0D, y: null, width: shape.WidthInches, height: shape.HeightInches);
+            AddInfiniteLineIntersection(points, first, dx, dy, x: shape.WidthInches, y: null, width: shape.WidthInches, height: shape.HeightInches);
+            AddInfiniteLineIntersection(points, first, dx, dy, x: null, y: 0D, width: shape.WidthInches, height: shape.HeightInches);
+            AddInfiniteLineIntersection(points, first, dx, dy, x: null, y: shape.HeightInches, width: shape.WidthInches, height: shape.HeightInches);
 
             if (points.Count < 2) {
                 return false;

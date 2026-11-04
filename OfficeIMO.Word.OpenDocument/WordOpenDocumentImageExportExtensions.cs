@@ -18,7 +18,7 @@ public static class WordOpenDocumentImageExportExtensions {
         WordImageExportOptions effective =
             imageOptions?.Clone() ?? new WordImageExportOptions();
         OdfConversionResult<WordDocument> conversion =
-            source.ToWordDocumentResult(conversionOptions);
+            source.ConvertToWordWithEvidence(conversionOptions);
         using (conversion.Value) {
             OfficeImageExportResult image =
                 conversion.Value.ExportImage(format, effective, cancellationToken);
@@ -57,7 +57,7 @@ public static class WordOpenDocumentImageExportExtensions {
         WordImageExportOptions effective =
             imageOptions?.Clone() ?? new WordImageExportOptions();
         OdfConversionResult<WordDocument> conversion =
-            source.ToWordDocumentResult(conversionOptions);
+            source.ConvertToWordWithEvidence(conversionOptions);
         using (conversion.Value) {
             conversion.Value.ExportImages(
                 format,

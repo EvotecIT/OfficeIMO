@@ -70,7 +70,7 @@ public sealed partial class IWorkBoundaryTests {
             additionalRecords: Message(
                 ArchiveRecord(13, 6005, Message(VarintField(1, 2), BytesField(3, FormatEntry(FractionFormat(8))))),
                 ArchiveRecord(14, 6201, Message(VarintField(1, 3), BytesField(3, Message(VarintField(1, 0), BytesField(5, FormulaConstant(1d))))))));
-        using var converted = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var converted = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
         Assert.False(converted.IsVisualFallback);
         IWorkTableCell projected = Assert.Single(Assert.Single(Assert.Single(converted.Projection.Sheets).Tables).Cells);
         Assert.Equal(IWorkCellKind.Formula, projected.Kind);
@@ -79,7 +79,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(IWorkFractionAccuracy.Eighths, projected.NumberFormat!.FractionAccuracy);
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
         using var reopened = global::OfficeIMO.Excel.ExcelDocument.Load(saved);
-        var cache = reopened.Sheets[0].CellAt(1, 1).GetValue();
+        var cache = reopened.Sheets[0].Cell(1, 1).GetValue();
         Assert.Equal(global::OfficeIMO.Excel.ExcelCellDataKind.Formula, cache.Kind);
         Assert.Equal(-1.375d, cache.Value);
         Assert.Equal("-1 3/8", Assert.Single(reopened.Sheets[0].Range("A1:A1").CreateVisualSnapshot().Cells).Text);

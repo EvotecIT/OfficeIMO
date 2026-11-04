@@ -69,7 +69,7 @@ public sealed partial class PowerPointContentWorkflowTests {
             Assert.Empty(saved.ValidateDocument());
             Assert.Contains(saved.Slides[0].TextBoxes, box => box.Text == "Updated classification");
             var appendedFooter = Assert.Single(saved.Slides.Last().TextBoxes, box => box.Text == "Updated classification");
-            Assert.Equal(saved.GetThemeColor(PowerPointThemeColor.Dark2), appendedFooter.Paragraphs[0].Runs[0].Color, ignoreCase: true);
+            Assert.Equal(OfficeIMO.OfficeColor.Parse(saved.GetThemeColor(PowerPointThemeColor.Dark2)!), appendedFooter.Paragraphs[0].Runs[0].Color);
             Assert.All(saved.Slides.Skip(1).Take(originalCount - 2), slide =>
                 Assert.Contains(slide.TextBoxes, box => box.Text == "Local source"));
         }

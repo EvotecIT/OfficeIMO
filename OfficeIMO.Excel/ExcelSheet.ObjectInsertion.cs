@@ -230,7 +230,7 @@ namespace OfficeIMO.Excel {
                 throw new InvalidDataException($"Object insertion exceeds the {maximumRows}-row worksheet limit.");
             }
 
-            var rows = capacity > 0 ? new List<T>(capacity) : new List<T>();
+            var rows = new ObjectExportRowSnapshot<T>(capacity, maximumRows);
             using var enumerator = items.GetEnumerator();
             while (true) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -299,10 +299,14 @@ namespace OfficeIMO.Excel {
             IReadOnlyList<Func<T, object?>> selectors,
             out Type?[] inferredColumnTypes) {
             var values = new object?[checked(rows.Count * selectors.Count)];
+            inferredColumnTypes = new Type?[selectors.Count];
+            if (rows is ObjectExportRowSnapshot<T> snapshot && selectors is Func<T, object?>[] selectorArray) {
+                FillOwnedObjectExportValues(snapshot, selectorArray, values, inferredColumnTypes);
+                return values;
+            }
 #if NET8_0_OR_GREATER
             Span<object?> valueBuffer = values;
 #endif
-            inferredColumnTypes = new Type?[selectors.Count];
             for (int r = 0; r < rows.Count; r++) {
                 int rowOffset = r * selectors.Count;
                 for (int c = 0; c < selectors.Count; c++) {

@@ -358,7 +358,7 @@ namespace OfficeIMO.Tests {
                 diagnostic.Code == "ppt-media-preserved");
             LegacyPptImportReport report = neutral.CreateImportReport();
             Assert.Equal(1, report.LinkedOrDeviceMediaCount);
-            Assert.Contains(report.FidelityDiagnostics, diagnostic =>
+            Assert.Contains(report.Diagnostics, diagnostic =>
                 diagnostic.Code == "ppt-media-preserved" &&
                 diagnostic.LossKind == OfficeConversionLossKind.Omission);
 

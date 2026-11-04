@@ -54,7 +54,7 @@ public sealed partial class HtmlRenderingTests {
         OfficeLinearGradient gradient = gradientShape.Shape.FillGradient!;
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         string svg = HtmlConversionDocument.Parse(html).ToSvg(imageOptions);
-        HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
+        HtmlPdfExportOptions pdfOptions = new HtmlPdfExportOptions();
         byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes();
 
         Assert.Equal(3, gradient.Stops.Count);
@@ -87,7 +87,7 @@ public sealed partial class HtmlRenderingTests {
             shape => shape.Shape.FillGradient != null).Shape.FillGradient!;
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         string svg = HtmlConversionDocument.Parse(html).ToSvg(options);
-        HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions(options);
+        HtmlPdfExportOptions pdfOptions = new HtmlPdfExportOptions(options);
         byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes();
         string pdfSource = Encoding.ASCII.GetString(pdf);
 
@@ -115,7 +115,7 @@ public sealed partial class HtmlRenderingTests {
             rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
             shape => shape.Shape.FillGradient != null).Shape.FillGradient!;
         string svg = HtmlConversionDocument.Parse(html).ToSvg(options);
-        HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions(options);
+        HtmlPdfExportOptions pdfOptions = new HtmlPdfExportOptions(options);
         byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes();
 
         Assert.Equal(new[] { 0D, 0.25D, 1D }, gradient.Stops.Select(stop => stop.Offset));
@@ -158,8 +158,8 @@ public sealed partial class HtmlRenderingTests {
         OfficeRadialGradient gradient = gradientShape.Shape.FillRadialGradient!;
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         string svg = HtmlConversionDocument.Parse(html).ToSvg(imageOptions);
-        HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
-        pdfOptions = new HtmlToPdfOptions(imageOptions);
+        HtmlPdfExportOptions pdfOptions = new HtmlPdfExportOptions();
+        pdfOptions = new HtmlPdfExportOptions(imageOptions);
         byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes();
         string pdfSource = Encoding.ASCII.GetString(pdf);
 
@@ -194,8 +194,8 @@ public sealed partial class HtmlRenderingTests {
             shape => shape.Shape.FillRadialGradient != null).Shape.FillRadialGradient!;
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         string svg = HtmlConversionDocument.Parse(html).ToSvg(imageOptions);
-        HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
-        pdfOptions = new HtmlToPdfOptions(imageOptions);
+        HtmlPdfExportOptions pdfOptions = new HtmlPdfExportOptions();
+        pdfOptions = new HtmlPdfExportOptions(imageOptions);
         byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes();
         string pdfSource = Encoding.ASCII.GetString(pdf);
 
@@ -230,8 +230,8 @@ public sealed partial class HtmlRenderingTests {
             shape => shape.Shape.FillRadialGradient != null).Shape.FillRadialGradient!;
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         string svg = HtmlConversionDocument.Parse(html).ToSvg(imageOptions);
-        HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
-        pdfOptions = new HtmlToPdfOptions(imageOptions);
+        HtmlPdfExportOptions pdfOptions = new HtmlPdfExportOptions();
+        pdfOptions = new HtmlPdfExportOptions(imageOptions);
         byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes();
 
         Assert.Equal(0.1875D, gradient.EndRadiusX, 4);
@@ -567,7 +567,7 @@ public sealed partial class HtmlRenderingTests {
             shape => shape.Shape.FillGradient != null).Shape.FillGradient!;
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         string svg = HtmlConversionDocument.Parse(html).ToSvg(options);
-        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(options))).ToBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions(options))).ToBytes();
 
         Assert.Equal(22, gradient.Stops.Count);
         Assert.Equal(0D, gradient.Stops[0].Offset, 6);
@@ -626,7 +626,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         string svg = HtmlConversionDocument.Parse(html).ToSvg(options);
-        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(options))).ToBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions(options))).ToBytes();
 
         Assert.NotEqual(raster.GetPixel(28, 10), raster.GetPixel(86, 38));
         Assert.Contains("<clipPath", svg, StringComparison.Ordinal);
@@ -634,7 +634,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain("<image", svg, StringComparison.Ordinal);
         Assert.Contains("ConicMarker", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText(), StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
-        Assert.DoesNotContain(HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(new HtmlToPdfOptions(options)).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(new HtmlPdfExportOptions(options)).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -709,7 +709,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         string svg = HtmlConversionDocument.Parse(html).ToSvg(options);
-        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(options))).ToBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions(options))).ToBytes();
 
         Assert.NotEqual(OfficeColor.Transparent, raster.GetPixel(8, 8));
         Assert.NotEqual(OfficeColor.Transparent, raster.GetPixel(87, 67));
@@ -779,7 +779,7 @@ public sealed partial class HtmlRenderingTests {
             ConicGradientQualitySegments = 72
         });
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions {
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(100D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(80D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
@@ -900,7 +900,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         IReadOnlyList<OfficeImageExportResult> pngPages = HtmlConversionDocument.Parse(html).ExportImages(OfficeImageExportFormat.Png, options);
         IReadOnlyList<OfficeImageExportResult> svgPages = HtmlConversionDocument.Parse(html).ExportImages(OfficeImageExportFormat.Svg, options);
-        HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions(options);
+        HtmlPdfExportOptions pdfOptions = new HtmlPdfExportOptions(options);
         byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes();
 
         Assert.Equal(3, rendered.Pages.Count);

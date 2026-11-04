@@ -89,7 +89,7 @@ internal static class LatexReaderChunkBuilder {
         }
         if (segments.Count == 0) segments.Add(new LatexTextSegment(markdown));
         IReadOnlyList<LatexReaderPart> parts = LatexReaderTextSplitter.Split(segments, readerOptions.MaxChars, cancellationToken);
-        IReadOnlyList<string>? firstWarnings = options.IncludeDiagnostics ? BuildWarnings(parse.Document.IsRecognizedProfile, parse.Diagnostics, projection.Result.Report.Diagnostics, parts.Count > 1, cancellationToken) : null;
+        IReadOnlyList<string>? firstWarnings = options.IncludeDiagnostics ? BuildWarnings(parse.Document.IsRecognizedProfile, parse.Diagnostics, projection.Result.Report.NativeDiagnostics, parts.Count > 1, cancellationToken) : null;
         IReadOnlyList<string>? splitWarnings = options.IncludeDiagnostics ? BuildWarnings(true, Array.Empty<LatexDiagnostic>(), Array.Empty<LatexMarkdownConversionDiagnostic>(), parts.Count > 1, cancellationToken) : null;
         if (parts.Count == 0 && options.IncludeDiagnostics && (projection.Result.Report.Diagnostics.Count > 0 || parse.Diagnostics.Count > 0)) parts = new[] { new LatexReaderPart(string.Empty, string.Empty) };
         for (int index = 0; index < parts.Count; index++) {

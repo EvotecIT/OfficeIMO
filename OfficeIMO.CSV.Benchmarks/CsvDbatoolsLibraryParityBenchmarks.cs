@@ -268,9 +268,8 @@ public class CsvDbatoolsLibraryParityBenchmarks
     {
         var count = 0;
         long fieldLength = 0;
-        using var reader = CsvDocument.OpenDataReader(
-            path,
-            new CsvLoadOptions { DetectDelimiter = false });
+        using var reader = CsvDocument.OpenReader(path,
+            options: new CsvReaderOptions { DetectDelimiter = false });
         while (reader.Read())
         {
             count++;
@@ -284,9 +283,8 @@ public class CsvDbatoolsLibraryParityBenchmarks
     {
         var count = 0;
         long fieldLength = 0;
-        using var reader = CsvDocument.OpenDataReader(
-            path,
-            new CsvLoadOptions { DetectDelimiter = false });
+        using var reader = CsvDocument.OpenReader(path,
+            options: new CsvReaderOptions { DetectDelimiter = false });
         var values = new object[reader.FieldCount];
         while (reader.Read())
         {
@@ -302,9 +300,8 @@ public class CsvDbatoolsLibraryParityBenchmarks
     {
         var count = 0;
         long fieldLength = 0;
-        using var reader = CsvDocument.OpenDataReader(
-            path,
-            new CsvLoadOptions { DetectDelimiter = false });
+        using var reader = CsvDocument.OpenReader(path,
+            options: new CsvReaderOptions { DetectDelimiter = false });
         while (reader.Read())
         {
             count++;

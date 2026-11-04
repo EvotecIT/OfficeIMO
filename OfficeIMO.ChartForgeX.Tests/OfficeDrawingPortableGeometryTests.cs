@@ -25,7 +25,7 @@ namespace OfficeIMO.ChartForgeX.Tests {
                     if (width) shape.Width = invalid;
                     else shape.Height = invalid;
                     Assert.False(OfficeDrawingPortableExporter.TryExportJson(drawing, new OfficeDrawingPortableOptions(Family),
-                        out string? json, out IReadOnlyList<OfficeConversionFidelityDiagnostic> diagnostics), kind + " " + (width ? "width" : "height") + " produced " + json);
+                        out string? json, out IReadOnlyList<OfficeDiagnostic> diagnostics), kind + " " + (width ? "width" : "height") + " produced " + json);
                     Assert.Null(json);
                     Assert.Equal(code, Assert.Single(diagnostics).Code);
                     Assert.Equal("elements[0]", diagnostics[0].Location);
@@ -38,7 +38,7 @@ namespace OfficeIMO.ChartForgeX.Tests {
         public void ValidEllipseRetainsItsFourCubicsAndExactCommandBudget() {
             OfficeDrawing drawing = Preset(OfficeShapeKind.Ellipse);
             Assert.True(OfficeDrawingPortableExporter.TryExportJson(drawing,
-                new OfficeDrawingPortableOptions(Family) { MaximumCommands = 6 }, out string? json, out IReadOnlyList<OfficeConversionFidelityDiagnostic> diagnostics));
+                new OfficeDrawingPortableOptions(Family) { MaximumCommands = 6 }, out string? json, out IReadOnlyList<OfficeDiagnostic> diagnostics));
             Assert.Empty(diagnostics);
             using JsonDocument document = JsonDocument.Parse(json!);
             JsonElement path = document.RootElement.GetProperty("elements")[0];
@@ -104,7 +104,7 @@ namespace OfficeIMO.ChartForgeX.Tests {
             OfficeDrawing drawing = new OfficeDrawing(240, 200);
             drawing.AddEffectDrawing(container, OfficeTransform.Scale(2, 2));
             Assert.True(OfficeDrawingPortableExporter.TryExportJson(drawing, new OfficeDrawingPortableOptions(Family),
-                out string? json, out IReadOnlyList<OfficeConversionFidelityDiagnostic> diagnostics));
+                out string? json, out IReadOnlyList<OfficeDiagnostic> diagnostics));
             Assert.Empty(diagnostics);
             using JsonDocument document = JsonDocument.Parse(json!);
             JsonElement group = document.RootElement.GetProperty("elements")[0];
@@ -134,7 +134,7 @@ namespace OfficeIMO.ChartForgeX.Tests {
 
         private static void RejectCoordinate(OfficeDrawing drawing) {
             Assert.False(OfficeDrawingPortableExporter.TryExportJson(drawing, new OfficeDrawingPortableOptions(Family),
-                out string? json, out IReadOnlyList<OfficeConversionFidelityDiagnostic> diagnostics), "Invalid source geometry produced " + json);
+                out string? json, out IReadOnlyList<OfficeDiagnostic> diagnostics), "Invalid source geometry produced " + json);
             Assert.Null(json);
             Assert.Equal("DRAWING_COORDINATE_LIMIT", Assert.Single(diagnostics).Code);
             Assert.StartsWith("elements[0]", diagnostics[0].Location);

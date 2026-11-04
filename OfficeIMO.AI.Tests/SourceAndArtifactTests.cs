@@ -12,7 +12,7 @@ namespace OfficeIMO.AI.Tests;
 public sealed class SourceAndArtifactTests {
     [Fact]
     public async Task PdfTableEvidenceContainsSourceCellsWithoutGeneratedDetectionNotice() {
-        byte[] source = PdfDocument.Create(builder => builder.Content(content => content.Table(new[] {
+        byte[] source = PdfDocument.Create(builder => builder.Content(content => content.AddTable(new[] {
             new[] { "Code", "Name", "Qty" },
             new[] { "A-100", "Alpha", "2" },
             new[] { "B-200", "Beta", "14" }
@@ -44,7 +44,7 @@ public sealed class SourceAndArtifactTests {
             if (exportable) {
                 await ArtifactWriter.SaveAsync(output, document, result);
                 using var workbook = ExcelDocument.Load(Path.Combine(output, "extraction.xlsx"));
-                Assert.Equal(raw, workbook.Sheets[0].CellAt(2, 3).GetValue<string>());
+                Assert.Equal(raw, workbook.Sheets[0].Cell(2, 3).GetValue<string>());
             } else {
                 await Assert.ThrowsAsync<NotSupportedException>(() => ArtifactWriter.SaveAsync(output, document, result));
                 Assert.False(Directory.Exists(output));
@@ -70,7 +70,7 @@ public sealed class SourceAndArtifactTests {
                 return;
             }
             using var workbook = ExcelDocument.Load(Path.Combine(output, "extraction.xlsx"));
-            Assert.Equal(raw, workbook.Sheets[0].CellAt(2, 3).GetValue<string>());
+            Assert.Equal(raw, workbook.Sheets[0].Cell(2, 3).GetValue<string>());
         } finally { if (Directory.Exists(output)) Directory.Delete(output, recursive: true); }
     }
 
@@ -93,7 +93,7 @@ public sealed class SourceAndArtifactTests {
             if (exportable) {
                 await ArtifactWriter.SaveAsync(output, document, result);
                 using var workbook = ExcelDocument.Load(Path.Combine(output, "extraction.xlsx"));
-                Assert.Equal(raw, workbook.Sheets[0].CellAt(2, 3).GetValue<string>());
+                Assert.Equal(raw, workbook.Sheets[0].Cell(2, 3).GetValue<string>());
             } else {
                 await Assert.ThrowsAsync<NotSupportedException>(() => ArtifactWriter.SaveAsync(output, document, result));
                 Assert.False(Directory.Exists(output));
@@ -103,7 +103,7 @@ public sealed class SourceAndArtifactTests {
 
     [Fact]
     public async Task ContentDetectedNativePdfDoesNotReportSourceOmissions() {
-        byte[] source = PdfDocument.Create(builder => builder.Content(content => content.Text("Native total 42"))).ToBytes();
+        byte[] source = PdfDocument.Create(builder => builder.Content(content => content.AddParagraph("Native total 42"))).ToBytes();
         var document = await DocumentInputs.ReadAsync(source, "attachment", false, Array.Empty<int>(), new(), CancellationToken.None);
         Assert.Contains(document.Evidence, item => item.Text.Contains("Native total 42"));
         Assert.False(document.HasSourceDiagnostics);
@@ -114,11 +114,11 @@ public sealed class SourceAndArtifactTests {
     [InlineData("attachment.bin", true)]
     [InlineData("attachment.bin", false)]
     public async Task DetectedPdfRetainsNativeTextAndRendersPagesUnderAnyLogicalName(string name, bool images) {
-        byte[] page = PdfDocument.Create(builder => builder.Content(content => content.Text("SCANNED"))).ToBytes();
+        byte[] page = PdfDocument.Create(builder => builder.Content(content => content.AddParagraph("SCANNED"))).ToBytes();
         using var pageDocument = PdfDocument.Load(new MemoryStream(page));
         byte[] scan = pageDocument.ExportImages(new PdfImageExportOptions { Format = OfficeImageExportFormat.Png }).Single().Bytes;
-        byte[] source = PdfDocument.Create(builder => builder.Content(content => content.Text("NATIVE")
-            .PageBreak().Image(scan, global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(566)))).ToBytes();
+        byte[] source = PdfDocument.Create(builder => builder.Content(content => content.AddParagraph("NATIVE")
+            .PageBreak().AddImage(scan, global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(566)))).ToBytes();
         var document = await DocumentInputs.ReadAsync(source, name, images, Array.Empty<int>(), new(), CancellationToken.None);
         Assert.Contains(document.Evidence, item => item.Text.Contains("NATIVE"));
         Assert.Equal(new[] { 1, 2 }, document.Pages);
@@ -134,7 +134,7 @@ public sealed class SourceAndArtifactTests {
     [InlineData(false)]
     [InlineData(true)]
     public async Task PasswordProtectedPdfCannotBecomeTextOrVisionEvidence(bool images) {
-        byte[] bytes = PdfDocument.Create(builder => builder.Content(content => content.Text("Protected source")),
+        byte[] bytes = PdfDocument.Create(builder => builder.Content(content => content.AddParagraph("Protected source")),
             new PdfCreateOptions().SetEncryption("open", "owner")).ToBytes();
         await Assert.ThrowsAnyAsync<Exception>(() => DocumentInputs.ReadAsync(bytes, "protected.pdf", images,
             Array.Empty<int>(), new OfficeAiLimits(), CancellationToken.None));
@@ -144,7 +144,7 @@ public sealed class SourceAndArtifactTests {
     [InlineData(false)]
     [InlineData(true)]
     public void DeniedCopyAndPrintCannotBeBypassedWithVision(bool images) {
-        byte[] bytes = PdfDocument.Create(builder => builder.Content(content => content.Text("Restricted source")),
+        byte[] bytes = PdfDocument.Create(builder => builder.Content(content => content.AddParagraph("Restricted source")),
             new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("open") {
                 OwnerPassword = "owner", AllowedPermissions = PdfStandardPermissions.None
             })).ToBytes();
@@ -164,7 +164,7 @@ public sealed class SourceAndArtifactTests {
 
     [Fact]
     public async Task RenderedImagesKeepCallerSelectedPageIdentity() {
-        byte[] bytes = PdfDocument.Create(builder => builder.Content(content => content.Text("FIRST").PageBreak().Text("SECOND"))).ToBytes();
+        byte[] bytes = PdfDocument.Create(builder => builder.Content(content => content.AddParagraph("FIRST").PageBreak().AddParagraph("SECOND"))).ToBytes();
         var document = await DocumentInputs.ReadAsync(bytes, "pages.pdf", true, new[] { 2, 1 }, new OfficeAiLimits(), CancellationToken.None);
         using var sourceDocument = PdfDocument.Load(new MemoryStream(bytes));
         var direct = sourceDocument.ExportImages(new PdfImageExportOptions { Format = OfficeImageExportFormat.Png, TargetDpi = 120 });
@@ -187,7 +187,7 @@ public sealed class SourceAndArtifactTests {
         try {
             await ArtifactWriter.SaveAsync(output, document, result);
             using var workbook = ExcelDocument.Load(Path.Combine(output, "extraction.xlsx"));
-            Assert.Equal(raw, workbook.Sheets[0].CellAt(2, 3).GetValue<string>());
+            Assert.Equal(raw, workbook.Sheets[0].Cell(2, 3).GetValue<string>());
             Assert.Contains("'=2+3", File.ReadAllText(Path.Combine(output, "Fields.csv")));
             using var report = JsonDocument.Parse(File.ReadAllText(Path.Combine(output, "report.json")));
             Assert.Contains(document.SourceHash, report.RootElement.GetRawText());

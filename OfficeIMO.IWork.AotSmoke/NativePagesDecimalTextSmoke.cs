@@ -41,7 +41,7 @@ internal static class NativePagesDecimalTextSmoke {
             && pages.Paragraphs[11] == "Updated grandchild six"
             && pages.Body.Paragraphs.Where(p => p.ListNumber.HasValue).Select(p => p.ListNumber!.Value).SequenceEqual(expected),
             "Edited decimal text or counters changed.");
-        using var converted = source.ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = source.ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         converted.RequireCompleteEditableReconstruction(); using var bytes = new MemoryStream(); converted.Value.Save(bytes); bytes.Position = 0;
         using var saved = WordDocument.Load(bytes);
         Require(!saved.ValidateDocument().Any() && WordDocumentTraversal.BuildListIndices(saved).Values.Select(p => p.Index).SequenceEqual(expected),

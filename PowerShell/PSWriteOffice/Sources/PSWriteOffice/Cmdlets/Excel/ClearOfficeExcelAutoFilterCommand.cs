@@ -1,3 +1,5 @@
+using System.Linq;
+using System;
 using System.Management.Automation;
 using OfficeIMO.Excel;
 using PSWriteOffice.Services.Excel;
@@ -32,7 +34,10 @@ public sealed class ClearOfficeExcelAutoFilterCommand : PSWriteOffice.Cmdlets.Of
     /// <inheritdoc />
     protected override void ProcessRecord() {
         var sheet = ResolveSheet();
-        sheet.AutoFilterClear();
+        ExcelAutoFilterInfo? worksheetFilter = sheet.GetAutoFilters().FirstOrDefault(filter => !filter.IsTableFilter);
+        if (worksheetFilter != null) {
+            sheet.Range(worksheetFilter.Range).AutoFilter().Clear();
+        }
         WritePassThru(sheet);
     }
 

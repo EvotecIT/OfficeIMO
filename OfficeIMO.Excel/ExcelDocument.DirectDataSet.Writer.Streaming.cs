@@ -11,13 +11,14 @@ public partial class ExcelDocument {
     private static partial class DirectDataSetWorkbookWriter {
         /// <summary>Streams one worksheet, then emits its table with the final observed row count.</summary>
         internal static async Task<int> WriteStreamingWorksheet<T>(ZipArchive archive, DirectDataSetWorkbookModel model,
-            IAsyncEnumerable<T> rows, Action<ExcelTabularRowWriter, T> writeRow, CancellationToken cancellationToken) {
+            IAsyncEnumerable<T> rows, Action<ExcelTabularRowWriter, T> writeRow, bool autoFit, OfficeTheme theme, CancellationToken cancellationToken) {
             var stylePlan = DirectStylePlan.Create(model);
             var columns = CreateColumnWritePlans(model, stylePlan, cancellationToken);
             var sheet = model.Sheets[0];
             int count = await WriteAsyncWorksheetRows(archive, sheet, model.DateTimeOffsetWriteStrategy,
                 model.DateSystem, columns[0], rows, writeRow, ExcelA1.MaxRows - (sheet.IncludeHeaders ? 1 : 0),
-                null, stylePlan.TabularStyles, cancellationToken).ConfigureAwait(false);
+                null, stylePlan.TabularStyles, cancellationToken,
+                autoFit ? new DocumentFormat.OpenXml.Spreadsheet.Stylesheet(CreateStylesXml(stylePlan, theme)) : null).ConfigureAwait(false);
             if (!sheet.HasTable) return count;
             string index = InvariantNumberText.Get(sheet.Index);
             WriteTextEntry(archive, "xl/worksheets/_rels/sheet" + index + ".xml.rels",
