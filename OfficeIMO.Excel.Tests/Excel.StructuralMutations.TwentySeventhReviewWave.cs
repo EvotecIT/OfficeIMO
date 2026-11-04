@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
             sheet.Cell(1, 1).SetValue("Style source");
-            sheet.Cell(1, 1).SetFillColor("C6EFCE");
+            sheet.Cell(1, 1).SetFillColor(global::OfficeIMO.OfficeColor.Parse("C6EFCE"));
             sheet.DefineNamedStyle("Input", 1, 1);
             sheet.Cell(1, 26).SetValue("Probe");
             sheet.ApplyNamedStyle("Input", "Z1:Z1");

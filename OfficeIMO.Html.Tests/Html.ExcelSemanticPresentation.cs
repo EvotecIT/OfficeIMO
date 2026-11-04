@@ -11,8 +11,8 @@ public class HtmlExcelSemanticPresentation {
         ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddSheet("Report");
         sheet.Cell(1, 1).SetValue("Title band");
-        sheet.Cell(1, 1).SetFontColor("FFFFFF");
-        sheet.Cell(1, 1).SetFillColor("17365D");
+        sheet.Cell(1, 1).SetColor(global::OfficeIMO.OfficeColor.Parse("FFFFFF"));
+        sheet.Cell(1, 1).SetFillColor(global::OfficeIMO.OfficeColor.Parse("17365D"));
         sheet.Cell(2, 1).SetValue("Amount"); sheet.Cell(2, 2).SetValue("Share"); sheet.Cell(2, 3).SetValue("Due"); sheet.Cell(2, 4).SetValue("Ready");
         sheet.Cell(3, 1).SetValue(1234567.5).SetNumberFormat("#,##0.00");
         sheet.Cell(3, 2).SetValue(0.3755186721991701).SetNumberFormat("0.0%");

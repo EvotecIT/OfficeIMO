@@ -339,7 +339,7 @@ public sealed class ConverterTests {
             PdfOptions = new PdfCreateOptions().SetEncryption("open", "owner")
         };
 
-        byte[] bytes = section.ToVisualPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
+        byte[] bytes = section.ToVisualPdfoptions.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         Assert.Throws<PdfPasswordRequiredException>(() => PdfDocument.Load(new System.IO.MemoryStream(bytes)).Inspect());
         Assert.Throws<PdfInvalidPasswordException>(() =>
@@ -600,8 +600,8 @@ public sealed class ConverterTests {
 
     [Fact]
     public void ProjectionDepthOptionsEnforceTheHardTraversalCeiling() {
-        int invalid = OneNoteWriterOptions.MaximumTraversalDepth + 1;
-        var section = new OneNoteSection();
+        int invalid = OneNoteSaveOptions.MaximumTraversalDepth + 1;
+        var section = OneNoteSection.Create();
 
         Assert.Throws<ArgumentOutOfRangeException>(() => section.ToMarkdown(new OneNoteMarkdownExportOptions { MaxSectionGroupDepth = invalid }));
         Assert.Throws<ArgumentOutOfRangeException>(() => section.ToMarkdown(new OneNoteMarkdownExportOptions { MaxPageRelationshipDepth = invalid }));

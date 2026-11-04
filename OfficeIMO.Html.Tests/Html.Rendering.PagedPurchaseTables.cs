@@ -112,7 +112,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.TableHeaderRepeatSuppressed);
 
         using var output = new MemoryStream();
-        PdfCore.PdfSaveResult save = document.ConvertToPdfWithEvidence(options).Save(output);
+        PdfCore.PdfSaveResult save = document.ConvertToPdfWithEvidenceoptions.Save(output);
         byte[] pdf = output.ToArray();
         PdfCore.PdfSerializationReport serialization = Assert.IsType<PdfCore.PdfSerializationReport>(save.Serialization);
         string pdfText = PdfCore.PdfReadDocument.Open(pdf).ExtractText();

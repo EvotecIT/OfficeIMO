@@ -1294,7 +1294,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddSheet("Styled");
             sheet.Cell(1, 1).SetValue("Heading");
             sheet.Cell(1, 1).SetBold();
-            sheet.Cell(1, 1).SetFillColor("#4472C4");
+            sheet.Cell(1, 1).SetFillColor(global::OfficeIMO.OfficeColor.Parse("#4472C4"));
             sheet.Cell(1, 1).SetWrapText();
             sheet.Cell(2, 1).SetValue(date);
             sheet.Cell(3, 1).SetValue(12.34567D);
@@ -1619,7 +1619,7 @@ namespace OfficeIMO.Tests {
             sheet.PageSetup.SetMargins(OfficeLength.Inches(0.25D), OfficeLength.Inches(0.35D), OfficeLength.Inches(0.45D), OfficeLength.Inches(0.55D), OfficeLength.Inches(0.2D), OfficeLength.Inches(0.3D));
             sheet.PageSetup.FitToWidth = 1U; sheet.PageSetup.FitToHeight = 0U; sheet.PageSetup.Scale = 80U; sheet.PageSetup.PageOrder = ExcelPageOrder.OverThenDown; sheet.PageSetup.PaperSize = ExcelPaperSize.Letter;
             sheet.PageSetup.Orientation = OfficePageOrientation.Landscape;
-            sheet.SetTabColor("336699");
+            sheet.SetTabColor(global::OfficeIMO.OfficeColor.Parse("336699"));
             sheet.SetOutlineSummary(summaryBelow: false, summaryRight: true);
             SheetProperties properties = Assert.IsType<SheetProperties>(
                 sheet.WorksheetPart.Worksheet.GetFirstChild<SheetProperties>());

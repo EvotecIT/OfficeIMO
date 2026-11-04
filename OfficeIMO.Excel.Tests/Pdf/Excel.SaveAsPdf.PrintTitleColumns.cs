@@ -98,7 +98,7 @@ public partial class Excel {
         ExcelSheet sheet = document.AddSheet("Report");
         sheet.Cell(1, 1).SetValue("Merged title");
         sheet.Range("A1:B1").Merge();
-        sheet.Cell(1, 1).SetBold().SetFillColor("DDEEFF").SetFontColor("112233");
+        sheet.Cell(1, 1).SetBold().SetFillColor(global::OfficeIMO.OfficeColor.Parse("DDEEFF")).SetColor(global::OfficeIMO.OfficeColor.Parse("112233"));
         sheet.Cell(1, 3).SetValue("First page"); sheet.Cell(1, 5).SetValue("Second page");
         sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(10)); sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(20));
         sheet.PageSetup.SetPrintTitles(firstRow: null, lastRow: null, firstColumn: 1, lastColumn: 2);

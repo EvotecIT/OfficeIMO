@@ -14,9 +14,9 @@ public class WordRtfCharacterFormattingTests {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph();
         paragraph.AddText("2");
-        paragraph.AddText("nd").SetSuperScript();
+        paragraph.AddText("nd").SetSuperscript();
         paragraph.AddText(" H");
-        paragraph.AddText("2").SetSubScript();
+        paragraph.AddText("2").SetSubscript();
         paragraph.AddText("O");
 
         RtfDocument rtfDocument = word.ToRtf();
@@ -58,7 +58,7 @@ public class WordRtfCharacterFormattingTests {
     public void Word_Rtf_Bridge_Carries_Double_Strike_And_Caps_Effects() {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph();
-        paragraph.AddText("Double").SetDoubleStrike();
+        paragraph.AddText("Double").SetDoubleStrikethrough();
         paragraph.AddText("Caps").SetCapsStyle(WordCapsStyle.Caps);
         paragraph.AddText("Small").SetSmallCaps();
         paragraph.AddText("Plain");
@@ -68,34 +68,34 @@ public class WordRtfCharacterFormattingTests {
         using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWord();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
-        Assert.Contains(rtfParagraph.Runs, run => run.Text == "Double" && run.DoubleStrike);
+        Assert.Contains(rtfParagraph.Runs, run => run.Text == "Double" && run.DoubleStrikethrough);
         Assert.Contains(rtfParagraph.Runs, run => run.Text == "Caps" && run.CapsStyle == RtfCapsStyle.Caps);
         Assert.Contains(rtfParagraph.Runs, run => run.Text == "Small" && run.CapsStyle == RtfCapsStyle.SmallCaps);
-        Assert.Contains(rtfParagraph.Runs, run => run.Text == "Plain" && !run.DoubleStrike && run.CapsStyle == RtfCapsStyle.None);
+        Assert.Contains(rtfParagraph.Runs, run => run.Text == "Plain" && !run.DoubleStrikethrough && run.CapsStyle == RtfCapsStyle.None);
         Assert.Contains(@"\striked Double\striked0", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\caps Caps\caps0", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\scaps Small\scaps0", rtf, StringComparison.Ordinal);
-        Assert.Contains(roundTrip.Paragraphs, run => run.Text == "Double" && run.DoubleStrike);
+        Assert.Contains(roundTrip.Paragraphs, run => run.Text == "Double" && run.DoubleStrikethrough);
         Assert.Contains(roundTrip.Paragraphs, run => run.Text == "Caps" && run.CapsStyle == WordCapsStyle.Caps);
         Assert.Contains(roundTrip.Paragraphs, run => run.Text == "Small" && run.CapsStyle == WordCapsStyle.SmallCaps);
-        Assert.Contains(roundTrip.Paragraphs, run => run.Text == "Plain" && !run.DoubleStrike && run.CapsStyle == WordCapsStyle.None);
+        Assert.Contains(roundTrip.Paragraphs, run => run.Text == "Plain" && !run.DoubleStrikethrough && run.CapsStyle == WordCapsStyle.None);
     }
 
     [Fact]
     public void Rtf_To_Word_Bridge_Carries_Double_Strike_And_Caps_Effects() {
         RtfDocument rtfDocument = RtfDocument.Create();
         RtfParagraph paragraph = rtfDocument.AddParagraph();
-        paragraph.AddText("Double").SetDoubleStrike();
+        paragraph.AddText("Double").SetDoubleStrikethrough();
         paragraph.AddText("Caps").SetCapsStyle(RtfCapsStyle.Caps);
         paragraph.AddText("Small").SetCapsStyle(RtfCapsStyle.SmallCaps);
         paragraph.AddText("Plain");
 
         using WordDocument word = rtfDocument.ToWord();
 
-        Assert.Contains(word.Paragraphs, run => run.Text == "Double" && run.DoubleStrike);
+        Assert.Contains(word.Paragraphs, run => run.Text == "Double" && run.DoubleStrikethrough);
         Assert.Contains(word.Paragraphs, run => run.Text == "Caps" && run.CapsStyle == WordCapsStyle.Caps);
         Assert.Contains(word.Paragraphs, run => run.Text == "Small" && run.CapsStyle == WordCapsStyle.SmallCaps);
-        Assert.Contains(word.Paragraphs, run => run.Text == "Plain" && !run.DoubleStrike && run.CapsStyle == WordCapsStyle.None);
+        Assert.Contains(word.Paragraphs, run => run.Text == "Plain" && !run.DoubleStrikethrough && run.CapsStyle == WordCapsStyle.None);
     }
 
     [Fact]

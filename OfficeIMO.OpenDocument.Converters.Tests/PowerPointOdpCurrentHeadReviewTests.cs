@@ -644,9 +644,9 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
             .SetAttributeValue(OdfNamespaces.Table + "number-columns-repeated", columns);
         source.Package.MarkXmlDirty("content.xml");
         using PowerPointDocument converted = source.ConvertToPowerPointWithEvidence().Value;
-        Assert.Equal(columns, converted.Slides[0].Tables.Single().Columns);
+        Assert.Equal(columns, converted.Slides[0].Tables.Single().ColumnCount);
         using PowerPointDocument reopened = PowerPointDocument.Load(new MemoryStream(converted.ToBytes()));
-        Assert.Equal(columns, reopened.Slides[0].Tables.Single().Columns);
+        Assert.Equal(columns, reopened.Slides[0].Tables.Single().ColumnCount);
     }
 
     [Fact]

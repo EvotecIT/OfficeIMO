@@ -8,7 +8,7 @@ public sealed class PreservationWriterTests {
     [InlineData("testOneNoteFromOffice365.one")]
     [InlineData("testOneNoteFromOffice365-2.one")]
     public void PublicFixtureRetainsCurrentPageSemanticsAcrossReadEditWriteRead(string fixture) {
-        OneNoteSection source = OneNoteSectionReader.Read(FixturePath(fixture));
+        OneNoteSection source = OneNoteSection.Load(FixturePath(fixture));
         string[] titles = source.Pages.Select(page => page.Title).ToArray();
         string[] text = source.Pages.Select(ExtractText).ToArray();
         string[][] versions = source.Pages
@@ -19,8 +19,8 @@ public sealed class PreservationWriterTests {
             .ToArray();
         int opaqueCount = source.UnknownObjects.Count + source.Pages.Sum(page => page.UnknownObjects.Count);
 
-        byte[] rewritten = OneNoteSectionWriter.Write(source);
-        OneNoteSection roundTrip = OneNoteSectionReader.Read(new MemoryStream(rewritten));
+        byte[] rewritten = source.ToBytes();
+        OneNoteSection roundTrip = OneNoteSection.Load(new MemoryStream(rewritten));
 
         Assert.Equal(titles, roundTrip.Pages.Select(page => page.Title).ToArray());
         Assert.Equal(text, roundTrip.Pages.Select(ExtractText).ToArray());
@@ -89,21 +89,21 @@ public sealed class PreservationWriterTests {
         sectionSpace.Objects[sectionRootIndex] = new OneNoteWriteObject(sectionRoot.Id, sectionRoot.Jcid, rootProperties);
 
         byte[] native = OneNoteRevisionStoreWriter.Write(graph);
-        OneNoteSection loaded = OneNoteSectionReader.Read(new MemoryStream(native));
+        OneNoteSection loaded = OneNoteSection.Load(new MemoryStream(native));
         Assert.Equal(new[] { "Page 0", "Page 1", "Page 2" }, loaded.Pages.Select(page => page.Title));
         Assert.Equal("Page 1 previous", Assert.Single(loaded.Pages[1].VersionHistory).Title);
 
-        byte[] rewritten = OneNoteSectionWriter.Write(loaded);
-        OneNoteSection roundTrip = OneNoteSectionReader.Read(new MemoryStream(rewritten));
+        byte[] rewritten = loaded.ToBytes();
+        OneNoteSection roundTrip = OneNoteSection.Load(new MemoryStream(rewritten));
 
         Assert.Equal(new[] { "Page 0", "Page 1", "Page 2" }, roundTrip.Pages.Select(page => page.Title));
         Assert.Equal("Page 1 previous", Assert.Single(roundTrip.Pages[1].VersionHistory).Title);
         AssertNativeSeriesLayout(rewritten, new[] { 3 });
 
-        OneNoteSection edited = OneNoteSectionReader.Read(new MemoryStream(native));
+        OneNoteSection edited = OneNoteSection.Load(new MemoryStream(native));
         edited.Pages.Insert(1, new OneNotePage { Title = "Inserted" });
-        byte[] editedBytes = OneNoteSectionWriter.Write(edited);
-        OneNoteSection editedRoundTrip = OneNoteSectionReader.Read(new MemoryStream(editedBytes));
+        byte[] editedBytes = edited.ToBytes();
+        OneNoteSection editedRoundTrip = OneNoteSection.Load(new MemoryStream(editedBytes));
         Assert.Equal(
             new[] { "Page 0", "Inserted", "Page 1", "Page 2" },
             editedRoundTrip.Pages.Select(page => page.Title));
@@ -111,7 +111,7 @@ public sealed class PreservationWriterTests {
         AssertNativeSeriesLayout(editedBytes, new[] { 1, 1, 2 });
 
         var notebook = new OneNoteNotebook { Name = "Shared series package" };
-        notebook.Sections.Add(OneNoteSectionReader.Read(new MemoryStream(native)));
+        notebook.Sections.Add(OneNoteSection.Load(new MemoryStream(native)));
         OneNoteNotebook packageRoundTrip = OneNotePackageReader.Read(
             new MemoryStream(OneNotePackageWriter.Write(notebook)),
             "shared-series.onepkg");
@@ -128,8 +128,8 @@ public sealed class PreservationWriterTests {
         current.VersionHistory.Add(new OneNotePage { Title = "Version without flag" });
         section.Pages.Add(current);
 
-        OneNoteSection roundTrip = OneNoteSectionReader.Read(
-            new MemoryStream(OneNoteSectionWriter.Write(section)));
+        OneNoteSection roundTrip = OneNoteSection.Load(
+            new MemoryStream(section.ToBytes()));
 
         OneNotePage page = Assert.Single(roundTrip.Pages);
         Assert.True(Assert.Single(page.ConflictPages).IsConflictPage);
@@ -194,7 +194,7 @@ public sealed class PreservationWriterTests {
             0x000600FE,
             new[] { new OneNoteWriteProperty(Raw(OneNotePropertyType.UInt32, 0x003F0102), scalar: 42, preserveRawId: true) }));
 
-        OneNoteSection loaded = OneNoteSectionReader.Read(new MemoryStream(OneNoteRevisionStoreWriter.Write(graph)));
+        OneNoteSection loaded = OneNoteSection.Load(new MemoryStream(OneNoteRevisionStoreWriter.Write(graph)));
         OneNotePage loadedPage = Assert.Single(loaded.Pages);
         OneNoteOutline loadedOutline = Assert.Single(loadedPage.Outlines);
         Assert.Single(loadedOutline.Children.OfType<OneNoteParagraph>());
@@ -202,7 +202,7 @@ public sealed class PreservationWriterTests {
 
         loadedOutline.Children.Clear();
         loadedPage.Title = "Edited while preserving opaque data";
-        byte[] rewritten = OneNoteSectionWriter.Write(loaded);
+        byte[] rewritten = loaded.ToBytes();
 
         OneNoteRevisionStore store = OneNoteRevisionStoreReader.Read(new MemoryStream(rewritten));
         var materializer = new OneNoteObjectSpaceMaterializer(store);
@@ -215,7 +215,7 @@ public sealed class PreservationWriterTests {
         Assert.Equal(unknownId, Assert.Single(OneNoteSemanticMapper.GetReferences(rewrittenOutline, OneNoteSchema.ElementChildNodes)));
         Assert.Contains(rewrittenPageSpace.Objects, item => item.Id.Equals(unknownId) && item.Jcid.Value == 0x000600FE);
 
-        OneNoteSection roundTrip = OneNoteSectionReader.Read(new MemoryStream(rewritten));
+        OneNoteSection roundTrip = OneNoteSection.Load(new MemoryStream(rewritten));
         Assert.Equal("Edited while preserving opaque data", Assert.Single(roundTrip.Pages).Title);
         Assert.Empty(Assert.Single(Assert.Single(roundTrip.Pages).Outlines).Children);
         Assert.Contains(Assert.Single(roundTrip.Pages).UnknownObjects, item => unknownId.Equals(item.Id));
@@ -257,7 +257,7 @@ public sealed class PreservationWriterTests {
     private static string FixturePath(string fileName) => Path.Combine(AppContext.BaseDirectory, "Fixtures", fileName);
 
     private static void AssertNativeSeriesLayout(byte[] data, int[] expectedRunLengths) {
-        OneNoteSection section = OneNoteSectionReader.Read(new MemoryStream(data));
+        OneNoteSection section = OneNoteSection.Load(new MemoryStream(data));
         OneNoteSectionPreservationState preservation = Assert.IsType<OneNoteSectionPreservationState>(section.PreservationState);
         OneNoteMaterializedObjectSpace sectionSpace = preservation.SectionSpace;
         OneNoteRevisionStoreObject sectionRoot = Assert.IsType<OneNoteRevisionStoreObject>(sectionSpace.GetRoot(1));

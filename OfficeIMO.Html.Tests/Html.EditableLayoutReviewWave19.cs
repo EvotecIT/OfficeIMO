@@ -43,7 +43,7 @@ public sealed class HtmlEditableLayoutReviewWave19Tests {
         using PowerPointDocument presentation = result.Value;
         PowerPointSlide slide = Assert.Single(presentation.Slides);
         PowerPointAutoShape backingFill = Assert.Single(slide.Shapes.OfType<PowerPointAutoShape>(),
-            shape => shape.FillColor == "123456");
+            shape => shape.FillColor == OfficeColor.Parse("123456"));
         PowerPointImage picture = Assert.Single(slide.Images);
         PowerPointTextBox textBox = Assert.Single(slide.TextBoxes, box => box.Text == "Layered");
         List<PowerPointShape> shapes = slide.Shapes.ToList();

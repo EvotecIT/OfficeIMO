@@ -281,8 +281,8 @@ public sealed class HtmlEditableLayoutPowerPointTests {
         Assert.InRange(positioned.Top.ToPoints(), 53.9D, 54.1D);
         Assert.InRange(positioned.Width.ToPoints(), 179.9D, 180.1D);
         Assert.Equal(100, positioned.FillTransparency);
-        Assert.Contains(slide.Shapes.OfType<PowerPointAutoShape>(), shape => shape.FillColor == "DBEAFE");
-        Assert.Equal("FEF3C7", grid.FillColor);
+        Assert.Contains(slide.Shapes.OfType<PowerPointAutoShape>(), shape => shape.FillColor == OfficeColor.Parse("DBEAFE"));
+        Assert.Equal("FEF3C7", grid.FillColor?.ToRgbHex());
         Assert.False(Overlaps(positioned, grid));
         Assert.Contains(slide.Images, picture => picture.FillTransparency == 60);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>

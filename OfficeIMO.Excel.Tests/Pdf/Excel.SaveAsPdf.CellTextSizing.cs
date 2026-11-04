@@ -26,7 +26,7 @@ public partial class Excel {
         for (int row = 1; row <= 2; row++) {
             for (int column = 1; column <= 3; column++) {
                 sheet.Cell(row, column).SetFontSize(global::OfficeIMO.OfficeLength.Points(11));
-                sheet.Cell(row, column).SetFontName("Arial");
+                sheet.Cell(row, column).SetFontFamily("Arial");
             }
         }
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new ExcelPdfExportOptions {

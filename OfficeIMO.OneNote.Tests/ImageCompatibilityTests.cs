@@ -25,7 +25,7 @@ public sealed class ImageCompatibilityTests {
             new OneNoteWriteProperty(OneNoteSchema.WebPictureContainer14, references: new[] { webId })
         }));
 
-        OneNoteSection loaded = OneNoteSectionReader.Read(new MemoryStream(OneNoteRevisionStoreWriter.Write(graph)));
+        OneNoteSection loaded = OneNoteSection.Load(new MemoryStream(OneNoteRevisionStoreWriter.Write(graph)));
         OneNoteImage image = GetImage(loaded);
 
         Assert.Equal(webPayload, image.Payload!.ToArray(16));
@@ -33,12 +33,12 @@ public sealed class ImageCompatibilityTests {
         Assert.Equal(webId, image.WebPictureContainerObjectId);
         Assert.True(image.PayloadUsesWebPictureContainer);
 
-        byte[] rewritten = OneNoteSectionWriter.Write(loaded);
+        byte[] rewritten = loaded.ToBytes();
         AssertPreservedReferences(rewritten, primaryId, webId, webPayload);
-        Assert.Equal(webPayload, GetImage(OneNoteSectionReader.Read(new MemoryStream(rewritten))).Payload!.ToArray(16));
+        Assert.Equal(webPayload, GetImage(OneNoteSection.Load(new MemoryStream(rewritten))).Payload!.ToArray(16));
 
-        byte[] canonical = OneNoteSectionWriter.Write(loaded, new OneNoteWriterOptions { PreserveUnknownData = false });
-        OneNoteImage canonicalImage = GetImage(OneNoteSectionReader.Read(new MemoryStream(canonical)));
+        byte[] canonical = loaded.ToBytes(new OneNoteSaveOptions { PreserveUnknownData = false });
+        OneNoteImage canonicalImage = GetImage(OneNoteSection.Load(new MemoryStream(canonical)));
         Assert.Equal(webPayload, canonicalImage.Payload!.ToArray(16));
         Assert.False(canonicalImage.PayloadUsesWebPictureContainer);
     }
@@ -51,18 +51,18 @@ public sealed class ImageCompatibilityTests {
         OneNoteExtendedGuid primaryId = Assert.Single(Property(imageObject, OneNoteSchema.PictureContainer).References);
         MakePayloadUnresolved(pageSpace, primaryId);
 
-        OneNoteSection loaded = OneNoteSectionReader.Read(new MemoryStream(OneNoteRevisionStoreWriter.Write(graph)));
+        OneNoteSection loaded = OneNoteSection.Load(new MemoryStream(OneNoteRevisionStoreWriter.Write(graph)));
         OneNoteImage image = GetImage(loaded);
 
         Assert.Null(image.Payload);
         Assert.Equal(primaryId, image.PictureContainerObjectId);
 
-        byte[] rewritten = OneNoteSectionWriter.Write(loaded);
-        OneNoteSection roundTrip = OneNoteSectionReader.Read(new MemoryStream(rewritten));
+        byte[] rewritten = loaded.ToBytes();
+        OneNoteSection roundTrip = OneNoteSection.Load(new MemoryStream(rewritten));
         Assert.Null(GetImage(roundTrip).Payload);
 
         OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
-            OneNoteSectionWriter.Write(loaded, new OneNoteWriterOptions { PreserveUnknownData = false }));
+            loaded.ToBytes(new OneNoteSaveOptions { PreserveUnknownData = false }));
         Assert.Equal("ONENOTE_WRITE_MISSING_PAYLOAD", exception.Code);
     }
 
@@ -75,17 +75,17 @@ public sealed class ImageCompatibilityTests {
         OneNoteWriteObject payload = Assert.Single(pageSpace.Objects, item => item.Id.Equals(primaryId));
         Assert.True(pageSpace.Objects.Remove(payload));
 
-        OneNoteSection loaded = OneNoteSectionReader.Read(new MemoryStream(OneNoteRevisionStoreWriter.Write(graph)));
+        OneNoteSection loaded = OneNoteSection.Load(new MemoryStream(OneNoteRevisionStoreWriter.Write(graph)));
         OneNoteImage image = GetImage(loaded);
 
         Assert.Null(image.Payload);
         Assert.Equal(primaryId, image.PictureContainerObjectId);
 
-        byte[] rewritten = OneNoteSectionWriter.Write(loaded);
+        byte[] rewritten = loaded.ToBytes();
         Assert.Equal(primaryId, PictureReference(rewritten));
 
         OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
-            OneNoteSectionWriter.Write(loaded, new OneNoteWriterOptions { PreserveUnknownData = false }));
+            loaded.ToBytes(new OneNoteSaveOptions { PreserveUnknownData = false }));
         Assert.Equal("ONENOTE_WRITE_MISSING_PAYLOAD", exception.Code);
     }
 

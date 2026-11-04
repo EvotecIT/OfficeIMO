@@ -15,11 +15,11 @@ namespace OfficeIMO.Tests
                 using var document = ExcelDocument.Create(path);
                 ExcelSheet sheet = document.AddSheet("Data");
                 sheet.Cell(1, 1).SetRichText(new[] {
-                    new ExcelRichTextRun("Bold") { Bold = true, FontColor = "FF112233" },
+                    new ExcelRichTextRun("Bold") { Bold = true, Color = global::OfficeIMO.OfficeColor.FromRgba(0x11, 0x22, 0x33, 0xFF) },
                     new ExcelRichTextRun(" plain"),
                 });
                 sheet.Cell(2, 1).SetValue(12);
-                sheet.Range("A2:A5").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "10", fillColor: "FFC6EFCE");
+                sheet.Range("A2:A5").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "10", fillColor: global::OfficeIMO.OfficeColor.FromRgba(0xC6, 0xEF, 0xCE, 0xFF));
                 sheet.GroupRows(2, 5, outlineLevel: 1);
 
                 GoogleSheetsBatch batch = new GoogleSheetsExporter().BuildBatch(document);
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests
                 using (var document = ExcelDocument.Create(path)) {
                     ExcelSheet sheet = document.AddSheet("Data");
                     sheet.Cell(2, 1).SetValue(12);
-                    sheet.Range("A2:A5").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "10", fillColor: "FFC6EFCE");
+                    sheet.Range("A2:A5").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "10", fillColor: global::OfficeIMO.OfficeColor.FromRgba(0xC6, 0xEF, 0xCE, 0xFF));
                     document.Save();
                 }
 

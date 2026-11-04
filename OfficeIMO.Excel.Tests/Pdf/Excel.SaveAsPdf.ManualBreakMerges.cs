@@ -72,8 +72,8 @@ public partial class Excel {
         for (int column = 1; column <= 4; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(15));
         sheet.Cell(1, 1).SetValue(0); sheet.Cell(2, 2).SetValue(50); sheet.Cell(4, 4).SetValue(100);
         sheet.Range("B2:C3").Merge();
-        if (bar) sheet.Range("A1:D4").ConditionalFormat().DataBar("FF5B9BD5");
-        else sheet.Range("A1:D4").ConditionalFormat().ColorScale("FFFF0000", "FF00FF00");
+        if (bar) sheet.Range("A1:D4").ConditionalFormat().DataBar(global::OfficeIMO.OfficeColor.FromRgba(0x5B, 0x9B, 0xD5, 0xFF));
+        else sheet.Range("A1:D4").ConditionalFormat().ColorScale(global::OfficeIMO.OfficeColor.FromRgba(0xFF, 0x00, 0x00, 0xFF), global::OfficeIMO.OfficeColor.FromRgba(0x00, 0xFF, 0x00, 0xFF));
         sheet.PageSetup.PrintArea = "A1:D4";
         sheet.AddManualRowPageBreak(2); sheet.AddManualColumnPageBreak(2);
         byte[] bytes = document.ToPdf(new ExcelPdfExportOptions {
@@ -98,7 +98,7 @@ public partial class Excel {
         for (int column = 1; column <= 4; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(15));
         sheet.Cell(1, 1).SetValue("Start"); sheet.Cell(2, 2).SetValue("End");
         sheet.Range("B2:C3").Merge();
-        sheet.Cell(2, 2).SetDiagonalBorder(ExcelBorderStyle.Thin, "B91C1C", diagonalUp: true, diagonalDown: true);
+        sheet.Cell(2, 2).SetDiagonalBorder(ExcelBorderStyle.Thin, global::OfficeIMO.OfficeColor.Parse("B91C1C"), diagonalUp: true, diagonalDown: true);
         sheet.PageSetup.PrintArea = "A1:D4";
         sheet.AddManualRowPageBreak(2); sheet.AddManualColumnPageBreak(2);
         byte[] bytes = document.ToPdf(new ExcelPdfExportOptions {
@@ -123,7 +123,7 @@ public partial class Excel {
         sheet.Cell(2, 1).SetValue("WrapOne\nWrapTwo\nWrapThree\nWrapFour");
         sheet.Cell(2, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
         sheet.Cell(2, 1).SetVerticalAlignment(ExcelVerticalAlignment.Center);
-        sheet.Cell(2, 1).SetFontName("Arial"); sheet.Cell(2, 1).SetFontSize(global::OfficeIMO.OfficeLength.Points(11)); sheet.Cell(2, 1).SetWrapText();
+        sheet.Cell(2, 1).SetFontFamily("Arial"); sheet.Cell(2, 1).SetFontSize(global::OfficeIMO.OfficeLength.Points(11)); sheet.Cell(2, 1).SetWrapText();
         sheet.PageSetup.PrintArea = "A1:D4"; sheet.AddManualRowPageBreak(2);
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0, WorksheetLayout = layout,

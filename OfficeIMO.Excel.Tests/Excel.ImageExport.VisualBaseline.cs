@@ -819,7 +819,7 @@ namespace OfficeIMO.Tests
 
             sheet.Cell(1, 1).SetValue("Operations Snapshot");
             sheet.Range("A1:H1").Merge();
-            sheet.Range("A1:H1").SetFillColor("1F4E79").SetFontColor("FFFFFF").SetBold();
+            sheet.Range("A1:H1").SetFillColor(global::OfficeIMO.OfficeColor.Parse("1F4E79")).SetColor(global::OfficeIMO.OfficeColor.Parse("FFFFFF")).SetBold();
             sheet.Cell(1, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
             sheet.Cell(1, 1).SetVerticalAlignment(ExcelVerticalAlignment.Center);
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(26)));
@@ -828,13 +828,13 @@ namespace OfficeIMO.Tests
             sheet.Cell(2, 2).SetValue("Score");
             sheet.Cell(2, 3).SetValue("Status");
             sheet.Cell(2, 4).SetValue("Narrative");
-            sheet.Range("A2:D2").SetFillColor("D9EAF7").SetFontColor("1F2937").SetBold();
+            sheet.Range("A2:D2").SetFillColor(global::OfficeIMO.OfficeColor.Parse("D9EAF7")).SetColor(global::OfficeIMO.OfficeColor.Parse("1F2937")).SetBold();
 
             sheet.Cell(3, 1).SetValue("North");
             sheet.Cell(3, 2).SetValue(0.94);
             sheet.Cell(3, 2).SetNumberFormat("0%");
             sheet.Cell(3, 3).SetValue("Ready");
-            sheet.Cell(3, 3).SetFillColor("E7F6E7").SetFontColor("226B22");
+            sheet.Cell(3, 3).SetFillColor(global::OfficeIMO.OfficeColor.Parse("E7F6E7")).SetColor(global::OfficeIMO.OfficeColor.Parse("226B22"));
             sheet.Cell(3, 4).SetValue("Wrapped cell text stays centered and readable");
             sheet.Range(3, 4, 3, 4).SetWrapText();
             sheet.Cell(3, 4).SetVerticalAlignment(ExcelVerticalAlignment.Center);
@@ -844,9 +844,9 @@ namespace OfficeIMO.Tests
             sheet.Cell(4, 2).SetValue(0.71);
             sheet.Cell(4, 2).SetNumberFormat("0%");
             sheet.Cell(4, 3).SetValue("Watch");
-            sheet.Cell(4, 3).SetFillColor("FFF4CC").SetFontColor("7A4D00");
+            sheet.Cell(4, 3).SetFillColor(global::OfficeIMO.OfficeColor.Parse("FFF4CC")).SetColor(global::OfficeIMO.OfficeColor.Parse("7A4D00"));
             sheet.Cell(4, 4).SetValue("Narrative stays bounded beside the chart");
-            sheet.Cell(4, 4).SetFontColor("666666");
+            sheet.Cell(4, 4).SetColor(global::OfficeIMO.OfficeColor.Parse("666666"));
             sheet.Range(4, 4, 4, 4).SetWrapText();
             sheet.Cell(4, 4).SetVerticalAlignment(ExcelVerticalAlignment.Center);
 
@@ -854,19 +854,19 @@ namespace OfficeIMO.Tests
             sheet.Cell(5, 2).SetValue(0.82);
             sheet.Cell(5, 2).SetNumberFormat("0%");
             sheet.Cell(5, 3).SetValue("Risk");
-            sheet.Cell(5, 3).SetFillColor("FCE4E4").SetFontColor("9C0006");
+            sheet.Cell(5, 3).SetFillColor(global::OfficeIMO.OfficeColor.Parse("FCE4E4")).SetColor(global::OfficeIMO.OfficeColor.Parse("9C0006"));
             sheet.Cell(5, 4).SetValue("Bottom aligned note");
             sheet.Cell(5, 4).SetVerticalAlignment(ExcelVerticalAlignment.Bottom);
             sheet.Cell(5, 4).SetHorizontalAlignment(ExcelHorizontalAlignment.Right);
             sheet.Cell(6, 4).SetRichText(
-                new ExcelRichTextRun("Rich") { Bold = true, FontColor = "0F766E", FontSize = global::OfficeIMO.OfficeLength.Points(13D) },
-                new ExcelRichTextRun(" text") { Italic = true, Underline = true, FontColor = "7C3AED", FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
-            sheet.Cell(6, 4).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
-            sheet.Cell(6, 4).SetFillColor("F8FAFC");
+                new ExcelRichTextRun("Rich") { Bold = true, Color = global::OfficeIMO.OfficeColor.Parse("0F766E"), FontSize = global::OfficeIMO.OfficeLength.Points(13D) },
+                new ExcelRichTextRun(" text") { Italic = true, Underline = true, Color = global::OfficeIMO.OfficeColor.Parse("7C3AED"), FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
+            sheet.Cell(6, 4).SetBorder(ExcelBorderStyle.Thin, global::OfficeIMO.OfficeColor.Parse("CBD5E1"));
+            sheet.Cell(6, 4).SetFillColor(global::OfficeIMO.OfficeColor.Parse("F8FAFC"));
             sheet.Cell(7, 4).SetValue("Review note");
-            sheet.Cell(7, 4).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
-            sheet.Cell(7, 4).SetFillColor("FFF7ED");
-            sheet.Cell(7, 4).SetFontColor("92400E");
+            sheet.Cell(7, 4).SetBorder(ExcelBorderStyle.Thin, global::OfficeIMO.OfficeColor.Parse("CBD5E1"));
+            sheet.Cell(7, 4).SetFillColor(global::OfficeIMO.OfficeColor.Parse("FFF7ED"));
+            sheet.Cell(7, 4).SetColor(global::OfficeIMO.OfficeColor.Parse("92400E"));
             sheet.Cell(7, 4).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
             sheet.Cell(7, 4).SetVerticalAlignment(ExcelVerticalAlignment.Center);
             sheet.SetComment("D7", "Ready for leadership review", "Reviewer");
@@ -887,7 +887,7 @@ namespace OfficeIMO.Tests
 
             for (int row = 2; row <= 5; row++) {
                 for (int column = 1; column <= 4; column++) {
-                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
+                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, global::OfficeIMO.OfficeColor.Parse("CBD5E1"));
                 }
             }
 
@@ -908,7 +908,7 @@ namespace OfficeIMO.Tests
 
             sheet.Cell(1, 1).SetValue("Comment Body Fidelity");
             sheet.Range("A1:G1").Merge();
-            sheet.Range("A1:G1").SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold();
+            sheet.Range("A1:G1").SetFillColor(global::OfficeIMO.OfficeColor.Parse("0F172A")).SetColor(global::OfficeIMO.OfficeColor.Parse("FFFFFF")).SetBold();
             sheet.Cell(1, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
             sheet.Cell(1, 1).SetVerticalAlignment(ExcelVerticalAlignment.Center);
 
@@ -916,23 +916,23 @@ namespace OfficeIMO.Tests
             sheet.Cell(2, 2).SetValue("Status");
             sheet.Cell(2, 3).SetValue("Owner");
             sheet.Cell(2, 4).SetValue("Note");
-            sheet.Range("A2:D2").SetFillColor("E2E8F0").SetFontColor("0F172A").SetBold();
+            sheet.Range("A2:D2").SetFillColor(global::OfficeIMO.OfficeColor.Parse("E2E8F0")).SetColor(global::OfficeIMO.OfficeColor.Parse("0F172A")).SetBold();
 
             sheet.Cell(3, 1).SetValue("North");
             sheet.Cell(3, 2).SetValue("Ready");
-            sheet.Cell(3, 2).SetFillColor("E7F6E7").SetFontColor("226B22");
+            sheet.Cell(3, 2).SetFillColor(global::OfficeIMO.OfficeColor.Parse("E7F6E7")).SetColor(global::OfficeIMO.OfficeColor.Parse("226B22"));
             sheet.Cell(3, 3).SetValue("Reviewer");
             sheet.Cell(3, 4).SetValue("Open");
             sheet.SetComment("D3", "Ready for leadership review.\nCallout stays readable without hiding the table.", "Reviewer");
 
             sheet.Cell(4, 1).SetValue("West");
             sheet.Cell(4, 2).SetValue("Watch");
-            sheet.Cell(4, 2).SetFillColor("FFF4CC").SetFontColor("7A4D00");
+            sheet.Cell(4, 2).SetFillColor(global::OfficeIMO.OfficeColor.Parse("FFF4CC")).SetColor(global::OfficeIMO.OfficeColor.Parse("7A4D00"));
             sheet.Cell(4, 3).SetValue("Planner");
 
             sheet.Cell(5, 1).SetValue("South");
             sheet.Cell(5, 2).SetValue("Risk");
-            sheet.Cell(5, 2).SetFillColor("FCE4E4").SetFontColor("9C0006");
+            sheet.Cell(5, 2).SetFillColor(global::OfficeIMO.OfficeColor.Parse("FCE4E4")).SetColor(global::OfficeIMO.OfficeColor.Parse("9C0006"));
             sheet.Cell(5, 3).SetValue("Owner");
 
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
@@ -946,13 +946,13 @@ namespace OfficeIMO.Tests
             for (int row = 2; row <= 7; row++) {
                 sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(row == 3 ? 32 : 28)));
                 for (int column = 1; column <= 7; column++) {
-                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
+                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, global::OfficeIMO.OfficeColor.Parse("CBD5E1"));
                     sheet.Cell(row, column).SetVerticalAlignment(ExcelVerticalAlignment.Center);
                 }
             }
 
-            sheet.Range("A3:D5").SetFillColor("F8FAFC");
-            sheet.Range("E2:G7").SetFillColor("FFFFFF");
+            sheet.Range("A3:D5").SetFillColor(global::OfficeIMO.OfficeColor.Parse("F8FAFC"));
+            sheet.Range("E2:G7").SetFillColor(global::OfficeIMO.OfficeColor.Parse("FFFFFF"));
             return new ExcelBaselineFixture(document, sheet);
         }
 
@@ -963,7 +963,7 @@ namespace OfficeIMO.Tests
 
             sheet.Cell(1, 1).SetValue("Rich Text Fidelity");
             sheet.Range("A1:B1").Merge();
-            sheet.Range("A1:B1").SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold();
+            sheet.Range("A1:B1").SetFillColor(global::OfficeIMO.OfficeColor.Parse("0F172A")).SetColor(global::OfficeIMO.OfficeColor.Parse("FFFFFF")).SetBold();
             sheet.Cell(1, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
             sheet.Cell(1, 1).SetVerticalAlignment(ExcelVerticalAlignment.Center);
 
@@ -971,37 +971,37 @@ namespace OfficeIMO.Tests
             for (int i = 0; i < labels.Length; i++) {
                 int row = i + 2;
                 sheet.Cell(row, 1).SetValue(labels[i]);
-                sheet.Cell(row, 1).SetFillColor("E2E8F0").SetFontColor("0F172A").SetBold();
+                sheet.Cell(row, 1).SetFillColor(global::OfficeIMO.OfficeColor.Parse("E2E8F0")).SetColor(global::OfficeIMO.OfficeColor.Parse("0F172A")).SetBold();
                 sheet.Cell(row, 1).SetVerticalAlignment(ExcelVerticalAlignment.Center);
-                sheet.Cell(row, 2).SetFillColor("F8FAFC").SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
+                sheet.Cell(row, 2).SetFillColor(global::OfficeIMO.OfficeColor.Parse("F8FAFC")).SetBorder(ExcelBorderStyle.Thin, global::OfficeIMO.OfficeColor.Parse("CBD5E1"));
                 sheet.Cell(row, 2).SetVerticalAlignment(ExcelVerticalAlignment.Center);
             }
 
-            sheet.Cell(2, 2).SetRichText(new ExcelRichTextRun("Single") { Bold = true, FontColor = "0F766E", FontSize = global::OfficeIMO.OfficeLength.Points(13D) }, new ExcelRichTextRun(" styled") { Italic = true, FontColor = "7C3AED", FontSize = global::OfficeIMO.OfficeLength.Points(12D) },new ExcelRichTextRun(" line") { Underline = true, FontColor = "2563EB", FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
+            sheet.Cell(2, 2).SetRichText(new ExcelRichTextRun("Single") { Bold = true, Color = global::OfficeIMO.OfficeColor.Parse("0F766E"), FontSize = global::OfficeIMO.OfficeLength.Points(13D) }, new ExcelRichTextRun(" styled") { Italic = true, Color = global::OfficeIMO.OfficeColor.Parse("7C3AED"), FontSize = global::OfficeIMO.OfficeLength.Points(12D) },new ExcelRichTextRun(" line") { Underline = true, Color = global::OfficeIMO.OfficeColor.Parse("2563EB"), FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
 
             sheet.Cell(3, 2).SetRichText(
-                new ExcelRichTextRun("Hard") { Bold = true, FontColor = "DC2626", FontSize = global::OfficeIMO.OfficeLength.Points(12D) },
-                new ExcelRichTextRun("\nbreak") { Italic = true, FontColor = "2563EB", FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
+                new ExcelRichTextRun("Hard") { Bold = true, Color = global::OfficeIMO.OfficeColor.Parse("DC2626"), FontSize = global::OfficeIMO.OfficeLength.Points(12D) },
+                new ExcelRichTextRun("\nbreak") { Italic = true, Color = global::OfficeIMO.OfficeColor.Parse("2563EB"), FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
 
-            sheet.Cell(4, 2).SetRichText(new ExcelRichTextRun("Wrapped ") { Bold = true, FontColor = "0F766E", FontSize = global::OfficeIMO.OfficeLength.Points(12D) }, new ExcelRichTextRun("rich text keeps") { Italic = true, FontColor = "7C3AED", FontSize = global::OfficeIMO.OfficeLength.Points(12D) },new ExcelRichTextRun(" runs") { Underline = true, FontColor = "2563EB", FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
+            sheet.Cell(4, 2).SetRichText(new ExcelRichTextRun("Wrapped ") { Bold = true, Color = global::OfficeIMO.OfficeColor.Parse("0F766E"), FontSize = global::OfficeIMO.OfficeLength.Points(12D) }, new ExcelRichTextRun("rich text keeps") { Italic = true, Color = global::OfficeIMO.OfficeColor.Parse("7C3AED"), FontSize = global::OfficeIMO.OfficeLength.Points(12D) },new ExcelRichTextRun(" runs") { Underline = true, Color = global::OfficeIMO.OfficeColor.Parse("2563EB"), FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
             sheet.Range(4, 2, 4, 2).SetWrapText();
 
             sheet.Cell(5, 2)
                 .SetShrinkToFit()
                 .SetRichText(
-                    new ExcelRichTextRun("Shrink") { Bold = true, FontColor = "0F766E", FontSize = global::OfficeIMO.OfficeLength.Points(16D) },
-                    new ExcelRichTextRun(" to fit") { Italic = true, FontColor = "7C3AED", FontSize = global::OfficeIMO.OfficeLength.Points(18D) });
+                    new ExcelRichTextRun("Shrink") { Bold = true, Color = global::OfficeIMO.OfficeColor.Parse("0F766E"), FontSize = global::OfficeIMO.OfficeLength.Points(16D) },
+                    new ExcelRichTextRun(" to fit") { Italic = true, Color = global::OfficeIMO.OfficeColor.Parse("7C3AED"), FontSize = global::OfficeIMO.OfficeLength.Points(18D) });
 
             sheet.Cell(6, 2).SetRichText(
-                new ExcelRichTextRun("Rich text stays bounded     hidden overflow") { Bold = true, FontColor = "DC2626", FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
+                new ExcelRichTextRun("Rich text stays bounded     hidden overflow") { Bold = true, Color = global::OfficeIMO.OfficeColor.Parse("DC2626"), FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
 
             sheet.Cell(7, 2)
                 .SetTextRotation(45)
-                .SetRichText(new ExcelRichTextRun("Tilt") { Bold = true, FontColor = "0F766E", FontSize = global::OfficeIMO.OfficeLength.Points(14D) }, new ExcelRichTextRun(" rich") { Italic = true, FontColor = "7C3AED", FontSize = global::OfficeIMO.OfficeLength.Points(13D) },new ExcelRichTextRun(" text") { Underline = true, FontColor = "2563EB", FontSize = global::OfficeIMO.OfficeLength.Points(13D) });
+                .SetRichText(new ExcelRichTextRun("Tilt") { Bold = true, Color = global::OfficeIMO.OfficeColor.Parse("0F766E"), FontSize = global::OfficeIMO.OfficeLength.Points(14D) }, new ExcelRichTextRun(" rich") { Italic = true, Color = global::OfficeIMO.OfficeColor.Parse("7C3AED"), FontSize = global::OfficeIMO.OfficeLength.Points(13D) },new ExcelRichTextRun(" text") { Underline = true, Color = global::OfficeIMO.OfficeColor.Parse("2563EB"), FontSize = global::OfficeIMO.OfficeLength.Points(13D) });
 
             sheet.Cell(8, 2).SetRichText(
-                new ExcelRichTextRun("Large line") { Bold = true, FontColor = "0F766E", FontSize = global::OfficeIMO.OfficeLength.Points(18D) },
-                new ExcelRichTextRun("\ntiny line stays visible") { Italic = true, FontColor = "7C3AED", FontSize = global::OfficeIMO.OfficeLength.Points(8D) });
+                new ExcelRichTextRun("Large line") { Bold = true, Color = global::OfficeIMO.OfficeColor.Parse("0F766E"), FontSize = global::OfficeIMO.OfficeLength.Points(18D) },
+                new ExcelRichTextRun("\ntiny line stays visible") { Italic = true, Color = global::OfficeIMO.OfficeColor.Parse("7C3AED"), FontSize = global::OfficeIMO.OfficeLength.Points(8D) });
 
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
             sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(18));
@@ -1015,7 +1015,7 @@ namespace OfficeIMO.Tests
             sheet.SetRowHeight(8, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(36)));
             for (int row = 1; row <= 8; row++) {
                 for (int column = 1; column <= 2; column++) {
-                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
+                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, global::OfficeIMO.OfficeColor.Parse("CBD5E1"));
                 }
             }
 
@@ -1029,14 +1029,14 @@ namespace OfficeIMO.Tests
 
             sheet.Cell(1, 1).SetValue("Stacked Text Fidelity");
             sheet.Range("A1:D1").Merge();
-            sheet.Range("A1:D1").SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold();
+            sheet.Range("A1:D1").SetFillColor(global::OfficeIMO.OfficeColor.Parse("0F172A")).SetColor(global::OfficeIMO.OfficeColor.Parse("FFFFFF")).SetBold();
             sheet.Cell(1, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
             sheet.Cell(1, 1).SetVerticalAlignment(ExcelVerticalAlignment.Center);
 
             string[] headers = { "Case", "Status", "Narrow", "Marker" };
             for (int column = 1; column <= headers.Length; column++) {
                 sheet.Cell(2, column).SetValue(headers[column - 1]);
-                sheet.Cell(2, column).SetFillColor("E2E8F0").SetFontColor("0F172A").SetBold();
+                sheet.Cell(2, column).SetFillColor(global::OfficeIMO.OfficeColor.Parse("E2E8F0")).SetColor(global::OfficeIMO.OfficeColor.Parse("0F172A")).SetBold();
                 sheet.Cell(2, column).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
                 sheet.Cell(2, column).SetVerticalAlignment(ExcelVerticalAlignment.Center);
             }
@@ -1044,38 +1044,38 @@ namespace OfficeIMO.Tests
             sheet.Cell(3, 1).SetValue("Centered");
             sheet.Cell(4, 1).SetValue("Shrink");
             sheet.Cell(5, 1).SetValue("Mixed");
-            sheet.Range("A3:A5").SetFillColor("F8FAFC").SetFontColor("334155");
+            sheet.Range("A3:A5").SetFillColor(global::OfficeIMO.OfficeColor.Parse("F8FAFC")).SetColor(global::OfficeIMO.OfficeColor.Parse("334155"));
 
             sheet.Cell(3, 2).SetValue("STACK");
-            sheet.Cell(3, 2).SetTextRotation(255).SetFontColor("0F766E").SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(12));
+            sheet.Cell(3, 2).SetTextRotation(255).SetColor(global::OfficeIMO.OfficeColor.Parse("0F766E")).SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(12));
             sheet.Cell(3, 2).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
             sheet.Cell(3, 2).SetVerticalAlignment(ExcelVerticalAlignment.Center);
 
             sheet.Cell(3, 3).SetValue("EXPORT");
-            sheet.Cell(3, 3).SetTextRotation(255).SetFontColor("7C3AED").SetBold().SetShrinkToFit().SetFontSize(global::OfficeIMO.OfficeLength.Points(14));
+            sheet.Cell(3, 3).SetTextRotation(255).SetColor(global::OfficeIMO.OfficeColor.Parse("7C3AED")).SetBold().SetShrinkToFit().SetFontSize(global::OfficeIMO.OfficeLength.Points(14));
             sheet.Cell(3, 3).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
             sheet.Cell(3, 3).SetVerticalAlignment(ExcelVerticalAlignment.Center);
 
             sheet.Cell(3, 4).SetTextRotation(255).SetRichText(
-                new ExcelRichTextRun("R") { Bold = true, FontColor = "DC2626", FontSize = global::OfficeIMO.OfficeLength.Points(12D) },
-                new ExcelRichTextRun("E") { Italic = true, FontColor = "EA580C", FontSize = global::OfficeIMO.OfficeLength.Points(12D) },
-                new ExcelRichTextRun("A") { Underline = true, FontColor = "2563EB", FontSize = global::OfficeIMO.OfficeLength.Points(12D) },
-                new ExcelRichTextRun("D") { Bold = true, FontColor = "16A34A", FontSize = global::OfficeIMO.OfficeLength.Points(12D) },
-                new ExcelRichTextRun("Y") { FontColor = "7C3AED", FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
+                new ExcelRichTextRun("R") { Bold = true, Color = global::OfficeIMO.OfficeColor.Parse("DC2626"), FontSize = global::OfficeIMO.OfficeLength.Points(12D) },
+                new ExcelRichTextRun("E") { Italic = true, Color = global::OfficeIMO.OfficeColor.Parse("EA580C"), FontSize = global::OfficeIMO.OfficeLength.Points(12D) },
+                new ExcelRichTextRun("A") { Underline = true, Color = global::OfficeIMO.OfficeColor.Parse("2563EB"), FontSize = global::OfficeIMO.OfficeLength.Points(12D) },
+                new ExcelRichTextRun("D") { Bold = true, Color = global::OfficeIMO.OfficeColor.Parse("16A34A"), FontSize = global::OfficeIMO.OfficeLength.Points(12D) },
+                new ExcelRichTextRun("Y") { Color = global::OfficeIMO.OfficeColor.Parse("7C3AED"), FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
             sheet.Cell(3, 4).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
             sheet.Cell(3, 4).SetVerticalAlignment(ExcelVerticalAlignment.Center);
 
             sheet.Cell(4, 2).SetValue("PNG");
             sheet.Cell(4, 3).SetValue("SVG");
             sheet.Cell(4, 4).SetValue("Drawing-owned stacked layout");
-            sheet.Cell(4, 2).SetFontColor("0F766E").SetBold();
-            sheet.Cell(4, 3).SetFontColor("7C3AED").SetBold();
-            sheet.Cell(4, 4).SetFontColor("475569").SetShrinkToFit();
+            sheet.Cell(4, 2).SetColor(global::OfficeIMO.OfficeColor.Parse("0F766E")).SetBold();
+            sheet.Cell(4, 3).SetColor(global::OfficeIMO.OfficeColor.Parse("7C3AED")).SetBold();
+            sheet.Cell(4, 4).SetColor(global::OfficeIMO.OfficeColor.Parse("475569")).SetShrinkToFit();
 
             sheet.Cell(5, 2).SetValue("Shared layout");
             sheet.Cell(5, 3).SetValue("No old unsupported diagnostic");
             sheet.Cell(5, 4).SetValue("PNG/SVG baseline gate");
-            sheet.Range("B5:D5").SetFontColor("475569");
+            sheet.Range("B5:D5").SetColor(global::OfficeIMO.OfficeColor.Parse("475569"));
             sheet.Range(5, 3, 5, 3).SetWrapText();
 
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
@@ -1090,13 +1090,13 @@ namespace OfficeIMO.Tests
 
             for (int row = 1; row <= 5; row++) {
                 for (int column = 1; column <= 4; column++) {
-                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
+                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, global::OfficeIMO.OfficeColor.Parse("CBD5E1"));
                     sheet.Cell(row, column).SetVerticalAlignment(ExcelVerticalAlignment.Center);
                 }
             }
 
-            sheet.Range("B3:D3").SetFillColor("F8FAFC");
-            sheet.Range("B4:D5").SetFillColor("FFFFFF");
+            sheet.Range("B3:D3").SetFillColor(global::OfficeIMO.OfficeColor.Parse("F8FAFC"));
+            sheet.Range("B4:D5").SetFillColor(global::OfficeIMO.OfficeColor.Parse("FFFFFF"));
             return new ExcelBaselineFixture(document, sheet);
         }
 
@@ -1107,14 +1107,14 @@ namespace OfficeIMO.Tests
 
             sheet.Cell(1, 1).SetValue("Pattern Fill Fidelity");
             sheet.Range("A1:D1").Merge();
-            sheet.Range("A1:D1").SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold();
+            sheet.Range("A1:D1").SetFillColor(global::OfficeIMO.OfficeColor.Parse("0F172A")).SetColor(global::OfficeIMO.OfficeColor.Parse("FFFFFF")).SetBold();
             sheet.Cell(1, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
             sheet.Cell(1, 1).SetVerticalAlignment(ExcelVerticalAlignment.Center);
 
             string[] headers = { "Axis", "Red", "Blue", "Green" };
             for (int column = 1; column <= headers.Length; column++) {
                 sheet.Cell(2, column).SetValue(headers[column - 1]);
-                sheet.Cell(2, column).SetFillColor("E2E8F0").SetFontColor("0F172A").SetBold();
+                sheet.Cell(2, column).SetFillColor(global::OfficeIMO.OfficeColor.Parse("E2E8F0")).SetColor(global::OfficeIMO.OfficeColor.Parse("0F172A")).SetBold();
                 sheet.Cell(2, column).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
             }
 
@@ -1147,7 +1147,7 @@ namespace OfficeIMO.Tests
             for (int row = 2; row <= 5; row++) {
                 sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(32)));
                 for (int column = 1; column <= 4; column++) {
-                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
+                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, global::OfficeIMO.OfficeColor.Parse("CBD5E1"));
                     sheet.Cell(row, column).SetVerticalAlignment(ExcelVerticalAlignment.Center);
                     sheet.Cell(row, column).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
                 }
@@ -1163,7 +1163,7 @@ namespace OfficeIMO.Tests
 
             sheet.Cell(1, 1).SetValue("Conditional Signals");
             sheet.Range("A1:G1").Merge();
-            sheet.Range("A1:G1").SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold();
+            sheet.Range("A1:G1").SetFillColor(global::OfficeIMO.OfficeColor.Parse("0F172A")).SetColor(global::OfficeIMO.OfficeColor.Parse("FFFFFF")).SetBold();
             sheet.Cell(1, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
             sheet.Cell(1, 1).SetVerticalAlignment(ExcelVerticalAlignment.Center);
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(26)));
@@ -1171,7 +1171,7 @@ namespace OfficeIMO.Tests
             string[] headers = { "Service", "Heat", "Load", "Delta", "State", "Icons", "Rule" };
             for (int column = 1; column <= headers.Length; column++) {
                 sheet.Cell(2, column).SetValue(headers[column - 1]);
-                sheet.Cell(2, column).SetFillColor("E2E8F0").SetFontColor("1F2937").SetBold();
+                sheet.Cell(2, column).SetFillColor(global::OfficeIMO.OfficeColor.Parse("E2E8F0")).SetColor(global::OfficeIMO.OfficeColor.Parse("1F2937")).SetBold();
             }
 
             string[] services = { "Auth", "Mail", "Files", "Sync", "Edge" };
@@ -1189,7 +1189,7 @@ namespace OfficeIMO.Tests
                 sheet.Cell(row, 5).SetValue(states[i]);
                 sheet.Cell(row, 6).SetValue(i + 1);
                 sheet.Cell(row, 7).SetValue(ruleValues[i]);
-                sheet.Cell(row, 5).SetFillColor(i >= 3 ? "FEE2E2" : "F8FAFC");
+                sheet.Cell(row, 5).SetFillColor(global::OfficeIMO.OfficeColor.Parse(i >= 3 ? "FEE2E2" : "F8FAFC"));
             }
 
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
@@ -1202,7 +1202,7 @@ namespace OfficeIMO.Tests
             for (int row = 2; row <= 7; row++) {
                 sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
                 for (int column = 1; column <= 7; column++) {
-                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
+                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, global::OfficeIMO.OfficeColor.Parse("CBD5E1"));
                     sheet.Cell(row, column).SetVerticalAlignment(ExcelVerticalAlignment.Center);
                 }
             }
@@ -1224,7 +1224,7 @@ namespace OfficeIMO.Tests
             sheet.Range("C3:C7").ConditionalFormat().DataBar(OfficeColor.FromRgb(99, 179, 237));
             sheet.Range("D3:D7").ConditionalFormat().DataBar(OfficeColor.FromRgb(124, 58, 237));
             sheet.Range("F3:F7").ConditionalFormat().IconSet();
-            sheet.Range("G3:G7").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "15", fillColor: "C6EFCE");
+            sheet.Range("G3:G7").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "15", fillColor: global::OfficeIMO.OfficeColor.Parse("C6EFCE"));
             return new ExcelBaselineFixture(document, sheet);
         }
 
@@ -1235,7 +1235,7 @@ namespace OfficeIMO.Tests
 
             sheet.Cell(1, 1).SetValue("Expanded Icon Sets");
             sheet.Range("A1:G1").Merge();
-            sheet.Range("A1:E1").SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold();
+            sheet.Range("A1:E1").SetFillColor(global::OfficeIMO.OfficeColor.Parse("0F172A")).SetColor(global::OfficeIMO.OfficeColor.Parse("FFFFFF")).SetBold();
             sheet.Cell(1, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
             sheet.Cell(1, 1).SetVerticalAlignment(ExcelVerticalAlignment.Center);
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(26)));
@@ -1243,7 +1243,7 @@ namespace OfficeIMO.Tests
             string[] headers = { "Tier", "Five arrows", "Arrow value", "Four traffic", "Traffic value", "Five rating", "Five quarters" };
             for (int column = 1; column <= headers.Length; column++) {
                 sheet.Cell(2, column).SetValue(headers[column - 1]);
-                sheet.Cell(2, column).SetFillColor("E2E8F0").SetFontColor("1F2937").SetBold();
+                sheet.Cell(2, column).SetFillColor(global::OfficeIMO.OfficeColor.Parse("E2E8F0")).SetColor(global::OfficeIMO.OfficeColor.Parse("1F2937")).SetBold();
                 sheet.Cell(2, column).SetVerticalAlignment(ExcelVerticalAlignment.Center);
             }
 
@@ -1266,7 +1266,7 @@ namespace OfficeIMO.Tests
             for (int row = 2; row <= 7; row++) {
                 sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
                 for (int column = 1; column <= 7; column++) {
-                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
+                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, global::OfficeIMO.OfficeColor.Parse("CBD5E1"));
                     sheet.Cell(row, column).SetVerticalAlignment(ExcelVerticalAlignment.Center);
                     sheet.Cell(row, column).SetHorizontalAlignment(column == 1 ? ExcelHorizontalAlignment.Left : ExcelHorizontalAlignment.Center);
                 }
@@ -1289,7 +1289,7 @@ namespace OfficeIMO.Tests
             sheet.Cell(1, 3).SetValue("Feb");
             sheet.Cell(1, 4).SetValue("Mar");
             sheet.Cell(1, 5).SetValue("Trend");
-            sheet.Range("A1:E1").SetFillColor("EAF2F8").SetFontColor("0F172A").SetBold();
+            sheet.Range("A1:E1").SetFillColor(global::OfficeIMO.OfficeColor.Parse("EAF2F8")).SetColor(global::OfficeIMO.OfficeColor.Parse("0F172A")).SetBold();
             sheet.Cell(1, 1).SetVerticalAlignment(ExcelVerticalAlignment.Center);
             sheet.Cell(1, 2).SetVerticalAlignment(ExcelVerticalAlignment.Center);
             sheet.Cell(1, 3).SetVerticalAlignment(ExcelVerticalAlignment.Center);
@@ -1320,7 +1320,7 @@ namespace OfficeIMO.Tests
             {
                 for (int column = 1; column <= 5; column++)
                 {
-                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, "E2E8F0");
+                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, global::OfficeIMO.OfficeColor.Parse("E2E8F0"));
                     sheet.Cell(row, column).SetVerticalAlignment(ExcelVerticalAlignment.Center);
                 }
             }
@@ -1346,12 +1346,12 @@ namespace OfficeIMO.Tests
             sheet.Cell(1, 1).SetValue("Outside Anchor");
             sheet.Cell(1, 2).SetValue("Selected Range");
             sheet.Range("B1:C1").Merge();
-            sheet.Range("B1:C1").SetFillColor("EAF2F8").SetFontColor("0F172A").SetBold();
+            sheet.Range("B1:C1").SetFillColor(global::OfficeIMO.OfficeColor.Parse("EAF2F8")).SetColor(global::OfficeIMO.OfficeColor.Parse("0F172A")).SetBold();
             sheet.Cell(1, 2).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
             sheet.Cell(1, 2).SetVerticalAlignment(ExcelVerticalAlignment.Center);
             sheet.Cell(2, 2).SetValue("Only the overlapping slice is exported");
             sheet.Cell(3, 2).SetValue("The image anchor remains in column A");
-            sheet.Range("B2:C3").SetFillColor("F8FAFC");
+            sheet.Range("B2:C3").SetFillColor(global::OfficeIMO.OfficeColor.Parse("F8FAFC"));
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(10));
             sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(16));
             sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(16));
@@ -1360,7 +1360,7 @@ namespace OfficeIMO.Tests
             sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(42)));
             for (int row = 1; row <= 3; row++) {
                 for (int column = 1; column <= 3; column++) {
-                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
+                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, global::OfficeIMO.OfficeColor.Parse("CBD5E1"));
                     sheet.Cell(row, column).SetVerticalAlignment(ExcelVerticalAlignment.Center);
                 }
             }
@@ -1381,12 +1381,12 @@ namespace OfficeIMO.Tests
 
             sheet.Cell(1, 1).SetValue("Two-cell image anchor");
             sheet.Range("A1:F1").Merge();
-            sheet.Range("A1:F1").SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold();
+            sheet.Range("A1:F1").SetFillColor(global::OfficeIMO.OfficeColor.Parse("0F172A")).SetColor(global::OfficeIMO.OfficeColor.Parse("FFFFFF")).SetBold();
             sheet.Cell(1, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
             sheet.Cell(1, 1).SetVerticalAlignment(ExcelVerticalAlignment.Center);
             sheet.Cell(5, 2).SetValue("Picture spans B2:E5 from marker geometry");
             sheet.Range("B5:E5").Merge();
-            sheet.Range("B5:E5").SetFillColor("F8FAFC").SetFontColor("334155");
+            sheet.Range("B5:E5").SetFillColor(global::OfficeIMO.OfficeColor.Parse("F8FAFC")).SetColor(global::OfficeIMO.OfficeColor.Parse("334155"));
             sheet.Cell(5, 2).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
 
             for (int column = 1; column <= 6; column++) {
@@ -1401,7 +1401,7 @@ namespace OfficeIMO.Tests
             sheet.SetRowHeight(6, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(22)));
             for (int row = 1; row <= 6; row++) {
                 for (int column = 1; column <= 6; column++) {
-                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
+                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, global::OfficeIMO.OfficeColor.Parse("CBD5E1"));
                     sheet.Cell(row, column).SetVerticalAlignment(ExcelVerticalAlignment.Center);
                 }
             }
@@ -1417,12 +1417,12 @@ namespace OfficeIMO.Tests
 
             sheet.Cell(1, 1).SetValue("Cropped worksheet image");
             sheet.Range("A1:E1").Merge();
-            sheet.Range("A1:E1").SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold();
+            sheet.Range("A1:E1").SetFillColor(global::OfficeIMO.OfficeColor.Parse("0F172A")).SetColor(global::OfficeIMO.OfficeColor.Parse("FFFFFF")).SetBold();
             sheet.Cell(1, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
             sheet.Cell(1, 1).SetVerticalAlignment(ExcelVerticalAlignment.Center);
             sheet.Cell(5, 1).SetValue("Source has red, blue, and green bands; srcRect crops to the blue center.");
             sheet.Range("A5:E5").Merge();
-            sheet.Range("A5:E5").SetFillColor("F8FAFC").SetFontColor("334155");
+            sheet.Range("A5:E5").SetFillColor(global::OfficeIMO.OfficeColor.Parse("F8FAFC")).SetColor(global::OfficeIMO.OfficeColor.Parse("334155"));
             sheet.Cell(5, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
 
             for (int column = 1; column <= 5; column++) {
@@ -1436,7 +1436,7 @@ namespace OfficeIMO.Tests
             sheet.SetRowHeight(5, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
             for (int row = 1; row <= 5; row++) {
                 for (int column = 1; column <= 5; column++) {
-                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
+                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, global::OfficeIMO.OfficeColor.Parse("CBD5E1"));
                     sheet.Cell(row, column).SetVerticalAlignment(ExcelVerticalAlignment.Center);
                 }
             }
@@ -1452,12 +1452,12 @@ namespace OfficeIMO.Tests
 
             sheet.Cell(1, 1).SetValue("Rotated worksheet image");
             sheet.Range("A1:E1").Merge();
-            sheet.Range("A1:E1").SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold();
+            sheet.Range("A1:E1").SetFillColor(global::OfficeIMO.OfficeColor.Parse("0F172A")).SetColor(global::OfficeIMO.OfficeColor.Parse("FFFFFF")).SetBold();
             sheet.Cell(1, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
             sheet.Cell(1, 1).SetVerticalAlignment(ExcelVerticalAlignment.Center);
             sheet.Cell(9, 1).SetValue("The picture keeps its Excel transform and rotates around its center.");
             sheet.Range("A9:E9").Merge();
-            sheet.Range("A9:E9").SetFillColor("F8FAFC").SetFontColor("334155");
+            sheet.Range("A9:E9").SetFillColor(global::OfficeIMO.OfficeColor.Parse("F8FAFC")).SetColor(global::OfficeIMO.OfficeColor.Parse("334155"));
             sheet.Cell(9, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
 
             for (int column = 1; column <= 5; column++) {
@@ -1475,7 +1475,7 @@ namespace OfficeIMO.Tests
             sheet.SetRowHeight(9, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
             for (int row = 1; row <= 9; row++) {
                 for (int column = 1; column <= 5; column++) {
-                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
+                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, global::OfficeIMO.OfficeColor.Parse("CBD5E1"));
                     sheet.Cell(row, column).SetVerticalAlignment(ExcelVerticalAlignment.Center);
                 }
             }
@@ -1491,12 +1491,12 @@ namespace OfficeIMO.Tests
 
             sheet.Cell(1, 1).SetValue("Cropped, flipped, rotated worksheet image");
             sheet.Range("A1:E1").Merge();
-            sheet.Range("A1:E1").SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold();
+            sheet.Range("A1:E1").SetFillColor(global::OfficeIMO.OfficeColor.Parse("0F172A")).SetColor(global::OfficeIMO.OfficeColor.Parse("FFFFFF")).SetBold();
             sheet.Cell(1, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
             sheet.Cell(1, 1).SetVerticalAlignment(ExcelVerticalAlignment.Center);
             sheet.Cell(9, 1).SetValue("Source crop, horizontal flip, and rotation share one Drawing image projector.");
             sheet.Range("A9:E9").Merge();
-            sheet.Range("A9:E9").SetFillColor("F8FAFC").SetFontColor("334155");
+            sheet.Range("A9:E9").SetFillColor(global::OfficeIMO.OfficeColor.Parse("F8FAFC")).SetColor(global::OfficeIMO.OfficeColor.Parse("334155"));
             sheet.Cell(9, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
 
             for (int column = 1; column <= 5; column++) {
@@ -1511,7 +1511,7 @@ namespace OfficeIMO.Tests
             sheet.SetRowHeight(9, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
             for (int row = 1; row <= 9; row++) {
                 for (int column = 1; column <= 5; column++) {
-                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
+                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, global::OfficeIMO.OfficeColor.Parse("CBD5E1"));
                     sheet.Cell(row, column).SetVerticalAlignment(ExcelVerticalAlignment.Center);
                 }
             }
@@ -1527,12 +1527,12 @@ namespace OfficeIMO.Tests
 
             sheet.Cell(1, 1).SetValue("Worksheet drawing object");
             sheet.Range("A1:F1").Merge();
-            sheet.Range("A1:F1").SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold();
+            sheet.Range("A1:F1").SetFillColor(global::OfficeIMO.OfficeColor.Parse("0F172A")).SetColor(global::OfficeIMO.OfficeColor.Parse("FFFFFF")).SetBold();
             sheet.Cell(1, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
             sheet.Cell(1, 1).SetVerticalAlignment(ExcelVerticalAlignment.Center);
             sheet.Cell(5, 2).SetValue("Simple text shapes render through OfficeIMO.Drawing.");
             sheet.Range("B5:E5").Merge();
-            sheet.Range("B5:E5").SetFillColor("F8FAFC").SetFontColor("334155");
+            sheet.Range("B5:E5").SetFillColor(global::OfficeIMO.OfficeColor.Parse("F8FAFC")).SetColor(global::OfficeIMO.OfficeColor.Parse("334155"));
             sheet.Cell(5, 2).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
 
             for (int column = 1; column <= 6; column++) {
@@ -1547,7 +1547,7 @@ namespace OfficeIMO.Tests
             sheet.SetRowHeight(6, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(22)));
             for (int row = 1; row <= 6; row++) {
                 for (int column = 1; column <= 6; column++) {
-                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
+                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, global::OfficeIMO.OfficeColor.Parse("CBD5E1"));
                     sheet.Cell(row, column).SetVerticalAlignment(ExcelVerticalAlignment.Center);
                 }
             }

@@ -71,7 +71,7 @@ namespace OfficeIMO.Tests {
             if (source == "DataSet") {
                 Assert.True(Assert.Single(sheet.ApplyColumnFormatPlan(new ExcelColumnFormatPlan().AddFormat("Amount", "0.0000"))).Applied);
             } else {
-                sheet.ColumnStyleByHeader("Amount").NumberFormat("0.0000");
+                sheet.ColumnStyleByHeader("Amount").SetNumberFormat("0.0000");
             }
 
             byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsx,  DisableFastPackageWriter = standardWriter });

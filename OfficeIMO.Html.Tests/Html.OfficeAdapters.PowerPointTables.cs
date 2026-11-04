@@ -60,7 +60,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
             Assert.True(table.Top.ToPoints() + table.Height.ToPoints() <= presentation.SlideSize.Height.ToPoints() - 30D);
         });
         Assert.Equal(new[] { "Safely managed", "Basic", "Limited", "Unimproved", "Surface water" },
-            tables.SelectMany(table => Enumerable.Range(1, table.Rows - 1).Select(row => table.GetCell(row, 0).Text)));
+            tables.SelectMany(table => Enumerable.Range(1, table.RowCount - 1).Select(row => table.GetCell(row, 0).Text)));
     }
 
     [Fact]
@@ -113,8 +113,8 @@ public class HtmlOfficeAdaptersPowerPointTables {
 
         PowerPointTable[] tables = presentation.Slides.SelectMany(slide => slide.Tables).ToArray();
         Assert.InRange(tables.Length, 2, 15);
-        Assert.Equal(15, tables.Sum(table => table.Rows));
-        Assert.Equal("Term 14", tables.Last().GetCell(tables.Last().Rows - 1, 0).Text);
+        Assert.Equal(15, tables.Sum(table => table.RowCount));
+        Assert.Equal("Term 14", tables.Last().GetCell(tables.Last().RowCount - 1, 0).Text);
         Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
             && diagnostic.Detail?.Contains("projection=paginatedNativeTable", StringComparison.Ordinal) == true);
@@ -137,7 +137,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
         Assert.InRange(tableSlides.Length, 2, 5);
         Assert.Contains(tableSlides[0].TextBoxes, box =>
             box.Text == "List of National Secondary Drinking Water Regulations");
-        Assert.Equal(16, tableSlides.Sum(slide => slide.Tables.Single().Rows) - tableSlides.Length + 1);
+        Assert.Equal(16, tableSlides.Sum(slide => slide.Tables.Single().RowCount) - tableSlides.Length + 1);
         Assert.All(tableSlides, slide => {
             PowerPointTable table = Assert.Single(slide.Tables);
             Assert.Equal("Contaminant", table.GetCell(0, 0).Text);
@@ -145,14 +145,14 @@ public class HtmlOfficeAdaptersPowerPointTables {
             Assert.True(table.Top.ToPoints() + table.Height.ToPoints() <= presentation.SlideSize.Height.ToPoints() - 30D);
         });
         PowerPointTable lastTable = tableSlides.Last().Tables.Single();
-        Assert.Equal("Contaminant 15", lastTable.GetCell(lastTable.Rows - 1, 0).Text);
+        Assert.Equal("Contaminant 15", lastTable.GetCell(lastTable.RowCount - 1, 0).Text);
 
         using var stream = new MemoryStream();
         presentation.Save(stream);
         using PowerPointDocument reopened = PowerPointDocument.Load(new MemoryStream(stream.ToArray()));
         Assert.Equal(tableSlides.Length, reopened.Slides.Sum(slide => slide.Tables.Count()));
         PowerPointTable reopenedLast = reopened.Slides.Last(slide => slide.Tables.Any()).Tables.Single();
-        Assert.Equal("Contaminant 15", reopenedLast.GetCell(reopenedLast.Rows - 1, 0).Text);
+        Assert.Equal("Contaminant 15", reopenedLast.GetCell(reopenedLast.RowCount - 1, 0).Text);
     }
 
     [Fact]
@@ -213,8 +213,8 @@ public class HtmlOfficeAdaptersPowerPointTables {
         Assert.True(tables.Length > 1);
         Assert.All(tables, table => Assert.Equal((1, 2), table.GetCell(0, 0).Merge));
         PowerPointTable lastTable = tables.Last();
-        Assert.Equal("Term 20", lastTable.GetCell(lastTable.Rows - 1, 0).Text);
-        Assert.Contains(lastTable.GetCell(lastTable.Rows - 1, 1).Runs, run =>
+        Assert.Equal("Term 20", lastTable.GetCell(lastTable.RowCount - 1, 0).Text);
+        Assert.Contains(lastTable.GetCell(lastTable.RowCount - 1, 1).Runs, run =>
             run.Text == "Final standard" && run.Hyperlink?.OriginalString == "https://example.test/standard");
     }
 
@@ -236,7 +236,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
         PowerPointSlide firstTableSlide = presentation.Slides.First(slide => slide.Tables.Any());
         PowerPointTable firstTable = Assert.Single(firstTableSlide.Tables);
 
-        Assert.True(firstTable.Rows >= 2);
+        Assert.True(firstTable.RowCount >= 2);
         Assert.Equal("Term", firstTable.GetCell(0, 0).Text);
         Assert.Equal("First data row", firstTable.GetCell(1, 0).Text);
         if (includeCaption) {

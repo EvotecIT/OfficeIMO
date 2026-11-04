@@ -22,8 +22,8 @@ namespace OfficeIMO.Tests
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Data");
 
-                sheet.Cell(1, 1).SetValue("Name").SetBold().SetFillColor("FFF2CC");
-                sheet.Cell(1, 2).SetValue("Score").SetBold().SetFillColor("FFF2CC");
+                sheet.Cell(1, 1).SetValue("Name").SetBold().SetFillColor(global::OfficeIMO.OfficeColor.Parse("FFF2CC"));
+                sheet.Cell(1, 2).SetValue("Score").SetBold().SetFillColor(global::OfficeIMO.OfficeColor.Parse("FFF2CC"));
                 sheet.Cell(2, 1).SetValue("Charlie");
                 sheet.Cell(2, 2).SetValue(30d);
                 sheet.Cell(3, 1).SetValue("Alice");
@@ -45,7 +45,7 @@ namespace OfficeIMO.Tests
 
                 sheet.Range("D1:E1").Merge().Unmerge();
                 sheet.Cell(6, 1).SetRichText(
-                    new ExcelRichTextRun("Strong") { Bold = true, FontColor = "FF0000" },
+                    new ExcelRichTextRun("Strong") { Bold = true, Color = global::OfficeIMO.OfficeColor.Parse("FF0000") },
                     ExcelRichTextRun.Plain(" text"));
 
                 IReadOnlyList<ExcelRichTextRun> runs = sheet.Cell(6, 1).GetRichText();
@@ -99,7 +99,7 @@ namespace OfficeIMO.Tests
                 sheet.Cell(2, 2).SetValue(40d);
 
                 sheet.Range("A1:B2").SetNumberFormat("0.00");
-                sheet.Range("C1:D2").SetFillColor("#FFF2CC");
+                sheet.Range("C1:D2").SetFillColor(global::OfficeIMO.OfficeColor.Parse("#FFF2CC"));
                 document.Save();
             }
 
@@ -146,8 +146,8 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.Cell(1, 1).SetValue("Single").SetGradientFill("#FF0000", "#00FF00", 45);
-                sheet.Range("B1:C1").SetGradientFill("112233", "445566", 90);
+                sheet.Cell(1, 1).SetValue("Single").SetGradientFill(global::OfficeIMO.OfficeColor.Parse("#FF0000"), global::OfficeIMO.OfficeColor.Parse("#00FF00"), 45);
+                sheet.Range("B1:C1").SetGradientFill(global::OfficeIMO.OfficeColor.Parse("112233"), global::OfficeIMO.OfficeColor.Parse("445566"), 90);
                 document.Save();
             }
 
@@ -968,7 +968,7 @@ namespace OfficeIMO.Tests
                 sheet.Cell(5, 3).SetFormula("SUM(C2:C4)");
                 sheet.Range("A1:C4").CreateTable("SalesData");
                 sheet.Range("B2:B4").Validation().List("A", "B");
-                sheet.Range("C2:C4").ConditionalFormat().DataBar("#5B9BD5");
+                sheet.Range("C2:C4").ConditionalFormat().DataBar(global::OfficeIMO.OfficeColor.Parse("#5B9BD5"));
                 sheet.AddSparklines("C2:C4", "D2:D4", ExcelSparklineType.Column);
                 {
                     var pivotOptions1 = new ExcelPivotTableOptions();
@@ -2110,9 +2110,9 @@ namespace OfficeIMO.Tests
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Clear");
                 sheet.Cell(1, 1).SetValue("Keep");
-                sheet.Cell(10, 5).SetValue("Clear").SetFillColor("FFF2CC");
+                sheet.Cell(10, 5).SetValue("Clear").SetFillColor(global::OfficeIMO.OfficeColor.Parse("FFF2CC"));
                 sheet.Cell(10, 6).SetFormula("E10");
-                sheet.Cell(12, 5).SetValue("Outside").SetFillColor("D9EAD3");
+                sheet.Cell(12, 5).SetValue("Outside").SetFillColor(global::OfficeIMO.OfficeColor.Parse("D9EAD3"));
 
                 sheet.Range("E10:F10").Clear(ExcelClearOptions.Values | ExcelClearOptions.Formulas | ExcelClearOptions.Styles);
                 document.Save();

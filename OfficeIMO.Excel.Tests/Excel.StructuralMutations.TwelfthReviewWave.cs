@@ -130,7 +130,7 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
             sheet.Cell(1, 1).SetValue("Source");
-            sheet.Cell(1, 1).SetFillColor("C6EFCE");
+            sheet.Cell(1, 1).SetFillColor(global::OfficeIMO.OfficeColor.Parse("C6EFCE"));
             Stylesheet stylesheet = document.WorkbookPartRoot.WorkbookStylesPart!.Stylesheet!;
             CellStyle normal = stylesheet.CellStyles!.Elements<CellStyle>()
                 .Single(style => style.Name?.Value == "Normal");

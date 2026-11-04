@@ -62,11 +62,11 @@ public sealed class OutlineElementPreservationTests {
             .ToArray();
         pageSpace.Objects[pageNodeIndex] = new OneNoteWriteObject(pageNode.Id, pageNode.Jcid, pageProperties);
 
-        OneNoteSection loaded = OneNoteSectionReader.Read(new MemoryStream(OneNoteRevisionStoreWriter.Write(graph)));
+        OneNoteSection loaded = OneNoteSection.Load(new MemoryStream(OneNoteRevisionStoreWriter.Write(graph)));
         AssertWrapper(loaded, authorId, canonicalRoot: false);
 
-        byte[] rewritten = OneNoteSectionWriter.Write(loaded, new OneNoteWriterOptions { PreserveUnknownData = false });
-        AssertWrapper(OneNoteSectionReader.Read(new MemoryStream(rewritten)), authorId, canonicalRoot: true);
+        byte[] rewritten = loaded.ToBytes(new OneNoteSaveOptions { PreserveUnknownData = false });
+        AssertWrapper(OneNoteSection.Load(new MemoryStream(rewritten)), authorId, canonicalRoot: true);
     }
 
     private static void AssertWrapper(OneNoteSection section, OneNoteExtendedGuid expectedAuthorId, bool canonicalRoot) {

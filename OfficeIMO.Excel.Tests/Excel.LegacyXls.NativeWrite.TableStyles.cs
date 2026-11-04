@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("TableStyles");
                     sheet.Cell(1, 1).SetValue("Default table style names");
-                    sheet.Cell(1, 1).SetFillColor("#ABCDEF");
+                    sheet.Cell(1, 1).SetFillColor(global::OfficeIMO.OfficeColor.Parse("#ABCDEF"));
 
                     WorkbookStylesPart stylesPart = document.WorkbookPartRoot.WorkbookStylesPart
                         ?? document.WorkbookPartRoot.AddNewPart<WorkbookStylesPart>();

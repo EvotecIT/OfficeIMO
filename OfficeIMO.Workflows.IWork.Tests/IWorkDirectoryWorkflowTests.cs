@@ -86,7 +86,7 @@ public sealed class IWorkDirectoryWorkflowTests {
         string index = Path.Combine(bundle.Input, "Index");
         ZipFile.CreateFromDirectory(index, Path.Combine(bundle.Input, "Index.zip"));
         Directory.Delete(index, recursive: true);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(bundle.Input);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(bundle.Input);
         var result = await IWorkWorkflow.CreateRunner().RunAsync(bundle.Request("numbers-xlsx"));
         Assert.True(result.Succeeded, result.Summary);
         Assert.Equal(source.Records.Count.ToString(), result.ConversionEvidence!.Facts["totalRecordCount"]);

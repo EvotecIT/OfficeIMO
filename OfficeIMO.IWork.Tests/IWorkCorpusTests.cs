@@ -24,7 +24,7 @@ public sealed class IWorkCorpusTests {
     [Fact]
     public void Pages_native_decimal_lists_survive_saved_docx_as_numbering() {
         string path = Fixture("picodocs/sample-v14.4.pages");
-        IWorkSourceDocument source = IWorkSourceDocument.Open(path);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(path);
         string[] items = { "First ordered item", "Second ordered item",
             "Third ordered item with nested-looking text: 1.1 not actually nested" };
         foreach (string item in items) {
@@ -82,9 +82,9 @@ public sealed class IWorkCorpusTests {
     public void Reads_independently_produced_versions_with_path_stream_parity(string relativePath,
         IWorkDocumentKind expectedKind) {
         string path = Fixture(relativePath);
-        IWorkSourceDocument fromPath = IWorkSourceDocument.Open(path);
+        IWorkSourceDocument fromPath = IWorkSourceDocument.Load(path);
         using FileStream stream = File.OpenRead(path);
-        IWorkSourceDocument fromStream = IWorkSourceDocument.Open(stream, expectedKind);
+        IWorkSourceDocument fromStream = IWorkSourceDocument.Load(stream, expectedKind);
 
         Assert.Equal(expectedKind, fromPath.Kind);
         Assert.Equal(expectedKind, fromStream.Kind);
@@ -104,21 +104,21 @@ public sealed class IWorkCorpusTests {
             AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true };
         using var saved = new MemoryStream();
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Pages).ToWordResult(options);
+            using var result = IWorkSourceDocument.Load(path, IWorkDocumentKind.Pages).ToWordResult(options);
             Assert.False(result.IsVisualFallback);
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = WordDocument.Load(saved);
             var errors = reopened.ValidateDocument();
             Assert.True(errors.Count == 0, string.Join("\n", errors.Select(error => error.PartUri + ": " + error.Description)));
         } else if (kind == IWorkDocumentKind.Numbers) {
-            using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers).ToExcelResult(options);
+            using var result = IWorkSourceDocument.Load(path, IWorkDocumentKind.Numbers).ToExcelResult(options);
             Assert.False(result.IsVisualFallback);
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = ExcelDocument.Load(saved);
             Assert.NotEmpty(reopened.Sheets);
             Assert.Empty(reopened.ValidateOpenXml());
         } else {
-            using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Keynote).ToPowerPointResult(options);
+            using var result = IWorkSourceDocument.Load(path, IWorkDocumentKind.Keynote).ToPowerPointResult(options);
             Assert.False(result.IsVisualFallback);
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = PowerPointDocument.Load(saved);
@@ -129,7 +129,7 @@ public sealed class IWorkCorpusTests {
 
     [Fact]
     public void Reads_current_pages_text_and_preserves_unrecognized_records() {
-        IWorkSourceDocument source = IWorkSourceDocument.Open(Fixture("nim-iwork/simple.pages"));
+        IWorkSourceDocument source = IWorkSourceDocument.Load(Fixture("nim-iwork/simple.pages"));
         IWorkPagesProjection pages = source.ReadPages();
         using var converted = source.ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         IWorkConversionReport report = converted.Report;
@@ -147,7 +147,7 @@ public sealed class IWorkCorpusTests {
 
     [Fact]
     public void Reads_current_numbers_as_sparse_typed_cells() {
-        IWorkNumbersProjection numbers = IWorkSourceDocument.Open(Fixture("nim-iwork/simple.numbers")).ReadNumbers();
+        IWorkNumbersProjection numbers = IWorkSourceDocument.Load(Fixture("nim-iwork/simple.numbers")).ReadNumbers();
         IWorkTable table = Assert.Single(Assert.Single(numbers.Sheets).Tables);
 
         Assert.Equal(3, table.RowCount);
@@ -161,7 +161,7 @@ public sealed class IWorkCorpusTests {
 
     [Fact]
     public void Numbers_recovers_complete_formulas_cached_values_and_table_metadata() {
-        IWorkNumbersProjection numbers = IWorkSourceDocument.Open(
+        IWorkNumbersProjection numbers = IWorkSourceDocument.Load(
             Fixture("numbers-parser/test-10-formulas.numbers")).ReadNumbers();
         IWorkTable table = numbers.Sheets[0].Tables[0];
 
@@ -186,7 +186,7 @@ public sealed class IWorkCorpusTests {
     [Fact]
     public void Numbers_recovers_merges_and_excel_projects_them_as_editable_ranges() {
         const string RelativePath = "numbers-parser/test-9-merges.numbers";
-        IWorkNumbersProjection numbers = IWorkSourceDocument.Open(Fixture(RelativePath)).ReadNumbers();
+        IWorkNumbersProjection numbers = IWorkSourceDocument.Load(Fixture(RelativePath)).ReadNumbers();
         IWorkTable first = numbers.Sheets[0].Tables[0];
 
         Assert.True(numbers.HasEditableContent);
@@ -197,7 +197,7 @@ public sealed class IWorkCorpusTests {
         Assert.Contains(first.MergedRanges, merge => merge.FirstRow == 7 && merge.FirstColumn == 4
             && merge.LastRow == 8 && merge.LastColumn == 5);
 
-        using var result = IWorkSourceDocument.Open(Fixture(RelativePath), IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Load(Fixture(RelativePath), IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
         Assert.Equal(5, result.Value.Sheets[0].GetMergedRanges().Count);
         Assert.Contains(result.Value.Sheets[0].GetMergedRanges(), merge => merge.A1Range == "A2:B2");
@@ -205,16 +205,16 @@ public sealed class IWorkCorpusTests {
 
     [Fact]
     public void Numbers_enforces_the_configured_merged_range_bound() {
-        IWorkSourceDocument source = IWorkSourceDocument.Open(
+        IWorkSourceDocument source = IWorkSourceDocument.Load(
             Fixture("numbers-parser/test-9-merges.numbers"),
-            new IWorkReadOptions { MaxTableMergedRanges = 1 });
+            new IWorkLoadOptions { MaxTableMergedRanges = 1 });
 
         Assert.Throws<InvalidDataException>(() => source.ReadNumbers());
     }
 
     [Fact]
     public void Numbers_owner_projects_source_formulas_with_cached_values() {
-        using var result = IWorkSourceDocument.Open(Fixture("numbers-parser/test-10-formulas.numbers"), IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Load(Fixture("numbers-parser/test-10-formulas.numbers"), IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
 
         Assert.False(result.IsVisualFallback);
         IWorkTestPolicy.AssertCellPaddingOmission(result.Report);
@@ -227,12 +227,12 @@ public sealed class IWorkCorpusTests {
     [Fact]
     public void Numbers_formula_projection_honors_node_and_character_bounds() {
         const string RelativePath = "numbers-parser/test-10-formulas.numbers";
-        IWorkSourceDocument nodeBounded = IWorkSourceDocument.Open(Fixture(RelativePath),
-            new IWorkReadOptions { MaxFormulaNodes = 1 });
+        IWorkSourceDocument nodeBounded = IWorkSourceDocument.Load(Fixture(RelativePath),
+            new IWorkLoadOptions { MaxFormulaNodes = 1 });
         Assert.Throws<InvalidDataException>(() => nodeBounded.ReadNumbers());
 
-        IWorkNumbersProjection characterBounded = IWorkSourceDocument.Open(Fixture(RelativePath),
-            new IWorkReadOptions { MaxFormulaCharacters = 4 }).ReadNumbers();
+        IWorkNumbersProjection characterBounded = IWorkSourceDocument.Load(Fixture(RelativePath),
+            new IWorkLoadOptions { MaxFormulaCharacters = 4 }).ReadNumbers();
         IWorkTableCell formula = characterBounded.Sheets[0].Tables[0].GetCell(2, 2)!;
         Assert.False(formula.FormulaIsComplete);
         Assert.Equal("=#FORMULA!", formula.Formula);
@@ -241,7 +241,7 @@ public sealed class IWorkCorpusTests {
 
     [Fact]
     public void Reads_current_keynote_slides_and_notes() {
-        IWorkKeynoteProjection keynote = IWorkSourceDocument.Open(Fixture("nim-iwork/simple.key")).ReadKeynote();
+        IWorkKeynoteProjection keynote = IWorkSourceDocument.Load(Fixture("nim-iwork/simple.key")).ReadKeynote();
 
         Assert.Equal(2, keynote.Slides.Count);
         Assert.Equal("hello keynote", keynote.Slides[0].Title);
@@ -251,7 +251,7 @@ public sealed class IWorkCorpusTests {
 
         // Exercise the real two-slide package through publication and reopen, not
         // just the source projection or a synthetic presenter-note record.
-        using var result = IWorkSourceDocument.Open(Fixture("nim-iwork/simple.key"), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions {
+        using var result = IWorkSourceDocument.Load(Fixture("nim-iwork/simple.key"), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions {
                 Mode = IWorkConversionMode.EditableOnly,
             });
         Assert.False(result.IsVisualFallback);
@@ -270,10 +270,10 @@ public sealed class IWorkCorpusTests {
 
     [Fact]
     public void Older_and_newer_versions_recover_editable_structure() {
-        IWorkPagesProjection pages = IWorkSourceDocument.Open(Fixture("iwork-converter/a.pages")).ReadPages();
-        IWorkNumbersProjection olderNumbers = IWorkSourceDocument.Open(Fixture("iwork-converter/a.numbers")).ReadNumbers();
-        IWorkKeynoteProjection keynote = IWorkSourceDocument.Open(Fixture("iwork-converter/a.key")).ReadKeynote();
-        IWorkNumbersProjection newerNumbers = IWorkSourceDocument.Open(Fixture("numbers-parser/issue-102-v15.1.numbers")).ReadNumbers();
+        IWorkPagesProjection pages = IWorkSourceDocument.Load(Fixture("iwork-converter/a.pages")).ReadPages();
+        IWorkNumbersProjection olderNumbers = IWorkSourceDocument.Load(Fixture("iwork-converter/a.numbers")).ReadNumbers();
+        IWorkKeynoteProjection keynote = IWorkSourceDocument.Load(Fixture("iwork-converter/a.key")).ReadKeynote();
+        IWorkNumbersProjection newerNumbers = IWorkSourceDocument.Load(Fixture("numbers-parser/issue-102-v15.1.numbers")).ReadNumbers();
 
         Assert.True(pages.Paragraphs.Count >= 30);
         Assert.Contains(pages.Paragraphs, paragraph => paragraph.Contains("合同", StringComparison.Ordinal));
@@ -289,7 +289,7 @@ public sealed class IWorkCorpusTests {
 
     [Fact]
     public void Pages_rich_text_extracts_typography_but_marks_inline_objects_incomplete() {
-        IWorkPagesProjection pages = IWorkSourceDocument.Open(Fixture("iwork-converter/a.pages")).ReadPages();
+        IWorkPagesProjection pages = IWorkSourceDocument.Load(Fixture("iwork-converter/a.pages")).ReadPages();
 
         Assert.False(pages.Body.IsComplete);
         Assert.Equal(45, pages.Body.Paragraphs.Count);
@@ -304,7 +304,7 @@ public sealed class IWorkCorpusTests {
         Assert.Equal("000000", titleRun.Style.Color!.RgbHex);
         Assert.Empty(pages.Body.Paragraphs[1].Runs);
 
-        using var result = IWorkSourceDocument.Open(Fixture("iwork-converter/a.pages"), IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly,
+        using var result = IWorkSourceDocument.Load(Fixture("iwork-converter/a.pages"), IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly,
                 AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
         Assert.True(result.Report.IsPartialEditableReconstruction);
@@ -330,7 +330,7 @@ public sealed class IWorkCorpusTests {
 
     [Fact]
     public void Pages_owner_uses_visual_fallback_for_unresolved_inline_objects() {
-        using var result = IWorkSourceDocument.Open(Fixture("iwork-converter/a.pages"), IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(Fixture("iwork-converter/a.pages"), IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,
@@ -339,7 +339,7 @@ public sealed class IWorkCorpusTests {
 
     [Fact]
     public void Pages_native_default_headers_remain_selected_when_alternate_templates_are_stored() {
-        using var result = IWorkSourceDocument.Open(Fixture("picodocs/sample-v14.4.pages"), IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions {
+        using var result = IWorkSourceDocument.Load(Fixture("picodocs/sample-v14.4.pages"), IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions {
                 Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true
             });
         Assert.Equal(2, result.Projection.Sections.Count);
@@ -367,7 +367,7 @@ public sealed class IWorkCorpusTests {
 
     [Fact]
     public void Pages_recovers_embedded_image_and_shared_editable_tables() {
-        IWorkPagesProjection pages = IWorkSourceDocument.Open(Fixture("picodocs/sample-v14.4.pages")).ReadPages();
+        IWorkPagesProjection pages = IWorkSourceDocument.Load(Fixture("picodocs/sample-v14.4.pages")).ReadPages();
 
         Assert.False(pages.HasEditableContent);
         Assert.Contains(pages.Diagnostics,
@@ -384,7 +384,7 @@ public sealed class IWorkCorpusTests {
 
     [Fact]
     public void Pages_resolves_rich_text_table_cells_from_the_independent_corpus() {
-        IWorkPagesProjection pages = IWorkSourceDocument.Open(
+        IWorkPagesProjection pages = IWorkSourceDocument.Load(
             Fixture("picodocs/sample-v14.4.pages")).ReadPages();
         IWorkTable table = pages.Tables[0];
 
@@ -419,7 +419,7 @@ public sealed class IWorkCorpusTests {
 
     [Fact]
     public void Pages_owner_projects_tables_and_embedded_image_into_word() {
-        using var result = IWorkSourceDocument.Open(Fixture("picodocs/sample-v14.4.pages"), IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(Fixture("picodocs/sample-v14.4.pages"), IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Empty(result.Value.Tables);
@@ -428,7 +428,7 @@ public sealed class IWorkCorpusTests {
 
     [Fact]
     public void Keynote_recovers_slide_size_positioned_rich_text_and_typography() {
-        IWorkKeynoteProjection keynote = IWorkSourceDocument.Open(Fixture("iwork-converter/a.key")).ReadKeynote();
+        IWorkKeynoteProjection keynote = IWorkSourceDocument.Load(Fixture("iwork-converter/a.key")).ReadKeynote();
 
         Assert.Equal(1920d, keynote.SlideSize!.WidthPoints);
         Assert.Equal(1080d, keynote.SlideSize.HeightPoints);
@@ -445,7 +445,7 @@ public sealed class IWorkCorpusTests {
 
     [Fact]
     public void Keynote_owner_falls_back_when_rich_text_uses_pagination_flags() {
-        using var result = IWorkSourceDocument.Open(Fixture("iwork-converter/a.key"), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(Fixture("iwork-converter/a.key"), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Equal(1920d, result.Value.SlideSize.Width.ToPoints(), 3);
@@ -463,7 +463,7 @@ public sealed class IWorkCorpusTests {
 
     [Fact]
     public void Keynote_recovers_independently_produced_editable_table_and_image() {
-        IWorkKeynoteProjection tableDeck = IWorkSourceDocument.Open(
+        IWorkKeynoteProjection tableDeck = IWorkSourceDocument.Load(
             Fixture("keynotekit/tabledeck-v15.2.1.key")).ReadKeynote();
         IWorkTable table = Assert.Single(Assert.Single(tableDeck.Slides).Tables);
 
@@ -476,7 +476,7 @@ public sealed class IWorkCorpusTests {
         Assert.InRange(table.Geometry!.LeftPoints, 94.99d, 95.01d);
         Assert.InRange(table.Geometry.WidthPoints, 1729.99d, 1730.01d);
 
-        IWorkKeynoteProjection imageDeck = IWorkSourceDocument.Open(
+        IWorkKeynoteProjection imageDeck = IWorkSourceDocument.Load(
             Fixture("keynotekit/imagedeck-v15.2.1.key")).ReadKeynote();
         IWorkImageAsset image = Assert.Single(Assert.Single(imageDeck.Slides).Images);
         Assert.Equal("red.png", image.FileName);
@@ -490,13 +490,13 @@ public sealed class IWorkCorpusTests {
 
     [Fact]
     public void Keynote_owner_projects_table_and_image_as_editable_powerpoint_shapes() {
-        using var tableResult = IWorkSourceDocument.Open(Fixture("keynotekit/tabledeck-v15.2.1.key"), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var tableResult = IWorkSourceDocument.Load(Fixture("keynotekit/tabledeck-v15.2.1.key"), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         PowerPointTable table = Assert.Single(Assert.Single(tableResult.Value.Slides).Tables);
         IWorkTable sourceTable = Assert.Single(Assert.Single(
             tableResult.Projection.Slides).Tables);
 
         Assert.False(tableResult.IsVisualFallback);
-        Assert.Equal((3, 3), (table.Rows, table.Columns));
+        Assert.Equal((3, 3), (table.RowCount, table.ColumnCount));
         Assert.Equal("Product", table.GetCell(0, 0).Text);
         Assert.Equal("24000", table.GetCell(1, 2).Text);
         Assert.InRange(table.Left.ToPoints(), 94.99d, 95.01d);
@@ -505,7 +505,7 @@ public sealed class IWorkCorpusTests {
         Assert.InRange(table.Width.ToPoints(), expectedWidth - 0.001d, expectedWidth + 0.001d);
         Assert.InRange(table.Height.ToPoints(), expectedHeight - 0.001d, expectedHeight + 0.001d);
 
-        using var imageResult = IWorkSourceDocument.Open(Fixture("keynotekit/imagedeck-v15.2.1.key"), IWorkDocumentKind.Keynote).ToPowerPointResult();
+        using var imageResult = IWorkSourceDocument.Load(Fixture("keynotekit/imagedeck-v15.2.1.key"), IWorkDocumentKind.Keynote).ToPowerPointResult();
         Assert.False(imageResult.IsVisualFallback);
         imageResult.Report.RequireCompleteEditableReconstruction();
         PowerPointImage picture = Assert.Single(Assert.Single(imageResult.Value.Slides).Images);
@@ -515,9 +515,9 @@ public sealed class IWorkCorpusTests {
 
     [Fact]
     public void Owner_adapters_save_and_reopen_semantic_or_visual_outputs() {
-        using var pages = IWorkSourceDocument.Open(Fixture("nim-iwork/simple.pages"), IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
-        using var numbers = IWorkSourceDocument.Open(Fixture("nim-iwork/simple.numbers"), IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
-        using var keynote = IWorkSourceDocument.Open(Fixture("nim-iwork/simple.key"), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var pages = IWorkSourceDocument.Load(Fixture("nim-iwork/simple.pages"), IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var numbers = IWorkSourceDocument.Load(Fixture("nim-iwork/simple.numbers"), IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var keynote = IWorkSourceDocument.Load(Fixture("nim-iwork/simple.key"), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.False(pages.IsVisualFallback);
         Assert.False(numbers.IsVisualFallback);
@@ -565,7 +565,7 @@ public sealed class IWorkCorpusTests {
 
     [Fact]
     public void Keynote_visual_fallback_uses_the_recovered_source_canvas() {
-        using var result = IWorkSourceDocument.Open(Fixture("nim-iwork/simple.key"), IWorkDocumentKind.Keynote).ToPowerPointResult(IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { Mode = IWorkConversionMode.VisualOnly }));
+        using var result = IWorkSourceDocument.Load(Fixture("nim-iwork/simple.key"), IWorkDocumentKind.Keynote).ToPowerPointResult(IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { Mode = IWorkConversionMode.VisualOnly }));
 
         PowerPointImage picture = Assert.Single(Assert.Single(result.Value.Slides).Images);
         Assert.Equal(result.Value.SlideSize.Width.ToPoints() / 72d, picture.Width.ToInches(), 3);
@@ -576,24 +576,24 @@ public sealed class IWorkCorpusTests {
 
     [Fact]
     public void Rejects_configured_record_and_package_bounds() {
-        Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(
-            Fixture("nim-iwork/simple.pages"), new IWorkReadOptions { MaxRecordCount = 1 }));
-        Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(
-            Fixture("nim-iwork/simple.pages"), new IWorkReadOptions { MaxPackageBytes = 1024 }));
+        Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Load(
+            Fixture("nim-iwork/simple.pages"), new IWorkLoadOptions { MaxRecordCount = 1 }));
+        Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Load(
+            Fixture("nim-iwork/simple.pages"), new IWorkLoadOptions { MaxPackageBytes = 1024 }));
     }
 
     [Fact]
     public void Does_not_trust_a_wrong_expected_application_kind() {
         using FileStream stream = File.OpenRead(Fixture("nim-iwork/simple.numbers"));
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            IWorkSourceDocument.Open(stream, IWorkDocumentKind.Pages));
+            IWorkSourceDocument.Load(stream, IWorkDocumentKind.Pages));
         Assert.Contains("Numbers", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
     public void Can_disable_unsupported_record_reporting_without_discarding_the_source_records() {
-        IWorkSourceDocument source = IWorkSourceDocument.Open(Fixture("nim-iwork/simple.pages"),
-            new IWorkReadOptions { PreserveSourceRecords = false });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(Fixture("nim-iwork/simple.pages"),
+            new IWorkLoadOptions { PreserveSourceRecords = false });
         using var converted = source.ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         IWorkConversionReport report = converted.Report;
 
@@ -614,8 +614,8 @@ public sealed class IWorkCorpusTests {
         Directory.CreateDirectory(directory);
         try {
             ZipFile.ExtractToDirectory(Fixture("nim-iwork/simple.pages"), directory);
-            IWorkSourceDocument zipped = IWorkSourceDocument.Open(Fixture("nim-iwork/simple.pages"));
-            IWorkSourceDocument bundle = IWorkSourceDocument.Open(directory, IWorkDocumentKind.Pages);
+            IWorkSourceDocument zipped = IWorkSourceDocument.Load(Fixture("nim-iwork/simple.pages"));
+            IWorkSourceDocument bundle = IWorkSourceDocument.Load(directory, IWorkDocumentKind.Pages);
 
             Assert.Equal(IWorkContainerKind.DirectoryBundle, bundle.ContainerKind);
             Assert.Equal(zipped.Records.Count, bundle.Records.Count);
@@ -651,8 +651,8 @@ public sealed class IWorkCorpusTests {
         }
         packageBytes.Position = 0;
 
-        IWorkSourceDocument sourceDocument = IWorkSourceDocument.Open(packageBytes, IWorkDocumentKind.Pages);
-        IWorkSourceDocument directDocument = IWorkSourceDocument.Open(Fixture("nim-iwork/simple.pages"));
+        IWorkSourceDocument sourceDocument = IWorkSourceDocument.Load(packageBytes, IWorkDocumentKind.Pages);
+        IWorkSourceDocument directDocument = IWorkSourceDocument.Load(Fixture("nim-iwork/simple.pages"));
         Assert.Equal(IWorkContainerKind.ZipPackageWithNestedIndex, sourceDocument.ContainerKind);
         Assert.Equal(directDocument.Records.Count, sourceDocument.Records.Count);
         Assert.Equal(directDocument.ReadPages().Paragraphs, sourceDocument.ReadPages().Paragraphs);
@@ -668,21 +668,21 @@ public sealed class IWorkCorpusTests {
         }
         source.Position = 0;
 
-        Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(source, IWorkDocumentKind.Pages));
+        Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Load(source, IWorkDocumentKind.Pages));
     }
 
     private static IWorkConversionReport ReadPagesVisual(string relativePath, IWorkConversionOptions options) {
-        using var result = IWorkSourceDocument.Open(Fixture(relativePath), IWorkDocumentKind.Pages).ToWordResult(IWorkTestPolicy.ForIncompletePreview(options));
+        using var result = IWorkSourceDocument.Load(Fixture(relativePath), IWorkDocumentKind.Pages).ToWordResult(IWorkTestPolicy.ForIncompletePreview(options));
         return result.Report;
     }
 
     private static IWorkConversionReport ReadNumbersVisual(string relativePath, IWorkConversionOptions options) {
-        using var result = IWorkSourceDocument.Open(Fixture(relativePath), IWorkDocumentKind.Numbers).ToExcelResult(IWorkTestPolicy.ForIncompletePreview(options));
+        using var result = IWorkSourceDocument.Load(Fixture(relativePath), IWorkDocumentKind.Numbers).ToExcelResult(IWorkTestPolicy.ForIncompletePreview(options));
         return result.Report;
     }
 
     private static IWorkConversionReport ReadKeynoteVisual(string relativePath, IWorkConversionOptions options) {
-        using var result = IWorkSourceDocument.Open(Fixture(relativePath), IWorkDocumentKind.Keynote).ToPowerPointResult(IWorkTestPolicy.ForIncompletePreview(options));
+        using var result = IWorkSourceDocument.Load(Fixture(relativePath), IWorkDocumentKind.Keynote).ToPowerPointResult(IWorkTestPolicy.ForIncompletePreview(options));
         return result.Report;
     }
 

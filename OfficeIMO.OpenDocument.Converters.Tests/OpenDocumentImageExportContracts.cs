@@ -20,7 +20,7 @@ public sealed class OpenDocumentImageExportContracts {
     [InlineData(OfficeImageExportFormat.Webp)]
     public void StyledOpenDocumentFamiliesExportThroughEverySharedImageFormat(OfficeImageExportFormat format) {
         OdtDocument text = OdtDocument.Create();
-        OdtSpan textRun = text.AddParagraph().AddSpan("Styled ODT");
+        OdtSpan textRun = text.AddParagraph().AddRun("Styled ODT");
         textRun.Bold = true;
         textRun.Italic = true;
         textRun.UnderlineStyle = OdfTextDecorationStyle.Wave;

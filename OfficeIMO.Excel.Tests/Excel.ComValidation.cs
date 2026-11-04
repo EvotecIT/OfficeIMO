@@ -231,7 +231,7 @@ namespace OfficeIMO.Tests
             sheet.Cell(3, 1).SetValue("Beta");
             sheet.Cell(3, 2).SetValue(20.5d);
             sheet.Cell(4, 2).SetFormula("SUM(B2:B3)");
-            sheet.Range("A1:B1").SetBold().SetFillColor("D9EAF7").SetFontColor("1F4E79");
+            sheet.Range("A1:B1").SetBold().SetFillColor(global::OfficeIMO.OfficeColor.Parse("D9EAF7")).SetColor(global::OfficeIMO.OfficeColor.Parse("1F4E79"));
             document.Save();
             return filePath;
         }

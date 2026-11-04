@@ -61,8 +61,8 @@ public sealed class HtmlFontFamilyInheritanceTests {
             case "onenote": {
                 OneNoteSection section = source.ConvertToOneNoteSectionWithEvidence().RequireValue();
                 string? imported = OneNoteFont(section);
-                using var artifact = new MemoryStream(OneNoteSectionWriter.Write(section));
-                OneNoteSection reopened = OneNoteSectionReader.Read(artifact);
+                using var artifact = new MemoryStream(section.ToBytes());
+                OneNoteSection reopened = OneNoteSection.Load(artifact);
                 return (new[] { imported }, new[] { OneNoteFont(reopened) });
             }
             default:

@@ -182,7 +182,7 @@ public sealed partial class HtmlRenderingTests {
         static double FirstWordX(string html) {
             var options = new HtmlPdfExportOptions { Margins = HtmlRenderMargins.All(0D), HonorCssPageRules = false };
             PdfCore.PdfLogicalTextBlock block = PdfCore.PdfDocumentReadResult.Load(
-                HtmlConversionDocument.Parse(html).ToPdf(options).ToBytes()).Pages[0].TextBlocks[0];
+                HtmlConversionDocument.Parse(html).ToPdfoptions.ToBytes()).Pages[0].TextBlocks[0];
             return block.XStart;
         }
 

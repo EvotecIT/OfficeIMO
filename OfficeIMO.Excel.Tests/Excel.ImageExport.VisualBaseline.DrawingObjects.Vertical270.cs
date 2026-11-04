@@ -77,12 +77,12 @@ namespace OfficeIMO.Tests {
 
             sheet.Cell(1, 1).SetValue("Vertical270 DrawingML text");
             sheet.Range("A1:F1").Merge();
-            sheet.Range("A1:F1").SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold();
+            sheet.Range("A1:F1").SetFillColor(global::OfficeIMO.OfficeColor.Parse("0F172A")).SetColor(global::OfficeIMO.OfficeColor.Parse("FFFFFF")).SetBold();
             sheet.Cell(1, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
             sheet.Cell(1, 1).SetVerticalAlignment(ExcelVerticalAlignment.Center);
             sheet.Cell(7, 2).SetValue("Vertical270 shape text routes through shared rotated text layout.");
             sheet.Range("B7:E7").Merge();
-            sheet.Range("B7:E7").SetFillColor("F8FAFC").SetFontColor("334155");
+            sheet.Range("B7:E7").SetFillColor(global::OfficeIMO.OfficeColor.Parse("F8FAFC")).SetColor(global::OfficeIMO.OfficeColor.Parse("334155"));
             sheet.Cell(7, 2).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
 
             for (int column = 1; column <= 6; column++) {
@@ -99,7 +99,7 @@ namespace OfficeIMO.Tests {
             sheet.SetRowHeight(8, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(22)));
             for (int row = 1; row <= 8; row++) {
                 for (int column = 1; column <= 6; column++) {
-                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
+                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, global::OfficeIMO.OfficeColor.Parse("CBD5E1"));
                     sheet.Cell(row, column).SetVerticalAlignment(ExcelVerticalAlignment.Center);
                 }
             }

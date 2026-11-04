@@ -53,11 +53,11 @@ namespace OfficeIMO.Tests {
                 rules.ColorScale(OfficeColor.Red, OfficeColor.Lime);
                 rules.DataBar(OfficeColor.Blue);
                 rules.TopBottom(1);
-                rules.DuplicateValues("FCE4D6");
-                rules.UniqueValues("DBEAFE");
-                rules.AboveAverage(fillColor: "C6EFCE");
-                rules.AboveAverage(aboveAverage: false, equalAverage: true, fillColor: "FEE2E2");
-                rules.Text(ExcelConditionalFormatType.ContainsText, "2", "FFF2CC");
+                rules.DuplicateValues(global::OfficeIMO.OfficeColor.Parse("FCE4D6"));
+                rules.UniqueValues(global::OfficeIMO.OfficeColor.Parse("DBEAFE"));
+                rules.AboveAverage(fillColor: global::OfficeIMO.OfficeColor.Parse("C6EFCE"));
+                rules.AboveAverage(aboveAverage: false, equalAverage: true, fillColor: global::OfficeIMO.OfficeColor.Parse("FEE2E2"));
+                rules.Text(ExcelConditionalFormatType.ContainsText, "2",global::OfficeIMO.OfficeColor.Parse("FFF2CC"));
                 document.Save();
             }
 

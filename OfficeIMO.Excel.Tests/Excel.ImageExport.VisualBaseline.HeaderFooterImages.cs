@@ -80,7 +80,7 @@ namespace OfficeIMO.Tests {
             string[] headers = { "Area", "Owner", "State", "Score" };
             for (int column = 1; column <= headers.Length; column++) {
                 sheet.Cell(1, column).SetValue(headers[column - 1]);
-                sheet.Cell(1, column).SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(12D));
+                sheet.Cell(1, column).SetFillColor(global::OfficeIMO.OfficeColor.Parse("0F172A")).SetColor(global::OfficeIMO.OfficeColor.Parse("FFFFFF")).SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(12D));
                 sheet.Cell(1, column).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
                 sheet.Cell(1, column).SetVerticalAlignment(ExcelVerticalAlignment.Center);
             }
@@ -100,7 +100,7 @@ namespace OfficeIMO.Tests {
 
             for (int row = 1; row <= 4; row++) {
                 for (int column = 1; column <= 4; column++) {
-                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, "94A3B8").SetFontSize(global::OfficeIMO.OfficeLength.Points(12D));
+                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, global::OfficeIMO.OfficeColor.Parse("94A3B8")).SetFontSize(global::OfficeIMO.OfficeLength.Points(12D));
                     sheet.Cell(row, column).SetVerticalAlignment(ExcelVerticalAlignment.Center);
                 }
             }
@@ -123,8 +123,8 @@ namespace OfficeIMO.Tests {
             sheet.Cell(row, 3).SetValue(state);
             sheet.Cell(row, 4).SetValue(score);
             sheet.Range("A" + row.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":D" + row.ToString(System.Globalization.CultureInfo.InvariantCulture))
-                .SetFillColor(row == 2 ? "F8FAFC" : "FFFFFF");
-            sheet.Cell(row, 3).SetFillColor(stateFill).SetFontColor(stateText).SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(12D));
+                .SetFillColor(global::OfficeIMO.OfficeColor.Parse(row == 2 ? "F8FAFC" : "FFFFFF"));
+            sheet.Cell(row, 3).SetFillColor(global::OfficeIMO.OfficeColor.Parse(stateFill)).SetColor(global::OfficeIMO.OfficeColor.Parse(stateText)).SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(12D));
             sheet.Cell(row, 4).SetNumberFormat("0%").SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(12D));
             sheet.Cell(row, 4).SetHorizontalAlignment(ExcelHorizontalAlignment.Right);
         }

@@ -259,14 +259,14 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         try {
             using (ExcelDocument document = ExcelDocument.Create(workbookPath)) {
                 ExcelSheet summary = document.AddSheet("Summary");
-                summary.Cell(1, 1).SetValue("Daily Excel PDF Gate").SetBold().SetFontColor("1F4E79").SetFillColor("DDEEFF");
+                summary.Cell(1, 1).SetValue("Daily Excel PDF Gate").SetBold().SetColor(global::OfficeIMO.OfficeColor.Parse("1F4E79")).SetFillColor(global::OfficeIMO.OfficeColor.Parse("DDEEFF"));
                 summary.Range("A1:B1").Merge();
-                summary.Cell(2, 1).SetValue("Metric").SetBold().SetFillColor("E6F2FF");
-                summary.Cell(2, 2).SetValue("Value").SetBold().SetFillColor("E6F2FF");
-                summary.Cell(2, 3).SetValue("Status").SetBold().SetFillColor("E6F2FF");
+                summary.Cell(2, 1).SetValue("Metric").SetBold().SetFillColor(global::OfficeIMO.OfficeColor.Parse("E6F2FF"));
+                summary.Cell(2, 2).SetValue("Value").SetBold().SetFillColor(global::OfficeIMO.OfficeColor.Parse("E6F2FF"));
+                summary.Cell(2, 3).SetValue("Status").SetBold().SetFillColor(global::OfficeIMO.OfficeColor.Parse("E6F2FF"));
                 summary.Cell(3, 1).SetValue("Revenue");
                 summary.Cell(3, 2).SetValue(12345.6).SetNumberFormat("\"$\"#,##0.00");
-                summary.Cell(3, 3).SetValue("On track").SetFontColor("2F6F3E");
+                summary.Cell(3, 3).SetValue("On track").SetColor(global::OfficeIMO.OfficeColor.Parse("2F6F3E"));
                 summary.Cell(4, 1).SetValue("Margin");
                 summary.Cell(4, 2).SetValue(0.257).SetNumberFormat("0.0%");
                 summary.SetHyperlink(4, 3, "https://officeimo.net/excel-pdf", display: "External Link");
@@ -318,7 +318,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 summary.PageSetup.SetMargins(left: OfficeLength.Inches(0.35), right: OfficeLength.Inches(0.35), top: OfficeLength.Inches(0.55), bottom: OfficeLength.Inches(0.55));
 
                 ExcelSheet details = document.AddSheet("Details");
-                details.Cell(1, 1).SetValue("Details Target").SetBold().SetFillColor("E2F0D9");
+                details.Cell(1, 1).SetValue("Details Target").SetBold().SetFillColor(global::OfficeIMO.OfficeColor.Parse("E2F0D9"));
                 details.Cell(2, 1).SetValue("Owner");
                 details.Cell(2, 2).SetValue("OfficeIMO");
                 details.Cell(3, 1).SetValue("Status");

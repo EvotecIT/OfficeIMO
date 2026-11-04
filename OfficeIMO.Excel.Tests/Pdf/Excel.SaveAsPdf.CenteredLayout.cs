@@ -23,7 +23,7 @@ public partial class Excel {
         sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
         sheet.PageSetup.SetMargins(OfficeLength.Inches(0.5), OfficeLength.Inches(1), OfficeLength.Inches(0.75), OfficeLength.Inches(1.25));
         sheet.PageSetup.PaperSize = ExcelPaperSize.Letter; sheet.PageSetup.Scale = 50;
-        sheet.Range("A1:B2").SetFillColor("FFCC33");
+        sheet.Range("A1:B2").SetFillColor(global::OfficeIMO.OfficeColor.Parse("FFCC33"));
         sheet.PageSetup.HorizontalCentered = false; sheet.PageSetup.VerticalCentered = false;
         byte[] originalPdf = workbook.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var original = PdfPigDocument.Open(originalPdf);

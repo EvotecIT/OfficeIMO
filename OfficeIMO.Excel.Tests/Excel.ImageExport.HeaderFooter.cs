@@ -592,7 +592,7 @@ namespace OfficeIMO.Tests {
             FillPageBreakGrid(sheet);
             for (int row = 3; row <= 4; row++) {
                 for (int column = 1; column <= 4; column++) {
-                    sheet.Cell(row, column).SetFillColor("#00FF00");
+                    sheet.Cell(row, column).SetFillColor(global::OfficeIMO.OfficeColor.Parse("#00FF00"));
                 }
             }
             sheet.PageSetup.Header.Left.Text = "Prepared";

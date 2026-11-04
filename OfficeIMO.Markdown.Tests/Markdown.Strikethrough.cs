@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
 
             var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new MarkdownWordExportOptions());
             var paragraph = doc.Paragraphs[0];
-            var run = paragraph.GetRuns().First(r => r.Strike);
+            var run = paragraph.GetRuns().First(r => r.Strikethrough);
 
             Assert.Equal("strike", run.Text);
 

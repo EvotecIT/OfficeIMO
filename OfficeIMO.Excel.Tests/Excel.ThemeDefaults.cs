@@ -62,8 +62,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(OfficeTheme.Default.ChartStyle.BarGapPercent, space.Descendants<C.GapWidth>().Single().Val!.Value);
                 Assert.Empty(new OpenXmlValidator().Validate(package));
             }
-            chart.SetTitleTextStyle(fontSize: OfficeLength.Points(17D), fontName: "Georgia");
-            chart.SetCategoryAxisLabelTextStyle(fontSize: OfficeLength.Points(10D), fontName: "Courier New");
+            chart.SetTitleTextStyle(fontSize: OfficeLength.Points(17D), fontFamily: "Georgia");
+            chart.SetCategoryAxisLabelTextStyle(fontSize: OfficeLength.Points(10D), fontFamily: "Courier New");
             using var saved = new MemoryStream(document.ToBytes());
             using SpreadsheetDocument reopened = SpreadsheetDocument.Open(saved, false);
             C.ChartSpace result = reopened.WorkbookPart!.WorksheetParts.Single(part => part.DrawingsPart != null).DrawingsPart!.ChartParts.Single().ChartSpace!;

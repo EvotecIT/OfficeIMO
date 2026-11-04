@@ -193,7 +193,7 @@ public sealed class ReaderLatexModularTests {
         ReaderChunk[] chunks = LatexReaderAdapter.Read(document, readerOptions: new ReaderOptions { MaxChars = 32 },
             latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks, IncludeDiagnostics = false }).ToArray();
         Assert.True(chunks.Length > 1);
-        string expected = Assert.Single(document.ToMarkdownDocument().Blocks.OfType<OfficeIMO.Markdown.CodeBlock>()).Content;
+        string expected = Assert.Single(document.ToMarkdown().Blocks.OfType<OfficeIMO.Markdown.CodeBlock>()).Content;
         Assert.Equal(expected, string.Concat(chunks.Select(static chunk => chunk.Text)));
         Assert.All(chunks, static chunk => {
             Assert.InRange(chunk.Text.Length, 1, 32);

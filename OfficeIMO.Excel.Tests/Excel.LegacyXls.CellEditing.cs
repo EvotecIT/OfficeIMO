@@ -72,13 +72,13 @@ public sealed class ExcelLegacyCellEditingTests {
     [Fact]
     public void New_RGB_styles_reuse_only_unreferenced_native_palette_slots() {
         using var seed = ExcelDocument.Create(); var sheet = seed.AddSheet("Data");
-        sheet.Cell(1, 1).SetValue("Original"); sheet.Cell(1, 1).SetFillColor("#ABCDEF");
+        sheet.Cell(1, 1).SetValue("Original"); sheet.Cell(1, 1).SetFillColor(global::OfficeIMO.OfficeColor.Parse("#ABCDEF"));
         byte[] bytes = seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
         for (int iteration = 0; iteration < 3; iteration++) {
             using var document = ExcelDocument.Load(new MemoryStream(bytes));
             document.Sheets[0].Cell(2, 1).SetValue("New color");
-            document.Sheets[0].Cell(2, 1).SetFillColor("#123456");
-            document.Sheets[0].Cell(2, 1).SetFontColor("#654321");
+            document.Sheets[0].Cell(2, 1).SetFillColor(global::OfficeIMO.OfficeColor.Parse("#123456"));
+            document.Sheets[0].Cell(2, 1).SetColor(global::OfficeIMO.OfficeColor.Parse("#654321"));
             bytes = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
             using var loaded = ExcelDocument.Load(new MemoryStream(bytes));
             Assert.Equal("FFABCDEF", loaded.Sheets[0].Cell(1, 1).GetStyle().FillColorArgb);

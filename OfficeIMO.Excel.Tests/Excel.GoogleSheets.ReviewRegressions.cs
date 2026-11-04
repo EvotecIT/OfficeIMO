@@ -181,7 +181,7 @@ namespace OfficeIMO.Tests
             Assert.NotEqual(baseline, CellHash(sheet => sheet.Cell(1, 1).SetItalic()));
             Assert.NotEqual(baseline, CellHash(sheet => sheet.Cell(1, 1).SetFontSize(global::OfficeIMO.OfficeLength.Points(18))));
             Assert.NotEqual(baseline, CellHash(sheet => sheet.Cell(1, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Center)));
-            Assert.NotEqual(baseline, CellHash(sheet => sheet.Cell(1, 1).SetBorder(ExcelBorderStyle.Medium, "#FF0000")));
+            Assert.NotEqual(baseline, CellHash(sheet => sheet.Cell(1, 1).SetBorder(ExcelBorderStyle.Medium, global::OfficeIMO.OfficeColor.Parse("#FF0000"))));
             Assert.NotEqual(baseline, CellHash(sheet => sheet.Range(1, 1, 1, 1).SetWrapText()));
             Assert.NotEqual(baseline, CellHash(sheet => sheet.SetHyperlink(1, 1, "https://example.test/", display: "Value", style: false)));
         }
@@ -195,7 +195,7 @@ namespace OfficeIMO.Tests
                 sheet.Cell(1, 1).SetValue("Value");
                 GoogleSheetsSyncCheckpoint baseline = GoogleSheetsDiffPlanner.CreateCheckpoint(document);
 
-                sheet.SetTabColor("#336699");
+                sheet.SetTabColor(global::OfficeIMO.OfficeColor.Parse("#336699"));
                 GoogleSheetsSyncCheckpoint colored = GoogleSheetsDiffPlanner.CreateCheckpoint(document);
 
                 Assert.NotEqual(baseline.ContentHashes["sheet/Data"], colored.ContentHashes["sheet/Data"]);

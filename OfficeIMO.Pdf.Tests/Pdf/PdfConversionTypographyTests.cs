@@ -386,7 +386,7 @@ Zażółć gęślą jaźń
             string workbookPath = Path.Combine(directory, "opentype.xlsx");
             using ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Report" });
             document.Sheets[0].Cell(1, 1).SetValue("office cafe\u0301");
-            document.Sheets[0].Cell(1, 1).SetFontName(FamilyName);
+            document.Sheets[0].Cell(1, 1).SetFontFamily(FamilyName);
             document.Save();
 
             var options = new ExcelPdfExportOptions {

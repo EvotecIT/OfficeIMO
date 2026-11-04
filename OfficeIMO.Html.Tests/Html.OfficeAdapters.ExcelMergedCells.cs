@@ -97,7 +97,7 @@ public class HtmlOfficeAdaptersExcelMergedCells {
     public void ExcelHtml_RoundTripsQuotedFontFamiliesContainingSemicolons() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         workbook.AddSheet("Fonts").Cell(1, 1).SetRichText(
-            new ExcelRichTextRun("Styled") { FontName = "A;B", Bold = true });
+            new ExcelRichTextRun("Styled") { FontFamily = "A;B", Bold = true });
 
         string html = workbook.ToHtml(new ExcelHtmlExportOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables

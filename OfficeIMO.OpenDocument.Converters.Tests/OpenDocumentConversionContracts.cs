@@ -77,7 +77,7 @@ public sealed class OpenDocumentConversionContracts {
         paragraph.Bold = true;
         paragraph.Italic = true;
         paragraph.Underline = WordUnderlineStyle.Single;
-        paragraph.Strike = true;
+        paragraph.Strikethrough = true;
         paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(13);
         paragraph.FontFamily = "Aptos";
         paragraph.Color = OfficeColor.Parse("123456");
@@ -98,7 +98,7 @@ public sealed class OpenDocumentConversionContracts {
         Assert.True(odtSpan.Bold);
         Assert.True(odtSpan.Italic);
         Assert.True(odtSpan.Underline);
-        Assert.True(odtSpan.StrikeThrough);
+        Assert.True(odtSpan.Strikethrough);
         Assert.Equal("Aptos", odtSpan.FontFamily);
         Assert.Equal("#FFFF00", odtSpan.BackgroundColor!.Value.ToString());
         Assert.DoesNotContain(toOdt.Report.Mappings, mapping =>
@@ -120,7 +120,7 @@ public sealed class OpenDocumentConversionContracts {
         Assert.True(run.Bold);
         Assert.True(run.Italic);
         Assert.True(run.Underline);
-        Assert.True(run.Strike);
+        Assert.True(run.Strikethrough);
         Assert.Equal(13, run.FontSize?.ToPoints());
         Assert.Equal("Aptos", run.FontFamily);
         Assert.Equal(OfficeColor.Parse("123456"), run.Color);
@@ -132,7 +132,7 @@ public sealed class OpenDocumentConversionContracts {
         OdtDocument source = OdtDocument.Create();
         OdtParagraph paragraph = source.AddParagraph();
         paragraph.AddText("Before ");
-        paragraph.AddSpan("bold").Bold = true;
+        paragraph.AddRun("bold").Bold = true;
         paragraph.AddText(" between ");
         paragraph.AddHyperlink("link", "https://example.com").Italic = true;
         paragraph.AddText(" after");
@@ -167,15 +167,15 @@ public sealed class OpenDocumentConversionContracts {
     public void NestedOdtSpansAndHyperlinksKeepInheritedFormattingAndTargetsInWord() {
         OdtDocument source = OdtDocument.Create();
         OdtParagraph paragraph = source.AddParagraph();
-        OdtSpan outer = paragraph.AddSpan("Outer ");
+        OdtSpan outer = paragraph.AddRun("Outer ");
         outer.Bold = true;
-        OdtSpan inner = outer.AddSpan("inner");
+        OdtSpan inner = outer.AddRun("inner");
         inner.Italic = true;
         inner.Bold = false;
         outer.AddHyperlink(" linked", "https://example.test/inside").Underline = true;
         OdtHyperlink link = paragraph.AddHyperlink("Another ", "https://example.test/outer");
         link.Bold = true;
-        link.AddSpan("styled").Italic = true;
+        link.AddRun("styled").Italic = true;
         link.AddText(" end");
 
         OdtDocument reopened = OdtDocument.Load(new MemoryStream(source.ToBytes()));
@@ -220,8 +220,8 @@ public sealed class OpenDocumentConversionContracts {
         OdtDocument source = OdtDocument.Create();
         OdtParagraph paragraph = source.AddParagraph();
         paragraph.TextBackgroundColor = OdfColor.Parse("#FFFF00");
-        OdtSpan outer = paragraph.AddSpan("Colored");
-        OdtSpan clear = outer.AddSpan("Clear");
+        OdtSpan outer = paragraph.AddRun("Colored");
+        OdtSpan clear = outer.AddRun("Clear");
         clear.Bold = true;
         OdfStyle style = source.Styles.FindInPart(OdfStyleFamily.Text, clear.StyleName!, "content.xml")!;
         style.Element.Element(OdfNamespaces.Style + "text-properties")!
@@ -262,8 +262,8 @@ public sealed class OpenDocumentConversionContracts {
         string payload = new string(characters);
 
         OdtDocument odt = OdtDocument.Create();
-        OdtSpan span = odt.AddParagraph().AddSpan();
-        for (int index = 1; index < depth; index++) span = span.AddSpan();
+        OdtSpan span = odt.AddParagraph().AddRun();
+        for (int index = 1; index < depth; index++) span = span.AddRun();
         span.AddText(payload);
         OdtParagraph odtParagraph = Assert.Single(OdtDocument.Load(new MemoryStream(odt.ToBytes())).Paragraphs);
 
@@ -405,7 +405,7 @@ public sealed class OpenDocumentConversionContracts {
         PowerPointSlide slide = source.AddSlide();
         PowerPointTextBox title = slide.AddTextBox("OpenDocument deck",global::OfficeIMO.OfficeLength.Points(24),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(40));
         title.Paragraphs[0].Runs[0].Bold = true;
-        slide.AddRectangle(OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(50), "Panel").FillColor = "DDEEFF";
+        slide.AddRectangle(OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(50), "Panel").FillColor = OfficeColor.Parse("DDEEFF");
         PowerPointTable table = slide.AddTable(2,2,global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(80),global::OfficeIMO.OfficeLength.Points(160),global::OfficeIMO.OfficeLength.Points(80));
         table.GetCell(0, 0).Text = "A";
         table.GetCell(1, 1).Text = "B";
@@ -460,7 +460,7 @@ public sealed class OpenDocumentConversionContracts {
         Assert.True(odpRun.Bold);
         Assert.True(odpRun.Italic);
         Assert.True(odpRun.Underline);
-        Assert.True(odpRun.StrikeThrough);
+        Assert.True(odpRun.Strikethrough);
         Assert.Equal("Aptos", odpRun.FontFamily);
         Assert.Equal("#123456", odpRun.Color!.Value.ToString());
         Assert.Equal("#FFF200", odpRun.BackgroundColor!.Value.ToString());

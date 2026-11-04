@@ -20,7 +20,7 @@ public sealed class ReaderOneNoteModularTests {
         var options = new ReaderOneNoteOptions {
             IncludeConflictPages = true,
             IncludeVersionHistory = true,
-            OneNoteOptions = new OneNoteReaderOptions {
+            OneNoteOptions = new OneNoteLoadOptions {
                 ValidateTransactionChecksums = false,
                 MaxPageGraphNodes = 321,
                 MaxPageRelationshipDepth = 17
@@ -376,7 +376,7 @@ public sealed class ReaderOneNoteModularTests {
             section,
             oneNoteOptions: new ReaderOneNoteOptions {
                 IncludeAssetPayloads = true,
-                OneNoteOptions = new OneNoteReaderOptions {
+                OneNoteOptions = new OneNoteLoadOptions {
                     MaxAssetBytes = 4,
                     MaxTotalAssetBytes = 6
                 }
@@ -630,7 +630,7 @@ public sealed class ReaderOneNoteModularTests {
         }
         byte[] package = OneNotePackageWriter.Write(
             notebook,
-            new OneNoteWriterOptions { ValidateRoundTrip = false });
+            new OneNoteSaveOptions { ValidateRoundTrip = false });
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddOneNoteHandler().Build();
         using var stream = new MemoryStream(package);
 

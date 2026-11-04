@@ -36,7 +36,7 @@ public class HtmlRichGenericImports {
         ExcelRichTextRun bold = Assert.Single(runs, run => run.Text.Contains("bold", StringComparison.Ordinal));
         ExcelRichTextRun linked = Assert.Single(runs, run => run.Text.Contains("linked", StringComparison.Ordinal));
         Assert.True(bold.Bold);
-        Assert.Equal("Arial", bold.FontName);
+        Assert.Equal("Arial", bold.FontFamily);
         Assert.Equal(global::OfficeIMO.OfficeLength.Points(15D), bold.FontSize);
         Assert.True(linked.Italic);
         Assert.Contains(sheet.GetHyperlinks().Values,
@@ -276,7 +276,7 @@ public class HtmlRichGenericImports {
         PowerPointTableCell header = table.GetCell(0, 0);
         PowerPointTableCell body = table.GetCell(1, 0);
 
-        Assert.Equal("ABCDEF", header.FillColor);
+        Assert.Equal("ABCDEF", header.FillColor?.ToRgbHex());
         Assert.All(header.Runs, run => Assert.True(run.Bold));
         Assert.Equal(OfficeColor.Parse("123456"), header.Runs[0].Color);
         Assert.Equal(OfficeIMO.PowerPoint.PowerPointTextAlignment.Center, header.HorizontalAlignment);

@@ -138,7 +138,7 @@ public sealed partial class AgentIWorkConversionTests {
                 source.AddSlide().AddText("hello keynote", 40, 40, 600, 180, fontSizePoints: 24);
                 source.AddSlide().AddText("Second slide", 40, 40, 600, 180, fontSizePoints: 24);
                 if (directoryPackage) {
-                    using var bytes = new MemoryStream(source.SaveBytes(), writable: false);
+                    using var bytes = new MemoryStream(source.ToBytes(), writable: false);
                     using var archive = new ZipArchive(bytes, ZipArchiveMode.Read);
                     archive.ExtractToDirectory(Input);
                 } else source.Save(Input);

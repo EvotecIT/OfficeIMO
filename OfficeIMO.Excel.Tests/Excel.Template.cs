@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var invoice = document.AddSheet("Invoice");
-                invoice.Cell(1, 1).SetValue("Invoice {{Invoice.Number}}").SetBold().SetFillColor("D9EAF7").SetFontColor("1F4E79");
+                invoice.Cell(1, 1).SetValue("Invoice {{Invoice.Number}}").SetBold().SetFillColor(global::OfficeIMO.OfficeColor.Parse("D9EAF7")).SetColor(global::OfficeIMO.OfficeColor.Parse("1F4E79"));
                 invoice.Cell(2, 1).SetValue("Customer: {{Customer.Name}}");
 
                 var summary = document.AddSheet("Summary");
@@ -54,7 +54,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(templatePath)) {
                 var sheet = document.AddSheet("Template");
-                sheet.Cell(1, 1).SetValue("{{Name}}").SetBold().SetFillColor("FFF2CC");
+                sheet.Cell(1, 1).SetValue("{{Name}}").SetBold().SetFillColor(global::OfficeIMO.OfficeColor.Parse("FFF2CC"));
                 sheet.Cell(2, 1).SetValue("Footer");
                 var data = new ExcelChartData(
                     new[] { "Q1", "Q2" },
@@ -139,8 +139,8 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Invoice");
-                sheet.Cell(1, 1).SetValue("Item").SetBold().SetFillColor("D9EAF7").SetFontColor("1F4E79");
-                sheet.Cell(1, 2).SetValue("Amount").SetBold().SetFillColor("D9EAF7").SetFontColor("1F4E79");
+                sheet.Cell(1, 1).SetValue("Item").SetBold().SetFillColor(global::OfficeIMO.OfficeColor.Parse("D9EAF7")).SetColor(global::OfficeIMO.OfficeColor.Parse("1F4E79"));
+                sheet.Cell(1, 2).SetValue("Amount").SetBold().SetFillColor(global::OfficeIMO.OfficeColor.Parse("D9EAF7")).SetColor(global::OfficeIMO.OfficeColor.Parse("1F4E79"));
                 sheet.Cell(2, 1).SetValue("{{Name}}");
                 sheet.Cell(2, 2).SetValue("{{Amount:currency}}");
                 sheet.Cell(3, 1).SetValue("Footer");
@@ -756,7 +756,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Region Template");
-                sheet.Cell(1, 1).SetValue("Region {{Region}}").SetBold().SetFillColor("D9EAF7").SetFontColor("1F4E79");
+                sheet.Cell(1, 1).SetValue("Region {{Region}}").SetBold().SetFillColor(global::OfficeIMO.OfficeColor.Parse("D9EAF7")).SetColor(global::OfficeIMO.OfficeColor.Parse("1F4E79"));
                 sheet.Cell(2, 1).SetValue("Owner");
                 sheet.Cell(2, 2).SetValue("{{Owner}}");
                 sheet.Cell(3, 1).SetValue("Amount");

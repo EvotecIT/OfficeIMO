@@ -44,11 +44,11 @@ namespace OfficeIMO.Tests
                     (reportBuilder1).AddTable(items, title: "Scores", visuals: v =>
                     {
                         v.NumericColumnDecimals["Score"] = 0;
-                        v.TextBackgrounds["Status"] = new System.Collections.Generic.Dictionary<string, string>
+                        v.TextBackgrounds["Status"] = new System.Collections.Generic.Dictionary<string, OfficeColor>
                         {
                             {
                                 "Warning",
-                                "#FFF3CD"
+                                OfficeColor.Parse("#FFF3CD")
                             }
                         };
                     });

@@ -73,7 +73,7 @@ public sealed partial class HtmlRenderingTests {
             });
 
             var trusted = new HtmlPdfExportOptions { ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost() };
-            byte[] pdf = document.ToPdf(trusted).ToBytes();
+            byte[] pdf = document.ToPdftrusted.ToBytes();
             Assert.Single(PdfCore.PdfImageExtractor.ExtractImages(pdf));
 
             byte[] untrusted = document.ToPdf(new HtmlPdfExportOptions()).ToBytes();

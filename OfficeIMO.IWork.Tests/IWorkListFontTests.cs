@@ -12,7 +12,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = ListDeclarationPackage(kind,
             Message(VarintField(11, 2), StringField(16, "•"), StringField(23, "Courier New")),
             inherited: false, indent: 0);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, kind);
         IWorkTextParagraph sourceParagraph = Assert.Single(Assert.Single(
             ReadSelectedRichTable(source, kind).Item1.Cells).RichText!.Paragraphs);
         Assert.Equal("Courier New", sourceParagraph.ListFontName);
@@ -39,7 +39,7 @@ public sealed partial class IWorkBoundaryTests {
             using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
             var paragraph = Assert.Single(Assert.Single(reopened.Slides).Tables).GetCell(0, 0).Paragraphs[0];
             Assert.Equal("Value", paragraph.Text);
-            Assert.Equal("Courier New", paragraph.BulletFontName);
+            Assert.Equal("Courier New", paragraph.BulletFontFamily);
             Assert.Empty(reopened.ValidateDocument());
         }
     }
@@ -65,14 +65,14 @@ public sealed partial class IWorkBoundaryTests {
         };
         using MemoryStream package = ListDeclarationPackage(IWorkDocumentKind.Numbers, child,
             parentFields: StringField(23, "Symbol"));
-        var source = IWorkSourceDocument.Open(package);
+        var source = IWorkSourceDocument.Load(package);
         IWorkTextContent text = Assert.Single(ReadSelectedRichTable(source, IWorkDocumentKind.Numbers).Item1.Cells).RichText!;
         Assert.Equal(expected, Assert.Single(text.Paragraphs).ListFontName);
         Assert.Equal(complete, text.IsFormattingComplete);
         if (!complete) {
             package.Position = 0;
             var report = ConvertUnitReport(package, IWorkDocumentKind.Numbers,
-                readOptions: new IWorkReadOptions { PreserveSourceRecords = false });
+                readOptions: new IWorkLoadOptions { PreserveSourceRecords = false });
             AssertListDeclaration(Assert.Single(report.SourceDeclarationIssues), declaration == "flag" ? "22" : "23",
                 declaration == "duplicate" ? 2 : 1);
             Assert.Empty(report.PreservedRecords);
@@ -84,7 +84,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = ListDeclarationPackage(IWorkDocumentKind.Numbers,
             Message(VarintField(11, 2), StringField(16, "•"), StringField(23, new string('F', 100))),
             inherited: false, indent: 0, aliases: true);
-        var source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxProjectedTextCharacters = 250 });
+        var source = IWorkSourceDocument.Load(package, new IWorkLoadOptions { MaxProjectedTextCharacters = 250 });
         Assert.Contains("text character", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message,
             StringComparison.OrdinalIgnoreCase);
     }

@@ -16,17 +16,17 @@ public sealed class PageGraphSafetyTests {
         OneNoteWriteGraph graph = new OneNoteWriteGraphBuilder().BuildSection(section);
         AddConflictReferences(graph, second, shared.Id!);
 
-        OneNoteSection loaded = OneNoteSectionReader.Read(
+        OneNoteSection loaded = OneNoteSection.Load(
             new MemoryStream(OneNoteRevisionStoreWriter.Write(graph)),
-            new OneNoteReaderOptions { PreserveUnknownData = false });
+            new OneNoteLoadOptions { PreserveUnknownData = false });
 
         OneNotePage loadedCurrent = Assert.Single(loaded.Pages);
         OneNotePage firstShared = Assert.Single(loadedCurrent.ConflictPages[0].ConflictPages);
         Assert.Equal("Shared", firstShared.Title);
         Assert.Empty(loadedCurrent.ConflictPages[1].ConflictPages);
 
-        byte[] rewritten = OneNoteSectionWriter.Write(loaded);
-        OneNotePage reopened = Assert.Single(OneNoteSectionReader.Read(new MemoryStream(rewritten)).Pages);
+        byte[] rewritten = loaded.ToBytes();
+        OneNotePage reopened = Assert.Single(OneNoteSection.Load(new MemoryStream(rewritten)).Pages);
         Assert.Equal("Shared", Assert.Single(reopened.ConflictPages[0].ConflictPages).Title);
         Assert.Empty(reopened.ConflictPages[1].ConflictPages);
     }
@@ -41,16 +41,16 @@ public sealed class PageGraphSafetyTests {
         OneNoteWriteGraph graph = new OneNoteWriteGraphBuilder().BuildSection(section);
         AddConflictReferences(graph, conflict, current.Id!);
 
-        OneNotePage loaded = Assert.Single(OneNoteSectionReader.Read(
+        OneNotePage loaded = Assert.Single(OneNoteSection.Load(
             new MemoryStream(OneNoteRevisionStoreWriter.Write(graph)),
-            new OneNoteReaderOptions { PreserveUnknownData = false }).Pages);
+            new OneNoteLoadOptions { PreserveUnknownData = false }).Pages);
 
         Assert.Empty(Assert.Single(loaded.ConflictPages).ConflictPages);
-        OneNotePage reopened = Assert.Single(OneNoteSectionReader.Read(
-            new MemoryStream(OneNoteSectionWriter.Write(new OneNoteSection {
+        OneNotePage reopened = Assert.Single(OneNoteSection.Load(
+            new MemoryStream((new OneNoteSection {
                 Name = "Rewritten",
                 Pages = { loaded }
-            }))).Pages);
+            }).ToBytes())).Pages);
         Assert.Empty(Assert.Single(reopened.ConflictPages).ConflictPages);
     }
 
@@ -63,15 +63,15 @@ public sealed class PageGraphSafetyTests {
         OneNoteWriteGraph graph = new OneNoteWriteGraphBuilder().BuildSection(section);
         DuplicateVersionContextReference(graph);
 
-        OneNotePage loaded = Assert.Single(OneNoteSectionReader.Read(
+        OneNotePage loaded = Assert.Single(OneNoteSection.Load(
             new MemoryStream(OneNoteRevisionStoreWriter.Write(graph)),
-            new OneNoteReaderOptions { PreserveUnknownData = false }).Pages);
+            new OneNoteLoadOptions { PreserveUnknownData = false }).Pages);
 
         Assert.Equal("Earlier", Assert.Single(loaded.VersionHistory).Title);
         var rewrittenSection = new OneNoteSection { Name = "Rewritten history" };
         rewrittenSection.Pages.Add(loaded);
-        OneNotePage reopened = Assert.Single(OneNoteSectionReader.Read(
-            new MemoryStream(OneNoteSectionWriter.Write(rewrittenSection))).Pages);
+        OneNotePage reopened = Assert.Single(OneNoteSection.Load(
+            new MemoryStream(rewrittenSection.ToBytes())).Pages);
         Assert.Equal("Earlier", Assert.Single(reopened.VersionHistory).Title);
     }
 
@@ -80,7 +80,7 @@ public sealed class PageGraphSafetyTests {
         byte[] data = WriteConflictChain(4);
 
         OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
-            OneNoteSectionReader.Read(new MemoryStream(data), new OneNoteReaderOptions {
+            OneNoteSection.Load(new MemoryStream(data), new OneNoteLoadOptions {
                 MaxPageRelationshipDepth = 3
             }));
 
@@ -92,7 +92,7 @@ public sealed class PageGraphSafetyTests {
         byte[] data = WriteConflictChain(3);
 
         OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
-            OneNoteSectionReader.Read(new MemoryStream(data), new OneNoteReaderOptions {
+            OneNoteSection.Load(new MemoryStream(data), new OneNoteLoadOptions {
                 MaxPageGraphNodes = 2
             }));
 
@@ -103,9 +103,9 @@ public sealed class PageGraphSafetyTests {
     public void PageGraphLimitsAllowTheExactConfiguredBoundary() {
         byte[] data = WriteConflictChain(3);
 
-        OneNotePage loaded = Assert.Single(OneNoteSectionReader.Read(
+        OneNotePage loaded = Assert.Single(OneNoteSection.Load(
             new MemoryStream(data),
-            new OneNoteReaderOptions {
+            new OneNoteLoadOptions {
                 MaxPageGraphNodes = 3,
                 MaxPageRelationshipDepth = 3
             }).Pages);
@@ -123,9 +123,9 @@ public sealed class PageGraphSafetyTests {
         AddConflictReferences(graph, current, graph.ObjectSpaces[0].Id, extraSpace.Id);
 
         OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
-            OneNoteSectionReader.Read(
+            OneNoteSection.Load(
                 new MemoryStream(OneNoteRevisionStoreWriter.Write(graph)),
-                new OneNoteReaderOptions { MaxPageGraphNodes = 2 }));
+                new OneNoteLoadOptions { MaxPageGraphNodes = 2 }));
 
         Assert.Equal("ONENOTE_PAGE_GRAPH_LIMIT", exception.Code);
     }
@@ -144,9 +144,9 @@ public sealed class PageGraphSafetyTests {
             new OneNoteExtendedGuid(Guid.NewGuid(), 1, 17));
 
         OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
-            OneNoteSectionReader.Read(
+            OneNoteSection.Load(
                 new MemoryStream(OneNoteRevisionStoreWriter.Write(graph)),
-                new OneNoteReaderOptions { MaxPageGraphNodes = 2 }));
+                new OneNoteLoadOptions { MaxPageGraphNodes = 2 }));
 
         Assert.Equal("ONENOTE_PAGE_GRAPH_LIMIT", exception.Code);
     }
@@ -161,7 +161,7 @@ public sealed class PageGraphSafetyTests {
             parent = child;
         }
         section.Pages.Add(root);
-        return OneNoteSectionWriter.Write(section);
+        return section.ToBytes();
     }
 
     private static OneNoteWriteObjectSpace AddNonPageObjectSpace(OneNoteWriteGraph graph) {

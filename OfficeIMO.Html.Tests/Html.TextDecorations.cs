@@ -13,10 +13,10 @@ namespace OfficeIMO.Tests {
             var runs = doc.Paragraphs;
 
             var strikeRun = runs.First(r => r.Text == "strike");
-            Assert.True(strikeRun.Strike);
+            Assert.True(strikeRun.Strikethrough);
 
             var delRun = runs.First(r => r.Text == "delete");
-            Assert.True(delRun.Strike);
+            Assert.True(delRun.Strikethrough);
 
             var insRun = runs.First(r => r.Text == "insert");
             Assert.Equal(OfficeIMO.Word.WordUnderlineStyle.Single, insRun.Underline);

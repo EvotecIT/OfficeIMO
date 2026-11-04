@@ -41,16 +41,16 @@ namespace OfficeIMO.Tests {
                 projectedComment.RichTextRuns,
                 run => {
                     Assert.Equal("Bold", run.Text);
-                    Assert.Equal("Consolas", run.FontName);
+                    Assert.Equal("Consolas", run.FontFamily);
                     Assert.Equal(global::OfficeIMO.OfficeLength.Points(13d), run.FontSize);
-                    Assert.Equal("FF123456", run.FontColor);
+                    Assert.Equal("FF123456", run.Color?.ToArgbHex());
                     Assert.True(run.Bold);
                     Assert.True(run.Italic);
                     Assert.True(run.Underline);
                 },
                 run => {
                     Assert.Equal(" plain", run.Text);
-                    Assert.Equal("Arial", run.FontName);
+                    Assert.Equal("Arial", run.FontFamily);
                     Assert.Equal(global::OfficeIMO.OfficeLength.Points(11d), run.FontSize);
                     Assert.False(run.Bold);
                 });

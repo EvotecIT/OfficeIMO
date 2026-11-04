@@ -449,7 +449,7 @@ public sealed class HtmlRenderRequestTests {
         // the observed timeout occurs during serialization, including on a busy CI host.
         // The provider deliberately exceeds that deadline; this is a cancellation contract,
         // not a rendering performance budget.
-        _ = (source.ToPdf()).ToBytes();
+        _ = source.ToPdf().ToBytes();
         var timeout = TimeSpan.FromSeconds(5D);
         var provider = new SlowFirstEncryptionProvider(timeout + TimeSpan.FromMilliseconds(300D));
         var options = new HtmlPdfExportOptions { RenderTimeout = timeout };

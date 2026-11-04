@@ -100,7 +100,7 @@ namespace OfficeIMO.Tests {
 
             sheet.Cell(1, 1).SetValue("Chart Axis Label Density");
             sheet.Range("A1:H1").Merge();
-            sheet.Range("A1:H1").SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold();
+            sheet.Range("A1:H1").SetFillColor(global::OfficeIMO.OfficeColor.Parse("0F172A")).SetColor(global::OfficeIMO.OfficeColor.Parse("FFFFFF")).SetBold();
             sheet.Cell(1, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
             sheet.Cell(1, 1).SetVerticalAlignment(ExcelVerticalAlignment.Center);
 
@@ -114,8 +114,8 @@ namespace OfficeIMO.Tests {
             sheet.Cell(5, 2).SetValue(1600);
             sheet.Cell(6, 1).SetValue("Apr");
             sheet.Cell(6, 2).SetValue(2000);
-            sheet.Range("A2:B2").SetFillColor("E2E8F0").SetBold();
-            sheet.Range("A3:B6").SetFillColor("F8FAFC");
+            sheet.Range("A2:B2").SetFillColor(global::OfficeIMO.OfficeColor.Parse("E2E8F0")).SetBold();
+            sheet.Range("A3:B6").SetFillColor(global::OfficeIMO.OfficeColor.Parse("F8FAFC"));
 
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A2:B6", new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 4, Width = OfficeLength.Pixels(340), Height = OfficeLength.Pixels(220), Title = "Axis Label Density" });
             chart.SetValueAxisNumberFormat("#,##0");
@@ -132,7 +132,7 @@ namespace OfficeIMO.Tests {
 
             for (int row = 1; row <= 10; row++) {
                 for (int column = 1; column <= 8; column++) {
-                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
+                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, global::OfficeIMO.OfficeColor.Parse("CBD5E1"));
                     sheet.Cell(row, column).SetVerticalAlignment(ExcelVerticalAlignment.Center);
                 }
             }
@@ -147,7 +147,7 @@ namespace OfficeIMO.Tests {
 
             sheet.Cell(1, 1).SetValue("Data Label Box Fidelity");
             sheet.Range("A1:H1").Merge();
-            sheet.Range("A1:H1").SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold();
+            sheet.Range("A1:H1").SetFillColor(global::OfficeIMO.OfficeColor.Parse("0F172A")).SetColor(global::OfficeIMO.OfficeColor.Parse("FFFFFF")).SetBold();
             sheet.Cell(1, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
             sheet.Cell(1, 1).SetVerticalAlignment(ExcelVerticalAlignment.Center);
 
@@ -159,8 +159,8 @@ namespace OfficeIMO.Tests {
             sheet.Cell(4, 2).SetValue(180);
             sheet.Cell(5, 1).SetValue("Mar");
             sheet.Cell(5, 2).SetValue(160);
-            sheet.Range("A2:B2").SetFillColor("E2E8F0").SetBold();
-            sheet.Range("A3:B5").SetFillColor("F8FAFC");
+            sheet.Range("A2:B2").SetFillColor(global::OfficeIMO.OfficeColor.Parse("E2E8F0")).SetBold();
+            sheet.Range("A3:B5").SetFillColor(global::OfficeIMO.OfficeColor.Parse("F8FAFC"));
 
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A2:B5", new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 4, Width = OfficeLength.Pixels(340), Height = OfficeLength.Pixels(220), Title = "Data Label Boxes" });
             chart.SetDataLabels(
@@ -183,7 +183,7 @@ namespace OfficeIMO.Tests {
             for (int row = 2; row <= 10; row++) {
                 sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
                 for (int column = 1; column <= 8; column++) {
-                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
+                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, global::OfficeIMO.OfficeColor.Parse("CBD5E1"));
                     sheet.Cell(row, column).SetVerticalAlignment(ExcelVerticalAlignment.Center);
                 }
             }

@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddSheet("Links");
                 for (int row = 1; row <= 3; row++) {
                     sheet.Cell(row, 1).SetValue("Two\nlines");
-                    sheet.Cell(row, 1).SetBold(true).SetItalic(true).SetFontName("Arial").SetFontSize(global::OfficeIMO.OfficeLength.Points(14)).SetNumberFormat("0.0000 \"units\"");
+                    sheet.Cell(row, 1).SetBold(true).SetItalic(true).SetFontFamily("Arial").SetFontSize(global::OfficeIMO.OfficeLength.Points(14)).SetNumberFormat("0.0000 \"units\"");
                     sheet.Cell(row, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
                     sheet.Cell(row, 1).SetVerticalAlignment(ExcelVerticalAlignment.Top);
                 }
@@ -116,7 +116,7 @@ namespace OfficeIMO.Tests {
                 Func<int> worksheetSaves = TrackPartSaves(document, workbook.WorksheetParts.Single());
                 sheet.Batch(target => {
                     for (int row = 1; row <= 20; row++) {
-                        target.Cell(row, 1).SetGradientFill("#FF0000", "#0000FF");
+                        target.Cell(row, 1).SetGradientFill(global::OfficeIMO.OfficeColor.Parse("#FF0000"), global::OfficeIMO.OfficeColor.Parse("#0000FF"));
                         target.DefineNamedStyle("Row" + row, row, 1);
                         target.AddConditionalFormattingRule(new ExcelConditionalFormattingInfo {
                             Range = "A" + row, Type = "Expression", Formulas = new[] { "TRUE" },

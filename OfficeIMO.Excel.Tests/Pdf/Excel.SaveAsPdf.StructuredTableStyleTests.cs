@@ -26,7 +26,7 @@ public partial class Excel {
         sheet.Cell(5, 2).SetValue("Platform");
         sheet.Cell(5, 3).SetValue("Ready");
         sheet.AddTable("B4:C5", hasHeader: hasHeader, name: "Delivery", style: ExcelTableStyle.TableStyleLight9);
-        sheet.Range("A1:D5").SetFontName("Helvetica").SetFontSize(global::OfficeIMO.OfficeLength.Points(9));
+        sheet.Range("A1:D5").SetFontFamily("Helvetica").SetFontSize(global::OfficeIMO.OfficeLength.Points(9));
         for (int column = 1; column <= 4; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(22));
 
         byte[] bytes = workbook.ToPdf(new ExcelPdfExportOptions {
@@ -115,7 +115,7 @@ public partial class Excel {
             sheet.Cell(2, 2).SetValue("Ready");
             sheet.Cell(3, 1).SetValue("Ignored");
             sheet.Cell(3, 2).SetValue("Outside limit");
-            sheet.Range("A1").SetFillColor("C00000").SetFontColor("FFFFFF").SetBold();
+            sheet.Range("A1").SetFillColor(global::OfficeIMO.OfficeColor.Parse("C00000")).SetColor(global::OfficeIMO.OfficeColor.Parse("FFFFFF")).SetBold();
             source.Save();
         }
 
@@ -150,7 +150,7 @@ public partial class Excel {
         ExcelSheet sheet = document.AddSheet("Report");
         sheet.Cell(1, 1).SetValue("Name");
         sheet.Cell(2, 1).SetValue("Platform");
-        sheet.Range("A1").SetFillColor("C00000").SetFontColor("FFFFFF").SetBold();
+        sheet.Range("A1").SetFillColor(global::OfficeIMO.OfficeColor.Parse("C00000")).SetColor(global::OfficeIMO.OfficeColor.Parse("FFFFFF")).SetBold();
 
         PdfCore.PdfDocumentConversionResult conversion = document.ConvertToPdfWithEvidence(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false,

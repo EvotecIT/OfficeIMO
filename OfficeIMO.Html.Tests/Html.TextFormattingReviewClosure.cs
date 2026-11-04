@@ -24,7 +24,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
             Bold = true,
             Italic = true,
             Underline = A.TextUnderlineValues.Wavy,
-            Strike = A.TextStrikeValues.DoubleStrike,
+            Strike = A.TextStrikeValues.DoubleStrikethrough,
             Capital = A.TextCapsValues.Small,
             Baseline = 30000,
             FontSize = 1800,
@@ -303,7 +303,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
             .RequireValue();
         WordParagraph actual = Assert.Single(imported.Paragraphs);
         Assert.Equal(WordUnderlineStyle.Wave, actual.Underline);
-        Assert.True(actual.DoubleStrike);
+        Assert.True(actual.DoubleStrikethrough);
     }
 
     [Fact]
@@ -349,7 +349,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         WordParagraph reset = paragraph.AddText("Reset")
             .SetUnderline(WordUnderlineStyle.None)
             .SetVerticalTextAlignment(WordVerticalTextPosition.Baseline);
-        reset._runProperties!.Strike = new Strike { Val = false };
+        reset._runProperties!.Strikethrough = new Strike { Val = false };
 
         string html = source.ToHtml(new WordHtmlExportOptions { IncludeParagraphClasses = true, IncludeDefaultCss = false });
         IElement output = HtmlDocumentParser.ParseDocument(html)

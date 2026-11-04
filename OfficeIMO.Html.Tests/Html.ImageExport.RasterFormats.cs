@@ -70,15 +70,15 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public async Task HtmlImageExport_RasterConvenienceMethodsWriteCallerOwnedStreams() {
+    public async Task HtmlImageExport_RetainedEvidenceWritesCallerOwnedStreams() {
         HtmlConversionDocument document = HtmlConversionDocument.Parse("<p>Convenience methods</p>");
         using var jpeg = new MemoryStream();
         using var tiff = new MemoryStream();
         using var webp = new MemoryStream();
 
-        OfficeImageExportResult jpegResult = document.SaveAsJpeg(jpeg);
-        OfficeImageExportResult tiffResult = await document.SaveAsTiffAsync(tiff);
-        OfficeImageExportResult webpResult = document.SaveAsWebp(webp);
+        OfficeImageExportResult jpegResult = document.ExportImageOfficeImageExportFormat.Jpeg.Save(jpeg);
+        OfficeImageExportResult tiffResult = await (await document.ExportImageAsync(OfficeImageExportFormat.Tiff)).SaveAsync(tiff);
+        OfficeImageExportResult webpResult = document.ExportImageOfficeImageExportFormat.Webp.Save(webp);
 
         Assert.True(jpeg.CanWrite);
         Assert.True(tiff.CanWrite);

@@ -35,7 +35,7 @@ public sealed partial class IWorkWorkflowTests {
     public async Task Complete_keynote_pdf_rejects_omitted_native_presenter_notes(bool compress) {
         using var files = new Files("key", "pdf");
         File.Copy(Path.Combine(AppContext.BaseDirectory, "Corpus", "simple.key"), files.Input, true);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(files.Input);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(files.Input);
         Assert.Contains(source.ReadKeynote().Slides, slide => !string.IsNullOrWhiteSpace(slide.PresenterNotes));
         File.WriteAllText(files.Output, "keep existing");
         OfficeWorkflowRequest request = files.Request("keynote-pdf");

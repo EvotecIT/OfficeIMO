@@ -38,9 +38,9 @@ namespace OfficeIMO.Tests {
                     sheet.Cell(row, 4).SetValue(1.5d);
                     sheet.Cell(row, 5).SetValue(1.5d);
                 }
-                sheet.ColumnStyleByHeader("Calendar").NumberFormat("yyyy-mm-dd hh:mm:ss");
-                foreach (string header in new[] { "Duration", "Numeric", "Text" }) sheet.ColumnStyleByHeader(header).NumberFormat("[h]:mm");
-                sheet.ColumnStyleByHeader("Time").NumberFormat("hh:mm:ss");
+                sheet.ColumnStyleByHeader("Calendar").SetNumberFormat("yyyy-mm-dd hh:mm:ss");
+                foreach (string header in new[] { "Duration", "Numeric", "Text" }) sheet.ColumnStyleByHeader(header).SetNumberFormat("[h]:mm");
+                sheet.ColumnStyleByHeader("Time").SetNumberFormat("hh:mm:ss");
                 document.Save();
             }
             if (unsorted) {
@@ -95,7 +95,7 @@ namespace OfficeIMO.Tests {
                 for (int c = 0; c < formats.Length; c++) {
                     sheet.Cell(1, c + 1).SetValue("Field" + c);
                     sheet.Cell(2, c + 1).SetValue(1.5d);
-                    sheet.ColumnStyleByHeader("Field" + c).NumberFormat(formats[c]);
+                    sheet.ColumnStyleByHeader("Field" + c).SetNumberFormat(formats[c]);
                 }
                 document.Save();
             }
