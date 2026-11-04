@@ -746,7 +746,8 @@ sampled shares locate work and waiting, rather than proving lower total CPU.
 Inlining shifts attribution between indexing and synchronization frames, so I
 do not claim a standalone indexing speedup from their frame percentages.
 
-This path applies to compressed UTF-8 parts of at least 1 MiB, on net8.0/net10.0
+This path applies to compressed UTF-8 parts with at least 1 MiB of uncompressed
+worksheet XML, on net8.0/net10.0
 when execution permits parallel work. Sequential execution, `MaxDegreeOfParallelism=1`,
 diagnostic callbacks, explicit ranges, worksheet prefetch, WebAssembly and legacy
 frameworks retain the serial path. Small or unsupported parts fall back. The independent
@@ -770,12 +771,101 @@ direct-XLS destination fact uses the equivalent offset/count stream write so it
 also compiles on net472. Test compilation retains warnings in unchanged sources.
 The grid loader, writers, binary formats, CSV runtime and public API are unchanged.
 
+## XLSX scalar caches and paired measurements (4 November)
+
+I target another 20% reduction from `c0e7d32665`. The final runtime change is
+`84fc3f904c`, with the earlier character-proof, row-delivery and publication
+changes. Both accepted series clear the target. The
+[normalized evidence](excel-xlsx-raw-followup-2026-11-04.json) retains every block,
+all earlier launches, failed acceptance pairs and rejected prototypes.
+
+Long-separated launches showed large timing shifts, including in unchanged peer
+libraries. I use two closely paired series for acceptance: both engine copies
+load into separate assembly contexts in one .NET 10 process, with the same
+harness and every dependency DLL identical except `OfficeIMO.Excel.dll`. Each
+public workload still opens, consumes and disposes the complete reader or
+constructs every typed record. Setup checks every value and header through the
+independent readers; timed operations check counts and checksums. Each function
+returns the same checksum from both copies before timing starts.
+
+Each series has eight warmup rounds and twelve measured rounds. A round uses
+four eight-operation blocks in ABBA or BAAB order, with case order rotated.
+Each engine contributes sixteen operations per round; the table uses the median
+of twelve round means. All blocks remain in the evidence. One delegate call
+crosses the assembly-context boundary per complete operation, with no per-cell
+adapter or overlapping engine work. Managed allocation covers all threads.
+
+I also give each participant's read and object-consumption loop a separate
+value-type JIT instantiation and no-inline boundary. Both loop bodies remain
+byte-identical to the earlier harness. This isolates their call-site profiles;
+I do not attribute every earlier stall to that one change.
+
+| Lane | Library | Pair 1 before → after ms | Pair 2 before → after ms | Allocation before → after MiB |
+|---|---|---:|---:|---:|
+| Cell-by-cell read | OfficeIMO | 7.186 → 5.502 | 7.221 → 5.545 | 2.285 → 2.285 |
+| Cell-by-cell read | ExcelReader.NET | 6.422 → 6.439 | 6.424 → 6.446 | 2.216 → 2.216 |
+| Cell-by-cell read | Sylvan | 27.069 → 26.904 | 26.943 → 26.844 | 2.545 → 2.545 |
+| Cell-by-cell read | ExcelDataReader | 57.309 → 58.371 | 57.928 → 57.097 | 33.880 → 33.880 |
+| Typed parse | OfficeIMO | 8.233 → 7.128 | 8.283 → 7.073 | 4.574 → 4.575 |
+| Typed parse | ExcelReader.NET | 7.902 → 8.067 | 8.031 → 7.976 | 4.506 → 4.506 |
+
+Raw reading improves by 23.4% and 23.2%; typed parsing by 13.4% and 14.6%.
+The unchanged peer medians move by at most 2.1%. Allocation remains essentially
+unchanged. These results describe this pinned 50,000-row owned-string workload
+on the M4, without establishing a portable or whole-XLBench ranking.
+
+The retained changes remove repeated work while keeping complete qualification
+before the first row:
+
+- I qualify each initialized UTF-8 prefix once during inflation. Simple ASCII
+  uses a fused search; other bytes retain full UTF-8/XML-character proof, and
+  richer XML retains the complete XmlReader path.
+- Fully qualified ASCII strings skip another character-count and normalization
+  pass. Unicode, entities and literal/referenced carriage returns keep their
+  established decoding rules.
+- Indexed rows pass cancellation directly to window selection, without the XML
+  callback token save/restore path. Cached implicit rows save rollback bounds
+  only when they enter adaptive parsing.
+- Scalar getters reuse the loaded-value slot and avoid a redundant primitive
+  marker reset for unloaded text. Every getter retains its open-row and ordinal
+  checks. The private cache arrays are readonly, allocated at that fixed field
+  count; net8.0/net10.0 use managed-reference intrinsics for those validated slots.
+  Legacy targets keep ordinary array indexing.
+- The inflation producer owns its scan fields. Release/acquire publication lets
+  a consumer use an available prefix without taking the monitor; blocking waits,
+  complete proof, cancellation and producer-error precedence remain intact.
+
+I reject the broad/selective numeric caches and the later short-Int32 parser
+prototype: their preparation or dispatch costs did not give a repeatable gain.
+A dedicated indexing thread reduced queue-delay tails, but did not make the
+complete comparison consistently faster. I retain the original shared task
+scheduler, without adding a process-wide scheduling policy or per-read native
+thread. Native inflation remains substantial; I do not claim a faster inflater.
+
+The independent compressed ZIP/XML reader-boundary proof now rejects late
+invalid UTF-8, XML controls and noncharacters before exposing a row, and checks
+Unicode, entity and carriage-return normalization. The existing precision corpus
+calls the parser entry point, including signed zero and precision boundaries.
+All 1,338 focused reader/mapping cases pass. Independent reviews cover character
+qualification, publication ordering and the fixed-array/managed-reference
+invariant; no actionable findings remain.
+
+Final net10.0 suites with `Category!=Performance` pass 7,773 Excel tests with five
+skips and all 938 CSV tests, including the twelve original independent
+omitted-reference cases. Excel builds for netstandard2.0, net8.0, net10.0 and
+net472 with zero warnings/errors. NativeAOT osx-arm64 publish/execution and an
+actual browser-wasm runtime under Node pass. The WASM fixture checks all 6,000
+rows and rejects a late invalid shared string before the first row. net472 is
+cross-built on macOS, without Windows or PowerShell 5.1 execution. The public API,
+selector timing, runtime dependencies, grid loader, cell/range/formatting APIs,
+binary formats, writers and CSV runtime are unchanged.
+
 ## Remaining costs and limits
 
-Parity is incomplete. The latest XLSX cohort brings typed parsing close to
-ExcelReader.NET, while raw reading still trails it. Earlier binary-format cohorts
-also retain gaps. The remaining read cost is structural rather than one hidden
-hot spot. OfficeIMO proves the whole part before delivering the first row and
+Parity across formats is incomplete. The latest paired XLSX cohort puts raw
+reading and typed parsing ahead of ExcelReader.NET in this owned-string workload.
+Earlier binary-format cohorts retain gaps. The remaining read cost is structural
+rather than one hidden hot spot. OfficeIMO proves the whole part before delivering the first row and
 gives the data reader a fixed field count. It therefore makes a validation and indexing pass and then a delivery
 pass; ExcelReader.NET reads each row once. Eligible large XLSX reads now overlap
 inflation and indexing, while preserving complete proof before delivery. Inflation
