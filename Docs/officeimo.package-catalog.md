@@ -24,6 +24,7 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 | Reader.Yaml | [YamlDotNet](https://github.com/aaubry/YamlDotNet) | Reader projection, chunking, limits, locations, and diagnostics |
 | MarkdownRenderer.Wpf | Microsoft WebView2 | Rendering shell, presets, plug-in model, and WPF host contract |
 | Optional document AI | [OfficeIMO.AI](../OfficeIMO.AI/README.md) and [IntelligenceX adapter](../OfficeIMO.AI.IntelligenceX/README.md) | Read-only questions, summaries, field extraction and proposed structure with bounded source evidence; .NET 10 and caller-selected model execution |
+| Optional Apple raster codec | Installed Apple ImageIO, CoreGraphics and CoreFoundation frameworks | Bounded HEIC/HEIF composition, transforms, alpha and color policy in Core, with explicit .NET registration |
 | Optional OCR providers | A caller-supplied executable or an installed Tesseract CLI | Neutral request/result/geometry contracts, bounded provider execution, and opt-in Reader/PDF integrations |
 | Google Workspace packages | `System.Text.Json` and platform HTTP/cryptography | Credentials abstraction, request/retry logic, Drive placement, translation plans, and reports; no Google client SDK |
 | Converter packages not listed above | Only the OfficeIMO format packages they connect | Feature mapping, limits, loss reports, and destination APIs |
@@ -103,6 +104,13 @@ _Dependency footprint:_ `OfficeIMO.Core` and Apache.Arrow; Excel and CSV remain 
 - [x] Reflection-free generated mapping validated in a NativeAOT consumer
 
 _Dependency footprint:_ build-time Roslyn analyzer only; no generator assembly is deployed with the application.
+
+#### [OfficeIMO.Drawing.ImageIO](../OfficeIMO.Drawing.ImageIO/README.md)
+
+- [x] Opt-in Apple ImageIO tile decoding for Core's bounded HEIC/HEIF composition
+- [x] Explicit .NET codec registration for image conversion and document insertion, with no automatic activation in PSWriteOffice, Tool or Studio
+
+_Dependency footprint:_ only `OfficeIMO.Core` and the installed Apple ImageIO, CoreGraphics and CoreFoundation frameworks; no native decoder is bundled. The package targets .NET 8 and .NET 10. Native macOS tests and PDF comparisons cover the qualified fixtures; iOS and Mac Catalyst execution require qualification in the consuming app.
 
 #### [OfficeIMO.Drawing.HarfBuzz](../OfficeIMO.Drawing.HarfBuzz/README.md)
 
