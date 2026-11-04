@@ -66,9 +66,7 @@ public class ChartTests {
         area3d.AddCategories(categories);
         area3d.AddArea3D("USA", new List<int> { 5, 2, 3, 4 }, Color.DarkBlue);
 
-        _ = document.ToBytes();
-
-        await Verifier.Verify(document._wordprocessingDocument);
+        await Verifier.Verify(document);
     }
 
 }

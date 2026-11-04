@@ -32,9 +32,7 @@ public class BordersAndMarginsTests {
         document.Sections[0].Borders.BottomColor = Color.Blue;
         document.Sections[0].Borders.BottomSize = OfficeLength.Points(1.875);
 
-        _ = document.ToBytes();
-
-        await Verifier.Verify(document._wordprocessingDocument);
+        await Verifier.Verify(document);
     }
 
     [Fact]
@@ -49,9 +47,7 @@ public class BordersAndMarginsTests {
         document.AddSection();
         document.Sections[1].SetBorders(WordBorder.Shadow);
 
-        _ = document.ToBytes();
-
-        await Verifier.Verify(document._wordprocessingDocument);
+        await Verifier.Verify(document);
     }
 
     [Fact]
@@ -76,8 +72,6 @@ public class BordersAndMarginsTests {
         document.Sections[4].SetMargins(WordMargin.Wide);
         document.AddParagraph("Section 4");
 
-        _ = document.ToBytes();
-
-        await Verifier.Verify(document._wordprocessingDocument);
+        await Verifier.Verify(document);
     }
 }

@@ -21,9 +21,7 @@ public class CustomAndBuiltinPropertiesTests {
         document.CustomDocumentProperties.Add("MyName", new WordCustomProperty("Some text"));
         document.CustomDocumentProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
 
-        _ = document.ToBytes();
-
-        await Verifier.Verify(document._wordprocessingDocument);
+        await Verifier.Verify(document);
     }
 
     [Fact]
@@ -37,8 +35,6 @@ public class CustomAndBuiltinPropertiesTests {
         paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
         paragraph.Color = Color.Red;
 
-        _ = document.ToBytes();
-
-        await Verifier.Verify(document._wordprocessingDocument);
+        await Verifier.Verify(document);
     }
 }

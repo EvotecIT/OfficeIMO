@@ -49,8 +49,6 @@ public class BookmarkTests {
         document.PageBreaks[7].Remove(includingParagraph: false);
         document.PageBreaks[6].Remove(true);
 
-        _ = document.ToBytes();
-
-        await Verifier.Verify(document._wordprocessingDocument);
+        await Verifier.Verify(document);
     }
 }

@@ -26,7 +26,7 @@ public class ComparerTests {
         }
 
         using (var result = WordDocumentComparer.Compare(sourcePath, targetPath)) {
-            await Verifier.Verify(result._wordprocessingDocument);
+            await Verifier.Verify(result);
         }
     }
 
@@ -49,7 +49,7 @@ public class ComparerTests {
         }
 
         using (var result = WordDocumentComparer.Compare(sourcePath, targetPath)) {
-            await Verifier.Verify(result._wordprocessingDocument);
+            await Verifier.Verify(result);
         }
     }
 }

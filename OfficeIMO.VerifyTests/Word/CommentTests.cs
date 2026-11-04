@@ -21,8 +21,6 @@ public class CommentTests {
 
         document.Paragraphs[1].AddComment("Przemysław", "PK", "More comments");
 
-        _ = document.ToBytes();
-
-        await Verifier.Verify(document._wordprocessingDocument);
+        await Verifier.Verify(document);
     }
 }

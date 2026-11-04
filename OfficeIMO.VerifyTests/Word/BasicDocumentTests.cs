@@ -16,9 +16,8 @@ public class BasicDocumentTests {
         document.BuiltinDocumentProperties.Title = "This is my title";
         document.BuiltinDocumentProperties.Creator = "Przemysław Kłys";
         document.BuiltinDocumentProperties.Keywords = "word, docx, test";
-        _ = document.ToBytes();
 
-        await Verifier.Verify(document._wordprocessingDocument);
+        await Verifier.Verify(document);
     }
 
     [Fact]
@@ -36,9 +35,7 @@ public class BasicDocumentTests {
         paragraph = paragraph.AddText(" , and we still continue adding more text to existing paragraph.");
         paragraph.Color = Color.CornflowerBlue;
 
-        _ = document.ToBytes();
-
-        await Verifier.Verify(document._wordprocessingDocument);
+        await Verifier.Verify(document);
     }
 
     [Fact]
@@ -58,9 +55,7 @@ public class BasicDocumentTests {
         _ = document.AddParagraph("Adding paragraph3 with some text and pressing ENTER");
         _ = document.AddParagraph("Adding paragraph4 with some text and pressing SHIFT+ENTER");
 
-        _ = document.ToBytes();
-
-        await Verifier.Verify(document._wordprocessingDocument);
+        await Verifier.Verify(document);
     }
 
     [Fact]
@@ -76,9 +71,7 @@ public class BasicDocumentTests {
         paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(15);
         paragraph.FontFamily = "Courier New";
 
-        _ = document.ToBytes();
-
-        await Verifier.Verify(document._wordprocessingDocument);
+        await Verifier.Verify(document);
     }
 
     [Fact]
@@ -97,8 +90,6 @@ public class BasicDocumentTests {
 
         document.AddParagraph(title).SetBold().ParagraphAlignment = WordParagraphAlignment.Center;
 
-        _ = document.ToBytes();
-
-        await Verifier.Verify(document._wordprocessingDocument);
+        await Verifier.Verify(document);
     }
 }

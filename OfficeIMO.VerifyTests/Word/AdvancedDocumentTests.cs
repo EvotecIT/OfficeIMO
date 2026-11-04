@@ -112,8 +112,6 @@ public class AdvancedDocumentTests {
         // add watermark
         document.Sections[0].AddWatermark(WordWatermarkStyle.Text, "Draft");
 
-        _ = document.ToBytes();
-
-        await Verifier.Verify(document._wordprocessingDocument!);
+        await Verifier.Verify(document);
     }
 }

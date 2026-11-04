@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.VerifyTests;
+using OfficeIMO.Word;
 using VerifyTests;
 using VerifyXunit;
 
@@ -16,6 +16,6 @@ public static class ModuleInitializer
             Environment.SetEnvironmentVariable("DiffEngine_Disabled", "true");
 
         Verifier.UseSourceFileRelativeDirectory("verified");
-        VerifierSettings.RegisterFileConverter<WordprocessingDocument>(WordprocessingDocumentConverter.Convert);
+        VerifierSettings.RegisterFileConverter<WordDocument>(WordDocumentConverter.Convert);
     }
 }

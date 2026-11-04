@@ -41,7 +41,6 @@ public class ImageRemoveTests {
         Assert.Empty(defaultHeader.Images);
         Assert.Empty(headerPart.ImageParts);
 
-        _ = document.ToBytes();
-        await Verifier.Verify(document._wordprocessingDocument);
+        await Verifier.Verify(document);
     }
 }

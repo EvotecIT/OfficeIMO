@@ -26,7 +26,7 @@ public class ImageAndTextBoxTests {
         document.AddParagraph("Image");
         document.AddParagraph().AddImage(GetSampleImagePath(), OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50));
 
-        await Verifier.Verify(document._wordprocessingDocument);
+        await Verifier.Verify(document);
     }
 
     [Fact]
@@ -44,7 +44,7 @@ public class ImageAndTextBoxTests {
             PositionOffset = new DocumentFormat.OpenXml.Drawing.Wordprocessing.PositionOffset() { Text = "228600" }
         };
 
-        await Verifier.Verify(document._wordprocessingDocument);
+        await Verifier.Verify(document);
     }
 
     [Fact]
@@ -57,7 +57,7 @@ public class ImageAndTextBoxTests {
         var image = headerParagraph.AddImage(GetSampleImagePath(), OfficeIMO.OfficeLength.Pixels(64), OfficeIMO.OfficeLength.Pixels(64), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.Square, Description = "Header image" });
         image.Title = "Header logo";
 
-        await Verifier.Verify(document._wordprocessingDocument);
+        await Verifier.Verify(document);
     }
 
     [Fact]
@@ -70,7 +70,7 @@ public class ImageAndTextBoxTests {
         textBox.HorizontalPositionOffset = OfficeLength.Centimeters(2);
         textBox.VerticalPositionOffset = OfficeLength.Centimeters(3);
 
-        await Verifier.Verify(document._wordprocessingDocument);
+        await Verifier.Verify(document);
     }
 
     [Fact]
@@ -85,6 +85,6 @@ public class ImageAndTextBoxTests {
         textBox.VerticalPositionOffset = OfficeLength.Centimeters(1.5);
         textBox.Paragraphs[0].AddHyperLink(" link", new Uri("https://officeimo.example/header"), addStyle: true);
 
-        await Verifier.Verify(document._wordprocessingDocument);
+        await Verifier.Verify(document);
     }
 }

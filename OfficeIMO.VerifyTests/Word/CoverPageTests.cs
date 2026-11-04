@@ -32,9 +32,7 @@ public class CoverPageTests {
         document.AddPageBreak();
         wordListToc.AddItem("More on the next page");
 
-        _ = document.ToBytes();
-
-        await Verifier.Verify(document._wordprocessingDocument!);
+        await Verifier.Verify(document);
     }
 
     [Fact]
@@ -67,8 +65,6 @@ public class CoverPageTests {
 
         document.TableOfContent!.Update();
 
-        _ = document.ToBytes();
-
-        await Verifier.Verify(document._wordprocessingDocument!);
+        await Verifier.Verify(document);
     }
 }

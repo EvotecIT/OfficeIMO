@@ -37,7 +37,7 @@ public class EmbeddedContentTests {
         Assert.Equal("text/html", embedded.ContentType);
         Assert.Equal("<html><body><p>frag</p><p><strong>bold</strong></p></body></html>", embedded.GetHtml());
 
-        await Verifier.Verify(document._wordprocessingDocument);
+        await Verifier.Verify(document);
     }
 
     [Fact]
@@ -56,7 +56,7 @@ public class EmbeddedContentTests {
             Assert.Equal("PictureAlias", pictureControl.Alias);
             Assert.Equal("UpdatedPictureTag", pictureControl.Tag);
 
-            await Verifier.Verify(document._wordprocessingDocument);
+            await Verifier.Verify(document);
         } finally {
             if (File.Exists(textFilePath)) {
                 File.Delete(textFilePath);
@@ -79,7 +79,7 @@ public class EmbeddedContentTests {
             Assert.Empty(document.EmbeddedDocuments);
             Assert.Empty(document._wordprocessingDocument.MainDocumentPart!.AlternativeFormatImportParts);
 
-            await Verifier.Verify(document._wordprocessingDocument);
+            await Verifier.Verify(document);
         } finally {
             if (File.Exists(htmlFilePath)) {
                 File.Delete(htmlFilePath);

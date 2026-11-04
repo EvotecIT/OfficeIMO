@@ -14,6 +14,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Xml;
+using OfficeIMO.Word;
 using VerifyTests;
 using Formatting = System.Xml.Formatting;
 using Hyperlink = DocumentFormat.OpenXml.Wordprocessing.Hyperlink;
@@ -21,28 +22,30 @@ using Hyperlink = DocumentFormat.OpenXml.Wordprocessing.Hyperlink;
 namespace OfficeIMO.VerifyTests;
 
 /// <summary>
-/// Verify file converter that snapshots a <see cref="WordprocessingDocument"/> as its package properties followed by
+/// Verify file converter that snapshots a <see cref="WordDocument"/> as its package properties followed by
 /// the normalized XML of every part.
 /// </summary>
-public static class WordprocessingDocumentConverter {
+public static class WordDocumentConverter {
     private const string RowDelimiter = "<!--------------------------------------------------------------------------------------------------------------------->";
 
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
     private static readonly string LastTime =
         DateTimeOffset.MaxValue.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture);
 
-    public static async Task<ConversionResult> Convert(WordprocessingDocument document, IReadOnlyDictionary<string, object> context) {
-        NormalizeWord(document);
+    public static async Task<ConversionResult> Convert(WordDocument document, IReadOnlyDictionary<string, object> context) {
+        _ = document.ToBytes();
+        var wordprocessingDocument = document._wordprocessingDocument;
+        NormalizeWord(wordprocessingDocument);
 
         var result = new StringBuilder();
 
-        result.AppendLine(nameof(document.PackageProperties));
+        result.AppendLine(nameof(wordprocessingDocument.PackageProperties));
         result.AppendLine(RowDelimiter);
-        var packageProperties = JsonSerializer.Serialize(document.PackageProperties, JsonOptions);
+        var packageProperties = JsonSerializer.Serialize(wordprocessingDocument.PackageProperties, JsonOptions);
         result.AppendLine(packageProperties);
         result.AppendLine(RowDelimiter);
 
-        foreach (var pair in document.Parts) {
+        foreach (var pair in wordprocessingDocument.Parts) {
             var partResult = await GetVerifyResult(pair);
             if (string.IsNullOrEmpty(partResult)) continue;
             result.Append(partResult);
