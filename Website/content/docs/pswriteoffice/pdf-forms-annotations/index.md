@@ -12,13 +12,13 @@ PDF forms are interactive data structures, not just boxes painted on a page. Kee
 
 ```powershell
 PdfFormField -Name Reviewer -Type Text -Value 'Unassigned' -Width 320 -Height 24
-PdfFormField -Name Decision -Type Choice -Options Approve,Reject,Defer -Value Defer
+PdfFormField -Name Decision -Type Choice -Option Approve,Reject,Defer -Value Defer
 ```
 
-The [forms recipe](https://github.com/EvotecIT/OfficeIMO/blob/e0f1aa49a70c3d988a2ca091b49d313ef797dda1/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-Forms.ps1) creates text, choice, and check-box fields in one composition block.
+The [forms recipe](https://github.com/EvotecIT/OfficeIMO/blob/3edfe3bbcf964fd078ee635a8d48562898ea0c87/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-Forms.ps1) creates text, choice, and check-box fields in one composition block.
 
 ## Fill, inspect, or flatten
 
-Use `Set-OfficePdfForm` to fill existing fields and `Get-OfficePdfFormField` to read them back. `ConvertTo-OfficePdfFlatForm` makes field appearances part of page content. For annotations, use `Get-OfficePdfAnnotation`, `Set-OfficePdfAnnotation`, `Remove-OfficePdfAnnotation`, and `ConvertTo-OfficePdfFlatAnnotation` according to the review lifecycle.
+Use `Set-OfficePdfFormField` to fill existing fields and `Get-OfficePdfFormField` to read them back. `Update-OfficePdf -FlattenForm` makes field appearances part of page content. For annotations, use `Get-OfficePdfAnnotation`, `Set-OfficePdfAnnotation`, `Remove-OfficePdfAnnotation`, and `Update-OfficePdf -FlattenAnnotation` according to the review lifecycle.
 
 Flattening is a one-way delivery decision for the output copy. Preserve the interactive source when the workflow may need another review round.

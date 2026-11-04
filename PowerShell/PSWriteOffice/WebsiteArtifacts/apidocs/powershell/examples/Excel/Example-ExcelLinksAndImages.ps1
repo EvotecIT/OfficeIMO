@@ -8,8 +8,8 @@ New-OfficeExcel -Path $path {
         Set-OfficeExcelCell -Address 'A1' -Value 'Reference'
         Set-OfficeExcelCell -Address 'B1' -Value 'Host'
 
-        Set-OfficeExcelSmartHyperlink -Address 'A2' -Url 'https://datatracker.ietf.org/doc/html/rfc7208'
-        Set-OfficeExcelHostHyperlink -Address 'B2' -Url 'https://learn.microsoft.com/office/open-xml/'
+        Set-OfficeExcelHyperlink -DisplayMode Smart -Address 'A2' -Url 'https://datatracker.ietf.org/doc/html/rfc7208'
+        Set-OfficeExcelHyperlink -DisplayMode Host -Address 'B2' -Url 'https://learn.microsoft.com/office/open-xml/'
         Add-OfficeExcelImage -Address 'D2' -Url 'https://raw.githubusercontent.com/github/explore/main/topics/powershell/powershell.png' -Width 48px -Height 48px
     }
 }

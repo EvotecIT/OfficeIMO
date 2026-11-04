@@ -9,13 +9,14 @@ PDF transformation should begin with evidence. Read document information, extrac
 ## Inspect the source
 
 ```powershell
-$info = Get-OfficePdfInfo -Path '.\Input.pdf'
-$preflight = Get-OfficePdfPreflight -Path '.\Input.pdf'
-$pages = Get-OfficePdfText -Path '.\Input.pdf' -ByPage
+$info = Get-OfficeDocumentInfo -Path '.\Input.pdf' -Detailed
+$info.Details
+$preflight = Get-OfficePdfDiagnostic -Path '.\Input.pdf' -Type Preflight
+$pages = Read-OfficeDocument -Path '.\Input.pdf' -As Text -ByPage
 ```
 
-Use `-AsTextBlock` when coordinates are needed for redaction or layout work. The read family also exposes images, fonts, attachments, form fields, annotations, signatures, interactions, optimization information, compliance, diagnostics, and rewrite-preservation evidence.
+Use `Get-OfficePdfDiagnostic -Type LayoutOverlay` when coordinates are needed for layout review and `Get-OfficePdfRedactionPlan -Text` to locate redaction targets. The read family also exposes images, fonts, attachments, form fields, annotations, signatures, interactions, optimization information, compliance, diagnostics, and rewrite-preservation evidence.
 
-The [inspect-and-preflight recipe](https://github.com/EvotecIT/OfficeIMO/blob/e0f1aa49a70c3d988a2ca091b49d313ef797dda1/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-InspectAndPreflight.ps1) creates a two-page PDF, reads its metadata and text page by page, and runs the PDF preflight command.
+The [inspect-and-preflight recipe](https://github.com/EvotecIT/OfficeIMO/blob/3edfe3bbcf964fd078ee635a8d48562898ea0c87/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-InspectAndPreflight.ps1) creates a two-page PDF, reads its metadata and text page by page, and runs the PDF preflight command.
 
 Encrypted files require the correct password. `-IgnorePermissionRestrictions` is an explicit post-authentication policy choice; it does not discover or bypass a missing password.

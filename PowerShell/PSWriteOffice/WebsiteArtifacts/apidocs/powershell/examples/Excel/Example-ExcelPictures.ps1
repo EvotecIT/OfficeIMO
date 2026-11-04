@@ -15,10 +15,10 @@ New-OfficeExcel -Path $path {
         ExcelImage -Path $imagePath -Address 'E2' -Scale 20 -Name 'ScaledLogo' -AltText 'Logo scaled to 20 percent'
         ExcelImage -Path $imagePath -Address 'E9' -Width 120px -Height 48px -Rotation 12 -Name 'RotatedLogo' -AltText 'Logo rotated by 12 degrees'
 
-        ExcelColumn -ColumnName A -Width 18
-        ExcelColumn -ColumnName B -Width 18
-        ExcelColumn -ColumnName C -Width 18
-        ExcelColumn -ColumnName E -Width 24
+        ExcelColumn -Column A -Width 18
+        ExcelColumn -Column B -Width 18
+        ExcelColumn -Column C -Width 18
+        ExcelColumn -Column E -Width 24
     }
 }
 

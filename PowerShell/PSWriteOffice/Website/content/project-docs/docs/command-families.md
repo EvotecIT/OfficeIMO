@@ -10,27 +10,27 @@ The PSWriteOffice website catalog groups every exported cmdlet into exactly one 
 
 | Family | Exported commands | Guide |
 | --- | ---: | --- |
-| Excel | 157 | [Excel automation](/docs/pswriteoffice/excel/) |
-| Word | 99 | [Word automation](/docs/pswriteoffice/word/) |
-| PDF | 100 | [PDF automation](/docs/pswriteoffice/pdf/) |
-| Document operations and capabilities | 7 | [Document operations and capabilities](/docs/pswriteoffice/automation-patterns/) |
-| Project | 19 | [Native document workflows](/docs/pswriteoffice/automation-patterns/) |
+| Excel | 103 | [Excel automation](/docs/pswriteoffice/excel/) |
+| Word | 81 | [Word automation](/docs/pswriteoffice/word/) |
+| PDF | 77 | [PDF automation](/docs/pswriteoffice/pdf/) |
+| Document operations and capabilities | 11 | [Document operations and capabilities](/docs/pswriteoffice/automation-patterns/) |
+| Project | 20 | [Native document workflows](/docs/pswriteoffice/automation-patterns/) |
 | Access | 9 | [Native document workflows](/docs/pswriteoffice/automation-patterns/) |
 | EPUB | 8 | [Native document workflows](/docs/pswriteoffice/automation-patterns/) |
 | PowerPoint | 53 | [PowerPoint automation](/docs/pswriteoffice/powerpoint/) |
-| Markdown | 27 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
-| Visio | 21 | [Visio diagrams](/docs/pswriteoffice/visio/) |
-| Reader, extraction, and OCR | 18 | [Reader, extraction, and OCR](/docs/pswriteoffice/reader/) |
+| Markdown | 33 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
+| Visio | 20 | [Visio diagrams](/docs/pswriteoffice/visio/) |
+| Reader, extraction, and OCR | 11 | [Reader, extraction, and OCR](/docs/pswriteoffice/reader/) |
 | Archive migration and evidence | 5 | [Automation patterns](/docs/pswriteoffice/automation-patterns/) |
 | Google Workspace | 1 | [Automation patterns](/docs/pswriteoffice/automation-patterns/) |
 | Confluence Cloud | 7 | [Confluence Cloud publishing](/docs/pswriteoffice/confluence/) |
-| RTF | 6 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
-| CSV | 5 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
+| RTF | 8 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
+| CSV | 3 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
 | OpenDocument | 11 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
 | Email | 9 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
-| AsciiDoc | 4 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
-| LaTeX | 4 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
-| HTML assets | 4 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
+| AsciiDoc | 3 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
+| LaTeX | 3 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
+| HTML assets | 5 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
 | Cross-format visuals | 1 | [Automation patterns](/docs/pswriteoffice/automation-patterns/) |
 
 The total is generated from the module manifest. Aliases are intentionally counted separately because they provide a shorter DSL without replacing the canonical command names in help and automation.

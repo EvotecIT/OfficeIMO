@@ -1,17 +1,17 @@
 $path = '.\PowerPoint-Copy-And-Remove.pptx'
 
-$presentation = New-OfficePowerPoint -Path $path -NoSave
-$overview = Add-OfficePowerPointSlide -Presentation $presentation -PassThru
-Set-OfficePowerPointSlideTitle -Slide $overview -Title 'Reusable overview'
+$presentation = New-OfficePowerPoint -Path $path
+$overview = Add-OfficePowerPointSlide -Document $presentation -PassThru
+Set-OfficePowerPointSlide -Slide $overview -Title 'Reusable overview'
 Add-OfficePowerPointTextBox -Slide $overview -Text 'Shared service story' -X 80 -Y 150 -Width 560 -Height 70
 
-Copy-OfficePowerPointSlide -Presentation $presentation -Index 0 -InsertAt 1
-$copied = Get-OfficePowerPointSlide -Presentation $presentation -Index 1
-Set-OfficePowerPointSlideTitle -Slide $copied -Title 'Customer-specific overview'
+Copy-OfficePowerPointSlide -Document $presentation -Slide 1 -Position 2
+$copied = Get-OfficePowerPointSlide -Document $presentation -Slide 2
+Set-OfficePowerPointSlide -Slide $copied -Title 'Customer-specific overview'
 
-$draft = Add-OfficePowerPointSlide -Presentation $presentation -PassThru
-Set-OfficePowerPointSlideTitle -Slide $draft -Title 'Draft slide to remove'
-Remove-OfficePowerPointSlide -Presentation $presentation -Index 2
+$draft = Add-OfficePowerPointSlide -Document $presentation -PassThru
+Set-OfficePowerPointSlide -Slide $draft -Title 'Draft slide to remove'
+Remove-OfficePowerPointSlide -Document $presentation -Slide 3
 
 $presentation | Save-OfficePowerPoint
 $presentation | Close-OfficePowerPoint

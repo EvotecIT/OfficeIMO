@@ -22,22 +22,22 @@ New-OfficeWord -Path '.\Service-Status.docx' {
             WordTableCondition -FilterScript { $_.Status -eq 'Action' } -BackgroundColor '#FEE2E2'
             WordTableCondition -FilterScript { $_.Status -eq 'Watch' } -BackgroundColor '#FEF3C7'
         }
-        WordChart -Type Bar -Data $services -Category Service -Value Incidents -Title 'Incidents by service' -FitToPageWidth
+        WordChart -Type Bar -InputObject $services -Category Service -Value Incidents -Title 'Incidents by service' -FitToPageWidth
     }
 }
 
 New-OfficeExcel -Path '.\Service-Status.xlsx' {
     ExcelSheet 'Services' {
         # Keep the chart's category and one numeric measure adjacent; owners and percentages remain in the table.
-        ExcelTable -Data ($services | Select-Object Service,Incidents,Owner,Availability,Status) -Name 'ServiceStatus' -StartRow 1 -StartColumn 1 -TableStyle 'TableStyleMedium9' -AutoFit
+        ExcelTable -InputObject ($services | Select-Object Service,Incidents,Owner,Availability,Status) -Name 'ServiceStatus' -Address A1 -TableStyle 'TableStyleMedium9'
         ExcelSheetView -FreezeRows 1
-        ExcelValidationList -TableName 'ServiceStatus' -HeaderName Status -Values Healthy,Watch,Action
-        ExcelConditionalColorScale -Range 'D2:D4' -StartColor '#FEE2E2' -EndColor '#DCFCE7'
+        ExcelValidation -Type List -Table 'ServiceStatus' -Header Status -Values Healthy,Watch,Action
+        ExcelConditionalFormat -Range 'D2:D4' -StartColor '#FEE2E2' -EndColor '#DCFCE7'
         ExcelChart -Range 'A1:B4' -Address A7 -Type ColumnClustered -Title 'Incidents by service' -Width 700px -Height 320px
-        ExcelOrientation -Orientation Landscape
+        ExcelPageSetup -Orientation Landscape
         ExcelPageSetup -FitToWidth 1 -FitToHeight 1
     }
-    ExcelTableOfContents -SheetName 'Index' -AddBackLinks -BackLinkText 'Back to Index'
+    ExcelTableOfContents -Name 'Index' -BackLink -BackLinkText 'Back to Index'
 }
 
 New-OfficePowerPoint -Path '.\Service-Status.pptx' {
@@ -56,15 +56,14 @@ New-OfficePowerPoint -Path '.\Service-Status.pptx' {
     PowerPointNotes -Slide $focus -Text 'Discuss incident reduction separately from availability targets.'
 }
 
-New-OfficePdf -Path '.\Service-Status.pdf' {
-    PdfTheme Report
+New-OfficePdf -Path '.\Service-Status.pdf' -Theme Modern {
     PdfMetadata -Title 'Weekly service status' -Author 'Operations'
     PdfPageSetup -PageSize A4 -Margin 42
     PdfHeader 'Weekly service status'
     PdfFooter 'Page {page}/{pages}'
     PdfHeading 'Service Status' -Level 1
     PdfPanel 'Remote access requires an owner action before the next review.'
-    PdfTable -InputObject $services -Property Service,Owner,Availability,Incidents,Status -HeaderFill '#334155' -HeaderTextColor '#FFFFFF' -AutoFitColumns -RightAlignNumeric
+    PdfTable -InputObject $services -Property Service,Owner,Availability,Incidents,Status -HeaderBackgroundColor '#334155' -HeaderColor '#FFFFFF' -AutoFit
     PdfHeading 'Next steps' -Level 2
     PdfList -Items 'Review Remote access', 'Assign the incident action', 'Publish the approved status pack' -Numbered
 }

@@ -13,15 +13,15 @@ PSWriteOffice is not a drop-in namespace change. PSWriteWord exposed Xceed-era o
 | PSWriteWord | PSWriteOffice | Migration note |
 | --- | --- | --- |
 | `New-WordDocument` | `New-OfficeWord` | Prefer the script-block DSL when creating a complete document. |
-| `Get-WordDocument` | `Get-OfficeWord` | Use targeted `Get-OfficeWord*` commands to inspect content. |
+| `Get-WordDocument` | `Open-OfficeWord` | Use targeted `Get-OfficeWord*` commands to inspect content. |
 | `Add-WordParagraph`, `Add-WordText` | `Add-OfficeWordParagraph`, `Add-OfficeWordText` | Text runs can be added inside an active paragraph context. |
 | `Add-WordTable` | `Add-OfficeWordTable` | Pass objects with `-InputObject`; map old design names to current table styles. |
 | `Add-WordPicture` | `Add-OfficeWordImage` | Recheck sizing, wrapping, and placement. |
 | `Add-WordHeader`, `Add-WordFooter` | `Add-OfficeWordHeader`, `Add-OfficeWordFooter` | Configure them inside the appropriate section. |
 | `Add-WordList` | `Add-OfficeWordList` | Nested list behavior should be verified against the generated DOCX. |
 | `Add-WordTOC` | `Add-OfficeWordTableOfContents` | Use update commands when fields or headings change. |
-| `Merge-WordDocument` | `Join-OfficeWordDocument` | Supply a base input and one or more append paths. |
-| `Save-WordDocument` | `Save-OfficeWord` | `New-OfficeWord` saves automatically unless `-NoSave` is used. |
+| `Merge-WordDocument` | `Merge-OfficeDocument` | Supply a base input and one or more append paths. |
+| `Save-WordDocument` | `Save-OfficeWord` | `New-OfficeWord` saves automatically when a content block is supplied. |
 | `Documentimo`, `DocText`, `DocTable` | `New-OfficeWord` with `Add-OfficeWord*` commands | Rewrite the old DSL; aliases are available for interactive use, but canonical names are clearer in maintained scripts. |
 
 ## Before: PSWriteWord
@@ -47,7 +47,7 @@ New-OfficeWord -Path '.\Output\Status.docx' {
 }
 ```
 
-For an existing file, load it with `Get-OfficeWord`, make targeted changes, and pipe the returned document to `Save-OfficeWord`. Use `Compare-OfficeWordDocument` when the migration needs machine-readable evidence of document changes.
+For an existing file, load it with `Open-OfficeWord`, make targeted changes, and pipe the returned document to `Save-OfficeWord`. Use `Compare-OfficeDocument` when the migration needs machine-readable evidence of document changes.
 
 ## Validate before replacing the old job
 

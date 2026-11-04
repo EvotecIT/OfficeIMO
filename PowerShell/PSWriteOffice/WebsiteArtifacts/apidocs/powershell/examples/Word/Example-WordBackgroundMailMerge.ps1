@@ -17,7 +17,7 @@ New-OfficeWord -Path $Path {
         WordText ' is ready.'
     }
 
-    Invoke-OfficeWordMailMerge -Data @{
+    Invoke-OfficeWordMailMerge -InputObject @{
         FirstName = 'Ada'
         OrderId   = 4242
     }
@@ -27,8 +27,8 @@ Open-OfficeWord -Path $Path -ReadOnly | ForEach-Object {
     try {
         $_.Background.Color
         (Get-OfficeWordField -Document $_ -FieldType MergeField).Count
-        (Find-OfficeWord -Path $Path -Text 'Ada').Count
-        (Find-OfficeWord -Path $Path -Text '4242').Count
+        (Get-OfficeWordParagraph -Path $Path -Pattern 'Ada' -SimpleMatch).Count
+        (Get-OfficeWordParagraph -Path $Path -Pattern '4242' -SimpleMatch).Count
     } finally {
         $_ | Close-OfficeWord
     }

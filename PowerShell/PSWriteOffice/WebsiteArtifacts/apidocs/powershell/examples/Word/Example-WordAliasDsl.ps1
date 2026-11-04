@@ -24,13 +24,13 @@ New-OfficeWord -Path $docPath {
             WordText '! This section uses pure aliases.'
         }
 
-        WordList -Type Numbered {
+        WordList -Numbered {
             WordListItem 'Capture highlights'
             WordListItem 'Summarize blockers'
             WordListItem 'Confirm next steps'
         }
 
-        WordTable -Data $orders -Style 'GridTable1LightAccent1' {
+        WordTable -InputObject $orders -Style 'GridTable1LightAccent1' {
             WordTableCondition -FilterScript { $_.Status -eq 'Open' } -BackgroundColor '#fff4d6'
         }
 

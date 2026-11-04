@@ -9,16 +9,18 @@ Use the PowerPoint read surface to inventory a deck before modification, build a
 ## Inspect slide by slide
 
 ```powershell
-$presentation = Get-OfficePowerPoint -Path '.\Briefing.pptx'
-for ($index = 0; $index -lt $presentation.Slides.Count; $index++) {
-    $slide = Get-OfficePowerPointSlide -Presentation $presentation -Index $index
-    Get-OfficePowerPointSlideSummary -Slide $slide
-    Get-OfficePowerPointShape -Slide $slide
-    Get-OfficePowerPointNotes -Slide $slide
+$presentation = Open-OfficePowerPoint -Path '.\Briefing.pptx'
+try {
+    Get-OfficePowerPointSlide -Document $presentation -Summary
+    foreach ($slide in (Get-OfficePowerPointSlide -Document $presentation)) {
+        Get-OfficePowerPointShape -Slide $slide
+        Get-OfficePowerPointNotes -Slide $slide
+    }
+} finally {
+    Close-OfficePowerPoint -Document $presentation
 }
-Close-OfficePowerPoint -Presentation $presentation
 ```
 
 The inspection family covers slides, shapes, placeholders, notes, themes, layouts, sections, transitions, charts, tables, and presentation metadata. Start with a summary, then query the structures relevant to the job.
 
-The [inspect-deck recipe](https://github.com/EvotecIT/OfficeIMO/blob/e0f1aa49a70c3d988a2ca091b49d313ef797dda1/PowerShell/PSWriteOffice/Examples/PowerPoint/Recipe-PowerPoint-InspectDeck.ps1) creates a representative deck and reports title, shape, and note counts per slide.
+The [inspect-deck recipe](https://github.com/EvotecIT/OfficeIMO/blob/3edfe3bbcf964fd078ee635a8d48562898ea0c87/PowerShell/PSWriteOffice/Examples/PowerPoint/Recipe-PowerPoint-InspectDeck.ps1) creates a representative deck and reports title, shape, and note counts per slide.

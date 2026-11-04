@@ -4,7 +4,7 @@ $markdown = @(
     [PSCustomObject]@{ Name = 'Beta'; Value = 2 }
 ) | ConvertTo-OfficeMarkdown
 
-$html = ConvertTo-OfficeMarkdownHtml -Text $markdown -DocumentMode
+$html = Convert-OfficeDocument -To Html -From Markdown -Text $markdown -Options (New-OfficeMarkdownHtmlOptions -DocumentMode) -AsString
 
 Write-Host "Markdown:"
 Write-Host $markdown

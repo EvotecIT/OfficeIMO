@@ -4,7 +4,7 @@ description: "Create, inspect, arrange, stencil, and export VSDX diagrams from P
 layout: docs
 ---
 
-The Visio family exports 21 commands for VSDX authoring and inspection. Build pages from rectangles, ellipses, diamonds, containers, text boxes, connectors, and stencil shapes; arrange the result; save VSDX; and export SVG or PNG review artifacts.
+The Visio family exports 20 commands for VSDX authoring and inspection. Build pages from rectangles, ellipses, diamonds, containers, text boxes, connectors, and stencil shapes; arrange the result; save VSDX; and export SVG or PNG review artifacts.
 
 ## Create with primitives or stencils
 
@@ -18,6 +18,6 @@ Stencil commands can discover catalogs, find shapes, import packages, and export
 
 ## Inspect and review
 
-`Get-OfficeVisio` and `Get-OfficeVisioInfo` expose document and diagram evidence. `Export-OfficeDocumentImage` writes portable SVG or PNG review output from the editable VSDX source. Use `-Page 1 -OutputPath ./diagram.svg`, or `-OutputDirectory ./pages -Format Png` for every page. `ConvertTo-OfficeDocumentImage` returns the same native image results without writing files.
+`Open-OfficeVisio` returns the editable document. `Get-OfficeDocumentInfo -Detailed` returns a detached diagram snapshot in `Details`; use `.Details.ToText()` for its text report. `Export-OfficeDocumentImage` writes portable SVG or PNG review output from the editable VSDX source. Use `-Page 1 -OutputPath ./diagram.svg`, or `-OutputDirectory ./pages -Format Png` for every page. `ConvertTo-OfficeDocumentImage` returns the same native image results without writing files.
 
-See the [Visio examples](https://github.com/EvotecIT/OfficeIMO/tree/e0f1aa49a70c3d988a2ca091b49d313ef797dda1/PowerShell/PSWriteOffice/Examples/Visio) and search the [command reference](/api/powershell/) for `OfficeVisio`.
+See the [Visio examples](https://github.com/EvotecIT/OfficeIMO/tree/3edfe3bbcf964fd078ee635a8d48562898ea0c87/PowerShell/PSWriteOffice/Examples/Visio) and search the [command reference](/api/powershell/) for `OfficeVisio`.

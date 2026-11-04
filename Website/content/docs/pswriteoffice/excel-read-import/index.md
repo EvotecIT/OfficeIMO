@@ -4,13 +4,13 @@ description: "Read worksheets, ranges, tables, and typed rows from existing work
 layout: docs
 ---
 
-Use `Import-OfficeExcel` when the workbook is a data source. Use `Get-OfficeExcel` and the targeted inspection commands when workbook structure, formatting, formulas, validation, charts, or metadata matter.
+Use `Import-OfficeExcel` when the workbook is a data source. Use `Open-OfficeExcel` and the targeted inspection commands when workbook structure, formatting, formulas, validation, charts, or metadata matter.
 
 ## Import rows
 
 ```powershell
 $rows = Import-OfficeExcel -Path '.\Input\Register.xlsx' `
-    -WorksheetName 'Services' -Range 'A1:D500'
+    -Sheet 'Services' -Range 'A1:D500'
 $atRisk = $rows | Where-Object Status -eq 'At risk'
 ```
 
@@ -18,8 +18,8 @@ $atRisk = $rows | Where-Object Status -eq 'At risk'
 
 ## Inspect workbook structure
 
-Use `Get-OfficeExcelSummary` for a workbook-level inventory, then query tables, named ranges, formulas, comments, validation, pivots, worksheet views, page breaks, links, queries, and rich text only when needed.
+Use `Get-OfficeDocumentInfo -Detailed` for a workbook-level inventory, then query tables, named ranges, formulas, comments, validation, pivots, worksheet views, page breaks, links, queries, and rich text only when needed.
 
-The [read-and-filter recipe](https://github.com/EvotecIT/OfficeIMO/blob/e0f1aa49a70c3d988a2ca091b49d313ef797dda1/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-ReadAndFilter.ps1) creates a table, imports typed rows, and filters the records that require attention.
+The [read-and-filter recipe](https://github.com/EvotecIT/OfficeIMO/blob/3edfe3bbcf964fd078ee635a8d48562898ea0c87/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-ReadAndFilter.ps1) creates a table, imports typed rows, and filters the records that require attention.
 
 For semicolon-delimited or other text data, continue with [delimited import and publishing](/docs/pswriteoffice/excel-export-publish/).

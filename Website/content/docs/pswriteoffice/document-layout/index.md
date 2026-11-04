@@ -13,9 +13,9 @@ Place the chart inside a `WordParagraph` block and set spacing on that paragraph
 ```powershell
 WordParagraph {
     Set-OfficeWordParagraph -SpacingBefore 14 -SpacingAfter 12
-    WordChart -Type Bar -InputObject $rows -CategoryProperty Site `
-        -SeriesProperty Patched, Pending -Title 'Patched and pending by site' `
-        -Legend -FitToPageWidth -WidthFraction 1 -HeightPixels 260
+    WordChart -Type Bar -InputObject $rows -Category Site `
+        -Value Patched, Pending -Title 'Patched and pending by site' `
+        -Legend -FitToPageWidth -WidthFraction 1 -Height 260px
 }
 ```
 
@@ -31,14 +31,14 @@ WordParagraph {
 
 ## Give table rows room
 
-Use `-PassThru` to retain the table object, select its cells and set their margins. The `Set-OfficeWordTableCell` margin parameters require PSWriteOffice 3.0.9 or later. The margin values are centimeters; paragraph spacing values are points.
+Use `-PassThru` to retain the table object, select its cells and set their margins. `Set-OfficeWordTableCell` accepts explicit physical units for margins; bare values and paragraph spacing use points.
 
 ```powershell
 $table = WordTable -InputObject $rows -Style GridTable4Accent1 `
     -Layout AutoFitToWindow -PassThru
 $table | Get-OfficeWordTableCell | Set-OfficeWordTableCell `
-    -MarginTopCentimeters 0.12 -MarginBottomCentimeters 0.12 `
-    -MarginLeftCentimeters 0.16 -MarginRightCentimeters 0.16
+    -MarginTop 0.12cm -MarginBottom 0.12cm `
+    -MarginLeft 0.16cm -MarginRight 0.16cm
 ```
 
 Each margin is independent. Omitted parameters retain the existing margin. Passing `$null` removes that explicit margin so the document's table style can supply it. Zero is an explicit zero margin.
@@ -53,4 +53,4 @@ Use the chart height that supports the message. A five-category chart in a one-p
 
 ## Check the delivered file
 
-Run the [patch compliance recipe](https://github.com/EvotecIT/OfficeIMO/blob/e0f1aa49a70c3d988a2ca091b49d313ef797dda1/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-PatchCompliance.ps1), open the DOCX and inspect the exported PDF. Check every page for clipped text, split headings, table widths and chart labels. Native PDF conversion can paginate differently from a desktop Word editor; the PDF is the delivery copy when its layout is the agreed result.
+Run the [patch compliance recipe](https://github.com/EvotecIT/OfficeIMO/blob/3edfe3bbcf964fd078ee635a8d48562898ea0c87/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-PatchCompliance.ps1), open the DOCX and inspect the exported PDF. Check every page for clipped text, split headings, table widths and chart labels. Native PDF conversion can paginate differently from a desktop Word editor; the PDF is the delivery copy when its layout is the agreed result.

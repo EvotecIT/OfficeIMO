@@ -17,13 +17,13 @@ $imagePath = Join-Path $PSScriptRoot '..\Word\Example-WordTableCells.fixture.png
 
 New-OfficeExcel -Path $path {
     ExcelSheet 'Data' {
-        ExcelTable -Data $data -Name 'SalesData' -AutoFit -TableStyle 'TableStyleMedium9'
-        ExcelValidationList -Range 'D2:D20' -Values 'New','In Progress','Done'
+        ExcelTable -InputObject $data -Name 'SalesData'  -TableStyle 'TableStyleMedium9'
+        ExcelValidation -Type List -Range 'D2:D20' -Values 'New','In Progress','Done'
         ExcelAutoFilter -Range 'A1:D20'
         ExcelSheetView -FreezeRows 1
         ExcelSort -Header 'Sales' -Descending
         ExcelSparkline -DataRange 'C2:C7' -LocationRange 'E2:E7' -Type Line -ShowMarkers
-        ExcelPivotTable -SourceRange 'A1:D7' -DestinationCell 'G2' -RowField 'Region' -DataField 'Sales'
+        ExcelPivotTable -Range 'A1:D7' -Address 'G2' -RowField 'Region' -DataField 'Sales'
         ExcelChart -Table 'SalesData' -Category Region -Value Sales -Type ColumnClustered -Title 'Sales by Region' -Address I1
         ExcelHyperlink -Address 'A10' -Url 'https://evotec.xyz' -Display 'Evotec'
         ExcelComment -Address 'C2' -Text 'Review this value'
@@ -37,9 +37,9 @@ New-OfficeExcel -Path $path {
     }
 
     ExcelSheet 'Print' {
-        ExcelTable -Data $data -AutoFit
-        ExcelOrientation -Orientation Landscape
-        ExcelMargins -Left 0.5 -Right 0.5 -Top 0.75 -Bottom 0.75
+        ExcelTable -InputObject $data
+        ExcelPageSetup -Orientation Landscape
+        ExcelPageSetup -MarginLeft 0.5 -MarginRight 0.5 -MarginTop 0.75 -MarginBottom 0.75
         ExcelPageSetup -FitToWidth 1 -FitToHeight 0
         ExcelSheetView -NoGridlines
     }

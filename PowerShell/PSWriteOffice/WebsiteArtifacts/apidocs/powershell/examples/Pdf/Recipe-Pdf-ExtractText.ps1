@@ -6,5 +6,5 @@ New-OfficePdf -Path $path {
     PdfParagraph 'Service owners record approval evidence.'
 }
 
-$pages = Get-OfficePdfText -Path $path -ByPage
+$pages = Read-OfficeDocument -As Text -Path $path -ByPage
 $pages | Select-Object PageNumber, Text

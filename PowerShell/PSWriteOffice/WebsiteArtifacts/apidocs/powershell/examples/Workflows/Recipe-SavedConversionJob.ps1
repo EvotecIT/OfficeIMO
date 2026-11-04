@@ -1,4 +1,4 @@
-#Requires -Version 7.4
+#Requires -Version 5.1
 <#
 .SYNOPSIS
     Saves, plans, executes and resumes a shared conversion job.
@@ -39,10 +39,10 @@ New-Item -ItemType Directory -Path $source -Force | Out-Null
 '<!doctype html><html><body><h1>Delivery brief</h1><p>HTML document for the same job.</p></body></html>' |
     Set-Content -LiteralPath (Join-Path $source 'brief.html') -Encoding utf8
 
-Export-OfficeConversionJob -InputDirectory $source -OutputDirectory $pdf `
-    -CheckpointDirectory $state -TargetExtension pdf -Path $job | Out-Null
+Convert-OfficeDocument -LiteralPath $source -To Pdf -OutputDirectory $pdf `
+    -CheckpointPath (Join-Path $state 'plan.json') -SaveJob $job | Out-Null
 
-$plan = Invoke-OfficeConversionJob -Path $job -Plan
+$plan = Convert-OfficeDocument -JobPath $job -Plan
 if (-not $plan.CanRun -or $plan.Selected -ne 2) {
     throw 'The plan did not select both sample documents.'
 }
@@ -51,7 +51,7 @@ if ((Test-Path -LiteralPath $pdf) -or (Test-Path -LiteralPath $state)) {
 }
 
 $firstReportPath = Join-Path $root 'first-run.json'
-$first = Invoke-OfficeConversionJob -Path $job -ReportPath $firstReportPath
+Convert-OfficeDocument -JobPath $job -ReportPath $firstReportPath -SummaryVariable first | Out-Null
 if ($first.Completed -ne 2 -or $first.Failed -ne 0) {
     throw 'The first run did not complete both sample documents.'
 }
@@ -68,7 +68,7 @@ if ($recorded.Summary.Completed -ne 2 -or $recorded.Items.Count -ne 2) {
 }
 $firstReportHash = (Get-FileHash -LiteralPath $firstReportPath -Algorithm SHA256).Hash
 
-$resumed = Invoke-OfficeConversionJob -Path $job -ReportPath (Join-Path $root 'resumed-run.json')
+Convert-OfficeDocument -JobPath $job -ReportPath (Join-Path $root 'resumed-run.json') -SummaryVariable resumed | Out-Null
 if ($resumed.Completed -ne 2 -or $resumed.Reused -ne 2 -or $resumed.Failed -ne 0) {
     throw 'The second run did not reuse both verified artifacts.'
 }

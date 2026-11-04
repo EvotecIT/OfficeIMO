@@ -13,5 +13,5 @@ New-OfficePdf -Path $second {
     PdfParagraph 'Detailed evidence.'
 }
 
-Join-OfficePdf -Path $first,$second -OutputPath $merged -PageSize A4 -ResizeMode Fit -ResizeMargin 18
+Merge-OfficeDocument -Path $first,$second -OutputPath $merged -Options (New-OfficePdfMergeOptions -PageSize A4 -ResizeMode Fit -ResizeMargin 18)
 Split-OfficeDocument -Path $merged -OutputDirectory $splitDirectory -Prefix 'page' -PageCount 1

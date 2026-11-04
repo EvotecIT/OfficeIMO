@@ -13,12 +13,12 @@ This migration changes both the command surface and the PDF engine. Do not assum
 | PSWritePDF | PSWriteOffice | Migration note |
 | --- | --- | --- |
 | `New-PDF`, `New-PDFDocument` | `New-OfficePdf` | Compose content with `Add-OfficePdf*` commands inside the document block. |
-| `Merge-PDF` | `Join-OfficePdf` | Write the combined result to a new path and reopen it for verification. |
+| `Merge-PDF` | `Merge-OfficeDocument` | Write the combined result to a new path and reopen it for verification. |
 | `Split-PDF` | `Split-OfficeDocument` | Confirm page ranges and output naming for the caller. |
-| `Convert-PDFToText` | `Get-OfficePdfText` | PDF text extraction follows document content, not visual OCR; use an OCR workflow for scanned pages. |
-| `Get-PDFDetails` | `Get-OfficePdfInfo` | Additional inspection commands expose fonts, images, forms, signatures, compliance, and diagnostics. |
-| `Set-PDFForm` | `Set-OfficePdfForm` | Validate field names, appearances, flattening, and permission restrictions. |
-| `Convert-HTMLToPDF` | `ConvertFrom-OfficePdfHtml` | Review the supported HTML/CSS profile and supply trusted-resource settings deliberately. |
+| `Convert-PDFToText` | `Read-OfficeDocument -As Text` | PDF text extraction follows document content, not visual OCR; use an OCR workflow for scanned pages. |
+| `Get-PDFDetails` | `Get-OfficeDocumentInfo -Detailed` | Additional inspection commands expose fonts, images, forms, signatures, compliance, and diagnostics. |
+| `Set-PDFForm` | `Set-OfficePdfFormField` | Validate field names, appearances, flattening, and permission restrictions. |
+| `Convert-HTMLToPDF` | `Convert-OfficeDocument -From Html -To Pdf` | Review the supported HTML/CSS profile and supply trusted-resource settings deliberately. |
 | legacy save helpers | `Save-OfficePdf` | Use explicit output paths and preserve the source during migration. |
 
 ## Create a PDF with PSWriteOffice
@@ -39,11 +39,12 @@ New-OfficePdf -Path '.\Output\Status.pdf' {
 ## Replace standalone operations
 
 ```powershell
-Join-OfficePdf -Path '.\Cover.pdf', '.\Body.pdf' -OutputPath '.\Combined.pdf'
+Merge-OfficeDocument -Path '.\Cover.pdf', '.\Body.pdf' -OutputPath '.\Combined.pdf'
 Split-OfficeDocument -Path '.\Combined.pdf' -OutputDirectory '.\Pages'
 
-$info = Get-OfficePdfInfo -Path '.\Combined.pdf'
-$text = Get-OfficePdfText -Path '.\Combined.pdf'
+$info = Get-OfficeDocumentInfo -Path '.\Combined.pdf' -Detailed
+$info.Details
+$text = Read-OfficeDocument -Path '.\Combined.pdf' -As Text
 ```
 
 Use the generated command reference to confirm the current parameter sets; the legacy command names and parameter semantics are not retained as compatibility aliases.
@@ -52,7 +53,7 @@ Use the generated command reference to confirm the current parameter sets; the l
 
 - render representative pages and compare fonts, wrapping, spacing, images, tables, and page breaks;
 - inspect forms, annotations, attachments, bookmarks, signatures, encryption, and permission restrictions;
-- run `Get-OfficePdfPreflight`, `Get-OfficePdfDiagnostic`, or `Test-OfficePdfRewrite` for complex inputs;
+- run `Get-OfficePdfDiagnostic -Type Preflight`, `Get-OfficePdfDiagnostic`, or `Test-OfficePdfRewrite` for complex inputs;
 - distinguish native text extraction from OCR for image-only pages;
 - verify HTML and CSS resources in the actual deployment environment;
 - retain the original PDF and write migration output to a new artifact until acceptance.

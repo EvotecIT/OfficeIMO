@@ -201,7 +201,7 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Return native annotation edit reports.
+Return the changed, caller-owned PDF document. Dispose it when finished.
 
 ```yaml
 Type: SwitchParameter
@@ -292,7 +292,6 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 ## OUTPUTS
 
 - `OfficeIMO.Pdf.PdfDocument`
-- `System.IO.FileInfo`
 
 ## RELATED LINKS
 

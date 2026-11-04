@@ -12,4 +12,4 @@ New-OfficePdf -Path $source {
     PdfParagraph 'Owner sign-off page.'
 }
 
-Move-OfficePdfPage -Path $source -PageRange '3' -BeforePage 1 -OutputPath $reordered
+Move-OfficePdfPage -Path $source -Page '3' -BeforePage 1 -OutputPath $reordered

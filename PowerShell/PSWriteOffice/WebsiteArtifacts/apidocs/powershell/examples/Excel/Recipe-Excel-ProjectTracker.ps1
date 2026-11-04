@@ -8,15 +8,16 @@ $tasks = @(
 
 New-OfficeExcel -Path $path {
     ExcelSheet 'Tracker' {
-        ExcelTable -Data $tasks -Name 'ProjectTasks' -StartRow 1 -StartColumn 1 -TableStyle 'TableStyleMedium9' -AutoFit
+        ExcelTable -InputObject $tasks -Name 'ProjectTasks' -Address A1 -TableStyle 'TableStyleMedium9'
         ExcelSheetView -FreezeRows 1
-        ExcelValidationList -TableName 'ProjectTasks' -HeaderName 'Status' `
+        ExcelValidation -Type List -Table 'ProjectTasks' -Header 'Status' `
             -Values 'Not started', 'In progress', 'Blocked', 'Done'
-        ExcelConditionalColorScale -Range 'D2:D20' -StartColor '#FEE2E2' -EndColor '#DCFCE7'
-        ExcelConditionalRule -TableName 'ProjectTasks' -HeaderName 'Status' -RuleType ContainsText -Text 'Blocked'
+        ExcelConditionalFormat -Range 'D2:D20' -StartColor '#FEE2E2' -EndColor '#DCFCE7'
+        ExcelConditionalFormat -Table 'ProjectTasks' -Header 'Status' -Rule ContainsText -Text 'Blocked'
         ExcelChart -Range 'A1:D5' -Address A7 -Type BarClustered -Title 'Task progress' -Width 720px -Height 320px
-        ExcelHeaderFooter -HeaderCenter 'Project tracker' -FooterRight 'Page &P of &N'
-        ExcelOrientation -Orientation Landscape
+        ExcelHeader -Center 'Project tracker'
+        ExcelFooter -Right 'Page &P of &N'
+        ExcelPageSetup -Orientation Landscape
         ExcelPageSetup -FitToWidth 1 -FitToHeight 0
     }
 
@@ -27,5 +28,5 @@ New-OfficeExcel -Path $path {
         ExcelCell -Address A5 -Value '3. Update progress; the color scale and chart follow the data.'
     }
 
-    ExcelTableOfContents -SheetName 'Index' -AddBackLinks -BackLinkText 'Back to Index'
+    ExcelTableOfContents -Name 'Index' -BackLink -BackLinkText 'Back to Index'
 }

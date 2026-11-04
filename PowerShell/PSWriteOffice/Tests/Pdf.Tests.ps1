@@ -638,7 +638,7 @@ Describe 'PDF cmdlets' {
     }
 
     It 'reports append-only mutation support for generated PDFs' {
-        
+
 
         $path = Join-Path $TestDrive 'append-plan.pdf'
         New-OfficePdf -Path $path {

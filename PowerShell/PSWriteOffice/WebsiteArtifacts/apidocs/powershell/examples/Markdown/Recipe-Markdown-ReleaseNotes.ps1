@@ -6,10 +6,10 @@ $changes = @(
 )
 
 New-OfficeMarkdown -Path $path {
-    MarkdownFrontMatter -Data @{ title = 'Release 4.2.0'; date = '2026-08-18'; tags = @('release', 'automation') }
+    MarkdownFrontMatter -InputObject @{ title = 'Release 4.2.0'; date = '2026-08-18'; tags = @('release', 'automation') }
     MarkdownHeading -Level 1 -Text 'Release 4.2.0'
     MarkdownParagraph -Text 'This release adds report delivery options and tighter validation for generated files.'
-    MarkdownCallout -Kind tip -Title 'Upgrade' -Body 'Test the release against one representative report before changing the production pin.'
+    MarkdownCallout -Kind tip -Title 'Upgrade' -Text 'Test the release against one representative report before changing the production pin.'
 
     MarkdownHeading -Level 2 -Text 'What changed'
     MarkdownTable -InputObject $changes
@@ -18,7 +18,7 @@ New-OfficeMarkdown -Path $path {
     MarkdownTaskList -Items 'Update the module pin', 'Run the representative report', 'Inspect the generated files', 'Publish the approved version'
 
     MarkdownHeading -Level 2 -Text 'Install'
-    MarkdownCode -Language powershell -Content "Install-Module ExampleModule -RequiredVersion 4.2.0 -Scope CurrentUser"
+    MarkdownCode -Language powershell -Text "Install-Module ExampleModule -RequiredVersion 4.2.0 -Scope CurrentUser"
 
     MarkdownHeading -Level 2 -Text 'Known limits'
     MarkdownList -Items 'Existing templates are not modified automatically.', 'PDF signatures must be applied after content generation.'

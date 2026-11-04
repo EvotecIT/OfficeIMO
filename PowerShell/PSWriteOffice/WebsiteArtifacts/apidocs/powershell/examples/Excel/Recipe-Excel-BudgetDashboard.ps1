@@ -13,10 +13,10 @@ $decision = if ($overspend.Count) { 'Decision: review overspend in ' + ($overspe
 New-OfficeExcel -Path $path -SaveOptions @{ EvaluateFormulas = $true } {
     ExcelSheet 'Dashboard' {
         ExcelSheetView -NoGridlines
-        ExcelColumn -ColumnName A -Width 38
-        ExcelColumn -ColumnName B -Width 24
+        ExcelColumn -Column A -Width 38
+        ExcelColumn -Column B -Width 24
         ExcelCell -Address A1 -Value 'Department budget review'
-        ExcelRow -Row 1 -Bold $true -Height 32
+        ExcelRow -Row 1 -Bold:$true -Height 32
         ExcelCell -Address A2 -Value 'Illustrative annual forecast | USD'
         ExcelCell -Address A3 -Value 'Total budget'
         ExcelCell -Address B3 -Formula 'SUM(Detail!B2:B5)' -NumberFormat '$#,##0'
@@ -24,23 +24,23 @@ New-OfficeExcel -Path $path -SaveOptions @{ EvaluateFormulas = $true } {
         ExcelCell -Address B4 -Formula 'SUM(Detail!C2:C5)' -NumberFormat '$#,##0'
         ExcelCell -Address A5 -Value 'Forecast variance'
         ExcelCell -Address B5 -Formula 'SUM(Detail!E2:E5)' -NumberFormat '[Red]$#,##0;[Green]-$#,##0'
-        ExcelRow -Row 5 -Bold $true -BackgroundColor $(if ($forecastVariance -gt 0) { '#FEE2E2' } else { '#DCFCE7' }) -FirstColumn 1 -LastColumn 2
+        ExcelRow -Row 5 -Bold:$true -BackgroundColor $(if ($forecastVariance -gt 0) { '#FEE2E2' } else { '#DCFCE7' }) -FirstColumn 1 -LastColumn 2
         ExcelCell -Address A7 -Value 'Negative variance means the forecast is below budget.'
-        ExcelRow -Row 7 -WrapText $true -Height 34
+        ExcelRow -Row 7 -WrapText:$true -Height 34
         ExcelCell -Address A9 -Value $decision
-        ExcelRow -Row 9 -WrapText $true -Height 34
-        ExcelOrientation -Orientation Landscape
+        ExcelRow -Row 9 -WrapText:$true -Height 34
+        ExcelPageSetup -Orientation Landscape
         ExcelPageSetup -FitToWidth 1 -FitToHeight 0
-        ExcelPrintArea -Range 'A1:B9'
+        ExcelPageSetup -PrintArea 'A1:B9'
     }
 
     ExcelSheet 'Detail' {
-        ExcelTable -Data $budget -Name 'DepartmentBudget' -StartRow 1 -StartColumn 1 -TableStyle 'TableStyleMedium4' -AutoFit
+        ExcelTable -InputObject $budget -Name 'DepartmentBudget' -Address A1 -TableStyle 'TableStyleMedium4'
         ExcelSheetView -FreezeRows 1
-        ExcelConditionalDataBar -Range 'C2:C5' -Color '#5B9BD5'
-        ExcelConditionalIconSet -Range 'D2:D5' -IconSet ThreeTrafficLights1
+        ExcelConditionalFormat -DataBar -Range 'C2:C5' -Color '#5B9BD5'
+        ExcelConditionalFormat -Range 'D2:D5' -IconSet ThreeTrafficLights1
         foreach ($header in 'Budget', 'Actual', 'Forecast', 'Variance') {
-            ExcelColumnStyleByHeader -Header $header -NumberFormat '$#,##0' -AutoFit
+            ExcelColumn -Header $header -NumberFormat '$#,##0' -AutoFit
         }
         for ($row = 2; $row -le $budget.Count + 1; $row++) {
             ExcelCell -Address "E$row" -Formula "D$row-B$row" -NumberFormat '[Red]$#,##0;[Green]-$#,##0'
@@ -48,5 +48,5 @@ New-OfficeExcel -Path $path -SaveOptions @{ EvaluateFormulas = $true } {
         ExcelChart -Range 'A1:D5' -Address A7 -Type ColumnClustered -Title 'Budget, actual, and forecast' -Width 780px -Height 340px
     }
 
-    ExcelTableOfContents -SheetName 'Index' -AddBackLinks -BackLinkText 'Back to Index'
+    ExcelTableOfContents -Name 'Index' -BackLink -BackLinkText 'Back to Index'
 }

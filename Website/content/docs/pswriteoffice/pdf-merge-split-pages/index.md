@@ -9,8 +9,9 @@ PDF page operations work on completed files. They are appropriate for delivery p
 ## Merge and normalize
 
 ```powershell
-Join-OfficePdf -Path '.\Cover.pdf','.\Report.pdf','.\Appendix.pdf' `
-    -OutputPath '.\Pack.pdf' -PageSize A4 -ResizeMode Fit -ResizeMargin 18
+$options = New-OfficePdfMergeOptions -PageSize A4 -ResizeMode Fit -ResizeMargin 18pt
+Merge-OfficeDocument -Path '.\Cover.pdf','.\Report.pdf','.\Appendix.pdf' `
+    -OutputPath '.\Pack.pdf' -Options $options -PassThruReport
 ```
 
 Page normalization is optional. Keep original sizes when fidelity matters; use a fixed target size when the delivery contract requires consistent paper geometry.
@@ -24,4 +25,4 @@ Split-OfficeDocument -Path '.\Pack.pdf' -OutputDirectory '.\Pages' `
     -PageCount 1 -Prefix page -PadIndex -IndexWidth 3
 ```
 
-Use `Copy-OfficePdfPage`, `Move-OfficePdfPage`, and `Remove-OfficePdfPage` for targeted page assembly. The [merge-and-split recipe](https://github.com/EvotecIT/OfficeIMO/blob/e0f1aa49a70c3d988a2ca091b49d313ef797dda1/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-MergeAndSplit.ps1) creates two small inputs, combines them, and splits the result into one-page files.
+Use `Copy-OfficePdfPage`, `Move-OfficePdfPage`, and `Remove-OfficePdfPage` for targeted page assembly. The [merge-and-split recipe](https://github.com/EvotecIT/OfficeIMO/blob/3edfe3bbcf964fd078ee635a8d48562898ea0c87/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-MergeAndSplit.ps1) creates two small inputs, combines them, and splits the result into one-page files.

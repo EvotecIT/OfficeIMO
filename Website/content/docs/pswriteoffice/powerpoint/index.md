@@ -8,33 +8,34 @@ The PowerPoint family exports 53 commands for slide creation and editing, sectio
 
 ## Use a presentation object in normal scripts
 
-Create with `-NoSave`, add slides through an explicit presentation target, then save and close once. This keeps loops and conditional slide generation ordinary PowerShell:
+Create without a content block, add slides through an explicit presentation target, then save and close once. This keeps loops and conditional slide generation ordinary PowerShell:
 
 ```powershell
-$presentation = New-OfficePowerPoint -Path '.\Briefing.pptx' -NoSave
-$slide = Add-OfficePowerPointSlide -Presentation $presentation -LayoutType Text -PassThru
-Set-OfficePowerPointSlideTitle -Slide $slide -Title 'Actions'
+$presentation = New-OfficePowerPoint -Path '.\Briefing.pptx'
+$slide = Add-OfficePowerPointSlide -Document $presentation -TemplateLayout 2 -PassThru
+Set-OfficePowerPointSlide -Slide $slide -Title 'Actions'
 Add-OfficePowerPointTextBox -Slide $slide -Text 'Confirm the production date.' -X 90 -Y 170 -Width 700 -Height 60
-$presentation | Close-OfficePowerPoint -Save
+$presentation | Save-OfficePowerPoint
+$presentation | Close-OfficePowerPoint
 ```
 
 ## Choose direct authoring or a deck plan
 
 Direct authoring with `New-OfficePowerPoint` and `Add-OfficePowerPointSlide` is appropriate when the script owns exact slide composition. Add text boxes, shapes, tables, images, bullets, charts, notes, sections, and transitions inside the presentation context.
 
-Use `New-OfficePowerPointDeckPlan` and the `Add-OfficePowerPointPlan*` commands when the content is semantic and the designer should choose layout. Plan sections, processes, capabilities, case studies, coverage views, card grids, and logo walls can be described before a design alternative is selected.
+Use `PowerPointSlide -Layout` when content is semantic and the designer should choose layout. Sections, processes, capabilities, case studies, coverage views, card grids, and logo walls can be described in the slide content block.
 
 ## Copy complete DSL recipes
 
-- [Quarterly business review](https://github.com/EvotecIT/OfficeIMO/blob/e0f1aa49a70c3d988a2ca091b49d313ef797dda1/PowerShell/PSWriteOffice/Examples/PowerPoint/Recipe-PowerPoint-QuarterlyReview.ps1): title slide, performance chart, priorities table, bullets, and speaker notes.
-- [Training workshop](https://github.com/EvotecIT/OfficeIMO/blob/e0f1aa49a70c3d988a2ca091b49d313ef797dda1/PowerShell/PSWriteOffice/Examples/PowerPoint/Recipe-PowerPoint-TrainingWorkshop.ps1): learning objectives, agenda, call-to-action layout, and presenter notes.
-- [Service brief](https://github.com/EvotecIT/OfficeIMO/blob/e0f1aa49a70c3d988a2ca091b49d313ef797dda1/PowerShell/PSWriteOffice/Examples/Showcase/Showcase-PowerPoint-ServiceBrief.ps1): semantic designer slides combined with direct chart and table slides, sections, transitions, and inspection.
+- [Quarterly business review](https://github.com/EvotecIT/OfficeIMO/blob/3edfe3bbcf964fd078ee635a8d48562898ea0c87/PowerShell/PSWriteOffice/Examples/PowerPoint/Recipe-PowerPoint-QuarterlyReview.ps1): title slide, performance chart, priorities table, bullets, and speaker notes.
+- [Training workshop](https://github.com/EvotecIT/OfficeIMO/blob/3edfe3bbcf964fd078ee635a8d48562898ea0c87/PowerShell/PSWriteOffice/Examples/PowerPoint/Recipe-PowerPoint-TrainingWorkshop.ps1): learning objectives, agenda, call-to-action layout, and presenter notes.
+- [Service brief](https://github.com/EvotecIT/OfficeIMO/blob/3edfe3bbcf964fd078ee635a8d48562898ea0c87/PowerShell/PSWriteOffice/Examples/Showcase/Showcase-PowerPoint-ServiceBrief.ps1): semantic designer slides combined with direct chart and table slides, sections, transitions, and inspection.
 
 ## Other PowerPoint workflows
 
-- [Object composition](https://github.com/EvotecIT/OfficeIMO/blob/e0f1aa49a70c3d988a2ca091b49d313ef797dda1/PowerShell/PSWriteOffice/Examples/PowerPoint/Recipe-PowerPoint-ObjectComposition.ps1): build a deck through explicit presentation and slide objects.
-- [Sections and speaker notes](https://github.com/EvotecIT/OfficeIMO/blob/e0f1aa49a70c3d988a2ca091b49d313ef797dda1/PowerShell/PSWriteOffice/Examples/PowerPoint/Recipe-PowerPoint-SectionsAndNotes.ps1): organize a briefing and keep presenter context with each slide.
-- [Copy and remove slides](https://github.com/EvotecIT/OfficeIMO/blob/e0f1aa49a70c3d988a2ca091b49d313ef797dda1/PowerShell/PSWriteOffice/Examples/PowerPoint/Recipe-PowerPoint-CopyAndRemoveSlides.ps1): assemble a delivery deck from reusable material.
+- [Object composition](https://github.com/EvotecIT/OfficeIMO/blob/3edfe3bbcf964fd078ee635a8d48562898ea0c87/PowerShell/PSWriteOffice/Examples/PowerPoint/Recipe-PowerPoint-ObjectComposition.ps1): build a deck through explicit presentation and slide objects.
+- [Sections and speaker notes](https://github.com/EvotecIT/OfficeIMO/blob/3edfe3bbcf964fd078ee635a8d48562898ea0c87/PowerShell/PSWriteOffice/Examples/PowerPoint/Recipe-PowerPoint-SectionsAndNotes.ps1): organize a briefing and keep presenter context with each slide.
+- [Copy and remove slides](https://github.com/EvotecIT/OfficeIMO/blob/3edfe3bbcf964fd078ee635a8d48562898ea0c87/PowerShell/PSWriteOffice/Examples/PowerPoint/Recipe-PowerPoint-CopyAndRemoveSlides.ps1): assemble a delivery deck from reusable material.
 
 The [DSL cookbook](/docs/pswriteoffice/dsl-cookbook/) explains when to use direct placement and when to use a semantic deck plan.
 
@@ -53,4 +54,4 @@ Copy or import slides when the workflow assembles a deck from approved sources. 
 
 ## Review output
 
-Use `Convert-OfficeDocument -Path ./review.pptx -To Html -OutputPath ./review.html` for a browser-review surface and `Export-OfficeDocumentImage -Path ./review.pptx -OutputDirectory ./slides` for slide images. For exact parameters and supported chart/layout values, search the [command reference](/api/powershell/) for `OfficePowerPoint`. The [PowerPoint examples](https://github.com/EvotecIT/OfficeIMO/tree/e0f1aa49a70c3d988a2ca091b49d313ef797dda1/PowerShell/PSWriteOffice/Examples/PowerPoint) demonstrate normal script shapes.
+Use `Convert-OfficeDocument -Path ./review.pptx -To Html -OutputPath ./review.html` for a browser-review surface and `Export-OfficeDocumentImage -Path ./review.pptx -OutputDirectory ./slides` for slide images. For exact parameters and supported chart/layout values, search the [command reference](/api/powershell/) for `OfficePowerPoint`. The [PowerPoint examples](https://github.com/EvotecIT/OfficeIMO/tree/3edfe3bbcf964fd078ee635a8d48562898ea0c87/PowerShell/PSWriteOffice/Examples/PowerPoint) demonstrate normal script shapes.
