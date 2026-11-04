@@ -296,7 +296,9 @@ public partial class Excel {
             ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(validXml));
             using (var reader = ExcelDocument.OpenReader(path)) {
                 Assert.True(reader.Read());
+#if NET8_0_OR_GREATER
                 Assert.True(reader.TryGetUtf8Text(0, out _));
+#endif
                 Assert.Equal(value, reader.GetString(0));
                 Assert.False(reader.Read());
             }
