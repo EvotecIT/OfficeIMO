@@ -9,7 +9,9 @@ Object parsing constructs one record per row. Excel writer timing includes row
 generation, serialization, finalization and the complete returned byte array.
 CSV writer timing starts with prepared projected rows and ends with a finalized
 UTF-8 MemoryStream; it reports the encoded length without an extra ToArray copy.
-Setup checks every value through independent readers; measured reads check counts and checksums.
+Setup checks every value: Excel writer output through ExcelDataReader, and CSV
+writer output through `CsvDocument.ReadRowsReusable` against the prepared expected
+headers and values. Measured reads check counts and checksums.
 Invalid output has no usable timing. Third-party dependencies remain in the
 opt-in comparison projects.
 
