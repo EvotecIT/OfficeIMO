@@ -8,7 +8,7 @@ public sealed partial class PdfCreateOptions {
     public int? MaxGeneratedPages {
         get => _maxGeneratedPages;
         set {
-            System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value, nameof(MaxGeneratedPages));
+            if (value <= 0) throw new System.ArgumentOutOfRangeException(nameof(MaxGeneratedPages));
             _maxGeneratedPages = value;
         }
     }
