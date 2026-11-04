@@ -554,11 +554,6 @@ public static partial class PowerPointPdfConverterExtensions {
         return OfficeLinearGradient.FromAngle(start.Value, end.Value, angleDegrees);
     }
 
-    private static global::OfficeIMO.OfficeColor? ParsePdfColor(string? value) {
-        OfficeColor? color = ParseOfficeColor(value);
-        return color.HasValue ? (color.Value.A == 0 ? (global::OfficeIMO.OfficeColor?)null : color.Value) : null;
-    }
-
     private static OfficeColor? ParseOfficeColor(string? value) {
         if (string.IsNullOrWhiteSpace(value)) {
             return null;

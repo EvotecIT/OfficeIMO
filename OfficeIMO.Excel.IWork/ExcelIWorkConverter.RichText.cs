@@ -68,8 +68,8 @@ public static partial class ExcelIWorkConverter {
         left.Bold == right.Bold && left.Italic == right.Italic
         && left.Underline == right.Underline && left.Strikethrough == right.Strikethrough
         && left.FontSize == right.FontSize
-        && string.Equals(left.FontName, right.FontName, StringComparison.Ordinal)
-        && string.Equals(left.FontColor, right.FontColor, StringComparison.Ordinal);
+        && string.Equals(left.FontFamily, right.FontFamily, StringComparison.Ordinal)
+        && Nullable.Equals(left.Color, right.Color);
 
     private static ExcelHorizontalAlignment? ResolveFormulaAlignment(IWorkTextParagraph paragraph,
         IWorkParagraphStyle? defaults) => (paragraph.Style.Alignment ?? defaults?.Alignment) switch {
@@ -89,8 +89,8 @@ public static partial class ExcelIWorkConverter {
         cell.SetBold(font!.Bold == true).SetItalic(font.Italic == true)
             .SetUnderline(font.Underline == true).SetStrikethrough(font.Strikethrough == true);
         if (font.FontSize.HasValue) cell.SetFontSize(font.FontSize.Value);
-        if (!string.IsNullOrWhiteSpace(font.FontName)) cell.SetFontName(font.FontName!);
-        if (font.FontColor != null) cell.SetFontColor(font.FontColor);
+        if (!string.IsNullOrWhiteSpace(font.FontFamily)) cell.SetFontFamily(font.FontFamily!);
+        if (font.Color.HasValue) cell.SetColor(font.Color.Value);
         if (alignment.HasValue) sheet.Cell(cell.Row, cell.Column).SetHorizontalAlignment(alignment.Value);
         if (UniformCellHyperlink(content) is { } hyperlink)
             sheet.SetHyperlinkReference(cell.Row, cell.Column, hyperlink, style: false);
@@ -103,8 +103,9 @@ public static partial class ExcelIWorkConverter {
             Underline = style.Underline ?? defaults?.Underline ?? false,
             Strikethrough = style.Strikethrough ?? defaults?.Strikethrough ?? false,
             FontSize = (style.FontSizePoints ?? defaults?.FontSizePoints) is double points ? global::OfficeIMO.OfficeLength.Points(points) : (global::OfficeIMO.OfficeLength?)null,
-            FontName = style.FontName ?? defaults?.FontName,
-            FontColor = style.Color?.RgbHex ?? defaults?.Color?.RgbHex
+            FontFamily = style.FontName ?? defaults?.FontName,
+            Color = (style.Color ?? defaults?.Color) is { } color
+                ? OfficeColor.FromRgba(color.Red, color.Green, color.Blue, color.Alpha) : (OfficeColor?)null
         };
 
     private static ExcelRichTextRun[] ToExcelRichTextRuns(IWorkTextContent content, bool forceBold,

@@ -475,7 +475,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                 if (backgroundFillReservation != null) {
                     PptCore.PowerPointAutoShape backingFill = slide.AddRectangle(
                         OfficeIMO.OfficeLength.Points(left), OfficeIMO.OfficeLength.Points(top), OfficeIMO.OfficeLength.Points(width), OfficeIMO.OfficeLength.Points(height), "HTML background " + region.SourceKey);
-                    backingFill.FillColor = region.BackgroundColor!.Value.ToRgbHex();
+                    backingFill.FillColor = region.BackgroundColor!.Value;
                     backgroundFillReservation.Commit();
                     nativeRegionShapes.Add(backingFill);
                 }
@@ -489,7 +489,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                 nativeRegionShapes.Add(textBox);
                 textBox.Name = "HTML " + region.RegionKind + " " + region.SourceKey;
                 if (backgroundFillReservation != null) textBox.FillTransparency = 100;
-                else if (region.BackgroundColor.HasValue) textBox.FillColor = region.BackgroundColor.Value.ToRgbHex();
+                else if (region.BackgroundColor.HasValue) textBox.FillColor = region.BackgroundColor.Value;
                 else textBox.FillTransparency = 100;
 
                 if (options.ImportPictures) {
@@ -498,7 +498,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                 }
 
                 if (region.BoxShadowLayerCount > 0) {
-                    textBox.SetShadow("000000", blur: OfficeLength.Points(4D), distance: OfficeLength.Points(2D), angleDegrees: 45D, transparencyPercent: 45);
+                    textBox.SetShadow(OfficeColor.Black, blur: OfficeLength.Points(4D), distance: OfficeLength.Points(2D), angleDegrees: 45D, transparencyPercent: 45);
                     AddImportDiagnostic(result, HtmlEditableLayoutDiagnosticCodes.EffectUnsupported,
                         region.BoxShadowLayerCount > 1
                             ? "PowerPoint approximated the first editable CSS shadow and omitted additional shadow layers."

@@ -505,7 +505,7 @@ public static partial class WordIWorkConverter {
         if (style.Bold.HasValue) run.Bold = style.Bold.Value;
         if (style.Italic.HasValue) run.Italic = style.Italic.Value;
         if (style.Underline.HasValue) run.Underline = style.Underline.Value ? WordUnderlineStyle.Single : null;
-        if (style.Strikethrough.HasValue) run.Strike = style.Strikethrough.Value;
+        if (style.Strikethrough.HasValue) run.Strikethrough = style.Strikethrough.Value;
         if (style.FontSizePoints.HasValue) run.FontSize = global::OfficeIMO.OfficeLength.Points(style.FontSizePoints.Value);
         if (style.CharacterSpacingPoints is double spacing) run.Spacing = OfficeLength.Emus((long)ToCharacterSpacingTwips(spacing) * 635);
         if (!string.IsNullOrWhiteSpace(style.FontName)) run.FontFamily = style.FontName;

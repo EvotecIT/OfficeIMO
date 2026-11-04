@@ -99,7 +99,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 PowerPointSlideBackground background = slide.GetBackground(); result[root] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{slide.Hidden}|{BackgroundFingerprint(background)}"));
                 foreach (PowerPointShape shape in slide.Shapes.OrderBy(shape => shape.DrawingOrder)) {
                     string text = shape is PowerPointTextBox box ? ProjectedText(box.Paragraphs, box.TextBody?.ListStyle, box.MasterTextStyle)
-                        : shape is PowerPointTable table ? string.Join("|", table.RowItems.SelectMany((row, rowIndex) => row.Cells.Select((cell, columnIndex) =>
+                        : shape is PowerPointTable table ? string.Join("|", table.Rows.SelectMany((row, rowIndex) => row.Cells.Select((cell, columnIndex) =>
                             ProjectedText(cell.Paragraphs, cell.Cell.TextBody?.ListStyle, ResolveTableMasterTextStyle(cell),
                                 PowerPointSlideImageRenderer.ResolveTableCellTextStylesForExport(table, rowIndex, columnIndex)))))
                         : string.Empty;
@@ -124,9 +124,9 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             if (shape is PowerPointTextBox textBox) {
                 AppendParagraphFingerprint(result, textBox.Paragraphs, textBox.TextBody?.ListStyle, textBox.MasterTextStyle);
             } else if (shape is PowerPointTable table) {
-                AppendFingerprintValue(result, table.RowItems.Count);
-                for (int rowIndex = 0; rowIndex < table.RowItems.Count; rowIndex++) {
-                    PowerPointTableRow row = table.RowItems[rowIndex];
+                AppendFingerprintValue(result, table.Rows.Count);
+                for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
+                    PowerPointTableRow row = table.Rows[rowIndex];
                     AppendFingerprintValue(result, row.Cells.Count);
                     for (int columnIndex = 0; columnIndex < row.Cells.Count; columnIndex++) {
                         PowerPointTableCell cell = row.Cells[columnIndex];

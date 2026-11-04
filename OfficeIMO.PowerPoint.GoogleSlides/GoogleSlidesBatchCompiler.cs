@@ -96,7 +96,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                             target.Add(text); plan.NativeTextBoxCount++;
                             break;
                         case PowerPointTable table when !HasMergedCells(table):
-                            IReadOnlyList<IReadOnlyList<GoogleSlidesTableCell>> cells = table.RowItems
+                            IReadOnlyList<IReadOnlyList<GoogleSlidesTableCell>> cells = table.Rows
                                 .Select((row, rowIndex) => (IReadOnlyList<GoogleSlidesTableCell>)row.Cells
                                     .Select((cell, columnIndex) => BuildTableCell(table, cell, rowIndex, columnIndex))
                                     .ToArray()).ToArray();
@@ -401,9 +401,12 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         }
 
         private static void PreserveShapeStyle(GoogleSlidesShapeStyle target, PowerPointShape source) {
-            target.FillColorHex = NormalizeColorHex(source.FillColor);
-            target.FillTransparencyPercent = source.FillTransparency;
-            target.OutlineColorHex = NormalizeColorHex(source.OutlineColor);
+            OfficeColor? fill = source.ResolveFillColorForExport();
+            target.FillColorHex = fill?.ToRgbHex();
+            target.FillTransparencyPercent = source.FillTransparency
+                ?? (fill.HasValue && fill.Value.A < byte.MaxValue
+                    ? (int?)Math.Round((1d - fill.Value.A / 255d) * 100d) : null);
+            target.OutlineColorHex = source.ResolveOutlineColorForExport()?.ToRgbHex();
             target.OutlineWidthPoints = source.OutlineWidth?.ToPoints();
         }
 
@@ -448,7 +451,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         }
 
         private static bool HasMergedCells(PowerPointTable table) {
-            return table.RowItems.SelectMany(row => row.Cells).Any(cell => cell.IsMergedCell || cell.IsMergeAnchor);
+            return table.Rows.SelectMany(row => row.Cells).Any(cell => cell.IsMergedCell || cell.IsMergeAnchor);
         }
 
         private static bool TryMapShape(PowerPointAutoShape shape, out string slidesShapeType) =>

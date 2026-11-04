@@ -249,8 +249,8 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     private static bool TableUsesPresentationThemeFont(PptCore.PowerPointTable table) {
-        for (int row = 0; row < table.Rows; row++) {
-            for (int column = 0; column < table.Columns; column++) {
+        for (int row = 0; row < table.RowCount; row++) {
+            for (int column = 0; column < table.ColumnCount; column++) {
                 PptCore.PowerPointTableCell cell = table.GetCell(row, column);
                 if (cell.IsMergedCell ||
                     string.IsNullOrWhiteSpace(cell.Text) ||

@@ -407,10 +407,10 @@ public static partial class PdfPowerPointConverterExtensions {
             presentation.SlideSize.Width.ToPoints() / Math.Max(1D, pageWidth),
             presentation.SlideSize.Height.ToPoints() / Math.Max(1D, pageHeight));
         ApplyEditableTableTypography(table, page, sourceTable, scale, isContinuation: false, cancellationToken);
-        for (int rowIndex = 0; rowIndex < table.Rows; rowIndex++) {
-            for (int columnIndex = 0; columnIndex < table.Columns; columnIndex++) {
+        for (int rowIndex = 0; rowIndex < table.RowCount; rowIndex++) {
+            for (int columnIndex = 0; columnIndex < table.ColumnCount; columnIndex++) {
                 PptCore.PowerPointTableCell cell = table.GetCell(rowIndex, columnIndex);
-                if (string.IsNullOrEmpty(cell.FillColor)) cell.FillColor = "FFFFFF";
+                if (!cell.FillColor.HasValue) cell.FillColor = OfficeColor.White;
             }
         }
     }
@@ -671,15 +671,15 @@ public static partial class PdfPowerPointConverterExtensions {
     }
 
     // Light grey hairlines: the source rules are rarely black, and a black grid dominates the reconstructed slide.
-    private const string LightRuleColor = "C9CED6";
+    private static readonly OfficeColor LightRuleColor = OfficeColor.ParseHex("C9CED6");
     private const double LightRuleWidthPoints = 0.5D;
 
     private static bool UsesNeutralGrid(PptCore.PowerPointTableStylePreset requested) =>
         string.Equals(ResolveReconstructedTableStyle(requested).StyleId, NeutralGridTableStyleId, StringComparison.OrdinalIgnoreCase);
 
     private static void ApplyLightRules(PptCore.PowerPointTable table, CancellationToken cancellationToken) {
-        for (int rowIndex = 0; rowIndex < table.Rows; rowIndex++) {
-            for (int columnIndex = 0; columnIndex < table.Columns; columnIndex++) {
+        for (int rowIndex = 0; rowIndex < table.RowCount; rowIndex++) {
+            for (int columnIndex = 0; columnIndex < table.ColumnCount; columnIndex++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 table.GetCell(rowIndex, columnIndex).SetBorders(PptCore.PowerPointTableCellBorders.All, LightRuleColor, OfficeLength.Points(LightRuleWidthPoints));
             }
@@ -713,22 +713,22 @@ public static partial class PdfPowerPointConverterExtensions {
         IReadOnlyList<IReadOnlyList<PdfCore.PdfLogicalTableCellStyle?>>? styles = sourceTable.CellStyles;
         if (styles == null) return;
         int bodySourceOffset = headerRowIncluded ? 1 : 0;
-        for (int rowIndex = 0; rowIndex < table.Rows; rowIndex++) {
+        for (int rowIndex = 0; rowIndex < table.RowCount; rowIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             int sourceRow = headerRowIncluded && rowIndex == 0
                 ? 0
                 : bodySourceOffset + segment.RowStartIndex + rowIndex - (headerRowIncluded ? 1 : 0);
             if (sourceRow < 0 || sourceRow >= styles.Count) continue;
             IReadOnlyList<PdfCore.PdfLogicalTableCellStyle?> rowStyles = styles[sourceRow];
-            for (int columnIndex = 0; columnIndex < table.Columns; columnIndex++) {
+            for (int columnIndex = 0; columnIndex < table.ColumnCount; columnIndex++) {
                 int sourceColumn = segment.ColumnStartIndex + columnIndex;
                 PdfCore.PdfLogicalTableCellStyle? style = sourceColumn < rowStyles.Count ? rowStyles[sourceColumn] : null;
                 if (style == null) continue;
                 PptCore.PowerPointTableCell cell = table.GetCell(rowIndex, columnIndex);
-                if (style.FillColor.HasValue) cell.FillColor = style.FillColor.Value.ToRgbHex();
+                if (style.FillColor.HasValue) cell.FillColor = style.FillColor.Value;
                 if (style.IsBold) cell.Bold = true;
                 if (style.IsItalic) cell.Italic = true;
-                if (style.TextColor.HasValue && style.TextColor.Value.A > 0) cell.Color = global::OfficeIMO.OfficeColor.FromRgb(style.TextColor.Value.R, style.TextColor.Value.G, style.TextColor.Value.B);
+                if (style.TextColor.HasValue && style.TextColor.Value.A > 0) cell.Color = style.TextColor.Value;
                 string? family = PdfCore.PdfFontFamilyNames.ToFamilyName(style.FontName);
                 if (!string.IsNullOrWhiteSpace(family)) {
                     cell.FontFamily = family!.StartsWith("Helvetica", StringComparison.OrdinalIgnoreCase) ? "Arial" : family;
@@ -764,9 +764,9 @@ public static partial class PdfPowerPointConverterExtensions {
         const double CharacterWidthPoints = 5.5D;
         const double PaddingPoints = 2D * EditableCellHorizontalPaddingPoints + 3D;
         double frameWidth = 0D;
-        for (int columnIndex = 0; columnIndex < table.Columns; columnIndex++) frameWidth += table.GetColumnWidth(columnIndex).ToPoints();
+        for (int columnIndex = 0; columnIndex < table.ColumnCount; columnIndex++) frameWidth += table.GetColumnWidth(columnIndex).ToPoints();
         double ratioTotal = ratios.Sum();
-        if (frameWidth <= 0D || ratioTotal <= 0D || ratios.Length != table.Columns) return ratios;
+        if (frameWidth <= 0D || ratioTotal <= 0D || ratios.Length != table.ColumnCount) return ratios;
         var widths = new double[ratios.Length];
         for (int columnIndex = 0; columnIndex < ratios.Length; columnIndex++) {
             int sourceColumn = segment.ColumnStartIndex + columnIndex;
@@ -829,7 +829,7 @@ public static partial class PdfPowerPointConverterExtensions {
         PdfCore.PdfLogicalTableData data,
         bool alignNumericColumns,
         CancellationToken cancellationToken) {
-        for (int columnIndex = 0; columnIndex < table.Columns; columnIndex++) {
+        for (int columnIndex = 0; columnIndex < table.ColumnCount; columnIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             int sourceColumnIndex = sourceColumnStartIndex + columnIndex;
             string value = sourceColumnIndex < values.Count ? values[sourceColumnIndex] : string.Empty;

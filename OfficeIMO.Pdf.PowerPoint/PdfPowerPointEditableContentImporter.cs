@@ -300,15 +300,13 @@ public static partial class PdfPowerPointConverterExtensions {
 
     private static void ApplyEditableShapeStyle(PptCore.PowerPointShape target, OfficeShape source) {
         if (source.Kind != OfficeShapeKind.Line) {
-            target.FillColor = ToHex(source.FillColor ?? OfficeColor.White);
-            target.FillTransparency = source.FillColor.HasValue
-                ? ToTransparency(source.FillOpacity)
-                : 100;
+            target.FillColor = source.FillColor.HasValue
+                ? OfficeColorTransforms.ModulateAlpha(source.FillColor.Value, source.FillOpacity ?? 1D)
+                : OfficeColor.Transparent;
         }
-        target.OutlineColor = ToHex(source.StrokeColor ?? OfficeColor.White);
-        target.OutlineTransparency = source.StrokeColor.HasValue
-            ? ToTransparency(source.StrokeOpacity)
-            : 100;
+        target.OutlineColor = source.StrokeColor.HasValue
+            ? OfficeColorTransforms.ModulateAlpha(source.StrokeColor.Value, source.StrokeOpacity ?? 1D)
+            : OfficeColor.Transparent;
         target.OutlineWidth = global::OfficeIMO.OfficeLength.Points(Math.Max(0D, source.StrokeWidth));
         target.OutlineDash = source.StrokeDashStyle switch {
             OfficeStrokeDashStyle.Dash => PptCore.PowerPointLineDashStyle.Dash,
@@ -575,9 +573,9 @@ public static partial class PdfPowerPointConverterExtensions {
             if (textBox.TextBody?.BodyProperties is DocumentFormat.OpenXml.Drawing.BodyProperties bodyProperties) {
                 bodyProperties.Wrap = DocumentFormat.OpenXml.Drawing.TextWrappingValues.None;
             }
-            textBox.FillColor = "FFFFFF";
+            textBox.FillColor = OfficeColor.White;
             textBox.FillTransparency = 100;
-            textBox.OutlineColor = "FFFFFF";
+            textBox.OutlineColor = OfficeColor.White;
             textBox.OutlineTransparency = 100;
             ApplyEditableTextRuns(
                 textBox,
@@ -638,7 +636,7 @@ public static partial class PdfPowerPointConverterExtensions {
         target.FontFamily = ResolvePowerPointFontFamily(source.BaseFont);
         target.Bold = source.IsBold;
         target.Italic = source.IsItalic;
-        if (source.Color.HasValue) target.Color = OfficeColor.FromRgb(source.Color.Value.R, source.Color.Value.G, source.Color.Value.B);
+        if (source.Color.HasValue) target.Color = source.Color.Value;
     }
 
     private static EditableTableImportCount ImportEditableTables(
@@ -1051,16 +1049,6 @@ public static partial class PdfPowerPointConverterExtensions {
                 ["Disposition"] = "Omitted"
             }));
     }
-
-    private static string ToHex(OfficeColor color) =>
-        color.R.ToString("X2", System.Globalization.CultureInfo.InvariantCulture) +
-        color.G.ToString("X2", System.Globalization.CultureInfo.InvariantCulture) +
-        color.B.ToString("X2", System.Globalization.CultureInfo.InvariantCulture);
-
-    private static int ToTransparency(double? opacity) =>
-        opacity.HasValue
-            ? Math.Min(100, Math.Max(0, (int)Math.Round((1D - opacity.Value) * 100D)))
-            : 0;
 
     private static double NormalizeRotation(double value) {
         double normalized = value % 360D;

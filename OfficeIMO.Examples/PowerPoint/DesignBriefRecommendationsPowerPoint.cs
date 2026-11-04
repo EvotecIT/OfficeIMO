@@ -46,7 +46,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                         $"{recommendation.Design.Mood} / {recommendation.Design.VisualStyle}",
                         $"{recommendation.Design.HeadingFontFamily} + {recommendation.Design.BodyFontFamily}"
                     },
-                    recommendation.Design.AccentColor)),
+                    recommendation.Design.AccentColor.ToString())),
                 "brief-alternatives",
                 options => {
                     options.Variant = PowerPointCardGridLayoutVariant.AccentTop;
