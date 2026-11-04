@@ -14,7 +14,7 @@ namespace PSWriteOffice.Cmdlets.Epub;
 [OutputType(typeof(EpubWriteReport))]
 public sealed class SaveOfficeEpubCommand : PSCmdlet {
     /// <summary>Live editable publication.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "Document")]
     public EpubPublication Document { get; set; } = null!;
 
     /// <summary>Destination path; omission uses the native publication's associated path.</summary>

@@ -5,6 +5,16 @@ using PSWriteOffice.Services.Markdown;
 
 namespace PSWriteOffice.Cmdlets.Markdown;
 
+/// <summary>Placement of a generated Markdown table of contents.</summary>
+public enum MarkdownTocPlacement {
+    /// <summary>Insert where the command runs.</summary>
+    Current,
+    /// <summary>Insert at the start of the document.</summary>
+    Top,
+    /// <summary>Insert for the preceding heading.</summary>
+    PreviousHeading
+}
+
 /// <summary>Adds a Markdown table of contents placeholder.</summary>
 /// <example>
 ///   <summary>Add a TOC at the top of a generated report.</summary>
@@ -15,20 +25,21 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 ///     Add-OfficeMarkdownParagraph -Text 'Current state and risks.'
 ///     Add-OfficeMarkdownHeading -Level 2 -Text 'Appendix'
 ///     Add-OfficeMarkdownParagraph -Text 'Supporting evidence.'
-///     Add-OfficeMarkdownTableOfContents -Title 'Contents' -MinLevel 2 -MaxLevel 3 -PlaceAtTop
+///     Add-OfficeMarkdownTableOfContents -Title 'Contents' -MinLevel 2 -MaxLevel 3 -Placement Top
 /// }</code>
 ///   <para>Inserts a generated table of contents for headings in the document.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeMarkdownTableOfContents", DefaultParameterSetName = ParameterSetContext)]
-[Alias("MarkdownTableOfContents", "MarkdownToc")]
+[Cmdlet(VerbsCommon.Add, "OfficeMarkdownTableOfContents", DefaultParameterSetName = "Placement")]
 [OutputType(typeof(MarkdownDocument))]
+[Alias("MarkdownTableOfContents") ]
 public sealed class AddOfficeMarkdownTableOfContentsCommand : PSCmdlet
 {
     private const string ParameterSetContext = "Context";
     private const string ParameterSetDocument = "Document";
 
     /// <summary>Markdown document to update outside the DSL context.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "DocumentPlacement")]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "DocumentSection")]
     public MarkdownDocument Document { get; set; } = null!;
 
     /// <summary>Heading text displayed above the generated table of contents.</summary>
@@ -45,23 +56,21 @@ public sealed class AddOfficeMarkdownTableOfContentsCommand : PSCmdlet
 
     /// <summary>Generate an ordered table of contents list.</summary>
     [Parameter]
-    public SwitchParameter Ordered { get; set; }
+    public SwitchParameter Numbered { get; set; }
 
     /// <summary>Heading level used for the TOC title.</summary>
     [Parameter]
     public int TitleLevel { get; set; } = 2;
 
-    /// <summary>Insert the TOC at the start of the document.</summary>
-    [Parameter]
-    public SwitchParameter PlaceAtTop { get; set; }
-
-    /// <summary>Scope the TOC to the previous heading.</summary>
-    [Parameter]
-    public SwitchParameter ForPreviousHeading { get; set; }
+    /// <summary>Where to place the TOC.</summary>
+    [Parameter(ParameterSetName = "Placement")]
+    [Parameter(ParameterSetName = "DocumentPlacement")]
+    public MarkdownTocPlacement Placement { get; set; }
 
     /// <summary>Scope the TOC to the named section heading.</summary>
-    [Parameter]
-    public string? ForSection { get; set; }
+    [Parameter(Mandatory = true, ParameterSetName = "Section")]
+    [Parameter(Mandatory = true, ParameterSetName = "DocumentSection")]
+    public string? Section { get; set; }
 
     /// <summary>Emit the updated Markdown document.</summary>
     [Parameter]
@@ -73,17 +82,17 @@ public sealed class AddOfficeMarkdownTableOfContentsCommand : PSCmdlet
         var doc = ResolveDocument();
         ValidateParameters();
 
-        if (!string.IsNullOrWhiteSpace(ForSection))
+        if (!string.IsNullOrWhiteSpace(Section))
         {
-            doc.TocForSection(ForSection!, Title, MinLevel, MaxLevel, Ordered.IsPresent, TitleLevel);
+            doc.TocForSection(Section!, Title, MinLevel, MaxLevel, Numbered.IsPresent, TitleLevel);
         }
-        else if (ForPreviousHeading.IsPresent)
+        else if (Placement == MarkdownTocPlacement.PreviousHeading)
         {
-            doc.TocForPreviousHeading(Title, MinLevel, MaxLevel, Ordered.IsPresent, TitleLevel);
+            doc.TocForPreviousHeading(Title, MinLevel, MaxLevel, Numbered.IsPresent, TitleLevel);
         }
-        else if (PlaceAtTop.IsPresent)
+        else if (Placement == MarkdownTocPlacement.Top)
         {
-            doc.TocAtTop(Title, MinLevel, MaxLevel, Ordered.IsPresent, TitleLevel);
+            doc.TocAtTop(Title, MinLevel, MaxLevel, Numbered.IsPresent, TitleLevel);
         }
         else
         {
@@ -92,7 +101,7 @@ public sealed class AddOfficeMarkdownTableOfContentsCommand : PSCmdlet
                 opts.Title = Title;
                 opts.MinLevel = MinLevel;
                 opts.MaxLevel = MaxLevel;
-                opts.Ordered = Ordered.IsPresent;
+                opts.Ordered = Numbered.IsPresent;
                 opts.TitleLevel = TitleLevel;
             });
         }
@@ -125,15 +134,11 @@ public sealed class AddOfficeMarkdownTableOfContentsCommand : PSCmdlet
             throw new PSArgumentOutOfRangeException(nameof(TitleLevel), TitleLevel, "TitleLevel must be between 1 and 6.");
         }
 
-        if (ForPreviousHeading.IsPresent && !string.IsNullOrWhiteSpace(ForSection))
-        {
-            throw new PSArgumentException("Specify either -ForPreviousHeading or -ForSection, not both.");
-        }
     }
 
     private MarkdownDocument ResolveDocument()
     {
-        if (ParameterSetName == ParameterSetDocument)
+        if (ParameterSetName.StartsWith("Document", StringComparison.Ordinal))
         {
             return Document ?? throw new PSArgumentException("Provide a Markdown document.");
         }

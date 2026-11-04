@@ -25,8 +25,8 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 ///   <para>Creates two tables in sequence within the same Markdown document.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeMarkdownTable", DefaultParameterSetName = ParameterSetContext)]
-[Alias("MarkdownTable")]
 [OutputType(typeof(MarkdownDocument))]
+[Alias("MarkdownTable") ]
 public sealed class AddOfficeMarkdownTableCommand : PSCmdlet
 {
     private const string ParameterSetContext = "Context";
@@ -77,7 +77,7 @@ public sealed class AddOfficeMarkdownTableCommand : PSCmdlet
 
     /// <summary>Disable automatic alignment heuristics for tables.</summary>
     [Parameter]
-    public SwitchParameter DisableAutoAlign { get; set; }
+    public SwitchParameter NoAutoAlign { get; set; }
 
     /// <summary>Emit the Markdown document after appending the table.</summary>
     [Parameter]
@@ -135,7 +135,7 @@ public sealed class AddOfficeMarkdownTableCommand : PSCmdlet
             MaxCollectionItems,
             MaxNestingDepth);
         var normalizedRows = PowerShellObjectNormalizer.NormalizeItems(projectedRows, options);
-        if (DisableAutoAlign.IsPresent)
+        if (NoAutoAlign.IsPresent)
         {
             doc.AddTable((object)normalizedRows);
         }

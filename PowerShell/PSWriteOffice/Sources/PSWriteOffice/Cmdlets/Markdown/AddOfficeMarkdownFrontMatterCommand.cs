@@ -16,8 +16,8 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 ///   <para>Sets the document header using the supplied key/value pairs.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeMarkdownFrontMatter", DefaultParameterSetName = ParameterSetContext)]
-[Alias("MarkdownFrontMatter")]
 [OutputType(typeof(MarkdownDocument))]
+[Alias("MarkdownFrontMatter") ]
 public sealed class AddOfficeMarkdownFrontMatterCommand : PSCmdlet
 {
     private const string ParameterSetContext = "Context";

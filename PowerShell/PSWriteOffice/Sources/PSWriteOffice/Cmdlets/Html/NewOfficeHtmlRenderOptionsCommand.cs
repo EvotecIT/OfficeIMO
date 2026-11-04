@@ -1,3 +1,5 @@
+using OfficeIMO;
+using PSWriteOffice.Foundation;
 using System;
 using System.Management.Automation;
 using OfficeIMO.Drawing;
@@ -17,21 +19,21 @@ namespace PSWriteOffice.Cmdlets.Html;
 [OutputType(typeof(HtmlRenderOptions))]
 public sealed class NewOfficeHtmlRenderOptionsCommand : OfficeImageOptionsCommandBase<HtmlRenderOptions> {
     /// <summary>HTML render mode.</summary>
-    [Parameter] public HtmlRenderMode? Mode { get; set; }
+    [Parameter(ParameterSetName = "Default")] public HtmlRenderMode? Mode { get; set; }
     /// <summary>Fidelity policy for unsupported content.</summary>
     [Parameter] public HtmlRenderFidelityPolicy? FidelityPolicy { get; set; }
     /// <summary>Viewport width in CSS pixels.</summary>
-    [Parameter] [ValidateRange(double.Epsilon, double.MaxValue)] public double? ViewportWidth { get; set; }
+    [Parameter, OfficeLengthTransformation] public OfficeLength? ViewportWidth { get; set; }
     /// <summary>Optional viewport height in CSS pixels.</summary>
-    [Parameter] [ValidateRange(double.Epsilon, double.MaxValue)] public double? ViewportHeight { get; set; }
+    [Parameter, OfficeLengthTransformation] public OfficeLength? ViewportHeight { get; set; }
     /// <summary>Page size used by paged rendering.</summary>
-    [Parameter] public OfficePageSize? PageSize { get; set; }
+    [Parameter, OfficePageSizeTransformation(typeof(OfficePageSize))] public OfficePageSize? PageSize { get; set; }
     /// <summary>Honor CSS page rules.</summary>
-    [Parameter] public SwitchParameter HonorCssPageRules { get; set; }
+    [Parameter] public SwitchParameter NoCssPageRules { get; set; }
     /// <summary>Default font family.</summary>
-    [Parameter] public string? DefaultFontFamily { get; set; }
+    [Parameter] public string? DefaultFont { get; set; }
     /// <summary>Default font size.</summary>
-    [Parameter] [ValidateRange(double.Epsilon, double.MaxValue)] public double? DefaultFontSize { get; set; }
+    [Parameter, OfficeLengthTransformation] public OfficeLength? DefaultSize { get; set; }
     /// <summary>Default line-height multiplier.</summary>
     [Parameter] [ValidateRange(double.Epsilon, double.MaxValue)] public double? DefaultLineHeight { get; set; }
     /// <summary>Base URI for relative resources.</summary>
@@ -53,12 +55,12 @@ public sealed class NewOfficeHtmlRenderOptionsCommand : OfficeImageOptionsComman
         ApplyCommon(options);
         if (Mode.HasValue) options.Mode = Mode.Value;
         if (FidelityPolicy.HasValue) options.FidelityPolicy = FidelityPolicy.Value;
-        if (ViewportWidth.HasValue) options.ViewportWidth = ViewportWidth.Value;
-        if (ViewportHeight.HasValue) options.ViewportHeight = ViewportHeight.Value;
+        if (ViewportWidth.HasValue) options.ViewportWidth = ViewportWidth.Value.ToPixels();
+        if (ViewportHeight.HasValue) options.ViewportHeight = ViewportHeight.Value.ToPixels();
         if (PageSize.HasValue) options.PageSize = PageSize.Value;
-        if (IsBound(nameof(HonorCssPageRules))) options.HonorCssPageRules = HonorCssPageRules.IsPresent;
-        if (DefaultFontFamily != null) options.DefaultFontFamily = DefaultFontFamily;
-        if (DefaultFontSize.HasValue) options.DefaultFontSize = DefaultFontSize.Value;
+        if (IsBound(nameof(NoCssPageRules))) options.HonorCssPageRules = !NoCssPageRules.IsPresent;
+        if (DefaultFont != null) options.DefaultFontFamily = DefaultFont;
+        if (DefaultSize.HasValue) options.DefaultFontSize = DefaultSize.Value.ToPixels();
         if (DefaultLineHeight.HasValue) options.DefaultLineHeight = DefaultLineHeight.Value;
         if (!string.IsNullOrWhiteSpace(BaseUri)) options.BaseUri = HtmlOptionsCommandUtilities.NormalizeBaseUri(SessionState, BaseUri!);
         if (MaxPageCount.HasValue) options.MaxPageCount = MaxPageCount.Value;

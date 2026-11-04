@@ -1,3 +1,4 @@
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services;
 using System.Management.Automation;
 using OfficeIMO.Email;
@@ -9,16 +10,21 @@ namespace PSWriteOffice.Cmdlets.Email;
 ///   <summary>Read a bounded mbox mailbox with diagnostics.</summary>
 ///   <prefix>PS&gt; </prefix>
 ///   <code>$options = New-OfficeEmailMailboxReaderOptions -MaxMessageCount 5000
-/// Get-OfficeEmailMailbox -Path .\Archive.mbox -Options $options -AsResult</code>
+/// Open-OfficeEmailMailbox -Path .\Archive.mbox -Options $options -AsResult</code>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeEmailMailbox")]
+[Cmdlet(VerbsCommon.Open, "OfficeEmailMailbox", DefaultParameterSetName = "Path")]
 [OutputType(typeof(EmailMailbox), typeof(EmailMailboxReadResult))]
-public sealed class GetOfficeEmailMailboxCommand : PSCmdlet
+public sealed class OpenOfficeEmailMailboxCommand : PSCmdlet
 {
     /// <summary>Path to an mbox or mbx file.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
-    [Alias("FullName", "LiteralPath")]
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = "Path")]
     public string Path { get; set; } = string.Empty;
+
+    /// <summary>Exact input path without wildcard expansion.</summary>
+    [Parameter(Mandatory = true, ValueFromPipelineByPropertyName = true, ParameterSetName = "LiteralPath")]
+    [Alias("PSPath", "FullName")]
+    public string LiteralPath { get; set; } = string.Empty;
+
 
     /// <summary>Optional mailbox variant and input limits.</summary>
     [Parameter]
@@ -29,10 +35,12 @@ public sealed class GetOfficeEmailMailboxCommand : PSCmdlet
     public SwitchParameter AsResult { get; set; }
 
     /// <inheritdoc />
-    protected override void ProcessRecord()
-    {
+    protected override void ProcessRecord() {
+        foreach (var path in OfficePath.ResolveInput(SessionState, ParameterSetName == "LiteralPath" ? LiteralPath : Path, ParameterSetName == "LiteralPath", allowDirectory: false)) ReadPath(path);
+    }
+    private void ReadPath(string inputPath) {
         var result = new EmailMailboxReader(Options ?? EmailMailboxReaderOptions.Default).Read(
-            OfficeFileCommandUtilities.ResolvePath(this, Path));
+            inputPath);
         WriteObject(AsResult.IsPresent ? result : result.Mailbox);
     }
 }

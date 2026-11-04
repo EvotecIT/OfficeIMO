@@ -12,7 +12,7 @@ namespace PSWriteOffice.Cmdlets.OpenDocument;
 [OutputType(typeof(OdfSaveResult))]
 public sealed class SaveOfficeOpenDocumentCommand : PSCmdlet {
     /// <summary>OpenDocument model to save.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "Document")]
     public OdfDocument Document { get; set; } = null!;
 
     /// <summary>Destination path; defaults to the document's associated save path.</summary>

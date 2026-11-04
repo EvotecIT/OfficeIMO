@@ -16,7 +16,7 @@ namespace PSWriteOffice.Cmdlets.Project;
 [Cmdlet(VerbsCommon.Close, "OfficeProject", DefaultParameterSetName = "Document")]
 public sealed class CloseOfficeProjectCommand : PSCmdlet {
     /// <summary>Project to inspect or change.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "Document")]
     public ProjectDocument Document { get; set; } = null!;
 
     /// <inheritdoc />

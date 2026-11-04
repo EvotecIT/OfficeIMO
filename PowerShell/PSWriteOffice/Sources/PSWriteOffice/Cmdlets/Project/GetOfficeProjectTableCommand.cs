@@ -1,3 +1,4 @@
+using PSWriteOffice.Foundation;
 using System;
 using System.IO;
 using System.Linq;
@@ -11,17 +12,17 @@ namespace PSWriteOffice.Cmdlets.Project;
 /// <summary>Returns mapped project tables and explicit projection-loss notices.</summary>
 /// <example>
 ///   <summary>Returns mapped project tables and explicit projection-loss notices.</summary>
-///   <code>$tables = $project | Export-OfficeProjectTable -AllowLossyProjection</code>
+///   <code>$tables = $project | Get-OfficeProjectTable -AllowLoss</code>
 /// </example>
-[Cmdlet(VerbsData.Export, "OfficeProjectTable")]
+[Cmdlet(VerbsCommon.Get, "OfficeProjectTable", DefaultParameterSetName = "Document")]
 [OutputType(typeof(ProjectDataExportResult))]
-public sealed class ExportOfficeProjectTableCommand : PSCmdlet {
+public sealed class GetOfficeProjectTableCommand : PSCmdlet {
     /// <summary>Project document.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true)]
+    [Parameter(ValueFromPipeline = true, ParameterSetName = "Document")]
     public ProjectDocument Document { get; set; } = null!;
     /// <summary>Explicitly accept omitted settings, dependencies and advanced/native data.</summary>
     [Parameter]
-    public SwitchParameter AllowLossyProjection { get; set; }
+    public SwitchParameter AllowLoss { get; set; }
     /// <summary>Maximum total rows.</summary>
     [Parameter]
     [ValidateRange(1, int.MaxValue)]
@@ -33,7 +34,8 @@ public sealed class ExportOfficeProjectTableCommand : PSCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var result = Document.ExportTables(AllowLossyProjection.IsPresent, MaxRows, MaxCells);
+        Document ??= OfficeDocumentContext.Find<ProjectDocument>() ?? throw new PSInvalidOperationException("Provide -Document or use a Project content block.");
+        var result = Document.ExportTables(AllowLoss.IsPresent, MaxRows, MaxCells);
         foreach (var notice in result.Notices) WriteWarning(notice);
         WriteObject(result);
     }

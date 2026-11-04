@@ -1,3 +1,4 @@
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services;
 using System;
 using System.IO;
@@ -13,16 +14,21 @@ namespace PSWriteOffice.Cmdlets.Email;
 ///   <summary>Read a message without retaining attachment payloads.</summary>
 ///   <prefix>PS&gt; </prefix>
 ///   <code>$options = New-OfficeEmailReaderOptions -ExcludeAttachmentContent -MaxAttachmentBytes 25MB
-/// Get-OfficeEmail -Path .\Message.msg -Options $options -AsResult</code>
+/// Open-OfficeEmail -Path .\Message.msg -Options $options -AsResult</code>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeEmail")]
+[Cmdlet(VerbsCommon.Open, "OfficeEmail", DefaultParameterSetName = "Path")]
 [OutputType(typeof(EmailDocument), typeof(EmailReadResult), typeof(EmailStoreReadResult))]
-public sealed class GetOfficeEmailCommand : PSCmdlet
+public sealed class OpenOfficeEmailCommand : PSCmdlet
 {
     /// <summary>Path to an EML, EMLX, MSG, TNEF, or winmail.dat file.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
-    [Alias("FullName", "LiteralPath")]
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = "Path")]
     public string Path { get; set; } = string.Empty;
+
+    /// <summary>Exact input path without wildcard expansion.</summary>
+    [Parameter(Mandatory = true, ValueFromPipelineByPropertyName = true, ParameterSetName = "LiteralPath")]
+    [Alias("PSPath", "FullName")]
+    public string LiteralPath { get; set; } = string.Empty;
+
 
     /// <summary>Optional format detection, compound-file, MIME, attachment, and size limits.</summary>
     [Parameter]
@@ -37,9 +43,11 @@ public sealed class GetOfficeEmailCommand : PSCmdlet
     public SwitchParameter AsResult { get; set; }
 
     /// <inheritdoc />
-    protected override void ProcessRecord()
-    {
-        var input = OfficeFileCommandUtilities.ResolvePath(this, Path);
+    protected override void ProcessRecord() {
+        foreach (var path in OfficePath.ResolveInput(SessionState, ParameterSetName == "LiteralPath" ? LiteralPath : Path, ParameterSetName == "LiteralPath", allowDirectory: false)) ReadPath(path);
+    }
+    private void ReadPath(string inputPath) {
+        var input = inputPath;
         if (string.Equals(System.IO.Path.GetExtension(input), ".emlx", StringComparison.OrdinalIgnoreCase))
         {
             var storeResult = new EmailStoreReader(StoreOptions ?? CreateStoreOptions()).Read(input);

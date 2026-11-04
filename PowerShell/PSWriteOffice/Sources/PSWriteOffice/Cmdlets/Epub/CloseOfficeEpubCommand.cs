@@ -9,7 +9,7 @@ namespace PSWriteOffice.Cmdlets.Epub;
 [Cmdlet(VerbsCommon.Close, "OfficeEpub", DefaultParameterSetName = "Document")]
 public sealed class CloseOfficeEpubCommand : PSCmdlet {
     /// <summary>Live publication to close without saving.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true), ValidateNotNull]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "Document"), ValidateNotNull]
     public EpubPublication Document { get; set; } = null!;
 
     /// <inheritdoc />

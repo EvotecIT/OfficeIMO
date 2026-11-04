@@ -12,10 +12,10 @@ New-OfficeMarkdown -Path $path {
         title = 'Operations Report'
         tags  = @('ops', 'weekly')
     }
-    MarkdownTableOfContents -Title 'Contents' -PlaceAtTop -MinLevel 2 -MaxLevel 3
+    MarkdownTableOfContents -Title 'Contents' -Placement Top -MinLevel 2 -MaxLevel 3
     MarkdownHeading -Level 1 -Text 'Operations Report'
     MarkdownParagraph -Text 'Generated with PSWriteOffice.'
-    MarkdownCallout -Kind 'note' -Title 'Reminder' -Body 'Review the incident log before publishing.'
+    MarkdownCallout -Kind 'note' -Title 'Reminder' -Text 'Review the incident log before publishing.'
     MarkdownHeading -Level 2 -Text 'Key Metrics'
     MarkdownTable -InputObject $data
     MarkdownHeading -Level 2 -Text 'Checklist'
@@ -29,7 +29,7 @@ New-OfficeMarkdown -Path $path {
         MarkdownParagraph -Text 'This section stays collapsed in supporting renderers.'
         MarkdownList -Items 'Thin PowerShell wrapper', 'Backed by OfficeIMO.Markdown'
     }
-    MarkdownCode -Language 'powershell' -Content 'Get-Service | Select-Object -First 5'
+    MarkdownCode -Language 'powershell' -Text 'Get-Service | Select-Object -First 5'
     MarkdownHorizontalRule
     MarkdownQuote -Text 'Availability is a feature.'
 }

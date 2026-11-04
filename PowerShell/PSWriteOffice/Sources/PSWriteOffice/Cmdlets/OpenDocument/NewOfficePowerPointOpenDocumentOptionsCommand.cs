@@ -1,5 +1,6 @@
 using System.Management.Automation;
 using OfficeIMO;
+using OfficeIMO.OpenDocument;
 using OfficeIMO.PowerPoint.OpenDocument;
 using PSWriteOffice.Foundation;
 
@@ -12,9 +13,9 @@ namespace PSWriteOffice.Cmdlets.OpenDocument;
 [Cmdlet(VerbsCommon.New, "OfficePowerPointOpenDocumentOptions", DefaultParameterSetName = "Default")]
 [OutputType(typeof(PowerPointOpenDocumentConversionOptions))]
 public sealed class NewOfficePowerPointOpenDocumentOptionsCommand : OfficeCmdlet {
-    /// <summary>Gets or sets whether known omitted content is rejected or reported; omission retains the adapter default.</summary>
+    /// <summary>Gets or sets the ODF threshold: report only, reject skipped or unsupported content, or reject any degradation; omission retains the adapter default.</summary>
     [Parameter(ParameterSetName = "Default")]
-    public OfficeConversionLossPolicy? LossPolicy { get; set; }
+    public OdfConversionLossPolicy? LossPolicy { get; set; }
     /// <summary>Gets or sets whether embedded images are omitted.</summary>
     [Parameter]
     public SwitchParameter NoImages { get; set; }
@@ -37,7 +38,7 @@ public sealed class NewOfficePowerPointOpenDocumentOptionsCommand : OfficeCmdlet
             IncludeSpeakerNotes = FeatureEnabled("SpeakerNotes"),
             IncludeBasicFormatting = FeatureEnabled("BasicFormatting")
         };
-        if (LossPolicy.HasValue) options.LossPolicy = OpenDocumentCommandUtilities.ResolveLossPolicy(LossPolicy.Value);
+        if (LossPolicy.HasValue) options.LossPolicy = LossPolicy.Value;
         if (MaxTableRows.HasValue) options.MaxTableRows = MaxTableRows.Value;
         if (MaxTableColumns.HasValue) options.MaxTableColumns = MaxTableColumns.Value;
         WriteObject(options);

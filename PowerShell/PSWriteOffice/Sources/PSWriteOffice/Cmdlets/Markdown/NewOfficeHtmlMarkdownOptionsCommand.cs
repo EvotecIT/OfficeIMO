@@ -15,7 +15,7 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 [OutputType(typeof(HtmlMarkdownExportOptions))]
 public sealed class NewOfficeHtmlMarkdownOptionsCommand : OfficeCmdlet, IMarkdownWriteOptionSource {
     /// <summary>Native settings to copy before applying explicit changes.</summary>
-    [Parameter(ParameterSetName = "Default"), OfficeOptionsTransformation(typeof(HtmlMarkdownExportOptions)), ValidateNotNull]
+    [Parameter(ValueFromPipeline = true, ParameterSetName = "Default"), OfficeOptionsTransformation(typeof(HtmlMarkdownExportOptions)), ValidateNotNull]
     public HtmlMarkdownExportOptions? BaseOptions { get; set; }
     /// <summary>Start with the native portable profile instead of the OfficeIMO profile.</summary>
     [Parameter]

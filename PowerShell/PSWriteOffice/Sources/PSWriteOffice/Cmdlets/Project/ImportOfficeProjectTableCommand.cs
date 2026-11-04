@@ -17,7 +17,7 @@ namespace PSWriteOffice.Cmdlets.Project;
 [OutputType(typeof(ProjectDocument))]
 public sealed class ImportOfficeProjectTableCommand : PSCmdlet {
     /// <summary>At most one table for each entity kind.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "Table")]
     public ProjectMappedTable[] Table { get; set; } = Array.Empty<ProjectMappedTable>();
     /// <summary>Project name.</summary>
     [Parameter]

@@ -14,7 +14,7 @@ namespace PSWriteOffice.Cmdlets.Email;
 [OutputType(typeof(EmailWriterOptions))]
 public sealed class NewOfficeEmailWriterOptionsCommand : PSCmdlet {
     /// <summary>Policy applied when the requested format cannot preserve known message semantics.</summary>
-    [Parameter] public EmailConversionLossPolicy ConversionLossPolicy { get; set; } = EmailConversionLossPolicy.Block;
+    [Parameter(ParameterSetName = "Options")] public SwitchParameter AllowLoss { get; set; }
     /// <summary>Emit an unchanged preserved source instead of regenerating the artifact when possible.</summary>
     [Parameter] public SwitchParameter UsePreservedRawSource { get; set; }
     /// <summary>Write Bcc recipients into the message header.</summary>
@@ -33,7 +33,7 @@ public sealed class NewOfficeEmailWriterOptionsCommand : PSCmdlet {
         }
 
         WriteObject(new EmailWriterOptions(
-            ConversionLossPolicy,
+            AllowLoss.IsPresent ? EmailConversionLossPolicy.Allow : EmailConversionLossPolicy.Block,
             UsePreservedRawSource.IsPresent,
             IncludeBccHeader.IsPresent,
             Base64LineLength,

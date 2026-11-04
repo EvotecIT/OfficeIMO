@@ -10,16 +10,15 @@ namespace PSWriteOffice.Cmdlets.Visio;
 /// <example>
 ///   <summary>Save a loaded diagram under a new path.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$diagram = Get-OfficeVisio -Path .\ServiceMap.vsdx
+///   <code>$diagram = Open-OfficeVisio -Path .\ServiceMap.vsdx
 /// $diagram | Save-OfficeVisio -Path .\ServiceMap-copy.vsdx -PassThru</code>
 ///   <para>Saves an existing OfficeIMO.Visio document to another .vsdx file.</para>
 /// </example>
 [Cmdlet(VerbsData.Save, "OfficeVisio", SupportsShouldProcess = true, DefaultParameterSetName = "Document")]
-[Alias("VisioSave")]
 [OutputType(typeof(VisioDocument))]
 public sealed class SaveOfficeVisioCommand : PSCmdlet {
     /// <summary>Visio document to save.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, Position = 0)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, Position = 0, ParameterSetName = "Document")]
     public VisioDocument Document { get; set; } = null!;
 
     /// <summary>Optional save-as path.</summary>
@@ -29,8 +28,7 @@ public sealed class SaveOfficeVisioCommand : PSCmdlet {
 
     /// <summary>Open the document after saving.</summary>
     [Parameter]
-    [Alias("Show")]
-    public SwitchParameter Open { get; set; }
+        public SwitchParameter Show { get; set; }
 
     /// <summary>Emit the document object for further processing.</summary>
     [Parameter]
@@ -51,7 +49,7 @@ public sealed class SaveOfficeVisioCommand : PSCmdlet {
             }
 
             Document.Save();
-            if (Open.IsPresent) {
+            if (Show.IsPresent) {
                 FileOpenService.Open(targetPath);
             }
 
@@ -69,7 +67,7 @@ public sealed class SaveOfficeVisioCommand : PSCmdlet {
         VisioCommandUtilities.EnsureDirectory(fullPath);
         Document.Save(fullPath);
 
-        if (Open.IsPresent) {
+        if (Show.IsPresent) {
             FileOpenService.Open(fullPath);
         }
 

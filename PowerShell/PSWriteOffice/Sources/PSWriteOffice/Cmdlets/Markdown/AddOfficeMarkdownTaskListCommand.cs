@@ -18,8 +18,8 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 ///   <para>Appends an unordered task list and marks selected zero-based items as completed.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeMarkdownTaskList", DefaultParameterSetName = ParameterSetContext)]
-[Alias("MarkdownTaskList")]
 [OutputType(typeof(MarkdownDocument))]
+[Alias("MarkdownTaskList") ]
 public sealed class AddOfficeMarkdownTaskListCommand : PSCmdlet
 {
     private const string ParameterSetContext = "Context";

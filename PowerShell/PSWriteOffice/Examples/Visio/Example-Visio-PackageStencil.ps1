@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string] $StencilPackagePath,
     [string] $OutputDirectory = (Join-Path $PSScriptRoot '..\..\Artefacts\Examples\Visio'),
     [switch] $Open
@@ -29,7 +29,7 @@ $path = Join-Path $OutputDirectory 'Example-Visio-PackageStencil.vsdx'
 $svgPath = Join-Path $OutputDirectory 'Example-Visio-PackageStencil.svg'
 $pngPath = Join-Path $OutputDirectory 'Example-Visio-PackageStencil.png'
 
-$catalog = Get-OfficeVisioStencilCatalog -Path $StencilPackagePath -CatalogName 'Loaded package' -IncludeUnsupportedMasters
+$catalog = Import-OfficeVisioStencilCatalog -Path $StencilPackagePath -CatalogName 'Loaded package' -IncludeUnsupportedMasters
 $sampleStencils = @(Find-OfficeVisioStencil -Catalog $catalog -First 3)
 if ($sampleStencils.Count -eq 0) {
     throw "No stencil masters were discovered in $StencilPackagePath."

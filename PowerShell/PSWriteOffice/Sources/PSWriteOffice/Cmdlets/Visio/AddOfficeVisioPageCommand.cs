@@ -18,11 +18,11 @@ namespace PSWriteOffice.Cmdlets.Visio;
 ///   <para>Adds a named page and executes the nested shape DSL inside that page scope.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeVisioPage", DefaultParameterSetName = "Document")]
-[Alias("VisioPage")]
 [OutputType(typeof(VisioPage))]
+[Alias("VisioPage") ]
 public sealed class AddOfficeVisioPageCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
     /// <summary>Target Visio document. Optional inside <c>New-OfficeVisio</c>.</summary>
-    [Parameter(ValueFromPipeline = true)]
+    [Parameter(ValueFromPipeline = true, ParameterSetName = "Document")]
     public VisioDocument? Document { get; set; }
 
     /// <summary>Page name.</summary>

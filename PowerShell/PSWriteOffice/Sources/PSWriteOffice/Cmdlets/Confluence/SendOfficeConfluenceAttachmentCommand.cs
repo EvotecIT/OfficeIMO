@@ -1,3 +1,5 @@
+using System;
+using PSWriteOffice.Foundation;
 using System.IO;
 using System.Management.Automation;
 using System.Threading.Tasks;
@@ -12,7 +14,7 @@ namespace PSWriteOffice.Cmdlets.Confluence;
 /// <code>Send-OfficeConfluenceAttachment -Session $session -PageId 12345 -Path .\report.xlsx -Comment 'Daily refresh'</code>
 /// <para>Uses Confluence's multipart attachment endpoint without automatically retrying the write.</para>
 /// </example>
-[Cmdlet(VerbsCommunications.Send, "OfficeConfluenceAttachment", SupportsShouldProcess = true)]
+[Cmdlet(VerbsCommunications.Send, "OfficeConfluenceAttachment", SupportsShouldProcess = true, DefaultParameterSetName = "Path")]
 [OutputType(typeof(ConfluenceAttachment))]
 public sealed class SendOfficeConfluenceAttachmentCommand : AsyncPSCmdlet
 {
@@ -26,9 +28,14 @@ public sealed class SendOfficeConfluenceAttachmentCommand : AsyncPSCmdlet
     public string PageId { get; set; } = string.Empty;
 
     /// <summary>Local file to upload.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Path")]
     [ValidateNotNullOrEmpty]
-    public string Path { get; set; } = string.Empty;
+    public string[] Path { get; set; } = Array.Empty<string>();
+
+    /// <summary>Literal local files, including FileInfo.FullName.</summary>
+    [Parameter(Mandatory = true, ValueFromPipelineByPropertyName = true, ParameterSetName = "LiteralPath")]
+    [Alias("FullName", "PSPath"), ValidateNotNullOrEmpty]
+    public string[] LiteralPath { get; set; } = Array.Empty<string>();
 
     /// <summary>Optional attachment file name. Defaults to the local file name.</summary>
     [Parameter]
@@ -45,17 +52,17 @@ public sealed class SendOfficeConfluenceAttachmentCommand : AsyncPSCmdlet
 
     /// <summary>Whether the attachment update is a minor edit.</summary>
     [Parameter]
-    public bool MinorEdit { get; set; } = true;
+    public SwitchParameter NoMinorEdit { get; set; }
 
     /// <inheritdoc />
     protected override async Task ProcessRecordAsync()
     {
-        var resolvedPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
-        if (!File.Exists(resolvedPath))
-        {
-            throw new FileNotFoundException($"Attachment file '{resolvedPath}' was not found.", resolvedPath);
-        }
+        var paths = OfficePath.ResolveInputs(this, ParameterSetName == "LiteralPath" ? LiteralPath : Path, ParameterSetName == "LiteralPath");
+        if (FileName != null && paths.Count != 1) throw new PSArgumentException("A custom FileName requires one input file.");
+        foreach (var resolvedPath in paths) await Upload(resolvedPath).ConfigureAwait(false);
+    }
 
+    private async Task Upload(string resolvedPath) {
         var uploadName = string.IsNullOrWhiteSpace(FileName) ? System.IO.Path.GetFileName(resolvedPath) : FileName!;
         if (!ShouldProcess($"Page {PageId}", $"Upload Confluence attachment '{uploadName}'"))
         {
@@ -75,7 +82,7 @@ public sealed class SendOfficeConfluenceAttachmentCommand : AsyncPSCmdlet
             ContentType = ContentType,
             Content = content,
             Comment = Comment,
-            MinorEdit = MinorEdit
+            MinorEdit = !NoMinorEdit.IsPresent
         };
         using var client = Session.CreateClient();
         var results = await client.UploadAttachmentAsync(PageId, upload, CancelToken).ConfigureAwait(false);
