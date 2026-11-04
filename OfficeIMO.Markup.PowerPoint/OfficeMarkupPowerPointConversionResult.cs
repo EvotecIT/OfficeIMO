@@ -12,7 +12,11 @@ public sealed class OfficeMarkupPowerPointConversionReport : OfficeConversionRep
         FidelityDiagnostics = Array.AsReadOnly(Markup.Diagnostics
             .Concat(Preflight.Findings.Select(static finding => new global::OfficeIMO.OfficeDiagnostic(
                 finding.Code,
-                global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
+                finding.Severity switch {
+                    PowerPointDeckPreflightSeverity.Error => global::OfficeIMO.OfficeDiagnosticSeverity.Error,
+                    PowerPointDeckPreflightSeverity.Warning => global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
+                    _ => global::OfficeIMO.OfficeDiagnosticSeverity.Information
+                },
                 finding.Message,
                 GetPreflightLocation(finding),
                 "OfficeIMO.Markup.PowerPoint.Preflight",

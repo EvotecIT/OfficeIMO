@@ -87,6 +87,7 @@ This shape is outside the slide.
                 resultReport.Diagnostics,
                 item => item.Format == "OfficeIMO.Markup.PowerPoint.Preflight" &&
                         item.LossKind == OfficeConversionLossKind.Failure);
+            Assert.Equal(OfficeDiagnosticSeverity.Error, diagnostic.Severity);
             Assert.StartsWith("slide:1", diagnostic.Location, StringComparison.Ordinal);
             Assert.True(resultReport.HasLoss);
             Assert.ThrowsAny<PowerPointDeckPreflightException>(() => resultReport.ThrowIfLoss());
