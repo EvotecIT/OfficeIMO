@@ -6,9 +6,25 @@ OfficeIMO.Markdown.MarkdownDocument.AddList(System.Action<OfficeIMO.Markdown.Mar
 OfficeIMO.Markdown.MarkdownDocument.AddList<T>(System.Collections.Generic.IEnumerable<T>! items) -> OfficeIMO.Markdown.UnorderedListBlock!
 OfficeIMO.Markdown.MarkdownDocument.AddOrderedList(System.Action<OfficeIMO.Markdown.MarkdownOrderedListBuilder!>! build) -> OfficeIMO.Markdown.OrderedListBlock!
 OfficeIMO.Markdown.MarkdownDocument.AddOrderedList<T>(System.Collections.Generic.IEnumerable<T>! items, int start = 1) -> OfficeIMO.Markdown.OrderedListBlock!
-OfficeIMO.Markdown.MarkdownDocument.AddParagraph(System.Action<OfficeIMO.Markdown.MarkdownParagraphBuilder!>! build) -> OfficeIMO.Markdown.ParagraphBlock!
+OfficeIMO.Markdown.MarkdownDocument.AddParagraph(System.Action<OfficeIMO.Markdown.InlineSequence!>! build) -> OfficeIMO.Markdown.ParagraphBlock!
 OfficeIMO.Markdown.MarkdownDocument.AddParagraph(string! text) -> OfficeIMO.Markdown.ParagraphBlock!
 OfficeIMO.Markdown.MarkdownDocument.AddTable(System.Action<OfficeIMO.Markdown.MarkdownTableBuilder!>! build) -> OfficeIMO.Markdown.TableBlock!
 *REMOVED*OfficeIMO.Markdown.MarkdownDocument.Image(string! path, string? alt = null, string? title = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.Markdown.MarkdownDocument!
 *REMOVED*OfficeIMO.Markdown.MarkdownDocument.Image(string! path, string? alt, string? title) -> OfficeIMO.Markdown.MarkdownDocument!
 OfficeIMO.Markdown.MarkdownDocument.Image(string! path, string? altText = null, string? title = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.Markdown.MarkdownDocument!
+*REMOVED*OfficeIMO.Markdown.InlineSequence.Strike(string! text) -> OfficeIMO.Markdown.InlineSequence!
+*REMOVED*OfficeIMO.Markdown.MarkdownDocument.P(System.Action<OfficeIMO.Markdown.MarkdownParagraphBuilder!>! build) -> OfficeIMO.Markdown.MarkdownDocument!
+*REMOVED*OfficeIMO.Markdown.MarkdownParagraphBuilder
+*REMOVED*OfficeIMO.Markdown.MarkdownParagraphBuilder.Bold(string! text) -> OfficeIMO.Markdown.MarkdownParagraphBuilder!
+*REMOVED*OfficeIMO.Markdown.MarkdownParagraphBuilder.Code(string! text) -> OfficeIMO.Markdown.MarkdownParagraphBuilder!
+*REMOVED*OfficeIMO.Markdown.MarkdownParagraphBuilder.ImageLink(string! alt, string! imageUrl, string! linkUrl, string? title = null) -> OfficeIMO.Markdown.MarkdownParagraphBuilder!
+*REMOVED*OfficeIMO.Markdown.MarkdownParagraphBuilder.Italic(string! text) -> OfficeIMO.Markdown.MarkdownParagraphBuilder!
+*REMOVED*OfficeIMO.Markdown.MarkdownParagraphBuilder.Link(string! text, string! url, string? title = null) -> OfficeIMO.Markdown.MarkdownParagraphBuilder!
+*REMOVED*OfficeIMO.Markdown.MarkdownParagraphBuilder.MarkdownParagraphBuilder() -> void
+*REMOVED*OfficeIMO.Markdown.MarkdownParagraphBuilder.Strike(string! text) -> OfficeIMO.Markdown.MarkdownParagraphBuilder!
+*REMOVED*OfficeIMO.Markdown.MarkdownParagraphBuilder.Text(string! text) -> OfficeIMO.Markdown.MarkdownParagraphBuilder!
+*REMOVED*OfficeIMO.Markdown.MarkdownParagraphBuilder.Underline(string! text) -> OfficeIMO.Markdown.MarkdownParagraphBuilder!
+*REMOVED*OfficeIMO.Markdown.MarkdownQuoteBuilder.P(System.Action<OfficeIMO.Markdown.MarkdownParagraphBuilder!>! build) -> OfficeIMO.Markdown.MarkdownQuoteBuilder!
+OfficeIMO.Markdown.InlineSequence.Strikethrough(string! text) -> OfficeIMO.Markdown.InlineSequence!
+OfficeIMO.Markdown.MarkdownDocument.P(System.Action<OfficeIMO.Markdown.InlineSequence!>! build) -> OfficeIMO.Markdown.MarkdownDocument!
+OfficeIMO.Markdown.MarkdownQuoteBuilder.P(System.Action<OfficeIMO.Markdown.InlineSequence!>! build) -> OfficeIMO.Markdown.MarkdownQuoteBuilder!
