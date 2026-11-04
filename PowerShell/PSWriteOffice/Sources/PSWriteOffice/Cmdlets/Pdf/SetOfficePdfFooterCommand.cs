@@ -1,118 +1,62 @@
+using System.Collections.Generic;
 using System.Management.Automation;
+using OfficeIMO;
 using OfficeIMO.Pdf;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Pdf;
 
-/// <summary>Sets a simple or fully composed running PDF footer.</summary>
-/// <example>
-///   <summary>Add page numbers to a generated PDF.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>New-OfficePdf -Path .\Examples\Documents\PdfFooter.pdf {
-///     Set-OfficePdfFooter -Text 'Page {page} of {pages}' -Align Center -FontSize 8
-///     Add-OfficePdfHeading -Text 'Report with footer'
-///     Add-OfficePdfPageBreak
-///     Add-OfficePdfParagraph -Text 'The footer includes generated page numbers.'
-/// }</code>
-///   <para>Uses page placeholders in a running footer.</para>
-/// </example>
-/// <example>
-///   <summary>Compose a styled footer with page tokens.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>New-OfficePdf -Path .\Examples\Documents\RichFooter.pdf {
-///     Set-OfficePdfFooter -Compose {
-///         param($footer)
-///         $label = New-OfficeTextRun -Text 'Confidential - page ' -Bold | ConvertTo-OfficePdfTextRun
-///         $pageStyle = New-OfficeTextRun -Italic | ConvertTo-OfficePdfTextRun
-///         $null = $footer.AlignRight().Text({
-///             param($text)
-///             $null = $text.Run($label).CurrentPage($pageStyle).Text(' of ').TotalPages($pageStyle)
-///         })
-///     }
-///     Add-OfficePdfParagraph -Text 'Generated report body.'
-/// }</code>
-///   <para>Styled page tokens remain live until the document is rendered.</para>
-/// </example>
-[Cmdlet(VerbsCommon.Set, "OfficePdfFooter", DefaultParameterSetName = ParameterSetContext)]
-[Alias("PdfFooter")]
-[OutputType(typeof(PdfDocument))]
-public sealed class SetOfficePdfFooterCommand : PSCmdlet
-{
-    private const string ParameterSetContext = "Context";
-    private const string ParameterSetDocument = "Document";
-
-    /// <summary>Compatibility parameter. Page composition is supported only inside New-OfficePdf.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public PdfDocument Document { get; set; } = null!;
-
-    /// <summary>Footer text. Supports {page} and {pages}.</summary>
-    [Parameter(Position = 0)]
+/// <summary>Composes running PDF Footer text, child runs or the native builder inside New-OfficePdf.</summary>
+/// <example><summary>Add a styled running Footer.</summary>
+/// <code>New-OfficePdf ./Report.pdf { PdfFooter { PdfText 'Internal' -Italic }; PdfParagraph 'Report' }</code></example>
+[Cmdlet(VerbsCommon.Set, "OfficePdfFooter", DefaultParameterSetName = "Text")]
+[OutputType(typeof(void))]
+[Alias("PdfFooter") ]
+public sealed class SetOfficePdfFooterCommand : PSCmdlet {
+    /// <summary>Running text supporting {page} and {pages} tokens.</summary>
+    [Parameter(Position = 0, ParameterSetName = "Text"), AllowEmptyString]
     public string Text { get; set; } = "Page {page}/{pages}";
-
-    /// <summary>
-    /// Advanced footer composer. The script receives a <see cref="PdfFooterBuilder"/> and can configure
-    /// default, first-page, and even-page text, zones, images, shapes, rich text, and page tokens.
-    /// </summary>
-    [Parameter]
+    /// <summary>Styled PdfText child commands.</summary>
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Content")]
+    public ScriptBlock? Content { get; set; }
+    /// <summary>Advanced native Footer builder, passed as the script argument.</summary>
+    [Parameter(Mandatory = true, ParameterSetName = "Builder")]
     public ScriptBlock? Compose { get; set; }
-
-    /// <summary>Footer alignment.</summary>
-    [Parameter]
-    public OfficeAlignment Align { get; set; } = OfficeAlignment.Center;
-
-    /// <summary>Footer font size in PDF points.</summary>
-    [Parameter]
-    public double? FontSize { get; set; }
-
-    /// <summary>Emit the updated document.</summary>
-    [Parameter]
-    public SwitchParameter PassThru { get; set; }
-
+    /// <summary>Text alignment.</summary>
+    [Parameter(ParameterSetName = "Text"), Parameter(ParameterSetName = "Content")]
+    public OfficeAlignment Alignment { get; set; } = OfficeAlignment.Center;
+    /// <summary>Text size; bare numbers mean points.</summary>
+    [Parameter(ParameterSetName = "Text"), Parameter(ParameterSetName = "Content"), OfficeLengthTransformation]
+    public OfficeLength? Size { get; set; }
+    /// <summary>Configure the first page variant.</summary>
+    [Parameter(ParameterSetName = "Text"), Parameter(ParameterSetName = "Content")]
+    public SwitchParameter FirstPage { get; set; }
+    /// <summary>Configure the even page variant.</summary>
+    [Parameter(ParameterSetName = "Text"), Parameter(ParameterSetName = "Content")]
+    public SwitchParameter EvenPage { get; set; }
     /// <inheritdoc />
-    protected override void ProcessRecord()
-    {
-        if (Compose != null && MyInvocation.BoundParameters.ContainsKey(nameof(Text)))
-        {
-            throw new PSArgumentException("Use either -Text or -Compose, not both.");
+    protected override void ProcessRecord() {
+        var runs = new PdfRunningTextContent();
+        if (Content != null) {
+            using (OfficeDocumentContext.Push(runs)) Content.InvokeReturnAsIs();
         }
-
         var compose = Compose?.GetNewClosure();
-        var document = PdfCommandUtilities.ComposePage(this, Document, ParameterSetName, ParameterSetDocument, page => page.Footer(footer =>
-        {
-            ApplyAlignment(footer);
-            if (FontSize.HasValue)
-            {
-                footer.FontSize(global::OfficeIMO.OfficeLength.Points(FontSize.Value));
-            }
-            if (compose != null)
-            {
-                compose.Invoke(footer);
-            }
-            else
-            {
-                footer.Text(Text);
+        string text = Text;
+        PdfDslContext.Require(this).ConfigurePage(page => page.Footer(builder => {
+            if (compose != null) { compose.Invoke(builder); return; }
+            builder.Alignment(Alignment);
+            if (Size.HasValue) builder.FontSize(Size.Value);
+            if (Content == null) {
+                if (FirstPage) builder.FirstPageText(text);
+                if (EvenPage) builder.EvenPagesText(text);
+                if (!FirstPage && !EvenPage) builder.Text(text);
+            } else {
+                System.Action<PdfFooterTextBuilder> add = runs.Apply;
+                if (FirstPage) builder.FirstPageText(add);
+                if (EvenPage) builder.EvenPagesText(add);
+                if (!FirstPage && !EvenPage) builder.Text(add);
             }
         }));
-
-        if (PassThru.IsPresent && document != null)
-        {
-            WriteObject(document);
-        }
-    }
-
-    private void ApplyAlignment(PdfFooterBuilder footer)
-    {
-        switch (Align)
-        {
-            case OfficeAlignment.Right:
-                footer.Alignment(OfficeAlignment.Right);
-                break;
-            case OfficeAlignment.Left:
-                footer.Alignment(OfficeAlignment.Left);
-                break;
-            default:
-                footer.Alignment(OfficeAlignment.Center);
-                break;
-        }
     }
 }

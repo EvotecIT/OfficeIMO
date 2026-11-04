@@ -6,8 +6,7 @@ New-OfficePdf -Path $evidence {
     PdfParagraph 'The review completed successfully.'
 }
 
-New-OfficePdf -Path $report {
-    PdfTheme Report
+New-OfficePdf -Path $report -Theme Modern {
     PdfHeading 'Audit report'
     PdfParagraph 'The supporting evidence is embedded in this PDF.'
     PdfAttachment -Path $evidence -Name 'evidence-summary.pdf' -MimeType 'application/pdf' -Relationship Data -Description 'Supporting review evidence'

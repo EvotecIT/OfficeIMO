@@ -1,125 +1,62 @@
+using System.Collections.Generic;
 using System.Management.Automation;
+using OfficeIMO;
 using OfficeIMO.Pdf;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Pdf;
 
-/// <summary>Sets a simple or fully composed running PDF header.</summary>
-/// <example>
-///   <summary>Add a running report header.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>New-OfficePdf -Path .\Examples\Documents\PdfHeader.pdf {
-///     Set-OfficePdfHeader -Text 'Service Review' -Align Right -FontSize 9
-///     Add-OfficePdfHeading -Text 'Service Review'
-///     Add-OfficePdfParagraph -Text 'The header repeats on generated pages.'
-/// }</code>
-///   <para>Sets header text for the generated PDF.</para>
-/// </example>
-/// <example>
-///   <summary>Compose styled default, first-page, and even-page headers.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>New-OfficePdf -Path .\Examples\Documents\RichHeader.pdf {
-///     Set-OfficePdfHeader -Compose {
-///         param($header)
-///         $label = New-OfficeTextRun -Text 'Service report ' -Bold | ConvertTo-OfficePdfTextRun
-///         $pageStyle = New-OfficeTextRun -Italic | ConvertTo-OfficePdfTextRun
-///         $null = $header.Text({
-///             param($text)
-///             $null = $text.Run($label).CurrentPage($pageStyle)
-///         })
-///         $null = $header.FirstPageText('Service report cover')
-///         $null = $header.EvenPagesZones('Service report', $null, 'Page {page}/{pages}')
-///     }
-///     Add-OfficePdfParagraph -Text 'Generated report body.'
-/// }</code>
-///   <para>The native composer owns rich runs, page tokens, zones, images, shapes, and page variants.</para>
-/// </example>
-[Cmdlet(VerbsCommon.Set, "OfficePdfHeader", DefaultParameterSetName = ParameterSetContext)]
-[Alias("PdfHeader")]
-[OutputType(typeof(PdfDocument))]
-public sealed class SetOfficePdfHeaderCommand : PSCmdlet
-{
-    private const string ParameterSetContext = "Context";
-    private const string ParameterSetDocument = "Document";
-
-    /// <summary>Compatibility parameter. Page composition is supported only inside New-OfficePdf.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public PdfDocument Document { get; set; } = null!;
-
-    /// <summary>Header text. Supports {page} and {pages}.</summary>
-    [Parameter(Position = 0)]
-    public string? Text { get; set; }
-
-    /// <summary>
-    /// Advanced header composer. The script receives a <see cref="PdfHeaderBuilder"/> and can configure
-    /// default, first-page, and even-page text, zones, images, shapes, rich text, and page tokens.
-    /// </summary>
-    [Parameter]
+/// <summary>Composes running PDF Header text, child runs or the native builder inside New-OfficePdf.</summary>
+/// <example><summary>Add a styled running Header.</summary>
+/// <code>New-OfficePdf ./Report.pdf { PdfHeader { PdfText 'Internal' -Italic }; PdfParagraph 'Report' }</code></example>
+[Cmdlet(VerbsCommon.Set, "OfficePdfHeader", DefaultParameterSetName = "Text")]
+[OutputType(typeof(void))]
+[Alias("PdfHeader") ]
+public sealed class SetOfficePdfHeaderCommand : PSCmdlet {
+    /// <summary>Running text supporting {page} and {pages} tokens.</summary>
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Text"), AllowEmptyString]
+    public string Text { get; set; } = string.Empty;
+    /// <summary>Styled PdfText child commands.</summary>
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Content")]
+    public ScriptBlock? Content { get; set; }
+    /// <summary>Advanced native Header builder, passed as the script argument.</summary>
+    [Parameter(Mandatory = true, ParameterSetName = "Builder")]
     public ScriptBlock? Compose { get; set; }
-
-    /// <summary>Header alignment.</summary>
-    [Parameter]
-    public OfficeAlignment Align { get; set; } = OfficeAlignment.Center;
-
-    /// <summary>Header font size in PDF points.</summary>
-    [Parameter]
-    public double? FontSize { get; set; }
-
-    /// <summary>Emit the updated document.</summary>
-    [Parameter]
-    public SwitchParameter PassThru { get; set; }
-
+    /// <summary>Text alignment.</summary>
+    [Parameter(ParameterSetName = "Text"), Parameter(ParameterSetName = "Content")]
+    public OfficeAlignment Alignment { get; set; } = OfficeAlignment.Center;
+    /// <summary>Text size; bare numbers mean points.</summary>
+    [Parameter(ParameterSetName = "Text"), Parameter(ParameterSetName = "Content"), OfficeLengthTransformation]
+    public OfficeLength? Size { get; set; }
+    /// <summary>Configure the first page variant.</summary>
+    [Parameter(ParameterSetName = "Text"), Parameter(ParameterSetName = "Content")]
+    public SwitchParameter FirstPage { get; set; }
+    /// <summary>Configure the even page variant.</summary>
+    [Parameter(ParameterSetName = "Text"), Parameter(ParameterSetName = "Content")]
+    public SwitchParameter EvenPage { get; set; }
     /// <inheritdoc />
-    protected override void ProcessRecord()
-    {
-        var hasText = MyInvocation.BoundParameters.ContainsKey(nameof(Text));
-        if (Compose != null && hasText)
-        {
-            throw new PSArgumentException("Use either -Text or -Compose, not both.");
+    protected override void ProcessRecord() {
+        var runs = new PdfRunningTextContent();
+        if (Content != null) {
+            using (OfficeDocumentContext.Push(runs)) Content.InvokeReturnAsIs();
         }
-
-        if (Compose == null && (!hasText || Text == null))
-        {
-            throw new PSArgumentException("Provide -Text or -Compose.");
-        }
-
         var compose = Compose?.GetNewClosure();
-        var document = PdfCommandUtilities.ComposePage(this, Document, ParameterSetName, ParameterSetDocument, page => page.Header(header =>
-        {
-            ApplyAlignment(header);
-            if (FontSize.HasValue)
-            {
-                header.FontSize(global::OfficeIMO.OfficeLength.Points(FontSize.Value));
-            }
-            if (compose != null)
-            {
-                compose.Invoke(header);
-            }
-            else
-            {
-                header.Text(Text!);
+        string text = Text;
+        PdfDslContext.Require(this).ConfigurePage(page => page.Header(builder => {
+            if (compose != null) { compose.Invoke(builder); return; }
+            builder.Alignment(Alignment);
+            if (Size.HasValue) builder.FontSize(Size.Value);
+            if (Content == null) {
+                if (FirstPage) builder.FirstPageText(text);
+                if (EvenPage) builder.EvenPagesText(text);
+                if (!FirstPage && !EvenPage) builder.Text(text);
+            } else {
+                System.Action<PdfHeaderTextBuilder> add = runs.Apply;
+                if (FirstPage) builder.FirstPageText(add);
+                if (EvenPage) builder.EvenPagesText(add);
+                if (!FirstPage && !EvenPage) builder.Text(add);
             }
         }));
-
-        if (PassThru.IsPresent && document != null)
-        {
-            WriteObject(document);
-        }
-    }
-
-    private void ApplyAlignment(PdfHeaderBuilder header)
-    {
-        switch (Align)
-        {
-            case OfficeAlignment.Right:
-                header.Alignment(OfficeAlignment.Right);
-                break;
-            case OfficeAlignment.Left:
-                header.Alignment(OfficeAlignment.Left);
-                break;
-            default:
-                header.Alignment(OfficeAlignment.Center);
-                break;
-        }
     }
 }

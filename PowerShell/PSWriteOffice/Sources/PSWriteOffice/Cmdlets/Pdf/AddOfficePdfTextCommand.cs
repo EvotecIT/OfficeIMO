@@ -1,163 +1,75 @@
+using System.Collections.Generic;
 using System.Management.Automation;
+using OfficeIMO;
+using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Pdf;
 
-/// <summary>Adds a rich inline-text paragraph to a generated PDF document.</summary>
-/// <remarks>
-/// Use <c>Add-OfficePdfText</c> when a paragraph needs mixed emphasis, highlight color, font settings, baseline changes, or links.
-/// Plain paragraphs can continue to use <c>Add-OfficePdfParagraph</c>. Rich text runs are translated directly to the OfficeIMO.Pdf paragraph builder.
-/// URI links and bookmark links are supported; a single run cannot target both.
-/// </remarks>
-/// <example>
-///   <summary>Add styled text with the DSL alias.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>New-OfficePdf -Path .\Report.pdf { PdfText 'Approved for review' -Bold -Color '#0F766E' -BackgroundColor '#ECFDF5' }</code>
-///   <para>Creates a PDF with one styled paragraph.</para>
-/// </example>
-/// <example>
-///   <summary>Add mixed rich runs with URI and bookmark links.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>New-OfficePdf -Path .\Report.pdf {
-///     PdfBookmark 'summary'
-///     PdfText -Run @(
-///       @{ Text = 'Read the ' }
-///       @{ Text = 'website'; LinkUri = 'https://evotec.xyz'; Color = '#2563EB' }
-///       @{ Text = ' or jump to ' }
-///       @{ Text = 'summary'; LinkDestinationName = 'summary'; Color = '#7C3AED' }
-///       @{ Text = '.' }
-///     )
-///   }</code>
-///   <para>Creates one paragraph with an external link and an internal named-destination link.</para>
-/// </example>
-[Cmdlet(VerbsCommon.Add, "OfficePdfText", DefaultParameterSetName = ParameterSetContext)]
-[Alias("PdfText")]
+/// <summary>Adds one styled run inside a PDF paragraph or running header/footer, or a standalone paragraph.</summary>
+/// <example><summary>Compose rich PDF text.</summary>
+/// <code>PdfParagraph { PdfText 'Review ' -Italic; PdfText 'complete' -Bold -Color Success }</code></example>
+[Cmdlet(VerbsCommon.Add, "OfficePdfText", DefaultParameterSetName = "Context")]
 [OutputType(typeof(PdfDocument))]
-public sealed class AddOfficePdfTextCommand : PSCmdlet
-{
-    private const string ParameterSetContext = "Context";
-    private const string ParameterSetDocument = "Document";
-
-    /// <summary>PDF document to update outside the DSL context.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public PdfDocument Document { get; set; } = null!;
-
-    /// <summary>Plain text values to add as one styled paragraph.</summary>
-    [Parameter(Position = 0)]
-    public string[]? Text { get; set; }
-
-    /// <summary>Rich run specifications. Each run may define Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, FontSize, Font, Baseline, LinkUri, LinkDestinationName, LinkContents, Type, or Kind.</summary>
-    [Parameter]
-    [Alias("Runs")]
-    public object[]? Run { get; set; }
-
-    /// <summary>Paragraph alignment.</summary>
-    [Parameter]
-    public OfficeAlignment Align { get; set; } = OfficeAlignment.Left;
-
-    /// <summary>Default paragraph color. Named colors and hexadecimal colors are accepted.</summary>
-    [Parameter]
-    [OfficeColorArgumentTransformation]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? Color { get; set; }
-
-    /// <summary>Run background color for -Text input. Named colors and hexadecimal colors are accepted.</summary>
-    [Parameter]
-    [OfficeColorArgumentTransformation]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? BackgroundColor { get; set; }
-
-    /// <summary>Font size for -Text input in PDF points.</summary>
-    [Parameter]
-    public double? FontSize { get; set; }
-
-    /// <summary>Standard PDF font for -Text input.</summary>
-    [Parameter]
-    public PdfStandardFont? Font { get; set; }
-
-    /// <summary>Make -Text input bold.</summary>
-    [Parameter]
-    public SwitchParameter Bold { get; set; }
-
-    /// <summary>Make -Text input italic.</summary>
-    [Parameter]
-    public SwitchParameter Italic { get; set; }
-
-    /// <summary>Underline -Text input.</summary>
-    [Parameter]
-    public SwitchParameter Underline { get; set; }
-
-    /// <summary>Strike through -Text input.</summary>
-    [Parameter]
-    public SwitchParameter Strike { get; set; }
-
-    /// <summary>Baseline for -Text input.</summary>
-    [Parameter]
-    public PdfTextBaseline Baseline { get; set; } = PdfTextBaseline.Normal;
-
-    /// <summary>Absolute URI link target for -Text input.</summary>
-    [Parameter]
-    public string? LinkUri { get; set; }
-
-    /// <summary>Named destination link target for -Text input.</summary>
-    [Parameter]
-    public string? LinkDestinationName { get; set; }
-
-    /// <summary>Optional link annotation contents for -Text input.</summary>
-    [Parameter]
-    public string? LinkContents { get; set; }
-
-    /// <summary>Emit the updated document.</summary>
-    [Parameter]
-    public SwitchParameter PassThru { get; set; }
-
+[Alias("PdfText") ]
+public sealed class AddOfficePdfTextCommand : OfficeCmdlet {
+    /// <summary>Live PDF outside a composition block.</summary>
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "Document")]
+    public PdfDocument? Document { get; set; }
+    /// <summary>Text for this run.</summary>
+    [Parameter(Mandatory = true, Position = 0), AllowEmptyString] public string Text { get; set; } = string.Empty;
+    /// <summary>Set bold on or off.</summary>
+    [Parameter] public SwitchParameter Bold { get; set; }
+    /// <summary>Set italic on or off.</summary>
+    [Parameter] public SwitchParameter Italic { get; set; }
+    /// <summary>Set strikethrough on or off.</summary>
+    [Parameter] public SwitchParameter Strikethrough { get; set; }
+    /// <summary>Underline pattern; None clears it.</summary>
+    [Parameter] public OfficeTextDecorationStyle? Underline { get; set; }
+    /// <summary>Run foreground color.</summary>
+    [Parameter, OfficeColorTransformation, ArgumentCompleter(typeof(OfficeColorCompleter))] public OfficeColor? Color { get; set; }
+    /// <summary>Run background color.</summary>
+    [Parameter, OfficeColorTransformation, ArgumentCompleter(typeof(OfficeColorCompleter))] public OfficeColor? BackgroundColor { get; set; }
+    /// <summary>Standard PDF font name or registered embedded family.</summary>
+    [Parameter] public string? Font { get; set; }
+    /// <summary>Font size; bare numbers mean points.</summary>
+    [Parameter, OfficeLengthTransformation] public OfficeLength? Size { get; set; }
+    /// <summary>Run baseline.</summary>
+    [Parameter] public PdfTextBaseline Baseline { get; set; }
+    /// <summary>Leader pattern for an explicit tab text (a single tab character).</summary>
+    [Parameter] public PdfTabLeaderStyle TabLeader { get; set; }
+    /// <summary>Alignment for an explicit tab text.</summary>
+    [Parameter] public PdfTabAlignment TabAlignment { get; set; }
+    /// <summary>URI hyperlink target.</summary>
+    [Parameter] public string? Link { get; set; }
+    /// <summary>Named bookmark target.</summary>
+    [Parameter] public string? LinkBookmark { get; set; }
+    /// <summary>Link annotation contents.</summary>
+    [Parameter] public string? LinkContents { get; set; }
+    /// <summary>Standalone paragraph alignment.</summary>
+    [Parameter] public OfficeAlignment Alignment { get; set; } = OfficeAlignment.Left;
+    /// <summary>Emit the updated live document.</summary>
+    [Parameter(ParameterSetName = "Document")] public SwitchParameter PassThru { get; set; }
     /// <inheritdoc />
-    protected override void ProcessRecord()
-    {
-        if ((Text == null || Text.Length == 0) && (Run == null || Run.Length == 0))
-        {
-            throw new PSArgumentException("Provide -Text or -Run content.");
-        }
-
-        if (Text is { Length: > 0 } && Run is { Length: > 0 })
-        {
-            throw new PSArgumentException("Use either -Text or -Run, not both.");
-        }
-
-        var defaultColor = PdfCommandUtilities.ParseColor(Color);
-        var document = PdfCommandUtilities.ComposeContent(this, Document, ParameterSetName, ParameterSetDocument, content => content.AddParagraph(
-            builder =>
-            {
-                if (Run is { Length: > 0 })
-                {
-                    PdfRichTextRunBuilder.ApplyRuns(builder, Run);
-                }
-                else
-                {
-                    PdfRichTextRunBuilder.ApplyText(
-                        builder,
-                        Text!,
-                        Bold.IsPresent,
-                        Italic.IsPresent,
-                        Underline.IsPresent,
-                        Strike.IsPresent,
-                        Baseline,
-                        defaultColor,
-                        PdfCommandUtilities.ParseColor(BackgroundColor),
-                        FontSize,
-                        Font,
-                        LinkUri,
-                        LinkDestinationName,
-                        LinkContents);
-                }
-            },
-            Align,
-            defaultColor));
-
-        if (PassThru.IsPresent && document != null)
-        {
-            WriteObject(document);
-        }
+    protected override void ProcessRecord() {
+        PdfStandardFont? standard = null;
+        string? family = Font;
+        if (Font != null && System.Enum.TryParse(Font, true, out PdfStandardFont parsed)) { standard = parsed; family = null; }
+        var run = new PdfTextRun(Text, color: Color, backgroundColor: BackgroundColor, fontSize: Size,
+            standardFont: standard, fontFamily: family, linkUri: Link, linkDestinationName: LinkBookmark,
+            linkContents: LinkContents, baseline: Baseline, tabLeader: TabLeader, tabAlignment: TabAlignment);
+        if (BoundSwitch(nameof(Bold)) is bool bold) run.SetBold(bold);
+        if (BoundSwitch(nameof(Italic)) is bool italic) run.SetItalic(italic);
+        if (BoundSwitch(nameof(Strikethrough)) is bool strike) run.SetStrikethrough(strike);
+        if (Underline.HasValue) run.SetUnderline(Underline.Value);
+        var running = OfficeDocumentContext.Find<PdfRunningTextContent>();
+        if (running != null && Document == null) { running.Run(run); return; }
+        var runs = OfficeDocumentContext.Find<List<PdfTextRun>>();
+        if (runs != null && Document == null) { runs.Add(run); return; }
+        var document = PdfCommandUtilities.ComposeContent(this, Document, ParameterSetName, "Document",
+            content => content.AddParagraph(paragraph => paragraph.AddRuns(new[] { run }), Alignment, Color));
+        if (PassThru && document != null) WriteObject(document);
     }
 }

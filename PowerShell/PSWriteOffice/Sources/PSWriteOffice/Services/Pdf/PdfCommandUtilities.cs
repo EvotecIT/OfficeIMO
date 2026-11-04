@@ -114,6 +114,8 @@ internal static class PdfCommandUtilities
         string documentParameterSet,
         Action<PdfContentBuilder> action)
     {
+        var captured = OfficeDocumentContext.Find<List<Action<PdfContentBuilder>>>();
+        if (captured != null && document == null) { captured.Add(action); return null; }
         if (parameterSetName == documentParameterSet)
         {
             var target = document ?? throw new PSArgumentNullException(nameof(document));
@@ -123,24 +125,6 @@ internal static class PdfCommandUtilities
 
         RejectDeferredPassThru(cmdlet);
         PdfDslContext.Require(cmdlet).AddContent(action);
-        return null;
-    }
-
-    internal static PdfDocument? ComposePage(
-        PSCmdlet cmdlet,
-        PdfDocument? document,
-        string parameterSetName,
-        string documentParameterSet,
-        Action<PdfPageBuilder> action)
-    {
-        if (parameterSetName == documentParameterSet)
-        {
-            throw new PSNotSupportedException(
-                $"{cmdlet.MyInvocation.InvocationName} defines page composition and cannot update an already-built PdfDocument. Use it inside New-OfficePdf {{ ... }}.");
-        }
-
-        RejectDeferredPassThru(cmdlet);
-        PdfDslContext.Require(cmdlet).ConfigurePage(action);
         return null;
     }
 

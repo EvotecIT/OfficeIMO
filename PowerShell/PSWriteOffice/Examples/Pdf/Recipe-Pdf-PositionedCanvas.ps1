@@ -7,12 +7,12 @@ New-OfficePdf -Path $source {
     PdfParagraph 'The canvas callback can place content differently on every page.'
 }
 
-Add-OfficePdfCanvas -Path $source -OutputPath $positioned -Content {
+Add-OfficePdfStamp -Path $source -OutputPath $positioned -Content {
     PdfCanvasText -Run @(
-        TextRun 'Owner: ' -Bold
-        TextRun 'Platform' -Color '#0F766E'
-        TextRun '  |  REVIEW COPY' -Italic
-    ) -X 36 -Y 24 -FontSize 10
+        @{ Text = 'Owner: '; Bold = $true }
+        @{ Text = 'Platform'; Color = '#0F766E' }
+        @{ Text = '  |  REVIEW COPY'; Italic = $true }
+    ) -X 36 -Y 24 -Size 10
 
-    PdfCanvasText 'Fixed at 36 × 780 points' -X 36 -Y 780 -FontSize 9
+    PdfCanvasText 'Fixed at 36 × 780 points' -X 36 -Y 780 -Size 9
 }

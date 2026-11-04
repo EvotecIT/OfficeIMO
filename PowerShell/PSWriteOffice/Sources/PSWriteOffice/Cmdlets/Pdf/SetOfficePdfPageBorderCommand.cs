@@ -1,5 +1,7 @@
-using System.Management.Automation;
+using OfficeIMO;
 using OfficeIMO.Drawing;
+using PSWriteOffice.Foundation;
+using System.Management.Automation;
 using OfficeIMO.Pdf;
 using PSWriteOffice.Services.Pdf;
 
@@ -16,59 +18,47 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 ///   <para>Decorates generated pages with an OfficeIMO.Pdf page border.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Set, "OfficePdfPageBorder", DefaultParameterSetName = ParameterSetContext)]
-[Alias("PdfPageBorder")]
-[OutputType(typeof(PdfDocument))]
+[Alias("PdfPageBorder") ]
 public sealed class SetOfficePdfPageBorderCommand : PSCmdlet
 {
-    private const string ParameterSetContext = "Context";
-    private const string ParameterSetDocument = "Document";
-
-    /// <summary>Compatibility parameter. Page composition is supported only inside New-OfficePdf.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public PdfDocument Document { get; set; } = null!;
+    private const string ParameterSetContext = "Border";
 
     /// <summary>Border color. Named colors and hexadecimal values are accepted.</summary>
-    [Parameter]
-    [OfficeColorArgumentTransformation]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? Color { get; set; }
+    [Parameter(ParameterSetName = ParameterSetContext)]
+    [OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
+    public OfficeColor? Color { get; set; }
 
     /// <summary>Border stroke width in PDF points.</summary>
-    [Parameter]
-    public double? Width { get; set; }
+    [Parameter(ParameterSetName = ParameterSetContext)]
+    [OfficeLengthTransformation]
+    public OfficeLength? Width { get; set; }
 
     /// <summary>Distance from the page edge to the border path in PDF points.</summary>
-    [Parameter]
-    public double? Inset { get; set; }
+    [Parameter(ParameterSetName = ParameterSetContext)]
+    [OfficeLengthTransformation]
+    public OfficeLength? Inset { get; set; }
 
     /// <summary>Border opacity from 0 through 1.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = ParameterSetContext)]
     public double? Opacity { get; set; }
 
     /// <summary>Border dash style.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = ParameterSetContext)]
     public OfficeStrokeDashStyle DashStyle { get; set; } = OfficeStrokeDashStyle.Solid;
 
     /// <summary>Clear the generated PDF page border decoration.</summary>
-    [Parameter]
+    [Parameter(Mandatory = true, ParameterSetName = "Clear")]
     public SwitchParameter Clear { get; set; }
-
-    /// <summary>Emit the updated document.</summary>
-    [Parameter]
-    public SwitchParameter PassThru { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
-        var document = PdfCommandUtilities.ComposePage(this, Document, ParameterSetName, ParameterSetDocument, page =>
+        PdfDslContext.Require(this).ConfigurePage( page =>
         {
             if (Clear.IsPresent) page.PageBorder(null);
-            else page.PageBorder(PdfCommandUtilities.ParseColor(Color), ((Width).HasValue ? global::OfficeIMO.OfficeLength.Points((Width).Value) : (global::OfficeIMO.OfficeLength?)null), ((Inset).HasValue ? global::OfficeIMO.OfficeLength.Points((Inset).Value) : (global::OfficeIMO.OfficeLength?)null), Opacity, DashStyle);
+            else page.PageBorder(Color, Width, Inset, Opacity, DashStyle);
         });
 
-        if (PassThru.IsPresent && document != null)
-        {
-            WriteObject(document);
-        }
     }
 }

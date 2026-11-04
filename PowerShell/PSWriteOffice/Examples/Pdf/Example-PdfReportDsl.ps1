@@ -14,8 +14,7 @@ $services = @(
     [pscustomobject]@{ Service = 'Remote Access'; Owner = 'Security'; Status = 'Needs action'; Availability = '98.84%'; Risk = 'High' }
 )
 
-New-OfficePdf -Path $path {
-    PdfTheme Report
+New-OfficePdf -Path $path -Theme Modern {
     PdfMetadata -Title 'PDF Service Review' -Author 'PSWriteOffice' -Subject 'Generated PDF report'
     PdfPageSetup -PageSize A4 -Margin 42
     PdfBackground -Color '#FFFFFF'
@@ -27,47 +26,41 @@ New-OfficePdf -Path $path {
 
     PdfBookmark 'summary'
     PdfHeading 'PDF Service Review'
-    PdfText -Run @(
-        @{ Text = 'This report uses ' }
-        @{ Text = 'themes'; Bold = $true; Color = '#0F766E' }
-        @{ Text = ', ' }
-        @{ Text = 'rich inline text'; Italic = $true; BackgroundColor = '#FEF3C7' }
-        @{ Text = ', layout rows, links, and attachments from PSWriteOffice.' }
-    )
+    PdfParagraph {
+        PdfText 'This report uses '
+        PdfText 'themes' -Bold -Color '#0F766E'
+        PdfText ', '
+        PdfText 'rich inline text' -Italic -BackgroundColor '#FEF3C7'
+        PdfText ', layout rows, links, and attachments from PSWriteOffice.'
+    }
     PdfPanel 'The PDF cmdlets are thin adapters over OfficeIMO.Pdf, so reusable document behavior stays in the engine.'
     PdfHr -Color '#0F766E' -Thickness 1.5 -SpacingBefore 10 -SpacingAfter 12
 
-    PdfRow -Gap 18 -ColumnSeparatorColor '#CBD5E1' -Column @(
-        @{
-            Width = 38
-            Content = @(
-                @{ Type = 'Heading'; Level = 2; Text = 'Signals'; HeadingColor = '#0F766E' }
-                @{ Type = 'Paragraph'; Run = @(
-                    @{ Text = 'External reference: ' }
-                    @{ Text = 'Evotec'; LinkUri = 'https://evotec.xyz'; Color = '#2563EB' }
-                ) }
-                @{ Type = 'List'; Items = @('Healthy services are stable', 'Watch items need owner follow-up', 'High risk gets a focused action'); Numbered = $true }
-            )
+    PdfRow -Gap 18 -ColumnSeparatorColor '#CBD5E1' {
+        PdfColumn -Weight 38 {
+            PdfHeading 'Signals' -Level 2 -Color '#0F766E'
+            PdfParagraph {
+                PdfText 'External reference: '
+                PdfText 'Evotec' -Link 'https://evotec.xyz' -Color '#2563EB'
+            }
+            PdfList -Items 'Healthy services are stable', 'Watch items need owner follow-up', 'High risk gets a focused action' -Numbered
         }
-        @{
-            Width = 62
-            Content = @(
-                @{ Type = 'Heading'; Level = 2; Text = 'Service Scorecard'; HeadingColor = '#1D4ED8' }
-                @{ Type = 'Table'; InputObject = $services }
-                @{ Type = 'Paragraph'; Run = @(
-                    @{ Text = 'Jump to ' }
-                    @{ Text = 'summary'; LinkDestinationName = 'summary'; Color = '#7C3AED' }
-                    @{ Text = ' when reviewing the scorecard.' }
-                ) }
-            )
+        PdfColumn -Weight 62 {
+            PdfHeading 'Service Scorecard' -Level 2 -Color '#1D4ED8'
+            PdfTable -InputObject $services
+            PdfParagraph {
+                PdfText 'Jump to '
+                PdfText 'summary' -LinkBookmark 'summary' -Color '#7C3AED'
+                PdfText ' when reviewing the scorecard.'
+            }
         }
-    )
+    }
 
     PdfSpacer 10
     PdfAttachment -Path $attachmentPath -Description 'Generated example notes'
 }
 
-$info = Get-OfficePdfInfo -Path $path
+$info = (Get-OfficeDocumentInfo -Detailed -Path $path).Details
 [pscustomobject]@{
     Path            = $path
     Pages           = $info.PageCount

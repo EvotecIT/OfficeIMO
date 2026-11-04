@@ -1,66 +1,55 @@
-using OfficeIMO.Core.Internal;
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Management.Automation;
-using System.Security;
 using System.Text;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Pdf;
 using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Pdf;
 
-/// <summary>Exports readable PDF form field values as XFDF.</summary>
-[Cmdlet(VerbsData.Export, "OfficePdfXfdf", SupportsShouldProcess = true)]
+/// <summary>Exports native PDF form values as XFDF XML or atomically published XFDF files.</summary>
+/// <example><summary>Export each form in a folder.</summary><code>Export-OfficePdfXfdf -Path './Forms/*.pdf' -OutputDirectory ./Values -NoClobber -PassThru</code></example>
+[Cmdlet(VerbsData.Export, "OfficePdfXfdf", DefaultParameterSetName = "Document", SupportsShouldProcess = true)]
 [OutputType(typeof(string), typeof(FileInfo))]
-public sealed class ExportOfficePdfXfdfCommand : PSCmdlet
-{
-    /// <summary>Source PDF path.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
-    public string Path { get; set; } = string.Empty;
-
-    /// <summary>Optional XFDF output path. Without it, the command returns XML.</summary>
-    [Parameter(Position = 1)]
-    public string? OutputPath { get; set; }
-
-    /// <summary>Optional bounded PDF parsing and password settings.</summary>
-    [Parameter]
-    public PdfLoadOptions? ReadOptions { get; set; }
-
-    /// <summary>Password used to authenticate an encrypted PDF.</summary>
-    [Parameter]
-    [OfficePasswordTransformation]
-    public SecureString? Password { get; set; }
-
-    /// <summary>After successful password authentication, explicitly ignore owner-imposed form-reading restrictions.</summary>
-    [Parameter]
-    public SwitchParameter IgnorePermissionRestrictions { get; set; }
-
-    /// <summary>Return the written file.</summary>
-    [Parameter]
-    public SwitchParameter PassThru { get; set; }
-
+public sealed partial class ExportOfficePdfXfdfCommand : PSCmdlet {
+    private readonly List<string> _inputs = new();
     /// <inheritdoc />
-    protected override void ProcessRecord()
-    {
-        var input = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
-        var output = string.IsNullOrWhiteSpace(OutputPath) ? null
-            : SessionState.Path.GetUnresolvedProviderPathFromPSPath(OutputPath!);
-        if (output != null && OfficePath.AreEquivalent(input, output))
-            throw new PSArgumentException("The source PDF and XFDF destination must be different files.");
-        var readOptions = PdfCommandUtilities.CreateReadOptions(
-            ReadOptions,
-            Password,
-            IgnorePermissionRestrictions.IsPresent);
-        using var document = PdfCommandUtilities.LoadDocument(input, readOptions);
-        var xfdf = document.Forms.ExportXfdf();
-        if (output == null)
-        {
-            WriteObject(xfdf);
+    protected override void ProcessRecord() {
+        if (ParameterSetName == "Document") {
+            var document = Document ?? OfficeDocumentContext.Find<PdfDocument>() ?? throw new PSArgumentException("Provide Document or use an Open-/New-OfficePdf block.");
+            WriteObject(document.Forms.ExportXfdf());
             return;
         }
-        if (!ShouldProcess(output, "Write PDF form data as XFDF")) return;
-        Directory.CreateDirectory(System.IO.Path.GetDirectoryName(output) ?? SessionState.Path.CurrentFileSystemLocation.Path);
-        OfficeFileOutput.Write(output, overwrite: true, temporaryPath => File.WriteAllText(temporaryPath, xfdf, new UTF8Encoding(false)));
-        if (PassThru.IsPresent) WriteObject(new FileInfo(output));
+        bool literal = ParameterSetName.StartsWith("LiteralPath", StringComparison.Ordinal);
+        _inputs.AddRange(OfficePath.ResolveInputs(this, literal ? LiteralPath : Path, literal));
+    }
+    /// <inheritdoc />
+    protected override void EndProcessing() {
+        if (_inputs.Count == 0) return;
+        if (OutputPath != null && _inputs.Count != 1) throw new PSArgumentException("OutputPath requires one PDF; use OutputDirectory for a batch.");
+        var read = PdfCommandUtilities.CreateReadOptions(LoadOptions, Password, IgnorePermissionRestrictions.IsPresent);
+        if (OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(IgnorePermissionRestrictions)) is bool ignore)
+            read = (read ?? new PdfLoadOptions()).Snapshot(null, null, ignore ? PdfPermissionPolicy.IgnoreRestrictions : PdfPermissionPolicy.Enforce);
+        var destinations = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string input in _inputs) {
+            string? output = OutputPath == null ? OutputDirectory == null ? null : System.IO.Path.Combine(
+                OfficePath.ResolveOutput(SessionState, OutputDirectory, true), System.IO.Path.GetFileNameWithoutExtension(input) + ".xfdf")
+                : OfficePath.ResolveOutput(SessionState, OutputPath, false);
+            if (output != null) {
+                if (OfficePath.AreEquivalent(input, output)) throw new PSArgumentException("PDF and XFDF paths must differ.");
+                if (!destinations.Add(output)) throw new PSArgumentException("Two PDF inputs have the same XFDF destination.");
+                OfficePath.ValidateDestination(output, NoClobber.IsPresent);
+                if (!ShouldProcess(output, "Export XFDF form data")) continue;
+            }
+            using var document = PdfDocument.Load(input, read);
+            string xml = document.Forms.ExportXfdf();
+            if (output == null) { WriteObject(xml); continue; }
+            PdfCommandUtilities.EnsureDirectory(output);
+            OfficeFileOutput.Write(output, !NoClobber.IsPresent, temporary => File.WriteAllText(temporary, xml, new UTF8Encoding(false)));
+            if (PassThru) WriteObject(new FileInfo(output));
+        }
     }
 }

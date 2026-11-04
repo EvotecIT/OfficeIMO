@@ -11,7 +11,7 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 [OutputType(typeof(PdfTextImportOptions))]
 public sealed class NewOfficeTextPdfOptionsCommand : PSCmdlet {
     /// <summary>Explicit encoding; otherwise use a Unicode BOM or strict UTF-8.</summary>
-    [Parameter] public string? EncodingName { get; set; }
+    [Parameter(ParameterSetName = "Default")] public string? Encoding { get; set; }
     /// <summary>Source columns per tab stop.</summary>
     [Parameter] [ValidateRange(1, 32)] public int TabSize { get; set; } = 8;
     /// <summary>Maximum decoded and expanded characters.</summary>
@@ -22,7 +22,7 @@ public sealed class NewOfficeTextPdfOptionsCommand : PSCmdlet {
     [Parameter] public PdfCreateOptions? PdfOptions { get; set; }
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var options = new PdfTextImportOptions { EncodingName = EncodingName, TabSize = TabSize,
+        var options = new PdfTextImportOptions { EncodingName = Encoding, TabSize = TabSize,
             MaximumCharacters = MaximumCharacters, MaximumPages = MaximumPages };
         if (PdfOptions != null) options.PdfOptions = PdfOptions.Clone();
         WriteObject(options.Clone());
