@@ -339,7 +339,7 @@ internal static partial class PdfSyntax {
 #endif
     }
 
-    private static bool ApplyXrefStreamEntries(Dictionary<int, PdfIndirectObject> map, byte[] pdf, Dictionary<int, int> parsedOffsets, PdfReadLimits limits, XrefObjectScanBudget scanBudget, PdfDecodedStreamBudget decodedStreamBudget, Action reportIncompleteXref,
+    private static bool ApplyXrefStreamEntries(Dictionary<int, PdfIndirectObject> map, byte[] pdf, string text, Dictionary<int, int> parsedOffsets, PdfReadLimits limits, XrefObjectScanBudget scanBudget, PdfDecodedStreamBudget decodedStreamBudget, Action reportIncompleteXref,
         System.Threading.CancellationToken cancellationToken) {
         var xrefStreams = new List<(int ObjectNumber, int Offset, PdfStream Stream)>();
         foreach (var entry in map.Values) {
@@ -355,7 +355,6 @@ internal static partial class PdfSyntax {
             return false;
         }
 
-        string text = PdfEncoding.Latin1GetStringCancellable(pdf, cancellationToken);
         if (!TryGetLatestStartXrefOffset(text, out int activeXrefOffset, cancellationToken)) {
             return false;
         }
@@ -386,7 +385,7 @@ internal static partial class PdfSyntax {
         return true;
     }
 
-    private static bool ApplyCompressedXrefStreamEntries(Dictionary<int, PdfIndirectObject> map, byte[] pdf, Dictionary<int, int> parsedOffsets, PdfReadLimits limits, PdfDecodedStreamBudget decodedStreamBudget, Action<int> reportUnreadable,
+    private static bool ApplyCompressedXrefStreamEntries(Dictionary<int, PdfIndirectObject> map, byte[] pdf, string text, Dictionary<int, int> parsedOffsets, PdfReadLimits limits, PdfDecodedStreamBudget decodedStreamBudget, Action<int> reportUnreadable,
         System.Threading.CancellationToken cancellationToken) {
         var xrefStreams = new List<(int ObjectNumber, int Offset, PdfStream Stream)>();
         foreach (var entry in map.Values) {
@@ -402,7 +401,6 @@ internal static partial class PdfSyntax {
             return false;
         }
 
-        string text = PdfEncoding.Latin1GetStringCancellable(pdf, cancellationToken);
         if (!TryGetLatestStartXrefOffset(text, out int activeXrefOffset, cancellationToken)) {
             return false;
         }

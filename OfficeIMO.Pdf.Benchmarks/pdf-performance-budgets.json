@@ -10,6 +10,16 @@
       "maxAllocatedBytes": 4194304,
       "maxPeakManagedHeapBytes": 402653184
     },
+    "analysis-cold-xref-stream": {
+      "maxElapsedMilliseconds": 5000,
+      "maxAllocatedBytes": 16777216,
+      "maxPeakManagedHeapBytes": 536870912
+    },
+    "extract-text-embedded-font": {
+      "maxElapsedMilliseconds": 10000,
+      "maxAllocatedBytes": 1073741824,
+      "maxPeakManagedHeapBytes": 134217728
+    },
     "render-svg-12": {
       "maxElapsedMilliseconds": 5000,
       "maxAllocatedBytes": 134217728,

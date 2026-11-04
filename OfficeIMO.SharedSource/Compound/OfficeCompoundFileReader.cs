@@ -284,16 +284,18 @@ namespace OfficeIMO.Core.Internal {
             int sectorSize,
             List<uint> fatSectorIds,
             CancellationToken cancellationToken) {
-            var entries = new List<uint>(fatSectorIds.Count * (sectorSize / 4));
+            int entriesPerSector = sectorSize / 4;
+            var entries = new uint[checked(fatSectorIds.Count * entriesPerSector)];
+            int index = 0;
             foreach (uint sector in fatSectorIds) {
                 cancellationToken.ThrowIfCancellationRequested();
                 int offset = SectorOffset(sector, sectorSize);
-                for (int i = 0; i < sectorSize / 4; i++) {
-                    entries.Add(ReadUInt32(bytes, offset + i * 4));
+                for (int i = 0; i < entriesPerSector; i++) {
+                    entries[index++] = ReadUInt32(bytes, offset + i * 4);
                 }
             }
 
-            return entries.ToArray();
+            return entries;
         }
 
         private static byte[] ReadRegularStream(byte[] bytes, int sectorSize, uint[] fat, uint startSector, long size,
@@ -305,7 +307,10 @@ namespace OfficeIMO.Core.Internal {
                 throw new InvalidDataException("A non-empty compound stream has no sector chain.");
             }
 
-            using var output = new MemoryStream();
+            bool sizeKnown = size != long.MaxValue;
+            // Prove the chain before allocating its result; declared sizes are untrusted.
+            var offsets = new List<int>();
+            int written = 0;
             uint sector = startSector;
             var visited = new HashSet<uint>();
             while (sector != EndOfChain && sector != FreeSect) {
@@ -318,27 +323,40 @@ namespace OfficeIMO.Core.Internal {
                 if (offset < 0 || offset + sectorSize > bytes.Length) {
                     throw new InvalidDataException("Compound file sector points outside the file.");
                 }
-                if (output.Length > maximumBytes - sectorSize) {
-                    throw AdmissionFailure("MaxDirectoryEntries", output.Length / DirectoryEntrySize + sectorSize / DirectoryEntrySize,
+                if (written > maximumBytes - sectorSize) {
+                    throw AdmissionFailure("MaxDirectoryEntries", written / DirectoryEntrySize + sectorSize / DirectoryEntrySize,
                         maximumBytes / DirectoryEntrySize, preserveResourceLimits,
                         $"Compound directory entry count exceeds {maximumBytes / DirectoryEntrySize}.");
                 }
 
-                output.Write(bytes, offset, sectorSize);
+                int count = sizeKnown ? (int)Math.Min(sectorSize, size - written) : sectorSize;
+                offsets.Add(offset);
+                written += count;
                 sector = fat[sector];
-                if (size != long.MaxValue && output.Length >= size) {
+                if (sizeKnown && written >= size) {
                     break;
                 }
             }
 
-            byte[] data = output.ToArray();
-            if (size != long.MaxValue && data.LongLength < size) {
+            if (sizeKnown && written < size) {
                 throw new InvalidDataException("Compound file sector chain is shorter than the declared stream size.");
             }
-            if (size != long.MaxValue && data.LongLength > size) {
-                Array.Resize(ref data, checked((int)size));
-            }
 
+            return CopyStreamSectors(bytes, offsets, sectorSize, written, cancellationToken);
+        }
+
+        /// <summary>Copies a validated sector chain into one array at its exact stream length.</summary>
+        private static byte[] CopyStreamSectors(byte[] source, List<int> offsets, int sectorSize, int length,
+            CancellationToken cancellationToken) {
+            if (length == 0) return Array.Empty<byte>();
+            var data = new byte[length];
+            int written = 0;
+            foreach (int offset in offsets) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int count = Math.Min(Math.Min(sectorSize, source.Length - offset), length - written);
+                Buffer.BlockCopy(source, offset, data, written, count);
+                written += count;
+            }
             return data;
         }
 
@@ -351,7 +369,8 @@ namespace OfficeIMO.Core.Internal {
             if (size == 0) return Array.Empty<byte>();
             if (startSector == EndOfChain) throw new InvalidDataException("A non-empty mini stream has no sector chain.");
 
-            using var output = new MemoryStream();
+            var offsets = new List<int>();
+            int written = 0;
             uint sector = startSector;
             var visited = new HashSet<uint>();
             while (sector != EndOfChain && sector != FreeSect) {
@@ -365,20 +384,18 @@ namespace OfficeIMO.Core.Internal {
                     throw new InvalidDataException("Compound file mini sector points outside the mini stream.");
                 }
 
-                output.Write(miniStream, offset, Math.Min(MiniSectorSize, miniStream.Length - offset));
+                int count = (int)Math.Min(Math.Min(MiniSectorSize, miniStream.Length - offset), size - written);
+                offsets.Add(offset);
+                written += count;
                 sector = miniFat[sector];
-                if (output.Length >= size) {
+                if (written >= size) {
                     break;
                 }
             }
 
-            byte[] data = output.ToArray();
-            if (data.LongLength < size) throw new InvalidDataException("Mini sector chain is shorter than the declared stream size.");
-            if (data.LongLength > size) {
-                Array.Resize(ref data, checked((int)size));
-            }
+            if (written < size) throw new InvalidDataException("Mini sector chain is shorter than the declared stream size.");
 
-            return data;
+            return CopyStreamSectors(miniStream, offsets, MiniSectorSize, written, cancellationToken);
         }
 
         private static List<DirectoryEntry> ReadDirectoryEntries(
