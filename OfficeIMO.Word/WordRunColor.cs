@@ -9,7 +9,7 @@ namespace OfficeIMO.Word;
 internal static class WordRunColor {
     internal static OfficeColor Resolve(OfficeColor color, WordDocument? document) {
         if (!color.IsThemeRole) return color;
-        var scheme = document?._wordprocessingDocument.MainDocumentPart?.ThemePart?.Theme?.ThemeElements?.ColorScheme;
+        var scheme = document?.ReadColorScheme;
         return Resolve(color, scheme, document?.EffectiveCreationTheme ?? OfficeTheme.Default);
     }
 

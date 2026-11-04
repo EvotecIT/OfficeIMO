@@ -1209,6 +1209,16 @@ Describe 'Word DSL surface' {
             $schemes.GetAttribute('val') | Should -Contain 'accent3'
             $rgb = @($xml.SelectNodes('//*[local-name()="srgbClr"]'))
             $rgb.GetAttribute('val') | Should -Contain $theme.Palette.Warning.ToRgbHex()
+            $paragraphs = @(Get-OfficeWordParagraph -Path $path)
+            $paragraphs[0].Shape.FillColor.ToRgbHex() | Should -Be $theme.Palette.Accent3.ToRgbHex()
+            $fromParagraph = @(Get-OfficeWordShape -Paragraph $paragraphs[0])
+            $fromParagraph.Count | Should -Be 1
+            $fromParagraph[0].FillColor.ToRgbHex() | Should -Be $theme.Palette.Accent3.ToRgbHex()
+            $sections = @(Get-OfficeWordSection -Path $path)
+            $fromSection = @(Get-OfficeWordShape -Section $sections[0])
+            $fromSection.Count | Should -Be 1
+            $fromSection[0].FillColor.ToRgbHex() | Should -Be $theme.Palette.Accent3.ToRgbHex()
+            @(Get-OfficeWordShape -Path $path)[0].FillColor.ToRgbHex() | Should -Be $theme.Palette.Accent3.ToRgbHex()
         }
     }
 

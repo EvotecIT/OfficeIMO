@@ -4,15 +4,6 @@ using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 namespace OfficeIMO.Word;
 
 public partial class WordShape {
-    // Path inspection returns shapes after closing the package. Retain the native theme DOM for their color reads.
-    private A.ColorScheme? _colorSchemeForRead;
-    private OfficeTheme _themeForRead = OfficeTheme.Default;
-
-    private void CaptureColorContext(WordDocument document) {
-        _colorSchemeForRead = document._wordprocessingDocument.MainDocumentPart?.ThemePart?.Theme?.ThemeElements?.ColorScheme;
-        _themeForRead = document.EffectiveCreationTheme;
-    }
-
     // Literal views are consumed by the native PDF adapter when no richer DrawingML fill is available.
     internal string FillColorValue => ReadLiteralShapeColor(stroke: false) ?? string.Empty;
     internal string? StrokeColorValue => ReadLiteralShapeColor(stroke: true);
@@ -35,8 +26,8 @@ public partial class WordShape {
             var fill = stroke
                 ? properties.GetFirstChild<A.Outline>()?.GetFirstChild<A.SolidFill>()
                 : properties.GetFirstChild<A.SolidFill>();
-            var color = WordRunColor.ReadDrawingFill(fill, _colorSchemeForRead);
-            return color.HasValue ? WordRunColor.Resolve(color.Value, _colorSchemeForRead, _themeForRead) : OfficeColor.Transparent;
+            var color = WordRunColor.ReadDrawingFill(fill, _document.ReadColorScheme);
+            return color.HasValue ? WordRunColor.Resolve(color.Value, _document) : OfficeColor.Transparent;
         }
         string? value = stroke
             ? _rectangle?.StrokeColor?.Value ?? _roundRectangle?.StrokeColor?.Value ?? _ellipse?.StrokeColor?.Value
@@ -52,15 +43,14 @@ public partial class WordShape {
             var fill = stroke
                 ? properties.GetFirstChild<A.Outline>()?.GetFirstChild<A.SolidFill>()
                 : properties.GetFirstChild<A.SolidFill>();
-            var color = WordRunColor.ReadDrawingFill(fill, _colorSchemeForRead);
-            return color.HasValue ? WordRunColor.Resolve(color.Value, _colorSchemeForRead, _themeForRead).ToRgbHex() : null;
+            var color = WordRunColor.ReadDrawingFill(fill, _document.ReadColorScheme);
+            return color.HasValue ? WordRunColor.Resolve(color.Value, _document).ToRgbHex() : null;
         }
         var literal = ReadShapeColor(stroke);
         return literal == OfficeColor.Transparent ? null : literal.ToRgbHex();
     }
 
     private void SetShapeColor(OfficeColor color, bool stroke) {
-        CaptureColorContext(_document);
         var properties = _wpsShape?.GetFirstChild<Wps.ShapeProperties>();
         if (properties != null) {
             if (stroke) {

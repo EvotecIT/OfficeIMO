@@ -52,6 +52,12 @@ namespace OfficeIMO.Word {
                 }
 
                 try {
+                    RetainColorContextForInspection();
+                } catch (Exception ex) {
+                    persistenceFailure ??= ex;
+                }
+
+                try {
                     wordProcessingDocument.Dispose();
                 } catch (Exception ex) {
                     persistenceFailure ??= ex;
@@ -118,6 +124,12 @@ namespace OfficeIMO.Word {
                     } catch (Exception ex) {
                         persistenceFailure = ex;
                     }
+                }
+
+                try {
+                    RetainColorContextForInspection();
+                } catch (Exception ex) {
+                    persistenceFailure ??= ex;
                 }
 
                 try {

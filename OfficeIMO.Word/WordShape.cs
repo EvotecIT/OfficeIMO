@@ -195,7 +195,6 @@ namespace OfficeIMO.Word {
         /// </summary>
         internal WordShape(WordDocument document, Paragraph paragraph, Run run, WordDrawing? drawing = null, OpenXmlElement? selectedVmlShape = null) {
             _document = document;
-            CaptureColorContext(document);
             _wordParagraph = new WordParagraph(document, paragraph, run);
             _run = run;
             _rectangle = selectedVmlShape == null && drawing == null ? run.Descendants<V.Rectangle>().FirstOrDefault() : selectedVmlShape as V.Rectangle;

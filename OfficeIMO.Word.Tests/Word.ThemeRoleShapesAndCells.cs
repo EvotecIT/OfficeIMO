@@ -72,8 +72,10 @@ public class WordThemeRoleShapesAndCells {
         }
     }
 
-    [Fact]
-    public void LoadedShapeAndCellRolesFollowEmbeddedThemeAndLiteralEditsClearOverrides() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task LoadedShapeAndCellRolesFollowEmbeddedThemeAndLiteralEditsClearOverrides(bool disposeAsync) {
         var theme = OfficeTheme.Modern.WithPalette(OfficeTheme.Modern.Palette.With(
             accent1: OfficeColor.ParseHex("123456")));
         byte[] original;
@@ -109,14 +111,29 @@ public class WordThemeRoleShapesAndCells {
         }
         WordShape[] detachedShapes;
         WordTableCell detachedCell;
+        WordParagraph[] detachedParagraphs;
+        WordSection[] detachedSections;
         using (var inspectionBytes = new MemoryStream(loaded.ToBytes()))
         using (var inspection = WordDocument.Load(inspectionBytes)) {
             detachedShapes = inspection.Shapes.ToArray();
             detachedCell = inspection.Tables[0].Rows[0].Cells[0];
+            detachedParagraphs = inspection.Paragraphs.ToArray();
+            detachedSections = inspection.Sections.ToArray();
+            if (disposeAsync) await inspection.DisposeAsync();
+            else inspection.Dispose();
         }
         Assert.Equal("123456", detachedShapes[0].FillColor.ToRgbHex());
         Assert.Equal(theme.Palette.TextMuted.ToRgbHex(), detachedShapes[0].StrokeColor.ToRgbHex());
         Assert.Equal("123456", detachedCell.ShadingFillColor!.Value.ToRgbHex());
+        var lazyParagraphShapes = detachedParagraphs.Select(p => p.Shape).Where(s => s != null).Cast<WordShape>().ToArray();
+        Assert.Equal(2, lazyParagraphShapes.Length);
+        Assert.Equal("123456", lazyParagraphShapes[0].FillColor.ToRgbHex());
+        Assert.Equal(theme.Palette.TextMuted.ToRgbHex(), lazyParagraphShapes[0].StrokeColor.ToRgbHex());
+        Assert.Equal("123456", lazyParagraphShapes[1].FillColor.ToRgbHex());
+        var lazySectionShapes = detachedSections.SelectMany(s => s.Shapes).ToArray();
+        Assert.Equal(2, lazySectionShapes.Length);
+        Assert.Equal("123456", lazySectionShapes[0].FillColor.ToRgbHex());
+        Assert.Equal("123456", lazySectionShapes[1].FillColor.ToRgbHex());
         first.ShadingFillColor = OfficeColor.Red;
         shapes[0].FillColor = OfficeColor.Blue;
         shapes[0].StrokeColor = OfficeColor.Warning;
