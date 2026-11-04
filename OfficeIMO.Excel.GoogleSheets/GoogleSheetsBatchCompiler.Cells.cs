@@ -143,7 +143,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             };
         }
 
-        private static IReadOnlyList<GoogleSheetsTextFormatRun> BuildTextFormatRuns(IReadOnlyList<ExcelRichTextRun> runs) {
+        private static IReadOnlyList<GoogleSheetsTextFormatRun> BuildTextFormatRuns(ExcelDocument document, IReadOnlyList<ExcelRichTextRun> runs) {
             if (runs == null || runs.Count == 0) return Array.Empty<GoogleSheetsTextFormatRun>();
             var result = new List<GoogleSheetsTextFormatRun>(runs.Count);
             int startIndex = 0;
@@ -155,9 +155,9 @@ namespace OfficeIMO.Excel.GoogleSheets {
                         Italic = run.Italic,
                         Underline = run.Underline,
                         Strikethrough = run.Strikethrough,
-                        FontName = run.FontName,
+                        FontName = run.FontFamily,
                         FontSize = run.FontSize?.ToPoints(),
-                        FontColorArgb = run.FontColor,
+                        FontColorArgb = run.Color.HasValue ? document.ResolveColor(run.Color.Value)?.ToArgbHex() : null,
                     },
                 });
                 startIndex += (run.Text ?? string.Empty).Length;

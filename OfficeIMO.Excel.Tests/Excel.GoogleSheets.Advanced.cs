@@ -340,12 +340,24 @@ namespace OfficeIMO.Tests
         [Fact]
         public void Test_GoogleSheetsBatch_PreservesSharedStringRichTextRuns() {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsSharedStringRichText.xlsx");
+            var theme = global::OfficeIMO.OfficeTheme.Default.WithPalette(global::OfficeIMO.OfficeTheme.Default.Palette.With(
+                accent1: global::OfficeIMO.OfficeColor.ParseHex("456789"),
+                success: global::OfficeIMO.OfficeColor.ParseHex("5A7B9C")));
             try {
                 using (var document = ExcelDocument.Create(path)) {
+                    document.ApplyTheme(theme);
                     ExcelSheet sheet = document.AddSheet("Data");
                     sheet.Cell(1, 1).SetRichText(new[] {
-                        new ExcelRichTextRun("Bold") { Bold = true },
-                        new ExcelRichTextRun(" plain") { Italic = true },
+                        new ExcelRichTextRun("Bold") {
+                            Bold = true, Underline = true, Strikethrough = true,
+                            FontFamily = "Courier New", FontSize = global::OfficeIMO.OfficeLength.Points(15),
+                            Color = global::OfficeIMO.OfficeColor.FromRgba(0x11, 0x22, 0x33, 0x80),
+                        },
+                        new ExcelRichTextRun(" plain") {
+                            Italic = true, FontFamily = "Georgia", FontSize = global::OfficeIMO.OfficeLength.Points(13),
+                            Color = global::OfficeIMO.OfficeColor.Accent1,
+                        },
+                        new ExcelRichTextRun(" status") { Color = global::OfficeIMO.OfficeColor.Success },
                     });
                     document.Save();
                 }
@@ -372,9 +384,44 @@ namespace OfficeIMO.Tests
                 GoogleSheetsBatch batch = new GoogleSheetsExporter().BuildBatch(reloaded);
                 GoogleSheetsCellData richCell = Assert.Single(batch.Requests.OfType<GoogleSheetsUpdateCellsRequest>().Single(request => request.SheetName == "Data").Cells);
 
-                Assert.Equal(2, richCell.TextFormatRuns.Count);
-                Assert.True(richCell.TextFormatRuns[0].Format.Bold);
-                Assert.True(richCell.TextFormatRuns[1].Format.Italic);
+                Assert.Equal(3, richCell.TextFormatRuns.Count);
+                GoogleSheetsCellStyle literal = richCell.TextFormatRuns[0].Format;
+                Assert.True(literal.Bold);
+                Assert.True(literal.Underline);
+                Assert.True(literal.Strikethrough);
+                Assert.Equal("Courier New", literal.FontName);
+                Assert.Equal(15d, literal.FontSize);
+                Assert.Equal("80112233", literal.FontColorArgb);
+                GoogleSheetsCellStyle themed = richCell.TextFormatRuns[1].Format;
+                Assert.True(themed.Italic);
+                Assert.Equal("Georgia", themed.FontName);
+                Assert.Equal(13d, themed.FontSize);
+                Assert.Equal("FF456789", themed.FontColorArgb);
+                Assert.Equal("FF5A7B9C", richCell.TextFormatRuns[2].Format.FontColorArgb);
+                Assert.Equal(new[] { 0, 4, 10 }, richCell.TextFormatRuns.Select(run => run.StartIndex));
+
+                GoogleSheetsApiBatchUpdatePayload payload = GoogleSheetsApiPayloadBuilder.BuildBatchUpdatePayload(batch);
+                var formats = Assert.Single(payload.Requests, request => request.UpdateCells != null)
+                    .UpdateCells!.Rows.Single().Values.Single().TextFormatRuns!;
+                Assert.Equal("Courier New", formats[0].Format.FontFamily);
+                Assert.Equal(15, formats[0].Format.FontSize);
+                Assert.True(formats[0].Format.Bold);
+                Assert.True(formats[0].Format.Underline);
+                Assert.True(formats[0].Format.Strikethrough);
+                Assert.Equal(0x11 / 255d, formats[0].Format.ForegroundColor!.Red);
+                Assert.Equal(0x22 / 255d, formats[0].Format.ForegroundColor!.Green);
+                Assert.Equal(0x33 / 255d, formats[0].Format.ForegroundColor!.Blue);
+                Assert.Equal(0x45 / 255d, formats[1].Format.ForegroundColor!.Red);
+                Assert.Equal(0x67 / 255d, formats[1].Format.ForegroundColor!.Green);
+                Assert.Equal(0x89 / 255d, formats[1].Format.ForegroundColor!.Blue);
+
+                string before = GoogleSheetsDiffPlanner.CreateCheckpoint(reloaded).ContentHashes["sheet/Data/cell/1:1"];
+                reloaded.ApplyTheme(theme.WithPalette(theme.Palette.With(accent1: global::OfficeIMO.OfficeColor.ParseHex("ABCDEF"))));
+                Assert.NotEqual(before, GoogleSheetsDiffPlanner.CreateCheckpoint(reloaded).ContentHashes["sheet/Data/cell/1:1"]);
+                GoogleSheetsBatch recolored = new GoogleSheetsExporter().BuildBatch(reloaded);
+                GoogleSheetsCellData recoloredCell = Assert.Single(recolored.Requests.OfType<GoogleSheetsUpdateCellsRequest>().Single().Cells);
+                Assert.Equal("FFABCDEF", recoloredCell.TextFormatRuns[1].Format.FontColorArgb);
+                Assert.Equal("80112233", recoloredCell.TextFormatRuns[0].Format.FontColorArgb);
             } finally {
                 if (File.Exists(path)) File.Delete(path);
             }

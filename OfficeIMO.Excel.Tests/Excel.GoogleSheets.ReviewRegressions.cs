@@ -211,7 +211,7 @@ namespace OfficeIMO.Tests
                 try {
                     using var document = ExcelDocument.Create(path);
                     ExcelSheet sheet = document.AddSheet("Data");
-                    sheet.Range("A1:A10").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, threshold, fillColor: fillColor);
+                    sheet.Range("A1:A10").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, threshold, fillColor: global::OfficeIMO.OfficeColor.ParseHex(fillColor));
                     return GoogleSheetsDiffPlanner.CreateCheckpoint(document).ContentHashes["sheet/Data/conditionalFormat/0"];
                 } finally {
                     if (File.Exists(path)) File.Delete(path);
