@@ -21,7 +21,7 @@ output with ExcelDataReader and the strict OfficeIMO reader. The XLS lane also
 requires the BIFF8 Index/DBCell structure. A failed preflight stays visible as
 an unavailable timing, without ranking invalid output against a valid package.
 
-The .NET 10 lanes use the published MIT ExcelReader.NET 7.3.4 package. The .NET 8
+The .NET 10 lanes use the published MIT ExcelReader.NET 7.4.0 package. The .NET 8
 comparisons retain their last compatible pin and are a separate version cohort.
 These generated lanes run on .NET 10:
 

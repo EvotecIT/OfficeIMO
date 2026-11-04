@@ -23,7 +23,7 @@ namespace OfficeIMO.Excel.Benchmarks;
 /// </summary>
 [MemoryDiagnoser]
 [RankColumn]
-public class MarkPflug65KXlsxBenchmarks {
+public partial class MarkPflug65KXlsxBenchmarks {
     private static readonly string[] Headers = [
         "Region",
         "Country",
@@ -42,6 +42,7 @@ public class MarkPflug65KXlsxBenchmarks {
     ];
 
     private ExcelReadObservation _expected;
+    private byte[] _inputBytes = [];
 
     [GlobalSetup]
     public void Setup() {
@@ -55,6 +56,7 @@ public class MarkPflug65KXlsxBenchmarks {
         }
 
         MarkPflug65KFixture.EnsureAuthentic(MarkPflug65KFixture.XlsxFileName);
+        _inputBytes = File.ReadAllBytes(MarkPflug65KFixture.XlsxPath);
         _expected = ExpectedObservation();
     }
 

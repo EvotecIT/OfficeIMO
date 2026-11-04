@@ -12,8 +12,12 @@ public class ExcelRawReadStageBenchmarks {
     private const int BatchSize = 32;
     private readonly ExcelWorkbookDataReader?[] _prepared = new ExcelWorkbookDataReader?[BatchSize];
 
+    [Params(false, true)]
+    public bool EscapedNames { get; set; }
+
     [GlobalSetup]
     public void Setup() {
+        _fixture.EscapedNames = EscapedNames;
         _fixture.Setup(); // Full independent-reader/value preflight, outside measurement.
         _path = _fixture.InputPath;
     }
