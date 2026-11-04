@@ -863,14 +863,14 @@ recovery; changing the separate page drawing does not update the table model.
 ## Export a page as SVG
 
 ```csharp
-var exported = publication.ToSvgResult(pageIndex: 0);
-File.WriteAllText("page-1.svg", exported.Value);
+string svg = publication.ToSvg(0, null, out OfficeConversionReport report);
+File.WriteAllText("page-1.svg", svg);
 
-foreach (var diagnostic in exported.Report.Diagnostics)
+foreach (var diagnostic in report.Diagnostics)
     Console.WriteLine($"{diagnostic.LossKind}: {diagnostic.Message}");
 ```
 
-The result combines source recovery with image-rendering diagnostics.
+The report combines source recovery with image-rendering diagnostics.
 `ToSvg()` returns markup directly. `PublisherSvgOptions` controls output scale,
 dimension units, an optional image codec, and resource-ID prefixes for inline
 composition. Default dimensions are physical points.

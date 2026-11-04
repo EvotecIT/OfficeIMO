@@ -45,6 +45,16 @@
       "reason": "Lifecycle options are named {Format}LoadOptions and {Format}SaveOptions; ReaderOptions is reserved for forward-only readers.",
       "category": "options",
       "applied": true
+    },
+    {
+      "old": "OfficeIMO.Publisher.PublisherDocument.ToSvgResult(int pageIndex = 0, PublisherSvgOptions? options = null, CancellationToken cancellationToken = default)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Publisher.PublisherDocument.ToSvg(int pageIndex, PublisherSvgOptions? options, out OfficeConversionReport report, CancellationToken cancellationToken = default)",
+      "replacement": "string svg = document.ToSvg(0, options, out OfficeConversionReport report); PublisherConversionReport retains ReadReport and rendering diagnostics; use report.ThrowIfLoss() before accepting approximated output.",
+      "reason": "One ToSvg entry point with a report-bearing overload preserves typed source and rendering evidence without a Result-named conversion twin.",
+      "category": "conversion",
+      "applied": true
     }
   ]
 }

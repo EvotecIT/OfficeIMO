@@ -23,8 +23,8 @@ internal static class ManagedComparison {
         var artifacts = new List<object>();
         Write("managed.pdf", pdf);
         for (int index = 0; index < publication.Pages.Count; index++) {
-            var svg = publication.ToSvgResult(index);
-            Write($"page-{index + 1:D3}.svg", Encoding.UTF8.GetBytes(svg.Value));
+            string svg = publication.ToSvg(index, null, out _);
+            Write($"page-{index + 1:D3}.svg", Encoding.UTF8.GetBytes(svg));
         }
         var normalized = new {
             schema = "officeimo.publisher.managed-comparison.v1",

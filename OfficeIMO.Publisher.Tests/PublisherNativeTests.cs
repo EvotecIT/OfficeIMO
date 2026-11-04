@@ -124,13 +124,13 @@ public sealed class PublisherNativeTests {
     [Fact]
     public void Svg_export_preserves_physical_page_size_and_source_loss_evidence() {
         PublisherDocument document = PublisherDocument.Load(Fixture("Sample.pub"));
-        var result = document.ToSvgResult(1);
-        XElement svg = XElement.Parse(result.Value);
+        string exported = document.ToSvg(1, null, out OfficeConversionReport report);
+        XElement svg = XElement.Parse(exported);
         Assert.EndsWith("pt", svg.Attribute("width")!.Value);
-        Assert.Contains("Table on page 2", result.Value);
-        Assert.Contains("Bottom Right", result.Value);
-        Assert.Same(document.ReadReport, ((PublisherConversionReport)result.Report).ReadReport);
-        Assert.Throws<OfficeConversionException>(() => result.ThrowIfLoss());
+        Assert.Contains("Table on page 2", exported);
+        Assert.Contains("Bottom Right", exported);
+        Assert.Same(document.ReadReport, ((PublisherConversionReport)report).ReadReport);
+        Assert.Throws<OfficeConversionException>(() => report.ThrowIfLoss());
         Assert.Throws<ArgumentOutOfRangeException>(() => document.ToSvg(-1));
     }
 
