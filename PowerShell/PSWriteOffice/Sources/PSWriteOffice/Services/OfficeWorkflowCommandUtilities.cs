@@ -11,10 +11,34 @@ namespace PSWriteOffice.Services;
 
 /// <summary>Captures the optional first-party workflow adapters shipped by this PowerShell host.</summary>
 internal static class OfficeWorkflowCommandUtilities {
-    private static readonly Lazy<IReadOnlyList<OfficeWorkflowRoute>> Routes = new(() => CreateRunner().ConversionRoutes);
+    private static readonly Lazy<IReadOnlyList<OfficeWorkflowRoute>> Routes = new(() => CreateRunner().ConversionRoutes.Where(route => !route.RequiresImageCodec).ToArray());
     internal static OfficeWorkflowRunner CreateRunner() { RegisterConversions(); return IWorkWorkflow.CreateRunner(); }
     internal static void RegisterConversions() { OfficeWorkflow.RegisterConversions(); IWorkWorkflow.RegisterConversions(); }
     internal static bool IsExecutable(string id) => Routes.Value.Any(route => route.Id == id);
+
+    internal static IEnumerable<OfficeConversionCapability> SupportedConversionRoutes =>
+        OfficeConverter.Routes.Where(route => !route.RequiresImageCodec);
+
+    /// <summary>Captures host admission once without pre-discovering or rewriting the portable input selection.</summary>
+    internal static void ConfigureBatch(OfficeBatchOptions batch) {
+        var supported = new HashSet<string>(SupportedConversionRoutes.Select(route => route.Id), StringComparer.OrdinalIgnoreCase);
+        batch.RouteFilter = supported.Contains;
+    }
+
+    /// <summary>Rejects an explicitly selected single-file codec route before output publication.</summary>
+    internal static void EnsureSupportedInput(string input, string output, OfficeConversionOptions options) {
+        string extension = Path.GetExtension(OfficeConverter.ConversionSourceName(input, options));
+        EnsureSupportedRoutes(OfficeConverter.Routes.Where(route =>
+            (options.RouteId == null || string.Equals(route.Id, options.RouteId, StringComparison.OrdinalIgnoreCase)) &&
+            string.Equals(route.TargetExtension, Path.GetExtension(output), StringComparison.OrdinalIgnoreCase) &&
+            route.SourceExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase)));
+    }
+
+    /// <summary>Keeps caller-managed .NET image codecs outside this PowerShell host.</summary>
+    internal static void EnsureSupportedRoutes(IEnumerable<OfficeConversionCapability> routes) {
+        if (routes.Any(route => route.RequiresImageCodec))
+            throw new PSNotSupportedException("Routes requiring an explicitly registered .NET image codec are not available in PSWriteOffice.");
+    }
 
     internal static ErrorRecord? GetBatchError(OfficeBatchSummary result, bool allowEmpty, string errorPrefix) {
         if (result.FailureSummary != null)

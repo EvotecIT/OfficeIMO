@@ -907,11 +907,13 @@ public sealed class StudioNativeEngineTests : IDisposable {
     [Fact]
     public async Task Conversion_names_its_formats_and_refuses_what_it_cannot_convert() {
         Assert.Contains(PdfConversion.Sources, source => source.Extensions.Contains(".docx"));
+        Assert.All(PdfConversion.Sources, source => Assert.False(
+            OfficeIMO.Workflows.OfficeWorkflowCatalog.Find(source.Route)!.RequiresImageCodec));
         Assert.Equal("txt-pdf", PdfConversion.RouteFor("notes.txt")?.Route);
         Assert.Equal("markdown-pdf", PdfConversion.RouteFor("README.md")?.Route);
-        Assert.Null(PdfConversion.RouteFor("photo.heic"));
+        Assert.Null(PdfConversion.RouteFor("photo.unknown"));
 
-        string unknown = Path.Combine(_root, "photo.heic");
+        string unknown = Path.Combine(_root, "photo.unknown");
         File.WriteAllBytes(unknown, [1, 2, 3]);
         await Assert.ThrowsAsync<NotSupportedException>(() => PdfConversion.ConvertAsync(unknown, Path.Combine(_root, "photo.pdf"), default));
         await Assert.ThrowsAsync<FileNotFoundException>(() => PdfConversion.ConvertAsync(Path.Combine(_root, "missing.docx"), Path.Combine(_root, "missing.pdf"), default));
@@ -961,9 +963,9 @@ public sealed class StudioNativeEngineTests : IDisposable {
             free(json);
         }
         Assert.True(File.Exists(output));
-        fixed (byte* input = Encoding.UTF8.GetBytes(Path.Combine(_root, "photo.heic") + "\0"))
+        fixed (byte* input = Encoding.UTF8.GetBytes(Path.Combine(_root, "photo.unknown") + "\0"))
         fixed (byte* destination = Encoding.UTF8.GetBytes(output + "\0")) {
-            File.WriteAllBytes(Path.Combine(_root, "photo.heic"), [1]);
+            File.WriteAllBytes(Path.Combine(_root, "photo.unknown"), [1]);
             Assert.Equal(StudioNativeAbi.Unsupported, convert(input, destination, 0, &json, &error));
             free(error);
         }

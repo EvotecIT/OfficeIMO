@@ -271,6 +271,7 @@ public sealed class OfficeWorkflowRoute {
         TextFormattingContract = capability.TextFormattingContract;
         BrowserAvailable = capability.BrowserAvailable;
         AgentDiscoverable = capability.AgentDiscoverable;
+        RequiresImageCodec = capability.RequiresImageCodec;
         CanExecute = canExecute;
     }
 
@@ -310,6 +311,8 @@ public sealed class OfficeWorkflowRoute {
     public bool BrowserAvailable { get; }
     /// <summary>Whether the route is advertised through agent discovery.</summary>
     public bool AgentDiscoverable { get; }
+    /// <summary>Whether execution needs a raster codec explicitly registered by a .NET caller.</summary>
+    public bool RequiresImageCodec { get; }
     /// <summary>Whether this local workflow package can execute the route directly.</summary>
     public bool CanExecute { get; }
     /// <summary>Whether the route accepts a source PDF page selection.</summary>
@@ -328,7 +331,7 @@ public sealed class OfficeWorkflowRoute {
 /// <summary>Canonical desktop/service conversion route view.</summary>
 public static class OfficeWorkflowCatalog {
     private static readonly HashSet<string> ExecutableIds = new(StringComparer.Ordinal) {
-        "doc-pdf", "txt-pdf", "docx-pdf", "xlsx-pdf", "pptx-pdf", "html-pdf", "markdown-pdf", "rtf-pdf", "xps-pdf", "djvu-pdf",
+        "doc-pdf", "txt-pdf", "docx-pdf", "xlsx-pdf", "pptx-pdf", "html-pdf", "markdown-pdf", "rtf-pdf", "xps-pdf", "djvu-pdf", "heic-pdf",
         "pdf-docx", "pdf-xlsx", "pdf-pptx", "pdf-html", "book-project-epub", "odg-pdf", "visio-pdf", "publisher-pdf", "chm-pdf", "chm-markdown", "chm-epub"
     };
 

@@ -98,3 +98,25 @@ virtual OfficeIMO.OfficeConversionResult<T>.ThrowIfLoss() -> void
 *REMOVED*virtual OfficeIMO.OfficeConversionResult<TValue, TReport>.RequireNoLoss() -> TValue!
 *REMOVED*virtual OfficeIMO.OfficeConversionResult<TValue, TReport>.RequireValue() -> TValue!
 *REMOVED*virtual OfficeIMO.OfficeConversionResult<TValue, TReport>.Succeeded.get -> bool
+OfficeIMO.Drawing.IOfficeRasterImageCodecAvailability
+OfficeIMO.Drawing.IOfficeRasterImageCodecAvailability.GetAvailability() -> OfficeIMO.Drawing.OfficeRasterCodecAvailability!
+OfficeIMO.Drawing.OfficeImageFormat.Heic = 18 -> OfficeIMO.Drawing.OfficeImageFormat
+OfficeIMO.Drawing.OfficeRasterCodecAvailability
+OfficeIMO.Drawing.OfficeRasterCodecAvailability.IsAvailable.get -> bool
+OfficeIMO.Drawing.OfficeRasterCodecAvailability.Message.get -> string!
+OfficeIMO.Drawing.OfficeRasterCodecAvailability.OfficeRasterCodecAvailability(OfficeIMO.Drawing.OfficeRasterCodecUnavailableReason reason, string? message = null) -> void
+OfficeIMO.Drawing.OfficeRasterCodecAvailability.Reason.get -> OfficeIMO.Drawing.OfficeRasterCodecUnavailableReason
+OfficeIMO.Drawing.OfficeRasterCodecUnavailableReason
+OfficeIMO.Drawing.OfficeRasterCodecUnavailableReason.NoPlatformCodec = 1 -> OfficeIMO.Drawing.OfficeRasterCodecUnavailableReason
+OfficeIMO.Drawing.OfficeRasterCodecUnavailableReason.None = 0 -> OfficeIMO.Drawing.OfficeRasterCodecUnavailableReason
+OfficeIMO.Drawing.OfficeRasterDecodeException
+OfficeIMO.Drawing.OfficeRasterDecodeException.DecodeInfo.get -> OfficeIMO.Drawing.OfficeRasterDecodeInfo!
+OfficeIMO.Drawing.OfficeRasterDecodeFailure.CodecUnavailable = 8 -> OfficeIMO.Drawing.OfficeRasterDecodeFailure
+OfficeIMO.Drawing.OfficeRasterDecodeInfo.CodecUnavailableReason.get -> OfficeIMO.Drawing.OfficeRasterCodecUnavailableReason
+OfficeIMO.Drawing.OfficeRasterDecodeInfo.DiagnosticCode.get -> string?
+OfficeIMO.Drawing.OfficeRasterImageCodecs
+OfficeIMO.OfficeConversionCapability.RequiresImageCodec.get -> bool
+const OfficeIMO.OfficeDiagnosticCodes.ImageCodecUnavailable = "image-codec-unavailable" -> string!
+static OfficeIMO.Drawing.OfficeImageReader.NormalizeForEmbedding(byte[]! encodedBytes, OfficeIMO.Drawing.OfficeRasterDecodeOptions? options, out OfficeIMO.Drawing.OfficeImageInfo! info) -> byte[]!
+static OfficeIMO.Drawing.OfficeRasterImageCodecs.Platform.get -> OfficeIMO.Drawing.IOfficeRasterImageCodec?
+static OfficeIMO.Drawing.OfficeRasterImageCodecs.Platform.set -> void

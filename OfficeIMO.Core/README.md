@@ -1050,6 +1050,12 @@ profile and value-retention omissions appear in `Issues`, and oversized Exif val
 can retain only their source descriptors. Check those issues before treating the
 retained metadata as complete.
 
+### HEIC and HEIF images
+
+HEIC still-image decoding is an opt-in .NET feature. The optional [ImageIO](../OfficeIMO.Drawing.ImageIO/README.md) provider uses Apple frameworks on macOS/iOS. The caller registers it explicitly or passes it through `OfficeRasterDecodeOptions.ImageCodec`; no codec is registered automatically. Other hosts, including Windows, need a caller-supplied `IOfficeRasterImageCodec` as a workaround. Core owns bounded item/grid composition, transforms, alpha and colour conversion, stays COM-free and bundles no HEVC decoder. Without a registered codec, decoding reports `image-codec-unavailable` with `NoPlatformCodec`.
+
+See [the raster workflows](../Docs/officeimo.core-raster-workflows.md#decode-heic-with-a-registered-codec) for decode and document-embedding examples and the [support matrix](../Docs/officeimo.image-export-capability-matrix.md#heicheif-still-images-with-an-opt-in-codec) for limits.
+
 ### Inspect and edit HEIF container metadata
 
 `OfficeHeifMetadataReader` reads HEIF/HEIC brands, primary image dimensions and transforms,

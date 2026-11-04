@@ -11,7 +11,8 @@ namespace OfficeIMO.Excel {
         /// </summary>
         internal static bool TryParseDouble(ReadOnlySpan<byte> value, out double result) {
 #if NET8_0_OR_GREATER
-            return TryParseCommonFixedPoint(value, out result)
+            return TryParseShortFixedPoint(value, out result)
+                || TryParseCommonFixedPoint(value, out result)
                 || (Utf8Parser.TryParse(value, out result, out int consumed) && consumed == value.Length);
 #else
             return Utf8Parser.TryParse(value, out result, out int consumed) && consumed == value.Length;
@@ -19,6 +20,43 @@ namespace OfficeIMO.Excel {
         }
 
 #if NET8_0_OR_GREATER
+        /// <summary>Parses common integers and one/two-place decimals using bounded exact mantissas.</summary>
+        private static bool TryParseShortFixedPoint(ReadOnlySpan<byte> value, out double result) {
+            result = 0;
+            if (value.IsEmpty || value.Length > 17) return false;
+            bool negative = value[0] == (byte)'-';
+            if (negative || value[0] == (byte)'+') value = value.Slice(1);
+            if (value.IsEmpty || (uint)(value[0] - (byte)'0') > 9) return false;
+
+            int places = value.Length >= 2 && value[value.Length - 2] == (byte)'.' ? 1
+                : value.Length >= 3 && value[value.Length - 3] == (byte)'.' ? 2 : 0;
+            ReadOnlySpan<byte> whole = places == 0 ? value : value.Slice(0, value.Length - places - 1);
+            if (!Utf8Parser.TryParse(whole, out ulong integer, out int consumed, 'D')
+                || consumed != whole.Length) return false;
+            ulong fraction = 0;
+            ulong scale = 1;
+            ulong maximumWhole = 999_999_999_999_999;
+            if (places != 0) {
+                uint last = (uint)(value[value.Length - 1] - (byte)'0');
+                if (last > 9) return false;
+                fraction = last;
+                scale = 10;
+                maximumWhole = 99_999_999_999_999;
+                if (places == 2) {
+                    uint first = (uint)(value[value.Length - 2] - (byte)'0');
+                    if (first > 9) return false;
+                    fraction += first * 10;
+                    scale = 100;
+                    maximumWhole = 9_999_999_999_999;
+                }
+            }
+            if (integer > maximumWhole) return false;
+            double parsed = integer * scale + fraction;
+            if (places != 0) parsed /= scale;
+            result = negative ? -parsed : parsed;
+            return true;
+        }
+
         /// <summary>
         /// Parses the common fixed-point form without entering the general-purpose floating-point
         /// parser. The conservative bounds keep the integer mantissa exactly representable.

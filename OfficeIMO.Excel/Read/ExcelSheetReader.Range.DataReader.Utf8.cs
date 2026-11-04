@@ -2,6 +2,7 @@ using System.Buffers;
 using System.Buffers.Text;
 using System.Globalization;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 
@@ -1030,7 +1031,14 @@ namespace OfficeIMO.Excel {
                 return DecodeXmlText(start, length);
             }
 
+            [MethodImpl(MethodImplOptions.NoInlining)]
             private string DecodeXmlText(int start, int length) {
+#if NET8_0_OR_GREATER
+                // A qualified ASCII prefix proves the byte count is the character
+                // count and that neither entity nor CR normalization is needed.
+                if (!_canonicalTextHasNonSimpleBytes && length <= _validatedCanonicalTextLength - start)
+                    return Encoding.ASCII.GetString(_buffer!, start, length);
+#endif
                 string text = Encoding.UTF8.GetString(_buffer!, start, length);
                 // XML normalizes literal line endings before expanding character references.
                 // A referenced carriage return must survive unchanged.

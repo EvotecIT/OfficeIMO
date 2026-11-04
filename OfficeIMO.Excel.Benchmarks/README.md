@@ -34,8 +34,26 @@ results. This keeps changes to the writer from changing the reader's input.
 Without that variable, setup generates and cleanup deletes its own fixtures.
 Read and object-parse methods form separate BenchmarkDotNet categories.
 
+Each participant's consumption loop has its own value-type generic instantiation
+and no-inline boundary, so its call sites collect a separate JIT profile. The
+same loop bodies perform the validation and checksums for every reader. Keep
+baseline and candidate harness bytes identical when comparing engine revisions.
+
 Raw UTF-8 span access is different work from returning owned strings. I compare
 materialized values here; the resulting allocation includes those strings.
+
+`ExcelRawReadStageBenchmarks` locates XLSX preparation and row-delivery costs.
+It reuses the generated comparison's full value preflight and pinned-input
+setting. Each operation batches 32 readers; the delivery method prepares them
+outside timing and checks the ordinary row checksum while consuming them:
+
+```sh
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --filter "*ExcelRawReadStageBenchmarks*" --inProcess --warmupCount 8 --iterationCount 32 --invocationCount 1 --unrollFactor 1 --outliers DontRemove
+```
+
+This diagnostic keeps 32 prepared readers alive at once. Its phases do not add
+exactly to the complete read, and its memory profile is not a parity comparison.
+I use the complete generated lanes for performance acceptance.
 
 ## Text export
 

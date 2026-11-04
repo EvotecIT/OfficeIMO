@@ -73639,6 +73639,7 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
             <command:parameterValue required="false" variableLength="false">JpegXr</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">PortableMap</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Tga</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Heic</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
             <maml:name>OfficeImageFormat</maml:name>
@@ -73806,6 +73807,7 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
             <command:parameterValue required="false" variableLength="false">JpegXr</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">PortableMap</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Tga</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Heic</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
             <maml:name>OfficeImageFormat</maml:name>
@@ -73985,6 +73987,7 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
             <command:parameterValue required="false" variableLength="false">JpegXr</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">PortableMap</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Tga</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Heic</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
             <maml:name>OfficeImageFormat</maml:name>
@@ -74128,6 +74131,7 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
             <command:parameterValue required="false" variableLength="false">JpegXr</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">PortableMap</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Tga</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Heic</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
             <maml:name>OfficeImageFormat</maml:name>
@@ -74307,6 +74311,7 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
           <command:parameterValue required="false" variableLength="false">JpegXr</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">PortableMap</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Tga</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Heic</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
           <maml:name>OfficeImageFormat</maml:name>
@@ -89482,6 +89487,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
             <command:parameterValue required="false" variableLength="false">JpegXr</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">PortableMap</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Tga</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Heic</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
             <maml:name>OfficeImageFormat</maml:name>
@@ -89673,6 +89679,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
             <command:parameterValue required="false" variableLength="false">JpegXr</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">PortableMap</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Tga</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Heic</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
             <maml:name>OfficeImageFormat</maml:name>
@@ -89852,6 +89859,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
             <command:parameterValue required="false" variableLength="false">JpegXr</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">PortableMap</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Tga</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Heic</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
             <maml:name>OfficeImageFormat</maml:name>
@@ -90043,6 +90051,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
             <command:parameterValue required="false" variableLength="false">JpegXr</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">PortableMap</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Tga</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Heic</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
             <maml:name>OfficeImageFormat</maml:name>
@@ -90234,6 +90243,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
             <command:parameterValue required="false" variableLength="false">JpegXr</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">PortableMap</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Tga</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Heic</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
             <maml:name>OfficeImageFormat</maml:name>
@@ -90413,6 +90423,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
             <command:parameterValue required="false" variableLength="false">JpegXr</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">PortableMap</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Tga</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Heic</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
             <maml:name>OfficeImageFormat</maml:name>
@@ -90580,6 +90591,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
             <command:parameterValue required="false" variableLength="false">JpegXr</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">PortableMap</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Tga</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Heic</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
             <maml:name>OfficeImageFormat</maml:name>
@@ -90771,6 +90783,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
             <command:parameterValue required="false" variableLength="false">JpegXr</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">PortableMap</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Tga</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Heic</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
             <maml:name>OfficeImageFormat</maml:name>
@@ -90974,6 +90987,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           <command:parameterValue required="false" variableLength="false">JpegXr</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">PortableMap</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Tga</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Heic</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
           <maml:name>OfficeImageFormat</maml:name>

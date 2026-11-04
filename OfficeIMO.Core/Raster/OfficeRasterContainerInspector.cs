@@ -46,8 +46,7 @@ public static class OfficeRasterContainerInspector {
         effective.CancellationToken.ThrowIfCancellationRequested();
         if (encodedBytes == null || encodedBytes.Length == 0 || encodedBytes.Length > effective.MaximumEncodedBytes ||
             !IsInspectionWorkingSetWithinLimit(encodedBytes.LongLength, effective.RetainedManagedBytes, frameCount: 0) ||
-            !OfficeImageReader.TryIdentifyByContent(
-                encodedBytes, fileName: null, effective.CancellationToken, out OfficeImageInfo imageInfo, out pngValidation)) {
+            !TryIdentifyForInspection(encodedBytes, effective, out OfficeImageInfo imageInfo, out pngValidation)) {
             return false;
         }
         detectedFormat = imageInfo.Format;
@@ -79,6 +78,9 @@ public static class OfficeRasterContainerInspector {
                 return true;
             case OfficeImageFormat.JpegXr:
                 if (enforceAllTiffPagePixelLimits && !OfficeJpegXrDecoder.TryDecode(encodedBytes, effective, out _)) return false;
+                container = CreateStatic(imageInfo);
+                return true;
+            case OfficeImageFormat.Heic:
                 container = CreateStatic(imageInfo);
                 return true;
             case OfficeImageFormat.Avif:
@@ -601,6 +603,18 @@ public static class OfficeRasterContainerInspector {
 
     private static OfficeRasterContainerInfo CreateStatic(OfficeImageInfo info) =>
         CreateStatic(info, info.Width, info.Height);
+
+    private static bool TryIdentifyForInspection(byte[] bytes, OfficeRasterDecodeOptions options,
+        out OfficeImageInfo imageInfo, out OfficePngContainerValidation pngValidation) {
+        pngValidation = default;
+        if (OfficeImageReader.HasHeicSignature(bytes, options.CancellationToken) &&
+            !OfficeImageReader.HasAvifSignature(bytes, options.CancellationToken)) {
+            bool identified = OfficeHeifImageComposer.TryIdentify(bytes, options, out int width, out int height);
+            imageInfo = new OfficeImageInfo(identified ? OfficeImageFormat.Heic : OfficeImageFormat.Unknown, width, height);
+            return identified;
+        }
+        return OfficeImageReader.TryIdentifyByContent(bytes, null, options.CancellationToken, out imageInfo, out pngValidation);
+    }
 
     private static OfficeRasterContainerInfo CreateStatic(
         OfficeImageInfo info,

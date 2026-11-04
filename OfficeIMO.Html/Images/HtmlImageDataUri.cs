@@ -76,6 +76,8 @@ public sealed class HtmlImageDataUri {
             "image/bmp" => ".bmp",
             "image/tiff" => ".tiff",
             "image/webp" => ".webp",
+            "image/heic" => ".heic",
+            "image/heif" => ".heif",
             "image/svg+xml" => ".svg",
             _ => ".bin"
         };

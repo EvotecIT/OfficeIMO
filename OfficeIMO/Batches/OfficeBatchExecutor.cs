@@ -9,7 +9,7 @@ internal static partial class OfficeBatchExecutor {
     public static async Task<OfficeBatchSummary> RunAsync(IOfficeConversionExecutor runner, OfficeBatchOptions request,
         IProgress<OfficeBatchItemReport>? progress = null, CancellationToken cancellationToken = default,
         IOfficePublicationGuard? publicationGuard = null) {
-        OfficeConversionExecutionRoute[] routes = runner.ConversionRoutes.Where(route => route.CanExecute).ToArray();
+        OfficeConversionExecutionRoute[] routes = runner.ConversionRoutes.Where(route => route.CanExecute && (request?.RouteFilter?.Invoke(route.Id) ?? true)).ToArray();
         OfficeBatchOptions settings = Snapshot(request, routes);
         cancellationToken.ThrowIfCancellationRequested();
         if (publicationGuard != null &&

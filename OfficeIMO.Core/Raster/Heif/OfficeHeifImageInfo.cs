@@ -11,6 +11,7 @@ namespace OfficeIMO.Drawing;
 /// Describes high-level HEIF container metadata that can be read without decoding image pixels.
 /// </summary>
 public sealed class OfficeHeifImageInfo {
+    internal long ParserAllocatedBytes { get; set; }
     internal OfficeHeifImageInfo(string majorBrand, uint minorVersion, IReadOnlyList<string> compatibleBrands, uint? primaryItemId, IReadOnlyList<OfficeHeifItemInfo> items, IReadOnlyList<OfficeHeifItemReference> references, uint? exifItemId, uint? xmpItemId) {
         MajorBrand = majorBrand;
         MinorVersion = minorVersion;
@@ -225,11 +226,16 @@ public sealed class OfficeHeifItemInfo {
 /// Describes one HEIF item property association from an <c>ipma</c> box.
 /// </summary>
 public sealed class OfficeHeifItemPropertyAssociationInfo {
-    internal OfficeHeifItemPropertyAssociationInfo(int propertyIndex, string propertyType, bool isEssential) {
+    internal OfficeHeifItemPropertyAssociationInfo(int propertyIndex, string propertyType, bool isEssential, int payloadOffset = 0, int payloadLength = 0) {
+        PayloadOffset = payloadOffset;
+        PayloadLength = payloadLength;
         PropertyIndex = propertyIndex;
         PropertyType = propertyType;
         IsEssential = isEssential;
     }
+
+    internal int PayloadOffset { get; }
+    internal int PayloadLength { get; }
 
     /// <summary>One-based property index in the item property container.</summary>
     public int PropertyIndex { get; }

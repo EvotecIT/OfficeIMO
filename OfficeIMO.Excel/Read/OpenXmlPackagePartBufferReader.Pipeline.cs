@@ -76,22 +76,24 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Publishes a written prefix while retaining enough overlap to find split closing tokens.</summary>
         internal void PublishRows(byte[] bytes, int written) {
-            int searchStart;
-            lock (_gate) {
-                searchStart = Math.Max(_available, Math.Max(0, _scanned - 5));
-                _written = written;
-                _scanned = written;
-            }
+            // Only the producer mutates scanning state. The release publication
+            // below makes the initialized prefix visible before a consumer uses it.
+            int searchStart = Math.Max(_available, Math.Max(0, _scanned - 5));
+            _written = written;
+            _scanned = written;
             int closing = bytes.AsSpan(searchStart, written - searchStart).LastIndexOf("</row>"u8);
             if (closing < 0) return;
             lock (_gate) {
-                _available = searchStart + closing + 6;
+                Volatile.Write(ref _available, searchStart + closing + 6);
                 Monitor.PulseAll(_gate);
             }
         }
 
         /// <summary>Waits for a longer initialized prefix, or a terminal producer state.</summary>
         internal int WaitForMore(int previous, CancellationToken ct) {
+            ct.ThrowIfCancellationRequested();
+            int available = Volatile.Read(ref _available);
+            if (available > previous) return available;
             lock (_gate) {
                 while (_available <= previous && !_complete) {
                     ct.ThrowIfCancellationRequested();
@@ -104,6 +106,8 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Waits until global XML proof can inspect the complete produced part.</summary>
         internal int WaitForCompletion(CancellationToken ct) {
+            ct.ThrowIfCancellationRequested();
+            if (Volatile.Read(ref _complete)) return Volatile.Read(ref _available);
             lock (_gate) {
                 while (!_complete) {
                     ct.ThrowIfCancellationRequested();
@@ -117,8 +121,8 @@ namespace OfficeIMO.Excel {
         /// <summary>Publishes the full part only after decompression and exact-length checks succeed.</summary>
         internal void Complete(int length) {
             lock (_gate) {
-                _available = length;
-                _complete = true;
+                Volatile.Write(ref _available, length);
+                Volatile.Write(ref _complete, true);
                 Monitor.PulseAll(_gate);
             }
         }
@@ -127,8 +131,8 @@ namespace OfficeIMO.Excel {
         internal void Abort() {
             lock (_gate) {
                 if (_complete) return;
-                _available = _written;
-                _complete = true;
+                Volatile.Write(ref _available, _written);
+                Volatile.Write(ref _complete, true);
                 Monitor.PulseAll(_gate);
             }
         }

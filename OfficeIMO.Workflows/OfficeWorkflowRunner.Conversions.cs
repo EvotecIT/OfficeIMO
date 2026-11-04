@@ -90,6 +90,14 @@ public sealed partial class OfficeWorkflowRunner {
         OfficeWorkflowConversionEvidence? evidence = null;
         HashSet<string>? importDiagnosticSources = tier1 ? new HashSet<string>(new[] { "Word", "Excel", "PowerPoint" }) : null;
         switch (route.Id) {
+            case "heic-pdf": {
+                PdfDocument document = PdfDocument.CreateFromImages(
+                    new[] { new PdfImageDocumentSource(input, Path.GetFileName(request.InputPath)) },
+                    options: null, cancellationToken: cancellationToken);
+                (bytes, evidence) = SerializePdfConversion(
+                    new PdfDocumentConversionResult(document, new PdfConversionReport()), maximumOutputBytes, cancellationToken);
+                break;
+            }
             case "publisher-pdf": {
                 (bytes, evidence) = ConvertPublisher(request, input, settings, cancellationToken);
                 hasLoss = evidence.HasLoss;

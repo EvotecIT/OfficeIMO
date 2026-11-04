@@ -2,21 +2,20 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 322,
-    "productionComponentCount": 158,
-    "testProjectCount": 62,
+    "projectCount": 325,
+    "productionComponentCount": 159,
+    "testProjectCount": 63,
     "benchmarkProjectCount": 36,
-    "validationProjectCount": 67,
+    "validationProjectCount": 68,
     "apiReferenceCount": 122,
     "conceptualPageCount": 132,
-    "conceptualWordCount": 61068
+    "conceptualWordCount": 61096
   },
   "categories": [
     {
       "name": "Extraction and ingestion",
       "componentCount": 34,
       "componentIndexes": [
-        100,
         101,
         102,
         103,
@@ -49,7 +48,8 @@
         130,
         131,
         132,
-        133
+        133,
+        134
       ]
     },
     {
@@ -63,13 +63,12 @@
         19,
         22,
         23,
-        27,
         28,
         29,
         30,
         31,
-        54,
-        75,
+        32,
+        55,
         76,
         77,
         78,
@@ -78,74 +77,76 @@
         81,
         82,
         83,
-        98,
+        84,
         99,
-        143,
-        144
+        100,
+        144,
+        145
       ]
     },
     {
       "name": "Foundations and integrations",
-      "componentCount": 14,
+      "componentCount": 15,
       "componentIndexes": [
         2,
         6,
         17,
         25,
         26,
-        65,
+        27,
         66,
         67,
         68,
-        71,
+        69,
         72,
         73,
-        97,
-        137
+        74,
+        98,
+        138
       ]
     },
     {
       "name": "Google Workspace",
       "componentCount": 4,
       "componentIndexes": [
-        39,
         40,
         41,
-        42
+        42,
+        43
       ]
     },
     {
       "name": "Office documents",
       "componentCount": 21,
       "componentIndexes": [
-        32,
         33,
         34,
         35,
         36,
         37,
         38,
-        90,
+        39,
         91,
         92,
         93,
         94,
         95,
-        145,
+        96,
         146,
         147,
         148,
         149,
         150,
         151,
-        152
+        152,
+        153
       ]
     },
     {
       "name": "PowerShell automation",
       "componentCount": 1,
       "componentIndexes": [
-        157
+        158
       ]
     },
     {
@@ -155,7 +156,6 @@
         7,
         8,
         9,
-        43,
         44,
         45,
         46,
@@ -166,29 +166,30 @@
         51,
         52,
         53,
-        56,
+        54,
         57,
         58,
         59,
         60,
         61,
-        85,
+        62,
         86,
         87,
         88,
         89,
-        134,
+        90,
         135,
-        136
+        136,
+        137
       ]
     },
     {
       "name": "Rendering surfaces",
       "componentCount": 3,
       "componentIndexes": [
-        62,
         63,
-        64
+        64,
+        65
       ]
     },
     {
@@ -207,21 +208,21 @@
         20,
         21,
         24,
-        55,
-        69,
+        56,
         70,
-        74,
-        84,
-        96,
-        138,
+        71,
+        75,
+        85,
+        97,
         139,
         140,
         141,
         142,
-        153,
+        143,
         154,
         155,
-        156
+        156,
+        157
       ]
     }
   ],
@@ -467,7 +468,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 1223,
+      "sourceFileCount": 1232,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/core/",
@@ -578,6 +579,19 @@
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Drawing.HarfBuzz"
     },
     {
+      "name": "OfficeIMO.Drawing.ImageIO",
+      "packageId": "OfficeIMO.Drawing.ImageIO",
+      "category": "Foundations and integrations",
+      "description": "Optional Apple system ImageIO raster codec for OfficeIMO.Drawing.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Drawing.ImageIO/OfficeIMO.Drawing.ImageIO.csproj",
+      "sourceFileCount": 3,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Drawing.ImageIO"
+    },
+    {
       "name": "OfficeIMO.Email",
       "packageId": "OfficeIMO.Email",
       "category": "Formats and interoperability",
@@ -649,7 +663,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Excel XLS, XLSX, XLSB, XLSM, and XLTX workbooks without Microsoft Office; legacy XLT templates are supported for classification and import.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
-      "sourceFileCount": 1329,
+      "sourceFileCount": 1332,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel/",
@@ -1403,7 +1417,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft PowerPoint PPT, PPTX, PPTM, POT, PPS, and related presentations without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.PowerPoint/OfficeIMO.PowerPoint.csproj",
-      "sourceFileCount": 552,
+      "sourceFileCount": 553,
       "referencingTestProjectCount": 8,
       "docsUrl": "/docs/powerpoint/",
       "apiUrl": "/api/powerpoint/",
@@ -2222,7 +2236,7 @@
       "description": "Typed local document workflows that compose first-party OfficeIMO conversion, PDF, and provenance capabilities.",
       "kind": "package",
       "projectPath": "OfficeIMO.Workflows/OfficeIMO.Workflows.csproj",
-      "sourceFileCount": 206,
+      "sourceFileCount": 208,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/workflows/",

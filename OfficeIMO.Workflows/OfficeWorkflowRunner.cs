@@ -186,6 +186,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 conversionEvidence: cancelledConversionEvidence);
         } catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) {
             Exception failure = ex is WorkflowConversionFailureException ? ex.InnerException! : ex;
+            AddImageCodecDiagnostic(failure, diagnostics, failureStage);
             ReportInputStagingCleanupFailure(failure, diagnostics);
             inputs.Cleanup(diagnostics);
             OfficeWorkflowConversionEvidence? failedConversionEvidence = (ex as WorkflowConversionFailureException)?.Evidence

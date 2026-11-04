@@ -201,6 +201,8 @@ public sealed class OfficeConversionCapability {
 
     /// <summary>Gets the stable route identifier.</summary>
     public string Id { get; }
+    /// <summary>Whether the route needs a raster codec explicitly registered by a .NET caller.</summary>
+    public bool RequiresImageCodec => Id == "heic-pdf";
     /// <summary>Gets the source format label.</summary>
     public string Source { get; }
     /// <summary>Gets the destination format label.</summary>
@@ -339,8 +341,10 @@ public static partial class OfficeConversionCapabilityCatalog {
                 .Append(i3).Append("\"knownLimitations\":\"").Append(EscapeJson(route.KnownLimitations)).Append("\",").Append(newline)
                 .Append(i3).Append("\"resultContract\":\"").Append(EscapeJson(route.ResultContract)).Append("\",").Append(newline)
                 .Append(i3).Append("\"browserAvailable\":").Append(route.BrowserAvailable ? "true" : "false").Append(',').Append(newline)
-                .Append(i3).Append("\"agentDiscoverable\":").Append(route.AgentDiscoverable ? "true" : "false").Append(newline)
-                .Append(i2).Append('}');
+                .Append(i3).Append("\"agentDiscoverable\":").Append(route.AgentDiscoverable ? "true" : "false");
+            if (route.RequiresImageCodec)
+                json.Append(',').Append(newline).Append(i3).Append("\"requiresImageCodec\":true");
+            json.Append(newline).Append(i2).Append('}');
             if (index + 1 < All.Count) json.Append(',');
             json.Append(newline);
         }
@@ -350,6 +354,18 @@ public static partial class OfficeConversionCapabilityCatalog {
 
     private static OfficeConversionCapability[] CreateRoutes() {
         var routes = new List<OfficeConversionCapability> {
+        new OfficeConversionCapability(
+            "heic-pdf", "HEIC", "PDF", OfficeConversionInputKind.File,
+            new[] { ".heic", ".heif", ".hif" }, ".pdf", "OfficeIMO.Pdf",
+            "PdfImageConverterExtensions.ToPdf(sources, options, out report)",
+            "Compose a HEIC/HEIF primary image as a PDF page through a raster codec explicitly registered by the .NET caller.",
+            OfficeConversionFidelityKind.FixedLayout, "OfficeConversionReport",
+            browserAvailable: false, agentDiscoverable: false,
+            supportLevel: OfficeConversionSupportLevel.Targeted,
+            supportEvidence: "CC0 HEIC fixtures exercise native composition and PDF output; consumer tests verify extension routing, PNG insertion and structured codec-unavailable diagnostics.",
+            knownLimitations: "Opt-in .NET library route requiring a registered codec: OfficeIMO.Drawing.ImageIO on macOS/iOS, or a caller-supplied IOfficeRasterImageCodec elsewhere. PowerShell, Tool and Studio do not supply a codec. The repository stays COM-free and bundles no HEVC decoder. The SDR primary image is retained; HDR gain maps and depth are not projected.",
+            textFormatting: OfficeConversionTextFormattingKind.FlattenedRaster,
+            textFormattingContract: "The source is a raster image; PDF output preserves its supported pixels without adding searchable or editable text."),
         Route("email-pdf", "Email", "PDF", OfficeConversionInputKind.File, new[] { ".eml", ".msg", ".oft", ".tnef" }, ".pdf", "OfficeIMO", "OfficeConverter.Convert(source, destination, options)", "Project email content and attachment policy into searchable PDF with Reader evidence.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
         Route("epub-pdf", "EPUB", "PDF", OfficeConversionInputKind.File, new[] { ".epub" }, ".pdf", "OfficeIMO", "OfficeConverter.Convert(source, destination, options)", "Project ordered EPUB chapters into searchable PDF with resource and pagination evidence.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
         Route("reader-visio-pdf", "Visio", "PDF", OfficeConversionInputKind.File, new[] { ".vsdx", ".vstx", ".vssx", ".vsdm", ".vstm", ".vssm", ".vdx", ".vsx", ".vtx", ".vsd", ".vss", ".vst" }, ".pdf", "OfficeIMO", "OfficeConverter.Convert(source, destination, options)", "Project Visio semantic content and preview policy into searchable PDF, with explicit fallback evidence.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
