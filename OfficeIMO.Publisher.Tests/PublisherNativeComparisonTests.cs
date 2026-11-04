@@ -173,7 +173,17 @@ public sealed partial class PublisherNativeComparisonTests {
     [InlineData("TwoPageMaster")]
     public void Distinct_native_masters_keep_definitions_assignments_and_projected_markers(string caseId) {
         NativeCase contract = ReadContract(caseId);
-        PublisherDocument publication = Load(caseId, contract);
+        string reference = FilePath(caseId, contract.Files.Reference);
+        AssertHash(reference, contract.Files.Reference.Sha256);
+        using PdfDocument nativePdf = PdfDocument.Load(reference);
+        PdfFontInfo nativeFont = Assert.Single(nativePdf.Resources.Fonts(new PdfFontInspectionOptions {
+            IncludeEmbeddedProgramBytes = true
+        }).Fonts, font => font.FamilyName == "ArialMT");
+        byte[] fontProgram = Assert.IsType<byte[]>(nativeFont.EmbeddedProgramBytes);
+        // Reuse the native PDF's Arial subset so marker metrics do not depend on host fonts.
+        PublisherDocument publication = Load(caseId, contract, new PublisherLoadOptions {
+            Fonts = new OfficeFontFaceCollection().Add("Arial", fontProgram)
+        });
         WriteFrameInventory(publication);
         Assert.Equal(contract.NativeMasterPages.Select(master => NativeId(master.PageId)), publication.MasterPages.Select(master => master.Id));
         Assert.Equal(caseId == "TwoPageMaster" ? 2 : 0, contract.NativeMasterPages.Count(master => master.IsTwoPageMaster));
@@ -183,9 +193,6 @@ public sealed partial class PublisherNativeComparisonTests {
             AssertTextFrames(master, nativeMaster.Shapes);
         }
 
-        string reference = FilePath(caseId, contract.Files.Reference);
-        AssertHash(reference, contract.Files.Reference.Sha256);
-        using PdfDocument nativePdf = PdfDocument.Load(reference);
         using PdfDocument exported = PublisherNativeTests.ExportAndReloadPdf(publication);
         string[] allMasterMarkers = contract.NativeMasterPages.SelectMany(master => master.Shapes)
             .Where(shape => shape.Type == 17).Select(shape => NormalizeParagraphs(shape.Text!)).ToArray();
@@ -386,10 +393,10 @@ public sealed partial class PublisherNativeComparisonTests {
             _output.WriteLine($"Recovery {diagnostic.Code}: {diagnostic.Message}");
     }
 
-    private static PublisherDocument Load(string caseId, NativeCase contract) {
+    private static PublisherDocument Load(string caseId, NativeCase contract, PublisherLoadOptions? options = null) {
         string path = FilePath(caseId, contract.Files.Publication);
         AssertHash(path, contract.Files.Publication.Sha256);
-        return PublisherDocument.Load(path);
+        return PublisherDocument.Load(path, options);
     }
 
     private static string Folder(string caseId) => Path.Combine(AppContext.BaseDirectory, "Fixtures", "NativeComparison", caseId);

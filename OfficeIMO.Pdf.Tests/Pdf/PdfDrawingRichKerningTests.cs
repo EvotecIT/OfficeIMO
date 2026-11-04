@@ -11,9 +11,12 @@ public sealed class PdfDrawingRichKerningTests {
     private static OfficeRichTextRun Run(string text, double size, double? threshold, string family = Family) =>
         new OfficeRichTextRun(text, size, OfficeColor.Black, fontFamily: family).WithAutomaticPairKerningThreshold(threshold);
     private static byte[] Write(OfficeDrawing drawing) => PdfDocument.Create(new PdfCreateOptions {
-        PageWidth = 100, PageHeight = 80, MarginLeft = 0, MarginRight = 0, MarginTop = 0, MarginBottom = 0
+        PageWidth = OfficeLength.Points(100), PageHeight = OfficeLength.Points(80),
+        MarginLeft = OfficeLength.Zero, MarginRight = OfficeLength.Zero,
+        MarginTop = OfficeLength.Zero, MarginBottom = OfficeLength.Zero
     }.UseRenderingProfile(new OfficeRenderingProfile("Rich kerning", drawing.Fonts)))
-        .Canvas(canvas => canvas.Drawing(drawing, 0, 0, 100, 80)).ToBytes();
+        .Canvas(canvas => canvas.Drawing(drawing, OfficeLength.Zero, OfficeLength.Zero,
+            OfficeLength.Points(100), OfficeLength.Points(80))).ToBytes();
 
     [Theory]
     [InlineData("unspecified", true)]

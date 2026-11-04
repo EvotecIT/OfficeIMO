@@ -94,7 +94,8 @@ public sealed class PublisherFrameLayoutTests {
             Assert.InRange(span.X, 26, 26.1); baselines.Add(span.Y);
         }
         Assert.True(baselines[0] > baselines[1]); Assert.True(baselines[1] > baselines[2]);
-        Assert.Equal(baselines[0] - baselines[1], baselines[1] - baselines[2], 4);
+        // PDF coordinates are serialized to thousandths of a point.
+        Assert.Equal((baselines[0] + baselines[2]) / 2, baselines[1], tolerance: 0.001001);
     }
 
     [Fact]

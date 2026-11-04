@@ -59,7 +59,10 @@ public sealed class PublisherHyphenationRenderingTests {
     [Fact]
     public void Linked_frame_suffix_paints_without_consuming_the_next_source_character() {
         byte[] source = File.ReadAllBytes(PublisherNativeTests.Fixture("NativeComparison/TextHyphenation/native-linked-hyphen-boundary.pub"));
-        PublisherDocument document = PublisherDocument.Load(source);
+        // Pin the font used to measure the break. Installed Arial substitutes can move it to a word boundary.
+        byte[] font = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestAssets", "Carlito-Regular.ttf"));
+        var fonts = new OfficeFontFaceCollection().Add("Arial", font);
+        PublisherDocument document = PublisherDocument.Load(source, new PublisherLoadOptions { Fonts = fonts });
         PublisherTextFrame ending = Assert.Single(document.Pages[14].TextFrames);
         PublisherTextFrame continuation = Assert.Single(document.Pages[13].TextFrames);
         PublisherTextStory story = document.TextStories.Single(s => s.Id == ending.StoryId);
