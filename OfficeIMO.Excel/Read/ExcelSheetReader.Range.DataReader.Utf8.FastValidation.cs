@@ -182,6 +182,11 @@ namespace OfficeIMO.Excel {
                         return false;
                     }
 
+                    if (document[index] == (byte)'&') {
+                        if (!TryReadPredefinedXmlEntity(document.Slice(index), out _, out int consumed)) return true;
+                        document = document.Slice(index + consumed);
+                        continue;
+                    }
                     if (document[index] != 0xef) {
                         if (document[index] != (byte)']') {
                             return true;
@@ -423,7 +428,9 @@ namespace OfficeIMO.Excel {
                     byte quote = _buffer[position++];
                     int valueStart = position;
                     while (position < tag.End && _buffer[position] != quote) {
-                        if (_buffer[position] == (byte)'<') {
+                        // Attribute and namespace comparisons below use raw bytes.
+                        // Keep entity normalization with XmlReader for these values.
+                        if (_buffer[position] is (byte)'<' or (byte)'&') {
                             return false;
                         }
                         position++;
