@@ -109,8 +109,10 @@ public sealed class DocumentPdfCmdletTests {
             using (var refusing = PowerShell.Create()) {
                 refusing.Runspace = runspace;
                 refusing.AddCommand("Convert-OfficeDocument").AddParameter("To", "Pdf").AddParameter("Path", input).AddParameter("OutputPath", output).AddParameter("NoClobber");
-                var failure = Assert.IsType<OfficeConversionException>(Assert.Throws<CmdletInvocationException>(() => refusing.Invoke()).InnerException);
-                Assert.IsType<IOException>(failure.InnerException);
+                var skipped = Assert.IsType<OfficeBatchItemReport>(Assert.Single(refusing.Invoke()).BaseObject);
+                Assert.False(refusing.HadErrors, string.Join("\n", refusing.Streams.Error));
+                Assert.True(skipped.Skipped);
+                Assert.Equal("OutputExists", skipped.SkippedReason);
                 Assert.Equal(existing, File.ReadAllBytes(output));
             }
             using var replacing = PowerShell.Create(); replacing.Runspace = runspace;

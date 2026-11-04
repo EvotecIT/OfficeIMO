@@ -21,7 +21,7 @@ public sealed class ConvertDocumentRuntimeWorkflowTests : IDisposable {
     [InlineData("FileInfoPipeline")]
     [InlineData("Text")]
     [InlineData("DocumentPipeline")]
-    public void SingleFileNoClobberReachesNativeRefusalAndPreservesExistingBytes(string inputShape) {
+    public void NoClobberPreservesDestinationsForFileAndMemoryInputs(string inputShape) {
         string source = Path.Combine(_root, "source.txt"), output = Path.Combine(_root, "output.pdf");
         File.WriteAllText(source, "Replacement evidence");
         byte[] original = { 1, 2, 3, 4 };
@@ -55,10 +55,19 @@ public sealed class ConvertDocumentRuntimeWorkflowTests : IDisposable {
                 pipeline = new object[] { document };
                 break;
         }
-        var failure = Assert.Throws<CmdletInvocationException>(() => shell.Invoke(pipeline));
-        var conversion = Assert.IsType<OfficeConversionException>(failure.InnerException);
-        Assert.IsType<IOException>(conversion.InnerException);
-        Assert.Contains(conversion.Report.Diagnostics, diagnostic => diagnostic.Code == OfficeDiagnosticCodes.ConversionOutputFailed);
+        if (inputShape == "Text" || inputShape == "DocumentPipeline") {
+            var failure = Assert.Throws<CmdletInvocationException>(() => shell.Invoke(pipeline));
+            var conversion = Assert.IsType<OfficeConversionException>(failure.InnerException);
+            Assert.IsType<IOException>(conversion.InnerException);
+            Assert.Contains(conversion.Report.Diagnostics, diagnostic => diagnostic.Code == OfficeDiagnosticCodes.ConversionOutputFailed);
+        } else {
+            var skipped = Assert.IsType<OfficeBatchItemReport>(Assert.Single(shell.Invoke(pipeline)).BaseObject);
+            Assert.False(shell.HadErrors, Errors(shell));
+            Assert.True(skipped.Skipped);
+            Assert.Equal("OutputExists", skipped.SkippedReason);
+            Assert.Null(skipped.OutputPath);
+            Assert.Null(skipped.Report);
+        }
         Assert.Equal(original, File.ReadAllBytes(output));
         Assert.Equal(timestamp, File.GetLastWriteTimeUtc(output));
         Assert.Equal("Replacement evidence", File.ReadAllText(source));

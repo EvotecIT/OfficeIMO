@@ -147,7 +147,7 @@ public sealed partial class ConvertOfficeDocumentCommand : AsyncPSCmdlet {
     [Parameter(ParameterSetName = "Document")]
     public SwitchParameter CompressPdf { get; set; }
 
-    /// <summary>Refuse an existing single-file destination. Batches leave existing destinations unchanged and report their inputs as skipped.</summary>
+    /// <summary>Leave existing file-input outputs unchanged and report their inputs as skipped. In-memory sources refuse an existing destination.</summary>
     [Parameter(ParameterSetName = "Path")]
     [Parameter(ParameterSetName = "LiteralPath")]
     [Parameter(ParameterSetName = "PathFile")]
@@ -275,7 +275,7 @@ public sealed partial class ConvertOfficeDocumentCommand : AsyncPSCmdlet {
         var options = CaptureOptions(_inputs, System.IO.Path.GetExtension(output));
         if (!UsesOcr) OfficeWorkflowCommandUtilities.EnsureSupportedInput(_inputs[0], output, options);
         if (!ShouldProcess(output, "Convert document")) return;
-        if (!NoClobber && OfficeBatchOutputSelection.ObserveSkip(_inputs[0], output, skipExisting: false, skipUpToDate: SkipUpToDate.IsPresent) is { } skipped) {
+        if (OfficeBatchOutputSelection.ObserveSkip(_inputs[0], output, skipExisting: NoClobber.IsPresent, skipUpToDate: SkipUpToDate.IsPresent) is { } skipped) {
             SetSummary(skipped);
             WriteObject(skipped);
             return;
