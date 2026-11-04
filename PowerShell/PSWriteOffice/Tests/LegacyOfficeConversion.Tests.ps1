@@ -17,12 +17,12 @@ Describe 'Legacy Office conversion cmdlets' {
             Add-OfficeWordParagraph -Text 'Legacy Word conversion'
         } | Out-Null
 
-        $docFile = ConvertTo-OfficeWordDocument -Path $docxPath -OutputPath $docPath -PassThru
-        $docFile | Should -BeOfType System.IO.FileInfo
+        $docFile = Convert-OfficeDocument -Path $docxPath -OutputPath $docPath
+        $docFile | Should -BeOfType OfficeIMO.OfficeConversionReport
         Test-Path -LiteralPath $docPath | Should -BeTrue
         [BitConverter]::ToString([IO.File]::ReadAllBytes($docPath)[0..3]) | Should -Be 'D0-CF-11-E0'
 
-        ConvertTo-OfficeWordDocument -Path $docPath -OutputPath $roundTripPath
+        Convert-OfficeDocument -Path $docPath -OutputPath $roundTripPath
         $paragraphs = @(Get-OfficeWordParagraph -Path $roundTripPath)
         $paragraphs.Text | Should -Contain 'Legacy Word conversion'
     }
@@ -39,33 +39,38 @@ Describe 'Legacy Office conversion cmdlets' {
             }
         } | Out-Null
 
-        $xlsFile = ConvertTo-OfficeExcelWorkbook -Path $xlsxPath -OutputPath $xlsPath -PassThru
-        $xlsFile | Should -BeOfType System.IO.FileInfo
+        $xlsFile = Convert-OfficeDocument -Path $xlsxPath -OutputPath $xlsPath
+        $xlsFile | Should -BeOfType OfficeIMO.OfficeConversionReport
         Test-Path -LiteralPath $xlsPath | Should -BeTrue
         [BitConverter]::ToString([IO.File]::ReadAllBytes($xlsPath)[0..3]) | Should -Be 'D0-CF-11-E0'
 
-        ConvertTo-OfficeExcelWorkbook -Path $xlsPath -OutputPath $roundTripPath
-        $rows = @(Import-OfficeExcel -Path $roundTripPath -WorksheetName 'Data')
+        Convert-OfficeDocument -Path $xlsPath -OutputPath $roundTripPath
+        $rows = @(Import-OfficeExcel -Path $roundTripPath -Sheet 'Data')
         $rows | Should -HaveCount 1
         $rows[0].Name | Should -Be 'Ada'
         [int] $rows[0].Value | Should -Be 42
     }
 
-    It 'does not overwrite conversion outputs unless Force is used' {
+    It 'honors NoClobber before explicitly replacing an existing conversion output' {
         $sourcePath = Join-Path $TestDrive 'overwrite-source.docx'
-        $targetPath = Join-Path $TestDrive 'overwrite-target.docx'
+        $existingPath = Join-Path $TestDrive 'existing-target.docx'
+        $targetPath = Join-Path $TestDrive 'overwrite-target.doc'
 
         New-OfficeWord -Path $sourcePath {
             Add-OfficeWordParagraph -Text 'Overwrite source'
         } | Out-Null
-        New-OfficeWord -Path $targetPath {
+        New-OfficeWord -Path $existingPath {
             Add-OfficeWordParagraph -Text 'Keep me'
         } | Out-Null
 
-        { ConvertTo-OfficeWordDocument -Path $sourcePath -OutputPath $targetPath -ErrorAction Stop } |
-            Should -Throw '*already exists*'
+        Convert-OfficeDocument -Path $existingPath -OutputPath $targetPath | Out-Null
+        $originalBytes = [IO.File]::ReadAllBytes($targetPath)
 
-        ConvertTo-OfficeWordDocument -Path $sourcePath -OutputPath $targetPath -Force
+        { Convert-OfficeDocument -Path $sourcePath -OutputPath $targetPath -NoClobber -ErrorAction Stop } |
+            Should -Throw '*already exists*'
+        [IO.File]::ReadAllBytes($targetPath) | Should -Be $originalBytes
+
+        Convert-OfficeDocument -Path $sourcePath -OutputPath $targetPath
         $paragraphs = @(Get-OfficeWordParagraph -Path $targetPath)
         $paragraphs.Text | Should -Contain 'Overwrite source'
     }

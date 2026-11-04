@@ -12,9 +12,10 @@ namespace PSWriteOffice.Cmdlets.OpenDocument;
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeOpenDocumentParagraph", DefaultParameterSetName = "Default")]
 [OutputType(typeof(OdtParagraph))]
-public sealed class AddOfficeOpenDocumentParagraphCommand : PSCmdlet {
+[Alias("OpenDocumentParagraph") ]
+public sealed class AddOfficeOpenDocumentParagraphCommand : OfficeOpenDocumentTextCmdlet {
     /// <summary>OpenDocument text document. Omit inside New-OfficeOpenDocument -Content.</summary>
-    [Parameter(ValueFromPipeline = true)]
+    [Parameter(ValueFromPipeline = true, ParameterSetName = "Default")]
     public OdtDocument? Document { get; set; }
 
     /// <summary>Paragraph text.</summary>
@@ -29,6 +30,7 @@ public sealed class AddOfficeOpenDocumentParagraphCommand : PSCmdlet {
     protected override void ProcessRecord() {
         OdtDocument document = Document ?? OpenDocumentDslContext.Require(this).RequireDocument<OdtDocument>(this, "text");
         OdtParagraph paragraph = document.AddParagraph(Text);
+        ApplyTextStyle(paragraph);
         if (PassThru.IsPresent) WriteObject(paragraph);
     }
 }

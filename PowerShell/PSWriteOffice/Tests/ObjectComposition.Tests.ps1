@@ -1,4 +1,4 @@
-BeforeAll {
+﻿BeforeAll {
     $moduleManifest = if ($env:PSWRITEOFFICE_MODULE_MANIFEST) {
         $env:PSWRITEOFFICE_MODULE_MANIFEST
     } else {
@@ -26,7 +26,8 @@ Describe 'Object-style document composition' {
 
             $details = $document | Add-OfficeWordParagraph -PassThru
             $styledParagraph = $details | Add-OfficeWordText 'Owner: ' -Bold -PassThru
-            [object]::ReferenceEquals($details, $styledParagraph) | Should -BeTrue
+            $styledParagraph.Text | Should -Be 'Owner: '
+            [object]::ReferenceEquals($details, $styledParagraph) | Should -BeFalse
             $details | Add-OfficeWordText 'Platform'
             $details | Add-OfficeWordText '  Status: ' -Bold
             $details | Add-OfficeWordText 'Ready' -Bold -Color SeaGreen
@@ -77,8 +78,8 @@ Describe 'Object-style document composition' {
         $workbook = New-OfficeExcel -Path $path
         try {
             $sheet = $workbook | Add-OfficeExcelSheet -Name 'Projects' -PassThru
-            $sheet | Set-OfficeExcelCell -Address A1 -Value 'Portfolio' -BackgroundColor '#D9EAF7'
-            Add-OfficeExcelTable -Worksheet $sheet -InputObject $rows -StartRow 3 -Name 'Projects' -AutoFit
+            Set-OfficeExcelCell -Document $workbook -Sheet $sheet -Address A1 -Value 'Portfolio' -BackgroundColor '#D9EAF7'
+            Add-OfficeExcelTable -Document $workbook -Sheet $sheet -InputObject $rows -Address A3 -Name 'Projects'
             Set-OfficeExcelCell -Document $workbook -Sheet 'Projects' -Address C4 -NumberFormat '0%'
             $workbook | Save-OfficeExcel
         } finally {
@@ -86,7 +87,7 @@ Describe 'Object-style document composition' {
         }
 
         $path | Should -Exist
-        $data = @(Import-OfficeExcel -Path $path -WorksheetName 'Projects' -Range 'A3:C5')
+        $data = @(Import-OfficeExcel -Path $path -Sheet 'Projects' -Range 'A3:C5')
         $data.Count | Should -Be 2
         $data[0].Project | Should -Be 'Atlas'
     }
@@ -106,7 +107,7 @@ Describe 'Object-style document composition' {
             $workbook | Close-OfficeExcel
         }
 
-        $rows = @(Import-OfficeExcel -Path $path -WorksheetName 'Inner' -Range A1:A2)
+        $rows = @(Import-OfficeExcel -Path $path -Sheet 'Inner' -Range A1:A2)
         $rows.Count | Should -Be 1
         $rows[0].Message | Should -Be 'Nested object target'
     }
@@ -147,13 +148,13 @@ Describe 'Object-style document composition' {
                 } | Should -Throw '*different document*'
 
                 {
-                    Add-OfficeWordParagraph -Target $target -Text 'Must not be written' -Content {
+                    Add-OfficeWordParagraph -Document $target -Content {
                         Add-OfficeWordText -Text 'Nested text'
                     }
                 } | Should -Throw '*different document*'
 
                 {
-                    Add-OfficeWordParagraph -Target $targetSection -Content {
+                    Add-OfficeWordParagraph -Section $targetSection -Content {
                         Add-OfficeWordText -Text 'Must not be written'
                     }
                 } | Should -Throw '*different document*'

@@ -1,72 +1,64 @@
-using System.Collections.Generic;
+using System;
 using System.IO;
+using System.Linq;
+using System.Collections.Generic;
 using System.Management.Automation;
-using System.Text;
-using OfficeIMO.Rtf;
+using OfficeIMO;
+using OfficeIMO.Drawing;
+using OfficeIMO.Pdf;
+using OfficeIMO.Pdf.Ocr;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Pdf;
-
+using OfficeIMO.Rtf;
 namespace PSWriteOffice.Cmdlets.Rtf;
 
-/// <summary>Creates an RTF document with plain paragraph content.</summary>
-/// <example>
-///   <summary>Create a small RTF file.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$file = New-OfficeRtf -Path .\Report.rtf -Text 'Summary', 'Ready for review' -PassThru
-/// Get-OfficeRtf -Path $file.FullName</code>
-///   <para>Creates an RTF document with two paragraphs and returns the file.</para>
-/// </example>
-[Cmdlet(VerbsCommon.New, "OfficeRtf", SupportsShouldProcess = true)]
-[Alias("OfficeRtf", "RtfNew")]
-[OutputType(typeof(FileInfo), typeof(RtfDocument))]
-public sealed class NewOfficeRtfCommand : PSCmdlet {
-    /// <summary>Destination path for the RTF file.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
-    [Alias("FilePath", "OutputPath")]
-    public string Path { get; set; } = string.Empty;
-
-    /// <summary>Plain paragraph text to add to the document.</summary>
-    [Parameter(Position = 1, ValueFromPipeline = true)]
+/// <summary>Creates an RTF document, optionally with paragraphs from -Text or the pipeline.</summary>
+/// <example><summary>Use the native OfficeRtf command.</summary><code>New-OfficeRtf -Path .\Note.rtf -Text 'Server maintenance starts at 22:00.'</code></example>
+[Cmdlet("New", "OfficeRtf", DefaultParameterSetName = "Live", SupportsShouldProcess = true)]
+[OutputType(typeof(RtfDocument))]
+public sealed class NewOfficeRtfCommand : OfficeCmdlet {
+    /// <summary>Path for this operation.</summary>
+    [Parameter(ParameterSetName = "Text", Mandatory = true, Position = 0)]
+    [Parameter(ParameterSetName = "Content", Mandatory = true, Position = 0)]
+    [Parameter(ParameterSetName = "Live", Position = 0)]
+    public string? Path { get; set; }
+    /// <summary>Text for this operation.</summary>
+    [Parameter(ParameterSetName = "Text", Mandatory = true, Position = 1, ValueFromPipeline = true)]
     public string[]? Text { get; set; }
-
-    /// <summary>Emit a FileInfo for chaining.</summary>
-    [Parameter]
+    /// <summary>Force for this operation.</summary>
+    [Parameter(ParameterSetName = "Text")]
+    [Parameter(ParameterSetName = "Content")]
+    [Parameter(ParameterSetName = "Live")]
+    public SwitchParameter Force { get; set; }
+    /// <summary>PassThru for this operation.</summary>
+    [Parameter(ParameterSetName = "Text")]
+    [Parameter(ParameterSetName = "Content")]
     public SwitchParameter PassThru { get; set; }
-
-    /// <summary>Return the OfficeIMO RTF document without saving.</summary>
-    [Parameter]
-    public SwitchParameter NoSave { get; set; }
+    /// <summary>Show for this operation.</summary>
+    [Parameter(ParameterSetName = "Text")]
+    [Parameter(ParameterSetName = "Content")]
+    public SwitchParameter Show { get; set; }
+    /// <summary>Content for this operation.</summary>
+    [Parameter(ParameterSetName = "Content", Mandatory = true, Position = 1)]
+    public ScriptBlock? Content { get; set; }
 
     private readonly List<string> _paragraphs = new();
-
     /// <inheritdoc />
-    protected override void ProcessRecord() {
-        if (Text != null) {
-            _paragraphs.AddRange(Text);
-        }
-    }
-
+    protected override void ProcessRecord() { if (Text != null) _paragraphs.AddRange(Text); }
     /// <inheritdoc />
     protected override void EndProcessing() {
-        var document = RtfDocument.Create();
-        foreach (var paragraph in _paragraphs) {
-            document.AddParagraph(paragraph);
-        }
-
-        if (NoSave.IsPresent) {
-            WriteObject(document);
-            return;
-        }
-
-        var path = PdfCommandUtilities.ResolvePath(this, Path);
-        if (!PdfCommandUtilities.ShouldWrite(this, path, "Write new RTF document")) {
-            return;
-        }
-
-        PdfCommandUtilities.EnsureDirectory(path);
-        document.Save(path, encoding: new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
-
-        if (PassThru.IsPresent) {
-            WriteObject(new FileInfo(path));
-        }
+        string? output = Path == null ? null : OfficePath.ResolveOutput(SessionState, Path, false);
+        if (output != null) OfficePath.ValidateDestination(output, !Force);
+        if ((Content != null || Text != null) && !ShouldProcess(output!, "Create RTF document")) return;
+        var document = output == null ? RtfDocument.Create() : RtfDocument.Create(output);
+        if (Content == null && Text == null) { WriteObject(document); return; }
+        try {
+            if (Content != null) { using (OfficeDocumentContext.Push(document)) Content.InvokeReturnAsIs(); }
+            else foreach (string paragraph in _paragraphs) document.AddParagraph(paragraph);
+            PdfCommandUtilities.EnsureDirectory(output!);
+            OfficeIMO.Core.Internal.OfficeFileOutput.Write(output!, Force, temporary => document.Save(temporary));
+        } finally { document.Dispose(); }
+        if (Show) OfficeShow.Open(output!);
+        if (PassThru) WriteObject(new FileInfo(output!));
     }
 }

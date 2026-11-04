@@ -2,7 +2,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation;
-using OfficeIMO.Drawing;
+using OfficeIMO;
+using PSWriteOffice.Foundation;
 using OfficeIMO.Visio;
 using PSWriteOffice.Services.Visio;
 
@@ -15,18 +16,18 @@ namespace PSWriteOffice.Cmdlets.Visio;
 ///   <code>OfficeVisio -Path .\Architecture.vsdx {
 ///     VisioRectangle -Key api -Text 'API' -X 2 -Y 4
 ///     VisioRectangle -Key worker -Text 'Worker' -X 4 -Y 4
-///     VisioContainer -Id app -Text 'Application tier' -ShapeId api,worker -FillColor '#F8FAFC'
+///     VisioContainer -Key app -Text 'Application tier' -ShapeId api,worker -FillColor '#F8FAFC'
 /// }</code>
 ///   <para>Creates a native Visio container around previously keyed shapes.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeVisioContainer", DefaultParameterSetName = "Page")]
-[Alias("VisioContainer")]
 [OutputType(typeof(VisioShape))]
-public sealed class AddOfficeVisioContainerCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
+[Alias("VisioContainer") ]
+public sealed class AddOfficeVisioContainerCommand : OfficeVisioTextCmdlet {
     private readonly List<object> _input = new();
 
     /// <summary>Shapes, shape selections, or shape keys/ids to include in the container.</summary>
-    [Parameter(Position = 0, ValueFromPipeline = true)]
+    [Parameter(Position = 0, ValueFromPipeline = true, ParameterSetName = "Page")]
     public object? InputObject { get; set; }
 
     /// <summary>Page that owns the member shapes. Optional inside OfficeVisio/VisioPage DSL scopes.</summary>
@@ -39,39 +40,39 @@ public sealed class AddOfficeVisioContainerCommand : PSWriteOffice.Cmdlets.Offic
 
     /// <summary>Container shape identifier.</summary>
     [Parameter(Mandatory = true)]
-    public string Id { get; set; } = string.Empty;
+    public string Key { get; set; } = string.Empty;
 
     /// <summary>Container heading text.</summary>
     [Parameter]
     [AllowEmptyString]
     public string Text { get; set; } = string.Empty;
 
-    /// <summary>Outer margin around member shapes in page units.</summary>
+    /// <summary>Outer margin around member shapes as a physical length; a number means points.</summary>
     [Parameter]
-    [ValidateRange(0, double.MaxValue)]
-    public double? Margin { get; set; }
+    [OfficeLengthTransformation]
+    public OfficeLength? Margin { get; set; }
 
-    /// <summary>Additional heading height in page units.</summary>
+    /// <summary>Additional heading height as a physical length; a number means points.</summary>
     [Parameter]
-    [ValidateRange(0, double.MaxValue)]
-    public double? HeadingHeight { get; set; }
+    [OfficeLengthTransformation]
+    public OfficeLength? HeadingHeight { get; set; }
 
     /// <summary>Container fill color.</summary>
     [Parameter]
-    [OfficeColorArgumentTransformation]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? FillColor { get; set; }
+    [OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
+    public OfficeColor? FillColor { get; set; }
 
     /// <summary>Container line color.</summary>
     [Parameter]
-    [OfficeColorArgumentTransformation]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? LineColor { get; set; }
+    [OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
+    public OfficeColor? LineColor { get; set; }
 
-    /// <summary>Container line weight in inches.</summary>
+    /// <summary>Container line weight as a physical length; a number means points.</summary>
     [Parameter]
-    [ValidateRange(0, double.MaxValue)]
-    public double? LineWeight { get; set; }
+    [OfficeLengthTransformation]
+    public OfficeLength? LineWeight { get; set; }
 
     /// <summary>Native Visio container gallery identifier. Zero selects the default/no explicit gallery style.</summary>
     [Parameter]
@@ -116,33 +117,36 @@ public sealed class AddOfficeVisioContainerCommand : PSWriteOffice.Cmdlets.Offic
             throw new PSArgumentException("At least one member shape is required.", nameof(InputObject));
         }
 
-        var options = BuildOptions();
-        var container = page.AddContainer(Id, Text, shapes, options);
-        VisioDslContext.Current?.RegisterShape(page, Id, container);
+        var options = BuildOptions(page.DefaultUnit);
+        var container = page.AddContainer(Key, Text, shapes, options);
+        ApplyTextStyle(container);
+        VisioDslContext.Current?.RegisterShape(page, Key, container);
         WritePassThru(container);
     }
 
-    private VisioContainerOptions BuildOptions() {
+    private VisioContainerOptions BuildOptions(VisioMeasurementUnit unit) {
+        if (Margin?.ToPoints() < 0 || HeadingHeight?.ToPoints() < 0 || LineWeight?.ToPoints() < 0)
+            throw new PSArgumentOutOfRangeException(nameof(Margin), Margin, "Container lengths must be non-negative.");
         var options = new VisioContainerOptions();
 
         if (Margin.HasValue) {
-            options.Margin = Margin.Value;
+            options.Margin = ToPageUnits(Margin.Value, unit);
         }
 
         if (HeadingHeight.HasValue) {
-            options.HeadingHeight = HeadingHeight.Value;
+            options.HeadingHeight = ToPageUnits(HeadingHeight.Value, unit);
         }
 
-        if (!string.IsNullOrWhiteSpace(FillColor)) {
-            options.FillColor = OfficeColor.Parse(FillColor!);
+        if (FillColor.HasValue) {
+            options.FillColor = FillColor.Value.Resolve(OfficeTheme.Default);
         }
 
-        if (!string.IsNullOrWhiteSpace(LineColor)) {
-            options.LineColor = OfficeColor.Parse(LineColor!);
+        if (LineColor.HasValue) {
+            options.LineColor = LineColor.Value.Resolve(OfficeTheme.Default);
         }
 
         if (LineWeight.HasValue) {
-            options.LineWeight = LineWeight.Value;
+            options.LineWeight = LineWeight.Value.ToInches();
         }
 
         if (ContainerStyle.HasValue) {
@@ -159,6 +163,12 @@ public sealed class AddOfficeVisioContainerCommand : PSWriteOffice.Cmdlets.Offic
         options.NoRibbon = NoRibbon.IsPresent;
         return options;
     }
+
+    private static double ToPageUnits(OfficeLength length, VisioMeasurementUnit unit) => unit switch {
+        VisioMeasurementUnit.Centimeters => length.ToCentimeters(),
+        VisioMeasurementUnit.Millimeters => length.ToMillimeters(),
+        _ => length.ToInches()
+    };
 
     private void AddInput(object? value) {
         if (value == null) {

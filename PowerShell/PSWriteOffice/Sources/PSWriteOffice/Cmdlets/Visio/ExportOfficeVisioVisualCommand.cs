@@ -1,6 +1,7 @@
 using System.IO;
 using System.Management.Automation;
 using OfficeIMO.ChartForgeX;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services;
 using PSWriteOffice.Services.Visio;
 using PSWriteOffice.Services.Visuals;
@@ -21,7 +22,7 @@ public sealed class ExportOfficeVisioVisualCommand : OfficeVisioVisualCommandBas
     private bool _inputSeen;
 
     /// <summary>Typed CFX artifact, semantic envelope/JSON, ImagePlayground portable artifact, or prior conversion result.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, Position = 0)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, Position = 0, ParameterSetName = "InputObject")]
     public object InputObject { get; set; } = null!;
 
     /// <summary>Destination .vsdx path.</summary>
@@ -29,10 +30,13 @@ public sealed class ExportOfficeVisioVisualCommand : OfficeVisioVisualCommandBas
     [Alias("FilePath")]
     public string Path { get; set; } = string.Empty;
 
-    /// <summary>Open the generated VSDX after saving.</summary>
+    /// <summary>Show the generated VSDX after saving.</summary>
     [Parameter]
-    [Alias("Show")]
-    public SwitchParameter Open { get; set; }
+    public SwitchParameter Show { get; set; }
+
+    /// <summary>Refuse to replace an existing VSDX destination.</summary>
+    [Parameter]
+    public SwitchParameter NoClobber { get; set; }
 
     /// <summary>Emit the conversion result instead of the saved file.</summary>
     [Parameter]
@@ -72,10 +76,17 @@ public sealed class ExportOfficeVisioVisualCommand : OfficeVisioVisualCommandBas
             return;
         }
 
+        OfficePath.ValidateDestination(fullPath, NoClobber);
+        object? supplied = _bufferedInput is PSObject wrapped ? wrapped.BaseObject : _bufferedInput;
+        bool ownsDocument = supplied is not OfficeVisioVisualConversionResult;
         OfficeVisioVisualConversionResult result = ResolveVisioVisual(_bufferedInput!);
         VisioCommandUtilities.EnsureDirectory(fullPath);
-        result.Document.Save(fullPath);
-        if (Open.IsPresent) {
+        try {
+            OfficeOutput.Write(fullPath, stream => result.Document.Save(stream), NoClobber);
+        } finally {
+            if (ownsDocument && !PassThru) result.Document.Dispose();
+        }
+        if (Show.IsPresent) {
             FileOpenService.Open(fullPath);
         }
         WriteObject(PassThru.IsPresent ? result : new FileInfo(fullPath));
