@@ -94,7 +94,21 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - uses: ./.github/actions/nuget-cache
       - name: Test ImageIO boundary
-        run: dotnet test OfficeIMO.Drawing.ImageIO.Tests/OfficeIMO.Drawing.ImageIO.Tests.csproj -c Release -f ${{ matrix.framework }} --logger trx
+        run: dotnet test OfficeIMO.Drawing.ImageIO.Tests/OfficeIMO.Drawing.ImageIO.Tests.csproj -c Release -f ${{ matrix.framework }} -m:2 -nodeReuse:false -p:UseSharedCompilation=false --logger trx
+      - name: Publish and run the HEIC NativeAOT contract
+        if: matrix.framework == 'net10.0'
+        shell: pwsh
+        run: |
+          $rid = "osx-$([Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLowerInvariant())"
+          dotnet publish Build/Verification/HeicSmoke/HeicSmoke.csproj -c Release -f net10.0 -r $rid -p:PublishAot=true -p:TargetFrameworks=net10.0 -o artifacts/heic-native -m:2 -nodeReuse:false -p:UseSharedCompilation=false
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $smoke = Join-Path $PWD 'artifacts/heic-native/HeicSmoke'
+          & $smoke ./OfficeIMO.TestAssets/Images/Heic ./artifacts/heic-native-output
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          foreach ($fixture in @('basic-8bit-srgb', 'orientation-6', 'display-p3-10bit')) {
+            & $smoke --compare "artifacts/heic-native-output/$fixture.reference.png" "artifacts/heic-native-output/$fixture.composed.png"
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
 
   archives-contracts:
     needs: changes
