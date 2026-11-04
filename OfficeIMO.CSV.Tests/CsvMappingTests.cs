@@ -15,6 +15,31 @@ namespace OfficeIMO.CSV.Tests;
 public class CsvMappingTests
 {
 #if NET8_0_OR_GREATER
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TextProjectionRetainsBackendParseFailureBoundary(bool trim)
+    {
+        int calls = 0;
+        using var rows = CsvDocument.ReadTextRowsAsParallel<int>(
+            "Id,Value\n1,ok\n2,\"unfinished\n",
+            _ => row => { calls++; return row.GetInt32(0); },
+            options: new CsvReaderOptions { QuoteParsingMode = CsvQuoteParsingMode.Strict, TrimWhitespace = trim },
+            parallelOptions: new ParallelRowMappingOptions { MaxDegreeOfParallelism = 1, BatchSize = 2 })
+            .GetEnumerator();
+
+        // The existing AVX2 producer delivers valid prefixes. Other backends fill
+        // scalar batches before invoking factories; preserve both failure boundaries.
+        bool deliversPrefix = System.Runtime.Intrinsics.X86.Avx2.IsSupported;
+        if (deliversPrefix) {
+            Assert.True(rows.MoveNext());
+            Assert.Equal(1, rows.Current);
+        }
+        var failure = Assert.Throws<CsvParseException>(() => rows.MoveNext());
+        Assert.Contains("Unterminated", failure.Message);
+        Assert.Equal(deliversPrefix ? 1 : 0, calls);
+    }
+
     [Fact]
     public void Transient_Record_Projection_Uses_Bounded_Workers_And_Preserves_Order()
     {
@@ -59,9 +84,10 @@ public class CsvMappingTests
     [Fact]
     public void Transient_Record_Projection_Partitions_Quoted_Multiline_Rows_In_Order()
     {
-        string text = "Id,Value\n" + string.Concat(
-            Enumerable.Range(1, 32).Select(index =>
-                $"{index},\"line {index}\ncontinued \"\"{index}\"\"\"\n"));
+        string[] expected = Enumerable.Range(1, 257).Select(index =>
+            $"line {index} " + new string('x', index % 32) + "\u010a\u010d\u0122Żółć😀\r\ncontinued \"" + index + "\"").ToArray();
+        string text = "Id,Value\n" + string.Concat(expected.Select((value, index) =>
+            $"{index + 1},\"{value.Replace("\"", "\"\"")}\"" + (index % 2 == 0 ? "\r\n" : "\n")));
 
         PositionalPerson[] rows = CsvDocument.ReadTextRowsAsParallel<PositionalPerson>(
             text,
@@ -77,8 +103,8 @@ public class CsvMappingTests
                 BatchSize = 4
             }).ToArray();
 
-        Assert.Equal(Enumerable.Range(1, 32), rows.Select(row => row.Id));
-        Assert.Equal("line 17\ncontinued \"17\"", rows[16].Name);
+        Assert.Equal(Enumerable.Range(1, expected.Length), rows.Select(row => row.Id));
+        Assert.Equal(expected, rows.Select(row => row.Name));
     }
 
     [Fact]

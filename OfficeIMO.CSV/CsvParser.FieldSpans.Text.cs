@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Runtime.CompilerServices;
 
 namespace OfficeIMO.CSV;
 
@@ -113,7 +114,8 @@ internal static partial class CsvParser
                 int firstFieldLength;
                 try
                 {
-                    if (!TryReadTextUnquotedRecordFieldSpans(
+                    if (RequiresStrictTrimmedTextFallback(trim, strictQuotes) ||
+                        !TryReadTextUnquotedRecordFieldSpans(
                             text,
                             delimiter,
                             trim,
@@ -372,6 +374,19 @@ internal static partial class CsvParser
         }
 
         return true;
+    }
+
+    // The trimmed AVX2 per-record path normalizes before recognizing quotes.
+    // Strict mode retains the general parser; other backends keep their existing
+    // hot call signature without an extra strictness argument on every record.
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool RequiresStrictTrimmedTextFallback(bool trim, bool strictQuotes)
+    {
+#if NET8_0_OR_GREATER
+        return System.Runtime.Intrinsics.X86.Avx2.IsSupported && trim && strictQuotes;
+#else
+        return false;
+#endif
     }
 
     private static bool CanUseAvx2PackedDelimiter(char delimiter) =>

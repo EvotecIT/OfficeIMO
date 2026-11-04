@@ -24,6 +24,8 @@ public sealed class CsvDataReaderFailureStateTests {
     [InlineData(3, true)]
     [InlineData(4, false)]
     [InlineData(4, true)]
+    [InlineData(5, false)]
+    [InlineData(5, true)]
     public async Task RejectedWidthHidesValuesAndPositionAndCannotResume(int source, bool asynchronous) {
         string csv = source == 1 ? "10,kept\n20\n30,later\n"
             : source == 2 ? "Id,Name\n\"10\",\"kept\"\n20\n30,later\n"

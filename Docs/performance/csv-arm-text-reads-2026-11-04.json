@@ -1,0 +1,1601 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-04",
+  "baselineCommit": "41fbfd10e80e81b0e3abddec6020faff6b4b4acd",
+  "implementationCommit": "d50de622e20f9443f555d2da492bb69f76bf189a",
+  "goal": "At least 20 percent less elapsed time for the affected quote-free CSV read workload.",
+  "host": {
+    "BenchmarkDotNetCaption": "BenchmarkDotNet",
+    "BenchmarkDotNetVersion": "0.15.8",
+    "OsVersion": "macOS 27.0.1 (26A434) [Darwin 27.0.0]",
+    "ProcessorName": "Apple M4",
+    "PhysicalProcessorCount": 1,
+    "PhysicalCoreCount": 10,
+    "LogicalCoreCount": 10,
+    "RuntimeVersion": ".NET 10.0.14 (10.0.14, 10.0.1426.52326)",
+    "Architecture": "Arm64",
+    "HasAttachedDebugger": false,
+    "HasRyuJit": true,
+    "Configuration": "RELEASE",
+    "DotNetCliVersion": "10.0.403",
+    "ChronometerFrequency": {
+      "Hertz": 1000000000
+    },
+    "HardwareTimerKind": "Unknown"
+  },
+  "packages": [
+    "BenchmarkDotNet/0.15.8",
+    "CsvHelper/33.1.0",
+    "Dataplat.Dbatools.Csv/1.1.15",
+    "ExcelReader.NET/7.3.4",
+    "Sep/0.17.1",
+    "Sylvan.Data.Csv/1.4.4"
+  ],
+  "protocol": {
+    "tool": "Existing BenchmarkDotNet comparison projects; no new measurement framework.",
+    "settings": "InProcessEmit, 8 warmups, 12 measurements, 16 invocations, unroll 1, no outlier removal.",
+    "order": "Full 11-lane A1/B1 pair; B2/A2 repeats only the affected OfficeIMO raw/typed lanes and matching ExcelReader.NET controls. Shape controls use 64 invocations.",
+    "statistics": "Medians of all retained per-operation result samples. Raw samples and allocations remain separated by leg.",
+    "shapeHosts": "Each shape runs in a fresh process, with two methods in-process. A previous combined-shape run trained the new batch branch on Mixed before measuring fallback; that diagnostic is not substituted for isolated-shape evidence.",
+    "serialization": "Every build/test/benchmark/profile uses the shared lock; builds use -m:2 and no shared compilation/node reuse.",
+    "hostLimits": "Normal priority, no processor affinity or quiet-host claim. Unrelated CI test jobs ran on this host during some shape controls. M4 has performance and efficiency cores. Preserve all samples; unchanged-lane timing movement is not attributed to this change. This is not a portable ranking.",
+    "readBoundary": "Existing workload: OfficeIMO opens decoded text through StringReader; ExcelReader.NET consumes prepared UTF-8 bytes. Both return and consume every owned field string. Encoding preparation is outside timing.",
+    "writeBoundary": "Prepared projected rows to a finalized UTF-8 MemoryStream; return its byte length. No extra ToArray copy or row preparation is timed.",
+    "validation": "Existing Setup validates every field and typed row, and reopens every writer output. Measured scans retain count/checksum work.",
+    "reproduction": {
+      "shell": "zsh; quote each filter so the shell does not expand it. Execute each listed command separately, in order, without concurrent benchmark processes.",
+      "variables": {
+        "RUN_ROOT": "An absolute, task-owned output directory containing the frozen csv-baseline and csv-cached folders.",
+        "HEAVY_LOCK": "The existing shared heavy-run lock; /Volumes/Samsung/Development/Scratch/heavy-run.lock on this host.",
+        "BASELINE_SOURCE": "A separate source checkout at baselineCommit, 41fbfd10e80e81b0e3abddec6020faff6b4b4acd.",
+        "CANDIDATE_SOURCE": "A separate source checkout at implementationCommit, d50de622e20f9443f555d2da492bb69f76bf189a."
+      },
+      "environment": [
+        "export MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_USE_MSBUILD_SERVER=0"
+      ],
+      "freezeCommands": [
+        "lockf -k \"$HEAVY_LOCK\" dotnet build \"$BASELINE_SOURCE/OfficeIMO.CSV.Benchmarks/OfficeIMO.CSV.Benchmarks.csproj\" -c Release -f net10.0 -m:2 -p:UseSharedCompilation=false",
+        "cp -R \"$BASELINE_SOURCE/OfficeIMO.CSV.Benchmarks/bin/Release/net10.0\" \"$RUN_ROOT/csv-baseline\"",
+        "lockf -k \"$HEAVY_LOCK\" dotnet build \"$CANDIDATE_SOURCE/OfficeIMO.CSV.Benchmarks/OfficeIMO.CSV.Benchmarks.csproj\" -c Release -f net10.0 -m:2 -p:UseSharedCompilation=false",
+        "cp -R \"$RUN_ROOT/csv-baseline\" \"$RUN_ROOT/csv-cached\"",
+        "cp \"$CANDIDATE_SOURCE/OfficeIMO.CSV.Benchmarks/bin/Release/net10.0/OfficeIMO.CSV.dll\" \"$RUN_ROOT/csv-cached/OfficeIMO.CSV.dll\"",
+        "cp \"$CANDIDATE_SOURCE/OfficeIMO.CSV.Benchmarks/bin/Release/net10.0/OfficeIMO.CSV.pdb\" \"$RUN_ROOT/csv-cached/OfficeIMO.CSV.pdb\""
+      ],
+      "freezeChecks": "Use new destination folders. Only OfficeIMO.CSV.dll differs between the frozen DLL sets; baselineAssemblies and candidateAssemblies record the measured hashes. The source checkouts are inputs, not branch-switching instructions. Run under the recorded SDK/runtime and packages; a later SDK rebuild need not reproduce identical metadata hashes.",
+      "commands": [
+        {
+          "leg": "K-A1",
+          "invocationCount": 16,
+          "command": "lockf -k \"$HEAVY_LOCK\" dotnet \"$RUN_ROOT/csv-baseline/OfficeIMO.CSV.Benchmarks.dll\" --filter '*CsvExcelReaderGeneratedBenchmarks*' --inProcess --warmupCount 8 --iterationCount 12 --invocationCount 16 --unrollFactor 1 --outliers DontRemove --artifacts \"$RUN_ROOT/csv-K-A1\" > \"$RUN_ROOT/csv-K-A1.log\" 2>&1"
+        },
+        {
+          "leg": "K-B1",
+          "invocationCount": 16,
+          "command": "lockf -k \"$HEAVY_LOCK\" dotnet \"$RUN_ROOT/csv-cached/OfficeIMO.CSV.Benchmarks.dll\" --filter '*CsvExcelReaderGeneratedBenchmarks*' --inProcess --warmupCount 8 --iterationCount 12 --invocationCount 16 --unrollFactor 1 --outliers DontRemove --artifacts \"$RUN_ROOT/csv-K-B1\" > \"$RUN_ROOT/csv-K-B1.log\" 2>&1"
+        },
+        {
+          "leg": "K-B2",
+          "invocationCount": 16,
+          "command": "lockf -k \"$HEAVY_LOCK\" dotnet \"$RUN_ROOT/csv-cached/OfficeIMO.CSV.Benchmarks.dll\" --filter '*CsvExcelReaderGeneratedBenchmarks.OfficeIMO_Read*' '*CsvExcelReaderGeneratedBenchmarks.OfficeIMO_Parse*' '*CsvExcelReaderGeneratedBenchmarks.ExcelReaderNet_Read*' '*CsvExcelReaderGeneratedBenchmarks.ExcelReaderNet_Parse*' --inProcess --warmupCount 8 --iterationCount 12 --invocationCount 16 --unrollFactor 1 --outliers DontRemove --artifacts \"$RUN_ROOT/csv-K-B2\" > \"$RUN_ROOT/csv-K-B2.log\" 2>&1"
+        },
+        {
+          "leg": "K-A2",
+          "invocationCount": 16,
+          "command": "lockf -k \"$HEAVY_LOCK\" dotnet \"$RUN_ROOT/csv-baseline/OfficeIMO.CSV.Benchmarks.dll\" --filter '*CsvExcelReaderGeneratedBenchmarks.OfficeIMO_Read*' '*CsvExcelReaderGeneratedBenchmarks.OfficeIMO_Parse*' '*CsvExcelReaderGeneratedBenchmarks.ExcelReaderNet_Read*' '*CsvExcelReaderGeneratedBenchmarks.ExcelReaderNet_Parse*' --inProcess --warmupCount 8 --iterationCount 12 --invocationCount 16 --unrollFactor 1 --outliers DontRemove --artifacts \"$RUN_ROOT/csv-K-A2\" > \"$RUN_ROOT/csv-K-A2.log\" 2>&1"
+        },
+        {
+          "shape": "Mixed",
+          "leg": "A",
+          "invocationCount": 64,
+          "command": "lockf -k \"$HEAVY_LOCK\" dotnet \"$RUN_ROOT/csv-baseline/OfficeIMO.CSV.Benchmarks.dll\" --filter '*CSV.Benchmarks.CsvBenchmarks.OfficeIMO_ReadDataReaderGetStrings*25000*Mixed*' '*CSV.Benchmarks.CsvBenchmarks.OfficeIMO_ReadTypedRowsForwardOnly*25000*Mixed*' --inProcess --warmupCount 8 --iterationCount 12 --invocationCount 64 --unrollFactor 1 --outliers DontRemove --artifacts \"$RUN_ROOT/csv-cached-shape-Mixed-A\" > \"$RUN_ROOT/csv-cached-shape-Mixed-A.log\" 2>&1"
+        },
+        {
+          "shape": "Mixed",
+          "leg": "B",
+          "invocationCount": 64,
+          "command": "lockf -k \"$HEAVY_LOCK\" dotnet \"$RUN_ROOT/csv-cached/OfficeIMO.CSV.Benchmarks.dll\" --filter '*CSV.Benchmarks.CsvBenchmarks.OfficeIMO_ReadDataReaderGetStrings*25000*Mixed*' '*CSV.Benchmarks.CsvBenchmarks.OfficeIMO_ReadTypedRowsForwardOnly*25000*Mixed*' --inProcess --warmupCount 8 --iterationCount 12 --invocationCount 64 --unrollFactor 1 --outliers DontRemove --artifacts \"$RUN_ROOT/csv-cached-shape-Mixed-B\" > \"$RUN_ROOT/csv-cached-shape-Mixed-B.log\" 2>&1"
+        },
+        {
+          "shape": "Quoted",
+          "leg": "A",
+          "invocationCount": 64,
+          "command": "lockf -k \"$HEAVY_LOCK\" dotnet \"$RUN_ROOT/csv-baseline/OfficeIMO.CSV.Benchmarks.dll\" --filter '*CSV.Benchmarks.CsvBenchmarks.OfficeIMO_ReadDataReaderGetStrings*25000*Quoted*' '*CSV.Benchmarks.CsvBenchmarks.OfficeIMO_ReadTypedRowsForwardOnly*25000*Quoted*' --inProcess --warmupCount 8 --iterationCount 12 --invocationCount 64 --unrollFactor 1 --outliers DontRemove --artifacts \"$RUN_ROOT/csv-cached-shape-Quoted-A\" > \"$RUN_ROOT/csv-cached-shape-Quoted-A.log\" 2>&1"
+        },
+        {
+          "shape": "Quoted",
+          "leg": "B",
+          "invocationCount": 64,
+          "command": "lockf -k \"$HEAVY_LOCK\" dotnet \"$RUN_ROOT/csv-cached/OfficeIMO.CSV.Benchmarks.dll\" --filter '*CSV.Benchmarks.CsvBenchmarks.OfficeIMO_ReadDataReaderGetStrings*25000*Quoted*' '*CSV.Benchmarks.CsvBenchmarks.OfficeIMO_ReadTypedRowsForwardOnly*25000*Quoted*' --inProcess --warmupCount 8 --iterationCount 12 --invocationCount 64 --unrollFactor 1 --outliers DontRemove --artifacts \"$RUN_ROOT/csv-cached-shape-Quoted-B\" > \"$RUN_ROOT/csv-cached-shape-Quoted-B.log\" 2>&1"
+        },
+        {
+          "shape": "Multiline",
+          "leg": "A",
+          "invocationCount": 64,
+          "command": "lockf -k \"$HEAVY_LOCK\" dotnet \"$RUN_ROOT/csv-baseline/OfficeIMO.CSV.Benchmarks.dll\" --filter '*CSV.Benchmarks.CsvBenchmarks.OfficeIMO_ReadDataReaderGetStrings*25000*Multiline*' '*CSV.Benchmarks.CsvBenchmarks.OfficeIMO_ReadTypedRowsForwardOnly*25000*Multiline*' --inProcess --warmupCount 8 --iterationCount 12 --invocationCount 64 --unrollFactor 1 --outliers DontRemove --artifacts \"$RUN_ROOT/csv-cached-shape-Multiline-A\" > \"$RUN_ROOT/csv-cached-shape-Multiline-A.log\" 2>&1"
+        },
+        {
+          "shape": "Multiline",
+          "leg": "B",
+          "invocationCount": 64,
+          "command": "lockf -k \"$HEAVY_LOCK\" dotnet \"$RUN_ROOT/csv-cached/OfficeIMO.CSV.Benchmarks.dll\" --filter '*CSV.Benchmarks.CsvBenchmarks.OfficeIMO_ReadDataReaderGetStrings*25000*Multiline*' '*CSV.Benchmarks.CsvBenchmarks.OfficeIMO_ReadTypedRowsForwardOnly*25000*Multiline*' --inProcess --warmupCount 8 --iterationCount 12 --invocationCount 64 --unrollFactor 1 --outliers DontRemove --artifacts \"$RUN_ROOT/csv-cached-shape-Multiline-B\" > \"$RUN_ROOT/csv-cached-shape-Multiline-B.log\" 2>&1"
+        }
+      ],
+      "selection": "K-A1/K-B1 select all eleven generated comparison lanes. K-B2/K-A2 select the four raw/typed OfficeIMO and ExcelReader.NET lanes. Each shape command runs two OfficeIMO methods in its own fresh process; invocation counts are 16 for generated lanes and 64 for shape controls. These are the filters and settings from the retained accepted-run script.",
+      "workingDirectories": "Run each build from its corresponding source checkout root to select the repository SDK. Run the frozen benchmark commands from RUN_ROOT, using the recorded SDK/runtime and package versions."
+    }
+  },
+  "fixture": {
+    "rows": 50000,
+    "characters": 5728121,
+    "utf8Bytes": 5728121,
+    "sha256": "F2AE0AE135EFC75388CBCB062ED2CE7EFDC3D04657DF658B9EA4F175445FEEC3",
+    "validation": "Existing Setup validated every participant before fingerprinting the actual benchmark input."
+  },
+  "baselineAssemblies": {
+    "Gee.External.Capstone.dll": "6dfda67784598de9677173b89d0692593935f1a4024d36040c95dea48c1b5965",
+    "Microsoft.DotNet.PlatformAbstractions.dll": "b1f4ad169fb192747f5d2d3111c01db4257e3ec1f7f18f301f7fc4be3b869ff3",
+    "System.Management.dll": "0be24b09da5abad0b20efcb58fab14b0dedc79b09d4fbdcb894be268105a2195",
+    "Microsoft.Extensions.Logging.dll": "183650081b551dfad967a7cbf79946a229cb79458b8d04a12db7c44b03bb9ab7",
+    "BenchmarkDotNet.dll": "d460626b2e1a9fa2f786e09e6c85cdf4d7b73deca636450a0e23892c8ce6192b",
+    "Microsoft.Extensions.Logging.Abstractions.dll": "d575c9d1543ca726ce14dbdffd103e93ea527cd46bb28316da1f4122dbc55d56",
+    "BenchmarkDotNet.Annotations.dll": "4b5d273032cae7c8fc97e16713b8d4f1ee3a2aa28a0e2bd0695232fb9dd7d558",
+    "Microsoft.Diagnostics.FastSerialization.dll": "83e89baf0bbecca8cfa194cff13365f716849e22efc374b669206f26998a019f",
+    "Microsoft.CodeAnalysis.CSharp.dll": "53302acca07700e9bb10dcf21034435d6e0454c8eebf2481164ec13e520004c9",
+    "Iced.dll": "f058c01321b4cdfc9b9151879e88e59571c8d0ba176fbcf95bc936a8f3d073ed",
+    "ExcelReader.Core.dll": "5f04e12d9f2f2cf23cc79bb0d7e7644e3d154d7887736c38fecfa08846bcf63e",
+    "csFastFloat.dll": "51af2357ca92a350b035cfea3a419551e07e5d0fff45166629794b9646b81853",
+    "Perfolizer.dll": "22a4a336db943465cbdfc8d0a8e23e89df3024d39f1c5954d97554b3da39e300",
+    "CsvHelper.dll": "189a0d69f35a7e3827bfc35111d5d6e29d08bae60780cc48b215a06b18b6a852",
+    "Sylvan.Data.Csv.dll": "22d9a266cc13c88cbee08d1a35954b2f45ee8ebf8d7a4c4bfda2ae0b8d740bb6",
+    "Microsoft.Extensions.Primitives.dll": "8ce9a85927ec7507b11ffe90080e7a811d51304a9e8b1da20c350159ba403902",
+    "Microsoft.Diagnostics.NETCore.Client.dll": "baed2d25ca5bc53a3447c237d5572c92eac1fd842807b3e72602a711749b1b22",
+    "Microsoft.Extensions.DependencyInjection.dll": "2aa8182b5356a8cc5c35fc3641a87e814857d8d9be399ac78f260343754d09e0",
+    "TraceReloggerLib.dll": "6830c0f1d3f3c17719181e73dd5cfa8ccbb3f3c575329d2120576545103467b5",
+    "Microsoft.Diagnostics.Runtime.dll": "06f9910c8a37f8d4d758538e6dd307de58bcfb3bb13e83658142c08087a25382",
+    "Sep.dll": "95523addb830904be739db9efb4af5184ed2239f8d8c0e3e29bbfc427dddba41",
+    "Microsoft.Extensions.Options.dll": "786112cb2f6646ef1170219a8c0bb813c9f14a6781e67c6266414f55a679565d",
+    "CsvReader.dll": "ff4525f5667f09ece15731a57e3076e392d3f43af7f82da141b62f1a196863fa",
+    "Microsoft.CodeAnalysis.dll": "395736b2d0e02be77bedc3847b269da7a93bf8e49cd3431a4a8e68d2c52d5846",
+    "Pragmastat.dll": "e9b3fc36000e7fe3fb11d3ea6a65f3c9c7b17e03c9f5034306437d65972e8c51",
+    "OfficeIMO.Core.dll": "6c9473f92d4a7ca06f9748f4d2a0d6e6f3809bce5609f60ac12f3e1b2139ea79",
+    "Dataplat.Dbatools.Csv.dll": "2b810ba9df4251653fa55dce0a2c19e97d43b6794add903c29bf20156f0b15ba",
+    "Microsoft.Extensions.DependencyInjection.Abstractions.dll": "9ccd830351aa28bc683d4f8d1cefd9e724161f972d25bfb64eee5bf55c48c5e3",
+    "OfficeIMO.CSV.dll": "90234d8e45f97933d9afdb34f0f500274adf9d86d1db282a040f610d5a9e53e9",
+    "Microsoft.Diagnostics.Tracing.TraceEvent.dll": "401e948dac99d0f9756ef96d5a8b8e4736e19e9f82ce8cdd744495951e3a94bb",
+    "System.CodeDom.dll": "8d0cf191c86feea81c9875652c06e454abe8dbff66bea9e4cb5f8aa2dc02f32a",
+    "OfficeIMO.CSV.Benchmarks.dll": "6769fbd3b6d2b92232b7c7a064b83509066409604030b25db551647b9f8b9bd9",
+    "CommandLine.dll": "8a55501cd1a1590a4bd93a17c6fdd2c01a0ed5bff1aea9036bdc78d98c9a3fad",
+    "Dia2Lib.dll": "6c4cac68010fe032218efe5e9fcf46eef9f77bfaa5f3bd33f03c5ff77d5a8fac"
+  },
+  "candidateAssemblies": {
+    "Gee.External.Capstone.dll": "6dfda67784598de9677173b89d0692593935f1a4024d36040c95dea48c1b5965",
+    "Microsoft.DotNet.PlatformAbstractions.dll": "b1f4ad169fb192747f5d2d3111c01db4257e3ec1f7f18f301f7fc4be3b869ff3",
+    "System.Management.dll": "0be24b09da5abad0b20efcb58fab14b0dedc79b09d4fbdcb894be268105a2195",
+    "Microsoft.Extensions.Logging.dll": "183650081b551dfad967a7cbf79946a229cb79458b8d04a12db7c44b03bb9ab7",
+    "BenchmarkDotNet.dll": "d460626b2e1a9fa2f786e09e6c85cdf4d7b73deca636450a0e23892c8ce6192b",
+    "Microsoft.Extensions.Logging.Abstractions.dll": "d575c9d1543ca726ce14dbdffd103e93ea527cd46bb28316da1f4122dbc55d56",
+    "BenchmarkDotNet.Annotations.dll": "4b5d273032cae7c8fc97e16713b8d4f1ee3a2aa28a0e2bd0695232fb9dd7d558",
+    "Microsoft.Diagnostics.FastSerialization.dll": "83e89baf0bbecca8cfa194cff13365f716849e22efc374b669206f26998a019f",
+    "Microsoft.CodeAnalysis.CSharp.dll": "53302acca07700e9bb10dcf21034435d6e0454c8eebf2481164ec13e520004c9",
+    "Iced.dll": "f058c01321b4cdfc9b9151879e88e59571c8d0ba176fbcf95bc936a8f3d073ed",
+    "ExcelReader.Core.dll": "5f04e12d9f2f2cf23cc79bb0d7e7644e3d154d7887736c38fecfa08846bcf63e",
+    "csFastFloat.dll": "51af2357ca92a350b035cfea3a419551e07e5d0fff45166629794b9646b81853",
+    "Perfolizer.dll": "22a4a336db943465cbdfc8d0a8e23e89df3024d39f1c5954d97554b3da39e300",
+    "CsvHelper.dll": "189a0d69f35a7e3827bfc35111d5d6e29d08bae60780cc48b215a06b18b6a852",
+    "Sylvan.Data.Csv.dll": "22d9a266cc13c88cbee08d1a35954b2f45ee8ebf8d7a4c4bfda2ae0b8d740bb6",
+    "Microsoft.Extensions.Primitives.dll": "8ce9a85927ec7507b11ffe90080e7a811d51304a9e8b1da20c350159ba403902",
+    "Microsoft.Diagnostics.NETCore.Client.dll": "baed2d25ca5bc53a3447c237d5572c92eac1fd842807b3e72602a711749b1b22",
+    "Microsoft.Extensions.DependencyInjection.dll": "2aa8182b5356a8cc5c35fc3641a87e814857d8d9be399ac78f260343754d09e0",
+    "TraceReloggerLib.dll": "6830c0f1d3f3c17719181e73dd5cfa8ccbb3f3c575329d2120576545103467b5",
+    "Microsoft.Diagnostics.Runtime.dll": "06f9910c8a37f8d4d758538e6dd307de58bcfb3bb13e83658142c08087a25382",
+    "Sep.dll": "95523addb830904be739db9efb4af5184ed2239f8d8c0e3e29bbfc427dddba41",
+    "Microsoft.Extensions.Options.dll": "786112cb2f6646ef1170219a8c0bb813c9f14a6781e67c6266414f55a679565d",
+    "CsvReader.dll": "ff4525f5667f09ece15731a57e3076e392d3f43af7f82da141b62f1a196863fa",
+    "Microsoft.CodeAnalysis.dll": "395736b2d0e02be77bedc3847b269da7a93bf8e49cd3431a4a8e68d2c52d5846",
+    "Pragmastat.dll": "e9b3fc36000e7fe3fb11d3ea6a65f3c9c7b17e03c9f5034306437d65972e8c51",
+    "OfficeIMO.Core.dll": "6c9473f92d4a7ca06f9748f4d2a0d6e6f3809bce5609f60ac12f3e1b2139ea79",
+    "Dataplat.Dbatools.Csv.dll": "2b810ba9df4251653fa55dce0a2c19e97d43b6794add903c29bf20156f0b15ba",
+    "Microsoft.Extensions.DependencyInjection.Abstractions.dll": "9ccd830351aa28bc683d4f8d1cefd9e724161f972d25bfb64eee5bf55c48c5e3",
+    "OfficeIMO.CSV.dll": "0d3ef1cc4553defc1812dc06122a43bbf9a8fb8e53c17c3524bb593c7569f58d",
+    "Microsoft.Diagnostics.Tracing.TraceEvent.dll": "401e948dac99d0f9756ef96d5a8b8e4736e19e9f82ce8cdd744495951e3a94bb",
+    "System.CodeDom.dll": "8d0cf191c86feea81c9875652c06e454abe8dbff66bea9e4cb5f8aa2dc02f32a",
+    "OfficeIMO.CSV.Benchmarks.dll": "6769fbd3b6d2b92232b7c7a064b83509066409604030b25db551647b9f8b9bd9",
+    "CommandLine.dll": "8a55501cd1a1590a4bd93a17c6fdd2c01a0ed5bff1aea9036bdc78d98c9a3fad",
+    "Dia2Lib.dll": "6c4cac68010fe032218efe5e9fcf46eef9f77bfaa5f3bd33f03c5ff77d5a8fac"
+  },
+  "sourceHashes": {
+    "OfficeIMO.CSV.AotSmoke/Program.cs": "86d1d0223e34af7559f8e0fe507c86ffb66fa015d31e2eaa2672a8b007b7420a",
+    "OfficeIMO.CSV.Tests/CsvDataReaderFailureStateTests.cs": "10b1b47affbb42ab6dadf0f6132e82f059b8455d9a52b5f9223041df78d430d7",
+    "OfficeIMO.CSV.Tests/CsvMappingTests.cs": "54f6ee06f9017a4101ae30df81afefb277cf32a47e152d3a72a64663ada75062",
+    "OfficeIMO.CSV/CsvParser.DataReaderRows.Text.cs": "033f79a1f6c73698bb67e4a2a4239724d5e2ad9ce1cce1893b20509ae0bfa254",
+    "OfficeIMO.CSV/CsvParser.FieldSpans.Text.DataReaderBatch.cs": "8ae8db353f09d447464eed5f14c460c3efe00cc07886d16e2563742297178e0c",
+    "OfficeIMO.CSV/CsvParser.FieldSpans.Text.cs": "e196291b485bc0c764e211969c793ce33457ad84af691eef71429a558a7840bc",
+    "OfficeIMO.CSV.AotSmoke/CsvPackedTextSmoke.cs": "44737badb72ab3b5be44076c06d7f45bdb91f6f0327a5347884693f5998b27f0",
+    "OfficeIMO.CSV.Tests/CsvDataReaderPackedTextTests.cs": "b03653e1fc24d58c798b7bab3fd6a5873e0701e0ae853fbde2c58192b2ed8f6a",
+    "OfficeIMO.CSV/CsvParser.DataReaderRows.Text.Batch.cs": "7d33131bc68082f805c19aa606952fc87ddf7195fc003b69ede20a66429e055b",
+    "OfficeIMO.CSV/CsvParser.DataReaderRows.Text.BatchMasks.cs": "c161192e765c1f444efc3655fc7b5e42ffd6fd5f1681b94a67c055ceb04590a5"
+  },
+  "csvSummary": [
+    {
+      "method": "OfficeIMO_Read",
+      "beforeMilliseconds": 8.069510421875002,
+      "afterMilliseconds": 6.374645828125,
+      "reductionPercent": 21.00331377174416,
+      "beforeAllocatedBytes": 22555888,
+      "afterAllocatedBytes": 22555888,
+      "beforeSampleCount": 24,
+      "afterSampleCount": 24
+    },
+    {
+      "method": "ExcelReaderNet_Read",
+      "beforeMilliseconds": 7.60609703125,
+      "afterMilliseconds": 7.7145013125,
+      "reductionPercent": -1.425228744842677,
+      "beforeAllocatedBytes": 22552438,
+      "afterAllocatedBytes": 22552459,
+      "beforeSampleCount": 24,
+      "afterSampleCount": 24
+    },
+    {
+      "method": "Sylvan_Read",
+      "beforeMilliseconds": 8.8905195625,
+      "afterMilliseconds": 9.00552734375,
+      "reductionPercent": -1.2936002270902192,
+      "beforeAllocatedBytes": 22588630,
+      "afterAllocatedBytes": 22588669,
+      "beforeSampleCount": 12,
+      "afterSampleCount": 12
+    },
+    {
+      "method": "Sep_Read",
+      "beforeMilliseconds": 4.70815625,
+      "afterMilliseconds": 4.75485028125,
+      "reductionPercent": -0.9917689382122896,
+      "beforeAllocatedBytes": 21847216,
+      "afterAllocatedBytes": 21847219,
+      "beforeSampleCount": 12,
+      "afterSampleCount": 12
+    },
+    {
+      "method": "CsvHelper_Read",
+      "beforeMilliseconds": 18.31164971875,
+      "afterMilliseconds": 18.29726434375,
+      "reductionPercent": 0.07855859641783258,
+      "beforeAllocatedBytes": 22574886,
+      "afterAllocatedBytes": 22574907,
+      "beforeSampleCount": 12,
+      "afterSampleCount": 12
+    },
+    {
+      "method": "Dataplat_Read",
+      "beforeMilliseconds": 11.01158459375,
+      "afterMilliseconds": 11.098621125,
+      "reductionPercent": -0.7904087782188984,
+      "beforeAllocatedBytes": 22558702,
+      "afterAllocatedBytes": 22558741,
+      "beforeSampleCount": 12,
+      "afterSampleCount": 12
+    },
+    {
+      "method": "OfficeIMO_Parse",
+      "beforeMilliseconds": 10.8356048125,
+      "afterMilliseconds": 8.646231125,
+      "reductionPercent": 20.205366708966068,
+      "beforeAllocatedBytes": 17597632,
+      "afterAllocatedBytes": 17597635,
+      "beforeSampleCount": 24,
+      "afterSampleCount": 24
+    },
+    {
+      "method": "ExcelReaderNet_Parse",
+      "beforeMilliseconds": 13.742824859375,
+      "afterMilliseconds": 13.770221359375,
+      "reductionPercent": -0.19935129989894218,
+      "beforeAllocatedBytes": 17593974,
+      "afterAllocatedBytes": 17593995,
+      "beforeSampleCount": 24,
+      "afterSampleCount": 24
+    },
+    {
+      "method": "CsvHelper_Parse",
+      "beforeMilliseconds": 32.4098294375,
+      "afterMilliseconds": 32.33273696875,
+      "reductionPercent": 0.2378675546524267,
+      "beforeAllocatedBytes": 33842518,
+      "afterAllocatedBytes": 33842042,
+      "beforeSampleCount": 12,
+      "afterSampleCount": 12
+    },
+    {
+      "method": "OfficeIMO_Write",
+      "beforeMilliseconds": 7.26176296875,
+      "afterMilliseconds": 7.0183828125,
+      "reductionPercent": 3.3515298874027377,
+      "beforeAllocatedBytes": 16786395,
+      "afterAllocatedBytes": 16786480,
+      "beforeSampleCount": 12,
+      "afterSampleCount": 12
+    },
+    {
+      "method": "ExcelReaderNet_Write",
+      "beforeMilliseconds": 6.581065125,
+      "afterMilliseconds": 6.5388008125,
+      "reductionPercent": 0.6422108229782952,
+      "beforeAllocatedBytes": 16735797,
+      "afterAllocatedBytes": 16735930,
+      "beforeSampleCount": 12,
+      "afterSampleCount": 12
+    }
+  ],
+  "csvCohorts": {
+    "K-A1": [
+      {
+        "method": "OfficeIMO_Read",
+        "parameters": "",
+        "samplesNanosecondsPerOperation": [
+          8055809.906250001,
+          8096716.156249999,
+          9517270.84375,
+          8081690.09375,
+          8075106.781250001,
+          8180338.531249999,
+          8173007.78125,
+          8069374.968750001,
+          8076960.906249999,
+          8241177.093749999,
+          8115184.906249999,
+          8106104.21875
+        ],
+        "medianMilliseconds": 8.1014101875,
+        "allocatedBytes": 22555888,
+        "standardDeviationMilliseconds": 0.40839878336651503
+      },
+      {
+        "method": "ExcelReaderNet_Read",
+        "parameters": "",
+        "samplesNanosecondsPerOperation": [
+          7600315.125,
+          7588773.4375,
+          7579289.0625,
+          7560474,
+          7567333.3125,
+          7575184.875,
+          7737385.375,
+          7781346.375,
+          7610263.0625,
+          7585763.0625,
+          7621648.4375,
+          7583559.875
+        ],
+        "medianMilliseconds": 7.58726825,
+        "allocatedBytes": 22552438,
+        "standardDeviationMilliseconds": 0.06977737270915264
+      },
+      {
+        "method": "Sylvan_Read",
+        "parameters": "",
+        "samplesNanosecondsPerOperation": [
+          9010167.9375,
+          8969102.875,
+          8984329.4375,
+          8870451.8125,
+          8898069.0625,
+          8986542.9375,
+          8832800.75,
+          8856472.6875,
+          8818105.5,
+          8882970.0625,
+          9108063.8125,
+          8845709.625
+        ],
+        "medianMilliseconds": 8.8905195625,
+        "allocatedBytes": 22588630,
+        "standardDeviationMilliseconds": 0.08856456297303744
+      },
+      {
+        "method": "Sep_Read",
+        "parameters": "",
+        "samplesNanosecondsPerOperation": [
+          4689151.03125,
+          4686791.71875,
+          4705302.09375,
+          4687059.90625,
+          4731960.96875,
+          4711010.40625,
+          4844742.21875,
+          4677750.03125,
+          4721088.59375,
+          4722041.71875,
+          4697072.90625,
+          4729213.59375
+        ],
+        "medianMilliseconds": 4.70815625,
+        "allocatedBytes": 21847216,
+        "standardDeviationMilliseconds": 0.0441361910825077
+      },
+      {
+        "method": "CsvHelper_Read",
+        "parameters": "",
+        "samplesNanosecondsPerOperation": [
+          18279438.78125,
+          18259321.59375,
+          18261795.53125,
+          18251842.40625,
+          18308845.03125,
+          18325048.15625,
+          18526233.03125,
+          18394042.96875,
+          18324295.53125,
+          18374761.71875,
+          18265667.90625,
+          18314454.40625
+        ],
+        "medianMilliseconds": 18.31164971875,
+        "allocatedBytes": 22574886,
+        "standardDeviationMilliseconds": 0.07824801409166944
+      },
+      {
+        "method": "Dataplat_Read",
+        "parameters": "",
+        "samplesNanosecondsPerOperation": [
+          11018516.90625,
+          11004652.28125,
+          10979113.28125,
+          10957326.78125,
+          10998100.21875,
+          10993253.90625,
+          11177061.15625,
+          11109141.90625,
+          11028537.78125,
+          11029279.96875,
+          10966850.21875,
+          11190605.40625
+        ],
+        "medianMilliseconds": 11.01158459375,
+        "allocatedBytes": 22558702,
+        "standardDeviationMilliseconds": 0.07861070611877566
+      },
+      {
+        "method": "OfficeIMO_Parse",
+        "parameters": "",
+        "samplesNanosecondsPerOperation": [
+          10863658.8125,
+          10856679.6875,
+          10835979.1875,
+          10815195.3125,
+          10840398.4375,
+          10842919.25,
+          10829851.5625,
+          10809848.9375,
+          10955580.6875,
+          10938406.25,
+          10819442.75,
+          10790703.125
+        ],
+        "medianMilliseconds": 10.8381888125,
+        "allocatedBytes": 17597632,
+        "standardDeviationMilliseconds": 0.04973766452712836
+      },
+      {
+        "method": "ExcelReaderNet_Parse",
+        "parameters": "",
+        "samplesNanosecondsPerOperation": [
+          13748806,
+          13819597.6875,
+          13759996.125,
+          13609668,
+          13580615.9375,
+          14115391.9375,
+          16050694,
+          16845957.0625,
+          15236582.0625,
+          14536928.375,
+          14040855.5,
+          15277668
+        ],
+        "medianMilliseconds": 14.07812371875,
+        "allocatedBytes": 17593974,
+        "standardDeviationMilliseconds": 1.07009227150444
+      },
+      {
+        "method": "CsvHelper_Parse",
+        "parameters": "",
+        "samplesNanosecondsPerOperation": [
+          35072966.1875,
+          33438362,
+          32303476.625,
+          32243390.625,
+          32342447.9375,
+          32343080.749999996,
+          32291062.5625,
+          32468843.749999996,
+          33007239.624999996,
+          32880216.1875,
+          32350815.125000004,
+          35096065.125
+        ],
+        "medianMilliseconds": 32.4098294375,
+        "allocatedBytes": 33842518,
+        "standardDeviationMilliseconds": 1.0454547580936404
+      },
+      {
+        "method": "OfficeIMO_Write",
+        "parameters": "",
+        "samplesNanosecondsPerOperation": [
+          7251923.125,
+          7228792.9375,
+          7331725.1875,
+          7341483.0625,
+          7181407.5,
+          7172087.1875,
+          7367389.3125,
+          7271602.8125,
+          7229498.625,
+          7622462.25,
+          7372764.3125,
+          7227462.1875
+        ],
+        "medianMilliseconds": 7.26176296875,
+        "allocatedBytes": 16786395,
+        "standardDeviationMilliseconds": 0.12261963149041305
+      },
+      {
+        "method": "ExcelReaderNet_Write",
+        "parameters": "",
+        "samplesNanosecondsPerOperation": [
+          6587023.46875,
+          6654549.53125,
+          6587473.96875,
+          6607869.78125,
+          6526015.59375,
+          6574250.03125,
+          6575106.78125,
+          6524343.71875,
+          6598411.46875,
+          6573679.71875,
+          6608901.03125,
+          6551682.34375
+        ],
+        "medianMilliseconds": 6.581065125,
+        "allocatedBytes": 16735797,
+        "standardDeviationMilliseconds": 0.03632849932649237
+      }
+    ],
+    "K-B1": [
+      {
+        "method": "OfficeIMO_Read",
+        "parameters": "",
+        "samplesNanosecondsPerOperation": [
+          6370828.09375,
+          6412598.96875,
+          6392643.21875,
+          6370296.90625,
+          6373705.71875,
+          6521471.34375,
+          6350580.71875,
+          6448895.78125,
+          6879208.34375,
+          6557203.09375,
+          6458492.15625,
+          6464721.34375
+        ],
+        "medianMilliseconds": 6.430747375,
+        "allocatedBytes": 22555888,
+        "standardDeviationMilliseconds": 0.14484162003555878
+      },
+      {
+        "method": "ExcelReaderNet_Read",
+        "parameters": "",
+        "samplesNanosecondsPerOperation": [
+          7714765.625,
+          7752125,
+          7739781.25,
+          7749362,
+          7722322.875,
+          7733877.625,
+          7752966.1875,
+          7714237,
+          7792302.125,
+          7740114.5625,
+          7741635.375,
+          7742197.9375
+        ],
+        "medianMilliseconds": 7.74087496875,
+        "allocatedBytes": 22552459,
+        "standardDeviationMilliseconds": 0.020836648432048053
+      },
+      {
+        "method": "Sylvan_Read",
+        "parameters": "",
+        "samplesNanosecondsPerOperation": [
+          9105643.25,
+          9025338.5625,
+          9049117.25,
+          9005429.6875,
+          9005625,
+          8987809.9375,
+          8982083.3125,
+          9009656.25,
+          9296359.375,
+          8946903.625,
+          8949257.8125,
+          8982315.125
+        ],
+        "medianMilliseconds": 9.00552734375,
+        "allocatedBytes": 22588669,
+        "standardDeviationMilliseconds": 0.09459236224896332
+      },
+      {
+        "method": "Sep_Read",
+        "parameters": "",
+        "samplesNanosecondsPerOperation": [
+          4791839.8125,
+          4736727.875,
+          4679066.4375,
+          4752595.0625,
+          4720983.125,
+          4693063.8125,
+          4731902.3125,
+          4787972.625,
+          4767136.6875,
+          4772376.3125,
+          4814540.375,
+          4757105.5
+        ],
+        "medianMilliseconds": 4.75485028125,
+        "allocatedBytes": 21847219,
+        "standardDeviationMilliseconds": 0.04025616023969416
+      },
+      {
+        "method": "CsvHelper_Read",
+        "parameters": "",
+        "samplesNanosecondsPerOperation": [
+          18301834.65625,
+          18346050.78125,
+          18242355.46875,
+          18551563.84375,
+          18258662.78125,
+          18265105.46875,
+          18374542.96875,
+          18361709.65625,
+          18292694.03125,
+          18458110.71875,
+          18236597.65625,
+          18235415.40625
+        ],
+        "medianMilliseconds": 18.29726434375,
+        "allocatedBytes": 22574907,
+        "standardDeviationMilliseconds": 0.09792532084667908
+      },
+      {
+        "method": "Dataplat_Read",
+        "parameters": "",
+        "samplesNanosecondsPerOperation": [
+          11138061.21875,
+          11086824.21875,
+          11084248.71875,
+          11146730.46875,
+          11637110.71875,
+          11260735.71875,
+          11571751.34375,
+          11069243.46875,
+          11095714.90625,
+          11100561.21875,
+          11087790.40625,
+          11096681.03125
+        ],
+        "medianMilliseconds": 11.098621125,
+        "allocatedBytes": 22558741,
+        "standardDeviationMilliseconds": 0.19700280460887754
+      },
+      {
+        "method": "OfficeIMO_Parse",
+        "parameters": "",
+        "samplesNanosecondsPerOperation": [
+          8537442.71875,
+          8511822.90625,
+          8479416.71875,
+          8487203.15625,
+          8481427.09375,
+          8488098.96875,
+          8540138.03125,
+          8550874.96875,
+          8527815.09375,
+          8620187.53125,
+          8491635.46875,
+          8523924.53125
+        ],
+        "medianMilliseconds": 8.51787371875,
+        "allocatedBytes": 17597635,
+        "standardDeviationMilliseconds": 0.040313164485366176
+      },
+      {
+        "method": "ExcelReaderNet_Parse",
+        "parameters": "",
+        "samplesNanosecondsPerOperation": [
+          13694500.03125,
+          13734598.96875,
+          13770156.28125,
+          13830851.59375,
+          13755268.21875,
+          13709747.40625,
+          13697846.34375,
+          13798195.34375,
+          13728429.71875,
+          13708158.84375,
+          13718494.78125,
+          13714421.84375
+        ],
+        "medianMilliseconds": 13.72346225,
+        "allocatedBytes": 17593995,
+        "standardDeviationMilliseconds": 0.04243509065796955
+      },
+      {
+        "method": "CsvHelper_Parse",
+        "parameters": "",
+        "samplesNanosecondsPerOperation": [
+          32477816.40625,
+          32284071.59375,
+          32508818.96875,
+          32412996.09375,
+          32309649.71875,
+          32336196.59375,
+          32329277.34375,
+          32741160.15625,
+          32221936.21875,
+          32318345.031250004,
+          32342141.906249996,
+          32319201.84375
+        ],
+        "medianMilliseconds": 32.33273696875,
+        "allocatedBytes": 33842042,
+        "standardDeviationMilliseconds": 0.13820326718362586
+      },
+      {
+        "method": "OfficeIMO_Write",
+        "parameters": "",
+        "samplesNanosecondsPerOperation": [
+          7017242.1875,
+          6893104.1875,
+          7035958.375,
+          7048395.875,
+          7045643.25,
+          6993927.0625,
+          7182721.375,
+          7017854.1875,
+          6881315.125,
+          7018911.4375,
+          7060351.5625,
+          6907877.625
+        ],
+        "medianMilliseconds": 7.0183828125,
+        "allocatedBytes": 16786480,
+        "standardDeviationMilliseconds": 0.08359455096734507
+      },
+      {
+        "method": "ExcelReaderNet_Write",
+        "parameters": "",
+        "samplesNanosecondsPerOperation": [
+          6487296.875,
+          6508557.375,
+          6615101.5625,
+          6602507.875,
+          6513750,
+          6539791.6875,
+          6565953.1875,
+          6537809.9375,
+          6540205.75,
+          6633156.3125,
+          6519390.6875,
+          6533804.75
+        ],
+        "medianMilliseconds": 6.5388008125,
+        "allocatedBytes": 16735930,
+        "standardDeviationMilliseconds": 0.04540260035353099
+      }
+    ],
+    "K-B2": [
+      {
+        "method": "OfficeIMO_Read",
+        "parameters": "",
+        "samplesNanosecondsPerOperation": [
+          6375585.9375,
+          6343375,
+          6382596.3125,
+          6308171.875,
+          6328151,
+          6334270.8125,
+          6338184.875,
+          6383182.3125,
+          6322890.5625,
+          6291932.25,
+          6382539,
+          6356302.0625
+        ],
+        "medianMilliseconds": 6.3407799375,
+        "allocatedBytes": 22555888,
+        "standardDeviationMilliseconds": 0.03082044910264116
+      },
+      {
+        "method": "ExcelReaderNet_Read",
+        "parameters": "",
+        "samplesNanosecondsPerOperation": [
+          7447239.625,
+          7442440.125,
+          7474208.375,
+          7445609.375,
+          7429447.9375,
+          7583059.875,
+          7785393.1875,
+          7545119.75,
+          7607145.8125,
+          7474578.125,
+          7465401.0625,
+          7465895.875
+        ],
+        "medianMilliseconds": 7.470052125,
+        "allocatedBytes": 22552435,
+        "standardDeviationMilliseconds": 0.10325828981988946
+      },
+      {
+        "method": "OfficeIMO_Parse",
+        "parameters": "",
+        "samplesNanosecondsPerOperation": [
+          8744319.03125,
+          8808795.53125,
+          8802295.53125,
+          8779558.59375,
+          8745048.15625,
+          9060454.40625,
+          8768972.65625,
+          8767282.53125,
+          8873141.90625,
+          8770647.15625,
+          8672274.71875,
+          8762769.46875
+        ],
+        "medianMilliseconds": 8.76980990625,
+        "allocatedBytes": 17597593,
+        "standardDeviationMilliseconds": 0.0954590789329398
+      },
+      {
+        "method": "ExcelReaderNet_Parse",
+        "parameters": "",
+        "samplesNanosecondsPerOperation": [
+          13780945.3125,
+          13831695.25,
+          13779283.8125,
+          17324059.875,
+          13906013,
+          14007052.0625,
+          13770286.4375,
+          13734260.375,
+          13768734.375,
+          14622846.375,
+          14042627.5625,
+          14188960.9375
+        ],
+        "medianMilliseconds": 13.868854125,
+        "allocatedBytes": 17593953,
+        "standardDeviationMilliseconds": 1.0068990238525262
+      }
+    ],
+    "K-A2": [
+      {
+        "method": "OfficeIMO_Read",
+        "parameters": "",
+        "samplesNanosecondsPerOperation": [
+          8042987,
+          8069645.875000001,
+          8026473.999999999,
+          8045286.500000001,
+          8032862.000000001,
+          8013046.937499999,
+          8001903.6875,
+          8073726.625,
+          8043817.75,
+          8052825.5625,
+          8025700.562500001,
+          8021737.0625
+        ],
+        "medianMilliseconds": 8.0379245,
+        "allocatedBytes": 22555888,
+        "standardDeviationMilliseconds": 0.021547156696004082
+      },
+      {
+        "method": "ExcelReaderNet_Read",
+        "parameters": "",
+        "samplesNanosecondsPerOperation": [
+          7662514.3125,
+          7654100.25,
+          7873725.249999999,
+          7822217.4375,
+          8000350.249999999,
+          11134087.25,
+          7642339.8125,
+          7585608.0625,
+          7675147.125,
+          7595170.5625,
+          7571522.125,
+          7601931
+        ],
+        "medianMilliseconds": 7.65830728125,
+        "allocatedBytes": 22552396,
+        "standardDeviationMilliseconds": 1.0005439169128836
+      },
+      {
+        "method": "OfficeIMO_Parse",
+        "parameters": "",
+        "samplesNanosecondsPerOperation": [
+          10889996.125,
+          10910842.5,
+          10905444,
+          10840829.4375,
+          10835230.4375,
+          10808556,
+          10806300.8125,
+          10975727.875,
+          10813800.8125,
+          10789433.625,
+          10799162.75,
+          10817839.875
+        ],
+        "medianMilliseconds": 10.82653515625,
+        "allocatedBytes": 17597590,
+        "standardDeviationMilliseconds": 0.057765963125374124
+      },
+      {
+        "method": "ExcelReaderNet_Parse",
+        "parameters": "",
+        "samplesNanosecondsPerOperation": [
+          13735789.09375,
+          13719541.65625,
+          13691531.21875,
+          13968559.90625,
+          13722989.53125,
+          13711151.03125,
+          13728877.59375,
+          13750481.78125,
+          13696195.28125,
+          13686731.78125,
+          13705578.15625,
+          13736843.71875
+        ],
+        "medianMilliseconds": 13.72126559375,
+        "allocatedBytes": 17593932,
+        "standardDeviationMilliseconds": 0.07524284292464901
+      }
+    ]
+  },
+  "csvShapeControls": {
+    "A": [
+      {
+        "method": "OfficeIMO_ReadDataReaderGetStrings",
+        "parameters": "RowCount=25000&Shape=Mixed",
+        "samplesNanosecondsPerOperation": [
+          4193776.0390625,
+          4204017.5703125,
+          4142069.0078125,
+          4134158.2109375005,
+          4133568.3515624995,
+          4126380.8515625005,
+          4122344.3984375005,
+          4121513.0234375,
+          4975604.1796875,
+          4168721.3515625,
+          4137598.3203125,
+          4083384.7734375
+        ],
+        "medianMilliseconds": 4.135878265625,
+        "allocatedBytes": 11275968,
+        "standardDeviationMilliseconds": 0.2427298368178047
+      },
+      {
+        "method": "OfficeIMO_ReadTypedRowsForwardOnly",
+        "parameters": "RowCount=25000&Shape=Mixed",
+        "samplesNanosecondsPerOperation": [
+          5609080.40625,
+          5536816.734375,
+          5705196.296875,
+          5691247.71875,
+          5506378.578125,
+          5490911.125,
+          5607605.140625,
+          6767941.71875,
+          5679868.8125,
+          6658292.640625,
+          5624464.515625,
+          5604773.765625
+        ],
+        "medianMilliseconds": 5.6167724609375,
+        "allocatedBytes": 8797257,
+        "standardDeviationMilliseconds": 0.43704396405756046
+      },
+      {
+        "method": "OfficeIMO_ReadDataReaderGetStrings",
+        "parameters": "RowCount=25000&Shape=Quoted",
+        "samplesNanosecondsPerOperation": [
+          5879305.984375,
+          5848216.796875,
+          6044872.390625,
+          5795496.734375,
+          6314589.1875,
+          5822951.15625,
+          5796229.15625,
+          6472726.546875,
+          5861481.75,
+          6254212.234375,
+          6085854.8125,
+          5858589.171875
+        ],
+        "medianMilliseconds": 5.8703938671875,
+        "allocatedBytes": 12561568,
+        "standardDeviationMilliseconds": 0.23116813997233496
+      },
+      {
+        "method": "OfficeIMO_ReadTypedRowsForwardOnly",
+        "parameters": "RowCount=25000&Shape=Quoted",
+        "samplesNanosecondsPerOperation": [
+          9102525.7109375,
+          10350012.0546875,
+          9085801.7578125,
+          11400862.9453125,
+          14533111.6484375,
+          8879824.5546875,
+          8596408.5234375,
+          11740153.3203125,
+          8605372.0703125,
+          8682430.0234375,
+          8662937.1640625,
+          8761765.9609375
+        ],
+        "medianMilliseconds": 8.98281315625,
+        "allocatedBytes": 10082752,
+        "standardDeviationMilliseconds": 1.8418658315341487
+      },
+      {
+        "method": "OfficeIMO_ReadDataReaderGetStrings",
+        "parameters": "RowCount=25000&Shape=Multiline",
+        "samplesNanosecondsPerOperation": [
+          3718022.796875,
+          3733656.921875,
+          3718569.671875,
+          3714263.6875,
+          3693930.34375,
+          3850885.421875,
+          3718768.890625,
+          3701635.421875,
+          3712035.171875,
+          3733457.046875,
+          3770205.09375,
+          3747280.609375
+        ],
+        "medianMilliseconds": 3.71866928125,
+        "allocatedBytes": 12083888,
+        "standardDeviationMilliseconds": 0.04199385229723502
+      },
+      {
+        "method": "OfficeIMO_ReadTypedRowsForwardOnly",
+        "parameters": "RowCount=25000&Shape=Multiline",
+        "samplesNanosecondsPerOperation": [
+          5730098.6328125,
+          5749278.3203125,
+          5814818.6796875,
+          5729510.0859375,
+          5738091.4609375,
+          5718803.7109375,
+          5685177.3984375,
+          5663111.0078125,
+          5661928.0546875,
+          5663037.4296875,
+          5715676.1171875,
+          5658382.4921875
+        ],
+        "medianMilliseconds": 5.7172399140625,
+        "allocatedBytes": 9605177,
+        "standardDeviationMilliseconds": 0.04690752708458859
+      }
+    ],
+    "B": [
+      {
+        "method": "OfficeIMO_ReadDataReaderGetStrings",
+        "parameters": "RowCount=25000&Shape=Mixed",
+        "samplesNanosecondsPerOperation": [
+          3628539.0703125,
+          3246270.1796875,
+          3274165.3671875,
+          3330175.1328125,
+          3446427.0703125,
+          3312785.8046875,
+          4710814.4453125,
+          3152103.5078125,
+          3158128.2578125,
+          3154615.2265625,
+          3359356.1171875,
+          3354337.8828125
+        ],
+        "medianMilliseconds": 3.32148046875,
+        "allocatedBytes": 11275968,
+        "standardDeviationMilliseconds": 0.42635073635467025
+      },
+      {
+        "method": "OfficeIMO_ReadTypedRowsForwardOnly",
+        "parameters": "RowCount=25000&Shape=Mixed",
+        "samplesNanosecondsPerOperation": [
+          4796862.3203125,
+          4703965.1796875,
+          4512411.7890625,
+          4506744.4609375,
+          4392685.8828125,
+          4461639.6640625,
+          4668707.3671875,
+          4403282.2265625,
+          4734464.5234375,
+          4756984.7109375,
+          4633399.4140625,
+          5010785.4921875
+        ],
+        "medianMilliseconds": 4.651053390625,
+        "allocatedBytes": 8797262,
+        "standardDeviationMilliseconds": 0.18387303213166756
+      },
+      {
+        "method": "OfficeIMO_ReadDataReaderGetStrings",
+        "parameters": "RowCount=25000&Shape=Quoted",
+        "samplesNanosecondsPerOperation": [
+          5856840.484375,
+          5998641.921875,
+          5859089.828125,
+          5844012.359375,
+          5843171.859375,
+          5861423.171875,
+          5864573.5625,
+          5865662.75,
+          5843222.65625,
+          5841218.75,
+          5855530.59375,
+          5869084.625
+        ],
+        "medianMilliseconds": 5.85796515625,
+        "allocatedBytes": 12561568,
+        "standardDeviationMilliseconds": 0.042635990317331576
+      },
+      {
+        "method": "OfficeIMO_ReadTypedRowsForwardOnly",
+        "parameters": "RowCount=25000&Shape=Quoted",
+        "samplesNanosecondsPerOperation": [
+          8123905.281249999,
+          8203156.578125,
+          8079124.015624999,
+          8193714.515625,
+          8144893.546875,
+          8140915.6875,
+          8039545.890625001,
+          8076146.171874999,
+          8085411.796875,
+          8143077.140624999,
+          8184193.6875,
+          8107660.484375001
+        ],
+        "medianMilliseconds": 8.132410484375,
+        "allocatedBytes": 10082857,
+        "standardDeviationMilliseconds": 0.05128641555615344
+      },
+      {
+        "method": "OfficeIMO_ReadDataReaderGetStrings",
+        "parameters": "RowCount=25000&Shape=Multiline",
+        "samplesNanosecondsPerOperation": [
+          3574381.515625,
+          3590783.84375,
+          3585985.671875,
+          3555481.765625,
+          3563570.296875,
+          3579750,
+          3581433.59375,
+          3574794.90625,
+          3549707.6875,
+          3543390.609375,
+          3542037.765625,
+          3555006.5
+        ],
+        "medianMilliseconds": 3.56897590625,
+        "allocatedBytes": 12083888,
+        "standardDeviationMilliseconds": 0.01698976353494144
+      },
+      {
+        "method": "OfficeIMO_ReadTypedRowsForwardOnly",
+        "parameters": "RowCount=25000&Shape=Multiline",
+        "samplesNanosecondsPerOperation": [
+          5669379.890625,
+          5657849.28125,
+          5660298.515625,
+          5655030.28125,
+          5630825.859375,
+          5666905.921875,
+          5685361.671875,
+          5669489.90625,
+          5706196.296875,
+          5664109.0625,
+          5676383.796875,
+          5659254.234375
+        ],
+        "medianMilliseconds": 5.6655074921875,
+        "allocatedBytes": 9605182,
+        "standardDeviationMilliseconds": 0.018144778911353916
+      }
+    ]
+  },
+  "xlsxControl": {
+    "source": "Baseline41fb; unchanged final Excel engine.",
+    "fixtureHashes": {
+      "generated-four-columns-50000.xlsx": "8ffa84c5ddf6a282b861c5a2bdaaf13c0a0d411cae5f3b178a6dcd2eaee60b44",
+      "generated-four-columns-escaped-50000.xlsx": "8a111eaf35c7d2a69a80d9a7e02fb2b8045589af2e9ba31c8ee8c24335dee33e"
+    },
+    "allParticipants": [
+      {
+        "method": "OfficeIMO_Parse",
+        "parameters": "Format=Xlsx&RowCount=50000&EscapedNames=False",
+        "samplesNanosecondsPerOperation": [
+          7144630.25,
+          7870666.687500001,
+          7274992.25,
+          8031971.374999999,
+          8464583.375,
+          8253815.125,
+          8313752.624999999,
+          7795664.125,
+          7603822.9375,
+          7517401.0625,
+          7144338.5625,
+          7095502.625
+        ],
+        "medianMilliseconds": 7.69974353125,
+        "allocatedBytes": 4796898,
+        "standardDeviationMilliseconds": 0.48815811959625466
+      },
+      {
+        "method": "ExcelReaderNet_Parse",
+        "parameters": "Format=Xlsx&RowCount=50000&EscapedNames=False",
+        "samplesNanosecondsPerOperation": [
+          7947872.34375,
+          7956171.84375,
+          7945757.84375,
+          7956929.65625,
+          7945187.46875,
+          7893710.90625,
+          7967187.468749999,
+          8013880.21875,
+          8041244.78125,
+          7940375.03125,
+          7938078.09375,
+          7921804.65625
+        ],
+        "medianMilliseconds": 7.94681509375,
+        "allocatedBytes": 4724901,
+        "standardDeviationMilliseconds": 0.038898587336796464
+      },
+      {
+        "method": "OfficeIMO_Parse",
+        "parameters": "Format=Xlsx&RowCount=50000&EscapedNames=True",
+        "samplesNanosecondsPerOperation": [
+          11535809.875,
+          11517109.375,
+          11505083.3125,
+          11562705.6875,
+          11504864.5625,
+          11515117.1875,
+          11600624.9375,
+          11557218.6875,
+          11601700.5,
+          11623973.9375,
+          11556997.375,
+          11547572.875
+        ],
+        "medianMilliseconds": 11.552285125,
+        "allocatedBytes": 7276321,
+        "standardDeviationMilliseconds": 0.03984290928876373
+      },
+      {
+        "method": "ExcelReaderNet_Parse",
+        "parameters": "Format=Xlsx&RowCount=50000&EscapedNames=True",
+        "samplesNanosecondsPerOperation": [
+          14669119.8125,
+          14647020.875,
+          14717893.25,
+          14810007.875,
+          14909750.0625,
+          14764947.9375,
+          14739940.125,
+          14701932.3125,
+          14708250.0625,
+          14677820.375,
+          14717328.125,
+          14770101.5625
+        ],
+        "medianMilliseconds": 14.7176106875,
+        "allocatedBytes": 7204199,
+        "standardDeviationMilliseconds": 0.07139173289138903
+      },
+      {
+        "method": "OfficeIMO_Read",
+        "parameters": "Format=Xlsx&RowCount=50000&EscapedNames=False",
+        "samplesNanosecondsPerOperation": [
+          5519436.21875,
+          5528667.96875,
+          5532485.71875,
+          5518558.59375,
+          5531503.90625,
+          5504441.40625,
+          5593027.34375,
+          5584266.90625,
+          5570829.46875,
+          5561865.90625,
+          5581720.03125,
+          5534053.40625
+        ],
+        "medianMilliseconds": 5.5332695625,
+        "allocatedBytes": 2396684,
+        "standardDeviationMilliseconds": 0.029901680088932486
+      },
+      {
+        "method": "Sylvan_Read",
+        "parameters": "Format=Xlsx&RowCount=50000&EscapedNames=False",
+        "samplesNanosecondsPerOperation": [
+          28236763,
+          28223190.125,
+          28136671.875,
+          28179179.6875,
+          28166015.625,
+          28017148.4375,
+          28022911.5,
+          28096903.6875,
+          28033164.125,
+          27979862,
+          28055877.625,
+          28020757.8125
+        ],
+        "medianMilliseconds": 28.07639065625,
+        "allocatedBytes": 2669463,
+        "standardDeviationMilliseconds": 0.0882723832779329
+      },
+      {
+        "method": "ExcelDataReader_Read",
+        "parameters": "Format=Xlsx&RowCount=50000&EscapedNames=False",
+        "samplesNanosecondsPerOperation": [
+          60628476.625,
+          60277692.75,
+          60333166.6875,
+          60168869.8125,
+          60783528.625,
+          60498515.625,
+          60064349,
+          60085510.4375,
+          60376489.625,
+          60261963.5625,
+          60229656.3125,
+          60251140.625
+        ],
+        "medianMilliseconds": 60.26982815625,
+        "allocatedBytes": 35526348,
+        "standardDeviationMilliseconds": 0.21432908074513043
+      },
+      {
+        "method": "ExcelReaderNet_Read",
+        "parameters": "Format=Xlsx&RowCount=50000&EscapedNames=False",
+        "samplesNanosecondsPerOperation": [
+          6362684.9375,
+          6340903.625,
+          6340927.125,
+          6306815.125,
+          6317437.5,
+          6325036.5,
+          6321864.625,
+          6321955.75,
+          6324992.25,
+          6330114.5625,
+          6347880.1875,
+          6331005.25
+        ],
+        "medianMilliseconds": 6.32757553125,
+        "allocatedBytes": 2324407,
+        "standardDeviationMilliseconds": 0.015051538538266893
+      },
+      {
+        "method": "OfficeIMO_Read",
+        "parameters": "Format=Xlsx&RowCount=50000&EscapedNames=True",
+        "samplesNanosecondsPerOperation": [
+          9603210.9375,
+          9656255.25,
+          9738250,
+          9714000.0625,
+          9650578.1875,
+          9655166.6875,
+          9609317.75,
+          9681924.5,
+          9743296.9375,
+          9692981.8125,
+          9648403.625,
+          9652570.3125
+        ],
+        "medianMilliseconds": 9.65571096875,
+        "allocatedBytes": 4876002,
+        "standardDeviationMilliseconds": 0.04505892515442483
+      },
+      {
+        "method": "Sylvan_Read",
+        "parameters": "Format=Xlsx&RowCount=50000&EscapedNames=True",
+        "samplesNanosecondsPerOperation": [
+          32222177.125,
+          32082796.875,
+          32132302.0625,
+          32429458.374999996,
+          32227023.4375,
+          32182846.375000004,
+          32014515.625000004,
+          32157578.1875,
+          32128794.3125,
+          32177260.4375,
+          32159656.3125,
+          32146010.437500004
+        ],
+        "medianMilliseconds": 32.15861725,
+        "allocatedBytes": 5146911,
+        "standardDeviationMilliseconds": 0.09964089219564815
+      },
+      {
+        "method": "ExcelDataReader_Read",
+        "parameters": "Format=Xlsx&RowCount=50000&EscapedNames=True",
+        "samplesNanosecondsPerOperation": [
+          68019697.9375,
+          68602742.1875,
+          68930578.1875,
+          68274776.0625,
+          68216674.5,
+          69159773.4375,
+          70251403.6875,
+          68292130.1875,
+          68970828.125,
+          68615919.3125,
+          68863697.9375,
+          68721067.6875
+        ],
+        "medianMilliseconds": 68.6684935,
+        "allocatedBytes": 46083025,
+        "standardDeviationMilliseconds": 0.5884992109849301
+      },
+      {
+        "method": "ExcelReaderNet_Read",
+        "parameters": "Format=Xlsx&RowCount=50000&EscapedNames=True",
+        "samplesNanosecondsPerOperation": [
+          12970052.0625,
+          12958471.375,
+          12928190.125,
+          12853033.875,
+          12866156.3125,
+          12900869.8125,
+          12836963.5625,
+          12805914.125,
+          12845885.4375,
+          12909057.3125,
+          12988630.1875,
+          12942041.6875
+        ],
+        "medianMilliseconds": 12.9049635625,
+        "allocatedBytes": 4803663,
+        "standardDeviationMilliseconds": 0.058720844143603575
+      }
+    ],
+    "rejectedConditionalNotificationPrototype": [
+      {
+        "method": "OfficeIMO_Read",
+        "parameters": "Format=Xlsx&RowCount=50000&EscapedNames=False",
+        "samplesNanosecondsPerOperation": [
+          5769880.1875,
+          5701369.8125,
+          5870565.125,
+          5794138.0625,
+          5734752.625,
+          5934208.3125,
+          5768041.6875,
+          5620463.5625,
+          5635218.75,
+          5614033.875,
+          5600122.4375,
+          5578614.5625
+        ],
+        "medianMilliseconds": 5.71806121875,
+        "allocatedBytes": 2396570,
+        "standardDeviationMilliseconds": 0.11364543073872874
+      },
+      {
+        "method": "OfficeIMO_Read",
+        "parameters": "Format=Xlsx&RowCount=50000&EscapedNames=True",
+        "samplesNanosecondsPerOperation": [
+          9831778.625,
+          9803005.25,
+          9819937.5625,
+          9885671.875,
+          9878421.875,
+          9871947.9375,
+          9880296.9375,
+          9871921.9375,
+          9871888,
+          9853091.1875,
+          9787031.3125,
+          9790395.875
+        ],
+        "medianMilliseconds": 9.86248959375,
+        "allocatedBytes": 4876288,
+        "standardDeviationMilliseconds": 0.03712700568374506
+      }
+    ],
+    "decision": "No elapsed-time improvement; prototype removed completely."
+  },
+  "validation": {
+    "tests": {
+      "CSV.net8.0": {
+        "total": "940",
+        "executed": "940",
+        "passed": "940",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "Excel.net10.0": {
+        "total": "7783",
+        "executed": "7778",
+        "passed": "7778",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "CSV.net10.0": {
+        "total": "949",
+        "executed": "949",
+        "passed": "949",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    "frameworksBuilt": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0",
+      "net472"
+    ],
+    "nativeAot": "osx-arm64 smoke passed, including 257-row Unicode input above64KiB with batch rollover and quoted fallback.",
+    "reviewReproductions": "Both original P2 reproductions failed before fixes; final regression theories cover strict/trim batch and oversized fallback plus backend-specific factory failure ordering with and without trimming.",
+    "platformLimits": "ARM64 net8/net10 and nativeAOT executed. AVX2 runtime and Windows net472 execution were unavailable locally; all four library targets compiled."
+  }
+}

@@ -414,6 +414,9 @@ internal sealed partial class CsvLineReader
 
             if (value == delimiter)
             {
+                if (pendingTrailingField && !TryAddStandardField(fields, ref fieldCount,
+                        StandardCsvFieldSpan.Empty, ref firstFieldLength))
+                    return false;
                 index++;
                 pendingTrailingField = true;
                 continue;

@@ -488,6 +488,10 @@ internal static partial class CsvParser
 
             if (value == delimiter)
             {
+                if (pendingTrailingField && !TryAddTextStandardField(fields, ref fieldCount,
+                        new TextStandardFieldSpan(index, index, 0, hasEscapedQuotes: false, firstEscapedQuote: -1),
+                        ref firstFieldLength))
+                    return false;
                 index++;
                 pendingTrailingField = true;
                 continue;

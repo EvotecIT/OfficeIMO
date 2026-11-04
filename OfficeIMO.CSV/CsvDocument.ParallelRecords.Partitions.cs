@@ -250,6 +250,55 @@ public sealed partial class CsvDocument
                 index += Vector256<ushort>.Count;
             }
         }
+        else if (System.Runtime.Intrinsics.Arm.AdvSimd.IsSupported)
+        {
+            ref ushort textStart = ref Unsafe.As<char, ushort>(ref MemoryMarshal.GetReference(text.AsSpan()));
+            int vectorEnd = text.Length - 32;
+            for (; index <= vectorEnd; index += 32)
+            {
+                if (canCancel && ((index - dataStart) & 0xFFFF) == 0)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    options.CancellationToken.ThrowIfCancellationRequested();
+                }
+                uint mask = CsvSimdMasks.ReadTextSpecial32Arm(ref textStart, index, (byte)'"', includeQuote: false);
+                while (mask != 0)
+                {
+                    int specialIndex = index + BitOperations.TrailingZeroCount(mask);
+                    mask &= mask - 1;
+                    if (specialIndex <= skipThrough) continue;
+                    if (!TryProcessTextPartitionSpecial(text, specialIndex, options, ref state, ref skipThrough))
+                        return false;
+                }
+            }
+        }
+        else if (Vector128.IsHardwareAccelerated)
+        {
+            ref ushort textStart = ref Unsafe.As<char, ushort>(ref MemoryMarshal.GetReference(text.AsSpan()));
+            var quote = Vector128.Create((ushort)'"');
+            var cr = Vector128.Create((ushort)'\r');
+            var lf = Vector128.Create((ushort)'\n');
+            int vectorEnd = text.Length - Vector128<ushort>.Count;
+            for (; index <= vectorEnd; index += Vector128<ushort>.Count)
+            {
+                if (canCancel && ((index - dataStart) & 0xFFFF) == 0)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    options.CancellationToken.ThrowIfCancellationRequested();
+                }
+                var values = Vector128.LoadUnsafe(ref textStart, (nuint)index);
+                uint mask = (Vector128.Equals(values, quote) | Vector128.Equals(values, cr)
+                    | Vector128.Equals(values, lf)).ExtractMostSignificantBits();
+                while (mask != 0)
+                {
+                    int specialIndex = index + BitOperations.TrailingZeroCount(mask);
+                    mask &= mask - 1;
+                    if (specialIndex <= skipThrough) continue;
+                    if (!TryProcessTextPartitionSpecial(text, specialIndex, options, ref state, ref skipThrough))
+                        return false;
+                }
+            }
+        }
 
         for (; index < text.Length; index++)
         {

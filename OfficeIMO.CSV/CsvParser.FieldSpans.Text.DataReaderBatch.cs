@@ -31,12 +31,15 @@ internal static partial class CsvParser
         ref TVisitor fieldVisitor)
         where TVisitor : struct, ICsvFieldSpanVisitor
     {
-        if (HasFieldLengthLimits(options) ||
+        // Quote-free text already uses the span reader above. The remaining
+        // quoted batch path stays on its existing AVX2 backend.
+        if (!System.Runtime.Intrinsics.X86.Avx2.IsSupported ||
+            HasFieldLengthLimits(options) ||
             UsesTextDelimiter(options) ||
             (NeedsLogicalCommentSkipping(options) &&
                 HasPotentialTextCommentRecord(text.AsSpan(), options.CommentCharacter)) ||
             options.ParseErrorAction == CsvParseErrorAction.SkipRow ||
-            !CanUseTextDataReaderBatchAvx2(options, TextQuoteAwareFieldSpanCapacity))
+            !CanUseTextDataReaderBatchSimd(options, TextQuoteAwareFieldSpanCapacity))
         {
             return false;
         }
@@ -57,7 +60,7 @@ internal static partial class CsvParser
 
             while (state.Position < text.Length)
             {
-                if (TryFillTextDataReaderBatchAvx2(
+                if (TryFillTextDataReaderBatchSimd(
                     text.AsSpan(),
                     options,
                     ref state,
