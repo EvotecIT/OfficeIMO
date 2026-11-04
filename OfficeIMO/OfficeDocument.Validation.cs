@@ -6,11 +6,10 @@ using OfficeIMO.Word;
 namespace OfficeIMO;
 
 public static partial class OfficeDocument {
-    /// <summary>Validates a file through its native engine, opening it read-only and never saving it.</summary>
-    /// <remarks>Unsupported checks produce explicit not-applicable diagnostics. Legacy Office loaders validate their projected model, not a native binary schema.</remarks>
-    public static OfficeValidationReport Validate(string path, OfficeDocumentCheck[]? checks = null,
-        OfficeDocumentValidationOptions? options = null, CancellationToken cancellationToken = default) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+    // Path inputs open natively with explicit persistence; models remain borrowed.
+    private static OfficeValidationReport ValidatePath(string path, OfficeDocumentCheck[]? checks,
+        OfficeDocumentValidationOptions? options, CancellationToken cancellationToken) {
+        ArgumentNullException.ThrowIfNull(path);
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A document path is required.", nameof(path));
         if (!File.Exists(path)) throw new FileNotFoundException("Document not found.", path);
         var settings = options ?? new OfficeDocumentValidationOptions();
@@ -53,9 +52,9 @@ public static partial class OfficeDocument {
             ".docx" or ".docm" or ".dotx" or ".dotm" or ".doc" or ".dot" => WordDocument.Load(path,
                 new WordLoadOptions { AccessMode = DocumentAccessMode.ReadOnly, PersistenceMode = DocumentPersistenceMode.Explicit, Password = settings.Password }),
             ".xlsx" or ".xlsm" or ".xltx" or ".xltm" or ".xls" or ".xlt" or ".xlsb" => ExcelDocument.Load(path,
-                new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly, PersistenceMode = DocumentPersistenceMode.Explicit, Password = settings.Password }),
+                new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly, PersistenceMode = DocumentPersistenceMode.Explicit, Password = settings.Password }, cancellationToken),
             ".pptx" or ".pptm" or ".potx" or ".potm" or ".ppsx" or ".ppsm" or ".ppt" or ".pps" or ".pot" => PowerPointDocument.Load(path,
-                new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly, PersistenceMode = DocumentPersistenceMode.Explicit, Password = settings.Password }),
+                new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly, PersistenceMode = DocumentPersistenceMode.Explicit, Password = settings.Password }, cancellationToken),
             ".pdf" => PdfDocument.Load(path, pdfRead, cancellationToken),
             _ => null
         };
@@ -72,11 +71,12 @@ public static partial class OfficeDocument {
         return new OfficeValidationReport(diagnostics, evidence);
     }
 
-    /// <summary>Validates the current native model without saving, reopening its path, repairing it, or disposing caller-owned state.</summary>
+    /// <summary>Validates a file path or native document without saving or repairing it. File inputs open read-only; caller-owned models stay open and retain unsaved edits.</summary>
+    /// <remarks>Unsupported checks produce explicit not-applicable diagnostics. Legacy Office loaders validate their projected model, not the native binary schema.</remarks>
     public static OfficeValidationReport Validate(object document, OfficeDocumentCheck[]? checks = null,
         OfficeDocumentValidationOptions? options = null, CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (document is string path) return Validate(path, checks, options, cancellationToken);
+        ArgumentNullException.ThrowIfNull(document);
+        if (document is string path) return ValidatePath(path, checks, options, cancellationToken);
         var settings = options ?? new OfficeDocumentValidationOptions();
         if (settings.Password != null) throw new ArgumentException("Password applies only to path validation.", nameof(options));
         var selected = ValidationChecks(checks, settings);

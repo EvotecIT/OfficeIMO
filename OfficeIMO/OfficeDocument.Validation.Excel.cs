@@ -19,7 +19,7 @@ public static partial class OfficeDocument {
                 feature.Name + " (" + feature.SupportLevel + ", count=" + feature.Count + "): " + feature.Note + " " + string.Join("; ", feature.Details),
                 feature.Scope, "Excel"));
         }
-        var capabilities = options.Capability ?? (ExcelPreflightCapability[])Enum.GetValues(typeof(ExcelPreflightCapability));
+        var capabilities = options.Capability ?? global::OfficeIMO.Internal.EnumCompat.GetValues<ExcelPreflightCapability>();
         foreach (var capability in capabilities.Distinct()) {
             cancellationToken.ThrowIfCancellationRequested();
             bool available = features.Can(capability);
