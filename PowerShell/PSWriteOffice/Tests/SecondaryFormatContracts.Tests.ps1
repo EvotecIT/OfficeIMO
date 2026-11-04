@@ -164,6 +164,10 @@ Describe 'Secondary format native binding and authoring' {
             $schedule = Invoke-OfficeProjectSchedule -Document $document
             $schedule | Should -Not -BeNullOrEmpty
             Get-OfficeProjectView -Document $document -Schedule $schedule -Options @{ Kind = 'Gantt' } | Should -Not -BeNullOrEmpty
+            $options = New-OfficeProjectViewOptions -Kind ResourceUsage -Timescale Month
+            $options.Kind.ToString() | Should -Be ResourceUsage
+            (Get-OfficeProjectView -Document $document -Options $options).Kind.ToString() |
+                Should -Be ResourceUsage
             $one.Start | Should -BeNullOrEmpty
             { Get-OfficeProjectView -Document $document -Kind Gantt -Options @{ Kind = 'Gantt' } -ErrorAction Stop } |
                 Should -Throw -ErrorId 'AmbiguousParameterSet,*'

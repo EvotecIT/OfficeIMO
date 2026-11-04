@@ -13,11 +13,14 @@ using OfficeIMO.Project;
 namespace PSWriteOffice.Cmdlets.Project;
 
 /// <summary>Creates selection, timescale and page settings for Get-OfficeProjectView -Options.</summary>
-/// <example><summary>Use the native OfficeProjectViewOptions command.</summary><code>$options = New-OfficeProjectViewOptions -Timescale Month
-/// Get-OfficeProjectView -Document $project -Kind ResourceUsage -Options $options</code></example>
+/// <example><summary>Use the native OfficeProjectViewOptions command.</summary><code>$options = New-OfficeProjectViewOptions -Kind ResourceUsage -Timescale Month
+/// Get-OfficeProjectView -Document $project -Options $options</code></example>
 [Cmdlet("New", "OfficeProjectViewOptions", DefaultParameterSetName = "Options")]
 [OutputType(typeof(ProjectViewOptions))]
 public sealed class NewOfficeProjectViewOptionsCommand : OfficeCmdlet {
+    /// <summary>Native report kind; defaults to Gantt.</summary>
+    [Parameter(ParameterSetName = "Options")]
+    public ProjectViewKind? Kind { get; set; }
     /// <summary>Day, Week (default) or Month buckets; weeks begin on Monday.</summary>
     [Parameter(ParameterSetName = "Options")]
     public ProjectViewTimescale? Timescale { get; set; }
@@ -97,6 +100,7 @@ public sealed class NewOfficeProjectViewOptionsCommand : OfficeCmdlet {
     /// <inheritdoc />
     protected override void ProcessRecord() {
         var options = new ProjectViewOptions();
+        if (Kind.HasValue) options.Kind = Kind.Value;
         if (Timescale.HasValue) options.Timescale = Timescale.Value;
         if (Task != null) options.TaskUids = Task;
         if (Resource != null) options.ResourceUids = Resource;
