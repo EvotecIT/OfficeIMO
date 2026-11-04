@@ -13451,6 +13451,17 @@
       "category": "authoring",
       "reason": "Keep existing two/three-argument callers while the source-sheet overload owns the sole optional options parameter at greatest arity; native API analyzers remain enabled.",
       "applied": "implemented"
+    },
+    {
+      "old": "ExcelDocument.UnprotectWorkbook()",
+      "new": "ExcelDocument.UnprotectWorkbook(bool structure = true, bool windows = true)",
+      "action": "change",
+      "kind": "method",
+      "file": "OfficeIMO.Excel/ExcelDocument.CalculationAndProtection.cs",
+      "phase": "3.6-native-M5-support",
+      "category": "authoring",
+      "reason": "Selective removal retains remaining structure/window/revision restrictions and password hashes; default call still removes all workbook protection metadata.",
+      "applied": "implemented"
     }
   ],
   "packageMoves": [
@@ -14756,11 +14767,11 @@
     "surface": "Markdown syntax nodes are exempt from the format prefix. OfficeColor/OfficeColorRole use the root OfficeIMO namespace. Authoring, units, image-builder consolidation, visibility baselines and AOT smoke acceptance are Phase B."
   },
   "summary": {
-    "changes": 574,
+    "changes": 575,
     "byAction": {
       "merge": 280,
       "rename": 49,
-      "change": 163,
+      "change": 164,
       "remove": 47,
       "internalize": 15,
       "move": 18,
@@ -14768,7 +14779,7 @@
     },
     "byCategory": {
       "lifecycle": 52,
-      "authoring": 367,
+      "authoring": 368,
       "units": 123,
       "options": 11,
       "naming": 6,

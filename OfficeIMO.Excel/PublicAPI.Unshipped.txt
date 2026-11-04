@@ -519,3 +519,5 @@ OfficeIMO.Excel.ExcelWriterOptions.ShowRowStripes.get -> bool
 OfficeIMO.Excel.ExcelWriterOptions.ShowRowStripes.set -> void
 OfficeIMO.Excel.ExcelWriterOptions.Title.get -> string?
 OfficeIMO.Excel.ExcelWriterOptions.Title.set -> void
+*REMOVED*OfficeIMO.Excel.ExcelDocument.UnprotectWorkbook() -> void
+OfficeIMO.Excel.ExcelDocument.UnprotectWorkbook(bool structure = true, bool windows = true) -> void
