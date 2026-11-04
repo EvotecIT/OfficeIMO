@@ -279,9 +279,9 @@ public static partial class HtmlExcelConverterExtensions {
             if (verticalAlign.Equals("sub", StringComparison.OrdinalIgnoreCase)) target.SetSubscript();
             if (verticalAlign.Equals("baseline", StringComparison.OrdinalIgnoreCase)) target.SetBaseline();
         }
-        if (TryGetCss(css, "font-family", out string fontFamily)) target.SetFontName(HtmlRenderCssValues.FirstFontFamily(fontFamily) ?? string.Empty);
+        if (TryGetCss(css, "font-family", out string fontFamily)) target.SetFontFamily(HtmlRenderCssValues.FirstFontFamily(fontFamily) ?? string.Empty);
         if (TryGetCssPoints(css, "font-size", out double fontSize)) target.SetFontSize(global::OfficeIMO.OfficeLength.Points(fontSize));
-        if (TryGetCss(css, "color", out string color) && TryNormalizeCssHex(color, out string fontColor)) target.SetFontColor(fontColor);
+        if (TryGetCss(css, "color", out string color) && HtmlRenderCssValues.TryColor(color, out OfficeColor fontColor)) target.SetColor(fontColor);
     }
 
     private static ExcelRichTextRun CreateImportedRichTextRun(
@@ -305,11 +305,11 @@ public static partial class HtmlExcelConverterExtensions {
             if (verticalAlign.Equals("baseline", StringComparison.OrdinalIgnoreCase)) run.VerticalTextAlignment = ExcelVerticalTextAlignment.Baseline;
         }
         TryGetCss(css, "font-family", out string fontFamily);
-        if (!string.IsNullOrEmpty(fontFamily)) run.FontName = HtmlRenderCssValues.FirstFontFamily(fontFamily) ?? string.Empty;
+        if (!string.IsNullOrEmpty(fontFamily)) run.FontFamily = HtmlRenderCssValues.FirstFontFamily(fontFamily) ?? string.Empty;
         TryGetCssPoints(css, "font-size", out double fontSize);
         if (fontSize > 0D) run.FontSize = global::OfficeIMO.OfficeLength.Points(fontSize);
         TryGetCss(css, "color", out string color);
-        if (!string.IsNullOrEmpty(color) && TryNormalizeCssHex(color, out string fontColor)) run.FontColor = fontColor;
+        if (!string.IsNullOrEmpty(color) && HtmlRenderCssValues.TryColor(color, out OfficeColor fontColor)) run.Color = fontColor;
         return run;
     }
 
@@ -376,11 +376,6 @@ public static partial class HtmlExcelConverterExtensions {
         normalized = normalized.Substring(0, normalized.Length - 2);
         return double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
             && parsed > 0D && (points = parsed * multiplier) > 0D;
-    }
-
-    private static bool TryNormalizeCssHex(string value, out string color) {
-        color = NormalizeHexColor(value);
-        return color.Length > 0;
     }
 
     private static bool HasDirectTableCells(IElement table) =>

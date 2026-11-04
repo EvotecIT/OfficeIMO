@@ -263,7 +263,7 @@ public static partial class HtmlExcelConverterExtensions {
             }
             ExcelCell cell = sheet.Cell(firstRow, firstColumn);
             sheet.Cell(firstRow, firstColumn).SetWrapText();
-            if (region.BackgroundColor.HasValue) cell.SetFillColor(region.BackgroundColor.Value.ToRgbHex());
+            if (region.BackgroundColor.HasValue) cell.SetFillColor(region.BackgroundColor.Value);
             if (lastRow > firstRow || lastColumn > firstColumn) {
                 string range = BuildCellReference(firstRow, firstColumn) + ":" + BuildCellReference(lastRow, lastColumn);
                 sheet.Range(range).Merge();
@@ -564,12 +564,10 @@ public static partial class HtmlExcelConverterExtensions {
         // Header and body cells share the inherited font chain (body font, table font, cell font), so a
         // table authored in one family imports in one family instead of mixing it with the workbook default.
         string cellFont = HtmlRenderCssValues.FirstFontFamily(style?.GetValue("font-family")) ?? string.Empty;
-        if (cellFont.Length > 0) cell.SetFontName(cellFont);
+        if (cellFont.Length > 0) cell.SetFontFamily(cellFont);
         if (TryParseCssPixels(style?.GetValue("font-size"), out double cellFontPixels)) cell.SetFontSize(OfficeLength.Points(cellFontPixels * 0.75D));
-        string fontColor = NormalizeHexColor(style?.GetValue("color"));
-        if (fontColor.Length > 0) cell.SetFontColor(fontColor);
-        string fillColor = NormalizeHexColor(style?.GetValue("background-color"));
-        if (fillColor.Length > 0) cell.SetFillColor(fillColor);
+        if (HtmlRenderCssValues.TryColor(style?.GetValue("color"), out OfficeColor fontColor)) cell.SetColor(fontColor);
+        if (HtmlRenderCssValues.TryColor(style?.GetValue("background-color"), out OfficeColor fillColor)) cell.SetFillColor(fillColor);
         if (!allowRichText) ApplyScalarCellFormatting(cell, runs);
 
         string? hyperlink = runs.Select(run => run.Hyperlink).FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
@@ -605,10 +603,9 @@ public static partial class HtmlExcelConverterExtensions {
             run.Strikethrough = source.Strikethrough;
         }
 
-        string color = NormalizeHexColor(source.Style?.GetValue("color"));
-        if (color.Length > 0) run.FontColor = color;
+        if (HtmlRenderCssValues.TryColor(source.Style?.GetValue("color"), out OfficeColor color)) run.Color = color;
         string fontName = HtmlRenderCssValues.FirstFontFamily(source.Style?.GetValue("font-family")) ?? string.Empty;
-        if (fontName.Length > 0) run.FontName = fontName;
+        if (fontName.Length > 0) run.FontFamily = fontName;
         if (TryParseCssPixels(source.Style?.GetValue("font-size"), out double pixels)) run.FontSize = global::OfficeIMO.OfficeLength.Pixels(pixels);
         return run;
     }
@@ -632,10 +629,6 @@ public static partial class HtmlExcelConverterExtensions {
         }
         return MapUnderlineStyle(source.UnderlineStyle);
     }
-
-    private static string NormalizeHexColor(string? value) =>
-        HtmlRenderCssValues.TryColor(value, out OfficeColor color) && color.A > 0
-            ? color.ToRgbHex() : string.Empty;
 
     private static bool TryParseCssPixels(string? value, out double pixels) {
         pixels = 0D;

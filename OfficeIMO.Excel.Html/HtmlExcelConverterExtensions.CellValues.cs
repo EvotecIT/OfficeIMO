@@ -163,8 +163,8 @@ public static partial class HtmlExcelConverterExtensions {
         }
         if (run.StrikethroughSpecified) cell.SetStrikethrough(run.Strikethrough);
         if (run.VerticalTextAlignment.HasValue) cell.SetVerticalTextAlignment(run.VerticalTextAlignment.Value);
-        if (!string.IsNullOrWhiteSpace(run.FontName)) cell.SetFontName(run.FontName!);
+        if (!string.IsNullOrWhiteSpace(run.FontFamily)) cell.SetFontFamily(run.FontFamily!);
         if (run.FontSize.HasValue) cell.SetFontSize(run.FontSize.Value);
-        if (!string.IsNullOrWhiteSpace(run.FontColor)) cell.SetFontColor(run.FontColor!);
+        if (run.Color.HasValue) cell.SetColor(run.Color.Value);
     }
 }

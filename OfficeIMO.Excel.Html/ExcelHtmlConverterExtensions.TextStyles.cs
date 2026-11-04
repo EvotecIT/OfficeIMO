@@ -1,4 +1,6 @@
 using OfficeIMO.Html;
+using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Excel.Html;
 
@@ -45,16 +47,15 @@ public static partial class ExcelHtmlConverterExtensions {
     private static bool AppendExcelTextStyleAttributes(
         StringBuilder body,
         ExcelRichTextRun run,
-        ExcelCellStyleInfo cellStyle) {
+        ExcelCellStyleInfo cellStyle,
+        ExcelDocument workbook) {
         var css = new StringBuilder();
         AppendCss(css, "font-weight", run.BoldSpecified ? (run.Bold ? "700" : "normal") : null);
         AppendCss(css, "font-style", run.ItalicSpecified ? (run.Italic ? "italic" : "normal") : null);
-        AppendCss(css, "font-family", !string.IsNullOrWhiteSpace(run.FontName) ? CssFontFamily(run.FontName!) : null);
+        AppendCss(css, "font-family", !string.IsNullOrWhiteSpace(run.FontFamily) ? CssFontFamily(run.FontFamily!) : null);
         AppendCss(css, "font-size", run.FontSize.HasValue
             ? run.FontSize.Value.ToPoints().ToString("0.###", CultureInfo.InvariantCulture) + "pt" : null);
-        string color = (run.FontColor ?? string.Empty).Trim().TrimStart('#');
-        if (color.Length == 8) color = color.Substring(2);
-        AppendCss(css, "color", color.Length == 6 ? "#" + color : null);
+        AppendCss(css, "color", run.Color.HasValue ? ResolveRichTextColor(run.Color.Value, workbook).ToCssColor() : null);
         ExcelUnderlineStyle underlineStyle = run.UnderlineSpecified
             ? run.UnderlineStyle ?? (run.Underline ? ExcelUnderlineStyle.Single : ExcelUnderlineStyle.None)
             : cellStyle.Underline ? cellStyle.UnderlineStyle ?? ExcelUnderlineStyle.Single : ExcelUnderlineStyle.None;
@@ -76,6 +77,18 @@ public static partial class ExcelHtmlConverterExtensions {
         }
         if (splitDecorations) body.Append(" data-officeimo-excel-strikethrough=\"true\"");
         return splitDecorations;
+    }
+
+    /// <summary>Resolves native slots through the live workbook scheme and status roles through its creation theme.</summary>
+    private static OfficeColor ResolveRichTextColor(OfficeColor color, ExcelDocument workbook) {
+        if (!color.IsThemeRole) return color;
+        uint? index = OfficeOpenXmlThemeColorResolver.GetSpreadsheetThemeColorIndex(color.ThemeSlot);
+        if (index.HasValue) {
+            var scheme = workbook.WorkbookPartRoot.GetPartsOfType<ThemePart>().FirstOrDefault()?.Theme?.ThemeElements?.ColorScheme;
+            OfficeColor? resolved = OfficeOpenXmlThemeColorResolver.ResolveSpreadsheetThemeColor(scheme, index.Value);
+            if (resolved.HasValue) return resolved.Value;
+        }
+        return color.Resolve(workbook.EffectiveCreationTheme);
     }
 
     private static void AppendExcelDecorations(

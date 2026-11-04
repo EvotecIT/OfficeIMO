@@ -22,8 +22,8 @@ New-OfficeExcel -Path $workbookPath {
     }
 }
 
-ConvertTo-OfficeExcelHtml -Path $workbookPath -OutputPath $semanticHtmlPath -Title 'Service Workbook Review'
-ConvertTo-OfficeExcelHtml -Path $workbookPath -Profile VisualReview -OutputPath $visualHtmlPath -Title 'Service Workbook Visual Review'
+Convert-OfficeDocument -Path $workbookPath -To Html -OutputPath $semanticHtmlPath -Options (New-OfficeExcelHtmlOptions -Title 'Service Workbook Review')
+Convert-OfficeDocument -Path $workbookPath -To Html -OutputPath $visualHtmlPath -Options (New-OfficeExcelHtmlOptions -Profile VisualReview -Title 'Service Workbook Visual Review')
 
 Write-Host "Workbook saved to $workbookPath"
 Write-Host "Semantic HTML saved to $semanticHtmlPath"

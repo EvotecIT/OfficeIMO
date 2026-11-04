@@ -21,10 +21,9 @@ Describe 'Excel encrypted lifecycle and conversion' {
             $value = $null
             $doc.Sheets[0].TryGetCellText(1, 1, [ref] $value) | Should -BeTrue
             $value | Should -Be 'Encrypted value'
-            $summary = Get-OfficeExcelSummary -Document $doc -IncludeSheets -IncludeSchema
+            $summary = Get-OfficeDocumentInfo -Document $doc -Detailed
             $summary.SheetCount | Should -Be 1
-            $summary.Sheets[0].Name | Should -Be 'Secure'
-            $summary.Schema.Worksheets[0].Name | Should -Be 'Secure'
+            $summary.Details.Worksheets[0].Name | Should -Be 'Secure'
         } finally {
             Close-OfficeExcel -Document $doc
         }
@@ -120,7 +119,7 @@ Describe 'Excel encrypted lifecycle and conversion' {
 
         $original = [Convert]::ToBase64String([IO.File]::ReadAllBytes($path))
 
-        ConvertTo-OfficeExcelHtml -Path $path -Password 'secret' -OutputPath $htmlPath
+        Convert-OfficeDocument -Path $path -To Html -Password 'secret' -OutputPath $htmlPath
 
         Test-Path -LiteralPath $htmlPath | Should -BeTrue
         Get-Content -LiteralPath $htmlPath -Raw | Should -Match 'Encrypted HTML value'
