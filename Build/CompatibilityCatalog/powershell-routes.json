@@ -402,6 +402,12 @@
     "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
   },
   {
+    "route": "publisher-pdf",
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.pub -To Pdf -OutputPath ./out.pdf",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs dispatches file conversion through OfficeConverter. OfficeIMO.Workflows/OfficeWorkflowRunner.Conversions.cs executes the publisher-pdf route."
+  },
+  {
     "route": "rtf-docx",
     "cmdlet": "ConvertFrom-OfficeRtf",
     "example": "ConvertFrom-OfficeRtf -Path ./in.rtf -As Word -OutputPath ./out.docx",

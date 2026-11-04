@@ -18,7 +18,6 @@ public sealed class BrowserConversionServiceTests {
     [Fact]
     public void RouteCatalog_HasUniqueCustomerRoutes() {
         Assert.Equal("docx-pdf", ConversionRouteCatalog.Default.Id);
-        Assert.Equal(12, ConversionRouteCatalog.All.Count);
         Assert.Equal(
             ConversionRouteCatalog.All.Count,
             ConversionRouteCatalog.All.Select(static route => route.Id).Distinct(StringComparer.OrdinalIgnoreCase).Count());

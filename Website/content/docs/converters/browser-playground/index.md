@@ -21,6 +21,7 @@ The tool has no file, path, URL, or format arguments. It can act only on the fil
 | DOCX | PDF | `OfficeIMO.Word.Pdf` |
 | XLSX | PDF | `OfficeIMO.Excel.Pdf` |
 | PPTX | PDF | `OfficeIMO.PowerPoint.Pdf` |
+| [PUB](/browser/publisher-to-pdf/) | PDF | `OfficeIMO.Publisher.Pdf` |
 | HTML | PDF | `OfficeIMO.Html.Pdf` |
 | Markdown | HTML preview and download | `OfficeIMO.MarkdownRenderer` |
 | HTML | Markdown | `OfficeIMO.Markdown.Html` |

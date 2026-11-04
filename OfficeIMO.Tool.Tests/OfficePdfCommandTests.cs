@@ -188,6 +188,39 @@ public sealed class OfficePdfCommandTests {
     }
 
     [Fact]
+    public async Task ConvertPublisherWritesSiblingPdfAndRejectsStrictReplacementOnLoss() {
+        string directory = CreateTestDirectory();
+        try {
+            string inputPath = Path.Combine(directory, "brochure.pub");
+            string outputPath = Path.ChangeExtension(inputPath, ".pdf");
+            File.Copy(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Publisher", "Sample.pub"), inputPath);
+            await using var output = new MemoryStream();
+            using var error = new StringWriter();
+
+            int converted = await OfficeImoToolApp.RunAsync(["convert", inputPath], Stream.Null, output, error);
+
+            Assert.True(converted == (int)OfficeImoToolExitCode.Success, error.ToString());
+            Assert.Equal(outputPath + Environment.NewLine, Encoding.UTF8.GetString(output.ToArray()));
+            byte[] published = File.ReadAllBytes(outputPath);
+            var pdf = OfficeIMO.Pdf.PdfReadDocument.Open(published);
+            Assert.Contains("This is some text", pdf.ExtractText(), StringComparison.Ordinal);
+
+            output.SetLength(0);
+            error.GetStringBuilder().Clear();
+            int rejected = await OfficeImoToolApp.RunAsync(
+                ["convert", inputPath, outputPath, "--force", "--require-no-loss"], Stream.Null, output, error);
+
+            Assert.Equal((int)OfficeImoToolExitCode.OperationFailed, rejected);
+            Assert.Contains("PUB_", error.ToString(), StringComparison.Ordinal);
+            Assert.Contains("fidelity loss", error.ToString(), StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(0, output.Length);
+            Assert.Equal(published, File.ReadAllBytes(outputPath));
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task ConvertRejectsPackageBombWithDefaultLimits() {
         string directory = CreateTestDirectory();
         string inputPath = Path.Combine(directory, "source.docx");
