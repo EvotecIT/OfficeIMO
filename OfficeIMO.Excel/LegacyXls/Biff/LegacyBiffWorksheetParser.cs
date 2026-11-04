@@ -777,7 +777,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         private static byte[] CopyTransientPayload(Dictionary<int, byte[]> buffers, byte[] source, int offset, int length) {
             if (!buffers.TryGetValue(length, out byte[]? buffer)) {
                 buffer = new byte[length];
-                buffers[length] = buffer;
+                // Keep padded or highly variable records transient; valid common records reuse a bounded cache.
+                if (length <= 8_224 && buffers.Count < 16) buffers[length] = buffer;
             }
 
             Buffer.BlockCopy(source, offset, buffer, 0, length);

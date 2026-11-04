@@ -63,7 +63,7 @@ public class ExcelNativeBinaryModelReadBenchmarks {
             throw new InvalidDataException($"{Format} model load produced {cellCount} cells instead of {expectedCells}.");
         }
 
-        if (Math.Abs(numericChecksum - _expectedNumericChecksum) > 0.001d) {
+        if (!double.IsFinite(numericChecksum) || Math.Abs(numericChecksum - _expectedNumericChecksum) > 0.001d) {
             throw new InvalidDataException($"{Format} model load produced numeric checksum {numericChecksum} instead of {_expectedNumericChecksum}.");
         }
 

@@ -308,9 +308,8 @@ namespace OfficeIMO.Core.Internal {
             }
 
             bool sizeKnown = size != long.MaxValue;
-            // A chain visits each sector at most once, so it can never supply more bytes than the file holds.
-            // Sizing the result up front avoids growing, copying and trimming a second buffer.
-            byte[] data = new byte[sizeKnown ? (int)Math.Min(size, bytes.Length) : sectorSize];
+            // Prove the chain before allocating its result; declared sizes are untrusted.
+            var offsets = new List<int>();
             int written = 0;
             uint sector = startSector;
             var visited = new HashSet<uint>();
@@ -331,8 +330,7 @@ namespace OfficeIMO.Core.Internal {
                 }
 
                 int count = sizeKnown ? (int)Math.Min(sectorSize, size - written) : sectorSize;
-                EnsureCapacity(ref data, written + count);
-                Buffer.BlockCopy(bytes, offset, data, written, count);
+                offsets.Add(offset);
                 written += count;
                 sector = fat[sector];
                 if (sizeKnown && written >= size) {
@@ -344,20 +342,21 @@ namespace OfficeIMO.Core.Internal {
                 throw new InvalidDataException("Compound file sector chain is shorter than the declared stream size.");
             }
 
-            return Trim(data, written);
+            return CopyStreamSectors(bytes, offsets, sectorSize, written, cancellationToken);
         }
 
-        private static void EnsureCapacity(ref byte[] data, int required) {
-            if (required > data.Length) {
-                Array.Resize(ref data, Math.Max(required, data.Length * 2));
+        /// <summary>Copies a validated sector chain into one array at its exact stream length.</summary>
+        private static byte[] CopyStreamSectors(byte[] source, List<int> offsets, int sectorSize, int length,
+            CancellationToken cancellationToken) {
+            if (length == 0) return Array.Empty<byte>();
+            var data = new byte[length];
+            int written = 0;
+            foreach (int offset in offsets) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int count = Math.Min(Math.Min(sectorSize, source.Length - offset), length - written);
+                Buffer.BlockCopy(source, offset, data, written, count);
+                written += count;
             }
-        }
-
-        private static byte[] Trim(byte[] data, int length) {
-            if (length != data.Length) {
-                Array.Resize(ref data, length);
-            }
-
             return data;
         }
 
@@ -370,7 +369,7 @@ namespace OfficeIMO.Core.Internal {
             if (size == 0) return Array.Empty<byte>();
             if (startSector == EndOfChain) throw new InvalidDataException("A non-empty mini stream has no sector chain.");
 
-            byte[] data = new byte[(int)Math.Min(size, miniStream.Length)];
+            var offsets = new List<int>();
             int written = 0;
             uint sector = startSector;
             var visited = new HashSet<uint>();
@@ -386,8 +385,7 @@ namespace OfficeIMO.Core.Internal {
                 }
 
                 int count = (int)Math.Min(Math.Min(MiniSectorSize, miniStream.Length - offset), size - written);
-                EnsureCapacity(ref data, written + count);
-                Buffer.BlockCopy(miniStream, offset, data, written, count);
+                offsets.Add(offset);
                 written += count;
                 sector = miniFat[sector];
                 if (written >= size) {
@@ -397,7 +395,7 @@ namespace OfficeIMO.Core.Internal {
 
             if (written < size) throw new InvalidDataException("Mini sector chain is shorter than the declared stream size.");
 
-            return Trim(data, written);
+            return CopyStreamSectors(miniStream, offsets, MiniSectorSize, written, cancellationToken);
         }
 
         private static List<DirectoryEntry> ReadDirectoryEntries(

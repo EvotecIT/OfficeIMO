@@ -42,7 +42,8 @@ internal sealed class ToUnicodeCMap {
     private const int MaxDestinationHexCharactersWithWhitespace = MaxDestinationTextCharacters * 8;
 
     // Keyed by source-code byte count and value so lookups never format the code bytes as hex text.
-    private readonly Dictionary<ulong, string> _map = new();
+    // A balanced tree bounds lookup cost for untrusted codes, including colliding integer hashes.
+    private readonly SortedDictionary<ulong, string> _map = new();
     private readonly ReverseMapNode _reverseMapRoot = new();
     private int _maxKeyBytes = 1;
     private int _processedMappings;
