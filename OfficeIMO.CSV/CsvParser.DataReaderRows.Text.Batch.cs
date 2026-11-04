@@ -4,8 +4,8 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 #if NET8_0_OR_GREATER
-using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
+using System.Runtime.Intrinsics.Arm;
 #endif
 
 namespace OfficeIMO.CSV;
@@ -18,20 +18,38 @@ internal static partial class CsvParser
 
     internal static int GetPreferredTextParallelBatchSize() => 4096;
 
-    private static bool CanUseTextDataReaderBatchAvx2(CsvParsingSettings options, int sourceColumnCount) =>
-        Avx2.IsSupported &&
+    private static bool CanUseTextDataReaderBatchSimd(CsvParsingSettings options, int sourceColumnCount) =>
+        (Avx2.IsSupported || AdvSimd.IsSupported) &&
         sourceColumnCount is > 0 and <= TextQuoteAwareFieldSpanCapacity &&
         CanUseAvx2PackedDelimiter(GetDelimiterChar(options)) &&
         options.ProgressCallback is null;
 
-    private static bool TryFillTextDataReaderBatchAvx2(
+    private readonly struct QuoteFreeTextBatch { }
+    private readonly struct QuoteAwareTextBatch { }
+
+    // ARM batching earns its cost on globally quote-free text. Keep quoted
+    // fallback outside the large generic core so its rejection inlines into Read.
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool TryFillTextDataReaderBatchSimd(
         ReadOnlySpan<char> text,
         CsvParsingSettings options,
         ref CsvTextFieldSpanReadState state,
         CsvTextDataReaderBatch batch,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        state.TextMayContainQuote
+            ? Avx2.IsSupported && TryFillTextDataReaderBatchCore<QuoteAwareTextBatch>(text, options, ref state, batch, cancellationToken)
+            : TryFillTextDataReaderBatchCore<QuoteFreeTextBatch>(text, options, ref state, batch, cancellationToken);
+
+    // Specialize one parser using the existing whole-text quote proof. The quote-free
+    // instantiation eliminates quote-state work without duplicating parsing rules.
+    private static bool TryFillTextDataReaderBatchCore<TQuoteMode>(
+        ReadOnlySpan<char> text,
+        CsvParsingSettings options,
+        ref CsvTextFieldSpanReadState state,
+        CsvTextDataReaderBatch batch,
+        CancellationToken cancellationToken) where TQuoteMode : struct
     {
-        if (!CanUseTextDataReaderBatchAvx2(options, batch.SourceColumnCount) ||
+        if (!CanUseTextDataReaderBatchSimd(options, batch.SourceColumnCount) ||
             state.RecordsToSkip != 0 ||
             !state.UseAvx2UnquotedFastPath ||
             state.Position >= text.Length)
@@ -54,8 +72,8 @@ internal static partial class CsvParser
         var maximumFieldCount = 0;
         var delimiter = GetDelimiterChar(options);
         var trim = options.TrimWhitespace;
+        var strictQuotes = options.QuoteParsingMode == CsvQuoteParsingMode.Strict;
         var allowEmptyLines = options.AllowEmptyLines;
-        var delimiterVector = Vector256.Create((byte)delimiter);
         var end = text.Length - 32;
         ref ushort textStart = ref Unsafe.As<char, ushort>(ref MemoryMarshal.GetReference(text));
 
@@ -67,28 +85,8 @@ internal static partial class CsvParser
                 cancellationToken.ThrowIfCancellationRequested();
             }
 
-            Vector256<byte> packedBytes;
-            if (Avx512BW.IsSupported)
-            {
-                var values = Vector512.LoadUnsafe(ref textStart, (nuint)position);
-                packedBytes = Avx512BW.ConvertToVector256ByteWithSaturation(values);
-            }
-            else
-            {
-                var values = MemoryMarshal.Cast<char, short>(text.Slice(position, 32));
-                var first = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(values));
-                var second = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(values.Slice(16)));
-                var packed = Avx2.PackUnsignedSaturate(first, second);
-                packedBytes = Vector256.AsByte(
-                    Avx2.Permute4x64(Vector256.AsInt64(packed), 0b11_01_10_00));
-            }
-
-            var delimiterMask = (uint)Avx2.MoveMask(Avx2.CompareEqual(packedBytes, delimiterVector));
-            var quoteMask = (uint)Avx2.MoveMask(Avx2.CompareEqual(packedBytes, QuoteByteVector));
-            var carriageReturnMask = (uint)Avx2.MoveMask(
-                Avx2.CompareEqual(packedBytes, CarriageReturnByteVector));
-            var lineFeedMask = (uint)Avx2.MoveMask(Avx2.CompareEqual(packedBytes, LineFeedByteVector));
-            var specialMask = delimiterMask | quoteMask | carriageReturnMask | lineFeedMask;
+            var specialMask = GetTextDataReaderBatchMask(
+                ref textStart, position, (byte)delimiter, typeof(TQuoteMode) == typeof(QuoteAwareTextBatch));
 
             while (specialMask != 0)
             {
@@ -101,7 +99,8 @@ internal static partial class CsvParser
                     continue;
                 }
 
-                if ((bit & quoteMask) != 0)
+                char value = text[absoluteIndex];
+                if (typeof(TQuoteMode) == typeof(QuoteAwareTextBatch) && value == '"')
                 {
                     if (expectedEscapedQuoteIndex >= 0)
                     {
@@ -149,11 +148,12 @@ internal static partial class CsvParser
                     continue;
                 }
 
-                if ((bit & delimiterMask) != 0)
+                if (value == delimiter)
                 {
                     if (!TryAddTextDataReaderBatchField(
                         text,
                         trim,
+                        strictQuotes,
                         batch,
                         fieldStart,
                         absoluteIndex,
@@ -181,7 +181,7 @@ internal static partial class CsvParser
                     continue;
                 }
 
-                if ((bit & (carriageReturnMask | lineFeedMask)) == 0)
+                if (value is not '\r' and not '\n')
                 {
                     continue;
                 }
@@ -189,6 +189,7 @@ internal static partial class CsvParser
                 if (!TryAddTextDataReaderBatchField(
                     text,
                     trim,
+                    strictQuotes,
                     batch,
                     fieldStart,
                     absoluteIndex,
@@ -211,7 +212,7 @@ internal static partial class CsvParser
 
                 fieldCount++;
                 var nextPosition = absoluteIndex + 1;
-                if ((bit & carriageReturnMask) != 0 &&
+                if (value == '\r' &&
                     nextPosition < text.Length &&
                     text[nextPosition] == '\n')
                 {
@@ -253,7 +254,7 @@ internal static partial class CsvParser
         while (position < text.Length)
         {
             var value = text[position];
-            if (value == '"')
+            if (typeof(TQuoteMode) == typeof(QuoteAwareTextBatch) && value == '"')
             {
                 if (expectedEscapedQuoteIndex >= 0)
                 {
@@ -297,6 +298,7 @@ internal static partial class CsvParser
                 if (!TryAddTextDataReaderBatchField(
                     text,
                     trim,
+                    strictQuotes,
                     batch,
                     fieldStart,
                     position,
@@ -329,6 +331,7 @@ internal static partial class CsvParser
                 if (!TryAddTextDataReaderBatchField(
                     text,
                     trim,
+                    strictQuotes,
                     batch,
                     fieldStart,
                     position,
@@ -390,6 +393,7 @@ internal static partial class CsvParser
             if (!TryAddTextDataReaderBatchField(
                 text,
                 trim,
+                strictQuotes,
                 batch,
                 fieldStart,
                 text.Length,
@@ -427,9 +431,11 @@ internal static partial class CsvParser
         return batch.RowCount != 0;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool TryAddTextDataReaderBatchField(
         ReadOnlySpan<char> text,
         bool trim,
+        bool strictQuotes,
         CsvTextDataReaderBatch batch,
         int start,
         int end,
@@ -437,6 +443,13 @@ internal static partial class CsvParser
         int fieldIndex,
         out int fieldLength)
     {
+        // Strict quoted fields must open at their original boundary. Trimming
+        // leading whitespace first would reinterpret an invalid unquoted field.
+        if (strictQuotes && quoteCount != 0 && text[start] != '"')
+        {
+            fieldLength = 0;
+            return false;
+        }
         if (trim)
         {
             while (start < end && IsTextDataReaderWhitespace(text[start]))

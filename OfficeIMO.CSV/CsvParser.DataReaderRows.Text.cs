@@ -13,6 +13,7 @@ internal static partial class CsvParser
         private readonly string _text;
         private readonly int _endPosition;
         private readonly CsvParsingSettings _options;
+        private readonly bool _useSerialBatches;
         private CsvTextFieldSpanReadState _state;
         private CsvDataReaderTextRowVisitor _visitor;
         private CsvTextDataReaderBatch? _batch;
@@ -60,6 +61,12 @@ internal static partial class CsvParser
                     options.Culture,
                     options.DateTimeFormats)
                 : null;
+            // Ineligible immutable text sources keep the ordinary row path without
+            // probing an unused batch on every Read. The container remains available
+            // to the existing scalar parallel producer.
+            _useSerialBatches = _batch is not null
+                && CanUseTextDataReaderBatchSimd(options, sourceColumnCount)
+                && (System.Runtime.Intrinsics.X86.Avx2.IsSupported || !_state.TextMayContainQuote);
         }
 
         internal int PreferredParallelBatchSize => GetPreferredTextParallelBatchSize();
@@ -89,10 +96,10 @@ internal static partial class CsvParser
             ObjectDisposedException.ThrowIf(_disposed, this);
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfCancellationRequested(_options);
-            if (_batch is not null)
+            if (_useSerialBatches)
             {
-                if (_batch.MoveNext() ||
-                    (TryFillTextDataReaderBatchAvx2(
+                if (_batch!.MoveNext() ||
+                    (TryFillTextDataReaderBatchSimd(
                         _text.AsSpan(0, _endPosition),
                         _options,
                         ref _state,
@@ -157,12 +164,15 @@ internal static partial class CsvParser
                 return true;
             }
 
-            if (!TryFillTextDataReaderBatchAvx2(
+            // The existing ARM scalar producer validates the whole requested
+            // batch before factories run. Keep that failure boundary; serial
+            // readers may still use SIMD to deliver a completed valid prefix.
+            if (!(System.Runtime.Intrinsics.X86.Avx2.IsSupported && TryFillTextDataReaderBatchSimd(
                     _text.AsSpan(0, _endPosition),
                     _options,
                     ref _state,
                     _batch,
-                    cancellationToken) &&
+                    cancellationToken)) &&
                 !TryFillTextDataReaderBatchScalar(
                     _text,
                     _options,
@@ -512,7 +522,8 @@ internal static partial class CsvParser
             int firstFieldLength;
             try
             {
-                if (!TryReadTextUnquotedRecordFieldSpans(
+                if (RequiresStrictTrimmedTextFallback(trim, strictQuotes) ||
+                    !TryReadTextUnquotedRecordFieldSpans(
                         text,
                         delimiter,
                         trim,
@@ -653,7 +664,8 @@ internal static partial class CsvParser
             int firstFieldLength;
             try
             {
-                if (!TryReadTextUnquotedRecordFieldSpans(
+                if (RequiresStrictTrimmedTextFallback(trim, strictQuotes) ||
+                    !TryReadTextUnquotedRecordFieldSpans(
                         text,
                         delimiter,
                         trim,

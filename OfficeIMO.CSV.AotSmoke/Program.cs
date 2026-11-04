@@ -8,6 +8,8 @@ using OfficeIMO.CSV;
 using OfficeIMO.Data;
 using OfficeIMO.Data.Arrow;
 
+CsvPackedTextSmoke.Run();
+
 CsvDocument document = CsvDocument.Parse("Name,Score,Date,Time\nAlice,42,2026-08-06,14:35:12\n");
 if (!document.Header.SequenceEqual(new[] { "Name", "Score", "Date", "Time" })) {
     throw new InvalidOperationException("The CSV parser did not preserve the header schema.");
