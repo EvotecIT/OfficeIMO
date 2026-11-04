@@ -81,7 +81,7 @@ public partial class Excel {
             }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
             summaryOnlyBytes = document.ToPdf(new ExcelPdfExportOptions {
-                SheetNames = new[] { "Summary" },
+                Sheets = new[] { new OfficeSheetSelector("Summary") },
                 IncludeSheetHeadings = true,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),

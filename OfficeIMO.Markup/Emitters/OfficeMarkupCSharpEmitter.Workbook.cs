@@ -92,11 +92,11 @@ public sealed partial class OfficeMarkupCSharpEmitter {
             }
 
             if (!string.IsNullOrWhiteSpace(fill)) {
-                sb.AppendLine($"{subject}.SetFillColor({CsString(fill!)});");
+                sb.AppendLine($"{subject}.SetFillColor(OfficeIMO.OfficeColor.Parse({CsString(fill!)}));");
             }
 
             if (!string.IsNullOrWhiteSpace(fontColor)) {
-                sb.AppendLine($"{subject}.SetFontColor({CsString(fontColor!)});");
+                sb.AppendLine($"{subject}.SetColor(OfficeIMO.OfficeColor.Parse({CsString(fontColor!)}));");
             }
 
             if (!string.IsNullOrWhiteSpace(bold) && IsTruthy(bold!)) {
@@ -125,7 +125,7 @@ public sealed partial class OfficeMarkupCSharpEmitter {
 
             if (TryGetBorderStyleIdentifier(border, out var borderStyleIdentifier)) {
                 var borderColorArgument = !string.IsNullOrWhiteSpace(borderColor)
-                    ? $", {CsString(borderColor!)}"
+                    ? $", OfficeIMO.OfficeColor.Parse({CsString(borderColor!)})"
                     : string.Empty;
                 sb.AppendLine($"{subject}.SetBorder(ExcelBorderStyle.{borderStyleIdentifier}{borderColorArgument});");
             }

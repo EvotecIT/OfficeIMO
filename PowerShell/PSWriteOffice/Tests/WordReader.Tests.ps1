@@ -27,7 +27,7 @@ Describe 'Word reader helpers' {
             Close-OfficeWord -Document $doc -Save
         }
 
-        $matches = Find-OfficeWord -Path $path -Text 'Hello'
+        $matches = Get-OfficeWordParagraph -Path $path -Pattern 'Hello' -SimpleMatch
         $matches.Count | Should -BeGreaterThan 0
 
         $bookmarks = Get-OfficeWordBookmark -Path $path
@@ -58,29 +58,29 @@ Describe 'Word reader helpers' {
         $controls = Get-OfficeWordContentControl -Path $path -Alias 'Client*'
         $controls.Count | Should -Be 1
 
-        $checkBoxes = Get-OfficeWordCheckBox -Path $path -Alias 'Approved'
+        $checkBoxes = Get-OfficeWordContentControl -Type CheckBox -Path $path -Alias 'Approved'
         $checkBoxes.Count | Should -Be 1
         $checkBoxes[0].IsChecked | Should -Be $true
 
-        $unchecked = Get-OfficeWordCheckBox -Path $path -Unchecked
+        $unchecked = Get-OfficeWordContentControl -Type CheckBox -Path $path -State Unchecked
         $unchecked.Count | Should -Be 1
 
-        $datePickers = Get-OfficeWordDatePicker -Path $path -Alias 'DueDate'
+        $datePickers = Get-OfficeWordContentControl -Type DatePicker -Path $path -Alias 'DueDate'
         $datePickers.Count | Should -Be 1
         $datePickers[0].Date | Should -Not -BeNullOrEmpty
 
-        $dropDowns = Get-OfficeWordDropDownList -Path $path -Tag 'PriorityTag'
+        $dropDowns = Get-OfficeWordContentControl -Type DropDownList -Path $path -Tag 'PriorityTag'
         $dropDowns.Count | Should -Be 1
         $dropDowns[0].Items | Should -Contain 'Medium'
 
-        $comboBoxes = Get-OfficeWordComboBox -Path $path -Alias 'Color'
+        $comboBoxes = Get-OfficeWordContentControl -Type ComboBox -Path $path -Alias 'Color'
         $comboBoxes.Count | Should -Be 1
         $comboBoxes[0].Items | Should -Contain 'Red'
 
-        $pictures = Get-OfficeWordPictureControl -Path $path -Alias 'Logo'
+        $pictures = Get-OfficeWordContentControl -Type Picture -Path $path -Alias 'Logo'
         $pictures.Count | Should -Be 1
 
-        $repeating = Get-OfficeWordRepeatingSection -Path $path -Alias 'LineItems'
+        $repeating = Get-OfficeWordContentControl -Type RepeatingSection -Path $path -Alias 'LineItems'
         $repeating.Count | Should -Be 1
 
         $toc = Get-OfficeWordTableOfContents -Path $path

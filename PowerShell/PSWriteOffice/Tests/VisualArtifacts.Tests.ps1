@@ -216,7 +216,7 @@ Describe 'ChartForgeX visual artifacts' {
 
         $file.FullName | Should -Be $path
         Test-Path $path | Should -BeTrue
-        $loaded = Get-OfficeVisio -Path $path
+        $loaded = Open-OfficeVisio -Path $path
         $loaded.Pages[0].Shapes.Id | Should -Contain 'service'
     }
 
@@ -269,7 +269,7 @@ Describe 'ChartForgeX visual artifacts' {
         $path = Join-Path $TestDrive 'piped-bytes.vsdx'
         $file = $bytes | Export-OfficeVisioVisual -Path $path
         $file.FullName | Should -Be $path
-        (Get-OfficeVisio -Path $path).Pages[0].Shapes.Id | Should -Contain 'service'
+        (Open-OfficeVisio -Path $path).Pages[0].Shapes.Id | Should -Contain 'service'
     }
 
     It 'rejects mixed byte-stream and typed pipeline input' {
@@ -342,15 +342,13 @@ Describe 'ChartForgeX visual artifacts' {
         $documentPath = Join-Path $TestDrive 'visual-document.pdf'
 
         New-OfficePdf -Path $dslPath {
-            $visual | Add-OfficePdfVisual -Align Center
+            $visual | Add-OfficePdfImage -Alignment Center
         } | Out-Null
 
         $document = New-OfficePdf
         PdfParagraph -Document $document 'Existing document'
-        $updated = $visual | Add-OfficePdfVisual -Document $document -PassThru
+        $updated = $visual | Add-OfficePdfImage -Document $document -PassThru
         [object]::ReferenceEquals($updated, $document) | Should -BeTrue
-        $pipelineUpdated = $document | Add-OfficePdfVisual -InputObject $visual -PassThru
-        [object]::ReferenceEquals($pipelineUpdated, $document) | Should -BeTrue
         $document | Save-OfficePdf -Path $documentPath | Out-Null
 
         Test-Path $dslPath | Should -BeTrue

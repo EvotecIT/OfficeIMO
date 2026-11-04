@@ -51,7 +51,7 @@ Describe 'Executable recipe artifacts' {
         $rows[0].Service | Should -Be 'Identity'
         $rows[0].Availability | Should -BeOfType ([double])
         $rows[0].Availability | Should -Be 0.9995
-        Get-OfficePdfText -Path (Join-Path $folder 'Service-Review.pdf') | Should -Match 'Service review'
+        Read-OfficeDocument -As Text -Path (Join-Path $folder 'Service-Review.pdf') | Should -Match 'Service review'
     }
 
     It 'saves calculated budget values for readers that do not recalculate formulas' {
@@ -117,7 +117,7 @@ Describe 'Executable recipe artifacts' {
     }
 
     It 'calculates and renders invoice totals from its decimal line items' {
-        $text = Get-OfficePdfText -Path $artifacts['Service-Invoice.pdf']
+        $text = Read-OfficeDocument -As Text -Path $artifacts['Service-Invoice.pdf']
         $text | Should -Match 'Subtotal:\s*\$4,350\.00'
         $text | Should -Match 'Illustrative tax \(20%\):\s*\$870\.00'
         $text | Should -Match 'Total due:\s*\$5,220\.00'
@@ -130,7 +130,7 @@ Describe 'Executable recipe artifacts' {
         Push-Location $folder
         try { & ([scriptblock]::Create($recipe.Replace('[decimal]0.20', '[decimal]0.125'))) }
         finally { Pop-Location }
-        $text = Get-OfficePdfText -Path (Join-Path $folder 'Service-Invoice.pdf')
+        $text = Read-OfficeDocument -As Text -Path (Join-Path $folder 'Service-Invoice.pdf')
         $text | Should -Match 'Illustrative tax \(12\.5%\):\s*\$543\.75'
         $text | Should -Match 'Total due:\s*\$4,893\.75'
     }

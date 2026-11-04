@@ -139,7 +139,7 @@ public sealed class DrawingConversionCapabilities {
             OfficeConversionCapabilityCatalog.Find("onenote-png"));
 
         Assert.Equal(OfficeConversionInputKind.File, route.InputKind);
-        Assert.Contains("OneNoteSectionReader.Read(stream)", route.Api, StringComparison.Ordinal);
+        Assert.Contains("OneNoteSection.Load(stream)", route.Api, StringComparison.Ordinal);
         Assert.Contains(".ExportImages(", route.Api, StringComparison.Ordinal);
     }
 }

@@ -557,7 +557,7 @@ sheet name="Revenue"
 
         var code = new OfficeMarkupPowerShellEmitter().Emit(result.Document);
 
-        Assert.Contains("New-OfficeExcel -FilePath $FilePath -NoSave", code, StringComparison.Ordinal);
+        Assert.Contains("New-OfficeExcel -Path $FilePath", code, StringComparison.Ordinal);
         Assert.Contains("$Workbook.AddSheet($Name)", code, StringComparison.Ordinal);
         Assert.Contains("Revenue", code, StringComparison.Ordinal);
         Assert.Contains("Save-OfficeExcel -Document $workbook -Path $FilePath", code, StringComparison.Ordinal);
@@ -575,7 +575,7 @@ sheet name="Revenue"
 
         var code = new OfficeMarkupPowerShellEmitter().Emit(document);
 
-        Assert.Contains("New-OfficeWord -OutputPath $FilePath -NoSave", code, StringComparison.Ordinal);
+        Assert.Contains("New-OfficeWord -Path $FilePath", code, StringComparison.Ordinal);
         Assert.Contains("$document.AddParagraph('First')", code, StringComparison.Ordinal);
         Assert.Contains("$document.AddPageBreak()", code, StringComparison.Ordinal);
         Assert.Contains("Save-OfficeWord -Document $document -Path $FilePath", code, StringComparison.Ordinal);
@@ -621,9 +621,9 @@ profile: presentation
 
         var code = new OfficeMarkupPowerShellEmitter().Emit(result.Document);
 
-        Assert.Contains("$slide1 = Add-OfficePowerPointSlide -Presentation $presentation", code, StringComparison.Ordinal);
+        Assert.Contains("$slide1 = Add-OfficePowerPointSlide -Document $presentation -PassThru", code, StringComparison.Ordinal);
         Assert.Contains("Add-OfficePowerPointTextBox -Slide $slide1 -Text 'Quarterly Review'", code, StringComparison.Ordinal);
-        Assert.Contains("Save-OfficePowerPoint -Presentation $presentation -Path $FilePath", code, StringComparison.Ordinal);
+        Assert.Contains("Save-OfficePowerPoint -Document $presentation -Path $FilePath", code, StringComparison.Ordinal);
         Assert.Contains("Revenue grew 18%", code, StringComparison.Ordinal);
         Assert.DoesNotContain("Add-OfficePowerPointText -", code, StringComparison.Ordinal);
         Assert.DoesNotContain("# Heading:", code, StringComparison.Ordinal);
@@ -810,15 +810,15 @@ Revenue,120,
         Assert.Contains(@"GetOrAddSheet(@""Data"").Cell(1, 1).SetValue(@""Metric"")", code, StringComparison.Ordinal);
         Assert.Contains(@"GetOrAddSheet(@""Data"").Cell(2, 3).SetFormula(@""=B2*2"")", code, StringComparison.Ordinal);
         Assert.Contains(@"GetOrAddSheet(@""Data"").Range(@""B2:C2"").SetNumberFormat(@""#,##0"")", code, StringComparison.Ordinal);
-        Assert.Contains(@"GetOrAddSheet(@""Data"").Range(@""B2:C2"").SetFillColor(@""#D9EAD3"")", code, StringComparison.Ordinal);
-        Assert.Contains(@"GetOrAddSheet(@""Data"").Range(@""B2:C2"").SetFontColor(@""#112233"")", code, StringComparison.Ordinal);
+        Assert.Contains(@"GetOrAddSheet(@""Data"").Range(@""B2:C2"").SetFillColor(OfficeIMO.OfficeColor.Parse(@""#D9EAD3""))", code, StringComparison.Ordinal);
+        Assert.Contains(@"GetOrAddSheet(@""Data"").Range(@""B2:C2"").SetColor(OfficeIMO.OfficeColor.Parse(@""#112233""))", code, StringComparison.Ordinal);
         Assert.Contains(@"GetOrAddSheet(@""Data"").Range(@""B2:C2"").SetBold()", code, StringComparison.Ordinal);
         Assert.Contains(@"GetOrAddSheet(@""Data"").Range(@""B2:C2"").SetItalic()", code, StringComparison.Ordinal);
         Assert.Contains(@"GetOrAddSheet(@""Data"").Range(@""B2:C2"").SetUnderline()", code, StringComparison.Ordinal);
         Assert.Contains(@"GetOrAddSheet(@""Data"").Range(@""B2:C2"").SetHorizontalAlignment(ExcelHorizontalAlignment.Center)", code, StringComparison.Ordinal);
         Assert.Contains(@"GetOrAddSheet(@""Data"").Range(@""B2:C2"").SetVerticalAlignment(ExcelVerticalAlignment.Center)", code, StringComparison.Ordinal);
         Assert.Contains(@"GetOrAddSheet(@""Data"").Range(@""B2:C2"").SetWrapText()", code, StringComparison.Ordinal);
-        Assert.Contains(@"GetOrAddSheet(@""Data"").Range(@""B2:C2"").SetBorder(ExcelBorderStyle.Thin, @""#445566"")", code, StringComparison.Ordinal);
+        Assert.Contains(@"GetOrAddSheet(@""Data"").Range(@""B2:C2"").SetBorder(ExcelBorderStyle.Thin, OfficeIMO.OfficeColor.Parse(@""#445566""))", code, StringComparison.Ordinal);
         Assert.Contains(@"GetOrAddSheet(@""Data"").AddTable(@""A1:C2""", code, StringComparison.Ordinal);
         Assert.Contains(@"var chartSourceSheet1 = GetOrAddSheet(@""Data"")", code, StringComparison.Ordinal);
         Assert.Contains(@"chartSourceSheet1.GetTableRange(@""DataTable"")", code, StringComparison.Ordinal);
@@ -852,15 +852,15 @@ Revenue,120,
         Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').Cell(1, 1).SetValue('Metric')", code, StringComparison.Ordinal);
         Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').Cell(2, 3).SetFormula('=B2*2')", code, StringComparison.Ordinal);
         Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').Range('B2:C2').SetNumberFormat('#,##0')", code, StringComparison.Ordinal);
-        Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').Range('B2:C2').SetFillColor('#D9EAD3')", code, StringComparison.Ordinal);
-        Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').Range('B2:C2').SetFontColor('#112233')", code, StringComparison.Ordinal);
+        Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').Range('B2:C2').SetFillColor([OfficeIMO.OfficeColor]::Parse('#D9EAD3'))", code, StringComparison.Ordinal);
+        Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').Range('B2:C2').SetColor([OfficeIMO.OfficeColor]::Parse('#112233'))", code, StringComparison.Ordinal);
         Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').Range('B2:C2').SetBold()", code, StringComparison.Ordinal);
         Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').Range('B2:C2').SetItalic()", code, StringComparison.Ordinal);
         Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').Range('B2:C2').SetUnderline()", code, StringComparison.Ordinal);
         Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').Range('B2:C2').SetHorizontalAlignment('Center')", code, StringComparison.Ordinal);
         Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').Range('B2:C2').SetVerticalAlignment('Center')", code, StringComparison.Ordinal);
         Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').Range('B2:C2').SetWrapText()", code, StringComparison.Ordinal);
-        Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').Range('B2:C2').SetBorder('Thin', '#445566')", code, StringComparison.Ordinal);
+        Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').Range('B2:C2').SetBorder('Thin', [OfficeIMO.OfficeColor]::Parse('#445566'))", code, StringComparison.Ordinal);
         Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').AddTable('A1:C2', $true, 'DataTable', 'TableStyleMedium2')", code, StringComparison.Ordinal);
         Assert.Contains("# TODO: bind chart source 'Data!DataTable' to an Excel range or table before adding the chart at 'B2'.", code, StringComparison.Ordinal);
         Assert.DoesNotContain("AddChartFromRange('Data!DataTable'", code, StringComparison.Ordinal);

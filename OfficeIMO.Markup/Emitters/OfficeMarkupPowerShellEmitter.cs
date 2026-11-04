@@ -34,13 +34,13 @@ public sealed class OfficeMarkupPowerShellEmitter {
     }
 
     private static void EmitPresentation(OfficeMarkupDocument document, OfficeMarkupEmitterOptions options, StringBuilder sb) {
-        sb.AppendLine("$presentation = New-OfficePowerPoint -FilePath " + options.FilePathVariable + " -NoSave");
+        sb.AppendLine("$presentation = New-OfficePowerPoint -Path " + options.FilePathVariable);
         var index = 0;
         var chartIndex = 0;
         string? activeSection = null;
         foreach (var slide in GetPresentationSlides(document)) {
             index++;
-            sb.AppendLine($"$slide{index} = Add-OfficePowerPointSlide -Presentation $presentation");
+            sb.AppendLine($"$slide{index} = Add-OfficePowerPointSlide -Document $presentation -PassThru");
             if (!string.IsNullOrWhiteSpace(slide.Section)) {
                 var section = slide.Section!.Trim();
                 sb.AppendLine($"# Section: {section}");
@@ -83,7 +83,7 @@ public sealed class OfficeMarkupPowerShellEmitter {
             }
         }
 
-        sb.AppendLine("Save-OfficePowerPoint -Presentation $presentation -Path " + options.FilePathVariable);
+        sb.AppendLine("Save-OfficePowerPoint -Document $presentation -Path " + options.FilePathVariable);
     }
 
     private static IEnumerable<OfficeMarkupSlideBlock> GetPresentationSlides(OfficeMarkupDocument document) {
@@ -309,7 +309,7 @@ public sealed class OfficeMarkupPowerShellEmitter {
         value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
 
     private static void EmitDocument(OfficeMarkupDocument document, OfficeMarkupEmitterOptions options, StringBuilder sb) {
-        sb.AppendLine("$document = New-OfficeWord -OutputPath " + options.FilePathVariable + " -NoSave");
+        sb.AppendLine("$document = New-OfficeWord -Path " + options.FilePathVariable);
         var chartIndex = 0;
         foreach (var block in document.Blocks) {
             EmitDocumentBlock(block, "$document", sb, ref chartIndex);
@@ -371,7 +371,7 @@ public sealed class OfficeMarkupPowerShellEmitter {
     }
 
     private static void EmitWorkbook(OfficeMarkupDocument document, OfficeMarkupEmitterOptions options, StringBuilder sb) {
-        sb.AppendLine("$workbook = New-OfficeExcel -FilePath " + options.FilePathVariable + " -NoSave");
+        sb.AppendLine("$workbook = New-OfficeExcel -Path " + options.FilePathVariable);
         sb.AppendLine("$sheet = $null");
         sb.AppendLine("function Get-OrAddOfficeExcelWorksheet {");
         sb.AppendLine("    param($Workbook, [string] $Name)");
@@ -476,11 +476,11 @@ public sealed class OfficeMarkupPowerShellEmitter {
             }
 
             if (!string.IsNullOrWhiteSpace(fill)) {
-                sb.AppendLine($"{subject}.SetFillColor({PsString(fill!)})");
+                sb.AppendLine($"{subject}.SetFillColor([OfficeIMO.OfficeColor]::Parse({PsString(fill!)}))");
             }
 
             if (!string.IsNullOrWhiteSpace(fontColor)) {
-                sb.AppendLine($"{subject}.SetFontColor({PsString(fontColor!)})");
+                sb.AppendLine($"{subject}.SetColor([OfficeIMO.OfficeColor]::Parse({PsString(fontColor!)}))");
             }
 
             if (!string.IsNullOrWhiteSpace(bold) && IsTruthy(bold!)) {
@@ -509,7 +509,7 @@ public sealed class OfficeMarkupPowerShellEmitter {
 
             if (TryGetBorderStyleIdentifier(border, out var borderStyleIdentifier)) {
                 var borderColorArgument = !string.IsNullOrWhiteSpace(borderColor)
-                    ? $", {PsString(borderColor!)}"
+                    ? $", [OfficeIMO.OfficeColor]::Parse({PsString(borderColor!)})"
                     : string.Empty;
                 sb.AppendLine($"{subject}.SetBorder({PsString(borderStyleIdentifier)}{borderColorArgument})");
             }

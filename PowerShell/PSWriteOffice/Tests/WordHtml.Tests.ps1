@@ -1,4 +1,4 @@
-﻿BeforeAll {
+BeforeAll {
     $ModuleManifest = if ($env:PSWRITEOFFICE_MODULE_MANIFEST) {
         $env:PSWRITEOFFICE_MODULE_MANIFEST
     } else {
@@ -16,7 +16,7 @@ Describe 'Word HTML conversions' {
             }
         } | Out-Null
 
-        $html = ConvertTo-OfficeWordHtml -Path $docPath
+        $html = Convert-OfficeDocument -To Html -Path $docPath -AsString
         $html | Should -Match 'Hello HTML'
     }
 
@@ -24,7 +24,7 @@ Describe 'Word HTML conversions' {
         $html = '<h1>Hello HTML</h1><p>Roundtrip</p>'
         $docPath = Join-Path $TestDrive 'HtmlRoundtrip.docx'
 
-        ConvertFrom-OfficeWordHtml -Html $html -OutputPath $docPath | Out-Null
+        Convert-OfficeDocument -To Word -From Html -Text $html -OutputPath $docPath | Out-Null
         Test-Path $docPath | Should -BeTrue
 
         $document = Open-OfficeWord -Path $docPath -ReadOnly
