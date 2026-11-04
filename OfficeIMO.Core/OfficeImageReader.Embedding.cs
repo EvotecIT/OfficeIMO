@@ -9,7 +9,7 @@ public static partial class OfficeImageReader {
     /// original caller-owned input for other formats, and a new PNG for HEIC. No system codec is redistributed.</remarks>
     /// <exception cref="NotSupportedException">The required system codec is unavailable or the HEIC profile is unsupported.</exception>
     public static byte[] NormalizeForEmbedding(byte[] encodedBytes, OfficeRasterDecodeOptions? options, out OfficeImageInfo info) {
-        if (encodedBytes == null) throw new ArgumentNullException(nameof(encodedBytes));
+        ArgumentNullException.ThrowIfNull(encodedBytes);
         var effective = options ?? new OfficeRasterDecodeOptions();
         effective.Validate();
         effective.CancellationToken.ThrowIfCancellationRequested();
