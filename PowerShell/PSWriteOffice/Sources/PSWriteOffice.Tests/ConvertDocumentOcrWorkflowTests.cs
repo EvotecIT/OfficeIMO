@@ -138,11 +138,16 @@ public sealed class ConvertDocumentOcrWorkflowTests : IDisposable {
             shell.AddCommand("Convert-OfficeDocument").AddParameter("Path", input).AddParameter("OutputPath", output).AddParameter("OcrOptions", recognition);
             if (mode == "InputLimit") shell.AddParameter("MaximumInputBytes", 1L);
             if (mode == "OutputLimit") shell.AddParameter("MaximumOutputBytes", 1L);
-            if (mode == "NoClobber") shell.AddParameter("NoClobber");
-            Assert.Throws<CmdletInvocationException>(() => shell.Invoke());
+            if (mode == "NoClobber") {
+                shell.AddParameter("NoClobber");
+                var skipped = Assert.IsType<OfficeBatchItemReport>(Assert.Single(shell.Invoke()).BaseObject);
+                Assert.False(shell.HadErrors, Errors(shell));
+                Assert.True(skipped.Skipped);
+                Assert.Equal("OutputExists", skipped.SkippedReason);
+            } else Assert.Throws<CmdletInvocationException>(() => shell.Invoke());
             Assert.Equal("valuable destination", File.ReadAllText(output));
             Assert.Equal(timestamp, File.GetLastWriteTimeUtc(output));
-            Assert.Equal(mode is "NoClobber" ? 1 : mode is "OutputLimit" ? 2 : 0, calls);
+            Assert.Equal(mode is "OutputLimit" ? 1 : 0, calls);
         }
         Assert.DoesNotContain(Directory.GetFiles(_root), path => Path.GetFileName(path).Contains(".tmp"));
     }
