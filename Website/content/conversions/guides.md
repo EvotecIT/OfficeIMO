@@ -68,7 +68,7 @@ The [format compatibility page](/compatibility/) exposes those states from the s
 
 ## Browser, server, and desktop choices
 
-The browser playground handles selected conversions on your device, including [Publisher to PDF](/browser/publisher-to-pdf/). Legacy DOC, XLS, and PPT migration uses the local packages or command-line tools described in the route guides.
+The browser playground handles selected conversions on your device, including the [Publisher to PDF browser converter](/browser/publisher-to-pdf/). Legacy DOC, XLS, and PPT migration uses the local packages or command-line tools described in the route guides.
 
 ## Need a broader workflow?
 
