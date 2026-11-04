@@ -1,4 +1,6 @@
 #nullable enable
+OfficeIMO.OfficeConversionOptions.CsvSave.get -> OfficeIMO.CSV.CsvSaveOptions?
+OfficeIMO.OfficeConversionOptions.CsvSave.set -> void
 OfficeIMO.OfficeConversionOptions.PowerPointHtml.get -> OfficeIMO.PowerPoint.Html.PowerPointHtmlExportOptions?
 OfficeIMO.OfficeConversionOptions.PowerPointHtml.set -> void
 OfficeIMO.OfficeBatchItemReport.SkippedReason.get -> string?

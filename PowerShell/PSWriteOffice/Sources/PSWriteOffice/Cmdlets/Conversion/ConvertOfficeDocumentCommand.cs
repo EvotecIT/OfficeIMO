@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Management.Automation;
 using System.Security;
 using System.Threading.Tasks;
@@ -25,6 +26,10 @@ namespace PSWriteOffice.Cmdlets.Conversion;
 ///   <summary>Save and preview a portable conversion job.</summary>
 ///   <code>Convert-OfficeDocument -Path ./reports -Recurse -To Pdf -OutputDirectory ./pdf -SaveJob ./reports.officejob.json
 /// Convert-OfficeDocument -JobPath ./reports.officejob.json -Plan</code>
+/// </example>
+/// <example>
+///   <summary>Accumulate literal HTML pipeline records into one PDF.</summary>
+///   <code>'&lt;h1&gt;Review&lt;/h1&gt;', '&lt;p&gt;Approved.&lt;/p&gt;' | Convert-OfficeDocument -Text { $_ } -From Html -To Pdf -OutputPath ./review.pdf</code>
 /// </example>
 [Cmdlet("Convert", "OfficeDocument", DefaultParameterSetName = "Path", SupportsShouldProcess = true)]
 [OutputType(typeof(OfficeConversionReport), typeof(OfficeBatchItemReport), typeof(OfficeBatchPlan), typeof(FileInfo), typeof(string))]
@@ -75,6 +80,17 @@ public sealed partial class ConvertOfficeDocumentCommand : AsyncPSCmdlet {
     [Parameter(ParameterSetName = "Text")]
     [Parameter(ParameterSetName = "Document")]
     public object[]? Options { get; set; }
+
+    /// <summary>Built-in theme, shared theme object or document/template theme for Markdown to Word/PowerPoint and HTML to Word. Overrides route-option themes. Advanced creation settings are execution-only in saved jobs.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "PathFile")]
+    [Parameter(ParameterSetName = "LiteralPathFile")]
+    [Parameter(ParameterSetName = "Text")]
+    [Parameter(ParameterSetName = "Document")]
+    [OfficeThemeTransformation]
+    [ValidateNotNull]
+    public OfficeThemeInput? Theme { get; set; }
 
     /// <summary>Runtime source password; saved definitions contain references rather than password values.</summary>
     [Parameter(ParameterSetName = "Path")]
@@ -131,7 +147,7 @@ public sealed partial class ConvertOfficeDocumentCommand : AsyncPSCmdlet {
     [Parameter(ParameterSetName = "Document")]
     public SwitchParameter CompressPdf { get; set; }
 
-    /// <summary>Leave an existing destination unchanged and report its input as skipped.</summary>
+    /// <summary>Refuse an existing single-file destination. Batches leave existing destinations unchanged and report their inputs as skipped.</summary>
     [Parameter(ParameterSetName = "Path")]
     [Parameter(ParameterSetName = "LiteralPath")]
     [Parameter(ParameterSetName = "PathFile")]
@@ -199,8 +215,12 @@ public sealed partial class ConvertOfficeDocumentCommand : AsyncPSCmdlet {
 
     /// <inheritdoc />
     protected override async Task ProcessRecordAsync() {
+        ValidateShow();
         if (ParameterSetName == "Job") return;
-        if (ParameterSetName == "Text") { await ConvertTextAsync(); return; }
+        if (ParameterSetName == "Text") {
+            if (HasOcrRequest) throw new PSArgumentException("OCR requires an original image/PDF path or an existing OCR review.");
+            CaptureTextRecord(); return;
+        }
         if (ParameterSetName == "Document") {
             if (To == null && OutputPath == null) throw new PSArgumentException("Specify To, or an OutputPath whose extension selects the target format.");
             // Piped path strings land here when OutputPath is present; they keep Path's wildcard semantics.
@@ -227,7 +247,12 @@ public sealed partial class ConvertOfficeDocumentCommand : AsyncPSCmdlet {
 
     /// <inheritdoc />
     protected override async Task EndProcessingAsync() {
-        if (ParameterSetName == "Text" || ParameterSetName == "Document" && _inputs.Count == 0) return;
+        ValidateShow();
+        if (ParameterSetName == "Text") {
+            if (_textRecords != null) await ConvertTextAsync(_textRecords.ToString());
+            return;
+        }
+        if (ParameterSetName == "Document" && _inputs.Count == 0) return;
         if (NoClobber && AutoRename) throw new PSArgumentException("NoClobber and AutoRename cannot be combined.");
         if (AsString && OutputPath != null) throw new PSArgumentException("AsString and OutputPath cannot be combined.");
         if (IsSingleFile) await ConvertFileAsync();
@@ -248,15 +273,28 @@ public sealed partial class ConvertOfficeDocumentCommand : AsyncPSCmdlet {
         if (OfficeFormatSelection.Parse(To) is { } target && !target.Matches(System.IO.Path.GetExtension(output)))
             throw new PSArgumentException("To and the OutputPath extension must name the same target format.");
         var options = CaptureOptions(_inputs, System.IO.Path.GetExtension(output));
-        OfficeWorkflowCommandUtilities.EnsureSupportedInput(_inputs[0], output, options);
+        if (!UsesOcr) OfficeWorkflowCommandUtilities.EnsureSupportedInput(_inputs[0], output, options);
         if (!ShouldProcess(output, "Convert document")) return;
-        if (OfficeBatchOutputSelection.ObserveSkip(_inputs[0], output, NoClobber.IsPresent, SkipUpToDate.IsPresent) is { } skipped) {
+        if (!NoClobber && OfficeBatchOutputSelection.ObserveSkip(_inputs[0], output, skipExisting: false, skipUpToDate: SkipUpToDate.IsPresent) is { } skipped) {
             SetSummary(skipped);
             WriteObject(skipped);
             return;
         }
-        var result = await OfficeConverter.ConvertAsync(_inputs[0], output, options, CancelToken);
+        var result = await ConvertFileOutputAsync(output, async () => UsesOcr
+            ? await ConvertOcrPathAsync(_inputs[0], output, options, CancelToken)
+            : await OfficeConverter.ConvertAsync(_inputs[0], output, options, CancelToken));
         SetSummary(result);
         WriteObject(result);
+        OpenPublishedOutput(result);
     }
+
+    /// <summary>Attaches PowerShell destination metadata to native output failures while preserving their exception and report.</summary>
+    private async Task<OfficeConversionReport> ConvertFileOutputAsync(string output, Func<Task<OfficeConversionReport>> convert) {
+        try { return await convert(); }
+        catch (OfficeConversionException error) when (error.Report.Diagnostics.Any(diagnostic => diagnostic.Code == OfficeDiagnosticCodes.ConversionOutputFailed)) {
+            ThrowTerminatingError(OfficeError.Create(error, OfficeDiagnosticCodes.ConversionOutputFailed, output, ErrorCategory.WriteError));
+            throw;
+        }
+    }
+
 }

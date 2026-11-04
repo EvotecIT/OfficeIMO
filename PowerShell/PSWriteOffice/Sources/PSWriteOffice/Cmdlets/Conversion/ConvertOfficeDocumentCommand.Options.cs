@@ -20,9 +20,12 @@ public sealed partial class ConvertOfficeDocumentCommand {
             (hasDirectory ? Extension == null || route.SourceExtensions.Intersect(Extension.Select(NormalizeExtension), StringComparer.OrdinalIgnoreCase).Any()
                 : inputs.Any(input => route.SourceExtensions.Contains(System.IO.Path.GetExtension(OfficeConverter.ConversionSourceName(input, inputFormat)), StringComparer.OrdinalIgnoreCase))))
             .ToArray();
-        if (Route != null && routes.Count == 0) throw new PSArgumentException("The selected route does not match the source and target extensions.");
+        if (!UsesOcr && Route != null && routes.Count == 0) throw new PSArgumentException("The selected route does not match the source and target extensions.");
         var engine = (EngineIntrinsics)SessionState.PSVariable.GetValue("ExecutionContext");
-        var result = OfficeConversionOptionBinding.Capture(engine, Options, routes);
+        if (UsesOcr) CaptureOcrSettings(target);
+        var result = UsesOcr ? OfficeConversionOptionBinding.CaptureOcr(engine, Options, target)
+            : OfficeConversionOptionBinding.Capture(engine, Options, routes);
+        if (Theme != null) OfficeConversionOptionBinding.ApplyTheme(result, Theme, routes);
         if (From != null) { result.SourceFormat = inputFormat.SourceFormat; result.SourceExtension = inputFormat.SourceExtension; }
         if (MyInvocation.BoundParameters.ContainsKey(nameof(Password)))
             result.SourcePassword = Password.ToPlainText();
@@ -36,6 +39,7 @@ public sealed partial class ConvertOfficeDocumentCommand {
         if (MyInvocation.BoundParameters.ContainsKey(nameof(MaximumInputBytes))) result.MaximumInputBytes = MaximumInputBytes;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(MaximumOutputBytes))) result.MaximumOutputBytes = MaximumOutputBytes;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(MaximumXmlCharactersInPart))) result.MaximumXmlCharactersInPart = MaximumXmlCharactersInPart;
+        ApplyPageAndDpi(result, routes);
         return result;
     }
 

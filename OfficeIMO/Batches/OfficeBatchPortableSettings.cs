@@ -51,7 +51,7 @@ internal sealed class OfficeBatchPortableSettings {
         };
         if (result.TextEncoding?.Length > 128) throw new InvalidDataException("Text encoding names cannot exceed 128 characters.");
         OfficeConversionOptions baseline = result.CreateOptions();
-        if (options.SourcePassword != null || options.PowerPoint != null || options.Html != null ||
+        if (options.SourcePassword != null || options.CsvSave != null || options.PowerPoint != null || options.Html != null ||
             options.Markdown != null || options.ExcelLoad != null || options.PowerPointLoad != null ||
             options.WordSave != null || options.ExcelSave != null || options.PowerPointSave != null || options.RegisteredSettings != null ||
             options.Reader != null || options.ReaderPdf != null || options.ReaderEmail != null || options.ReaderEpub != null || options.ReaderVisio != null ||
